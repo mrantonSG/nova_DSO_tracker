@@ -7,11 +7,12 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V0.8.1b
-added common name in graphic
+V1.0b
+switch between single and multi user
+store secret key on .env file
 
 
-March 2025, alice Gutscher
+March 2025, Anton Gutscher
 """
 
 # =============================================================================
@@ -20,6 +21,7 @@ March 2025, alice Gutscher
 import os
 import json
 from datetime import datetime, timedelta
+from decouple import config
 
 import numpy as np
 import pytz
@@ -45,7 +47,9 @@ import astropy.units as u
 # Flask and Flask-Login Setup
 # =============================================================================
 app = Flask(__name__)
-app.secret_key = 'your_secret_key_here'  # Replace with a secure secret key
+app.secret_key = config('SECRET_KEY')
+
+SINGLE_USER_MODE = True  # Set to False for multi‑user mode
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -53,7 +57,7 @@ login_manager.login_view = 'login'
 login_manager.login_message = None
 
 # =============================================================================
-# In-Memory User Store and User Model
+# In-Memory User Store and User Model (this needs further development)
 # =============================================================================
 users = {
     'alice': {'id': 'alice', 'username': 'alice', 'password': 'mypassword'},
@@ -79,9 +83,20 @@ def sanitize_object_name(object_name):
 # User-Specific Configuration Functions
 # =============================================================================
 def load_user_config(username):
-    filename = f"config_{username}.yaml"
+    if SINGLE_USER_MODE:
+        filename = "config_default.yaml"
+    else:
+        filename = f"config_{username}.yaml"
     with open(filename, "r") as file:
         return yaml.safe_load(file)
+
+def save_user_config(username, config_data):
+    if SINGLE_USER_MODE:
+        filename = "config_default.yaml"
+    else:
+        filename = f"config_{username}.yaml"
+    with open(filename, "w") as file:
+        yaml.dump(config_data, file)
 
 def save_user_config(username, config_data):
     filename = f"config_{username}.yaml"
@@ -108,31 +123,24 @@ def login():
 # =============================================================================
 @app.before_request
 def load_config_for_request():
-    if current_user.is_authenticated:
+    # In single-user mode, always load config_default.yaml.
+    if SINGLE_USER_MODE:
+        g.user_config = load_user_config("default")
+    elif current_user.is_authenticated:
         g.user_config = load_user_config(current_user.username)
-        g.locations = g.user_config.get("locations", {})
-        g.selected_location = g.user_config.get("default_location", "")
-        loc_config = g.locations.get(g.selected_location, {})
-        g.lat = loc_config.get("lat")
-        g.lon = loc_config.get("lon")
-        g.tz_name = loc_config.get("timezone", "UTC")
-        g.objects_list = g.user_config.get("objects", [])
-        # Normalize keys to lowercase for consistency:
-        g.alternative_names = {obj.get("Object").lower(): obj.get("Name") for obj in g.objects_list}
-        g.projects = {obj.get("Object").lower(): obj.get("Project") for obj in g.objects_list}
-        # Also store the objects in lowercase (if desired)
-        g.objects = [obj.get("Object") for obj in g.objects_list]
     else:
         g.user_config = {}
-        g.locations = {}
-        g.selected_location = ""
-        g.lat = None
-        g.lon = None
-        g.tz_name = "UTC"
-        g.objects_list = []
-        g.objects = []
-        g.alternative_names = {}
-        g.projects = {}
+    # Then populate the other variables (locations, objects, etc.)
+    g.locations = g.user_config.get("locations", {})
+    g.selected_location = g.user_config.get("default_location", "")
+    loc_config = g.locations.get(g.selected_location, {})
+    g.lat = loc_config.get("lat")
+    g.lon = loc_config.get("lon")
+    g.tz_name = loc_config.get("timezone", "UTC")
+    g.objects_list = g.user_config.get("objects", [])
+    g.alternative_names = {obj.get("Object").lower(): obj.get("Name") for obj in g.objects_list}
+    g.projects = {obj.get("Object").lower(): obj.get("Project") for obj in g.objects_list}
+    g.objects = [obj.get("Object") for obj in g.objects_list]
 # =============================================================================
 # Global Cache and Other Utilities
 # =============================================================================
@@ -792,6 +800,14 @@ def update_project():
         return jsonify({"status": "success"})
     except Exception as e:
         return jsonify({"status": "error", "error": str(e)}), 500
+
+@app.before_request
+def bypass_login_in_single_user():
+    if SINGLE_USER_MODE and not current_user.is_authenticated:
+        # Create a dummy user.
+        dummy_user = User("default", "default")
+        # Log in the dummy user.
+        login_user(dummy_user)
 # =============================================================================
 # Main Entry Point
 # =============================================================================
