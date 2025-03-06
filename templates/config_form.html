@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
+  <meta charset="UTF-8">
+  <title>Configuration Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    fieldset {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f9f9f9;
+      border: 1px solid #ddd !important;
+    }
+    legend {
+      font-size: 16px;
+      font-weight: bold;
+      padding: 0 5px;
+      color: #333;
+    }
+    label {
+      font-size: 12px;
+      margin-right: 5px;
+    }
+    input, select, textarea {
+      font-size: 14px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+    .block {
+      border: 0px solid #ddd;
+      background: #ecf1f1;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+    .error {
+      color: red;
+    }
+    .message {
+      color: green;
+    }
+    .inline-button {
+      padding: 5px 10px;
+    }
+    input.wide {
+      width: 300px;
+    }
+    /* Fixed width for labels inside inline fields */
+    .inline-fields label {
+      display: inline-block;
+      width: 20px;
+      text-align: left;
+      margin: 0;
+      padding: 0;
+    }
+    /* Define fixed width for location ID cells */
+    .location-id {
+      width: 100px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .object-id {
+      width: 100px; /* For objects, already defined */
+    }
+    .header-container { display: flex; align-items: baseline; }
+    .header-container h1, .header-container h3 { margin-bottom: 20px; }
+    .header-container h3 { margin-left: 10px; }
+    h3, h4 {
+      font-weight: normal;
+    }
+    .info-container {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    #back-button {
+      margin-top: 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #back-button:hover {
+      background-color: #6795a4 !important;
+    }
+    input.object_field {
+      width: 50px;
+    }
+    input.name_field {
+      width: 200px;
+    }
+    input.project_field {
+      width: 300px;
+    }
+    textarea.wide, textarea.project_field {
+      width: 500px;
+      height: 100px;
+      box-sizing: border-box;
+    }
+    /* --- Inline Fields Layout --- */
+    .inline-fields {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 0 0 10px 0;
+
+    }
+    /* Each field container (label + input) as a row */
+    .inline-fields > div {
+      display: flex;
+      flex-direction: row;       /* Label and input side by side */
+      align-items: flex-start;   /* Top align both */
+      gap: 5px;
+    }
+    /* Ensure inputs and textareas have no extra top margin */
+    .inline-fields input,
+    .inline-fields textarea {
+      margin-top: 0;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+    /* For short labels (e.g., Lat, Lon) */
+    .short-label {
+      display: inline-block;
+      width: auto !important;      /* Let the text size determine the width */
+      margin-right: 2px !important; /* Less space */
+      text-align: left !important;
+    }
+
+    /* For longer labels (e.g., Timezone, Project) */
+    .long-label {
+      display: inline-block;
+      width: 50px !important;      /* Fixed width for consistency */
+      margin-right: 5px !important; /* More space */
+      text-align: left !important;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="header-container">
+    <h1>Nova</h1>
+    <h3>DSO Altitude Tracker V0.8.1b</h3>
+  </div>
+  <div class="info-container">
+    <button type="button" id="back-button" onclick="window.location.href='{{ url_for('index') }}'">
+      Back to Tracker
+    </button>
+    {% if error %}
+      <p class="error">Error: {{ error }}</p>
+    {% endif %}
+    {% if message %}
+      <p class="message">{{ message }}</p>
+    {% endif %}
+
+  </div>
+
+  <!-- Locations Form -->
+  <form method="post">
+    <fieldset>
+      <legend>Locations Configuration</legend>
+      <!-- Add New Location inline -->
+      <fieldset>
+        <legend>Add New Location</legend>
+        <div class="inline-fields">
+          <div>
+            <label class="short-label" for="new_location">Name:</label>
+            <input type="text" name="new_location" id="new_location" placeholder="e.g., New York">
+          </div>
+          <div>
+            <label class="short-label" for="new_lat">Lat:</label>
+            <input type="text" name="new_lat" id="new_lat" placeholder="40.7128">
+          </div>
+          <div>
+            <label class="short-label" for="new_lon">Lon:</label>
+            <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
+          </div>
+          <div>
+            <label class="short-label" for="new_timezone">Timezone:</label>
+            <input type="text" name="new_timezone" id="new_timezone" placeholder="America/New_York">
+          </div>
+          <div>
+            <button type="submit" name="submit_new_location" value="1" class="inline-button">Add</button>
+          </div>
+        </div>
+      </fieldset>
+      <hr>
+      <!-- Existing Locations arranged vertically -->
+      {% for loc_key, loc_val in locations.items() %}
+        <div class="block">
+          <div class="inline-fields">
+            <div class="location-id">
+              <strong>{{ loc_key }}</strong>
+            </div>
+            <div>
+              <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
+              <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
+            </div>
+            <div>
+              <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
+              <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
+            </div>
+            <div>
+              <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
+              <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
+            </div>
+            <div>
+              <label class="short-label" for="delete_loc_{{ loc_key }}">Delete:</label>
+              <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      <button type="submit" name="submit_locations" value="1">Update Locations</button>
+    </fieldset>
+  </form>
+
+  <!-- Objects Form -->
+  <form method="post">
+    <fieldset>
+      <legend>Objects Configuration</legend>
+      <!-- Add New Object inline -->
+      <fieldset>
+        <legend>Add New Object</legend>
+        <div class="inline-fields">
+          <div>
+            <label class="long-label" for="new_object">Object ID:</label>
+            <input type="text" name="new_object" id="new_object" placeholder="e.g., NGC 1234">
+          </div>
+          <div>
+            <label class="long-label" for="new_name">Common Name:</label>
+            <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+          </div>
+          <div>
+            <label class="long-label" for="new_project">Project:</label>
+            <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
+          </div>
+          <div>
+            <button type="submit" name="submit_new_object" value="1" class="inline-button">Add</button>
+          </div>
+        </div>
+      </fieldset>
+      <hr>
+      <!-- Existing Objects arranged vertically -->
+      {% for obj in config.objects %}
+      <div class="block">
+        <div class="inline-fields">
+          <div class="object-id">
+            <strong>{{ obj.Object }}</strong>
+          </div>
+          <div>
+            <label class="long-label" for="name_{{ obj.Object }}">Name:</label>
+            <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+          </div>
+          <div>
+            <label class="long-label" for="project_{{ obj.Object }}">Project:</label>
+            <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
+          </div>
+          <div>
+            <label class="short-label" for="delete_{{ obj.Object }}">Delete:</label>
+            <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      <button type="submit" name="submit_objects" value="1">Update Objects</button>
+    </fieldset>
+  </form>
+  <br>
+</body>
+</html>

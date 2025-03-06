@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DSO Altitude Tracker</title>
+  <style>
+    /* Your CSS styles here (as provided earlier) */
+    table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; table-layout: auto; word-wrap: break-word; }
+    th, td { border: 1px solid #ddd; padding: 6px; font-size: 16px; }
+    td:nth-child(1), th:nth-child(1),
+    td:nth-child(2), th:nth-child(2) { text-align: left; }
+    td:not(:nth-child(1)):not(:nth-child(2)),
+    th:not(:nth-child(1)):not(:nth-child(2)) { text-align: center; }
+    th { background-color: #f2f2f2; font-weight: normal; cursor: pointer; }
+    th span { display: block; font-weight: bold; }
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    .highlight { background-color: #83b4c5; }
+    tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
+    #graph-section { display: none; text-align: left; margin-left: 0px; }
+    #back-button { margin-top: 0px; padding: 10px 20px; font-size: 16px; background-color: #83b4c5; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #back-button:hover { background-color: #6795a4 !important; }
+    .header-container { display: flex; align-items: baseline; }
+    .header-container h1, .header-container h3 { margin-bottom: 20px; }
+    .header-container h3 { margin-left: 10px; }
+    .info-container { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
+    .info-container p, .info-container label, .info-container select { margin: 0; }
+    h3 { font-weight: normal; }
+    .filter-row input {
+      width: 90%;        /* Adjust percentage or use a fixed width like 150px */
+      max-width: 200px;  /* Optional: set a maximum width */
+      box-sizing: border-box; /* Ensure padding doesn't increase total width */
+      padding: 4px;
+      font-size: 15px;     /* Adjust padding as needed */
+    }
+    #location-select {
+      width: 150px;      /* Set desired width */
+      height: 35px;      /* Set desired height */
+      font-size: 16px;   /* Adjust font size if needed */
+      padding: 5px;
+      box-sizing: border-box;
+    }
+  </style>
+  <script>
+    // Sorts the table rows based on columnIndex.
+    // When toggle==true, it toggles the order and saves the new values.
+    // When toggle==false, it uses the stored sort order.
+    function sortTable(columnIndex, toggle = true) {
+      const table = document.getElementById("data-table");
+      let sortOrder;
+      if (toggle) {
+        // When clicking, use the current sort order from the table attribute.
+        sortOrder = table.getAttribute("data-sort-order") || "asc";
+      } else {
+        // When reapplying sorting after refresh, use the stored order.
+        sortOrder = localStorage.getItem("sortOrder") || "asc";
+      }
+
+      const tbody = document.getElementById("data-body");
+      const rows = Array.from(tbody.getElementsByTagName("tr"));
+
+      rows.sort((a, b) => {
+        const cellA = a.getElementsByTagName("td")[columnIndex].innerText.trim();
+        const cellB = b.getElementsByTagName("td")[columnIndex].innerText.trim();
+
+        const numA = parseFloat(cellA);
+        const numB = parseFloat(cellB);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortOrder === "asc" ? numA - numB : numB - numA;
+        }
+        return sortOrder === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+      });
+
+      // Re-append the sorted rows.
+      rows.forEach(row => tbody.appendChild(row));
+
+      if (toggle) {
+        // Save the sort order used (the current one) and the column index.
+        localStorage.setItem("sortOrder", sortOrder);
+        localStorage.setItem("sortColumn", columnIndex);
+        // Then toggle the table attribute for next click.
+        const newOrder = sortOrder === "asc" ? "desc" : "asc";
+        table.setAttribute("data-sort-order", newOrder);
+      } else {
+        // When not toggling, just set the table attribute to the stored value.
+        table.setAttribute("data-sort-order", sortOrder);
+      }
+    }
+    // Save the filter value using a unique key per column.
+    function saveFilter(input, colIndex) {
+      localStorage.setItem("filter_col_" + colIndex, input.value);
+    }
+    // Helper function: Check a numeric cell against an operator condition (like ">200" or "<=400").
+    function checkNumericCondition(cellNumber, condition) {
+      condition = condition.trim();
+      let operator, value;
+      if (condition.startsWith(">=")) {
+        operator = ">=";
+        value = parseFloat(condition.substring(2));
+      } else if (condition.startsWith("<=")) {
+        operator = "<=";
+        value = parseFloat(condition.substring(2));
+      } else if (condition.startsWith(">")) {
+        operator = ">";
+        value = parseFloat(condition.substring(1));
+      } else if (condition.startsWith("<")) {
+        operator = "<";
+        value = parseFloat(condition.substring(1));
+      } else {
+        // If no operator is provided, do a simple substring match on the number as a string.
+        return String(cellNumber).toLowerCase().indexOf(condition.toLowerCase()) !== -1;
+      }
+      if (isNaN(value)) return false;
+      switch (operator) {
+        case ">":  return cellNumber > value;
+        case ">=": return cellNumber >= value;
+        case "<":  return cellNumber < value;
+        case "<=": return cellNumber <= value;
+        default:   return false;
+      }
+    }
+
+    // Apply filters to table rows.
+    function filterTable() {
+      const table = document.getElementById("data-table");
+      const filterRow = table.querySelector(".filter-row");
+      if (!filterRow) return; // Ensure the filter row exists.
+      const inputs = filterRow.getElementsByTagName("input");
+
+      // Restore saved filter values from localStorage.
+      for (let i = 0; i < inputs.length; i++) {
+        let saved = localStorage.getItem("filter_col_" + i);
+        if (saved !== null) {
+          inputs[i].value = saved;
+        }
+      }
+
+      const tbody = document.getElementById("data-body");
+      const rows = tbody.getElementsByTagName("tr");
+
+      // Loop over each row.
+      for (let i = 0; i < rows.length; i++) {
+        let showRow = true;
+        const cells = rows[i].getElementsByTagName("td");
+        // Loop over each filter input.
+        for (let j = 0; j < inputs.length; j++) {
+          const filterValue = inputs[j].value.trim().toLowerCase();
+          if (filterValue !== "") {
+            const cellText = cells[j].innerText.trim().toLowerCase();
+            // For numeric columns (indexes 2, 3, 5, 6, 8), support range operators.
+            if ([2, 3, 5, 6, 8].includes(j)) {
+              const cellNumber = parseFloat(cellText);
+              if (isNaN(cellNumber)) {
+                showRow = false;
+                break;
+              }
+              // Allow multiple conditions separated by spaces.
+              const conditions = filterValue.split(" ").filter(cond => cond !== "");
+              for (let cond of conditions) {
+                if (!checkNumericCondition(cellNumber, cond)) {
+                  showRow = false;
+                  break;
+                }
+              }
+              if (!showRow) break;
+            } else {
+              // For text columns, simple substring match.
+              if (cellText.indexOf(filterValue) === -1) {
+                showRow = false;
+                break;
+              }
+            }
+          }
+        }
+        rows[i].style.display = showRow ? "" : "none";
+      }
+    }
+
+    function fetchData() {
+      const localTime = new Date().toISOString();
+      fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('date').textContent = `Date: ${data.date}`;
+          document.getElementById('time').textContent = `Time: ${data.time}`;
+          document.getElementById('phase').textContent = `Moon Illumination: ${data.phase}%`;
+
+          let tableBody = document.getElementById('data-body');
+          tableBody.innerHTML = '';
+
+          data.objects.forEach(obj => {
+            let row = document.createElement('tr');
+            row.classList.add('clickable-row');
+            row.setAttribute('data-object', obj.Object);
+
+            // Set row background color based on error or project.
+            if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) {
+              row.style.backgroundColor = "#f8d7da";  // light red for errors
+            } else if (obj.Project && obj.Project.toLowerCase() !== "none") {
+              row.style.backgroundColor = "#dce5ea";  // light blue for projects
+            }
+
+            const currentAltClass = obj['Altitude Current'] > 20 ? 'highlight' : '';
+            const elevenPMAltClass = obj['Altitude 11PM'] > 20 ? 'highlight' : '';
+
+            const altCurrent = Number(obj['Altitude Current']) || 0;
+            const azCurrent  = Number(obj['Azimuth Current'])  || 0;
+            const alt11pm    = Number(obj['Altitude 11PM'])    || 0;
+            const az11pm     = Number(obj['Azimuth 11PM'])     || 0;
+            const observable = (obj['Observable Duration (min)'] !== undefined) ? obj['Observable Duration (min)'] : 'N/A';
+
+            row.innerHTML = `<td>${obj.Object}</td>
+                             <td>${obj['Common Name'] || 'N/A'}</td>
+                             <td class="${currentAltClass}">${altCurrent.toFixed(2)}°</td>
+                             <td>${azCurrent.toFixed(2)}°</td>
+                             <td>${obj.Trend}</td>
+                             <td class="${elevenPMAltClass}">${alt11pm.toFixed(2)}°</td>
+                             <td>${az11pm.toFixed(2)}°</td>
+                             <td>${obj['Transit Time'] || 'N/A'}</td>
+                             <td>${observable}</td>`;
+
+            row.addEventListener('click', function() {
+              const commonName = obj['Common Name'] || "";
+              if(commonName.toLowerCase().startsWith("error:")) {
+                alert("Graph not available: " + commonName);
+                return;
+              }
+              const objectName = this.getAttribute('data-object');
+              showGraph(objectName);
+            });
+            tableBody.appendChild(row);
+          });
+
+          // Reapply stored sort order if available.
+          const storedColumn = localStorage.getItem("sortColumn");
+          if (storedColumn !== null) {
+            sortTable(parseInt(storedColumn), false);
+          }
+          // Reapply filters.
+          filterTable();
+        })
+        .catch(error => console.error('❌ Error fetching data:', error));
+    }
+
+    function showGraph(objectName) {
+      const graphUrl = `/plot_altitude/${encodeURIComponent(objectName)}`;
+      document.getElementById('graph-iframe').src = graphUrl;
+      document.getElementById('graph-section').style.display = 'block';
+      document.getElementById('list-section').style.display = 'none';
+    }
+
+    function showList() {
+      document.getElementById('graph-section').style.display = 'none';
+      document.getElementById('list-section').style.display = 'block';
+    }
+
+    function fetchLocations() {
+      fetch('/get_locations')
+        .then(response => response.json())
+        .then(data => {
+          let locationSelect = document.getElementById('location-select');
+          locationSelect.innerHTML = '';
+          data.locations.forEach(location => {
+            let option = document.createElement('option');
+            option.value = location;
+            option.textContent = location;
+            if (location === data.selected) option.selected = true;
+            locationSelect.appendChild(option);
+          });
+        })
+        .catch(error => console.error('❌ Error fetching locations:', error));
+    }
+
+    function setLocation() {
+      const selectedLocation = document.getElementById('location-select').value;
+      fetch('/set_location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: selectedLocation })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          fetchData();
+        } else {
+          console.error("❌ Location update failed:", data);
+        }
+      })
+      .catch(error => console.error('❌ Error setting location:', error));
+    }
+
+    window.onload = () => {
+      fetchData();
+      fetchLocations();
+      setInterval(fetchData, 60000);
+      // Attach sort events to header cells.
+      const headers = document.querySelectorAll("#data-table th.sortable");
+      headers.forEach((header, index) => {
+        header.addEventListener("click", () => sortTable(index, true));
+      });
+    };
+    </script>
+</head>
+<body>
+  <div class="header-container">
+    <h1>Nova</h1>
+    <h3>DSO Altitude Tracker V0.8.1b</h3>
+  </div>
+  <div class="info-container">
+    <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
+      Configuration
+    </button>
+    <label for="location-select">Select Location:</label>
+    <select id="location-select" onchange="setLocation()"></select>
+    <p id="date"></p>
+    <p id="time"></p>
+    <p id="phase"></p>
+  </div>
+
+  <!-- Give the table an ID so we can sort it -->
+  <div id="list-section">
+    <table id="data-table" style="table-layout: fixed; width: 100%;" data-sort-order="asc">
+      <col style="width: 10%;">
+      <col style="width: 25%;">
+      <col style="width: 7.14%;">
+      <col style="width: 7.14%;">
+      <col style="width: 5%;">
+      <col style="width: 7.14%;">
+      <col style="width: 7.14%;">
+      <col style="width: 7.14%;">
+      <col style="width: 8%;">
+      <thead>
+        <tr>
+          <th class="sortable"><span>Object</span></th>
+          <th class="sortable"><span>Common name</span></th>
+          <th class="sortable"><span>Altitude <br>(Current)</span></th>
+          <th class="sortable"><span>Azimuth <br>(Current)</span></th>
+          <th class="sortable"><span>Trend</span></th>
+          <th class="sortable"><span>Altitude <br>(11 PM)</span></th>
+          <th class="sortable"><span>Azimuth <br>(11 PM)</span></th>
+          <th class="sortable"><span>Transit <br>(Local Time)</span></th>
+          <th class="sortable"><span>Observable <br>(min)</span></th>
+        </tr>
+        <tr class="filter-row">
+          <th><input type="text" placeholder="Search Object" onkeyup="saveFilter(this, 0); filterTable();"/></th>
+          <th><input type="text" placeholder="Search Common name" onkeyup="saveFilter(this, 1); filterTable();" /></th>
+          <th><input type="text" placeholder="Altitude °" onkeyup="saveFilter(this, 2); filterTable();" /></th>
+          <th><input type="text" placeholder="Azimuth °" onkeyup="saveFilter(this, 3); filterTable();" /></th>
+          <th><input type="text" placeholder="Trend" disabled style="visibility:hidden;" /></th>
+          <th><input type="text" placeholder="Altitude °" onkeyup="saveFilter(this, 5); filterTable();" /></th>
+          <th><input type="text" placeholder="Azimuth °" onkeyup="saveFilter(this, 6); filterTable();" /></th>
+          <th><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
+          <th><input type="text" placeholder="minutes" onkeyup="saveFilter(this, 8); filterTable();" /></th>
+        </tr>
+      </thead>
+      <tbody id="data-body"></tbody>
+    </table>
+  </div>
+
+  <div id="graph-section" style="display: none;">
+    <iframe id="graph-iframe"
+            style="width: 100%; max-width:1500px; height: 1000px; border: none;"
+            title="Graph">
+    </iframe>
+
+  </div>
+</body>
+</html>

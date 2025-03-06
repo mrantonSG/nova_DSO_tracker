@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - DSO Altitude Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; }
+    form { display: flex; flex-direction: column; }
+    input[type="text"], input[type="password"] { padding: 10px; margin: 10px 0; font-size: 16px; }
+    input[type="submit"] { padding: 10px; font-size: 16px; background-color: #83b4c5; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    input[type="submit"]:hover { background-color: #6795a4; }
+    .flash { padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+    .flash.success { background-color: #d4edda; color: #155724; }
+    .flash.error { background-color: #f8d7da; color: #721c24; }
+    .flash.info { background-color: #d1ecf1; color: #0c5460; }
+    .header-container { display: flex; align-items: baseline; }
+    .header-container h1, .header-container h3 { margin-top: 100px;margin-bottom: 50px; }
+    .header-container h3 { margin-left: 10px; }
+    h2 { font-size: 25px; font-weight: normal;}
+  </style>
+</head>
+<body>
+  <div class="header-container">
+    <h1>Nova</h1>
+    <h3>DSO Altitude Tracker V0.8.1b</h3>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  <form method="POST" action="{{ url_for('login') }}">
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
+
+    <input type="submit" value="Log In">
+  </form>
+</body>
+</html>
