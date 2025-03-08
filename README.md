@@ -90,3 +90,11 @@ When finished, deactivate by running:
 ```bash
 deactivate
 ```
+
+Additional Notes
+	•	Configuration Files:
+For security, sensitive values such as SECRET_KEY or passwords should be stored in a .env file or a separate configuration file that is not committed to version control.
+	•	Multi‑user vs. Single‑user Mode:
+The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). See the project documentation for more details.
+	•	Dependencies:
+If you add more dependencies later, update the installation command accordingly.
