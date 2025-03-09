@@ -126,6 +126,25 @@ When finished, deactivate by running:
 deactivate
 ```
 
+## 8. (Optional) Running it in the background
+
+if you want to close the terminal window, for instance after starting the software on a server, start it like that:
+
+```bash
+setsid python3 app.py > app.log 2>&1 &
+```
+
+once you want to later stop it, look for the process:
+
+```bash
+ps aux | grep python
+```
+
+and stop it:
+
+```bash
+kill <the number you've found>
+```
 
 ## Additional Notes
 
