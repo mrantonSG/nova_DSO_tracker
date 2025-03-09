@@ -10,13 +10,13 @@ Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Az
 ### Main Interface
 When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination.
 
-![Main Interface](path_to_graphic1)
+![Main Interface](doc/Screenshot1.jpg)
 
 ### Sorting and Searching
 - **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
 - **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. Nova retains your sorting and filtering choices until you alter them.
 
-![Sorting and Searching](path_to_graphic2)
+![Sorting and Searching](doc/Screenshot2.jpg)
 
 ### Configuration
 Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen.
@@ -24,12 +24,12 @@ Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) l
 - **Object Designations:** SIMBAD may not recognize all object IDs. If unsure, search manually on SIMBAD first, then use the confirmed designation.
 - **Highlighting Objects:** Entering text in the "Project" field highlights the corresponding object in the main interface.
 
-![Configuration Screen](path_to_graphic3)
+![Configuration Screen](doc/Screenshot3.jpg)
 
 ### Detailed Object Information
 Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance.
 
-![Object Details](path_to_graphic4)
+![Object Details](doc/Screenshot4.jpg)
 
 ---
 
