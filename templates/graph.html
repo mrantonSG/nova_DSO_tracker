@@ -84,7 +84,7 @@
         if (container.style.display === 'none') {
           // Build SIMBAD URL; adjust the URL format if needed.
           // For instance, SIMBAD can be queried like this:
-          var simbadURL = "http://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent("{{ object_name }}");
+          var simbadURL = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent("{{ object_name }}");
           document.getElementById('simbadIframe').src = simbadURL;
           container.style.display = 'block';
         } else {
