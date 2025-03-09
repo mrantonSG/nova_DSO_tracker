@@ -131,7 +131,7 @@ deactivate
 if you want to close the terminal window, for instance after starting the software on a server, start it like that:
 
 ```bash
-setsid python3 app.py > app.log 2>&1 &
+setsid python3 nova.py > app.log 2>&1 &
 ```
 
 once you want to later stop it, look for the process:
