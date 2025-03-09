@@ -1,7 +1,7 @@
 # Nova DSO Altitude Tracker - Quick Guide
 
 ### Purpose
-Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations. 
+Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
 
 Nova updates DSOs' positions every minute. Objects marked for special attention are highlighted. It also displays the Moon's illumination and provides graphical insights into the objects' positions throughout the night.
 
