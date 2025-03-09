@@ -7,8 +7,8 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.0.1
-fix error handling wrong location adding
+V1.1
+changed logic and storage of RA and DEC - no longer in specific file, but part of the config yaml
 
 
 March 2025, Anton Gutscher
@@ -238,54 +238,73 @@ def dms_to_degrees(dms):
 
 
 def get_ra_dec(object_name):
-    # Use the sanitized version for the cache key.
-    key = sanitize_object_name(object_name.lower())
+    obj_key = object_name.lower()
+    objects_config = g.user_config.get("objects", [])
+    obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
 
-    if key in persistent_cache:
-        data = persistent_cache[key]
-        # Use the original object name (lowercased) for config lookups.
-        data["Project"] = g.projects.get(object_name.lower(), "none")
-        data["Common Name"] = g.alternative_names.get(object_name.lower(), object_name)
-        return data
+    # Check if RA and DEC already exist in config
+    if obj_entry and "RA" in obj_entry and "DEC" in obj_entry:
+        ra_hours = obj_entry["RA"]
+        dec_degrees = obj_entry["DEC"]
+        return {
+            "Object": object_name,
+            "Common Name": obj_entry.get("Name", object_name),
+            "RA (hours)": ra_hours,
+            "DEC (degrees)": dec_degrees,
+            "Project": obj_entry.get("Project", "none")
+        }
 
+    # Fetch RA/DEC from SIMBAD only if not found in config
     Simbad.TIMEOUT = 60
     Simbad.ROW_LIMIT = 1
     try:
         result = Simbad.query_object(object_name)
         if result is None or len(result) == 0:
             raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
+
         result = {k.lower(): v for k, v in result.items()}
-        if "ra" not in result or "dec" not in result:
-            raise ValueError(f"Missing RA/DEC data for object '{object_name}'.")
         ra_value = result["ra"][0]
         dec_value = result["dec"][0]
+
         ra_hours = hms_to_hours(ra_value)
         dec_degrees = dms_to_degrees(dec_value)
-        common_name = g.alternative_names.get(object_name.lower(), object_name)
-        project_val = g.projects.get(object_name.lower(), "none")
-        data = {
-            "Object": object_name,  # Preserve the original name for SIMBAD queries.
-            "Common Name": common_name,
+
+        # Store fetched RA/DEC permanently into YAML
+        if obj_entry:
+            obj_entry["RA"] = ra_hours
+            obj_entry["DEC"] = dec_degrees
+        else:
+            # If object does not exist yet, create it in YAML
+            new_obj = {
+                "Object": object_name,
+                "Name": object_name,
+                "Type": "",
+                "Project": "none",
+                "RA": ra_hours,
+                "DEC": dec_degrees
+            }
+            objects_config.append(new_obj)
+
+        save_user_config(current_user.username, g.user_config)
+
+        return {
+            "Object": object_name,
+            "Common Name": object_name,
             "RA (hours)": ra_hours,
             "DEC (degrees)": dec_degrees,
-            "Project": project_val
+            "Project": "none"
         }
-        persistent_cache[key] = data
-        save_cache()
-        return data
+
     except Exception as e:
-        error_message = "Error: " + str(e)
+        error_message = f"Error: {str(e)}"
         print(f"[ERROR] Problem processing {object_name}: {error_message}")
-        data = {
+        return {
             "Object": object_name,
             "Common Name": error_message,
             "RA (hours)": None,
             "DEC (degrees)": None,
             "Project": error_message
         }
-        persistent_cache[key] = data
-        save_cache()
-        return data
 
 def ra_dec_to_alt_az(ra, dec, lat, lon, time_utc):
     if "T" not in time_utc:
