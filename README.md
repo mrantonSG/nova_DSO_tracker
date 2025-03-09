@@ -33,7 +33,7 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 
 ---
 
-# Nova Astronomical Tracker Setup Guide for macOS
+# Nova Astronomical Tracker Setup Guide
 
 This guide walks you through setting up your Flask astronomical tracking app, including creating a virtual environment and installing all required dependencies.
 
