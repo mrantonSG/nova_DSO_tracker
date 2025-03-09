@@ -7,7 +7,9 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.0
+V1.0.1
+fix error handling wrong location adding
+
 
 March 2025, Anton Gutscher
 """
@@ -19,6 +21,8 @@ import os
 import json
 from datetime import datetime, timedelta
 from decouple import config
+import signal
+import sys
 
 import numpy as np
 import pytz
@@ -650,14 +654,30 @@ def config_form():
                 new_location_lat = request.form.get("new_lat")
                 new_location_lon = request.form.get("new_lon")
                 new_location_timezone = request.form.get("new_timezone")
-                if new_location_name and new_location_lat and new_location_lon and new_location_timezone:
-                    g.user_config.setdefault('locations', {})[new_location_name] = {
-                        "lat": float(new_location_lat),
-                        "lon": float(new_location_lon),
-                        "timezone": new_location_timezone
-                    }
-                    message = "New location added."
-                    updated = True
+
+                # Validate inputs before adding
+                if not new_location_name or not new_location_lat or not new_location_lon or not new_location_timezone:
+                    error = "All fields are required to add a new location."
+                else:
+                    try:
+                        lat_val = float(new_location_lat)
+                        lon_val = float(new_location_lon)
+
+                        # Check if timezone is valid
+                        if new_location_timezone not in pytz.all_timezones:
+                            raise ValueError("Invalid timezone provided.")
+
+                        # Input looks good; save location
+                        g.user_config.setdefault('locations', {})[new_location_name] = {
+                            "lat": lat_val,
+                            "lon": lon_val,
+                            "timezone": new_location_timezone
+                        }
+                        message = "New location added successfully."
+                        updated = True
+
+                    except ValueError as ve:
+                        error = f"Invalid input: {ve}"
             elif 'submit_locations' in request.form:
                 updated_locations = {}
                 for loc_key, loc_data in g.user_config.get("locations", {}).items():
