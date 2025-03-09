@@ -8,7 +8,7 @@ Nova updates DSOs' positions every minute. Objects marked for special attention 
 Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Azimuth (Az) calculations are performed in real time, with updates reflected every minute on the web interface.
 
 ### Main Interface
-When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination.
+When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above 20° are highlighted.
 
 ![Main Interface](doc/Screenshot1.png)
 
