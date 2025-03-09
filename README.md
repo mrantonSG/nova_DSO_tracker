@@ -1,3 +1,37 @@
+# Nova DSO Altitude Tracker - Quick Guide
+
+### Purpose
+Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations. 
+
+Nova updates DSOs' positions every minute. Objects marked for special attention are highlighted. It also displays the Moon's illumination and provides graphical insights into the objects' positions throughout the night.
+
+Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Azimuth (Az) calculations are performed in real time, with updates reflected every minute on the web interface.
+
+### Main Interface
+When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination.
+
+![Main Interface](path_to_graphic1)
+
+### Sorting and Searching
+- **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
+- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. Nova retains your sorting and filtering choices until you alter them.
+
+![Sorting and Searching](path_to_graphic2)
+
+### Configuration
+Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen.
+
+- **Object Designations:** SIMBAD may not recognize all object IDs. If unsure, search manually on SIMBAD first, then use the confirmed designation.
+- **Highlighting Objects:** Entering text in the "Project" field highlights the corresponding object in the main interface.
+
+![Configuration Screen](path_to_graphic3)
+
+### Detailed Object Information
+Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance.
+
+![Object Details](path_to_graphic4)
+
+---
 
 # Nova Astronomical Tracker Setup Guide for macOS
 
