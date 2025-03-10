@@ -7,9 +7,8 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.1
-changed logic and storage of RA and DEC - no longer in specific file, but part of the config yaml
-
+V1.2
+new graphic: gemoves transit of the sun, added azimuth curve of the moon
 
 March 2025, Anton Gutscher
 """
@@ -348,13 +347,14 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     altitudes = altaz.alt.deg
     azimuths = altaz.az.deg
 
-    # Calculate Moon altitude (dashed yellow line).
-    moon_altitudes = []
+    # Calculate Moon altitude and azimuth.
+    moon_altitudes, moon_azimuths = [], []
     for t_utc in times_utc:
         frame = AltAz(obstime=t_utc, location=location)
         moon_coord = get_body('moon', t_utc, location=location)
         moon_altaz = moon_coord.transform_to(frame)
         moon_altitudes.append(moon_altaz.alt.deg)
+        moon_azimuths.append(moon_altaz.az.deg)
 
     # Get sun events.
     sun_events_curr = calculate_sun_events(local_date)
@@ -385,9 +385,10 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     # Create figure and primary axis.
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.plot(times_local_naive, altitudes, '-', linewidth=3, color='tab:blue', label=f'{object_name} Altitude')
+
     # Plot Moon altitude as dashed yellow.
-    ax.plot(times_local_naive, moon_altitudes, '-', color='y', label='Moon Altitude')
-    ax.axhline(y=0, color='gray', linewidth=3, linestyle='--', label='Horizon')
+    ax.plot(times_local_naive, moon_altitudes, '-', color='gold',linewidth=1, label='Moon Altitude')
+    ax.axhline(y=0, color='black', linewidth=2, linestyle='--', label='Horizon')
     ax.set_xlabel(f'Time (Local - {selected_location})')
     ax.set_ylabel('Altitude (°)', color='k')
     ax.tick_params(axis='y', labelcolor='k')
@@ -400,26 +401,52 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
 
     # Create secondary axis for azimuth (solid green).
     ax2 = ax.twinx()
-    ax2.plot(times_local_naive, azimuths, '-', linewidth=3, color='tab:cyan', label=f'{object_name} Azimuth')
+    ax2.plot(times_local_naive, azimuths, '--', linewidth=2, color='tab:cyan', label=f'{object_name} Azimuth')
     ax2.set_ylabel('Azimuth (°)', color='k')
     ax2.tick_params(axis='y', labelcolor='k')
     ax2.set_ylim(0, 360)
     ax2.spines['right'].set_color('k')
     ax2.spines['right'].set_linewidth(1.5)
 
+    # Add Moon azimuth clearly here.
+    ax2.plot(times_local_naive, moon_azimuths, '--', linewidth=1, color='gold', label='Moon Azimuth')
+
     # Set x-axis limits.
     plot_start = times_local_naive[0]
     plot_end = plot_start + timedelta(hours=24)
     ax.set_xlim(plot_start, plot_end)
 
+    # Define key times correctly
+    midnight = datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'), datetime.min.time())
+    noon = midnight + timedelta(hours=12)
+    next_midnight = midnight + timedelta(days=1)
+    previous_midnight = midnight - timedelta(days=1)
+
+    astro_dawn = event_datetimes_naive.get('curr_astronomical_dawn')
+    astro_dusk = event_datetimes_naive.get('prev_astronomical_dusk')  # Corrected for the previous day
+
+    # 1. Shade from **Noon (today) → Dusk (previous day)**
+    ax.axvspan(previous_midnight + timedelta(hours=12), astro_dusk, color='lightgray', alpha=0.4)
+
+    # 2. Shade from **Dawn (today) → Noon (today)**
+    ax.axvspan(astro_dawn, noon, color='lightgray', alpha=0.4)
+
     # Draw sun event vertical lines.
     for event, dt in event_datetimes_naive.items():
+        if 'transit' in event:
+            continue
         if plot_start <= dt <= plot_end:
-            ax.axvline(x=dt, color='tab:orange', linestyle='--', linewidth=2, alpha=0.7)
+            # Plot vertical event line
+            ax.axvline(x=dt, color='black', linestyle='-', linewidth=1, alpha=0.7)
+
+            # Calculate label position slightly to the right (adjust as you prefer)
+            label_x = mdates.date2num(dt + timedelta(minutes=10))
             ymin, ymax = ax.get_ylim()
-            label_y = ymin + 0.1 * (ymax - ymin)
-            label = event.split('_')[1].capitalize()
-            ax.text(dt, label_y, label, rotation=90,
+            label_y = ymin + 0.05 * (ymax - ymin)
+
+            # Create and place label
+            label = event.replace('prev_', '').replace('curr_', '').replace('_', ' ').capitalize()
+            ax.text(label_x, label_y, label, rotation=90,
                     verticalalignment='bottom', fontsize=9, color='grey')
 
     # Combine legends from both axes.
