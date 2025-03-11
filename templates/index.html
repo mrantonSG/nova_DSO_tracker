@@ -165,10 +165,19 @@
               }
               if (!showRow) break;
             } else {
-              // For text columns, simple substring match.
-              if (cellText.indexOf(filterValue) === -1) {
-                showRow = false;
-                break;
+              // For text columns, check for exclusion if filter starts with "!"
+              if (filterValue.startsWith("!")) {
+                const excludeTerm = filterValue.substring(1).trim();
+                if (cellText.indexOf(excludeTerm) !== -1) {
+                  showRow = false;
+                  break;
+                }
+              } else {
+                // Otherwise, perform a simple substring match.
+                if (cellText.indexOf(filterValue) === -1) {
+                  showRow = false;
+                  break;
+                }
               }
             }
           }
@@ -201,8 +210,10 @@
               row.style.backgroundColor = "#dce5ea";  // light blue for projects
             }
 
-            const currentAltClass = obj['Altitude Current'] > 20 ? 'highlight' : '';
-            const elevenPMAltClass = obj['Altitude 11PM'] > 20 ? 'highlight' : '';
+            const altitudeThreshold = data.altitude_threshold || 20; // ✅ Get the user-defined threshold
+
+            const currentAltClass = obj['Altitude Current'] >= altitudeThreshold ? 'highlight' : '';
+            const elevenPMAltClass = obj['Altitude 11PM'] >= altitudeThreshold ? 'highlight' : '';
 
             const altCurrent = Number(obj['Altitude Current']) || 0;
             const azCurrent  = Number(obj['Azimuth Current'])  || 0;
@@ -305,7 +316,7 @@
 <body>
   <div class="header-container">
     <h1>Nova</h1>
-    <h3>DSO Altitude Tracker V1.1.0</h3>
+    <h3>DSO Altitude Tracker V1.1</h3>
   </div>
   <div class="info-container">
     <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
