@@ -48,6 +48,9 @@
     input.wide {
       width: 300px;
     }
+    input.short {
+      width: 150px;
+    }
     /* Fixed width for labels inside inline fields */
     .inline-fields label {
       display: inline-block;
@@ -149,7 +152,7 @@
 <body>
   <div class="header-container">
     <h1>Nova</h1>
-    <h3>DSO Altitude Tracker</h3>
+    <h3>DSO Altitude Tracker DEV</h3>
   </div>
   <div class="info-container">
     <button type="button" id="back-button" onclick="window.location.href='{{ url_for('index') }}'">
@@ -248,54 +251,173 @@
   <!-- Objects Form -->
   <form method="post">
     <fieldset>
-      <legend>Objects Configuration</legend>
-      <!-- Add New Object inline -->
-      <fieldset>
-        <legend>Add New Object</legend>
-        <div class="inline-fields">
-          <div>
-            <label class="long-label" for="new_object">Object ID:</label>
-            <input type="text" name="new_object" id="new_object" placeholder="e.g., NGC 1234">
-          </div>
-          <div>
-            <label class="long-label" for="new_name">Common Name:</label>
-            <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
-          </div>
-          <div>
-            <label class="long-label" for="new_project">Project:</label>
-            <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
-          </div>
-          <div>
-            <button type="submit" name="submit_new_object" value="1" class="inline-button">Add</button>
-          </div>
+      <legend>Add New Object</legend>
+      <div class="inline-fields">
+        <div>
+          <label class="short-label" for="new_object">Object ID:</label>
+          <input type="text" name="new_object" id="new_object" class="short" placeholder="e.g., NGC 1234">
         </div>
-      </fieldset>
-      <hr>
-      <!-- Existing Objects arranged vertically -->
-      {% for obj in config.objects %}
-      <div class="block">
-        <div class="inline-fields">
-          <div class="object-id">
-            <strong>{{ obj.Object }}</strong>
-          </div>
-          <div>
-            <label class="long-label" for="name_{{ obj.Object }}">Name:</label>
-            <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
-          </div>
-          <div>
-            <label class="long-label" for="project_{{ obj.Object }}">Project:</label>
-            <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
-          </div>
-          <div>
-            <label class="short-label" for="delete_{{ obj.Object }}">Delete:</label>
-            <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
-          </div>
+        <div>
+          <label class="short-label" for="new_name">Common Name:</label>
+          <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+        </div>
+        <div>
+          <label class="short-label"for="new_ra">RA:</label>
+          <input type="text" name="new_ra" id="new_ra" class="short" placeholder="RA from SIMBAD">
+        </div>
+        <div>
+          <label class="short-label" for="new_dec">DEC:</label>
+          <input type="text" name="new_dec" id="new_dec" class="short" placeholder="DEC from SIMBAD">
+        </div>
+        <div>
+          <label class="short-label" for="new_project">Project:</label>
+          <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
+        </div>
+        <div>
+          <!-- Buttons next to each other -->
+          <button id="submit_new_object" type="button" name="submit_new_object" value="1" class="inline-button">Add</button>
+          <button id="confirm_add_object" type="button" class="inline-button" style="display:none;">Confirm Add</button>
+          <button id="edit_object" type="button" class="inline-button" style="display:none;">Edit</button>
         </div>
       </div>
-      {% endfor %}
-      <button type="submit" name="submit_objects" value="1">Update Objects</button>
+      <!-- Feedback area -->
+      <div id="object_result"></div>
+    </fieldset>
+      <hr>
+        <!-- Existing Objects arranged vertically -->
+        {% for obj in config.objects %}
+          <div class="block">
+            <div class="inline-fields">
+              <div class="object-id">
+                <strong>{{ obj.Object }}</strong>
+              </div>
+              <div>
+                <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+              </div>
+              <div>
+                <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
+                <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short"value="{{ obj.RA }}">
+              </div>
+              <div>
+                <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
+                <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
+              </div>
+              <div>
+                <label class="short-label" for="project_{{ obj.Object }}">Project:</label>
+                <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
+              </div>
+              <div>
+                <label class="short-label" for="delete_{{ obj.Object }}">Delete:</label>
+                <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        <button type="submit" name="submit_objects" value="1">Update Objects</button>
     </fieldset>
   </form>
   <br>
+  <script>
+    // When the user clicks the "Add" button, perform the SIMBAD search.
+    document.getElementById('submit_new_object').addEventListener('click', function(event) {
+      event.preventDefault();
+
+      const resultDiv = document.getElementById('object_result');
+      resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
+
+      const objectName = document.getElementById('new_object').value.trim();
+      if (!objectName) {
+        alert("Please enter an object identifier.");
+        return;
+      }
+
+      fetch('/search_object', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ object: objectName })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          resultDiv.innerHTML = `<p style="color:green;">
+            Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})
+          </p>`;
+
+          // Auto-fill and lock the Common Name, RA, and DEC fields.
+          document.getElementById('new_name').value = data.data["Common Name"];
+          document.getElementById('new_ra').value = data.data["RA (hours)"];
+          document.getElementById('new_dec').value = data.data["DEC (degrees)"];
+          document.getElementById('new_name').readOnly = true;
+          document.getElementById('new_ra').readOnly = true;
+          document.getElementById('new_dec').readOnly = true;
+
+          // Show the Confirm Add and Edit buttons.
+          document.getElementById('confirm_add_object').style.display = 'inline-block';
+          document.getElementById('edit_object').style.display = 'inline-block';
+        } else {
+          resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
+        }
+      })
+      .catch(err => {
+        console.error("Error searching object:", err);
+        resultDiv.innerHTML = `<p style="color:red;">Error occurred while searching.</p>`;
+      });
+    });
+
+    // When the user clicks the "Edit" button, unlock the fields.
+    document.getElementById('edit_object').addEventListener('click', function(event) {
+      event.preventDefault();
+      document.getElementById('new_name').readOnly = false;
+      document.getElementById('new_ra').readOnly = false;
+      document.getElementById('new_dec').readOnly = false;
+      // Optionally, you could keep the Edit button visible to allow toggling.
+    });
+
+    // When the user clicks the "Confirm Add" button, update the YAML immediately.
+    document.getElementById('confirm_add_object').addEventListener('click', function(event) {
+      event.preventDefault();
+
+      const objectName = document.getElementById('new_object').value.trim();
+      const commonName = document.getElementById('new_name').value.trim();
+      const ra = document.getElementById('new_ra').value.trim();
+      const dec = document.getElementById('new_dec').value.trim();
+      const project = document.getElementById('new_project').value.trim();
+
+      fetch('/confirm_object', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          object: objectName,
+          name: commonName,
+          ra: ra,
+          dec: dec,
+          project: project
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        const resultDiv = document.getElementById('object_result');
+        if (data.status === "success") {
+          resultDiv.innerHTML = `<p style="color:green;">Object added successfully.</p>`;
+          // Clear the input fields.
+          document.getElementById('new_object').value = "";
+          document.getElementById('new_name').value = "";
+          document.getElementById('new_ra').value = "";
+          document.getElementById('new_dec').value = "";
+          document.getElementById('new_project').value = "";
+          // Hide the Confirm and Edit buttons.
+          document.getElementById('confirm_add_object').style.display = 'none';
+          document.getElementById('edit_object').style.display = 'none';
+        } else {
+          resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
+        }
+      })
+      .catch(err => {
+        console.error("Error confirming object:", err);
+        document.getElementById('object_result').innerHTML = `<p style="color:red;">Error occurred while adding object.</p>`;
+      });
+    });
+  </script>
 </body>
 </html>
