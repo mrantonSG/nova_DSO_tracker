@@ -7,8 +7,8 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.3
-threshold for altitude can now be configured
+V1.4
+RS and DEC are now visible in config - simbad search is done instantly
 
 March 2025, Anton Gutscher
 """
@@ -241,8 +241,14 @@ def get_ra_dec(object_name):
 
     # Check if RA and DEC already exist in config
     if obj_entry and "RA" in obj_entry and "DEC" in obj_entry:
-        ra_hours = obj_entry["RA"]
-        dec_degrees = obj_entry["DEC"]
+        try:
+            # Convert RA and DEC to float if they are stored as strings.
+            ra_hours = float(obj_entry["RA"])
+            dec_degrees = float(obj_entry["DEC"])
+        except Exception as e:
+            print(f"[ERROR] Converting RA/DEC for {object_name}: {e}")
+            ra_hours = obj_entry["RA"]
+            dec_degrees = obj_entry["DEC"]
         return {
             "Object": object_name,
             "Common Name": obj_entry.get("Name", object_name),
@@ -565,6 +571,58 @@ def favicon():
 def get_locations():
     return jsonify({"locations": list(g.locations.keys()), "selected": g.selected_location})
 
+@app.route('/search_object', methods=['POST'])
+@login_required
+def search_object():
+    # Expect JSON input with the object identifier.
+    object_name = request.json.get('object')
+    if not object_name:
+        return jsonify({"status": "error", "message": "No object specified."}), 400
+
+    data = get_ra_dec(object_name)
+    if data and data.get("RA (hours)") is not None:
+        return jsonify({"status": "success", "data": data})
+    else:
+        # Return an error message from the lookup.
+        return jsonify({"status": "error", "message": data.get("Common Name", "Object not found.")}), 404
+
+
+@app.route('/confirm_object', methods=['POST'])
+@login_required
+def confirm_object():
+    req = request.get_json()
+    object_name = req.get('object')
+    common_name = req.get('name')
+    ra = req.get('ra')
+    dec = req.get('dec')
+    project = req.get('project', 'none')
+
+    if not object_name or not common_name:
+        return jsonify({"status": "error", "message": "Object ID and name are required."}), 400
+
+    config_data = load_user_config(current_user.username)
+    objects_list = config_data.setdefault('objects', [])
+
+    existing = next((obj for obj in objects_list if obj["Object"].lower() == object_name.lower()), None)
+    if existing:
+        existing["Name"] = common_name
+        existing["Project"] = project
+        existing["RA"] = ra
+        existing["DEC"] = dec
+    else:
+        new_obj = {
+            "Object": object_name,
+            "Name": common_name,
+            "Project": project,
+            "Type": "",
+            "RA": ra,
+            "DEC": dec
+        }
+        objects_list.append(new_obj)
+
+    save_user_config(current_user.username, config_data)
+    return jsonify({"status": "success"})
+
 @app.route('/data')
 @login_required
 def get_data():
@@ -786,18 +844,18 @@ def config_form():
                     if request.form.get(f"delete_{object_key}") == "on":
                         continue
                     new_name = request.form.get(f"name_{object_key}", obj.get("Name"))
+                    new_ra = request.form.get(f"ra_{object_key}", obj.get("RA"))
+                    new_dec = request.form.get(f"dec_{object_key}", obj.get("DEC"))
                     new_type = request.form.get(f"type_{object_key}", obj.get("Type"))
                     new_project = request.form.get(f"project_{object_key}", obj.get("Project"))
                     updated_obj = {
                         "Object": object_key,
                         "Name": new_name,
+                        "RA": new_ra,
+                        "DEC": new_dec,
                         "Type": new_type,
                         "Project": new_project
                     }
-                    # Preserve RA and DEC if they already exist.
-                    if "RA" in obj and "DEC" in obj:
-                        updated_obj["RA"] = obj["RA"]
-                        updated_obj["DEC"] = obj["DEC"]
                     updated_objects.append(updated_obj)
                 g.user_config['objects'] = updated_objects
                 save_user_config(current_user.username, g.user_config)
