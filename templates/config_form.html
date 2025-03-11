@@ -164,11 +164,32 @@
 
   </div>
 
+  <!-- General Settings (Altitude Threshold) -->
+  <form method="post">
+      <fieldset>
+          <legend>General Settings</legend>
+
+          <!-- Altitude Threshold Field -->
+          <div>
+              <label for="altitude_threshold">Altitude Threshold (°):</label>
+              <input type="number" name="altitude_threshold" id="altitude_threshold"
+                  value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
+          </div>
+
+          <!-- Hidden Input to Preserve Default Location -->
+          <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
+
+          <br>
+          <button type="submit" name="submit_general">Save Settings</button>
+      </fieldset>
+  </form>
+
+  <hr>
   <!-- Locations Form -->
   <form method="post">
     <fieldset>
       <legend>Locations Configuration</legend>
-      <!-- Add New Location inline -->
+
       <fieldset>
         <legend>Add New Location</legend>
         <div class="inline-fields">
