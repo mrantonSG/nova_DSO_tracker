@@ -7,8 +7,8 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.2
-new graphic: gemoves transit of the sun, added azimuth curve of the moon
+V1.3
+threshold for altitude can now be configured
 
 March 2025, Anton Gutscher
 """
@@ -98,10 +98,7 @@ def save_user_config(username, config_data):
     with open(filename, "w") as file:
         yaml.dump(config_data, file)
 
-def save_user_config(username, config_data):
-    filename = f"config_{username}.yaml"
-    with open(filename, "w") as file:
-        yaml.dump(config_data, file)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -133,6 +130,7 @@ def load_config_for_request():
     # Then populate the other variables (locations, objects, etc.)
     g.locations = g.user_config.get("locations", {})
     g.selected_location = g.user_config.get("default_location", "")
+    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
     loc_config = g.locations.get(g.selected_location, {})
     g.lat = loc_config.get("lat")
     g.lon = loc_config.get("lon")
@@ -520,16 +518,21 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
         dawn_date,
         datetime.strptime(sun_events["astronomical_dawn"], '%H:%M').time()
     ))
+
     sample_interval = timedelta(minutes=10)
     num_samples = int(((dawn_time - dusk_time).total_seconds()) / sample_interval.total_seconds()) + 1
     times = [dusk_time + i * sample_interval for i in range(num_samples)]
     times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times],
                      format='isot', scale='utc')
+
     location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
     altaz_frame = AltAz(obstime=times_utc, location=location)
     altaz = sky_coord.transform_to(altaz_frame)
     altitudes = altaz.alt.deg
+
+    # Use user-defined altitude threshold
+    altitude_threshold = g.altitude_threshold
     above_threshold = np.array(altitudes) > altitude_threshold
     observable_duration_minutes = np.sum(above_threshold) * 10
     return timedelta(minutes=int(observable_duration_minutes))
@@ -570,6 +573,9 @@ def get_data():
     local_date = current_datetime_local.strftime('%Y-%m-%d')
     current_time_utc = current_datetime_local.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
     fixed_time_utc_str = get_utc_time_for_local_11pm()
+
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+
     object_data = []
     prev_alts = session.get('previous_altitudes', {})
 
@@ -647,6 +653,7 @@ def get_data():
         "date": local_date,
         "time": current_datetime_local.strftime('%H:%M:%S'),
         "phase": round(ephem.Moon(current_datetime_local).phase, 0),
+        "altitude_threshold": altitude_threshold,
         "objects": sorted_objects
     })
 
@@ -688,13 +695,28 @@ def config_form():
     error = None
     message = None
     updated = False
+
     if request.method == 'POST':
         try:
             if 'submit_general' in request.form:
-                new_default_location = request.form.get('default_location')
-                g.user_config['default_location'] = new_default_location
-                message = "General settings updated."
+                new_altitude_threshold = request.form.get('altitude_threshold')
+                new_default_location = request.form.get('default_location', g.user_config.get("default_location", ""))
+
+                # Ensure altitude threshold is stored as an integer
+                try:
+                    threshold_value = int(new_altitude_threshold)
+                    if threshold_value < 0 or threshold_value > 90:
+                        raise ValueError("Altitude threshold must be between 0 and 90 degrees.")
+                    g.user_config['altitude_threshold'] = threshold_value
+                except ValueError as ve:
+                    error = str(ve)
+
+                # Preserve default location (avoid setting it to None)
+                g.user_config['default_location'] = new_default_location if new_default_location else "Singapore"
+
+                message = "Settings updated."
                 updated = True
+
             elif 'submit_new_location' in request.form:
                 new_location_name = request.form.get("new_location")
                 new_location_lat = request.form.get("new_lat")
@@ -724,6 +746,7 @@ def config_form():
 
                     except ValueError as ve:
                         error = f"Invalid input: {ve}"
+
             elif 'submit_locations' in request.form:
                 updated_locations = {}
                 for loc_key, loc_data in g.user_config.get("locations", {}).items():
@@ -740,6 +763,7 @@ def config_form():
                 g.user_config['locations'] = updated_locations
                 message = "Locations updated."
                 updated = True
+
             elif 'submit_new_object' in request.form:
                 new_object = request.form.get("new_object")
                 new_obj_name = request.form.get("new_name") or ""  # default to empty string if not provided
@@ -754,6 +778,7 @@ def config_form():
                     })
                     message = "New object added."
                     updated = True
+
             elif 'submit_objects' in request.form:
                 updated_objects = []
                 for obj in g.user_config.get("objects", []):
@@ -763,14 +788,20 @@ def config_form():
                     new_name = request.form.get(f"name_{object_key}", obj.get("Name"))
                     new_type = request.form.get(f"type_{object_key}", obj.get("Type"))
                     new_project = request.form.get(f"project_{object_key}", obj.get("Project"))
-                    updated_objects.append({
+                    updated_obj = {
                         "Object": object_key,
                         "Name": new_name,
                         "Type": new_type,
                         "Project": new_project
-                    })
+                    }
+                    # Preserve RA and DEC if they already exist.
+                    if "RA" in obj and "DEC" in obj:
+                        updated_obj["RA"] = obj["RA"]
+                        updated_obj["DEC"] = obj["DEC"]
+                    updated_objects.append(updated_obj)
                 g.user_config['objects'] = updated_objects
                 save_user_config(current_user.username, g.user_config)
+
             if updated:
                 save_user_config(current_user.username, g.user_config)
                 # Clear the in-memory persistent cache.
@@ -784,6 +815,7 @@ def config_form():
 
         except Exception as e:
             error = str(e)
+
     return render_template('config_form.html', config=g.user_config, locations=g.locations, error=error, message=message)
 
 @app.before_request
