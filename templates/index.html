@@ -28,16 +28,16 @@
     .info-container p, .info-container label, .info-container select { margin: 0; }
     h3 { font-weight: normal; }
     .filter-row input {
-      width: 90%;        /* Adjust percentage or use a fixed width like 150px */
-      max-width: 200px;  /* Optional: set a maximum width */
-      box-sizing: border-box; /* Ensure padding doesn't increase total width */
+      width: 90%;
+      max-width: 200px;
+      box-sizing: border-box;
       padding: 4px;
-      font-size: 15px;     /* Adjust padding as needed */
+      font-size: 15px;
     }
     #location-select {
-      width: 150px;      /* Set desired width */
-      height: 35px;      /* Set desired height */
-      font-size: 16px;   /* Adjust font size if needed */
+      width: 150px;
+      height: 35px;
+      font-size: 16px;
       padding: 5px;
       box-sizing: border-box;
     }
@@ -205,9 +205,9 @@
 
             // Set row background color based on error or project.
             if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) {
-              row.style.backgroundColor = "#f8d7da";  // light red for errors
+              row.style.backgroundColor = "#f8d7da";
             } else if (obj.Project && obj.Project.toLowerCase() !== "none") {
-              row.style.backgroundColor = "#dce5ea";  // light blue for projects
+              row.style.backgroundColor = "#dce5ea"; 
             }
 
             const altitudeThreshold = data.altitude_threshold || 20; // ✅ Get the user-defined threshold

@@ -6,12 +6,12 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: left; /* Align content to the left */
+            text-align: left;
             padding: 20px;
             margin: 0;
         }
         h2 {
-            margin-left: 0; /* Align with the rest of the content */
+            margin-left: 0;
             font-size: 20px;
         }
         img {
@@ -22,11 +22,11 @@
             cursor: pointer;
         }
         p {
-            margin-left: 0; /* Align text with the rest */
+            margin-left: 0;
         }
         .button-container {
           display: flex;
-          gap: 10px; /* Adjust spacing between buttons */
+          gap: 10px;
           margin-top: 20px;
         }
 
@@ -83,7 +83,6 @@
         var container = document.getElementById('simbadContainer');
         if (container.style.display === 'none') {
           // Build SIMBAD URL; adjust the URL format if needed.
-          // For instance, SIMBAD can be queried like this:
           var simbadURL = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent("{{ object_name }}");
           document.getElementById('simbadIframe').src = simbadURL;
           container.style.display = 'block';

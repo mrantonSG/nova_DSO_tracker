@@ -22,7 +22,7 @@
       color: #333;
     }
     label {
-      font-size: 12px;
+      font-size: 14px;
       margin-right: 5px;
     }
     input, select, textarea {
@@ -78,7 +78,7 @@
     .info-container {
       display: flex;
       gap: 20px;
-      align-items: center;
+      align-items: baseline;
       margin-bottom: 20px;
     }
     #back-button {
@@ -104,8 +104,8 @@
       width: 300px;
     }
     textarea.wide, textarea.project_field {
-      width: 500px;
-      height: 100px;
+      width: 300px;
+      height: 80px;
       box-sizing: border-box;
     }
     /* --- Inline Fields Layout --- */
@@ -115,15 +115,16 @@
       align-items: flex-start;
       gap: 10px;
       margin: 0 0 10px 0;
-
     }
+
     /* Each field container (label + input) as a row */
     .inline-fields > div {
       display: flex;
-      flex-direction: row;       /* Label and input side by side */
-      align-items: flex-start;   /* Top align both */
+      flex-direction: row;
+      align-items: flex-start;
       gap: 5px;
     }
+
     /* Ensure inputs and textareas have no extra top margin */
     .inline-fields input,
     .inline-fields textarea {
@@ -131,20 +132,58 @@
       box-sizing: border-box;
       font-size: 15px;
     }
+    .block .inline-fields label {
+      padding-top: 5px;
+    }
+
+    .inline-fields:not(.object-add-container) label {
+      padding-top: 5px;
+    }
+    .locations-list, .objects-list {
+      margin-top: 20px;
+    }
+    .location-id, .object-id {
+      padding-top: 3px;
+    }
     /* For short labels (e.g., Lat, Lon) */
     .short-label {
       display: inline-block;
-      width: auto !important;      /* Let the text size determine the width */
-      margin-right: 2px !important; /* Less space */
+      width: auto !important;
+      margin-right: 2px !important;
       text-align: left !important;
     }
 
     /* For longer labels (e.g., Timezone, Project) */
     .long-label {
       display: inline-block;
-      width: 50px !important;      /* Fixed width for consistency */
-      margin-right: 5px !important; /* More space */
+      width: 70px !important;
+      margin-right: 5px !important;
       text-align: left !important;
+    }
+    /* For longer labels (e.g., Timezone, Project) */
+    .verylong-label {
+      display: inline-block;
+      width: 150px !important;
+      margin-right: 5px !important;
+      text-align: left !important;
+    }
+    .object-add-container .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .action-button {
+      padding: 5px 10px;
+      font-size: 14px;       
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .action-button:hover {
+      background-color: #6795a4;
     }
 
   </style>
@@ -171,10 +210,11 @@
   <form method="post">
       <fieldset>
           <legend>General Settings</legend>
+          <div class="inline-fields">
 
           <!-- Altitude Threshold Field -->
           <div>
-              <label for="altitude_threshold">Altitude Threshold (°):</label>
+              <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
               <input type="number" name="altitude_threshold" id="altitude_threshold"
                   value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
           </div>
@@ -183,7 +223,7 @@
           <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
 
           <br>
-          <button type="submit" name="submit_general">Save Settings</button>
+          <button type="submit" name="submit_general" class="action-button" >Save Settings</button>
       </fieldset>
   </form>
 
@@ -213,38 +253,40 @@
             <input type="text" name="new_timezone" id="new_timezone" placeholder="America/New_York">
           </div>
           <div>
-            <button type="submit" name="submit_new_location" value="1" class="inline-button">Add</button>
+            <button type="submit" name="submit_new_location" value="1" class="action-button" >Add</button>
           </div>
         </div>
       </fieldset>
       <hr>
       <!-- Existing Locations arranged vertically -->
-      {% for loc_key, loc_val in locations.items() %}
-        <div class="block">
-          <div class="inline-fields">
-            <div class="location-id">
-              <strong>{{ loc_key }}</strong>
-            </div>
-            <div>
-              <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
-              <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
-            </div>
-            <div>
-              <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
-              <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
-            </div>
-            <div>
-              <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
-              <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
-            </div>
-            <div>
-              <label class="short-label" for="delete_loc_{{ loc_key }}">Delete:</label>
-              <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+      <div class="locations-list">
+        {% for loc_key, loc_val in locations.items() %}
+          <div class="block">
+            <div class="inline-fields">
+              <div class="location-id">
+                <strong>{{ loc_key }}</strong>
+              </div>
+              <div>
+                <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
+                <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
+              </div>
+              <div>
+                <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
+                <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
+              </div>
+              <div>
+                <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
+                <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
+              </div>
+              <div>
+                <label class="short-label" for="delete_loc_{{ loc_key }}">Delete:</label>
+                <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+              </div>
             </div>
           </div>
-        </div>
-      {% endfor %}
-      <button type="submit" name="submit_locations" value="1">Update Locations</button>
+        {% endfor %}
+        <button type="submit" name="submit_locations" value="1" class="action-button" >Update Locations</button>
+      </div>
     </fieldset>
   </form>
 
@@ -252,35 +294,45 @@
   <form method="post">
     <fieldset>
       <legend>Add New Object</legend>
-      <div class="inline-fields">
-        <div>
-          <label class="short-label" for="new_object">Object ID:</label>
-          <input type="text" name="new_object" id="new_object" class="short" placeholder="e.g., NGC 1234">
+      <div class="object-add-container">
+        <!-- First row: Object ID and Common Name -->
+        <div class="row">
+          <div>
+            <label class="long-label" for="new_object">Object ID:</label>
+            <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
+          </div>
+          <div>
+            <label class="long-label" for="new_name">Name:</label>
+            <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+          </div>
         </div>
-        <div>
-          <label class="short-label" for="new_name">Common Name:</label>
-          <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+        <!-- Second row: RA and DEC -->
+        <div class="row">
+          <div>
+            <label class="long-label" for="new_ra">RA:</label>
+            <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
+          </div>
+          <div>
+            <label class="long-label" for="new_dec">DEC:</label>
+            <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
+          </div>
         </div>
-        <div>
-          <label class="short-label"for="new_ra">RA:</label>
-          <input type="text" name="new_ra" id="new_ra" class="short" placeholder="RA from SIMBAD">
+        <!-- Third row: Project -->
+
+          <div class="inline-fields">
+          <div>
+            <label class="long-label" for="new_project">Project:</label>
+            <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
+
+          </div>
         </div>
-        <div>
-          <label class="short-label" for="new_dec">DEC:</label>
-          <input type="text" name="new_dec" id="new_dec" class="short" placeholder="DEC from SIMBAD">
-        </div>
-        <div>
-          <label class="short-label" for="new_project">Project:</label>
-          <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
-        </div>
-        <div>
-          <!-- Buttons next to each other -->
-          <button id="submit_new_object" type="button" name="submit_new_object" value="1" class="inline-button">Add</button>
-          <button id="confirm_add_object" type="button" class="inline-button" style="display:none;">Confirm Add</button>
-          <button id="edit_object" type="button" class="inline-button" style="display:none;">Edit</button>
+        <!-- Fourth row: Feedback area -->
+          <button id="submit_new_object" type="button" name="submit_new_object" value="1"  class="action-button" ">Search</button>
+          <button id="confirm_add_object" type="button"  class="action-button"  style="display:none;">Confirm Add</button>
+          <button id="edit_object" type="button"  class="action-button"  style="display:none;">Edit</button>
+        <div class="row">
         </div>
       </div>
-      <!-- Feedback area -->
       <div id="object_result"></div>
     </fieldset>
       <hr>
@@ -314,12 +366,12 @@
             </div>
           </div>
         {% endfor %}
-        <button type="submit" name="submit_objects" value="1">Update Objects</button>
+        <button type="submit" name="submit_objects" value="1" class="action-button" >Update Objects</button>
     </fieldset>
   </form>
   <br>
   <script>
-    // When the user clicks the "Add" button, perform the SIMBAD search.
+    // Event listener for the "Add" button (to perform the SIMBAD search)
     document.getElementById('submit_new_object').addEventListener('click', function(event) {
       event.preventDefault();
 
@@ -340,11 +392,11 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === "success") {
-          resultDiv.innerHTML = `<p style="color:green;">
+          resultDiv.innerHTML = `<p style="color: #83b4c5;">
             Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})
           </p>`;
 
-          // Auto-fill and lock the Common Name, RA, and DEC fields.
+          // Auto-fill and lock the fields.
           document.getElementById('new_name').value = data.data["Common Name"];
           document.getElementById('new_ra').value = data.data["RA (hours)"];
           document.getElementById('new_dec').value = data.data["DEC (degrees)"];
@@ -352,29 +404,32 @@
           document.getElementById('new_ra').readOnly = true;
           document.getElementById('new_dec').readOnly = true;
 
-          // Show the Confirm Add and Edit buttons.
+          // Show the Confirm and Edit buttons.
           document.getElementById('confirm_add_object').style.display = 'inline-block';
           document.getElementById('edit_object').style.display = 'inline-block';
         } else {
-          resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
+          resultDiv.innerHTML = `<p style="color:red;">SIMBAD did not return data: ${data.message}. You can add the object manually by entering RA and DEC.</p>`;
+          // Make fields editable.
+          document.getElementById('new_name').readOnly = false;
+          document.getElementById('new_ra').readOnly = false;
+          document.getElementById('new_dec').readOnly = false;
+          // Show the Confirm and Edit buttons.
+          document.getElementById('confirm_add_object').style.display = 'inline-block';
+          document.getElementById('edit_object').style.display = 'inline-block';
         }
       })
       .catch(err => {
         console.error("Error searching object:", err);
         resultDiv.innerHTML = `<p style="color:red;">Error occurred while searching.</p>`;
+        // Allow manual editing if an error occurs.
+        document.getElementById('new_name').readOnly = false;
+        document.getElementById('new_ra').readOnly = false;
+        document.getElementById('new_dec').readOnly = false;
+        document.getElementById('confirm_add_object').style.display = 'inline-block';
       });
     });
 
-    // When the user clicks the "Edit" button, unlock the fields.
-    document.getElementById('edit_object').addEventListener('click', function(event) {
-      event.preventDefault();
-      document.getElementById('new_name').readOnly = false;
-      document.getElementById('new_ra').readOnly = false;
-      document.getElementById('new_dec').readOnly = false;
-      // Optionally, you could keep the Edit button visible to allow toggling.
-    });
-
-    // When the user clicks the "Confirm Add" button, update the YAML immediately.
+    // Separate event listener for the "Confirm Add" button (to send data to the server)
     document.getElementById('confirm_add_object').addEventListener('click', function(event) {
       event.preventDefault();
 
@@ -384,23 +439,25 @@
       const dec = document.getElementById('new_dec').value.trim();
       const project = document.getElementById('new_project').value.trim();
 
+      const payload = {
+        object: objectName,
+        name: commonName,
+        ra: ra,
+        dec: dec,
+        project: project
+      };
+
       fetch('/confirm_object', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          object: objectName,
-          name: commonName,
-          ra: ra,
-          dec: dec,
-          project: project
-        })
+        body: JSON.stringify(payload)
       })
       .then(response => response.json())
       .then(data => {
         const resultDiv = document.getElementById('object_result');
         if (data.status === "success") {
           resultDiv.innerHTML = `<p style="color:green;">Object added successfully.</p>`;
-          // Clear the input fields.
+          // Clear fields.
           document.getElementById('new_object').value = "";
           document.getElementById('new_name').value = "";
           document.getElementById('new_ra').value = "";
