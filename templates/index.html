@@ -207,7 +207,7 @@
             if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) {
               row.style.backgroundColor = "#f8d7da";
             } else if (obj.Project && obj.Project.toLowerCase() !== "none") {
-              row.style.backgroundColor = "#dce5ea"; 
+              row.style.backgroundColor = "#dce5ea";
             }
 
             const altitudeThreshold = data.altitude_threshold || 20; // ✅ Get the user-defined threshold
@@ -316,7 +316,7 @@
 <body>
   <div class="header-container">
     <h1>Nova</h1>
-    <h3>DSO Altitude Tracker V1.1</h3>
+    <h3>DSO Altitude Tracker V1.5</h3>
   </div>
   <div class="info-container">
     <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
