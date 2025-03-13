@@ -1,5 +1,5 @@
 """
-Astro Flask Application
+Nova Astro Application
 ------------------------
 This Flask application provides endpoints to fetch and plot astronomical data
 based on user-specific configuration details (e.g., locations and objects).
@@ -7,8 +7,8 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.4
-RS and DEC are now visible in config - simbad search is done instantly
+V1.5
+link to Stellarium
 
 March 2025, Anton Gutscher
 """
@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from decouple import config
 import signal
 import sys
+import requests
 
 import numpy as np
 import pytz
@@ -60,7 +61,7 @@ login_manager.login_message = None
 # In-Memory User Store and User Model (this needs further development)
 # =============================================================================
 users = {
-    'alice': {'id': 'alice', 'username': 'alice', 'password': 'mypassword'},
+    'anton': {'id': 'alice', 'username': 'alice', 'password': 'mypassword'},
     'bob':  {'id': 'bob', 'username': 'bob', 'password': 'password123'}
 }
 
@@ -114,6 +115,17 @@ def login():
         else:
             flash("Invalid username or password.", "error")
     return render_template('login.html')
+
+@app.route('/proxy_focus', methods=['POST'])
+def proxy_focus():
+    # Use request.form to get URL-encoded data
+    payload = request.form
+    try:
+        r = requests.post("http://localhost:8090/api/main/focus", data=payload)
+        # If Stellarium returns a 200 OK, return success with its response.
+        return jsonify({"status": "success", "stellarium_response": r.text})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # =============================================================================
 # Before Request: Load User Config into Request-Local Object 'g'
