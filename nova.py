@@ -8,8 +8,8 @@ transit times, and generate altitude curves for both celestial objects and the M
 It also integrates Flask-Login for user authentication.
 
 V1.5
-link to Stellarium
-
+link to Stellarium (currently only working if it runs on the same computer)
+ 
 March 2025, Anton Gutscher
 """
 
