@@ -14,7 +14,8 @@ When opening Nova, you'll see a list of DSOs sorted by their current altitude (d
 
 ### Sorting and Searching
 - **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
-- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. If you want to exclude certain content, use `!`. Nova retains your sorting and filtering choices until you alter them.
+- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. If you want to exclude certain content, use `!`.
+- Nova retains your sorting and filtering choices until you alter them.
 
 ![Sorting and Searching](doc/Screenshot2.png)
 
@@ -29,7 +30,13 @@ Best way to add an object is to fill in the object ID and click on "search". Thi
 
 ### Detailed Object Information
 Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance.
-You will also see 4 buttons: "Back to Tracker" brings you to the home screen, "Safe Project" will safe the content of the project field, "view SIMBAD info" will open SIMBAD underneath the graphic with the corresponding object selected, "Open in Stellarium" will send the object information to Stellarium and focus on it. In order the receive this information, the remote control plugin needs to be activated in Stellarium. Currently this function only works when operating under the same IP address, f.i. on the same computer.
+You will also see 4 buttons: 
+- "Back to Tracker" brings you to the home screen, 
+- "Safe Project" will safe the content of the project field, 
+- "view SIMBAD info" will open SIMBAD under the graphic with the corresponding object selected, 
+- "Open in Stellarium" will send the object information to Stellarium and focus on it.
+ 
+In order the receive this information, the remote control plugin needs to be activated in Stellarium. Currently this function only works when operating under the same IP address, f.i. on the same computer.
 
 ![Object Details](doc/Screenshot4.png)
 
