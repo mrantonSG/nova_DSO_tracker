@@ -99,7 +99,9 @@ pip freeze
 
 ## 5. Set Up Your Project Files
 
-Place the contents of `Nova_1.0` into your `astro_nova` directory.
+Place the contents of `Nova_x.x` into your `astro_nova` directory.
+
+### Important:
 Add your .env file - you can find an example here. Just edit the secret key and safe the file as .env (not.env.example). Once you edit the extension, the file will not be visible by default.
 
 ## 6. Run the Application
