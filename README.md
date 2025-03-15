@@ -14,14 +14,12 @@ When opening Nova, you'll see a list of DSOs sorted by their current altitude (d
 
 ### Sorting and Searching
 - **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
-- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. If you want to exclude certain content, use `!`.
-- Nova retains your sorting and filtering choices until you alter them.
+- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. Nova retains your sorting and filtering choices until you alter them.
 
 ![Sorting and Searching](doc/Screenshot2.png)
 
 ### Configuration
 Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen.
-Best way to add an object is to fill in the object ID and click on "search". This will trigger a SIMBAD search and if successful, RA and DEC will automatically be filled in.
 
 - **Object Designations:** SIMBAD may not recognize all object IDs. If unsure, search manually on SIMBAD first, then use the confirmed designation.
 - **Highlighting Objects:** Entering text in the "Project" field highlights the corresponding object in the main interface.
@@ -30,13 +28,6 @@ Best way to add an object is to fill in the object ID and click on "search". Thi
 
 ### Detailed Object Information
 Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance.
-You will also see 4 buttons: 
-- "Back to Tracker" brings you to the home screen, 
-- "Safe Project" will safe the content of the project field, 
-- "view SIMBAD info" will open SIMBAD under the graphic with the corresponding object selected, 
-- "Open in Stellarium" will send the object information to Stellarium and focus on it.
- 
-In order the receive this information, the remote control plugin needs to be activated in Stellarium. Currently this function only works when operating under the same IP address, f.i. on the same computer.
 
 ![Object Details](doc/Screenshot4.png)
 
@@ -67,11 +58,14 @@ pip3 --version
 ## 2. Create a Project Directory
 
 1. Open **Terminal**.
-2. Create and navigate to a new folder for your project:
+
+  (Optional) change the directory to where you want the software folder to be installed
+
+2. Clone the repository and open the new directory
 
 ```bash
-mkdir astro_nova
-cd astro_nova
+git clone https://github.com/mrantonSG/nova_DSO_tracker.git
+cd nova_DSO_tracker
 ```
 
 ## 3. Set Up a Virtual Environment
