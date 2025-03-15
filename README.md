@@ -91,7 +91,7 @@ Your terminal prompt should now start with `(nova)`.
 Install the required Python packages:
 
 ```bash
-pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple bumpversion
+pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple
 ```
 
 (Optional) Verify installed packages:
