@@ -91,7 +91,7 @@ Your terminal prompt should now start with `(nova)`.
 Install the required Python packages:
 
 ```bash
-pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple
+pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple bumpversion
 ```
 
 (Optional) Verify installed packages:
@@ -100,11 +100,8 @@ pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_lo
 pip freeze
 ```
 
-## 5. Set Up Your Project Files
+## 5. Set Up Your .env file
 
-Place the contents of `Nova_x.x` into your `astro_nova` directory.
-
-### Important:
 Add your .env file - you can find an example here. Just edit the secret key and safe the file as .env (not.env.example). Once you edit the extension, the file will not be visible by default.
 
 ## 6. Run the Application
