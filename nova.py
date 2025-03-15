@@ -7,9 +7,6 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-V1.5
-link to Stellarium (currently only working if it runs on the same computer)
- 
 March 2025, Anton Gutscher
 """
 
@@ -79,6 +76,15 @@ def load_user(user_id):
 
 def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
+
+def get_version():
+    with open('.VERSION', 'r') as f:
+        return f.read().strip()
+
+# If using Flask, you could inject this into your templates:
+@app.context_processor
+def inject_version():
+    return dict(version=get_version())
 
 # =============================================================================
 # User-Specific Configuration Functions
