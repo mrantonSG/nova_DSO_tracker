@@ -157,6 +157,6 @@ For security, sensitive values such as SECRET_KEY or passwords should be stored 
 The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). However, this functionality is still experimental.
 
 ### Installation on a server:
-In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. A Raspberry pi5 works fine, you just need to accept short delays when switching locations or clicking on objects, but overall the performance is sufficient. In such a setup however, sending the object to Stellarium will not work.
+In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. A Raspberry pi5 works fine, you just need to accept short delays when switching locations or clicking on objects, but overall the performance is sufficient. In order to still being able to send objects to Stellarium, please read "[stellarium_access_from_server](stellarium_access_from_server.md)".
 
 clear skies!
