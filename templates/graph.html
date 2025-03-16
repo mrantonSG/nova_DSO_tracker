@@ -25,139 +25,100 @@
             margin-left: 0;
         }
         .button-container {
-          display: flex;
-          gap: 10px;
-          margin-top: 20px;
+            margin-top: 20px;
         }
-
         .inline-button {
-          padding: 10px 20px;
-          font-size: 16px;
-          background-color: #83b4c5;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
+            background-color: #83b4c5;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-right: 10px;
         }
-
         .inline-button:hover {
-          background-color: #6795a4;
+            background-color: #6795a4;
         }
         #project-field {
-          width: 100%;
-          max-width: 1000px;
-          height: 150px;
-          box-sizing: border-box;
-          margin-top: 10px;
-          margin-bottom: 10px;
-          font-size: 15px;
+            width: 100%;
+            max-width: 1000px;
+            height: 150px;
+            box-sizing: border-box;
         }
-
     </style>
-
     <script>
       function saveProject() {
         const newProject = document.getElementById('project-field').value;
-        const objectName = "{{ object_name }}";  // Provided by Flask
         fetch('/update_project', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ object: objectName, project: newProject })
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === "success") {
-            alert("Project updated successfully!");
-          } else {
-            alert("Error updating project: " + data.error);
-          }
-        })
-        .catch(error => {
-          console.error("Error:", error);
-          alert("Error updating project.");
+          body: JSON.stringify({ object: "{{ object_name }}", project: newProject })
+        }).then(res => res.json()).then(data => {
+          alert(data.status === "success" ? "Project updated successfully!" : data.error);
         });
       }
 
       function toggleSimbad() {
         var container = document.getElementById('simbadContainer');
-        // If display is 'none' or empty, show the container.
         if (container.style.display === 'none' || container.style.display === '') {
-          // Build SIMBAD URL; adjust the URL format if needed.
-          var simbadURL = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent("{{ object_name }}");
-          document.getElementById('simbadIframe').src = simbadURL;
+          document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident={{ object_name }}";
           container.style.display = 'block';
         } else {
           container.style.display = 'none';
         }
       }
 
-      document.addEventListener("DOMContentLoaded", function() {
+      function openInStellarium() {
         const stellariumStatusDiv = document.getElementById('stellarium-status');
-        const openButton = document.getElementById('open-in-stellarium');
+        stellariumStatusDiv.textContent = "Sending object to Stellarium...";
 
-        openButton.addEventListener('click', function() {
-          stellariumStatusDiv.style.color = "#83b4c5";
-          stellariumStatusDiv.textContent = "Sending focus command to Stellarium...";
-
-          // Use the object name passed from Flask (it will be rendered as a string)
-          const objectName = "{{ object_name }}";
-          const mode = "center";  // Options: 'center', 'zoom', or 'mark'
-
-          fetch("/proxy_focus", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ target: objectName, mode: mode })
-          })
-          .then(response => response.json())
-          .then(data => {
-            if (data.status === "success") {
-              stellariumStatusDiv.style.color = "#83b4c5";
-              stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
-              console.log("Focus change response:", data.stellarium_response);
-            } else {
-              let friendlyMessage = data.message;
-              if (friendlyMessage.indexOf("Connection refused") !== -1) {
-                friendlyMessage = "Stellarium is not running. Please start it and try again.";
-              }
-              stellariumStatusDiv.style.color = "red";
-              stellariumStatusDiv.textContent = "Error: " + friendlyMessage;
-            }
-          })
-          .catch(err => {
-            console.error("Error sending command to Stellarium via proxy:", err);
+        fetch("/proxy_focus", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ target: "{{ object_name }}", mode: "center" })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
+            stellariumStatusDiv.style.color = "#83b4c5";
+          } else {
+            stellariumStatusDiv.textContent = "Error updating Stellarium: " + data.message;
             stellariumStatusDiv.style.color = "red";
-            stellariumStatusDiv.textContent = "Error communicating with Stellarium.";
-          });
+          }
+        })
+        .catch(error => {
+          stellariumStatusDiv.textContent = "Error communicating with Stellarium.";
+          stellariumStatusDiv.style.color = "red";
+          console.error("Communication error:", error);
         });
+      }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById('open-in-stellarium').addEventListener('click', openInStellarium);
       });
     </script>
-
 </head>
 
 <body>
     <a href="{{ url_for('static', filename=filename) }}?t={{ timestamp }}" target="_blank">
-        <img src="{{ url_for('static', filename=filename) }}?t={{ timestamp }}" alt="Altitude Graph">
+        <img src="{{ url_for('static', filename=filename) }}?t={{ timestamp }}" alt="Altitude graph of {{ object_name }}">
     </a>
-    <div style="margin-top: 20px;">
-      <h3>Project Information</h3>
-      <!-- Editable project field with preserved line breaks -->
+
+    <div class="button-container">
       <textarea id="project-field">{{ project }}</textarea>
       <br>
-
       <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
       <button class="inline-button" onclick="saveProject()">Save Project</button>
-      <button id="view-simbad" class="inline-button" onclick="toggleSimbad()">View SIMBAD Info</button>
-      <button id="open-in-stellarium" class="inline-button" >Open in Stellarium</button>
-      <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
-
-
-
+      <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
+      <button id="open-in-stellarium" class="inline-button">Open in Stellarium</button>
     </div>
+
+    <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
 
     <div id="simbadContainer" style="display:none; margin-top:20px;">
-      <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;" title="SIMBAD Info"></iframe>
+      <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
     </div>
-
-
 </body>
 </html>
