@@ -14,11 +14,8 @@ March 2025, Anton Gutscher
 # Imports
 # =============================================================================
 import os
-import json
 from datetime import datetime, timedelta
 from decouple import config
-import signal
-import sys
 import requests
 
 import numpy as np
@@ -31,8 +28,8 @@ matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-from flask import Flask, render_template, jsonify, request, send_file, redirect, url_for, flash, g
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
+from flask_login import LoginManager, UserMixin, login_user, login_required, current_user
 from flask import session
 from flask import Flask, send_from_directory
 
@@ -63,8 +60,8 @@ users = {
 }
 
 class User(UserMixin):
-    def __init__(self, id, username):
-        self.id = id
+    def __init__(self, user_id, username):
+        self.id = user_id
         self.username = username
 
 @login_manager.user_loader
@@ -78,8 +75,8 @@ def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
 
 def get_version():
-    with open('.VERSION', 'r') as f:
-        return f.read().strip()
+    with open('.VERSION', 'r') as version_file:
+        return version_file.read().strip()
 
 @app.context_processor
 def inject_version():
@@ -123,11 +120,9 @@ def login():
 
 @app.route('/proxy_focus', methods=['POST'])
 def proxy_focus():
-
     payload = request.form
     try:
         r = requests.post("http://localhost:8090/api/main/focus", data=payload)
-        # If Stellarium returns a 200 OK, return success with its response.
         return jsonify({"status": "success", "stellarium_response": r.text})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -158,26 +153,6 @@ def load_config_for_request():
 if not os.path.exists('static'):
     os.makedirs('static')
 
-CACHE_FILE = "observable_duration_cache.json"
-if os.path.exists(CACHE_FILE):
-    try:
-        with open(CACHE_FILE, "r") as f:
-            persistent_cache = json.load(f)
-    except Exception as e:
-        print(f"[ERROR] Loading cache: {e}")
-        persistent_cache = {}
-else:
-    persistent_cache = {}
-
-previous_altitudes = {}
-
-def save_cache():
-    try:
-        with open(CACHE_FILE, "w") as f:
-            json.dump(persistent_cache, f)
-    except Exception as e:
-        print(f"[ERROR] Saving cache: {e}")
-
 def get_common_time_arrays(tz_name, local_date):
     local_tz = pytz.timezone(tz_name)
     base_date = datetime.strptime(local_date, '%Y-%m-%d')
@@ -194,8 +169,9 @@ def favicon():
 # =============================================================================
 # Astronomical Calculations
 # =============================================================================
+# noinspection PyUnusedLocal
 def calculate_transit_time(ra_hours, lat, lon, tz_name):
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
+    #location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
     local_tz = pytz.timezone(tz_name)
     now_local = datetime.now(local_tz)
     date_str = now_local.strftime('%Y-%m-%d')
@@ -217,9 +193,6 @@ def get_utc_time_for_local_11pm():
     utc_time = eleven_pm_local.astimezone(pytz.utc)
     #print(f"[DEBUG] 11 PM Local Time ({g.tz_name}): {eleven_pm_local}, Converted to UTC: {utc_time}")
     return utc_time.strftime('%Y-%m-%dT%H:%M:%S')
-
-def moon_phase(date):
-    return ephem.Moon(date).phase
 
 def is_decimal(value):
     return isinstance(value, (np.float64, float)) or len(str(value).split()) == 1
@@ -262,8 +235,8 @@ def get_ra_dec(object_name):
             # Convert RA and DEC to float if they are stored as strings.
             ra_hours = float(obj_entry["RA"])
             dec_degrees = float(obj_entry["DEC"])
-        except Exception as e:
-            print(f"[ERROR] Converting RA/DEC for {object_name}: {e}")
+        except Exception as exception_value:
+            print(f"[ERROR] Converting RA/DEC for {object_name}: {exception_value}")
             ra_hours = obj_entry["RA"]
             dec_degrees = obj_entry["DEC"]
         return {
@@ -315,8 +288,8 @@ def get_ra_dec(object_name):
             "Project": "none"
         }
 
-    except Exception as e:
-        error_message = f"Error: {str(e)}"
+    except Exception as exception_value:
+        error_message = f"Error: {str(exception_value)}"
         print(f"[ERROR] Problem processing {object_name}: {error_message}")
         return {
             "Object": object_name,
@@ -440,7 +413,6 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     # Define key times correctly
     midnight = datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'), datetime.min.time())
     noon = midnight + timedelta(hours=12)
-    next_midnight = midnight + timedelta(days=1)
     previous_midnight = midnight - timedelta(days=1)
 
     astro_dawn = event_datetimes_naive.get('curr_astronomical_dawn')
@@ -491,6 +463,8 @@ def ephem_to_local(ephem_date, tz_name):
     local_dt = pytz.utc.localize(utc_dt).astimezone(local_tz)
     return local_dt
 
+
+# noinspection PyUnresolvedReferences
 def calculate_sun_events(date_str):
     local_tz = pytz.timezone(g.tz_name)
     local_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -528,7 +502,7 @@ def calculate_sun_events(date_str):
         "astronomical_dusk": astro_dusk_local
     }
 
-def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name, altitude_threshold=20):
+def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name ):
     local_tz = pytz.timezone(tz_name)
     sun_events = calculate_sun_events(local_date)
     dusk_time = local_tz.localize(datetime.combine(
@@ -708,8 +682,8 @@ def get_data():
                         'Project': data.get('Project', "none"),
                         'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S')
                     })
-                except Exception as e:
-                    print(f"[ERROR] Problem processing object {obj}: {e}")
+                except Exception as exception_value:
+                    print(f"[ERROR] Problem processing object {obj}: {exception_value}")
         else:
             print(f"[DEBUG] No data returned for object: {obj}")
 
@@ -728,6 +702,8 @@ def get_data():
         "objects": sorted_objects
     })
 
+
+# noinspection PyArgumentList
 @app.route('/plot/<object_name>')
 @login_required
 def get_plot(object_name):
@@ -876,16 +852,11 @@ def config_form():
             if updated:
                 save_user_config(current_user.username, g.user_config)
                 # Clear the in-memory persistent cache.
-                persistent_cache.clear()
-                # Optionally remove the cache file so that it's rebuilt.
-                try:
-                    os.remove(CACHE_FILE)
-                except Exception as e:
-                    print(f"[ERROR] Clearing cache file: {e}")
+                                # Optionally remove the cache file so that it's rebuilt.
                 message += " Configuration saved."
 
-        except Exception as e:
-            error = str(e)
+        except Exception as exception_value:
+            error = str(exception_value)
 
     return render_template('config_form.html', config=g.user_config, locations=g.locations, error=error, message=message)
 
@@ -907,8 +878,8 @@ def plot_altitude(object_name):
         alt_name = data.get("Common Name", object_name)
         local_date = datetime.now(pytz.timezone(g.tz_name)).strftime('%Y-%m-%d')
         # Use the sanitized object name for the file name.
-        safe_object = sanitize_object_name(object_name)
-        filename = f"static/{safe_object.replace(' ', '_')}_{g.selected_location.replace(' ', '_')}_altitude_plot.png"
+        #safe_object = sanitize_object_name(object_name)
+        #filename = f"static/{safe_object.replace(' ', '_')}_{g.selected_location.replace(' ', '_')}_altitude_plot.png"
         filepath = plot_altitude_curve(
             object_name,
             alt_name,
@@ -959,13 +930,10 @@ def update_project():
 
         # Optionally update the persistent cache.
         key = object_name.lower()
-        if key in persistent_cache:
-            persistent_cache[key]["Project"] = new_project
-            save_cache()
-
+        
         return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+    except Exception as exception_value:
+        return jsonify({"status": "error", "error": str(exception_value)}), 500
 
 @app.before_request
 def bypass_login_in_single_user():
