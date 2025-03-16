@@ -154,10 +154,7 @@ kill <the number you've found>
 For security, sensitive values such as SECRET_KEY or passwords should be stored in a .env file or a separate configuration file that is not committed to version control.
 
 ### Multi‑user vs. Single‑user Mode:
-The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml).
-
-### Dependencies:
-If you add more dependencies later, update the installation command accordingly.
+The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). However, this functionality is still experimental.
 
 ### Installation on a server:
 In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. A Raspberry pi5 works fine, you just need to accept short delays when switching locations or clicking on objects, but overall the performance is sufficient. In such a setup however, sending the object to Stellarium will not work.
