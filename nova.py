@@ -81,7 +81,6 @@ def get_version():
     with open('.VERSION', 'r') as f:
         return f.read().strip()
 
-# If using Flask, you could inject this into your templates:
 @app.context_processor
 def inject_version():
     return dict(version=get_version())
@@ -124,7 +123,7 @@ def login():
 
 @app.route('/proxy_focus', methods=['POST'])
 def proxy_focus():
-    # Use request.form to get URL-encoded data
+
     payload = request.form
     try:
         r = requests.post("http://localhost:8090/api/main/focus", data=payload)
@@ -133,9 +132,7 @@ def proxy_focus():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# =============================================================================
-# Before Request: Load User Config into Request-Local Object 'g'
-# =============================================================================
+
 @app.before_request
 def load_config_for_request():
     # In single-user mode, always load config_default.yaml.
@@ -157,9 +154,7 @@ def load_config_for_request():
     g.alternative_names = {obj.get("Object").lower(): obj.get("Name") for obj in g.objects_list}
     g.projects = {obj.get("Object").lower(): obj.get("Project") for obj in g.objects_list}
     g.objects = [obj.get("Object") for obj in g.objects_list]
-# =============================================================================
-# Global Cache and Other Utilities
-# =============================================================================
+
 if not os.path.exists('static'):
     os.makedirs('static')
 
@@ -192,8 +187,12 @@ def get_common_time_arrays(tz_name, local_date):
                      format='isot', scale='utc')
     return times_local, times_utc
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 # =============================================================================
-# Utility Functions for Astronomical Calculations
+# Astronomical Calculations
 # =============================================================================
 def calculate_transit_time(ra_hours, lat, lon, tz_name):
     location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
@@ -216,7 +215,7 @@ def get_utc_time_for_local_11pm():
     if now_local > eleven_pm_local:
         eleven_pm_local += timedelta(days=1)
     utc_time = eleven_pm_local.astimezone(pytz.utc)
-    print(f"[DEBUG] 11 PM Local Time ({g.tz_name}): {eleven_pm_local}, Converted to UTC: {utc_time}")
+    #print(f"[DEBUG] 11 PM Local Time ({g.tz_name}): {eleven_pm_local}, Converted to UTC: {utc_time}")
     return utc_time.strftime('%Y-%m-%dT%H:%M:%S')
 
 def moon_phase(date):
@@ -421,7 +420,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     # Add a two-line title.
     ax.set_title(f"Altitude and Azimuth for {object_name} ({alt_name}) on {local_date}")
 
-    # Create secondary axis for azimuth (solid green).
+    # Create secondary axis for azimuth.
     ax2 = ax.twinx()
     ax2.plot(times_local_naive, azimuths, '--', linewidth=2, color='tab:cyan', label=f'{object_name} Azimuth')
     ax2.set_ylabel('Azimuth (°)', color='k')
@@ -430,7 +429,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     ax2.spines['right'].set_color('k')
     ax2.spines['right'].set_linewidth(1.5)
 
-    # Add Moon azimuth clearly here.
+    # Add Moon azimuth.
     ax2.plot(times_local_naive, moon_azimuths, '--', linewidth=1, color='gold', label='Moon Azimuth')
 
     # Set x-axis limits.
@@ -461,7 +460,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
             # Plot vertical event line
             ax.axvline(x=dt, color='black', linestyle='-', linewidth=1, alpha=0.7)
 
-            # Calculate label position slightly to the right (adjust as you prefer)
+            # Calculate label position slightly to the right
             label_x = mdates.date2num(dt + timedelta(minutes=10))
             ymin, ymax = ax.get_ylim()
             label_y = ymin + 0.05 * (ymax - ymin)
@@ -484,7 +483,6 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     filename = f"static/{sanitize_object_name(object_name).replace(' ', '_')}_{selected_location.replace(' ', '_')}_altitude_plot.png"
     plt.savefig(filename)
     plt.close()
-    print(f"✅ Plot saved as {filename}")
     return filename
 
 def ephem_to_local(ephem_date, tz_name):
@@ -578,11 +576,8 @@ def set_location_api():
         return jsonify({"status": "error", "message": "Invalid location"}), 404
 
 # =============================================================================
-# Protected Routes (Require Login)
+# Protected Routes
 # =============================================================================
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route('/get_locations')
 @login_required
@@ -724,7 +719,7 @@ def get_data():
         key=lambda x: x['Altitude Current'] if isinstance(x['Altitude Current'], (int, float)) else -1,
         reverse=True
     )
-    print(f"[DEBUG] Finished processing. Total objects processed: {len(sorted_objects)}")
+    #print(f"[DEBUG] Finished processing. Total objects processed: {len(sorted_objects)}")
     return jsonify({
         "date": local_date,
         "time": current_datetime_local.strftime('%H:%M:%S'),

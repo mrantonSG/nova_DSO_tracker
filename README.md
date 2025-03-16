@@ -8,21 +8,21 @@ Nova updates DSOs' positions every minute. Objects marked for special attention 
 Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Azimuth (Az) calculations are performed in real time, with updates reflected every minute on the web interface.
 
 ### Main Interface
-When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above 20° are highlighted. Under "Observable" you can find the time in minutes an object is above 20° altitude between astronomical dusk and dawn.
+When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn.
 
 ![Main Interface](doc/Screenshot1.png)
 
 ### Sorting and Searching
 - **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
-- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. Nova retains your sorting and filtering choices until you alter them.
+- **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. With `!` you can exclude content. Nova retains your sorting and filtering choices until you alter them.
 
 ![Sorting and Searching](doc/Screenshot2.png)
 
 ### Configuration
-Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen.
+Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen. To add an object, enter its ID and click `search`. This will trigger a SIMBAD search. If an object was found you can edit its name and project fields and finally add it to your list.
 
-- **Object Designations:** SIMBAD may not recognize all object IDs. If unsure, search manually on SIMBAD first, then use the confirmed designation.
-- **Highlighting Objects:** Entering text in the "Project" field highlights the corresponding object in the main interface.
+- **Object Designations:** SIMBAD may not recognize all object IDs. You can however add objects also manually. In that case you need to enter RA and DEC.
+- **Highlighting Objects:** Entering text in the "Project" field highlights the corresponding object in the main interface. The main purpose is to mark objects you plan to image. In the project field you can put all necessary information, such as the rig you plan to use.
 
 ![Configuration Screen](doc/Screenshot3.png)
 
@@ -91,7 +91,7 @@ Your terminal prompt should now start with `(nova)`.
 Install the required Python packages:
 
 ```bash
-pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple
+pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple bumpversion
 ```
 
 (Optional) Verify installed packages:
@@ -102,7 +102,7 @@ pip freeze
 
 ## 5. Set Up Your .env file
 
-Add your .env file - you can find an example here. Just edit the secret key and safe the file as .env (not.env.example). Once you edit the extension, the file will not be visible by default.
+Add your .env file - you can find an example here. Just edit the secret key for flask and safe the file as .env (not.env.example). Once you edit the extension, the file will not be visible by default.
 
 ## 6. Run the Application
 
@@ -158,3 +158,8 @@ The app can be configured for multi‑user mode (using separate configuration fi
 
 ### Dependencies:
 If you add more dependencies later, update the installation command accordingly.
+
+### Installation on a server:
+In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. A Raspberry pi5 works fine, you just need to accept short delays when switching locations or clicking on objects, but overall the performance is sufficient. In such a setup however, sending the object to Stellarium will not work.
+
+clear skies!
