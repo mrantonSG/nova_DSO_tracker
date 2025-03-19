@@ -100,11 +100,7 @@ pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_lo
 pip freeze
 ```
 
-## 5. Set Up Your .env file
-
-Add your .env file - you can find an example here. Just edit the secret key for flask and safe the file as .env (not.env.example). Once you edit the extension, the file will not be visible by default.
-
-## 6. Run the Application
+## 5. Run the Application
 
 1. With your virtual environment activated, run:
 
@@ -120,7 +116,7 @@ http://localhost:5001
 
 *Note: The first startup may take a minute.*
 
-## 7. (Optional) Deactivate the Virtual Environment
+## 6. (Optional) Deactivate the Virtual Environment
 
 When finished, deactivate by running:
 
@@ -128,7 +124,7 @@ When finished, deactivate by running:
 deactivate
 ```
 
-## 8. (Optional) Running it in the background
+## 7. (Optional) Running it in the background
 
 if you want to close the terminal window, for instance after starting the software on a server, start it like that:
 
@@ -149,9 +145,6 @@ kill <the number you've found>
 ```
 
 ## Additional Notes
-
-### Configuration Files:
-For security, sensitive values such as SECRET_KEY or passwords should be stored in a .env file or a separate configuration file that is not committed to version control.
 
 ### Multi‑user vs. Single‑user Mode:
 The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). However, this functionality is still experimental.
