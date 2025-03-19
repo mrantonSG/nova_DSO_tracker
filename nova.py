@@ -17,6 +17,7 @@ import os
 from datetime import datetime, timedelta
 from decouple import config
 import requests
+import secrets
 
 import numpy as np
 import pytz
@@ -41,8 +42,19 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
+ENV_FILE = ".env"
+
+# Automatically create .env if it doesn't exist
+if not os.path.exists(ENV_FILE):
+    secret_key = secrets.token_hex(32)  # Generate a secure 32-byte key
+    with open(ENV_FILE, "w") as f:
+        f.write(f"SECRET_KEY={secret_key}\n")
+    print(f"Created .env file with a new SECRET_KEY")
+
+SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
+
 app = Flask(__name__)
-app.secret_key = config('SECRET_KEY')
+app.secret_key = SECRET_KEY
 
 SINGLE_USER_MODE = True  # Set to False for multi‑user mode
 
@@ -55,7 +67,7 @@ login_manager.login_message = None
 # In-Memory User Store and User Model (this needs further development)
 # =============================================================================
 users = {
-    'anton': {'id': 'alice', 'username': 'alice', 'password': 'mypassword'},
+    'alice': {'id': 'alice', 'username': 'alice', 'password': 'mypassword'},
     'bob':  {'id': 'bob', 'username': 'bob', 'password': 'password123'}
 }
 
