@@ -1,14 +1,6 @@
 altitude_threshold: 20
-default_location: Perth
+default_location: Singapore
 locations:
-  Bad Fischau:
-    lat: 47.83137
-    lon: 16.16707
-    timezone: Europe/Vienna
-  Moscow:
-    lat: 55.755826
-    lon: 37.6172999
-    timezone: Europe/Moscow
   Perth:
     lat: -31.9522
     lon: 115.8614

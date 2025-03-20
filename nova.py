@@ -1,7 +1,7 @@
 """
-Nova Astro Application
+Nova DSO Tracker
 ------------------------
-This Flask application provides endpoints to fetch and plot astronomical data
+This application provides endpoints to fetch and plot astronomical data
 based on user-specific configuration details (e.g., locations and objects).
 It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes,
 transit times, and generate altitude curves for both celestial objects and the Moon.
@@ -18,11 +18,13 @@ from datetime import datetime, timedelta
 from decouple import config
 import requests
 import secrets
+from dotenv import load_dotenv
 
 import numpy as np
 import pytz
 import ephem
 import yaml
+import shutil
 
 import matplotlib
 matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
@@ -38,19 +40,31 @@ from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
 import astropy.units as u
-
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
+APP_VERSION = "1.6.3"
+load_dotenv()
+
 ENV_FILE = ".env"
 
 # Automatically create .env if it doesn't exist
 if not os.path.exists(ENV_FILE):
-    secret_key = secrets.token_hex(32)  # Generate a secure 32-byte key
+    secret_key = secrets.token_hex(32)
+
+    default_user = "admin"
+    default_password = "admin123"
+
     with open(ENV_FILE, "w") as f:
         f.write(f"SECRET_KEY={secret_key}\n")
-    print(f"Created .env file with a new SECRET_KEY")
+        f.write(f"USERS={default_user}\n")  # Add default user
+        f.write(f"USER_{default_user.upper()}_ID={default_user}\n")
+        f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
+        f.write(f"USER_{default_user.upper()}_PASSWORD={default_password}\n")
 
+    print(f"✅ Created .env file with a new SECRET_KEY and default user")
+
+# Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
 
 app = Flask(__name__)
@@ -63,13 +77,23 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = None
 
-# =============================================================================
-# In-Memory User Store and User Model (this needs further development)
-# =============================================================================
-users = {
-    'alice': {'id': 'alice', 'username': 'alice', 'password': 'mypassword'},
-    'bob':  {'id': 'bob', 'username': 'bob', 'password': 'password123'}
-}
+# Load user credentials dynamically from .env
+usernames = config("USERS", default="").split(",")
+
+users = {}
+
+for username in usernames:
+    username = username.strip()
+    if username:
+        user_id = config(f"USER_{username.upper()}_ID", default=username)
+        user_username = config(f"USER_{username.upper()}_USERNAME", default=username)
+        user_password = config(f"USER_{username.upper()}_PASSWORD", default="changeme")
+
+        users[username] = {
+            "id": user_id,
+            "username": user_username,
+            "password": user_password,
+        }
 
 class User(UserMixin):
     def __init__(self, user_id, username):
@@ -78,32 +102,44 @@ class User(UserMixin):
 
 @login_manager.user_loader
 def load_user(user_id):
-    user_record = users.get(user_id)
-    if user_record:
-        return User(user_record['id'], user_record['username'])
+    for user in users.values():
+        if user["id"] == user_id:
+            return User(user["id"], user["username"])
     return None
 
 def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
 
-def get_version():
-    with open('.VERSION', 'r') as version_file:
-        return version_file.read().strip()
-
 @app.context_processor
 def inject_version():
-    return dict(version=get_version())
+    return dict(version=APP_VERSION)
 
 # =============================================================================
 # User-Specific Configuration Functions
 # =============================================================================
 def load_user_config(username):
+    """Load user-specific configuration, creating one from the default if missing."""
     if SINGLE_USER_MODE:
         filename = "config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
+
+    # If user config is missing, create it from the default
+    if not os.path.exists(filename):
+        print(f"⚠️ Config file '{filename}' not found. Creating from default.")
+        try:
+            shutil.copy("config_default.yaml", filename)
+        except FileNotFoundError:
+            print("❌ ERROR: Default config file 'config_default.yaml' is missing!")
+            return {}  # Return empty config to prevent crashes
+        except Exception as e:
+            print(f"❌ ERROR: Failed to create user config: {e}")
+            return {}
+
+    # Load and return the YAML configuration
     with open(filename, "r") as file:
-        return yaml.safe_load(file)
+        return yaml.safe_load(file) or {}
+
 
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
@@ -112,7 +148,6 @@ def save_user_config(username, config_data):
         filename = f"config_{username}.yaml"
     with open(filename, "w") as file:
         yaml.dump(config_data, file)
-
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -177,6 +212,10 @@ def get_common_time_arrays(tz_name, local_date):
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
+@app.context_processor
+def inject_version():
+    return dict(version=APP_VERSION)
 
 # =============================================================================
 # Astronomical Calculations

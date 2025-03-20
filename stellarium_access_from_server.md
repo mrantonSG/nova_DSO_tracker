@@ -31,26 +31,10 @@ SINGLE_USER_MODE = False
 
 #### 2. Set Up User Credentials
 
-Scroll down to the `users` dictionary inside `nova.py` and add your own login credentials. Example:
-```python
-users = {
-    'yourusername': {'id': 'yourid', 'username': 'yourusername', 'password': 'yourpassword'}
-}
-```
-Replace `'yourusername'`, `'yourid'` and `'yourpassword'` with your actual login details.
+In the .env file you will find a default user id and password: admin / admin123. You can change the password and you can also add additional users.
+The software will automatically convert the config yaml file to user specific versions.
 
-#### 3. Rename the Default Configuration File
-
-- By default, Nova uses `config_default.yaml`. In **multi-user mode**, each user has their own configuration file.
-- Rename `config_default.yaml` to match your **user ID**:
-
-  ```bash
-  mv config_default.yaml config_yourid.yaml
-  ```
-
-- Nova will now load `config_<user_id>.yaml` based on the logged-in user.
-
-#### 4. Restart the Nova Server
+#### 3. Restart the Nova Server
 
 Run:
 ```sh
