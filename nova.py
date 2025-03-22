@@ -45,7 +45,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.0.1"
 load_dotenv()
 
 ENV_FILE = ".env"
@@ -404,20 +404,20 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
         moon_altitudes.append(moon_altaz.alt.deg)
         moon_azimuths.append(moon_altaz.az.deg)
 
-    # NEW: Compute Angular Separation (in degrees) between object and Moon
-    # Convert altitude and azimuth lists to radians as numpy arrays.
-    obj_alt_rad = np.radians(np.array(altitudes))
-    obj_az_rad = np.radians(np.array(azimuths))
-    moon_alt_rad = np.radians(np.array(moon_altitudes))
-    moon_az_rad = np.radians(np.array(moon_azimuths))
-    # Calculate cosine of angular separation using spherical law of cosines.
-    cos_delta = (np.sin(obj_alt_rad) * np.sin(moon_alt_rad) +
-                 np.cos(obj_alt_rad) * np.cos(moon_alt_rad) *
-                 np.cos(obj_az_rad - moon_az_rad))
-    # Clip to [-1, 1] to avoid numerical issues.
-    cos_delta = np.clip(cos_delta, -1, 1)
-    angular_distance = np.degrees(np.arccos(cos_delta))
-    # End NEW section
+    # # NEW: Compute Angular Separation (in degrees) between object and Moon
+    # # Convert altitude and azimuth lists to radians as numpy arrays.
+    # obj_alt_rad = np.radians(np.array(altitudes))
+    # obj_az_rad = np.radians(np.array(azimuths))
+    # moon_alt_rad = np.radians(np.array(moon_altitudes))
+    # moon_az_rad = np.radians(np.array(moon_azimuths))
+    # # Calculate cosine of angular separation using spherical law of cosines.
+    # cos_delta = (np.sin(obj_alt_rad) * np.sin(moon_alt_rad) +
+    #              np.cos(obj_alt_rad) * np.cos(moon_alt_rad) *
+    #              np.cos(obj_az_rad - moon_az_rad))
+    # # Clip to [-1, 1] to avoid numerical issues.
+    # cos_delta = np.clip(cos_delta, -1, 1)
+    # angular_distance = np.degrees(np.arccos(cos_delta))
+    # # End NEW section
 
     # Get sun events.
     sun_events_curr = calculate_sun_events(local_date)
@@ -459,7 +459,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     ax.axhline(y=0, color='black', linewidth=2, linestyle='-', label='Horizon')
 
     # Plot Angular Separation as a red dashed line.
-    ax.plot(times_local_naive, angular_distance, '--', linewidth=1.5, color='red', label='Angular Separation')
+    #ax.plot(times_local_naive, angular_distance, '--', linewidth=1.5, color='red', label='Angular Separation')
 
     ax.set_xlabel(f'Time (Local - {selected_location})')
     ax.set_ylabel('Altitude (°)', color='k')
@@ -467,6 +467,9 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
     plt.xticks(rotation=45)
+
+    # Fix altitude axis to range from -90 to +90 degrees.
+    ax.set_ylim(-90, 90)
 
     # Add a two-line title.
     ax.set_title(f"Altitude and Azimuth for {object_name} ({alt_name}) on {local_date}", loc='left')
@@ -538,13 +541,6 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     # Convert these to naive datetimes (remove tzinfo) for comparison with times_local_naive.
     astro_dusk_prev_naive = astro_dusk_prev.replace(tzinfo=None) if astro_dusk_prev is not None else None
     astro_dawn_curr_naive = astro_dawn_curr.replace(tzinfo=None) if astro_dawn_curr is not None else None
-
-    # Debug prints to verify boundaries.
-    print("DEBUG: plot_start =", plot_start)
-    print("DEBUG: midnight =", midnight)
-    print("DEBUG: plot_end =", plot_end)
-    print("DEBUG: astro_dusk_prev_naive =", astro_dusk_prev_naive)
-    print("DEBUG: astro_dawn_curr_naive =", astro_dawn_curr_naive)
 
     # Overlay white spans for the observable (night) period.
     # White from astro_dusk_prev (previous day) to midnight.
@@ -1371,8 +1367,10 @@ def graph_dashboard(object_name):
     selected_date = tz.localize(datetime.strptime(selected_date_str, "%Y-%m-%d"))
 
     # Calculate moon phase for the selected date.
-    # Using ephem.Date() ensures that ephem.Moon gets the correct date.
     phase = round(ephem.Moon(ephem.Date(selected_date)).phase, 0)
+
+    # Calculate sun events for the selected date.
+    sun_events = calculate_sun_events(selected_date_str)
 
     project = get_ra_dec(object_name).get("Project", "none")
     timestamp = now.timestamp()
@@ -1386,7 +1384,10 @@ def graph_dashboard(object_name):
                            timestamp=timestamp,
                            date=selected_date_str,
                            time=selected_date.strftime('%H:%M:%S'),
-                           phase=phase)
+                           phase=phase,
+                           astronomical_dawn=sun_events.get("astronomical_dawn", "N/A"),
+                           astronomical_dusk=sun_events.get("astronomical_dusk", "N/A"))
+
 
 @app.route('/plot_day/<object_name>')
 @login_required
@@ -1451,7 +1452,16 @@ def get_date_info(object_name):
     selected_date = tz.localize(datetime.strptime(local_date, "%Y-%m-%d"))
     phase = round(ephem.Moon(ephem.Date(selected_date)).phase, 0)
     time_str = selected_date.strftime('%H:%M:%S')
-    return jsonify({"date": local_date, "time": time_str, "phase": phase})
+    sun_events = calculate_sun_events(local_date)
+    astronomical_dawn = sun_events.get("astronomical_dawn", "N/A")
+    astronomical_dusk = sun_events.get("astronomical_dusk", "N/A")
+    return jsonify({
+        "date": local_date,
+        "phase": phase,
+        "astronomical_dawn": astronomical_dawn,
+        "astronomical_dusk": astronomical_dusk
+    })
+
 
 # =============================================================================
 # Main Entry Point

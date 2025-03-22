@@ -177,6 +177,8 @@
         .then(data => {
           document.getElementById("date-display").innerText = "Date: " + data.date;
           document.getElementById("phase-display").innerText = "Moon Illumination: " + data.phase + "%";
+          document.getElementById("dusk-display").innerText = "Astro Dusk: " + data.astronomical_dusk;
+          document.getElementById("dawn-display").innerText = "Astro Dawn: " + data.astronomical_dawn;
         })
         .catch(error => console.error("Error updating header:", error));
     }
@@ -245,6 +247,8 @@
     <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
     <p id="date-display">Date: {{ date }}</p>
     <p id="phase-display">Moon Illumination: {{ phase }}%</p>
+    <p id="dusk-display">Astro Dusk: {{ astronomical_dusk }}</p>
+    <p id="dawn-display">Astro Dawn: {{ astronomical_dawn }}</p>
   </div>
 
   <!-- The main chart area -->
