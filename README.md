@@ -158,4 +158,8 @@ The app can be configured for multi‑user mode (using separate configuration fi
 ### Installation on a server:
 In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. A Raspberry pi5 works fine, you just need to accept short delays when switching locations or clicking on objects, but overall the performance is sufficient. In order to still being able to send objects to Stellarium, please read "[stellarium_access_from_server](stellarium_access_from_server.md)".
 
+### Upgrading from an older version:
+First step: copy your config yaml to a safe place. You can now replace the files in your nova directory or you do a clean install (recommended)
+For the clean install you just follow the setup guide. Once all steps are done, copy your config yaml back into the new folder and start the app.
+
 clear skies!
