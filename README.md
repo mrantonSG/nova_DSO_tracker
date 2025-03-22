@@ -1,4 +1,4 @@
-# Nova DSO Altitude Tracker - Quick Guide
+# Nova DSO Altitude Tracker 2.0 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -8,15 +8,15 @@ Nova updates DSOs' positions every minute. Objects marked for special attention 
 Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Azimuth (Az) calculations are performed in real time, with updates reflected every minute on the web interface.
 
 ### Main Interface
-When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn.
+When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. New in Version 2 is the column with the angular separation of the object to the moon.
 
-![Main Interface](doc/Screenshot1.png)
+![Screenshot_V2_Index.png](doc/Screenshot_V2_Index.png)
 
 ### Sorting and Searching
 - **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
 - **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. With `!` you can exclude content. Nova retains your sorting and filtering choices until you alter them.
 
-![Sorting and Searching](doc/Screenshot2.png)
+![Screenshot_V2_select.png](doc/Screenshot_V2_select.png)
 
 ### Configuration
 Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen. To add an object, enter its ID and click `search`. This will trigger a SIMBAD search. If an object was found you can edit its name and project fields and finally add it to your list.
@@ -27,9 +27,15 @@ Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) l
 ![Configuration Screen](doc/Screenshot3.png)
 
 ### Detailed Object Information
-Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance.
+Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance. 
+New in V2 is the possibility to not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day". In the day view you can now also see a dotted line showing the angular separation between the object and the moon.
+Also new are a monthly and yearly view of the object and the moon.
 
-![Object Details](doc/Screenshot4.png)
+![Screenshot_V2_Day.png](doc/Screenshot_V2_Day.png)
+
+![Screenshot_V2_Month.png](doc/Screenshot_V2_Month.png)
+
+![Screenshot_V2_Year.png](doc/Screenshot_V2_Year.png)
 
 ---
 
@@ -37,7 +43,7 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 
 This guide walks you through setting up your Flask astronomical tracking app, including creating a virtual environment and installing all required dependencies.
 
-## 1. Install Python 3
+## 1. Install Python 3 (if applicable)
 
 Using **Homebrew** (recommended):
 

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nova DSO Altitude Tracker</title>
+  <style>
+    /* Basic styles, merged from index and additional styling */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      margin: 0;
+    }
+    .header-container {
+      display: flex;
+      align-items: baseline;
+    }
+    .header-container h1, .header-container h3 {
+      margin-bottom: 20px;
+    }
+    .header-container h3 {
+      margin-left: 10px;
+      font-weight: normal;
+    }
+    .info-container {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .info-container p, .info-container label, .info-container select {
+      margin: 0;
+    }
+    #back-button {
+      margin-top: 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #back-button:hover {
+      background-color: #6795a4 !important;
+    }
+    /* Chart container */
+    #chart-section {
+      margin-top: 20px;
+    }
+    #chart-section img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    /* Day/Month/Year controls */
+    .date-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .date-controls label, .date-controls input, .date-controls select {
+      font-size: 14px;
+      padding: 4px;
+    }
+    /* View-switching buttons */
+    .view-buttons {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .view-button {
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    .view-button:hover {
+      background-color: #6795a4;
+    }
+    /* Project field and buttons area */
+    .button-container {
+      margin-top: 20px;
+    }
+    #project-field {
+      width: 100%;
+      max-width: 800px;
+      height: 150px;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+    .inline-button {
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-right: 10px;
+    }
+    .inline-button:hover {
+      background-color: #6795a4;
+    }
+    .button-container {
+      padding: 10px;
+      margin-left: 50px;
+    }
+  </style>
+  <script>
+    function setLocation() {
+      const selectedLocation = document.getElementById('location-select').value;
+      fetch('/set_location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location: selectedLocation })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          refreshChart();
+        } else {
+          console.error("Location update failed:", data);
+        }
+      })
+      .catch(error => console.error('Error setting location:', error));
+    }
+
+    function refreshChart() {
+      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      const day = document.getElementById('day-select').value;
+      const month = document.getElementById('month-select').value;
+      const year = document.getElementById('year-select').value;
+      const timestamp = Date.now();
+      // Use the dedicated day endpoint for the chart
+      const url = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&t=${timestamp}`;
+      document.getElementById('chart-link').href = url;
+      document.getElementById('chart-img').src = url;
+
+      // Update header via AJAX (date and moon illumination)
+      fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("date-display").innerText = "Date: " + data.date;
+          document.getElementById("phase-display").innerText = "Moon Illumination: " + data.phase + "%";
+        })
+        .catch(error => console.error("Error updating header:", error));
+    }
+
+    function changeView(view) {
+      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      const day = document.getElementById('day-select').value;
+      const month = document.getElementById('month-select').value;
+      const year = document.getElementById('year-select').value;
+      const timestamp = Date.now();
+      let url = "";
+      if (view === "day") {
+        url = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&t=${timestamp}`;
+      } else if (view === "month") {
+        url = `/plot_monthly_altitude/${encodeURIComponent(objectName)}?year=${year}&month=${month}&t=${timestamp}`;
+      } else if (view === "year") {
+        url = `/plot_yearly_altitude/${encodeURIComponent(objectName)}?year=${year}&t=${timestamp}`;
+      }
+      console.log("changeView triggered with URL:", url);
+      document.getElementById('chart-link').href = url;
+      document.getElementById('chart-img').src = url;
+      // Also update header information
+      fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById("date-display").innerText = "Date: " + data.date;
+          document.getElementById("phase-display").innerText = "Moon Illumination: " + data.phase + "%";
+        })
+        .catch(error => console.error("Error updating header:", error));
+    }
+
+    function saveProject() {
+      const newProject = document.getElementById('project-field').value;
+      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      fetch('/update_project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ object: objectName, project: newProject })
+      }).then(res => res.json()).then(data => {
+        alert(data.status === "success" ? "Project updated successfully!" : data.error);
+      });
+    }
+
+    function toggleSimbad() {
+      var container = document.getElementById('simbadContainer');
+      if (container.style.display === 'none' || container.style.display === '') {
+        document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(document.getElementById('object-input').value);
+        container.style.display = 'block';
+      } else {
+        container.style.display = 'none';
+      }
+    }
+
+    function openInStellarium() {
+      const stellariumStatusDiv = document.getElementById('stellarium-status');
+      stellariumStatusDiv.textContent = "Sending object to Stellarium...";
+      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      fetch("/proxy_focus", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ target: objectName, mode: "center" })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === "success") {
+          stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
+          stellariumStatusDiv.style.color = "#83b4c5";
+        } else {
+          stellariumStatusDiv.textContent = "Error updating Stellarium: " + data.message;
+          stellariumStatusDiv.style.color = "red";
+        }
+      })
+      .catch(error => {
+        stellariumStatusDiv.textContent = "Error communicating with Stellarium.";
+        stellariumStatusDiv.style.color = "red";
+        console.error("Communication error:", error);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // Load default chart and header on page load.
+      refreshChart();
+    });
+  </script>
+</head>
+<body>
+  <!-- Top navigation -->
+  <div class="header-container">
+    <h1>Nova</h1>
+    <h3>DSO Altitude Tracker V{{ version }}</h3>
+  </div>
+  <div class="info-container">
+    <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
+    <p id="date-display">Date: {{ date }}</p>
+    <p id="phase-display">Moon Illumination: {{ phase }}%</p>
+  </div>
+
+  <!-- The main chart area -->
+  <div id="chart-section">
+    <!-- Date controls and object input -->
+    <div class="date-controls" style="display: flex; align-items: center; gap: 10px;">
+      <label>Object:</label>
+      <input type="text" id="object-input" value="{{ object_name }}" style="width: 150px;" readonly />
+
+      <label>Day:</label>
+      <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;" />
+
+      <label>Month:</label>
+      <select id="month-select">
+        {% for m in range(1, 13) %}
+          <option value="{{ m }}" {% if m == selected_month|int %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Year:</label>
+      <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;" />
+
+      <!-- Inline view buttons -->
+      <button class="view-button" onclick="changeView('day')">Day</button>
+      <button class="view-button" onclick="changeView('month')">Month</button>
+      <button class="view-button" onclick="changeView('year')">Year</button>
+    </div>
+    <br/>
+    <a id="chart-link" href="#" target="_blank">
+      <img id="chart-img" src="#" alt="Altitude Graph" />
+    </a>
+  </div>
+
+  <!-- Project field and additional controls -->
+  <div class="button-container">
+    <label>Notes:</label><br><br>
+    <textarea id="project-field">{{ project }}</textarea>
+    <br><br>
+    <button class="inline-button" onclick="saveProject()">Save Project</button>
+    <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
+    <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
+    <br><div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+  </div>
+
+
+  <div id="simbadContainer" style="display:none; margin-top:20px;">
+    <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
+  </div>
+</body>
+</html>
