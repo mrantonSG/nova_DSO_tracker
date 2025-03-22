@@ -121,7 +121,6 @@
       }
     }
 
-    // Apply filters to table rows.
     function filterTable() {
       const table = document.getElementById("data-table");
       const filterRow = table.querySelector(".filter-row");
@@ -139,33 +138,79 @@
       const tbody = document.getElementById("data-body");
       const rows = tbody.getElementsByTagName("tr");
 
-      // Loop over each row.
+      // Loop over each table row.
       for (let i = 0; i < rows.length; i++) {
         let showRow = true;
         const cells = rows[i].getElementsByTagName("td");
-        // Loop over each filter input.
+
+        // Loop over each filter input (one per column).
         for (let j = 0; j < inputs.length; j++) {
           const filterValue = inputs[j].value.trim().toLowerCase();
           if (filterValue !== "") {
-            const cellText = cells[j].innerText.trim().toLowerCase();
-            // For numeric columns (indexes 2, 3, 5, 6, 8), support range operators.
-            if ([2, 3, 5, 6, 8].includes(j)) {
+            let cellText = cells[j].innerText.trim().toLowerCase();
+
+            // If this is a numeric column (indexes 2, 3, 5, 6, 8, and 9 for Angular Separation)
+            if ([2, 3, 5, 6, 8, 9].includes(j)) {
+              // Remove non-numeric characters (e.g., degree symbol)
+              cellText = cellText.replace(/[^0-9\.\-]/g, "");
               const cellNumber = parseFloat(cellText);
               if (isNaN(cellNumber)) {
                 showRow = false;
                 break;
               }
-              // Allow multiple conditions separated by spaces.
+              // Split filter value into conditions (if user types multiple conditions separated by spaces).
               const conditions = filterValue.split(" ").filter(cond => cond !== "");
               for (let cond of conditions) {
-                if (!checkNumericCondition(cellNumber, cond)) {
+                let operator = "";
+                let valueStr = "";
+                if (cond.startsWith(">=")) {
+                  operator = ">=";
+                  valueStr = cond.substring(2);
+                } else if (cond.startsWith("<=")) {
+                  operator = "<=";
+                  valueStr = cond.substring(2);
+                } else if (cond.startsWith(">")) {
+                  operator = ">";
+                  valueStr = cond.substring(1);
+                } else if (cond.startsWith("<")) {
+                  operator = "<";
+                  valueStr = cond.substring(1);
+                } else {
+                  // If no operator, perform a substring match on the string version of cellNumber.
+                  if (String(cellNumber).indexOf(cond) === -1) {
+                    showRow = false;
+                    break;
+                  } else {
+                    continue;
+                  }
+                }
+                let conditionValue = parseFloat(valueStr);
+                if (isNaN(conditionValue)) {
                   showRow = false;
                   break;
                 }
+                // Evaluate the numeric condition.
+                switch (operator) {
+                  case ">":
+                    if (!(cellNumber > conditionValue)) { showRow = false; }
+                    break;
+                  case ">=":
+                    if (!(cellNumber >= conditionValue)) { showRow = false; }
+                    break;
+                  case "<":
+                    if (!(cellNumber < conditionValue)) { showRow = false; }
+                    break;
+                  case "<=":
+                    if (!(cellNumber <= conditionValue)) { showRow = false; }
+                    break;
+                  default:
+                    break;
+                }
+                if (!showRow) break;
               }
               if (!showRow) break;
             } else {
-              // For text columns, check for exclusion if filter starts with "!"
+              // For text columns
               if (filterValue.startsWith("!")) {
                 const excludeTerm = filterValue.substring(1).trim();
                 if (cellText.indexOf(excludeTerm) !== -1) {
@@ -173,7 +218,6 @@
                   break;
                 }
               } else {
-                // Otherwise, perform a simple substring match.
                 if (cellText.indexOf(filterValue) === -1) {
                   showRow = false;
                   break;
@@ -185,7 +229,6 @@
         rows[i].style.display = showRow ? "" : "none";
       }
     }
-
     function fetchData() {
       const localTime = new Date().toISOString();
       fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
@@ -229,7 +272,8 @@
                              <td class="${elevenPMAltClass}">${alt11pm.toFixed(2)}°</td>
                              <td>${az11pm.toFixed(2)}°</td>
                              <td>${obj['Transit Time'] || 'N/A'}</td>
-                             <td>${observable}</td>`;
+                             <td>${observable}</td>
+                             <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? Number(obj["Angular Separation (°)"]).toFixed(1) + '°' : 'N/A'}</td>`;
 
             row.addEventListener('click', function() {
               const commonName = obj['Common Name'] || "";
@@ -255,10 +299,7 @@
     }
 
     function showGraph(objectName) {
-      const graphUrl = `/plot_altitude/${encodeURIComponent(objectName)}`;
-      document.getElementById('graph-iframe').src = graphUrl;
-      document.getElementById('graph-section').style.display = 'block';
-      document.getElementById('list-section').style.display = 'none';
+      window.location.href = '/graph_dashboard/' + encodeURIComponent(objectName);
     }
 
     function showList() {
@@ -293,7 +334,14 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
+          // Always refresh table data
           fetchData();
+          // If the iframe exists and is visible, update it.
+          const iframe = document.getElementById('graph-iframe');
+          if (iframe && iframe.style.display !== 'none') {
+            let baseUrl = iframe.src.split('?')[0];
+            iframe.src = baseUrl + '?t=' + Date.now();
+          }
         } else {
           console.error("❌ Location update failed:", data);
         }
@@ -336,11 +384,12 @@
       <col style="width: 25%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
-      <col style="width: 5%;">
+      <col style="width: 4%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
-      <col style="width: 8%;">
+      <col style="width: 7.14%;">
+      <col style="width: 7.14%;">
       <thead>
         <tr>
           <th class="sortable"><span>Object</span></th>
@@ -352,6 +401,7 @@
           <th class="sortable"><span>Azimuth <br>(11 PM)</span></th>
           <th class="sortable"><span>Transit <br>(Local Time)</span></th>
           <th class="sortable"><span>Observable <br>(min)</span></th>
+          <th class="sortable"><span>Ang. Sep. <br>(°)</span></th>
         </tr>
         <tr class="filter-row">
           <th><input type="text" placeholder="Search Object" onkeyup="saveFilter(this, 0); filterTable();"/></th>
@@ -363,6 +413,7 @@
           <th><input type="text" placeholder="Azimuth °" onkeyup="saveFilter(this, 6); filterTable();" /></th>
           <th><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
           <th><input type="text" placeholder="minutes" onkeyup="saveFilter(this, 8); filterTable();" /></th>
+          <th><input type="text" placeholder="Ang. Sep. °" onkeyup="saveFilter(this, 9); filterTable();" /></th>
         </tr>
       </thead>
       <tbody id="data-body"></tbody>
