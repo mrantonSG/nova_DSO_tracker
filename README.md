@@ -28,7 +28,7 @@ Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) l
 
 ### Detailed Object Information
 Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance. 
-New in V2 is the possibility to not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day". In the day view you can now also see a dotted line showing the angular separation between the object and the moon.
+New in V2 is the possibility to not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 Also new are a monthly and yearly view of the object and the moon.
 
 ![Screenshot_V2_Day.png](doc/Screenshot_V2_Day.png)
