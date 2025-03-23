@@ -45,7 +45,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.0.1"
+APP_VERSION = "2.1.0"
 load_dotenv()
 
 ENV_FILE = ".env"
@@ -362,6 +362,40 @@ def ra_dec_to_alt_az(ra, dec, lat, lon, time_utc):
     altaz_frame = AltAz(obstime=observation_time, location=location)
     altaz = sky_coord.transform_to(altaz_frame)
     return altaz.alt.deg, altaz.az.deg
+
+
+def calculate_max_observable_altitude(ra, dec, lat, lon, local_date, tz_name, altitude_threshold):
+    local_tz = pytz.timezone(tz_name)
+    sun_events = calculate_sun_events(local_date)
+
+    dusk_time = local_tz.localize(datetime.combine(
+        datetime.strptime(local_date, '%Y-%m-%d'),
+        datetime.strptime(sun_events["astronomical_dusk"], '%H:%M').time()
+    ))
+
+    dawn_date = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
+    dawn_time = local_tz.localize(datetime.combine(
+        dawn_date,
+        datetime.strptime(sun_events["astronomical_dawn"], '%H:%M').time()
+    ))
+
+    sample_interval = timedelta(minutes=10)
+    num_samples = int((dawn_time - dusk_time).total_seconds() / sample_interval.total_seconds()) + 1
+    times = [dusk_time + i * sample_interval for i in range(num_samples)]
+    times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times],
+                     format='isot', scale='utc')
+
+    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+    altaz_frame = AltAz(obstime=times_utc, location=location)
+    altaz = sky_coord.transform_to(altaz_frame)
+    altitudes = altaz.alt.deg
+
+    max_altitude = np.max(altitudes)
+    max_index = np.argmax(altitudes)
+    max_time = times[max_index]
+
+    return max_altitude, max_time
 
 def calculate_altitude_curve(ra, dec, lat, lon, local_date, tz_name):
     if hasattr(g, 'times_local') and hasattr(g, 'times_utc'):
@@ -764,7 +798,7 @@ def calculate_sun_events(date_str):
         "astronomical_dusk": astro_dusk_local
     }
 
-def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name ):
+def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name):
     local_tz = pytz.timezone(tz_name)
     sun_events = calculate_sun_events(local_date)
     dusk_time = local_tz.localize(datetime.combine(
@@ -789,11 +823,14 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     altaz = sky_coord.transform_to(altaz_frame)
     altitudes = altaz.alt.deg
 
-    # Use user-defined altitude threshold
     altitude_threshold = g.altitude_threshold
     above_threshold = np.array(altitudes) > altitude_threshold
     observable_duration_minutes = np.sum(above_threshold) * 10
-    return timedelta(minutes=int(observable_duration_minutes))
+
+    # NEW: Compute max altitude during the night
+    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else None
+
+    return timedelta(minutes=int(observable_duration_minutes)), max_altitude
 
 # =============================================================================
 # Route to Set Location
@@ -936,6 +973,9 @@ def get_data():
                         print(f"[DEBUG] Conversion error for Moon values for object {obj}: {moon_alt_obj.alt.deg}, {moon_alt_obj.az.deg}")
                         raise
 
+                    #calculate max altitude observable
+                    max_alt = calculate_max_observable_altitude(ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold)
+
                     # Convert all angles to radians.
                     obj_alt_rad = math.radians(alt_current)
                     obj_az_rad = math.radians(az_current)
@@ -961,7 +1001,7 @@ def get_data():
                     else:
                         trend = '→'
                     prev_alts[obj] = alt_current
-                    observable_duration = calculate_observable_duration_vectorized(
+                    observable_duration, max_altitude = calculate_observable_duration_vectorized(
                         ra, dec, g.lat, g.lon, local_date, g.tz_name
                     )
                     observable_minutes = int(observable_duration.total_seconds() / 60)
@@ -979,7 +1019,8 @@ def get_data():
                         'Angular Separation (°)': round(angular_sep, 1),
                         'Trend': trend,
                         'Project': data.get('Project', "none"),
-                        'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S')
+                        'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+                        'Max Altitude (°)': round(max_altitude, 1) if max_altitude is not None else "N/A",
                     })
                 except Exception as exception_value:
                     print(f"[ERROR] Problem processing object {obj}: {exception_value}")

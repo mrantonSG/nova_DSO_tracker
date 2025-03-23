@@ -41,6 +41,10 @@
       padding: 5px;
       box-sizing: border-box;
     }
+    th span.subtext {
+      font-weight: normal;
+      font-size: 12px;
+    }
   </style>
   <script>
     // Sorts the table rows based on columnIndex.
@@ -150,7 +154,7 @@
             let cellText = cells[j].innerText.trim().toLowerCase();
 
             // If this is a numeric column (indexes 2, 3, 5, 6, 8, and 9 for Angular Separation)
-            if ([2, 3, 5, 6, 8, 9].includes(j)) {
+            if ([2, 3, 5, 6, 8, 9, 10].includes(j)) {
               // Remove non-numeric characters (e.g., degree symbol)
               cellText = cellText.replace(/[^0-9\.\-]/g, "");
               const cellNumber = parseFloat(cellText);
@@ -263,6 +267,9 @@
             const alt11pm    = Number(obj['Altitude 11PM'])    || 0;
             const az11pm     = Number(obj['Azimuth 11PM'])     || 0;
             const observable = (obj['Observable Duration (min)'] !== undefined) ? obj['Observable Duration (min)'] : 'N/A';
+            const maxAltNight = (obj['Max Altitude (°)'] !== undefined && !isNaN(Number(obj['Max Altitude (°)'])))
+              ? Number(obj['Max Altitude (°)']).toFixed(1) + '°'
+              : 'N/A';
 
             row.innerHTML = `<td>${obj.Object}</td>
                              <td>${obj['Common Name'] || 'N/A'}</td>
@@ -273,6 +280,7 @@
                              <td>${az11pm.toFixed(2)}°</td>
                              <td>${obj['Transit Time'] || 'N/A'}</td>
                              <td>${observable}</td>
+                             <td>${maxAltNight}</td>
                              <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? Number(obj["Angular Separation (°)"]).toFixed(1) + '°' : 'N/A'}</td>`;
 
             row.addEventListener('click', function() {
@@ -390,18 +398,20 @@
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
+      <col style="width: 7.14%;">
       <thead>
         <tr>
           <th class="sortable"><span>Object</span></th>
           <th class="sortable"><span>Common name</span></th>
-          <th class="sortable"><span>Altitude <br>(Current)</span></th>
-          <th class="sortable"><span>Azimuth <br>(Current)</span></th>
+          <th class="sortable"><span>Altitude<br><span class="subtext">(Current)</span></span></th>
+          <th class="sortable"><span>Azimuth <br><span class="subtext">(Current)</span></span></th>
           <th class="sortable"><span>Trend</span></th>
-          <th class="sortable"><span>Altitude <br>(11 PM)</span></th>
-          <th class="sortable"><span>Azimuth <br>(11 PM)</span></th>
-          <th class="sortable"><span>Transit <br>(Local Time)</span></th>
-          <th class="sortable"><span>Observable <br>(min)</span></th>
-          <th class="sortable"><span>Ang. Sep. <br>(°)</span></th>
+          <th class="sortable"><span>Altitude <br><span class="subtext">(11 PM)</span></span></th>
+          <th class="sortable"><span>Azimuth <br><span class="subtext">(11 PM)</span></span></th>
+          <th class="sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span></th>
+          <th class="sortable"><span>Observable <br><span class="subtext">(minutes)</span></span></th>
+          <th class="sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span></th>
+          <th class="sortable"><span>Ang. Sep. <br><span class="subtext">object to moon (°)</span></span></th>
         </tr>
         <tr class="filter-row">
           <th><input type="text" placeholder="Search Object" onkeyup="saveFilter(this, 0); filterTable();"/></th>
@@ -413,7 +423,8 @@
           <th><input type="text" placeholder="Azimuth °" onkeyup="saveFilter(this, 6); filterTable();" /></th>
           <th><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
           <th><input type="text" placeholder="minutes" onkeyup="saveFilter(this, 8); filterTable();" /></th>
-          <th><input type="text" placeholder="Ang. Sep. °" onkeyup="saveFilter(this, 9); filterTable();" /></th>
+          <th><input type="text" placeholder="Max Alt. °" onkeyup="saveFilter(this, 9); filterTable();" /></th>
+          <th><input type="text" placeholder="Ang. Sep. °" onkeyup="saveFilter(this, 10); filterTable();" /></th>
         </tr>
       </thead>
       <tbody id="data-body"></tbody>
