@@ -45,7 +45,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.2.0"
 load_dotenv()
 
 ENV_FILE = ".env"
@@ -140,7 +140,17 @@ def load_user_config(username):
 
     # Load and return the YAML configuration
     with open(filename, "r") as file:
-        return yaml.safe_load(file) or {}
+        config = yaml.safe_load(file) or {}
+
+    # ✅ Ensure imaging_criteria exists with all defaults
+    config.setdefault("imaging_criteria", {})
+    config["imaging_criteria"].setdefault("min_observable_minutes", 60)
+    config["imaging_criteria"].setdefault("min_max_altitude", 30)
+    config["imaging_criteria"].setdefault("max_moon_illumination", 20)
+    config["imaging_criteria"].setdefault("min_angular_distance", 30)
+    config["imaging_criteria"].setdefault("search_horizon_months", 6)
+
+    return config
 
 
 def save_user_config(username, config_data):
@@ -150,6 +160,17 @@ def save_user_config(username, config_data):
         filename = f"config_{username}.yaml"
     with open(filename, "w") as file:
         yaml.dump(config_data, file)
+
+def get_imaging_criteria():
+    default_criteria = {
+        "min_observable_minutes": 60,
+        "min_max_altitude": 30,
+        "max_moon_illumination": 20,
+        "min_angular_distance": 30,
+        "search_horizon_months": 6
+    }
+    user_criteria = g.user_config.get("imaging_criteria", {})
+    return {**default_criteria, **user_criteria}
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -282,27 +303,34 @@ def get_ra_dec(object_name):
     objects_config = g.user_config.get("objects", [])
     obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
 
-    # Check if RA and DEC already exist in config
-    if obj_entry and "RA" in obj_entry and "DEC" in obj_entry:
-        try:
-            # Convert RA and DEC to float if they are stored as strings.
-            ra_hours = float(obj_entry["RA"])
-            dec_degrees = float(obj_entry["DEC"])
-        except Exception as exception_value:
-            print(f"[ERROR] Converting RA/DEC for {object_name}: {exception_value}")
-            ra_hours = obj_entry["RA"]
-            dec_degrees = obj_entry["DEC"]
-        return {
-            "Object": object_name,
-            "Common Name": obj_entry.get("Name", object_name),
-            "RA (hours)": ra_hours,
-            "DEC (degrees)": dec_degrees,
-            "Project": obj_entry.get("Project", "none")
-        }
+    # ✅ If RA and DEC already exist in the config, return early
+    if obj_entry:
+        ra = obj_entry.get("RA")
+        dec = obj_entry.get("DEC")
+        if ra is not None and dec is not None:
+            try:
+                return {
+                    "Object": object_name,
+                    "Common Name": obj_entry.get("Name", object_name),
+                    "RA (hours)": float(ra),
+                    "DEC (degrees)": float(dec),
+                    "Project": obj_entry.get("Project", "none")
+                }
+            except ValueError as ve:
+                print(f"[ERROR] Failed to parse RA/DEC for {object_name}: {ve}")
+                return {
+                    "Object": object_name,
+                    "Common Name": f"Error: Invalid RA/DEC format",
+                    "RA (hours)": None,
+                    "DEC (degrees)": None,
+                    "Project": obj_entry.get("Project", "none")
+                }
 
-    # Fetch RA/DEC from SIMBAD only if not found in config
+    # 🛰 Only fetch from SIMBAD if needed
+    print(f"[SIMBAD] Querying SIMBAD for {object_name}...")
     Simbad.TIMEOUT = 60
     Simbad.ROW_LIMIT = 1
+
     try:
         result = Simbad.query_object(object_name)
         if result is None or len(result) == 0:
@@ -315,21 +343,19 @@ def get_ra_dec(object_name):
         ra_hours = hms_to_hours(ra_value)
         dec_degrees = dms_to_degrees(dec_value)
 
-        # Store fetched RA/DEC permanently into YAML
+        #  Save RA/DEC back into config for future use
         if obj_entry:
             obj_entry["RA"] = ra_hours
             obj_entry["DEC"] = dec_degrees
         else:
-            # If object does not exist yet, create it in YAML
-            new_obj = {
+            objects_config.append({
                 "Object": object_name,
                 "Name": object_name,
                 "Type": "",
                 "Project": "none",
                 "RA": ra_hours,
                 "DEC": dec_degrees
-            }
-            objects_config.append(new_obj)
+            })
 
         save_user_config(current_user.username, g.user_config)
 
@@ -341,9 +367,9 @@ def get_ra_dec(object_name):
             "Project": "none"
         }
 
-    except Exception as exception_value:
-        error_message = f"Error: {str(exception_value)}"
-        print(f"[ERROR] Problem processing {object_name}: {error_message}")
+    except Exception as ex:
+        error_message = f"Error: {str(ex)}"
+        print(f"[ERROR] SIMBAD lookup for {object_name} failed: {error_message}")
         return {
             "Object": object_name,
             "Common Name": error_message,
@@ -759,8 +785,6 @@ def ephem_to_local(ephem_date, tz_name):
     local_dt = pytz.utc.localize(utc_dt).astimezone(local_tz)
     return local_dt
 
-
-# noinspection PyUnresolvedReferences
 def calculate_sun_events(date_str):
     local_tz = pytz.timezone(g.tz_name)
     local_date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -800,37 +824,59 @@ def calculate_sun_events(date_str):
 
 def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name):
     local_tz = pytz.timezone(tz_name)
-    sun_events = calculate_sun_events(local_date)
-    dusk_time = local_tz.localize(datetime.combine(
-        datetime.strptime(local_date, '%Y-%m-%d'),
-        datetime.strptime(sun_events["astronomical_dusk"], '%H:%M').time()
-    ))
-    dawn_date = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
-    dawn_time = local_tz.localize(datetime.combine(
-        dawn_date,
-        datetime.strptime(sun_events["astronomical_dawn"], '%H:%M').time()
-    ))
+    observer = ephem.Observer()
+    observer.lat = str(lat)
+    observer.lon = str(lon)
 
+    # Parse local_date and set to local midnight
+    date_obj = datetime.strptime(local_date, "%Y-%m-%d")
+    local_midnight = local_tz.localize(datetime.combine(date_obj, datetime.min.time()))
+    observer.date = local_midnight.astimezone(pytz.utc)
+
+    sun = ephem.Sun()
+    observer.horizon = '-18'
+
+    # --- Get dusk ---
+    dusk_utc = observer.next_setting(sun, use_center=True)
+    dusk_local = ephem_to_local(dusk_utc, tz_name)
+
+    # If dusk is after midnight (but still belongs to the previous evening)
+    if dusk_local.date() > date_obj:
+        # Roll observer back to previous day to get the correct dusk
+        observer.date = (local_midnight - timedelta(days=1)).astimezone(pytz.utc)
+        dusk_utc = observer.next_setting(sun, use_center=True)
+        dusk_local = ephem_to_local(dusk_utc, tz_name)
+
+    # --- Get dawn (next rising) ---
+    observer.date = local_midnight.astimezone(pytz.utc)  # reset to correct day
+    dawn_utc = observer.next_rising(sun, use_center=True)
+    dawn_local = ephem_to_local(dawn_utc, tz_name)
+
+    # --- Sample between dusk and dawn ---
     sample_interval = timedelta(minutes=10)
-    num_samples = int(((dawn_time - dusk_time).total_seconds()) / sample_interval.total_seconds()) + 1
-    times = [dusk_time + i * sample_interval for i in range(num_samples)]
-    times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times],
-                     format='isot', scale='utc')
+    times = []
+    current = dusk_local
+    while current <= dawn_local:
+        times.append(current)
+        current += sample_interval
 
+    if not times:
+        return timedelta(0), 0
+
+    times_utc = Time([t.astimezone(pytz.utc) for t in times], scale='utc')
     location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-    altaz = sky_coord.transform_to(altaz_frame)
+
+    frame = AltAz(obstime=times_utc, location=location)
+    altaz = sky_coord.transform_to(frame)
     altitudes = altaz.alt.deg
 
-    altitude_threshold = g.altitude_threshold
-    above_threshold = np.array(altitudes) > altitude_threshold
-    observable_duration_minutes = np.sum(above_threshold) * 10
+    threshold = g.altitude_threshold
+    mask = np.array(altitudes) > threshold
+    observable_minutes = int(np.sum(mask) * 10)
+    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
 
-    # NEW: Compute max altitude during the night
-    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else None
-
-    return timedelta(minutes=int(observable_duration_minutes)), max_altitude
+    return timedelta(minutes=observable_minutes), max_altitude
 
 # =============================================================================
 # Route to Set Location
@@ -1092,7 +1138,6 @@ def config_form():
                 new_altitude_threshold = request.form.get('altitude_threshold')
                 new_default_location = request.form.get('default_location', g.user_config.get("default_location", ""))
 
-                # Ensure altitude threshold is stored as an integer
                 try:
                     threshold_value = int(new_altitude_threshold)
                     if threshold_value < 0 or threshold_value > 90:
@@ -1101,8 +1146,18 @@ def config_form():
                 except ValueError as ve:
                     error = str(ve)
 
-                # Preserve default location (avoid setting it to None)
                 g.user_config['default_location'] = new_default_location if new_default_location else "Singapore"
+
+                # ✅ NEW: Save imaging criteria from form
+                imaging = g.user_config.setdefault("imaging_criteria", {})
+                try:
+                    imaging["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
+                    imaging["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
+                    imaging["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
+                    imaging["min_angular_distance"] = int(request.form.get("min_angular_separation", 30))
+                    imaging["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
+                except ValueError as ve:
+                    error = f"Invalid imaging criteria: {ve}"
 
                 message = "Settings updated."
                 updated = True
@@ -1384,18 +1439,23 @@ def plot_altitude(object_name):
 @app.route('/graph_dashboard/<object_name>')
 @login_required
 def graph_dashboard(object_name):
+    current_location_name = g.selected_location or "Unknown"
+
     tz = pytz.timezone(g.tz_name)
     now = datetime.now(tz)
+
     try:
         selected_day = int(request.args.get('day') or now.day)
     except ValueError:
         selected_day = now.day
+
     try:
         selected_month = int(request.args.get('month') or now.month)
     except ValueError:
         selected_month = now.month
     if selected_month < 1 or selected_month > 12:
         selected_month = now.month
+
     try:
         selected_year = int(request.args.get('year') or now.year)
     except ValueError:
@@ -1403,31 +1463,33 @@ def graph_dashboard(object_name):
     if selected_year < 1:
         selected_year = now.year
 
-    # Build the selected date string and convert it to a localized datetime.
     selected_date_str = f"{selected_year}-{selected_month:02d}-{selected_day:02d}"
     selected_date = tz.localize(datetime.strptime(selected_date_str, "%Y-%m-%d"))
 
-    # Calculate moon phase for the selected date.
+    # Moon phase
     phase = round(ephem.Moon(ephem.Date(selected_date)).phase, 0)
 
-    # Calculate sun events for the selected date.
+    # Sun events
     sun_events = calculate_sun_events(selected_date_str)
 
     project = get_ra_dec(object_name).get("Project", "none")
     timestamp = now.timestamp()
+
     return render_template('graph_view.html',
                            object_name=object_name,
                            selected_day=selected_day,
                            selected_month=selected_month,
                            selected_year=selected_year,
+                           selected_date=selected_date_str,
                            project=project,
-                           filename="your_daily_graph_filename.png",  # adjust as needed
+                           filename="your_daily_graph_filename.png",  # adjust if needed
                            timestamp=timestamp,
                            date=selected_date_str,
                            time=selected_date.strftime('%H:%M:%S'),
                            phase=phase,
                            astronomical_dawn=sun_events.get("astronomical_dawn", "N/A"),
-                           astronomical_dusk=sun_events.get("astronomical_dusk", "N/A"))
+                           astronomical_dusk=sun_events.get("astronomical_dusk", "N/A"),
+                           location_name=current_location_name)
 
 
 @app.route('/plot_day/<object_name>')
@@ -1503,7 +1565,148 @@ def get_date_info(object_name):
         "astronomical_dusk": astronomical_dusk
     })
 
+def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name):
+    local_tz = pytz.timezone(tz_name)
+    date_obj = datetime.strptime(local_date, "%Y-%m-%d")
 
+    # Get dusk and dawn for the current local_date
+    sun_events = calculate_sun_events(local_date)
+
+    dusk_str = sun_events.get("astronomical_dusk")
+    dawn_str = sun_events.get("astronomical_dawn")
+
+    if not dusk_str or not dawn_str:
+        print(f"[WARN] Missing sun events for {local_date}")
+        return timedelta(0), 0
+
+    dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
+    dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
+
+    # Both dusk and dawn belong to the same local_date (regardless of whether dusk is after midnight)
+    dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
+    dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
+
+    # If dawn is earlier than dusk, it must be after midnight (i.e., next day)
+    if dawn_dt <= dusk_dt:
+        dawn_dt += timedelta(days=1)
+
+    # Time samples between dusk and dawn
+    sample_interval = timedelta(minutes=10)
+    times = []
+    current = dusk_dt
+    while current <= dawn_dt:
+        times.append(current)
+        current += sample_interval
+
+    if not times:
+        return timedelta(0), 0
+
+    times_utc = Time([t.astimezone(pytz.utc) for t in times], scale='utc')
+    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+
+    frame = AltAz(obstime=times_utc, location=location)
+    altaz = sky_coord.transform_to(frame)
+    altitudes = altaz.alt.deg
+
+    threshold = g.altitude_threshold
+    mask = np.array(altitudes) > threshold
+    observable_minutes = int(np.sum(mask) * 10)
+    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
+
+    return timedelta(minutes=observable_minutes), max_altitude
+
+@app.route('/get_imaging_opportunities/<object_name>')
+@login_required
+def get_imaging_opportunities(object_name):
+    from datetime import date
+
+    # Load object data
+    data = get_ra_dec(object_name)
+    if not data or data.get("RA (hours)") is None or data.get("DEC (degrees)") is None:
+        return jsonify({"status": "error", "message": "Object has no valid RA/DEC."}), 400
+
+    ra = data["RA (hours)"]
+    dec = data["DEC (degrees)"]
+    alt_name = data.get("Common Name", object_name)
+
+    criteria = get_imaging_criteria()
+    min_obs = criteria["min_observable_minutes"]
+    min_alt = criteria["min_max_altitude"]
+    max_moon = criteria["max_moon_illumination"]
+    min_sep = criteria["min_angular_distance"]
+    months = criteria.get("search_horizon_months", 6)
+
+    # Search range
+    local_tz = pytz.timezone(g.tz_name)
+    today = datetime.now(local_tz).date()
+    end_date = today + timedelta(days=months * 30)
+    dates = [today + timedelta(days=i) for i in range((end_date - today).days)]
+
+    results = []
+
+    for d in dates:
+        date_str = d.strftime('%Y-%m-%d')
+        try:
+            obs_duration, max_altitude = calculate_observable_duration_vectorized(
+                ra, dec, g.lat, g.lon, date_str, g.tz_name
+            )
+
+            if obs_duration.total_seconds() / 60 < min_obs:
+                continue
+            if max_altitude < min_alt:
+                continue
+
+            # Get moon phase
+            moon_phase = ephem.Moon(ephem.Date(date_str)).phase
+            if moon_phase > max_moon:
+                continue
+
+            # Compute angular distance to moon
+            location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+            dusk = calculate_sun_events(date_str).get("astronomical_dusk", "20:00")
+            dusk_dt = local_tz.localize(datetime.combine(d, datetime.strptime(dusk, '%H:%M').time()))
+            dusk_utc = dusk_dt.astimezone(pytz.utc)
+
+            frame = AltAz(obstime=Time(dusk_utc), location=location)
+            obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            moon_coord = get_body('moon', Time(dusk_utc), location=location)
+
+            obj_altaz = obj_coord.transform_to(frame)
+            moon_altaz = moon_coord.transform_to(frame)
+
+            # Angular distance
+            separation = obj_altaz.separation(moon_altaz).deg
+            if separation < min_sep:
+                continue
+
+            # Normalize criteria into 0–1 range
+            score_alt = min(max_altitude / 90, 1)
+            score_duration = min(obs_duration.total_seconds() / 3600 / 12, 1)  # max 12h
+            score_moon_illum = 1 - min(moon_phase / 100, 1)
+            score_moon_sep = min(separation / 180, 1)
+
+            # Composite score (simple equal weights)
+            composite_score = 100 * (0.35 * score_alt + 0.12 * score_duration + 0.4 * score_moon_illum + 0.12 * score_moon_sep)
+
+            # Map to stars (1 to 5 stars)
+            stars = int(round((composite_score / 100) * 4)) + 1
+            star_string = "★" * stars + "☆" * (5 - stars)
+
+            # Passed all checks
+            results.append({
+                "date": date_str,
+                "obs_minutes": int(obs_duration.total_seconds() / 60),
+                "max_alt": round(max_altitude, 1),
+                "moon_illumination": round(moon_phase, 1),
+                "moon_separation": round(separation, 1),
+                "rating": star_string
+            })
+
+        except Exception as e:
+            print(f"[WARN] Skipping date {date_str}: {e}")
+
+    return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": results})
 # =============================================================================
 # Main Entry Point
 # =============================================================================

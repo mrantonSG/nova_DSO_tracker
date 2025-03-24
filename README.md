@@ -1,4 +1,4 @@
-# Nova DSO Altitude Tracker 2.1 - Quick Guide
+# Nova DSO Altitude Tracker 2.2 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -43,6 +43,14 @@ Also new are a monthly and yearly view of the object and the moon.
 ![Screenshot_V21_Month.png](doc/Screenshot_V21_Month.png)
 
 ![Screenshot_V21_Year.png](doc/Screenshot_V21_Year.png)
+
+If you click on the button "Find Imaging Opportunities", you will get a list of dates when imaging the selected object is possible.
+
+![Screenshot_V22_opportunities.png](doc/Screenshot_V22_opportunities.png)
+
+You can edit the selection criteria in the configuration settings:
+
+![Screenshot_V22_config.png](doc/Screenshot_V22_config.png)
 
 # Nova Astronomical Tracker Setup Guide
 

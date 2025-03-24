@@ -113,6 +113,88 @@
       padding: 10px;
       margin-left: 50px;
     }
+    .info-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .info-values p {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .info-values small {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .info-values span {
+      font-weight: bold;
+      font-size: 16px;
+      color: #000;
+    }
+
+    .inline-button {
+      margin-top: 0px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .inline-button:hover {
+      background-color: #6795a4 !important;
+    }
+    #opportunities-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+
+    #opportunities-table th, #opportunities-table td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    #opportunities-table th {
+      background-color: #83b4c5;
+      color: white;
+      font-weight: normal;
+    }
+
+    #opportunities-table tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    #opportunities-table tr:hover {
+      background-color: #e1f0f5;
+    }
+
+    #opportunities-section {
+      margin-top: 40px;
+    }
+
+    .opportunities-heading {
+      font-size: 18px;
+      font-weight: normal;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    #opportunities-table th,
+    #opportunities-table td {
+      text-align: center !important;
+      vertical-align: middle !important;
+    }
+    .highlight {
+      background-color: #d6ecff !important; /* Light blue */
+    }
   </style>
   <script>
     function setLocation() {
@@ -148,8 +230,8 @@
       fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById("date-display").innerText = "Date: " + data.date;
-          document.getElementById("phase-display").innerText = "Moon Illumination: " + data.phase + "%";
+          document.getElementById("date-display").innerText = data.date;
+          document.getElementById("phase-display").innerText = data.phase + "%";
         })
         .catch(error => console.error("Error updating header:", error));
     }
@@ -175,10 +257,10 @@
       fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById("date-display").innerText = "Date: " + data.date;
-          document.getElementById("phase-display").innerText = "Moon Illumination: " + data.phase + "%";
-          document.getElementById("dusk-display").innerText = "Astro Dusk: " + data.astronomical_dusk;
-          document.getElementById("dawn-display").innerText = "Astro Dawn: " + data.astronomical_dawn;
+          document.getElementById("date-display").innerText = data.date;
+          document.getElementById("phase-display").innerText = data.phase + "%";
+          document.getElementById("dusk-display").innerText = data.astronomical_dusk;
+          document.getElementById("dawn-display").innerText = data.astronomical_dawn;
         })
         .catch(error => console.error("Error updating header:", error));
     }
@@ -233,8 +315,65 @@
 
     document.addEventListener("DOMContentLoaded", function() {
       // Load default chart and header on page load.
+      document.getElementById("opportunities-body").innerHTML = "";
       refreshChart();
     });
+    function loadImagingOpportunities() {
+      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      const section = document.getElementById("opportunities-section");
+      const tbody = document.getElementById("opportunities-body");
+
+      section.style.display = "block";
+      tbody.innerHTML = `<tr><td colspan="6" style="color: gray;">Searching for optimal dates...</td></tr>`;
+
+      fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            const rows = data.results;
+            if (rows.length === 0) {
+              tbody.innerHTML = `<tr><td colspan="6" style="color: orange;">No good dates found within the configured range.</td></tr>`;
+              return;
+            }
+
+            let htmlRows = "";
+            const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`;
+
+            rows.forEach(r => {
+              const isSelected = r.date === selectedDateStr;
+              htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
+                <td>${r.date}</td>
+                <td>${r.obs_minutes}</td>
+                <td>${r.max_alt}</td>
+                <td>${r.moon_illumination}</td>
+                <td>${r.moon_separation}</td>
+                <td style="text-align: center;">${r.rating || ""}</td>
+              </tr>`;
+            });
+            tbody.innerHTML = htmlRows;
+          } else {
+            tbody.innerHTML = `<tr><td colspan="6" style="color: red;">Error: ${data.message}</td></tr>`;
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching opportunities:", error);
+          tbody.innerHTML =
+            "<tr><td colspan='6' style='color:red;'>An error occurred while fetching data.</td></tr>";
+        });
+    }
+    function selectSuggestedDate(dateStr) {
+      // Parse date: YYYY-MM-DD
+      const [year, month, day] = dateStr.split('-').map(Number);
+
+      // Update the date selectors
+      document.getElementById('year-select').value = year;
+      document.getElementById('month-select').value = month;
+      document.getElementById('day-select').value = day;
+
+      // Refresh the chart for the new date
+      changeView('day');
+    }
+
   </script>
 </head>
 <body>
@@ -243,12 +382,13 @@
     <h1>Nova</h1>
     <h3>DSO Altitude Tracker V{{ version }}</h3>
   </div>
-  <div class="info-container">
+  <div class="info-container info-values">
     <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
-    <p id="date-display">Date: {{ date }}</p>
-    <p id="phase-display">Moon Illumination: {{ phase }}%</p>
-    <p id="dusk-display">Astro Dusk: {{ astronomical_dusk }}</p>
-    <p id="dawn-display">Astro Dawn: {{ astronomical_dawn }}</p>
+    <p><small>Location:</small> <span id="location-display">{{ location_name }}</span></p>
+    <p><small>Date:</small> <span id="date-display">{{ date }}</span></p>
+    <p><small>Moon Illumination:</small> <span id="phase-display">{{ phase }}%</span></p>
+    <p><small>Astro Dusk:</small> <span id="dusk-display">{{ astronomical_dusk }}</span></p>
+    <p><small>Astro Dawn:</small> <span id="dawn-display">{{ astronomical_dawn }}</span></p>
   </div>
 
   <!-- The main chart area -->
@@ -289,13 +429,32 @@
     <br><br>
     <button class="inline-button" onclick="saveProject()">Save Project</button>
     <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
+    <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
     <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
     <br><div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
   </div>
 
-
   <div id="simbadContainer" style="display:none; margin-top:20px;">
     <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
+  </div>
+
+  <div id="opportunities-section" style="display: none; max-width: 800px; margin-left: 60px;">
+    <div class="opportunities-heading">Imaging Opportunities</div>
+    <table id="opportunities-table" class="opportunity-table center-text">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Obs Duration (min)</th>
+          <th>Max Alt (°)</th>
+          <th>Moon Illum (%)</th>
+          <th>Ang Sep (°)</th>
+          <th>Rating</th>
+        </tr>
+      </thead>
+      <tbody id="opportunities-body">
+        <!-- Filled via JS -->
+      </tbody>
+    </table>
   </div>
 </body>
 </html>
