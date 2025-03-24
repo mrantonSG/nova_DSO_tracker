@@ -14,7 +14,7 @@
     td:not(:nth-child(1)):not(:nth-child(2)),
     th:not(:nth-child(1)):not(:nth-child(2)) { text-align: center; }
     th { background-color: #f2f2f2; font-weight: normal; cursor: pointer; }
-    th span { display: block; font-weight: bold; }
+    th span { display: block; font-weight: bold; font-size: 13px; }
     body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
     .highlight { background-color: #83b4c5; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
@@ -44,6 +44,28 @@
     th span.subtext {
       font-weight: normal;
       font-size: 12px;
+    }
+    .info-values p {
+      margin: 2px 0;
+      font-size: 16px;
+    }
+    .info-values small {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .info-values span {
+      font-weight: bold;
+      font-size: 16px;
+      color: #000;
+    }
+    .info-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .info-values p {
+      margin: 0;
     }
   </style>
   <script>
@@ -238,9 +260,9 @@
       fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById('date').textContent = `Date: ${data.date}`;
-          document.getElementById('time').textContent = `Time: ${data.time}`;
-          document.getElementById('phase').textContent = `Moon Illumination: ${data.phase}%`;
+          document.getElementById('date').textContent = data.date;
+          document.getElementById('time').textContent = data.time;
+          document.getElementById('phase').textContent = `${data.phase}%`;
 
           let tableBody = document.getElementById('data-body');
           tableBody.innerHTML = '';
@@ -342,9 +364,9 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
-          // Always refresh table data
-          fetchData();
-          // If the iframe exists and is visible, update it.
+          fetchData();         // ✅ Refresh the table
+          fetchSunEvents();    // ✅ Refresh dawn/dusk display
+
           const iframe = document.getElementById('graph-iframe');
           if (iframe && iframe.style.display !== 'none') {
             let baseUrl = iframe.src.split('?')[0];
@@ -360,6 +382,7 @@
     window.onload = () => {
       fetchData();
       fetchLocations();
+      fetchSunEvents();
       setInterval(fetchData, 60000);
       // Attach sort events to header cells.
       const headers = document.querySelectorAll("#data-table th.sortable");
@@ -367,6 +390,17 @@
         header.addEventListener("click", () => sortTable(index, true));
       });
     };
+    function fetchSunEvents() {
+      fetch('/sun_events')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('dawn').textContent = data.astronomical_dawn;
+          document.getElementById('dusk').textContent = data.astronomical_dusk;
+        })
+        .catch(error => {
+          console.error('❌ Error fetching sun events:', error);
+        });
+    }
     </script>
 </head>
 <body>
@@ -374,16 +408,27 @@
     <h1>Nova</h1>
     <h3>DSO Altitude Tracker V{{ version }}</h3>
   </div>
-  <div class="info-container">
-    <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
-      Configuration
-    </button>
-    <label for="location-select">Select Location:</label>
-    <select id="location-select" onchange="setLocation()"></select>
-    <p id="date"></p>
-    <p id="time"></p>
-    <p id="phase"></p>
+<div class="info-container">
+  <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
+    Configuration
+  </button>
+  <p>
+    <small>Location:</small>
+    <span>
+        <select id="location-select" onchange="setLocation()" style="font-size: 16px; font-weight: bold; padding: 3px 6px;">
+      </select>
+    </span>
+  </p>
+
+  <!-- Add this wrapper -->
+  <div class="info-values">
+    <p><small>Date:</small> <span id="date"></span></p>
+    <p><small>Time:</small> <span id="time"></span></p>
+    <p><small>Moon Illumination:</small> <span id="phase"></span></p>
+    <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
+    <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
   </div>
+</div>
 
   <!-- Give the table an ID so we can sort it -->
   <div id="list-section">
