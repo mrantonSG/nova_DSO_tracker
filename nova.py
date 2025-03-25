@@ -21,6 +21,7 @@ import secrets
 from dotenv import load_dotenv
 import calendar
 import math
+from collections import defaultdict
 
 import numpy as np
 import pytz
@@ -45,8 +46,10 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.2.1"
+APP_VERSION = "2.3.0b"
 load_dotenv()
+static_cache = {}
+moon_separation_cache = {}
 
 ENV_FILE = ".env"
 
@@ -115,6 +118,28 @@ def sanitize_object_name(object_name):
 @app.context_processor
 def inject_version():
     return dict(version=APP_VERSION)
+
+def get_static_cache_key(obj_name, date_str, location):
+    return f"{obj_name.lower()}_{date_str}_{location.lower()}"
+
+def get_static_nightly_values(ra, dec, obj_name, local_date, fixed_time_utc_str, location, lat, lon, tz_name, alt_threshold):
+    key = get_static_cache_key(obj_name, local_date, location)
+    if key in static_cache:
+        return static_cache[key]
+
+    # Otherwise calculate and cache
+    alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+    transit_time = calculate_transit_time(ra, lat, lon, tz_name)
+    observable_duration, max_altitude = calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name)
+
+    static_cache[key] = {
+        "Altitude 11PM": alt_11pm,
+        "Azimuth 11PM": az_11pm,
+        "Transit Time": transit_time,
+        "Observable Duration (min)": int(observable_duration.total_seconds() / 60),
+        "Max Altitude (°)": round(max_altitude, 1) if max_altitude is not None else "N/A"
+    }
+    return static_cache[key]
 
 # =============================================================================
 # User-Specific Configuration Functions
@@ -955,6 +980,12 @@ def confirm_object():
     save_user_config(current_user.username, config_data)
     return jsonify({"status": "success"})
 
+from collections import defaultdict
+
+# Place these near the top of your script
+static_cache = {}
+moon_separation_cache = {}
+
 @app.route('/data')
 @login_required
 def get_data():
@@ -963,7 +994,6 @@ def get_data():
     local_date = current_datetime_local.strftime('%Y-%m-%d')
     current_time_utc = current_datetime_local.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
     fixed_time_utc_str = get_utc_time_for_local_11pm()
-
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
 
     object_data = []
@@ -971,107 +1001,94 @@ def get_data():
 
     for obj in g.objects:
         data = get_ra_dec(obj)
-        if data:
-            # If RA/DEC are missing, assume an error occurred.
-            if data['RA (hours)'] is None or data['DEC (degrees)'] is None:
-                const_error = data.get('Project', "Error: Unknown error")
-                object_data.append({
-                    'Object': data['Object'],
-                    'Common Name': const_error,  # Use the error message in the name field.
-                    'RA (hours)': "N/A",
-                    'DEC (degrees)': "N/A",
-                    'Altitude Current': 100,
-                    'Azimuth Current': "N/A",
-                    'Altitude 11PM': "N/A",
-                    'Azimuth 11PM': "N/A",
-                    'Transit Time': "N/A",
-                    'Observable Duration (min)': "N/A",
-                    'Trend': "N/A",
-                    'Project': data.get('Project', "none"),
-                    'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S')
-                })
+        if not data or data["RA (hours)"] is None or data["DEC (degrees)"] is None:
+            object_data.append({
+                'Object': obj,
+                'Common Name': data.get("Project", "Error"),
+                'RA (hours)': "N/A",
+                'DEC (degrees)': "N/A",
+                'Altitude Current': 100,
+                'Azimuth Current': "N/A",
+                'Altitude 11PM': "N/A",
+                'Azimuth 11PM': "N/A",
+                'Transit Time': "N/A",
+                'Observable Duration (min)': "N/A",
+                'Trend': "N/A",
+                'Project': data.get('Project', "none"),
+                'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+                'Max Altitude (°)': "N/A",
+            })
+            continue
+
+        try:
+            ra = data["RA (hours)"]
+            dec = data["DEC (degrees)"]
+
+            # --- Compute live values ---
+            alt_current, az_current = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, current_time_utc)
+
+            # --- Get 11PM/transit/obs/max from static_cache ---
+            cache_key = f"{obj.lower()}_{local_date}_{g.selected_location}"
+            if cache_key in static_cache:
+                cached = static_cache[cache_key]
             else:
-                try:
-                    ra = data['RA (hours)']
-                    dec = data['DEC (degrees)']
-                    alt_current, az_current = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, current_time_utc)
-                    alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
-                    transit_time = calculate_transit_time(ra, g.lat, g.lon, g.tz_name)
+                alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
+                transit_time = calculate_transit_time(ra, g.lat, g.lon, g.tz_name)
+                obs_duration, max_alt = calculate_observable_duration_vectorized(
+                    ra, dec, g.lat, g.lon, local_date, g.tz_name
+                )
+                cached = {
+                    'Altitude 11PM': alt_11pm,
+                    'Azimuth 11PM': az_11pm,
+                    'Transit Time': transit_time,
+                    'Observable Duration (min)': int(obs_duration.total_seconds() / 60),
+                    'Max Altitude (°)': round(max_alt, 1)
+                }
+                static_cache[cache_key] = cached
 
-                    # --- New: Compute Angular Separation at current time ---
-                    try:
-                        # Ensure our object's values are floats.
-                        alt_current = float(alt_current)
-                        az_current = float(az_current)
-                    except Exception as e:
-                        print(f"[DEBUG] Conversion error for object {obj}: alt_current={alt_current}, az_current={az_current}")
-                        raise
+            # --- Moon angular separation (cached) ---
+            moon_key = f"{obj.lower()}_{local_date}_{g.selected_location}"
+            if moon_key in moon_separation_cache:
+                angular_sep = moon_separation_cache[moon_key]
+            else:
+                location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+                time_obj = Time(current_time_utc, format='isot', scale='utc')
+                moon_coord = get_body('moon', time_obj, location=location)
+                moon_altaz = moon_coord.transform_to(AltAz(obstime=time_obj, location=location))
 
-                    # Get Moon's altitude/azimuth at current_time_utc:
-                    location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-                    time_obj = Time(current_time_utc, format='isot', scale='utc')
-                    moon_coord = get_body('moon', time_obj, location=location)
-                    moon_alt_obj = moon_coord.transform_to(AltAz(obstime=time_obj, location=location))
-                    try:
-                        moon_alt_current = float(moon_alt_obj.alt.deg)
-                        moon_az_current = float(moon_alt_obj.az.deg)
-                    except Exception as e:
-                        print(f"[DEBUG] Conversion error for Moon values for object {obj}: {moon_alt_obj.alt.deg}, {moon_alt_obj.az.deg}")
-                        raise
+                obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                obj_altaz = obj_coord.transform_to(AltAz(obstime=time_obj, location=location))
 
-                    #calculate max altitude observable
-                    max_alt = calculate_max_observable_altitude(ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold)
+                angular_sep = obj_altaz.separation(moon_altaz).deg
+                moon_separation_cache[moon_key] = round(angular_sep, 1)
 
-                    # Convert all angles to radians.
-                    obj_alt_rad = math.radians(alt_current)
-                    obj_az_rad = math.radians(az_current)
-                    moon_alt_rad = math.radians(moon_alt_current)
-                    moon_az_rad = math.radians(moon_az_current)
-                    # Compute cosine of angular separation.
-                    cos_delta = (math.sin(obj_alt_rad) * math.sin(moon_alt_rad) +
-                                 math.cos(obj_alt_rad) * math.cos(moon_alt_rad) *
-                                 math.cos(obj_az_rad - moon_az_rad))
-                    # Clip the value to [-1, 1].
-                    cos_delta = max(min(cos_delta, 1), -1)
-                    angular_sep = math.degrees(math.acos(cos_delta))
-                    # --- End new section ---
+            # --- Trend ---
+            prev_alt = prev_alts.get(obj)
+            trend = '→'
+            if prev_alt is not None:
+                trend = '↑' if alt_current > prev_alt else '↓' if alt_current < prev_alt else '→'
+            prev_alts[obj] = alt_current
 
-                    prev_alt = prev_alts.get(obj)
-                    if prev_alt is not None:
-                        if alt_current > prev_alt:
-                            trend = '↑'
-                        elif alt_current < prev_alt:
-                            trend = '↓'
-                        else:
-                            trend = '→'
-                    else:
-                        trend = '→'
-                    prev_alts[obj] = alt_current
-                    observable_duration, max_altitude = calculate_observable_duration_vectorized(
-                        ra, dec, g.lat, g.lon, local_date, g.tz_name
-                    )
-                    observable_minutes = int(observable_duration.total_seconds() / 60)
-                    object_data.append({
-                        'Object': data['Object'],
-                        'Common Name': data['Common Name'],
-                        'RA (hours)': ra,
-                        'DEC (degrees)': dec,
-                        'Altitude Current': alt_current,
-                        'Azimuth Current': az_current,
-                        'Altitude 11PM': alt_11pm,
-                        'Azimuth 11PM': az_11pm,
-                        'Transit Time': transit_time,
-                        'Observable Duration (min)': observable_minutes,
-                        'Angular Separation (°)': round(angular_sep, 1),
-                        'Trend': trend,
-                        'Project': data.get('Project', "none"),
-                        'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-                        'Max Altitude (°)': round(max_altitude, 1) if max_altitude is not None else "N/A",
-                    })
-                except Exception as exception_value:
-                    print(f"[ERROR] Problem processing object {obj}: {exception_value}")
-        else:
-            print(f"[DEBUG] No data returned for object: {obj}")
+            object_data.append({
+                'Object': data['Object'],
+                'Common Name': data['Common Name'],
+                'RA (hours)': ra,
+                'DEC (degrees)': dec,
+                'Altitude Current': alt_current,
+                'Azimuth Current': az_current,
+                'Altitude 11PM': cached['Altitude 11PM'],
+                'Azimuth 11PM': cached['Azimuth 11PM'],
+                'Transit Time': cached['Transit Time'],
+                'Observable Duration (min)': cached['Observable Duration (min)'],
+                'Max Altitude (°)': cached['Max Altitude (°)'],
+                'Angular Separation (°)': angular_sep,
+                'Trend': trend,
+                'Project': data.get('Project', "none"),
+                'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        except Exception as e:
+            print(f"[ERROR] {obj}: {e}")
 
     session['previous_altitudes'] = prev_alts
     sorted_objects = sorted(
@@ -1086,31 +1103,6 @@ def get_data():
         "altitude_threshold": altitude_threshold,
         "objects": sorted_objects
     })
-
-@app.route('/plot/<object_name>')
-@login_required
-def get_plot(object_name):
-    data = get_ra_dec(object_name)
-    if data:
-        if data['RA (hours)'] is None or data['DEC (degrees)'] is None:
-            return jsonify({"error": f"Graph not available: {data.get('Project', 'No data')}" }), 400
-        plot_path = plot_altitude_curve(
-            object_name,
-            data.get("Common Name", object_name),  # friendly name
-            data['RA (hours)'],
-            data['DEC (degrees)'],
-            g.lat,
-            g.lon,
-            datetime.now().strftime('%Y-%m-%d'),
-            g.tz_name,
-            g.selected_location
-        )
-        # Check that the file was created
-        if os.path.exists(plot_path):
-            return send_file(plot_path, mimetype='image/png')
-        else:
-            return jsonify({'error': 'Plot not found'}), 404
-    return jsonify({"error": "Object not found"}), 404
 
 @app.route('/sun_events')
 @login_required
