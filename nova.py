@@ -45,7 +45,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.2.0"
+APP_VERSION = "2.2.1"
 load_dotenv()
 
 ENV_FILE = ".env"
@@ -1681,13 +1681,21 @@ def get_imaging_opportunities(object_name):
                 continue
 
             # Normalize criteria into 0–1 range
-            score_alt = min(max_altitude / 90, 1)
+            MIN_ALTITUDE = 20  # degrees
+
+            if max_altitude < MIN_ALTITUDE:
+                score_alt = 0
+            else:
+                score_alt = (max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE)
+                score_alt = min(score_alt, 1)  # just in case
+
+            #score_alt = min(max_altitude / 90, 1)
             score_duration = min(obs_duration.total_seconds() / 3600 / 12, 1)  # max 12h
             score_moon_illum = 1 - min(moon_phase / 100, 1)
             score_moon_sep = min(separation / 180, 1)
 
             # Composite score (simple equal weights)
-            composite_score = 100 * (0.35 * score_alt + 0.12 * score_duration + 0.4 * score_moon_illum + 0.12 * score_moon_sep)
+            composite_score = 100 * (0.30 * score_alt + 0.20 * score_duration + 0.4 * score_moon_illum + 0.1 * score_moon_sep)
 
             # Map to stars (1 to 5 stars)
             stars = int(round((composite_score / 100) * 4)) + 1

@@ -87,7 +87,7 @@
     }
     /* Project field and buttons area */
     .button-container {
-      margin-top: 20px;
+      margin-top: 0px;
     }
     #project-field {
       width: 100%;
@@ -182,7 +182,7 @@
     }
 
     .opportunities-heading {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: normal;
       color: #333;
       margin-bottom: 10px;
@@ -197,6 +197,22 @@
     }
   </style>
   <script>
+  function formatDateISOtoEuropean(isoStr) {
+    const [year, month, day] = isoStr.split("-");
+    return `${day}.${month}.${year}`;
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    // Load default chart and header on page load
+    document.getElementById("opportunities-body").innerHTML = "";
+    refreshChart();
+
+    // Format displayed date in the header
+    const dateEl = document.getElementById("date-display");
+    if (dateEl && dateEl.innerText.includes("-")) {
+      dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
+    }
+  });
     function setLocation() {
       const selectedLocation = document.getElementById('location-select').value;
       fetch('/set_location', {
@@ -221,17 +237,36 @@
       const month = document.getElementById('month-select').value;
       const year = document.getElementById('year-select').value;
       const timestamp = Date.now();
-      // Use the dedicated day endpoint for the chart
-      const url = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&t=${timestamp}`;
-      document.getElementById('chart-link').href = url;
-      document.getElementById('chart-img').src = url;
 
-      // Update header via AJAX (date and moon illumination)
+      if (!objectName || !day || !month || !year) return;
+
+      const url = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&t=${timestamp}`;
+
+      // Show loading message
+      document.getElementById('chart-loading').style.display = 'block';
+
+      const chartImg = document.getElementById('chart-img');
+      chartImg.style.opacity = '0.3';  // optional: fade effect
+      chartImg.onload = function() {
+        document.getElementById('chart-loading').style.display = 'none';
+        chartImg.style.opacity = '1';
+      };
+      chartImg.onerror = function() {
+        document.getElementById('chart-loading').textContent = "❌ Failed to load chart.";
+        chartImg.style.opacity = '0.5';
+      };
+
+      document.getElementById('chart-link').href = url;
+      chartImg.src = url;
+
+      // Update header info
       fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById("date-display").innerText = data.date;
+          document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
           document.getElementById("phase-display").innerText = data.phase + "%";
+          document.getElementById("dusk-display").innerText = data.astronomical_dusk;
+          document.getElementById("dawn-display").innerText = data.astronomical_dawn;
         })
         .catch(error => console.error("Error updating header:", error));
     }
@@ -257,7 +292,7 @@
       fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById("date-display").innerText = data.date;
+          document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
           document.getElementById("phase-display").innerText = data.phase + "%";
           document.getElementById("dusk-display").innerText = data.astronomical_dusk;
           document.getElementById("dawn-display").innerText = data.astronomical_dawn;
@@ -313,11 +348,6 @@
       });
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-      // Load default chart and header on page load.
-      document.getElementById("opportunities-body").innerHTML = "";
-      refreshChart();
-    });
     function loadImagingOpportunities() {
       const objectName = document.getElementById('object-input').value || "{{ object_name }}";
       const section = document.getElementById("opportunities-section");
@@ -341,8 +371,10 @@
 
             rows.forEach(r => {
               const isSelected = r.date === selectedDateStr;
-              htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
-                <td>${r.date}</td>
+              const formattedDate = formatDateISOtoEuropean(r.date);
+
+              htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
+                <td>${formattedDate}</td>
                 <td>${r.obs_minutes}</td>
                 <td>${r.max_alt}</td>
                 <td>${r.moon_illumination}</td>
@@ -350,7 +382,7 @@
                 <td style="text-align: center;">${r.rating || ""}</td>
               </tr>`;
             });
-            tbody.innerHTML = htmlRows;
+                        tbody.innerHTML = htmlRows;
           } else {
             tbody.innerHTML = `<tr><td colspan="6" style="color: red;">Error: ${data.message}</td></tr>`;
           }
@@ -362,17 +394,27 @@
         });
     }
     function selectSuggestedDate(dateStr) {
-      // Parse date: YYYY-MM-DD
+      // Update selectors
       const [year, month, day] = dateStr.split('-').map(Number);
-
-      // Update the date selectors
       document.getElementById('year-select').value = year;
       document.getElementById('month-select').value = month;
       document.getElementById('day-select').value = day;
 
-      // Refresh the chart for the new date
+      // Refresh chart
       changeView('day');
+
+      // Highlight selected row
+      const tbody = document.getElementById("opportunities-body");
+      const rows = tbody.querySelectorAll("tr");
+      rows.forEach(row => {
+        if (row.getAttribute("data-date") === dateStr) {
+          row.classList.add("highlight");
+        } else {
+          row.classList.remove("highlight");
+        }
+      });
     }
+
 
   </script>
 </head>
@@ -417,6 +459,9 @@
       <button class="view-button" onclick="changeView('year')">Year</button>
     </div>
     <br/>
+          <div id="chart-loading" style="display:none; color: #6795a4; margin-bottom: 10px; margin-left: 10px;">
+            Loading chart...
+          </div>
     <a id="chart-link" href="#" target="_blank">
       <img id="chart-img" src="#" alt="Altitude Graph" />
     </a>
@@ -424,7 +469,7 @@
 
   <!-- Project field and additional controls -->
   <div class="button-container">
-    <label>Notes:</label><br><br>
+    <div class="opportunities-heading">Notes:<br></div>
     <textarea id="project-field">{{ project }}</textarea>
     <br><br>
     <button class="inline-button" onclick="saveProject()">Save Project</button>
@@ -439,7 +484,7 @@
   </div>
 
   <div id="opportunities-section" style="display: none; max-width: 800px; margin-left: 60px;">
-    <div class="opportunities-heading">Imaging Opportunities</div>
+    <div class="opportunities-heading">Imaging Opportunities:</div>
     <table id="opportunities-table" class="opportunity-table center-text">
       <thead>
         <tr>
