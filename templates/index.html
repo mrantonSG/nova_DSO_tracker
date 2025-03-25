@@ -69,6 +69,10 @@
     }
   </style>
   <script>
+    function formatDateISOtoEuropean(isoStr) {
+      const [year, month, day] = isoStr.split("-");
+      return `${day}.${month}.${year}`;
+    }
     // Sorts the table rows based on columnIndex.
     // When toggle==true, it toggles the order and saves the new values.
     // When toggle==false, it uses the stored sort order.
@@ -257,75 +261,92 @@
     }
     function fetchData() {
       const localTime = new Date().toISOString();
+
+      // Show loading message
+      const loadingDiv = document.getElementById("table-loading");
+      loadingDiv.style.display = "block";
+      loadingDiv.textContent = "Loading data...";
+
       fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById('date').textContent = data.date;
+          // Hide loading on success
+          loadingDiv.style.display = "none";
+
+          // Format and update header values
+          document.getElementById('date').textContent = formatDateISOtoEuropean(data.date);
           document.getElementById('time').textContent = data.time;
           document.getElementById('phase').textContent = `${data.phase}%`;
 
-          let tableBody = document.getElementById('data-body');
+          const tableBody = document.getElementById('data-body');
           tableBody.innerHTML = '';
 
+          const altitudeThreshold = data.altitude_threshold || 20;
+
           data.objects.forEach(obj => {
-            let row = document.createElement('tr');
+            const row = document.createElement('tr');
             row.classList.add('clickable-row');
             row.setAttribute('data-object', obj.Object);
 
-            // Set row background color based on error or project.
             if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) {
               row.style.backgroundColor = "#f8d7da";
             } else if (obj.Project && obj.Project.toLowerCase() !== "none") {
               row.style.backgroundColor = "#dce5ea";
             }
 
-            const altitudeThreshold = data.altitude_threshold || 20; // ✅ Get the user-defined threshold
-
-            const currentAltClass = obj['Altitude Current'] >= altitudeThreshold ? 'highlight' : '';
-            const elevenPMAltClass = obj['Altitude 11PM'] >= altitudeThreshold ? 'highlight' : '';
-
             const altCurrent = Number(obj['Altitude Current']) || 0;
-            const azCurrent  = Number(obj['Azimuth Current'])  || 0;
-            const alt11pm    = Number(obj['Altitude 11PM'])    || 0;
-            const az11pm     = Number(obj['Azimuth 11PM'])     || 0;
-            const observable = (obj['Observable Duration (min)'] !== undefined) ? obj['Observable Duration (min)'] : 'N/A';
+            const azCurrent = Number(obj['Azimuth Current']) || 0;
+            const alt11pm = Number(obj['Altitude 11PM']) || 0;
+            const az11pm = Number(obj['Azimuth 11PM']) || 0;
             const maxAltNight = (obj['Max Altitude (°)'] !== undefined && !isNaN(Number(obj['Max Altitude (°)'])))
               ? Number(obj['Max Altitude (°)']).toFixed(1) + '°'
               : 'N/A';
+            const observable = (obj['Observable Duration (min)'] !== undefined)
+              ? obj['Observable Duration (min)']
+              : 'N/A';
 
-            row.innerHTML = `<td>${obj.Object}</td>
-                             <td>${obj['Common Name'] || 'N/A'}</td>
-                             <td class="${currentAltClass}">${altCurrent.toFixed(2)}°</td>
-                             <td>${azCurrent.toFixed(2)}°</td>
-                             <td>${obj.Trend}</td>
-                             <td class="${elevenPMAltClass}">${alt11pm.toFixed(2)}°</td>
-                             <td>${az11pm.toFixed(2)}°</td>
-                             <td>${obj['Transit Time'] || 'N/A'}</td>
-                             <td>${observable}</td>
-                             <td>${maxAltNight}</td>
-                             <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? Number(obj["Angular Separation (°)"]).toFixed(1) + '°' : 'N/A'}</td>`;
+            const currentAltClass = altCurrent >= altitudeThreshold ? 'highlight' : '';
+            const elevenPMAltClass = alt11pm >= altitudeThreshold ? 'highlight' : '';
 
-            row.addEventListener('click', function() {
+            row.innerHTML = `
+              <td>${obj.Object}</td>
+              <td>${obj['Common Name'] || 'N/A'}</td>
+              <td class="${currentAltClass}">${altCurrent.toFixed(2)}°</td>
+              <td>${azCurrent.toFixed(2)}°</td>
+              <td>${obj.Trend}</td>
+              <td class="${elevenPMAltClass}">${alt11pm.toFixed(2)}°</td>
+              <td>${az11pm.toFixed(2)}°</td>
+              <td>${obj['Transit Time'] || 'N/A'}</td>
+              <td>${observable}</td>
+              <td>${maxAltNight}</td>
+              <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? Number(obj["Angular Separation (°)"]).toFixed(1) + '°' : 'N/A'}</td>
+            `;
+
+            row.addEventListener('click', function () {
               const commonName = obj['Common Name'] || "";
-              if(commonName.toLowerCase().startsWith("error:")) {
+              if (commonName.toLowerCase().startsWith("error:")) {
                 alert("Graph not available: " + commonName);
                 return;
               }
               const objectName = this.getAttribute('data-object');
               showGraph(objectName);
             });
+
             tableBody.appendChild(row);
           });
 
-          // Reapply stored sort order if available.
+          // Reapply stored sort order if available
           const storedColumn = localStorage.getItem("sortColumn");
           if (storedColumn !== null) {
             sortTable(parseInt(storedColumn), false);
           }
-          // Reapply filters.
-          filterTable();
+
+          filterTable(); // Reapply filters
         })
-        .catch(error => console.error('❌ Error fetching data:', error));
+        .catch(error => {
+          console.error('❌ Error fetching data:', error);
+          loadingDiv.textContent = "❌ Error loading data.";
+        });
     }
 
     function showGraph(objectName) {
@@ -356,6 +377,17 @@
 
     function setLocation() {
       const selectedLocation = document.getElementById('location-select').value;
+
+      // Clear the table immediately
+      const tableBody = document.getElementById('data-body');
+      tableBody.innerHTML = '';
+
+      // Show loading message
+      const loadingDiv = document.getElementById("table-loading");
+      loadingDiv.style.display = "block";
+      loadingDiv.innerHTML = "Loading...";
+
+      // Send the request to set location
       fetch('/set_location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -364,8 +396,8 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
-          fetchData();         // ✅ Refresh the table
-          fetchSunEvents();    // ✅ Refresh dawn/dusk display
+          fetchData();         // Refresh the table
+          fetchSunEvents();    // Refresh dawn/dusk display
 
           const iframe = document.getElementById('graph-iframe');
           if (iframe && iframe.style.display !== 'none') {
@@ -374,9 +406,13 @@
           }
         } else {
           console.error("❌ Location update failed:", data);
+          loadingDiv.textContent = "❌ Error loading data.";
         }
       })
-      .catch(error => console.error('❌ Error setting location:', error));
+      .catch(error => {
+        console.error('❌ Error setting location:', error);
+        loadingDiv.textContent = "❌ Error loading data.";
+      });
     }
 
     window.onload = () => {
@@ -409,6 +445,7 @@
     <h3>DSO Altitude Tracker V{{ version }}</h3>
   </div>
 <div class="info-container">
+
   <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
     Configuration
   </button>
@@ -429,10 +466,8 @@
     <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
   </div>
 </div>
-
-  <!-- Give the table an ID so we can sort it -->
   <div id="list-section">
-    <table id="data-table" style="table-layout: fixed; width: 100%;" data-sort-order="asc">
+        <table id="data-table" style="table-layout: fixed; width: 100%;" data-sort-order="asc">
       <col style="width: 10%;">
       <col style="width: 25%;">
       <col style="width: 7.14%;">
@@ -472,10 +507,13 @@
           <th><input type="text" placeholder="Ang. Sep. °" onkeyup="saveFilter(this, 10); filterTable();" /></th>
         </tr>
       </thead>
+
       <tbody id="data-body"></tbody>
     </table>
   </div>
-
+    <div id="table-loading"; style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px;margin-left: 10px">
+      Loading...
+    </div>
   <div id="graph-section" style="display: none;">
     <iframe id="graph-iframe"
             style="width: 100%; max-width:1500px; height: 1000px; border: none;"
