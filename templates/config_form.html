@@ -181,6 +181,20 @@
     .action-button:hover {
       background-color: #6795a4;
     }
+    .dlback-button {
+      margin-top: 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .dlback-button:hover {
+      background-color: #6795a4 !important;
+    }
   </style>
 </head>
 <body>
@@ -192,6 +206,9 @@
     <button type="button" id="back-button" onclick="window.location.href='{{ url_for('index') }}'">
       Back to Tracker
     </button>
+    <a href="{{ url_for('download_config') }}" class="dlback-button" style="margin-left: 0px;">
+      Download Config
+    </a>
     {% if error %}
       <p class="error">Error: {{ error }}</p>
     {% endif %}

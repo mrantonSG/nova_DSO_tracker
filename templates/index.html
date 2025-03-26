@@ -67,6 +67,16 @@
     .info-values p {
       margin: 0;
     }
+    .user-info {
+      margin-left: 20px;
+      font-size: 15px;
+      color: #444;
+      background-color: #f5f7f9;
+      padding: 6px 10px;
+      border-left: 4px solid #83b4c5;
+      border-radius: 4px;
+      display: inline-block;
+    }
   </style>
   <script>
     function formatDateISOtoEuropean(isoStr) {
@@ -94,8 +104,14 @@
         const cellA = a.getElementsByTagName("td")[columnIndex].innerText.trim();
         const cellB = b.getElementsByTagName("td")[columnIndex].innerText.trim();
 
-        const numA = parseFloat(cellA);
-        const numB = parseFloat(cellB);
+        let numA, numB;
+        if (columnIndex === 7 && /^\d{1,2}:\d{2}$/.test(cellA) && /^\d{1,2}:\d{2}$/.test(cellB)) {
+          numA = parseTimeToMinutes(cellA);
+          numB = parseTimeToMinutes(cellB);
+        } else {
+          numA = parseFloat(cellA);
+          numB = parseFloat(cellB);
+        }
         if (!isNaN(numA) && !isNaN(numB)) {
           return sortOrder === "asc" ? numA - numB : numB - numA;
         }
@@ -437,6 +453,10 @@
           console.error('❌ Error fetching sun events:', error);
         });
     }
+    function parseTimeToMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
     </script>
 </head>
 <body>
@@ -444,6 +464,16 @@
     <h1>Nova</h1>
     <h3>DSO Altitude Tracker V{{ version }}</h3>
   </div>
+<div style="font-size: 14px; color: #444; margin-top: -4px; margin-bottom: 12px;">
+  {% if SINGLE_USER_MODE %}
+    Mode: <strong>Single User</strong>
+  {% else %}
+    Mode: <strong>Multi User</strong> — Logged in as <strong>{{ current_user.username }}</strong>
+    <form action="{{ url_for('logout') }}" method="post" style="display: inline;">
+      <button type="submit" style="margin-left: 10px; font-size: 13px; padding: 3px 8px;">Log Out</button>
+    </form>
+  {% endif %}
+</div>
 <div class="info-container">
 
   <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">

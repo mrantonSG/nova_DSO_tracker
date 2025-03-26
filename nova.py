@@ -35,8 +35,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
-from flask_login import LoginManager, UserMixin, login_user, login_required, current_user
-from flask import session
+from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
+from flask import session, get_flashed_messages
 from flask import Flask, send_from_directory
 
 from astroquery.simbad import Simbad
@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.3.0b"
+APP_VERSION = "2.3.1b"
 load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
@@ -118,6 +118,21 @@ def sanitize_object_name(object_name):
 @app.context_processor
 def inject_version():
     return dict(version=APP_VERSION)
+
+@app.context_processor
+def inject_user_mode():
+    from flask_login import current_user
+    return {
+        "SINGLE_USER_MODE": SINGLE_USER_MODE,
+        "current_user": current_user  # Flask-Login gives us this
+    }
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    logout_user()
+    session.clear()  # Optional: reset session if needed
+    flash("Logged out successfully!", "success")
+    return redirect(url_for('login'))
 
 def get_static_cache_key(obj_name, date_str, location):
     return f"{obj_name.lower()}_{date_str}_{location.lower()}"
@@ -197,9 +212,11 @@ def get_imaging_criteria():
     user_criteria = g.user_config.get("imaging_criteria", {})
     return {**default_criteria, **user_criteria}
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if request.method == 'GET':
+        get_flashed_messages(with_categories=True)  # clear old messages
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -211,6 +228,7 @@ def login():
             return redirect(url_for('index'))
         else:
             flash("Invalid username or password.", "error")
+
     return render_template('login.html')
 
 @app.route('/proxy_focus', methods=['POST'])
@@ -264,6 +282,20 @@ def favicon():
 @app.context_processor
 def inject_version():
     return dict(version=APP_VERSION)
+
+@app.route('/download_config')
+@login_required
+def download_config():
+    if SINGLE_USER_MODE:
+        filename = "config_default.yaml"
+    else:
+        filename = f"config_{current_user.username}.yaml"
+
+    filepath = os.path.join(os.getcwd(), filename)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True)
+    else:
+        return "Configuration file not found.", 404
 
 # =============================================================================
 # Astronomical Calculations
