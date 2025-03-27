@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.0b"
+APP_VERSION = "2.4.1"
 load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
@@ -54,6 +54,8 @@ update_bp = Blueprint('update', __name__)
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 
 ENV_FILE = ".env"
+
+STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 
 # Automatically create .env if it doesn't exist
 if not os.path.exists(ENV_FILE):
@@ -248,21 +250,11 @@ def proxy_focus():
         r = requests.post("http://localhost:8090/api/main/focus", data=payload)
         return jsonify({"status": "success", "stellarium_response": r.text})
     except Exception as e:
-        # Try to detect real client IP (behind proxy)
-        forwarded_for = request.headers.get('X-Forwarded-For', request.remote_addr)
-        client_ip = forwarded_for.split(',')[0].strip()
-
-        if client_ip == "127.0.0.1" or client_ip.startswith("192.168.") or client_ip.startswith("10."):
+        user_ip = request.remote_addr
+        if user_ip == "127.0.0.1" or user_ip == "localhost":
             message = "Stellarium is not running or remote control is not enabled."
         else:
-            message = (
-                "Could not connect to Stellarium on your machine. "
-                "Please ensure Stellarium is running and remote control is enabled.<br><br>"
-                "To connect remotely, paste this in your terminal:<br>"
-                "<code>ssh -N -R 8090:localhost:8090 stellarium@novadsotracker.duckdns.org -p 2222</code><br><br>"
-                "For a seamless experience, consider providing your SSH public key for passwordless access."
-            )
-
+            message = STELLARIUM_ERROR_MESSAGE or "Could not connect to Stellarium."
         return jsonify({"status": "error", "message": message}), 500
 
 

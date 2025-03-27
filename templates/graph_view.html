@@ -407,33 +407,43 @@
         body: new URLSearchParams({ target: objectName, mode: "center" })
       })
       .then(async response => {
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (err) {
+          throw new Error("Invalid JSON response from server");
+        }
 
         if (response.ok && data.status === "success") {
           stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
           stellariumStatusDiv.style.color = "#83b4c5";
         } else {
-          // Display the rich HTML error message returned from Flask
           stellariumStatusDiv.innerHTML = `
             <p style="color:red;">
               Error updating Stellarium:<br><br>
-              ${data.message}
+              ${data.message || "An unknown error occurred."}
             </p>
           `;
         }
       })
-      .catch(error => {
-        console.error("Communication error:", error);
-        stellariumStatusDiv.innerHTML = `
-          <p style="color:red;">
-            Could not connect to Stellarium.<br><br>
-            Please ensure Stellarium is running and remote control is enabled.<br><br>
-            If you're accessing remotely, paste this into your terminal:<br>
-            <code>ssh -N -R 8090:localhost:8090 stellarium@novadsotracker.duckdns.org -p 2222</code><br><br>
-            For a seamless experience, consider providing your SSH public key for passwordless access.<br><br>
-            <small>Error: ${error.message}</small>
-          </p>
-        `;
+      .catch(() => {
+        // Fallback fetch to get the generic error message from server
+        fetch("/stellarium_error_message")
+          .then(res => res.json())
+          .then(data => {
+            stellariumStatusDiv.innerHTML = `
+              <p style="color:red;">
+                ${data.message || "Could not connect to Stellarium or the server."}
+              </p>
+            `;
+          })
+          .catch(() => {
+            stellariumStatusDiv.innerHTML = `
+              <p style="color:red;">
+                Stellarium is unreachable and no additional help message is available.
+              </p>
+            `;
+          });
       });
     }
 
