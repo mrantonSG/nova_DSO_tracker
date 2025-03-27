@@ -8,7 +8,7 @@
   <style>
     /* Your CSS styles here (as provided earlier) */
     table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; table-layout: auto; word-wrap: break-word; }
-    th, td { border: 1px solid #ddd; padding: 6px; font-size: 16px; }
+    th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
     td:nth-child(1), th:nth-child(1),
     td:nth-child(2), th:nth-child(2) { text-align: left; }
     td:not(:nth-child(1)):not(:nth-child(2)),
@@ -32,7 +32,7 @@
       max-width: 200px;
       box-sizing: border-box;
       padding: 4px;
-      font-size: 15px;
+      font-size: 13px;
     }
     #location-select {
       width: 150px;
@@ -76,6 +76,22 @@
       border-left: 4px solid #83b4c5;
       border-radius: 4px;
       display: inline-block;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    .table-wrapper::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 4px;
+    }
+
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+      background: #888;
     }
   </style>
   <script>
@@ -479,15 +495,15 @@
   <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
     Configuration
   </button>
+
   <p>
     <small>Location:</small>
     <span>
-        <select id="location-select" onchange="setLocation()" style="font-size: 16px; font-weight: bold; padding: 3px 6px;">
+      <select id="location-select" onchange="setLocation()" style="font-size: 16px; font-weight: bold; padding: 3px 6px;">
       </select>
     </span>
   </p>
 
-  <!-- Add this wrapper -->
   <div class="info-values">
     <p><small>Date:</small> <span id="date"></span></p>
     <p><small>Time:</small> <span id="time"></span></p>
@@ -495,20 +511,24 @@
     <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
     <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
   </div>
+
 </div>
-  <div id="list-section">
-        <table id="data-table" style="table-layout: fixed; width: 100%;" data-sort-order="asc">
+
+<div id="list-section">
+  <div class="table-wrapper">
+    <table id="data-table" style="table-layout: fixed; width: 100%; min-width: 1000px;" data-sort-order="asc">
       <col style="width: 10%;">
       <col style="width: 25%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
-      <col style="width: 4%;">
+      <col style="width: 5%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
       <col style="width: 7.14%;">
+
       <thead>
         <tr>
           <th class="sortable"><span>Object</span></th>
@@ -540,16 +560,18 @@
 
       <tbody id="data-body"></tbody>
     </table>
-  </div>
-    <div id="table-loading"; style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px;margin-left: 10px">
-      Loading...
-    </div>
-  <div id="graph-section" style="display: none;">
-    <iframe id="graph-iframe"
-            style="width: 100%; max-width:1500px; height: 1000px; border: none;"
-            title="Graph">
-    </iframe>
+  </div> <!-- Close scroll wrapper -->
+</div>
 
-  </div>
+<div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
+  Loading...
+</div>
+
+<div id="graph-section" style="display: none;">
+  <iframe id="graph-iframe"
+          style="width: 100%; max-width:1500px; height: 1000px; border: none;"
+          title="Graph">
+  </iframe>
+</div>
 </body>
 </html>

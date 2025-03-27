@@ -195,6 +195,12 @@
     .highlight {
       background-color: #d6ecff !important; /* Light blue */
     }
+    code {
+      background-color: #f5f5f5;
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
   </style>
   <script>
   function formatDateISOtoEuropean(isoStr) {
@@ -322,31 +328,7 @@
       }
     }
 
-    function openInStellarium() {
-      const stellariumStatusDiv = document.getElementById('stellarium-status');
-      stellariumStatusDiv.textContent = "Sending object to Stellarium...";
-      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
-      fetch("/proxy_focus", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ target: objectName, mode: "center" })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === "success") {
-          stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
-          stellariumStatusDiv.style.color = "#83b4c5";
-        } else {
-          stellariumStatusDiv.textContent = "Error updating Stellarium: " + data.message;
-          stellariumStatusDiv.style.color = "red";
-        }
-      })
-      .catch(error => {
-        stellariumStatusDiv.textContent = "Error communicating with Stellarium.";
-        stellariumStatusDiv.style.color = "red";
-        console.error("Communication error:", error);
-      });
-    }
+
 
     function loadImagingOpportunities() {
       const objectName = document.getElementById('object-input').value || "{{ object_name }}";
@@ -414,7 +396,46 @@
         }
       });
     }
+    function openInStellarium() {
+      const stellariumStatusDiv = document.getElementById('stellarium-status');
+      stellariumStatusDiv.textContent = "Sending object to Stellarium...";
+      const objectName = document.getElementById('object-input').value;
 
+      fetch("/proxy_focus", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ target: objectName, mode: "center" })
+      })
+      .then(async response => {
+        const data = await response.json();
+
+        if (response.ok && data.status === "success") {
+          stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
+          stellariumStatusDiv.style.color = "#83b4c5";
+        } else {
+          // Display the rich HTML error message returned from Flask
+          stellariumStatusDiv.innerHTML = `
+            <p style="color:red;">
+              Error updating Stellarium:<br><br>
+              ${data.message}
+            </p>
+          `;
+        }
+      })
+      .catch(error => {
+        console.error("Communication error:", error);
+        stellariumStatusDiv.innerHTML = `
+          <p style="color:red;">
+            Could not connect to Stellarium.<br><br>
+            Please ensure Stellarium is running and remote control is enabled.<br><br>
+            If you're accessing remotely, paste this into your terminal:<br>
+            <code>ssh -N -R 8090:localhost:8090 stellarium@novadsotracker.duckdns.org -p 2222</code><br><br>
+            For a seamless experience, consider providing your SSH public key for passwordless access.<br><br>
+            <small>Error: ${error.message}</small>
+          </p>
+        `;
+      });
+    }
 
   </script>
 </head>

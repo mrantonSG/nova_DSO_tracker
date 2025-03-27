@@ -177,6 +177,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      text-decoration: none;
     }
     .action-button:hover {
       background-color: #6795a4;
@@ -195,6 +196,51 @@
     .dlback-button:hover {
       background-color: #6795a4 !important;
     }
+    .info-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 20px;
+    }
+
+    .left-group,
+    .right-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .file-button {
+      padding: 5px 10px;
+      font-size: 14px;
+      background-color: #98A5A8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .file-button:hover {
+      background-color: #6795a4;
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #fff;
+      z-index: 10000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0.95;
+      transition: opacity 0.3s ease;
+    }
+  .toast-success { background-color: #4CAF50; }   /* green */
+  .toast-error { background-color: #f44336; }     /* red */
+  .toast-info { background-color: #2196F3; }      /* blue */
+
   </style>
 </head>
 <body>
@@ -202,19 +248,52 @@
     <h1>Nova</h1>
     <h3>DSO Altitude Tracker V{{ version }}</h3>
   </div>
-  <div class="info-container">
-    <button type="button" id="back-button" onclick="window.location.href='{{ url_for('index') }}'">
-      Back to Tracker
-    </button>
-    <a href="{{ url_for('download_config') }}" class="dlback-button" style="margin-left: 0px;">
-      Download Config
-    </a>
-    {% if error %}
-      <p class="error">Error: {{ error }}</p>
-    {% endif %}
-    {% if message %}
-      <p class="message">{{ message }}</p>
-    {% endif %}
+  <div class="info-container" style="justify-content: space-between; width: 100%;">
+    <div class="left-group">
+      <a href="{{ url_for('index') }}" class="dlback-button">Back to Tracker</a>
+    </div>
+    <div id="message-container" style="height: 24px;">
+      {% if error %}
+        <p class="error" id="error-msg" style="margin: 0;">Error: {{ error }}</p>
+      {% endif %}
+      {% if message %}
+        <p class="message" id="flash-msg" style="margin: 0;">{{ message }}</p>
+      {% endif %}
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Fade out flash messages after 3 seconds
+        setTimeout(() => {
+          const flash = document.getElementById("flash-msg");
+          const error = document.getElementById("error-msg");
+
+          [flash, error].forEach(el => {
+            if (el) {
+              el.style.transition = "opacity 0.5s ease";
+              el.style.opacity = "0";
+              setTimeout(() => el.remove(), 500); // Remove from DOM after fade-out
+            }
+          });
+
+          // Remove query params from URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('message');
+          url.searchParams.delete('error');
+          window.history.replaceState({}, document.title, url.pathname + url.search);
+        }, 3000);
+      });
+    </script>
+    <div class="right-group">
+      <a href="{{ url_for('download_config') }}" class="file-button">Download Config</a>
+      <a href="#" id="import-config-btn" class="file-button">Import Config</a>
+      <input type="file" id="config-upload" accept=".yaml" style="display: none;">
+    </div>
+<!--    <form id="update-form" action="{{ url_for('trigger_update') }}" method="post" style="display: inline;">-->
+<!--      <button type="submit" class="action-button" onclick="return confirm('Are you sure you want to update Nova? The app will restart.')">-->
+<!--        🔄 Update Nova-->
+<!--      </button>-->
+<!--    </form>-->
+
   </div>
 
   <!-- General Settings (Altitude Threshold) -->
@@ -412,110 +491,132 @@
   </form>
   <br>
   <script>
-    // Event listener for the "Search" button (to perform the SIMBAD search)
-    document.getElementById('submit_new_object').addEventListener('click', function(event) {
-      event.preventDefault();
-      const resultDiv = document.getElementById('object_result');
-      resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
-      const objectName = document.getElementById('new_object').value.trim();
-      if (!objectName) {
-        alert("Please enter an object identifier.");
-        return;
-      }
-      fetch('/search_object', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ object: objectName })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === "success") {
-          resultDiv.innerHTML = `<p style="color: #83b4c5;">
-            Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})
-          </p>`;
-          // Auto-fill and lock the fields.
-          document.getElementById('new_name').value = data.data["Common Name"];
-          document.getElementById('new_ra').value = data.data["RA (hours)"];
-          document.getElementById('new_dec').value = data.data["DEC (degrees)"];
-          document.getElementById('new_name').readOnly = true;
-          document.getElementById('new_ra').readOnly = true;
-          document.getElementById('new_dec').readOnly = true;
-          // Show the Confirm and Edit buttons.
-          document.getElementById('confirm_add_object').style.display = 'inline-block';
-          document.getElementById('edit_object').style.display = 'inline-block';
-        } else {
-          resultDiv.innerHTML = `<p style="color:red;">SIMBAD did not return data: ${data.message}. You can add the object manually by entering RA and DEC.</p>`;
-          // Make fields editable.
+      document.getElementById('submit_new_object').addEventListener('click', function(event) {
+        event.preventDefault();
+        const resultDiv = document.getElementById('object_result');
+        resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
+        const objectName = document.getElementById('new_object').value.trim();
+        if (!objectName) {
+          alert("Please enter an object identifier.");
+          return;
+        }
+        fetch('/search_object', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ object: objectName })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "success") {
+            resultDiv.innerHTML = `<p style="color: #83b4c5;">
+              Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})
+            </p>`;
+            document.getElementById('new_name').value = data.data["Common Name"];
+            document.getElementById('new_ra').value = data.data["RA (hours)"];
+            document.getElementById('new_dec').value = data.data["DEC (degrees)"];
+            document.getElementById('new_name').readOnly = true;
+            document.getElementById('new_ra').readOnly = true;
+            document.getElementById('new_dec').readOnly = true;
+            document.getElementById('confirm_add_object').style.display = 'inline-block';
+            document.getElementById('edit_object').style.display = 'inline-block';
+          } else {
+            resultDiv.innerHTML = `<p style="color:red;">SIMBAD did not return data: ${data.message}. You can add the object manually by entering RA and DEC.</p>`;
+            document.getElementById('new_name').readOnly = false;
+            document.getElementById('new_ra').readOnly = false;
+            document.getElementById('new_dec').readOnly = false;
+            document.getElementById('confirm_add_object').style.display = 'inline-block';
+            document.getElementById('edit_object').style.display = 'inline-block';
+          }
+        })
+        .catch(err => {
+          console.error("Error searching object:", err);
+          resultDiv.innerHTML = `<p style="color:red;">Error occurred while searching.</p>`;
           document.getElementById('new_name').readOnly = false;
           document.getElementById('new_ra').readOnly = false;
           document.getElementById('new_dec').readOnly = false;
-          // Show the Confirm and Edit buttons.
           document.getElementById('confirm_add_object').style.display = 'inline-block';
-          document.getElementById('edit_object').style.display = 'inline-block';
-        }
-      })
-      .catch(err => {
-        console.error("Error searching object:", err);
-        resultDiv.innerHTML = `<p style="color:red;">Error occurred while searching.</p>`;
-        // Allow manual editing if an error occurs.
+        });
+      });
+
+      document.getElementById('confirm_add_object').addEventListener('click', function(event) {
+        event.preventDefault();
+        const objectName = document.getElementById('new_object').value.trim();
+        const commonName = document.getElementById('new_name').value.trim();
+        const ra = document.getElementById('new_ra').value.trim();
+        const dec = document.getElementById('new_dec').value.trim();
+        const project = document.getElementById('new_project').value.trim();
+        const payload = {
+          object: objectName,
+          name: commonName,
+          ra: ra,
+          dec: dec,
+          project: project
+        };
+        fetch('/confirm_object', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+          const resultDiv = document.getElementById('object_result');
+          if (data.status === "success") {
+            resultDiv.innerHTML = `<p style="color:green;">Object added successfully.</p>`;
+            document.getElementById('new_object').value = "";
+            document.getElementById('new_name').value = "";
+            document.getElementById('new_ra').value = "";
+            document.getElementById('new_dec').value = "";
+            document.getElementById('new_project').value = "";
+            document.getElementById('confirm_add_object').style.display = 'none';
+            document.getElementById('edit_object').style.display = 'none';
+          } else {
+            resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
+          }
+        })
+        .catch(err => {
+          console.error("Error confirming object:", err);
+          document.getElementById('object_result').innerHTML = `<p style="color:red;">Error occurred while adding object.</p>`;
+        });
+      });
+
+      document.getElementById('edit_object').addEventListener('click', function(event) {
+        event.preventDefault();
         document.getElementById('new_name').readOnly = false;
         document.getElementById('new_ra').readOnly = false;
         document.getElementById('new_dec').readOnly = false;
-        document.getElementById('confirm_add_object').style.display = 'inline-block';
       });
-    });
 
-    // Event listener for the "Confirm Add" button (to send data to the server)
-    document.getElementById('confirm_add_object').addEventListener('click', function(event) {
-      event.preventDefault();
-      const objectName = document.getElementById('new_object').value.trim();
-      const commonName = document.getElementById('new_name').value.trim();
-      const ra = document.getElementById('new_ra').value.trim();
-      const dec = document.getElementById('new_dec').value.trim();
-      const project = document.getElementById('new_project').value.trim();
-      const payload = {
-        object: objectName,
-        name: commonName,
-        ra: ra,
-        dec: dec,
-        project: project
-      };
-      fetch('/confirm_object', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+    document.getElementById('import-config-btn').addEventListener('click', () => {
+    if (confirm("Are you sure you want to import a new config file? This will overwrite your current settings.")) {
+      document.getElementById('config-upload').click();
+    }
+  });
+
+    document.getElementById('config-upload').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      fetch("/import_config", {
+        method: "POST",
+        body: formData
       })
-      .then(response => response.json())
-      .then(data => {
-        const resultDiv = document.getElementById('object_result');
-        if (data.status === "success") {
-          resultDiv.innerHTML = `<p style="color:green;">Object added successfully.</p>`;
-          // Clear fields.
-          document.getElementById('new_object').value = "";
-          document.getElementById('new_name').value = "";
-          document.getElementById('new_ra').value = "";
-          document.getElementById('new_dec').value = "";
-          document.getElementById('new_project').value = "";
-          // Hide the Confirm and Edit buttons.
-          document.getElementById('confirm_add_object').style.display = 'none';
-          document.getElementById('edit_object').style.display = 'none';
+      .then(response => {
+        if (response.redirected) {
+          // ✅ Let Flask handle success/error messaging via redirect query params
+          window.location.href = response.url;
         } else {
-          resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
+          // Handle rare case: response not redirected but failed
+          response.text().then(msg => {
+            alert("❌ Import failed: " + msg);
+          });
         }
       })
       .catch(err => {
-        console.error("Error confirming object:", err);
-        document.getElementById('object_result').innerHTML = `<p style="color:red;">Error occurred while adding object.</p>`;
+        alert("❌ Import failed: " + err.message);
       });
-    });
-
-    // Event listener for the "Edit" button (added globally)
-    document.getElementById('edit_object').addEventListener('click', function(event) {
-      event.preventDefault();
-      // Remove read-only property to allow editing
-      document.getElementById('new_name').readOnly = false;
-      document.getElementById('new_ra').readOnly = false;
-      document.getElementById('new_dec').readOnly = false;
     });
   </script>
 </body>
