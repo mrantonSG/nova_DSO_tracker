@@ -20,14 +20,14 @@ import requests
 import secrets
 from dotenv import load_dotenv
 import calendar
-import math
-from collections import defaultdict
 
 import numpy as np
 import pytz
 import ephem
 import yaml
 import shutil
+import subprocess
+import sys
 
 import matplotlib
 matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
@@ -36,7 +36,7 @@ import matplotlib.dates as mdates
 
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from flask import session, get_flashed_messages
+from flask import session, get_flashed_messages, Blueprint
 from flask import Flask, send_from_directory
 
 from astroquery.simbad import Simbad
@@ -46,10 +46,12 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.3.1b"
+APP_VERSION = "2.4.0b"
 load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
+update_bp = Blueprint('update', __name__)
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 
 ENV_FILE = ".env"
 
@@ -75,7 +77,7 @@ SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fal
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-SINGLE_USER_MODE = True  # Set to False for multi‑user mode
+SINGLE_USER_MODE = False  # Set to False for multi‑user mode
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -156,9 +158,16 @@ def get_static_nightly_values(ra, dec, obj_name, local_date, fixed_time_utc_str,
     }
     return static_cache[key]
 
-# =============================================================================
-# User-Specific Configuration Functions
-# =============================================================================
+@app.route('/trigger_update', methods=['POST'])
+def trigger_update():
+    try:
+        script_path = os.path.join(os.path.dirname(__file__), 'updater.py')
+        subprocess.Popen([sys.executable, script_path])
+        print("Exiting current app to allow updater to restart it...")
+        os._exit(0)  # Force exit without cleanup
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
 def load_user_config(username):
     """Load user-specific configuration, creating one from the default if missing."""
     if SINGLE_USER_MODE:
@@ -182,7 +191,7 @@ def load_user_config(username):
     with open(filename, "r") as file:
         config = yaml.safe_load(file) or {}
 
-    # ✅ Ensure imaging_criteria exists with all defaults
+    # Ensure imaging_criteria exists with all defaults
     config.setdefault("imaging_criteria", {})
     config["imaging_criteria"].setdefault("min_observable_minutes", 60)
     config["imaging_criteria"].setdefault("min_max_altitude", 30)
@@ -190,6 +199,7 @@ def load_user_config(username):
     config["imaging_criteria"].setdefault("min_angular_distance", 30)
     config["imaging_criteria"].setdefault("search_horizon_months", 6)
 
+    print(f"[LOAD CONFIG] Loading {filename}")
     return config
 
 
@@ -238,7 +248,22 @@ def proxy_focus():
         r = requests.post("http://localhost:8090/api/main/focus", data=payload)
         return jsonify({"status": "success", "stellarium_response": r.text})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        # Try to detect real client IP (behind proxy)
+        forwarded_for = request.headers.get('X-Forwarded-For', request.remote_addr)
+        client_ip = forwarded_for.split(',')[0].strip()
+
+        if client_ip == "127.0.0.1" or client_ip.startswith("192.168.") or client_ip.startswith("10."):
+            message = "Stellarium is not running or remote control is not enabled."
+        else:
+            message = (
+                "Could not connect to Stellarium on your machine. "
+                "Please ensure Stellarium is running and remote control is enabled.<br><br>"
+                "To connect remotely, paste this in your terminal:<br>"
+                "<code>ssh -N -R 8090:localhost:8090 stellarium@novadsotracker.duckdns.org -p 2222</code><br><br>"
+                "For a seamless experience, consider providing your SSH public key for passwordless access."
+            )
+
+        return jsonify({"status": "error", "message": message}), 500
 
 
 @app.before_request
@@ -296,6 +321,64 @@ def download_config():
         return send_file(filepath, as_attachment=True)
     else:
         return "Configuration file not found.", 404
+
+
+
+
+@app.route('/import_config', methods=['POST'])
+@login_required
+def import_config():
+    try:
+        if 'file' not in request.files:
+            return "No file uploaded", 400
+
+        file = request.files['file']
+        contents = file.read().decode('utf-8')
+
+        # Parse YAML safely
+        new_config = yaml.safe_load(contents)
+
+        # Validation
+        if not isinstance(new_config, dict):
+            return "Invalid YAML structure.", 400
+        if 'locations' not in new_config or not isinstance(new_config['locations'], dict) or not new_config['locations']:
+            return "Missing or empty 'locations' key.", 400
+        if 'objects' not in new_config or not isinstance(new_config['objects'], list):
+            return "Missing or invalid 'objects' key.", 400
+
+        for loc_name, loc_data in new_config['locations'].items():
+            if not all(k in loc_data for k in ['lat', 'lon', 'timezone']):
+                return f"Location '{loc_name}' is missing required fields.", 400
+
+        for obj in new_config['objects']:
+            if not isinstance(obj, dict) or 'Object' not in obj:
+                return f"One of the objects is malformed or missing 'Object' field.", 400
+
+        # Determine correct CONFIG_PATH for this user
+        username = current_user.username
+        config_path = os.path.join(os.path.dirname(__file__), f"config_{username}.yaml")
+
+        # Backup current config to backups/ folder
+        if os.path.exists(config_path):
+            backup_dir = os.path.join(os.path.dirname(config_path), "backups")
+            os.makedirs(backup_dir, exist_ok=True)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_path = os.path.join(backup_dir, f"{username}_backup_{timestamp}.yaml")
+            shutil.copy(config_path, backup_path)
+            print(f"[IMPORT] Backed up current config to {backup_path}")
+
+        # Save new config
+        with open(config_path, 'w') as f:
+            yaml.dump(new_config, f, default_flow_style=False)
+
+        print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
+        return redirect(url_for('config_form', message="✅ Config imported successfully!"))
+
+    except Exception as e:
+        print(f"[IMPORT ERROR] {e}")
+        return redirect(url_for('config_form', error=f"❌ Import failed: {str(e)}"))
+
+
 
 # =============================================================================
 # Astronomical Calculations
@@ -1280,7 +1363,13 @@ def config_form():
         except Exception as exception_value:
             error = str(exception_value)
 
+    if not error:
+        error = request.args.get("error")
+    if not message:
+        message = request.args.get("message")
+
     return render_template('config_form.html', config=g.user_config, locations=g.locations, error=error, message=message)
+
 
 @app.before_request
 def precompute_time_arrays():
@@ -1743,4 +1832,13 @@ def get_imaging_opportunities(object_name):
 # Main Entry Point
 # =============================================================================
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # Automatically disable debugger and reloader if set by the updater
+    disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
+
+    app.run(
+        debug=not disable_debug,
+        use_reloader=not disable_debug,
+        host='0.0.0.0',
+        port=5001
+    )
+    #app.run(debug=True, host='0.0.0.0', port=5001)
