@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.1"
+APP_VERSION = "2.4.2"
 load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
@@ -364,11 +364,11 @@ def import_config():
             yaml.dump(new_config, f, default_flow_style=False)
 
         print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
-        return redirect(url_for('config_form', message="✅ Config imported successfully!"))
+        return redirect(url_for('config_form', message="Config imported successfully!"))
 
     except Exception as e:
         print(f"[IMPORT ERROR] {e}")
-        return redirect(url_for('config_form', error=f"❌ Import failed: {str(e)}"))
+        return redirect(url_for('config_form', error=f"Import failed: {str(e)}"))
 
 
 
