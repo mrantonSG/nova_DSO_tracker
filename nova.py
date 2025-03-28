@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.3"
+APP_VERSION = "2.4.4"
 
 SINGLE_USER_MODE = False  # Set to False for multi‑user mode
 
@@ -1314,6 +1314,9 @@ def update_project():
         # Save the updated configuration.
         save_user_config(current_user.username, config)
 
+        # Optionally update the persistent cache.
+        key = object_name.lower()
+
         return jsonify({"status": "success"})
     except Exception as exception_value:
         return jsonify({"status": "error", "error": str(exception_value)}), 500
@@ -1558,7 +1561,7 @@ def plot_day(object_name):
 
 @app.route('/get_date_info/<object_name>')
 @login_required
-def get_date_info():
+def get_date_info(object_name):
     tz = pytz.timezone(g.tz_name)
     now = datetime.now(tz)
     day = int(request.args.get('day') or now.day)
