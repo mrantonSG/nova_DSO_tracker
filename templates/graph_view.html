@@ -446,6 +446,30 @@
           });
       });
     }
+    document.addEventListener("DOMContentLoaded", function () {
+      const dayInput = document.getElementById("day-select");
+      const monthSelect = document.getElementById("month-select");
+      const yearInput = document.getElementById("year-select");
+
+      function updateDayLimit() {
+        const year = parseInt(yearInput.value);
+        const month = parseInt(monthSelect.value);
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        if (parseInt(dayInput.value) > daysInMonth) {
+          dayInput.value = daysInMonth;
+        }
+
+        dayInput.max = daysInMonth;
+      }
+
+      // Hook up event listeners
+      monthSelect.addEventListener("change", updateDayLimit);
+      yearInput.addEventListener("change", updateDayLimit);
+
+      // Set initial limit
+      updateDayLimit();
+    });
 
   </script>
 </head>

@@ -46,17 +46,17 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.2"
+APP_VERSION = "2.4.3"
+
+SINGLE_USER_MODE = False  # Set to False for multi‑user mode
+
 load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
 update_bp = Blueprint('update', __name__)
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
-
 ENV_FILE = ".env"
-
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
-
 # Automatically create .env if it doesn't exist
 if not os.path.exists(ENV_FILE):
     secret_key = secrets.token_hex(32)
@@ -71,15 +71,13 @@ if not os.path.exists(ENV_FILE):
         f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
         f.write(f"USER_{default_user.upper()}_PASSWORD={default_password}\n")
 
-    print(f"✅ Created .env file with a new SECRET_KEY and default user")
+    print(f"Created .env file with a new SECRET_KEY and default user")
 
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
-
-SINGLE_USER_MODE = False  # Set to False for multi‑user mode
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -116,6 +114,7 @@ def load_user(user_id):
             return User(user["id"], user["username"])
     return None
 
+# simbad sometimes needs Ids with a / between numbers. this creates a conflict with the app.
 def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
 
@@ -128,7 +127,7 @@ def inject_user_mode():
     from flask_login import current_user
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
-        "current_user": current_user  # Flask-Login gives us this
+        "current_user": current_user
     }
 
 @app.route('/logout', methods=['POST'])
@@ -596,21 +595,6 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
         moon_altitudes.append(moon_altaz.alt.deg)
         moon_azimuths.append(moon_altaz.az.deg)
 
-    # # NEW: Compute Angular Separation (in degrees) between object and Moon
-    # # Convert altitude and azimuth lists to radians as numpy arrays.
-    # obj_alt_rad = np.radians(np.array(altitudes))
-    # obj_az_rad = np.radians(np.array(azimuths))
-    # moon_alt_rad = np.radians(np.array(moon_altitudes))
-    # moon_az_rad = np.radians(np.array(moon_azimuths))
-    # # Calculate cosine of angular separation using spherical law of cosines.
-    # cos_delta = (np.sin(obj_alt_rad) * np.sin(moon_alt_rad) +
-    #              np.cos(obj_alt_rad) * np.cos(moon_alt_rad) *
-    #              np.cos(obj_az_rad - moon_az_rad))
-    # # Clip to [-1, 1] to avoid numerical issues.
-    # cos_delta = np.clip(cos_delta, -1, 1)
-    # angular_distance = np.degrees(np.arccos(cos_delta))
-    # # End NEW section
-
     # Get sun events.
     sun_events_curr = calculate_sun_events(local_date)
     previous_date = (datetime.strptime(local_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -645,13 +629,10 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     ax.set_facecolor("lightgray")
 
     # Plot Moon altitude as dashed yellow.
-    ax.plot(times_local_naive, moon_altitudes, '-', color='gold', linewidth=1.5, label='Moon Altitude')
+    ax.plot(times_local_naive, moon_altitudes, '-', color='gold', linewidth=2.5, label='Moon Altitude')
 
     # Plot Horizon
     ax.axhline(y=0, color='black', linewidth=2, linestyle='-', label='Horizon')
-
-    # Plot Angular Separation as a red dashed line.
-    #ax.plot(times_local_naive, angular_distance, '--', linewidth=1.5, color='red', label='Angular Separation')
 
     ax.set_xlabel(f'Time (Local - {selected_location})')
     ax.set_ylabel('Altitude (°)', color='k')
@@ -668,7 +649,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
 
     # Create secondary axis for azimuth.
     ax2 = ax.twinx()
-    ax2.plot(times_local_naive, azimuths, '--', linewidth=2, color='tab:cyan', label=f'{object_name} Azimuth')
+    ax2.plot(times_local_naive, azimuths, '--', linewidth=1.5, color='tab:cyan', label=f'{object_name} Azimuth')
     ax2.set_ylabel('Azimuth (°)', color='k')
     ax2.tick_params(axis='y', labelcolor='k')
     ax2.set_ylim(0, 360)
@@ -784,7 +765,7 @@ def plot_yearly_altitude_curve(
     # Loop over each day of the year (Jan 1 through Dec 31)
     start_date = datetime(year, 1, 1)
     end_date = datetime(year + 1, 1, 1)  # up to but not including Jan 1 next year
-    delta = timedelta(days=1)
+    delta = timedelta(days=2) #every second day for performance reasons
 
     current_date = start_date
     while current_date < end_date:
@@ -922,7 +903,7 @@ def calculate_sun_events(date_str):
     local_date = datetime.strptime(date_str, "%Y-%m-%d")
     local_midnight = local_tz.localize(datetime.combine(local_date, datetime.min.time()))
     midnight_utc = local_midnight.astimezone(pytz.utc)
-    sun = ephem.Sun()
+    sun = ephem.Sun() # noinspection PyUnresolvedReferences
     obs = ephem.Observer()
     obs.lat = str(g.lat)
     obs.lon = str(g.lon)
@@ -954,65 +935,6 @@ def calculate_sun_events(date_str):
         "astronomical_dusk": astro_dusk_local
     }
 
-def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name):
-    local_tz = pytz.timezone(tz_name)
-    observer = ephem.Observer()
-    observer.lat = str(lat)
-    observer.lon = str(lon)
-
-    # Parse local_date and set to local midnight
-    date_obj = datetime.strptime(local_date, "%Y-%m-%d")
-    local_midnight = local_tz.localize(datetime.combine(date_obj, datetime.min.time()))
-    observer.date = local_midnight.astimezone(pytz.utc)
-
-    sun = ephem.Sun()
-    observer.horizon = '-18'
-
-    # --- Get dusk ---
-    dusk_utc = observer.next_setting(sun, use_center=True)
-    dusk_local = ephem_to_local(dusk_utc, tz_name)
-
-    # If dusk is after midnight (but still belongs to the previous evening)
-    if dusk_local.date() > date_obj:
-        # Roll observer back to previous day to get the correct dusk
-        observer.date = (local_midnight - timedelta(days=1)).astimezone(pytz.utc)
-        dusk_utc = observer.next_setting(sun, use_center=True)
-        dusk_local = ephem_to_local(dusk_utc, tz_name)
-
-    # --- Get dawn (next rising) ---
-    observer.date = local_midnight.astimezone(pytz.utc)  # reset to correct day
-    dawn_utc = observer.next_rising(sun, use_center=True)
-    dawn_local = ephem_to_local(dawn_utc, tz_name)
-
-    # --- Sample between dusk and dawn ---
-    sample_interval = timedelta(minutes=10)
-    times = []
-    current = dusk_local
-    while current <= dawn_local:
-        times.append(current)
-        current += sample_interval
-
-    if not times:
-        return timedelta(0), 0
-
-    times_utc = Time([t.astimezone(pytz.utc) for t in times], scale='utc')
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-
-    frame = AltAz(obstime=times_utc, location=location)
-    altaz = sky_coord.transform_to(frame)
-    altitudes = altaz.alt.deg
-
-    threshold = g.altitude_threshold
-    mask = np.array(altitudes) > threshold
-    observable_minutes = int(np.sum(mask) * 10)
-    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
-
-    return timedelta(minutes=observable_minutes), max_altitude
-
-# =============================================================================
-# Route to Set Location
-# =============================================================================
 @app.route('/set_location', methods=['POST'])
 @login_required
 def set_location_api():
@@ -1087,11 +1009,6 @@ def confirm_object():
     save_user_config(current_user.username, config_data)
     return jsonify({"status": "success"})
 
-from collections import defaultdict
-
-# Place these near the top of your script
-static_cache = {}
-moon_separation_cache = {}
 
 @app.route('/data')
 @login_required
@@ -1247,7 +1164,7 @@ def config_form():
 
                 g.user_config['default_location'] = new_default_location if new_default_location else "Singapore"
 
-                # ✅ NEW: Save imaging criteria from form
+                #  NEW: Save imaging criteria from form
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:
                     imaging["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
@@ -1397,9 +1314,6 @@ def update_project():
         # Save the updated configuration.
         save_user_config(current_user.username, config)
 
-        # Optionally update the persistent cache.
-        key = object_name.lower()
-
         return jsonify({"status": "success"})
     except Exception as exception_value:
         return jsonify({"status": "error", "error": str(exception_value)}), 500
@@ -1416,9 +1330,7 @@ def bypass_login_in_single_user():
 @app.route('/plot_yearly_altitude/<path:object_name>')
 @login_required
 def plot_yearly_altitude(object_name):
-    """
-    Generate and return a year-long altitude plot for the given object and the Moon.
-    """
+
     data = get_ra_dec(object_name)
     if not data or data['RA (hours)'] is None or data['DEC (degrees)'] is None:
         return jsonify({"error": f"No valid RA/DEC for object {object_name}."}), 400
@@ -1427,10 +1339,8 @@ def plot_yearly_altitude(object_name):
     ra = data['RA (hours)']
     dec = data['DEC (degrees)']
 
-    # You can hardcode a year or accept it from query params:
     year = request.args.get('year', default=2025, type=int)
 
-    # Generate the plot
     plot_path = plot_yearly_altitude_curve(
         object_name=object_name,
         alt_name=alt_name,
@@ -1600,9 +1510,7 @@ def graph_dashboard(object_name):
 @app.route('/plot_day/<object_name>')
 @login_required
 def plot_day(object_name):
-    """
-    Returns a day-long altitude plot (PNG) for the selected object.
-    """
+
     # 1. Parse query parameters for day, month, year
     now_local = datetime.now(pytz.timezone(g.tz_name))
     day_str = request.args.get('day')
@@ -1627,12 +1535,12 @@ def plot_day(object_name):
     local_date = f"{year}-{month:02d}-{day:02d}"
     print("DEBUG: Plotting day graph for date:", local_date)
 
-    # 2. Fetch RA/DEC from your config or SIMBAD
+    # 2. Fetch RA/DEC from config or SIMBAD
     data = get_ra_dec(object_name)
     if not data or data.get('RA (hours)') is None:
         return jsonify({"error": "No valid RA/DEC for object"}), 400
 
-    # 3. Generate the plot (same code as your monthly/yearly approach)
+    # 3. Generate the plot (same code as monthly/yearly approach)
     alt_name = data.get("Common Name", object_name)
     plot_path = plot_altitude_curve(
         object_name,
@@ -1650,7 +1558,7 @@ def plot_day(object_name):
 
 @app.route('/get_date_info/<object_name>')
 @login_required
-def get_date_info(object_name):
+def get_date_info():
     tz = pytz.timezone(g.tz_name)
     now = datetime.now(tz)
     day = int(request.args.get('day') or now.day)
@@ -1659,7 +1567,6 @@ def get_date_info(object_name):
     local_date = f"{year}-{month:02d}-{day:02d}"
     selected_date = tz.localize(datetime.strptime(local_date, "%Y-%m-%d"))
     phase = round(ephem.Moon(ephem.Date(selected_date)).phase, 0)
-    time_str = selected_date.strftime('%H:%M:%S')
     sun_events = calculate_sun_events(local_date)
     astronomical_dawn = sun_events.get("astronomical_dawn", "N/A")
     astronomical_dusk = sun_events.get("astronomical_dusk", "N/A")
@@ -1724,8 +1631,6 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
 @app.route('/get_imaging_opportunities/<object_name>')
 @login_required
 def get_imaging_opportunities(object_name):
-    from datetime import date
-
     # Load object data
     data = get_ra_dec(object_name)
     if not data or data.get("RA (hours)") is None or data.get("DEC (degrees)") is None:
@@ -1833,4 +1738,4 @@ if __name__ == '__main__':
         host='0.0.0.0',
         port=5001
     )
-    #app.run(debug=True, host='0.0.0.0', port=5001)
+
