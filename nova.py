@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.4"
+APP_VERSION = "2.4.5"
 
 SINGLE_USER_MODE = False  # Set to False for multi‑user mode
 
@@ -1070,8 +1070,10 @@ def get_data():
                 }
                 static_cache[cache_key] = cached
 
-            # --- Moon angular separation (cached) ---
-            moon_key = f"{obj.lower()}_{local_date}_{g.selected_location}"
+            # --- Moon angular separation (hourly cache) ---
+            current_hour_str = current_datetime_local.strftime('%Y-%m-%d_%H')
+            moon_key = f"{obj.lower()}_{current_hour_str}_{g.selected_location}"
+
             if moon_key in moon_separation_cache:
                 angular_sep = moon_separation_cache[moon_key]
             else:
