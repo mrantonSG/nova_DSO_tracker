@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.5"
+APP_VERSION = "2.4.6"
 
 SINGLE_USER_MODE = False  # Set to False for multi‑user mode
 
@@ -1107,7 +1107,7 @@ def get_data():
                 'Transit Time': cached['Transit Time'],
                 'Observable Duration (min)': cached['Observable Duration (min)'],
                 'Max Altitude (°)': cached['Max Altitude (°)'],
-                'Angular Separation (°)': angular_sep,
+                'Angular Separation (°)': round(angular_sep) if angular_sep is not None else "N/A",
                 'Trend': trend,
                 'Project': data.get('Project', "none"),
                 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
@@ -1487,7 +1487,8 @@ def graph_dashboard(object_name):
     selected_date = tz.localize(datetime.strptime(selected_date_str, "%Y-%m-%d"))
 
     # Moon phase
-    phase = round(ephem.Moon(ephem.Date(selected_date)).phase, 0)
+    now_local = datetime.now(pytz.timezone(g.tz_name))
+    phase = round(ephem.Moon(now_local).phase, 0)
 
     # Sun events
     sun_events = calculate_sun_events(selected_date_str)
@@ -1565,21 +1566,26 @@ def plot_day(object_name):
 @login_required
 def get_date_info(object_name):
     tz = pytz.timezone(g.tz_name)
-    now = datetime.now(tz)
+    now = datetime.now(tz)  # current time in user's local timezone
+
     day = int(request.args.get('day') or now.day)
     month = int(request.args.get('month') or now.month)
     year = int(request.args.get('year') or now.year)
-    local_date = f"{year}-{month:02d}-{day:02d}"
-    selected_date = tz.localize(datetime.strptime(local_date, "%Y-%m-%d"))
-    phase = round(ephem.Moon(ephem.Date(selected_date)).phase, 0)
-    sun_events = calculate_sun_events(local_date)
-    astronomical_dawn = sun_events.get("astronomical_dawn", "N/A")
-    astronomical_dusk = sun_events.get("astronomical_dusk", "N/A")
+
+    # Use same time-of-day as index: current hour/minute
+    local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
+    phase = round(ephem.Moon(local_time).phase)
+
+    local_date_str = f"{year}-{month:02d}-{day:02d}"
+    sun_events = calculate_sun_events(local_date_str)
+
+    print(f"[get_date_info] Local time: {local_time} | Phase: {phase}")
+
     return jsonify({
-        "date": local_date,
+        "date": local_date_str,
         "phase": phase,
-        "astronomical_dawn": astronomical_dawn,
-        "astronomical_dusk": astronomical_dusk
+        "astronomical_dawn": sun_events.get("astronomical_dawn", "N/A"),
+        "astronomical_dusk": sun_events.get("astronomical_dusk", "N/A")
     })
 
 def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name):
@@ -1673,7 +1679,9 @@ def get_imaging_opportunities(object_name):
                 continue
 
             # Get moon phase
-            moon_phase = ephem.Moon(ephem.Date(date_str)).phase
+            local_tz = pytz.timezone(g.tz_name)
+            local_time = local_tz.localize(datetime.combine(d, datetime.now().time()))
+            moon_phase = ephem.Moon(local_time.astimezone(pytz.utc)).phase
             if moon_phase > max_moon:
                 continue
 
