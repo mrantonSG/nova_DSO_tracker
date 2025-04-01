@@ -351,7 +351,7 @@
               <td>${obj['Transit Time'] || 'N/A'}</td>
               <td>${observable}</td>
               <td>${maxAltNight}</td>
-              <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? Number(obj["Angular Separation (°)"]).toFixed(1) + '°' : 'N/A'}</td>
+              <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? parseInt(obj["Angular Separation (°)"]) + '°' : 'N/A'}</td>
             `;
 
             row.addEventListener('click', function () {
@@ -507,7 +507,7 @@
   <div class="info-values">
     <p><small>Date:</small> <span id="date"></span></p>
     <p><small>Time:</small> <span id="time"></span></p>
-    <p><small>Moon Illumination:</small> <span id="phase"></span></p>
+    <p><small>Moon Illumination (now):</small> <span id="phase"></span></p>
     <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
     <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
   </div>
@@ -541,7 +541,7 @@
           <th class="sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span></th>
           <th class="sortable"><span>Observable <br><span class="subtext">(minutes)</span></span></th>
           <th class="sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span></th>
-          <th class="sortable"><span>Ang. Sep. <br><span class="subtext">object to moon (°)</span></span></th>
+          <th class="sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span></th>
         </tr>
         <tr class="filter-row">
           <th><input type="text" placeholder="Search Object" onkeyup="saveFilter(this, 0); filterTable();"/></th>
