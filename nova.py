@@ -46,7 +46,7 @@ import astropy.units as u
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.6"
+APP_VERSION = "2.4.7"
 
 SINGLE_USER_MODE = False  # Set to False for multi‑user mode
 
@@ -285,7 +285,8 @@ if not os.path.exists('static'):
 def get_common_time_arrays(tz_name, local_date):
     local_tz = pytz.timezone(tz_name)
     base_date = datetime.strptime(local_date, '%Y-%m-%d')
-    start_time = local_tz.localize(datetime.combine(base_date - timedelta(days=1), datetime.min.time()).replace(hour=12))
+    # Corrected to start from noon of the selected local date itself
+    start_time = local_tz.localize(datetime.combine(base_date, datetime.min.time()).replace(hour=12))
     times_local = [start_time + timedelta(minutes=10 * i) for i in range(24 * 6)]
     times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times_local],
                      format='isot', scale='utc')
@@ -674,66 +675,56 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     plot_start = times_local_naive[0]
     plot_end = plot_start + timedelta(hours=24)
 
-    # --- Background Shading Code for the Day Plot ---
-    # Set the full axis background to light gray.
+    # --- Corrected Background Shading Logic ---
     ax.set_facecolor("lightgray")
 
-    plot_start = times_local_naive[0]  # e.g., 2025-03-21 12:00:00
-    plot_end = plot_start + timedelta(hours=24)  # e.g., 2025-03-22 12:00:00
+    # Define plot start and end clearly
+    plot_start = times_local_naive[0]  # noon of selected day
+    plot_end = plot_start + timedelta(hours=24)  # next day noon
+    midnight = plot_start + timedelta(hours=12)  # midnight is always halfway
 
-    # Define "midnight" as the halfway point in your window.
-    midnight = plot_start + timedelta(hours=12)  # e.g., 2025-03-22 00:00:00
-
-    # Calculate sun events for the previous day and the current day.
-    previous_date = (datetime.strptime(local_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
-    sun_events_prev = calculate_sun_events(previous_date)
+    # Calculate sun events
     sun_events_curr = calculate_sun_events(local_date)
+    next_date_str = (datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+    sun_events_next = calculate_sun_events(next_date_str)
 
-    # Parse previous day's astronomical dusk.
-    astro_dusk_prev = None
-    astro_dusk_prev_str = sun_events_prev.get("astronomical_dusk")
-    if astro_dusk_prev_str:
-        try:
-            t = datetime.strptime(astro_dusk_prev_str, "%H:%M").time()
-            prev_date_dt = datetime.strptime(previous_date, "%Y-%m-%d")
-            astro_dusk_prev = local_tz.localize(datetime.combine(prev_date_dt, t))
-        except Exception as e:
-            print("Error parsing astro_dusk_prev:", e)
+    # Parse astronomical dusk (current day)
+    astro_dusk_curr_str = sun_events_curr.get("astronomical_dusk")
+    astro_dusk_curr = local_tz.localize(datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'),
+                                                         datetime.strptime(astro_dusk_curr_str, "%H:%M").time()))
 
-    # Parse current day's astronomical dawn.
-    astro_dawn_curr = None
-    astro_dawn_curr_str = sun_events_curr.get("astronomical_dawn")
-    if astro_dawn_curr_str:
-        try:
-            t = datetime.strptime(astro_dawn_curr_str, "%H:%M").time()
-            curr_date_dt = datetime.strptime(local_date, "%Y-%m-%d")
-            astro_dawn_curr = local_tz.localize(datetime.combine(curr_date_dt, t))
-        except Exception as e:
-            print("Error parsing astro_dawn_curr:", e)
+    # Parse astronomical dawn (next day)
+    astro_dawn_next_str = sun_events_next.get("astronomical_dawn")
+    astro_dawn_next = local_tz.localize(datetime.combine(datetime.strptime(next_date_str, '%Y-%m-%d'),
+                                                         datetime.strptime(astro_dawn_next_str, "%H:%M").time()))
 
-    # Convert these to naive datetimes (remove tzinfo) for comparison with times_local_naive.
-    astro_dusk_prev_naive = astro_dusk_prev.replace(tzinfo=None) if astro_dusk_prev is not None else None
-    astro_dawn_curr_naive = astro_dawn_curr.replace(tzinfo=None) if astro_dawn_curr is not None else None
+    # Convert to naive for plotting
+    astro_dusk_curr_naive = astro_dusk_curr.replace(tzinfo=None)
+    astro_dawn_next_naive = astro_dawn_next.replace(tzinfo=None)
 
-    # Overlay white spans for the observable (night) period.
-    # White from astro_dusk_prev (previous day) to midnight.
-    if astro_dusk_prev_naive and (plot_start < astro_dusk_prev_naive < midnight):
-        ax.axvspan(astro_dusk_prev_naive, midnight, facecolor="white", alpha=1.0)
-    # White from midnight to astro_dawn_curr (current day).
-    if astro_dawn_curr_naive and (midnight < astro_dawn_curr_naive < plot_end):
-        ax.axvspan(midnight, astro_dawn_curr_naive, facecolor="white", alpha=1.0)
+    # Shade night time (white) from astronomical dusk until astronomical dawn next day
+    if plot_start <= astro_dusk_curr_naive <= plot_end and plot_start <= astro_dawn_next_naive <= plot_end:
+        ax.axvspan(astro_dusk_curr_naive, astro_dawn_next_naive, facecolor="white", alpha=1.0)
 
-    # Draw sun event vertical lines.
-    for event, dt in event_datetimes_naive.items():
-        if 'transit' in event:
-            continue
+    # Draw sun event vertical lines correctly
+    event_datetimes = {
+        "Astronomical dusk": astro_dusk_curr_naive,
+        "Astronomical dawn": astro_dawn_next_naive,
+        "Sunset": local_tz.localize(datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'),
+                                                     datetime.strptime(sun_events_curr["sunset"],
+                                                                       '%H:%M').time())).replace(tzinfo=None),
+        "Sunrise": local_tz.localize(datetime.combine(datetime.strptime(next_date_str, '%Y-%m-%d'),
+                                                      datetime.strptime(sun_events_next["sunrise"],
+                                                                        '%H:%M').time())).replace(tzinfo=None),
+    }
+
+    for event, dt in event_datetimes.items():
         if plot_start <= dt <= plot_end:
             ax.axvline(x=dt, color='black', linestyle='-', linewidth=1, alpha=0.7)
             label_x = mdates.date2num(dt + timedelta(minutes=10))
             ymin, ymax = ax.get_ylim()
             label_y = ymin + 0.05 * (ymax - ymin)
-            label = event.replace('prev_', '').replace('curr_', '').replace('_', ' ').capitalize()
-            ax.text(label_x, label_y, label, rotation=90,
+            ax.text(label_x, label_y, event, rotation=90,
                     verticalalignment='bottom', fontsize=9, color='grey')
 
     lines, labels = ax.get_legend_handles_labels()
@@ -1578,8 +1569,6 @@ def get_date_info(object_name):
 
     local_date_str = f"{year}-{month:02d}-{day:02d}"
     sun_events = calculate_sun_events(local_date_str)
-
-    print(f"[get_date_info] Local time: {local_time} | Phase: {phase}")
 
     return jsonify({
         "date": local_date_str,
