@@ -8,26 +8,27 @@ transit times, and generate altitude curves for both celestial objects and the M
 It also integrates Flask-Login for user authentication.
 
 March 2025, Anton Gutscher
+
 """
 
 # =============================================================================
 # Imports
 # =============================================================================
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decouple import config
 import requests
 import secrets
 from dotenv import load_dotenv
 import calendar
 
-import numpy as np
 import pytz
 import ephem
 import yaml
 import shutil
 import subprocess
 import sys
+from modules.config_validation import validate_config
 
 import matplotlib
 matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
@@ -43,17 +44,37 @@ from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
 import astropy.units as u
+
+from modules.astro_calculations import (
+    calculate_transit_time,
+    get_utc_time_for_local_11pm,
+    is_decimal,
+    parse_ra_dec,
+    hms_to_hours,
+    dms_to_degrees,
+    ra_dec_to_alt_az,
+    calculate_max_observable_altitude,
+    calculate_altitude_curve,
+    get_common_time_arrays,
+    # ephem_to_local,
+    # calculate_sun_events,
+    calculate_sun_events_cached,
+    calculate_observable_duration_vectorized
+)
+
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-APP_VERSION = "2.4.7"
 
-SINGLE_USER_MODE = False  # Set to False for multi‑user mode
+APP_VERSION = "2.4.8"
+
+SINGLE_USER_MODE = True  # Set to False for multi‑user mode
 
 load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
-update_bp = Blueprint('update', __name__)
+config_cache = {}
+config_mtime = {}
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
@@ -148,7 +169,10 @@ def get_static_nightly_values(ra, dec, obj_name, local_date, fixed_time_utc_str,
     # Otherwise calculate and cache
     alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
     transit_time = calculate_transit_time(ra, lat, lon, tz_name)
-    observable_duration, max_altitude = calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name)
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    observable_duration, max_altitude = calculate_observable_duration_vectorized(
+        ra, dec, lat, lon, local_date, tz_name, altitude_threshold
+    )
 
     static_cache[key] = {
         "Altitude 11PM": alt_11pm,
@@ -170,38 +194,46 @@ def trigger_update():
         return jsonify({"status": "error", "message": str(e)})
 
 def load_user_config(username):
-    """Load user-specific configuration, creating one from the default if missing."""
+    global config_cache, config_mtime
     if SINGLE_USER_MODE:
         filename = "config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
+    filepath = os.path.join(os.path.dirname(__file__), filename)
 
-    # If user config is missing, create it from the default
-    if not os.path.exists(filename):
-        print(f"⚠️ Config file '{filename}' not found. Creating from default.")
-        try:
-            shutil.copy("config_default.yaml", filename)
-        except FileNotFoundError:
-            print("❌ ERROR: Default config file 'config_default.yaml' is missing!")
-            return {}  # Return empty config to prevent crashes
-        except Exception as e:
-            print(f"❌ ERROR: Failed to create user config: {e}")
-            return {}
+    try:
+        # Check if the file has changed or if it's not in the cache
+        if filepath not in config_cache or not os.path.exists(filepath) or (os.path.exists(filepath) and os.path.getmtime(filepath) > config_mtime.get(filepath, 0)):
+            if not os.path.exists(filepath):
+                print(f"⚠️ Config file '{filename}' not found. Creating from default.")
+                try:
+                    shutil.copy("config_default.yaml", filename)
+                except FileNotFoundError:
+                    print("❌ ERROR: Default config file 'config_default.yaml' is missing!")
+                    config_cache[filepath] = {}  # Return empty config to prevent crashes
+                    config_mtime[filepath] = 0
+                    return {}
+                except Exception as e:
+                    print(f"❌ ERROR: Failed to create user config: {e}")
+                    config_cache[filepath] = {}
+                    config_mtime[filepath] = 0
+                    return {}
 
-    # Load and return the YAML configuration
-    with open(filename, "r") as file:
-        config = yaml.safe_load(file) or {}
+            with open(filepath, "r") as file:
+                config_cache[filepath] = yaml.safe_load(file) or {}
+            if os.path.exists(filepath):
+                config_mtime[filepath] = os.path.getmtime(filepath)
+            else:
+                config_mtime[filepath] = 0  # Or some default value
 
-    # Ensure imaging_criteria exists with all defaults
-    config.setdefault("imaging_criteria", {})
-    config["imaging_criteria"].setdefault("min_observable_minutes", 60)
-    config["imaging_criteria"].setdefault("min_max_altitude", 30)
-    config["imaging_criteria"].setdefault("max_moon_illumination", 20)
-    config["imaging_criteria"].setdefault("min_angular_distance", 30)
-    config["imaging_criteria"].setdefault("search_horizon_months", 6)
+            print(f"[LOAD CONFIG] Loading (and caching) {filename}")
+        else:
+            print(f"[LOAD CONFIG] Loading from cache: {filename}")
+        return config_cache[filepath]
 
-    print(f"[LOAD CONFIG] Loading {filename}")
-    return config
+    except Exception as e:
+        print(f"❌ ERROR: Failed to load user config: {e}")
+        return {}  # Return empty config to prevent crashes
 
 
 def save_user_config(username, config_data):
@@ -282,15 +314,6 @@ def load_config_for_request():
 if not os.path.exists('static'):
     os.makedirs('static')
 
-def get_common_time_arrays(tz_name, local_date):
-    local_tz = pytz.timezone(tz_name)
-    base_date = datetime.strptime(local_date, '%Y-%m-%d')
-    # Corrected to start from noon of the selected local date itself
-    start_time = local_tz.localize(datetime.combine(base_date, datetime.min.time()).replace(hour=12))
-    times_local = [start_time + timedelta(minutes=10 * i) for i in range(24 * 6)]
-    times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times_local],
-                     format='isot', scale='utc')
-    return times_local, times_utc
 
 @app.route('/favicon.ico')
 def favicon():
@@ -315,8 +338,6 @@ def download_config():
         return "Configuration file not found.", 404
 
 
-
-
 @app.route('/import_config', methods=['POST'])
 @login_required
 def import_config():
@@ -330,27 +351,18 @@ def import_config():
         # Parse YAML safely
         new_config = yaml.safe_load(contents)
 
-        # Validation
-        if not isinstance(new_config, dict):
-            return "Invalid YAML structure.", 400
-        if 'locations' not in new_config or not isinstance(new_config['locations'], dict) or not new_config['locations']:
-            return "Missing or empty 'locations' key.", 400
-        if 'objects' not in new_config or not isinstance(new_config['objects'], list):
-            return "Missing or invalid 'objects' key.", 400
+        # Validate using Cerberus via the helper function
+        valid, errors = validate_config(new_config)
+        if not valid:
+            error_message = f"Configuration validation failed: {errors}"
+            print("[IMPORT ERROR]", error_message)
+            return error_message, 400
 
-        for loc_name, loc_data in new_config['locations'].items():
-            if not all(k in loc_data for k in ['lat', 'lon', 'timezone']):
-                return f"Location '{loc_name}' is missing required fields.", 400
-
-        for obj in new_config['objects']:
-            if not isinstance(obj, dict) or 'Object' not in obj:
-                return f"One of the objects is malformed or missing 'Object' field.", 400
-
-        # Determine correct CONFIG_PATH for this user
+        # Determine the correct config file for this user
         username = current_user.username
         config_path = os.path.join(os.path.dirname(__file__), f"config_{username}.yaml")
 
-        # Backup current config to backups/ folder
+        # Backup current config if it exists
         if os.path.exists(config_path):
             backup_dir = os.path.join(os.path.dirname(config_path), "backups")
             os.makedirs(backup_dir, exist_ok=True)
@@ -359,7 +371,7 @@ def import_config():
             shutil.copy(config_path, backup_path)
             print(f"[IMPORT] Backed up current config to {backup_path}")
 
-        # Save new config
+        # Save new config if valid
         with open(config_path, 'w') as f:
             yaml.dump(new_config, f, default_flow_style=False)
 
@@ -370,64 +382,9 @@ def import_config():
         print(f"[IMPORT ERROR] {e}")
         return redirect(url_for('config_form', error=f"Import failed: {str(e)}"))
 
-
-
 # =============================================================================
 # Astronomical Calculations
 # =============================================================================
-
-def calculate_transit_time(ra_hours, lat, lon, tz_name):
-    #location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
-    local_tz = pytz.timezone(tz_name)
-    now_local = datetime.now(local_tz)
-    date_str = now_local.strftime('%Y-%m-%d')
-    midnight_local = local_tz.localize(datetime.strptime(date_str, '%Y-%m-%d'))
-    midnight_utc = midnight_local.astimezone(pytz.utc)
-    midnight_time = Time(midnight_utc)
-    lst_midnight = midnight_time.sidereal_time('mean', longitude=lon * u.deg).hour
-    delta_hours = (ra_hours - lst_midnight) % 24
-    transit_utc = midnight_time + delta_hours * u.hour
-    transit_local = transit_utc.to_datetime(timezone=pytz.utc).astimezone(local_tz)
-    return transit_local.strftime('%H:%M')
-
-def get_utc_time_for_local_11pm():
-    local_tz = pytz.timezone(g.tz_name)
-    now_local = datetime.now(local_tz)
-    eleven_pm_local = now_local.replace(hour=23, minute=0, second=0, microsecond=0)
-    if now_local > eleven_pm_local:
-        eleven_pm_local += timedelta(days=1)
-    utc_time = eleven_pm_local.astimezone(pytz.utc)
-    #print(f"[DEBUG] 11 PM Local Time ({g.tz_name}): {eleven_pm_local}, Converted to UTC: {utc_time}")
-    return utc_time.strftime('%Y-%m-%dT%H:%M:%S')
-
-def is_decimal(value):
-    return isinstance(value, (np.float64, float)) or len(str(value).split()) == 1
-
-def parse_ra_dec(value):
-    if is_decimal(value):
-        return float(value)
-    parts = value.split()
-    if len(parts) == 2:
-        d, m = map(float, parts)
-        s = 0.0
-    elif len(parts) == 3:
-        d, m, s = map(float, parts)
-    else:
-        raise ValueError(f"Invalid RA/DEC format: {value}")
-    return d, m, s
-
-def hms_to_hours(hms):
-    if is_decimal(hms):
-        return float(hms) / 15
-    h, m, s = parse_ra_dec(hms)
-    return h + (m / 60) + (s / 3600)
-
-def dms_to_degrees(dms):
-    if is_decimal(dms):
-        return float(dms)
-    d, m, s = parse_ra_dec(dms)
-    sign = -1 if d < 0 else 1
-    return sign * (abs(d) + (m / 60) + (s / 3600))
 
 
 def get_ra_dec(object_name):
@@ -510,64 +467,6 @@ def get_ra_dec(object_name):
             "Project": error_message
         }
 
-def ra_dec_to_alt_az(ra, dec, lat, lon, time_utc):
-    if "T" not in time_utc:
-        time_utc = time_utc.replace(" ", "T")
-    time_utc = time_utc.split("+")[0]
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
-    observation_time = Time(time_utc, format='isot', scale='utc')
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_frame = AltAz(obstime=observation_time, location=location)
-    altaz = sky_coord.transform_to(altaz_frame)
-    return altaz.alt.deg, altaz.az.deg
-
-
-def calculate_max_observable_altitude(ra, dec, lat, lon, local_date, tz_name, altitude_threshold):
-    local_tz = pytz.timezone(tz_name)
-    sun_events = calculate_sun_events(local_date)
-
-    dusk_time = local_tz.localize(datetime.combine(
-        datetime.strptime(local_date, '%Y-%m-%d'),
-        datetime.strptime(sun_events["astronomical_dusk"], '%H:%M').time()
-    ))
-
-    dawn_date = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
-    dawn_time = local_tz.localize(datetime.combine(
-        dawn_date,
-        datetime.strptime(sun_events["astronomical_dawn"], '%H:%M').time()
-    ))
-
-    sample_interval = timedelta(minutes=10)
-    num_samples = int((dawn_time - dusk_time).total_seconds() / sample_interval.total_seconds()) + 1
-    times = [dusk_time + i * sample_interval for i in range(num_samples)]
-    times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times],
-                     format='isot', scale='utc')
-
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-    altaz = sky_coord.transform_to(altaz_frame)
-    altitudes = altaz.alt.deg
-
-    max_altitude = np.max(altitudes)
-    max_index = np.argmax(altitudes)
-    max_time = times[max_index]
-
-    return max_altitude, max_time
-
-def calculate_altitude_curve(ra, dec, lat, lon, local_date, tz_name):
-    if hasattr(g, 'times_local') and hasattr(g, 'times_utc'):
-        times_local = g.times_local
-        times_utc = g.times_utc
-    else:
-        times_local, times_utc = get_common_time_arrays(tz_name, local_date)
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-    altaz = sky_coord.transform_to(altaz_frame)
-    altitudes = altaz.alt.deg
-    return times_local, altitudes
-
 
 def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz_name, selected_location):
     times_local, times_utc = get_common_time_arrays(tz_name, local_date)
@@ -597,9 +496,9 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
         moon_azimuths.append(moon_altaz.az.deg)
 
     # Get sun events.
-    sun_events_curr = calculate_sun_events(local_date)
+    sun_events_curr = calculate_sun_events_cached(local_date,g.tz_name, g.lat, g.lon)
     previous_date = (datetime.strptime(local_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
-    sun_events_prev = calculate_sun_events(previous_date)
+    sun_events_prev = calculate_sun_events_cached(previous_date,g.tz_name, g.lat, g.lon)
 
     # Prepare sun event datetimes.
     event_datetimes = {}
@@ -675,69 +574,124 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     plot_start = times_local_naive[0]
     plot_end = plot_start + timedelta(hours=24)
 
-    # --- Corrected Background Shading Logic ---
-    ax.set_facecolor("lightgray")
+# --- Corrected Background Shading and Event Line Logic ---
+    ax.set_facecolor("lightgray") # Set default background
 
-    # Define plot start and end clearly
-    plot_start = times_local_naive[0]  # noon of selected day
-    plot_end = plot_start + timedelta(hours=24)  # next day noon
-    midnight = plot_start + timedelta(hours=12)  # midnight is always halfway
+    # Define plot start and end clearly (assuming times_local_naive covers the desired 24h)
+    plot_start = times_local_naive[0]
+    plot_end = times_local_naive[-1] # Use the actual end time from your array
 
-    # Calculate sun events
-    sun_events_curr = calculate_sun_events(local_date)
-    next_date_str = (datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
-    sun_events_next = calculate_sun_events(next_date_str)
+    # Calculate sun events for current and next day
+    sun_events_curr = calculate_sun_events_cached(local_date, g.tz_name, g.lat, g.lon)
+    next_date_obj = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
+    next_date_str = next_date_obj.strftime('%Y-%m-%d')
+    sun_events_next = calculate_sun_events_cached(next_date_str, g.tz_name, g.lat, g.lon)
 
-    # Parse astronomical dusk (current day)
+    # --- Prepare Event Datetimes with Correct Date Assignment ---
+    event_datetimes = {}
+    curr_date_obj = datetime.strptime(local_date, '%Y-%m-%d')
+
+    # Helper function to parse and localize time strings safely
+    def get_event_datetime(base_date_obj, event_time_str, tz):
+        if not event_time_str or ':' not in event_time_str:
+            return None # Handle missing or invalid time
+        try:
+            event_time = datetime.strptime(event_time_str, "%H:%M").time()
+            dt_naive = datetime.combine(base_date_obj, event_time)
+            return tz.localize(dt_naive)
+        except ValueError:
+            return None # Handle parsing errors
+
+    # Get key times (handle potential missing events)
     astro_dusk_curr_str = sun_events_curr.get("astronomical_dusk")
-    astro_dusk_curr = local_tz.localize(datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'),
-                                                         datetime.strptime(astro_dusk_curr_str, "%H:%M").time()))
-
-    # Parse astronomical dawn (next day)
     astro_dawn_next_str = sun_events_next.get("astronomical_dawn")
-    astro_dawn_next = local_tz.localize(datetime.combine(datetime.strptime(next_date_str, '%Y-%m-%d'),
-                                                         datetime.strptime(astro_dawn_next_str, "%H:%M").time()))
+    sunrise_curr_str = sun_events_curr.get("sunrise") # Needed for dusk check
+    sunset_curr_str = sun_events_curr.get("sunset")
+    sunrise_next_str = sun_events_next.get("sunrise") # Use next day's sunrise for line
 
-    # Convert to naive for plotting
-    astro_dusk_curr_naive = astro_dusk_curr.replace(tzinfo=None)
-    astro_dawn_next_naive = astro_dawn_next.replace(tzinfo=None)
+    # Determine Astronomical Dusk Datetime (Correcting for post-midnight)
+    astro_dusk_naive = None
+    if astro_dusk_curr_str and ':' in astro_dusk_curr_str:
+        try:
+            astro_dusk_time = datetime.strptime(astro_dusk_curr_str, "%H:%M").time()
+            # Use sunrise as a reference: if dusk is before sunrise, it's on the next calendar day
+            sunrise_curr_time = datetime.strptime(sunrise_curr_str, "%H:%M").time() if sunrise_curr_str and ':' in sunrise_curr_str else datetime.time(6, 0) # Default if sunrise missing
 
-    # Shade night time (white) from astronomical dusk until astronomical dawn next day
-    if plot_start <= astro_dusk_curr_naive <= plot_end and plot_start <= astro_dawn_next_naive <= plot_end:
-        ax.axvspan(astro_dusk_curr_naive, astro_dawn_next_naive, facecolor="white", alpha=1.0)
+            dusk_date_base = next_date_obj if astro_dusk_time < sunrise_curr_time else curr_date_obj
 
-    # Draw sun event vertical lines correctly
-    event_datetimes = {
-        "Astronomical dusk": astro_dusk_curr_naive,
-        "Astronomical dawn": astro_dawn_next_naive,
-        "Sunset": local_tz.localize(datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'),
-                                                     datetime.strptime(sun_events_curr["sunset"],
-                                                                       '%H:%M').time())).replace(tzinfo=None),
-        "Sunrise": local_tz.localize(datetime.combine(datetime.strptime(next_date_str, '%Y-%m-%d'),
-                                                      datetime.strptime(sun_events_next["sunrise"],
-                                                                        '%H:%M').time())).replace(tzinfo=None),
-    }
+            astro_dusk_dt_naive = datetime.combine(dusk_date_base, astro_dusk_time)
+            astro_dusk_localized = local_tz.localize(astro_dusk_dt_naive)
+            astro_dusk_naive = astro_dusk_localized.replace(tzinfo=None)
+            event_datetimes["Astronomical dusk"] = astro_dusk_naive
+        except ValueError:
+            print(f"Warning: Could not parse astronomical dusk time: {astro_dusk_curr_str}")
+            astro_dusk_naive = None # Ensure it's None if parsing fails
 
-    for event, dt in event_datetimes.items():
-        if plot_start <= dt <= plot_end:
-            ax.axvline(x=dt, color='black', linestyle='-', linewidth=1, alpha=0.7)
-            label_x = mdates.date2num(dt + timedelta(minutes=10))
-            ymin, ymax = ax.get_ylim()
-            label_y = ymin + 0.05 * (ymax - ymin)
-            ax.text(label_x, label_y, event, rotation=90,
-                    verticalalignment='bottom', fontsize=9, color='grey')
+    # Determine Astronomical Dawn Datetime (Next Day)
+    astro_dawn_next_naive = None
+    astro_dawn_next_localized = get_event_datetime(next_date_obj, astro_dawn_next_str, local_tz)
+    if astro_dawn_next_localized:
+        astro_dawn_next_naive = astro_dawn_next_localized.replace(tzinfo=None)
+        event_datetimes["Astronomical dawn"] = astro_dawn_next_naive
+
+    # --- Shade Night Time ---
+    # Shade only if both dusk and dawn times are valid and dusk < dawn
+    if astro_dusk_naive and astro_dawn_next_naive and astro_dusk_naive < astro_dawn_next_naive:
+         # Clip shading to plot boundaries
+         shade_start = max(plot_start, astro_dusk_naive)
+         shade_end = min(plot_end, astro_dawn_next_naive)
+         # Only shade if the clipped interval is valid
+         if shade_start < shade_end:
+              ax.axvspan(shade_start, shade_end, facecolor="white", alpha=1.0, zorder=0) # zorder=0 to draw below plot lines
+
+
+    # --- Add other event times for vertical lines ---
+    sunset_curr_localized = get_event_datetime(curr_date_obj, sunset_curr_str, local_tz)
+    if sunset_curr_localized:
+        event_datetimes["Sunset"] = sunset_curr_localized.replace(tzinfo=None)
+
+    sunrise_next_localized = get_event_datetime(next_date_obj, sunrise_next_str, local_tz)
+    if sunrise_next_localized:
+         event_datetimes["Sunrise"] = sunrise_next_localized.replace(tzinfo=None)
+
+    # --- Draw Vertical Lines ---
+    for event, dt_naive in event_datetimes.items():
+        if dt_naive and plot_start <= dt_naive <= plot_end: # Check dt_naive exists
+            ax.axvline(x=dt_naive, color='black', linestyle='-', linewidth=1, alpha=0.7, zorder=1) # zorder=1 to draw above shading
+            try:
+                # Position text slightly after the line, ensuring it stays within bounds
+                text_time = dt_naive + timedelta(minutes=5)
+                if text_time > plot_end: # Prevent text going off the right edge
+                    text_time = dt_naive - timedelta(minutes=5)
+                    ha = 'right'
+                else:
+                    ha = 'left'
+
+                label_x = mdates.date2num(text_time)
+                ymin, ymax = ax.get_ylim()
+                label_y = ymin + 0.05 * (ymax - ymin) # Position near bottom
+                ax.text(label_x, label_y, event, rotation=90,
+                        verticalalignment='bottom', horizontalalignment=ha,
+                        fontsize=9, color='dimgray', zorder=2) # zorder=2 to draw above lines
+            except Exception as e:
+                 print(f"Error plotting text for event {event}: {e}") # Catch potential errors during plotting
+
 
     lines, labels = ax.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax.legend(lines + lines2, labels + labels2, loc='upper left', bbox_to_anchor=(1.05, 1))
-    plt.subplots_adjust(right=0.8)
-    ax.grid(True)
+
+    # Changed bbox_to_anchor x-value from 1.03 to 1.05
+    ax.legend(lines + lines2, labels + labels2, loc='upper left', bbox_to_anchor=(1.05, 1.0), borderaxespad=0.)
+
+    ax.grid(True, linestyle=':', color='dimgray', alpha=1.0)
+
     plt.tight_layout()
 
     filename = f"static/{sanitize_object_name(object_name).replace(' ', '_')}_{selected_location.replace(' ', '_')}_altitude_plot.png"
     plt.savefig(filename)
-    plt.close()
+    plt.close(fig)
     return filename
+
 
 def plot_yearly_altitude_curve(
         object_name, alt_name, ra, dec, lat, lon, tz_name, selected_location, year=2025
@@ -883,48 +837,6 @@ def plot_monthly_altitude_curve(
 
     return filepath
 
-def ephem_to_local(ephem_date, tz_name):
-    utc_dt = ephem.Date(ephem_date).datetime()
-    local_tz = pytz.timezone(tz_name)
-    local_dt = pytz.utc.localize(utc_dt).astimezone(local_tz)
-    return local_dt
-
-def calculate_sun_events(date_str):
-    local_tz = pytz.timezone(g.tz_name)
-    local_date = datetime.strptime(date_str, "%Y-%m-%d")
-    local_midnight = local_tz.localize(datetime.combine(local_date, datetime.min.time()))
-    midnight_utc = local_midnight.astimezone(pytz.utc)
-    sun = ephem.Sun() # noinspection PyUnresolvedReferences
-    obs = ephem.Observer()
-    obs.lat = str(g.lat)
-    obs.lon = str(g.lon)
-    obs.date = midnight_utc
-    obs.horizon = '-18'
-    astro_dawn = obs.next_rising(sun, use_center=True)
-    obs.horizon = '-0.833'
-    sunrise = obs.next_rising(sun, use_center=True)
-    obs.horizon = '0'
-    obs.date = midnight_utc
-    transit = obs.next_transit(sun)
-    noon_local = local_tz.localize(datetime.combine(local_date, datetime.strptime("12:00", "%H:%M").time()))
-    noon_utc = noon_local.astimezone(pytz.utc)
-    obs.date = noon_utc
-    obs.horizon = '-0.833'
-    sunset = obs.next_setting(sun, use_center=True)
-    obs.horizon = '-18'
-    astro_dusk = obs.next_setting(sun, use_center=True)
-    astro_dawn_local = ephem_to_local(astro_dawn, g.tz_name).strftime('%H:%M')
-    sunrise_local    = ephem_to_local(sunrise, g.tz_name).strftime('%H:%M')
-    transit_local    = ephem_to_local(transit, g.tz_name).strftime('%H:%M')
-    sunset_local     = ephem_to_local(sunset, g.tz_name).strftime('%H:%M')
-    astro_dusk_local = ephem_to_local(astro_dusk, g.tz_name).strftime('%H:%M')
-    return {
-        "astronomical_dawn": astro_dawn_local,
-        "sunrise": sunrise_local,
-        "transit": transit_local,
-        "sunset": sunset_local,
-        "astronomical_dusk": astro_dusk_local
-    }
 
 @app.route('/set_location', methods=['POST'])
 @login_required
@@ -1001,6 +913,8 @@ def confirm_object():
     return jsonify({"status": "success"})
 
 
+from datetime import datetime, timedelta
+
 @app.route('/data')
 @login_required
 def get_data():
@@ -1008,7 +922,7 @@ def get_data():
     current_datetime_local = datetime.now(local_tz)
     local_date = current_datetime_local.strftime('%Y-%m-%d')
     current_time_utc = current_datetime_local.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
-    fixed_time_utc_str = get_utc_time_for_local_11pm()
+    fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
 
     object_data = []
@@ -1049,8 +963,9 @@ def get_data():
             else:
                 alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
                 transit_time = calculate_transit_time(ra, g.lat, g.lon, g.tz_name)
+                altitude_threshold = g.user_config.get("altitude_threshold", 20)
                 obs_duration, max_alt = calculate_observable_duration_vectorized(
-                    ra, dec, g.lat, g.lon, local_date, g.tz_name
+                    ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
                 )
                 cached = {
                     'Altitude 11PM': alt_11pm,
@@ -1113,7 +1028,7 @@ def get_data():
         key=lambda x: x['Altitude Current'] if isinstance(x['Altitude Current'], (int, float)) else -1,
         reverse=True
     )
-    return jsonify({
+    response = jsonify({
         "date": local_date,
         "time": current_datetime_local.strftime('%H:%M:%S'),
         "phase": round(ephem.Moon(current_datetime_local).phase, 0),
@@ -1121,11 +1036,19 @@ def get_data():
         "objects": sorted_objects
     })
 
+    # Add caching headers
+    cache_timeout = 60  # Cache for 60 seconds (adjust as needed)
+    response.headers['Cache-Control'] = f'public, max-age={cache_timeout}'
+    response.headers['Expires'] = (datetime.now(timezone.utc) + timedelta(seconds=cache_timeout)).strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+    return response
+
+
 @app.route('/sun_events')
 @login_required
 def sun_events():
     local_date = datetime.now(pytz.timezone(g.tz_name)).strftime('%Y-%m-%d')
-    events = calculate_sun_events(local_date)
+    events = calculate_sun_events_cached(local_date,g.tz_name, g.lat, g.lon)
     events["date"] = local_date
     return jsonify(events)
 
@@ -1482,7 +1405,7 @@ def graph_dashboard(object_name):
     phase = round(ephem.Moon(now_local).phase, 0)
 
     # Sun events
-    sun_events = calculate_sun_events(selected_date_str)
+    sun_events = calculate_sun_events_cached(selected_date_str,g.tz_name, g.lat, g.lon)
 
     project = get_ra_dec(object_name).get("Project", "none")
     timestamp = now.timestamp()
@@ -1568,7 +1491,7 @@ def get_date_info(object_name):
     phase = round(ephem.Moon(local_time).phase)
 
     local_date_str = f"{year}-{month:02d}-{day:02d}"
-    sun_events = calculate_sun_events(local_date_str)
+    sun_events = calculate_sun_events_cached(local_date_str,g.tz_name, g.lat, g.lon)
 
     return jsonify({
         "date": local_date_str,
@@ -1577,61 +1500,11 @@ def get_date_info(object_name):
         "astronomical_dusk": sun_events.get("astronomical_dusk", "N/A")
     })
 
-def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name):
-    local_tz = pytz.timezone(tz_name)
-    date_obj = datetime.strptime(local_date, "%Y-%m-%d")
-
-    # Get dusk and dawn for the current local_date
-    sun_events = calculate_sun_events(local_date)
-
-    dusk_str = sun_events.get("astronomical_dusk")
-    dawn_str = sun_events.get("astronomical_dawn")
-
-    if not dusk_str or not dawn_str:
-        print(f"[WARN] Missing sun events for {local_date}")
-        return timedelta(0), 0
-
-    dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
-    dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
-
-    # Both dusk and dawn belong to the same local_date (regardless of whether dusk is after midnight)
-    dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
-    dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
-
-    # If dawn is earlier than dusk, it must be after midnight (i.e., next day)
-    if dawn_dt <= dusk_dt:
-        dawn_dt += timedelta(days=1)
-
-    # Time samples between dusk and dawn
-    sample_interval = timedelta(minutes=10)
-    times = []
-    current = dusk_dt
-    while current <= dawn_dt:
-        times.append(current)
-        current += sample_interval
-
-    if not times:
-        return timedelta(0), 0
-
-    times_utc = Time([t.astimezone(pytz.utc) for t in times], scale='utc')
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-
-    frame = AltAz(obstime=times_utc, location=location)
-    altaz = sky_coord.transform_to(frame)
-    altitudes = altaz.alt.deg
-
-    threshold = g.altitude_threshold
-    mask = np.array(altitudes) > threshold
-    observable_minutes = int(np.sum(mask) * 10)
-    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
-
-    return timedelta(minutes=observable_minutes), max_altitude
 
 @app.route('/get_imaging_opportunities/<object_name>')
 @login_required
 def get_imaging_opportunities(object_name):
-    # Load object data
+    # Load object data from config or SIMBAD.
     data = get_ra_dec(object_name)
     if not data or data.get("RA (hours)") is None or data.get("DEC (degrees)") is None:
         return jsonify({"status": "error", "message": "Object has no valid RA/DEC."}), 400
@@ -1640,6 +1513,7 @@ def get_imaging_opportunities(object_name):
     dec = data["DEC (degrees)"]
     alt_name = data.get("Common Name", object_name)
 
+    # Get imaging criteria.
     criteria = get_imaging_criteria()
     min_obs = criteria["min_observable_minutes"]
     min_alt = criteria["min_max_altitude"]
@@ -1647,86 +1521,88 @@ def get_imaging_opportunities(object_name):
     min_sep = criteria["min_angular_distance"]
     months = criteria.get("search_horizon_months", 6)
 
-    # Search range
     local_tz = pytz.timezone(g.tz_name)
     today = datetime.now(local_tz).date()
     end_date = today + timedelta(days=months * 30)
     dates = [today + timedelta(days=i) for i in range((end_date - today).days)]
 
-    results = []
+    # Local cache for sun events so each date is calculated only once.
+    sun_events_cache = {}
+
+    final_results = []
 
     for d in dates:
         date_str = d.strftime('%Y-%m-%d')
+        # Check cache first. If not there, compute and store.
+        if date_str not in sun_events_cache:
+            sun_events_cache[date_str] = calculate_sun_events_cached(date_str, g.tz_name, g.lat, g.lon)
+        sun_events = sun_events_cache[date_str]
+
+        # Use the sun events to get, for example, the dusk time.
+        dusk = sun_events.get("astronomical_dusk", "20:00")
+
+        # Calculate observable duration and maximum altitude.
+        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        obs_duration, max_altitude = calculate_observable_duration_vectorized(
+            ra, dec, g.lat, g.lon, date_str, g.tz_name, altitude_threshold
+        )
+        # Apply thresholds.
+        if obs_duration.total_seconds() / 60 < min_obs:
+            continue
+        if max_altitude < min_alt:
+            continue
+
+        # Get the moon phase.
+        local_time = local_tz.localize(datetime.combine(d, datetime.now().time()))
+        moon_phase = ephem.Moon(local_time.astimezone(pytz.utc)).phase
+        if moon_phase > max_moon:
+            continue
+
+        # Compute angular separation at dusk.
         try:
-            obs_duration, max_altitude = calculate_observable_duration_vectorized(
-                ra, dec, g.lat, g.lon, date_str, g.tz_name
-            )
+            dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
+        except Exception:
+            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
+        dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
+        dusk_utc = dusk_dt.astimezone(pytz.utc)
 
-            if obs_duration.total_seconds() / 60 < min_obs:
-                continue
-            if max_altitude < min_alt:
-                continue
+        location_obj = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+        frame = AltAz(obstime=Time(dusk_utc), location=location_obj)
+        obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        moon_coord = get_body('moon', Time(dusk_utc), location=location_obj)
+        obj_altaz = obj_coord.transform_to(frame)
+        moon_altaz = moon_coord.transform_to(frame)
+        separation = obj_altaz.separation(moon_altaz).deg
+        if separation < min_sep:
+            continue
 
-            # Get moon phase
-            local_tz = pytz.timezone(g.tz_name)
-            local_time = local_tz.localize(datetime.combine(d, datetime.now().time()))
-            moon_phase = ephem.Moon(local_time.astimezone(pytz.utc)).phase
-            if moon_phase > max_moon:
-                continue
+        # Calculate individual scores.
+        MIN_ALTITUDE = 20  # degrees threshold for a "good" altitude
+        score_alt = 0 if max_altitude < MIN_ALTITUDE else min((max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE), 1)
+        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)  # maximum 12 hours
+        score_moon_illum = 1 - min(moon_phase / 100, 1)
+        score_moon_sep = min(separation / 180, 1)
+        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * score_moon_sep
 
-            # Compute angular distance to moon
-            location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-            dusk = calculate_sun_events(date_str).get("astronomical_dusk", "20:00")
-            dusk_dt = local_tz.localize(datetime.combine(d, datetime.strptime(dusk, '%H:%M').time()))
-            dusk_utc = dusk_dt.astimezone(pytz.utc)
+        # Composite score using equal weights (adjust weights as desired).
+        composite_score = 100 * (
+                0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic
+        )
+        # Map composite score to stars (1 to 5 stars).
+        stars = int(round((composite_score / 100) * 4)) + 1
+        star_string = "★" * stars + "☆" * (5 - stars)
 
-            frame = AltAz(obstime=Time(dusk_utc), location=location)
-            obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-            moon_coord = get_body('moon', Time(dusk_utc), location=location)
+        final_results.append({
+            "date": date_str,
+            "obs_minutes": int(obs_duration.total_seconds() / 60),
+            "max_alt": round(max_altitude, 1),
+            "moon_illumination": round(moon_phase, 1),
+            "moon_separation": round(separation, 1),
+            "rating": star_string
+        })
 
-            obj_altaz = obj_coord.transform_to(frame)
-            moon_altaz = moon_coord.transform_to(frame)
+    return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
 
-            # Angular distance
-            separation = obj_altaz.separation(moon_altaz).deg
-            if separation < min_sep:
-                continue
-
-            # Normalize criteria into 0–1 range
-            MIN_ALTITUDE = 20  # degrees
-
-            if max_altitude < MIN_ALTITUDE:
-                score_alt = 0
-            else:
-                score_alt = (max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE)
-                score_alt = min(score_alt, 1)  # just in case
-
-            #score_alt = min(max_altitude / 90, 1)
-            score_duration = min(obs_duration.total_seconds() / 3600 / 12, 1)  # max 12h
-            score_moon_illum = 1 - min(moon_phase / 100, 1)
-            score_moon_sep = min(separation / 180, 1)
-
-            # Composite score (simple equal weights)
-            composite_score = 100 * (0.30 * score_alt + 0.20 * score_duration + 0.4 * score_moon_illum + 0.1 * score_moon_sep)
-
-            # Map to stars (1 to 5 stars)
-            stars = int(round((composite_score / 100) * 4)) + 1
-            star_string = "★" * stars + "☆" * (5 - stars)
-
-            # Passed all checks
-            results.append({
-                "date": date_str,
-                "obs_minutes": int(obs_duration.total_seconds() / 60),
-                "max_alt": round(max_altitude, 1),
-                "moon_illumination": round(moon_phase, 1),
-                "moon_separation": round(separation, 1),
-                "rating": star_string
-            })
-
-        except Exception as e:
-            print(f"[WARN] Skipping date {date_str}: {e}")
-
-    return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": results})
 # =============================================================================
 # Main Entry Point
 # =============================================================================
