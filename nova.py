@@ -66,7 +66,7 @@ from modules.astro_calculations import (
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.4.8"
+APP_VERSION = "2.4.9"
 
 SINGLE_USER_MODE = True  # Set to False for multi‑user mode
 
