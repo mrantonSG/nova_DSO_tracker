@@ -1,4 +1,4 @@
-# Nova DSO Altitude Tracker 2.4 - Quick Guide
+# Nova DSO Altitude Tracker 2.4.8 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
