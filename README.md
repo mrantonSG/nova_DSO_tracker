@@ -1,4 +1,4 @@
-# Nova DSO Altitude Tracker 2.4.8 - Quick Guide
+# Nova DSO Altitude Tracker 2.4 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -175,5 +175,10 @@ In case you want to have access from various different devices (computers, iPad 
 ### Upgrading from an older version:
 First step: copy your config yaml to a safe place. You can now replace the files in your nova directory or you do a clean install (recommended)
 For the clean install you just follow the setup guide. Once all steps are done, copy your config yaml back into the new folder and start the app.
+
+### License
+Nova DSO Tracker is licensed under the Apache 2.0 License **with the Commons Clause**.
+Free for personal, educational, and non-commercial use only. Commercial use requires explicit permission.
+See [LICENSE](LICENSE) for full details.
 
 clear skies!
