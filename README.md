@@ -1,4 +1,4 @@
-# Nova DSO Altitude Tracker 2.4 - Quick Guide
+# Nova DSO Altitude Tracker 2.5 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -167,14 +167,15 @@ kill <the number you've found>
 ## Additional Notes
 
 ### Multi‑user vs. Single‑user Mode:
-The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). However, this functionality is still experimental.
+The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). While still in an early stage, it now possible to also have a guest access in multiuser mode.
+That means that the app would automatically start in guest mode and not with the login screen. This mode is quite restricted, but allows to get a rough impression of the app.
 
 ### Installation on a server:
-In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. A Raspberry pi5 works fine, you just need to accept short delays when switching locations or clicking on objects, but overall the performance is sufficient. In order to still being able to send objects to Stellarium, please read "[stellarium_access_from_server](stellarium_access_from_server.md)".
+In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. The software is now optimized to run on a Raspberry Pi5 with good performance. In order to still being able to send objects to Stellarium, please read "[stellarium_access_from_server](stellarium_access_from_server.md)".
 
 ### Upgrading from an older version:
-First step: copy your config yaml to a safe place. You can now replace the files in your nova directory or you do a clean install (recommended)
-For the clean install you just follow the setup guide. Once all steps are done, copy your config yaml back into the new folder and start the app.
+First step: copy your config yaml to a safe place. You can use the "download configuration" function. After that, replace the files in your nova directory or you do a clean install (recommended)
+For the clean install you just follow the setup guide. Once all steps are done, copy your config yaml back into the new folder ("upload config") and start the app.
 
 ### License
 Nova DSO Tracker is licensed under the Apache 2.0 License **with the Commons Clause**.
