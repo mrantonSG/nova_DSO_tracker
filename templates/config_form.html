@@ -1,13 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+{% extends "base.html" %}
+
+{% block title %}Nova – Configuration{% endblock %}
+
+{% block head_extra %}
   <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
   <meta charset="UTF-8">
   <title>Configuration Form</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
       padding: 20px;
+      margin: 0;
     }
     fieldset {
       margin-top: 20px;
@@ -242,11 +244,13 @@
   .toast-info { background-color: #2196F3; }      /* blue */
 
   </style>
+{% endblock %}
 </head>
 <body>
+{% block body %}
   <div class="header-container">
     <h1>Nova</h1>
-    <h3>DSO Altitude Tracker V{{ version }}</h3>
+    <h3>DSO Tracker V{{ version }}</h3>
   </div>
   <div class="info-container" style="justify-content: space-between; width: 100%;">
     <div class="left-group">
@@ -619,5 +623,6 @@
       });
     });
   </script>
+{% endblock %}
 </body>
 </html>

@@ -1,14 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nova DSO Altitude Tracker</title>
+{% extends "base.html" %}
+
+{% block title %}Graph – Nova DSO Tracker{% endblock %}
+
+{% block head_extra %}
   <style>
     /* Basic styles, merged from index and additional styling */
     body {
-      font-family: Arial, sans-serif;
       padding: 20px;
       margin: 0;
     }
@@ -472,12 +469,14 @@
     });
 
   </script>
+{% endblock %}
 </head>
 <body>
+{% block body %}
   <!-- Top navigation -->
   <div class="header-container">
     <h1>Nova</h1>
-    <h3>DSO Altitude Tracker V{{ version }}</h3>
+    <h3>DSO Tracker V{{ version }}</h3>
   </div>
   <div class="info-container info-values">
     <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
@@ -552,9 +551,9 @@
         </tr>
       </thead>
       <tbody id="opportunities-body">
-        <!-- Filled via JS -->
       </tbody>
     </table>
   </div>
+{% endblock %}
 </body>
 </html>

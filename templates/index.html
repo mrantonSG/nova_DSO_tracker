@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DSO Altitude Tracker</title>
+{% extends "base.html" %}
+
+{% block title %}DSO Altitude Tracker{% endblock %}
+
+{% block head_extra %}
   <style>
     /* Your CSS styles here (as provided earlier) */
     table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; table-layout: auto; word-wrap: break-word; }
@@ -15,7 +13,7 @@
     th:not(:nth-child(1)):not(:nth-child(2)) { text-align: center; }
     th { background-color: #f2f2f2; font-weight: normal; cursor: pointer; }
     th span { display: block; font-weight: bold; font-size: 13px; }
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    body {padding: 20px; margin: 0; }
     .highlight { background-color: #83b4c5; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
     #graph-section { display: none; text-align: left; margin-left: 0px; }
@@ -474,11 +472,13 @@
       return h * 60 + m;
     }
     </script>
+{% endblock %}
 </head>
 <body>
+{% block body %}
   <div class="header-container">
     <h1>Nova</h1>
-    <h3>DSO Altitude Tracker V{{ version }}</h3>
+    <h3>DSO Tracker V{{ version }}</h3>
   </div>
 <div style="font-size: 14px; color: #444; margin-top: -4px; margin-bottom: 12px;">
   {% if SINGLE_USER_MODE %}
@@ -573,5 +573,6 @@
           title="Graph">
   </iframe>
 </div>
+{% endblock %}
 </body>
 </html>
