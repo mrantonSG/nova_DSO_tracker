@@ -4,7 +4,6 @@
 
 {% block head_extra %}
   <style>
-    /* Your CSS styles here (as provided earlier) */
     table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; table-layout: auto; word-wrap: break-word; }
     th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
     td:nth-child(1), th:nth-child(1),
@@ -480,26 +479,49 @@
     <h1>Nova</h1>
     <h3>DSO Tracker V{{ version }}</h3>
   </div>
-<div style="font-size: 14px; color: #444; margin-top: -4px; margin-bottom: 12px;">
-  {% if SINGLE_USER_MODE %}
-    Mode: <strong>Single User</strong>
-  {% else %}
-    Mode: <strong>Multi User</strong> — Logged in as <strong>{{ current_user.username }}</strong>
-    <form action="{{ url_for('logout') }}" method="post" style="display: inline;">
-      <button type="submit" style="margin-left: 10px; font-size: 13px; padding: 3px 8px;">Log Out</button>
-    </form>
-  {% endif %}
+  <div style="font-size:14px; color:#444; margin-top:-4px; margin-bottom:12px;">
+    {% if is_guest %}
+      Mode: <strong>Guest</strong> —
+      <button onclick="location.href='{{ url_for('login') }}'"
+              style="margin-left:6px; padding:4px 10px; font-size:13px; background:#83b4c5; color:white; border:none; border-radius:4px; cursor:pointer;">
+        Log in
+      </button>
+      for full access.
+    {% elif SINGLE_USER_MODE %}
+      Mode: <strong>Single User</strong>
+    {% else %}
+      Mode: <strong>Multi User</strong> — Logged in as <strong>{{ current_user.username }}</strong>
+        <form action="{{ url_for('logout') }}" method="post" style="display: inline;">
+          <button type="submit"
+                  style="margin-left:6px;
+                         padding:4px 10px;
+                         font-size:13px;
+                         background:#83b4c5;
+                         color:white;
+                         border:none;
+                         border-radius:4px;
+                         cursor:pointer;"
+                  onmouseover="this.style.background='#6795a4';"
+                  onmouseout="this.style.background='#83b4c5';">
+            Log Out
+          </button>
+        </form>
+    {% endif %}
+  </div>
 </div>
 <div class="info-container">
-
-  <button type="button" id="back-button" onclick="window.location.href='{{ url_for('config_form') }}'">
-    Configuration
-  </button>
+  {% if not is_guest %}
+    <button type="button" id="back-button"
+            onclick="window.location.href='{{ url_for('config_form') }}'">
+      Configuration
+    </button>
+  {% endif %}
 
   <p>
     <small>Location:</small>
     <span>
-      <select id="location-select" onchange="setLocation()" style="font-size: 16px; font-weight: bold; padding: 3px 6px;">
+      <select id="location-select" onchange="setLocation()">
+        <!-- options here -->
       </select>
     </span>
   </p>

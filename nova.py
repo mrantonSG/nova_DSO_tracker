@@ -66,9 +66,9 @@ from modules.astro_calculations import (
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.4.9"
+APP_VERSION = "2.5.0"
 
-SINGLE_USER_MODE = True  # Set to False for multi‑user mode
+SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
 load_dotenv()
 static_cache = {}
@@ -140,15 +140,12 @@ def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
 
 @app.context_processor
-def inject_version():
-    return dict(version=APP_VERSION)
-
-@app.context_processor
 def inject_user_mode():
     from flask_login import current_user
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
-        "current_user": current_user
+        "current_user": current_user,
+        "is_guest": getattr(g, "is_guest", False)
     }
 
 @app.route('/logout', methods=['POST'])
@@ -291,28 +288,53 @@ def proxy_focus():
 
 @app.before_request
 def load_config_for_request():
-    # In single-user mode, always load config_default.yaml.
     if SINGLE_USER_MODE:
         g.user_config = load_user_config("default")
+        g.is_guest = False
     elif current_user.is_authenticated:
         g.user_config = load_user_config(current_user.username)
+        g.is_guest = False
     else:
-        g.user_config = {}
-    # Then populate the other variables (locations, objects, etc.)
+        g.user_config = load_user_config("guest_user")
+        g.is_guest = True
+
     g.locations = g.user_config.get("locations", {})
     g.selected_location = g.user_config.get("default_location", "")
     g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    loc_config = g.locations.get(g.selected_location, {})
-    g.lat = loc_config.get("lat")
-    g.lon = loc_config.get("lon")
-    g.tz_name = loc_config.get("timezone", "UTC")
-    g.objects_list = g.user_config.get("objects", [])
-    g.alternative_names = {obj.get("Object").lower(): obj.get("Name") for obj in g.objects_list}
-    g.projects = {obj.get("Object").lower(): obj.get("Project") for obj in g.objects_list}
-    g.objects = [obj.get("Object") for obj in g.objects_list]
+    loc_cfg = g.locations.get(g.selected_location, {})
+    g.lat = loc_cfg.get("lat")
+    g.lon = loc_cfg.get("lon")
+    g.tz_name = loc_cfg.get("timezone", "UTC")
 
-if not os.path.exists('static'):
-    os.makedirs('static')
+    # restore these three globals so loops and lookups work:
+    g.objects_list = g.user_config.get("objects", [])
+    g.alternative_names = {
+        obj.get("Object").lower(): obj.get("Name")
+        for obj in g.objects_list
+    }
+    g.projects = {
+        obj.get("Object").lower(): obj.get("Project")
+        for obj in g.objects_list
+    }
+    g.objects = [ obj.get("Object") for obj in g.objects_list ]
+
+
+@app.route('/set_location', methods=['POST'])
+def set_location_api():
+    data = request.get_json()
+    location_name = data.get("location")
+    if location_name not in g.locations:
+        return jsonify({"status": "error", "message": "Invalid location"}), 404
+
+    # Update in-memory config and selection
+    g.user_config['default_location'] = location_name
+    g.selected_location = location_name
+
+    # Save to appropriate config file
+    username = current_user.username if current_user.is_authenticated else 'guest_user'
+    save_user_config(username, g.user_config)
+
+    return jsonify({"status": "success", "message": f"Location set to {location_name}"})
 
 
 @app.route('/favicon.ico')
@@ -324,7 +346,6 @@ def inject_version():
     return dict(version=APP_VERSION)
 
 @app.route('/download_config')
-@login_required
 def download_config():
     if SINGLE_USER_MODE:
         filename = "config_default.yaml"
@@ -339,7 +360,6 @@ def download_config():
 
 
 @app.route('/import_config', methods=['POST'])
-@login_required
 def import_config():
     try:
         if 'file' not in request.files:
@@ -837,26 +857,11 @@ def plot_monthly_altitude_curve(
 
     return filepath
 
-
-@app.route('/set_location', methods=['POST'])
-@login_required
-def set_location_api():
-    data = request.get_json()
-    location_name = data.get("location")
-    if location_name in g.locations:
-        g.user_config['default_location'] = location_name
-        save_user_config(current_user.username, g.user_config)
-        g.selected_location = location_name
-        return jsonify({"status": "success", "message": f"Location set to {location_name}"})
-    else:
-        return jsonify({"status": "error", "message": "Invalid location"}), 404
-
 # =============================================================================
 # Protected Routes
 # =============================================================================
 
 @app.route('/get_locations')
-@login_required
 def get_locations():
     return jsonify({"locations": list(g.locations.keys()), "selected": g.selected_location})
 
@@ -916,7 +921,6 @@ def confirm_object():
 from datetime import datetime, timedelta
 
 @app.route('/data')
-@login_required
 def get_data():
     local_tz = pytz.timezone(g.tz_name)
     current_datetime_local = datetime.now(local_tz)
@@ -1045,7 +1049,6 @@ def get_data():
 
 
 @app.route('/sun_events')
-@login_required
 def sun_events():
     local_date = datetime.now(pytz.timezone(g.tz_name)).strftime('%Y-%m-%d')
     events = calculate_sun_events_cached(local_date,g.tz_name, g.lat, g.lon)
@@ -1053,7 +1056,6 @@ def sun_events():
     return jsonify(events)
 
 @app.route('/')
-@login_required
 def index():
     return render_template('index.html')
 
@@ -1247,7 +1249,6 @@ def bypass_login_in_single_user():
 
 
 @app.route('/plot_yearly_altitude/<path:object_name>')
-@login_required
 def plot_yearly_altitude(object_name):
 
     data = get_ra_dec(object_name)
@@ -1277,7 +1278,6 @@ def plot_yearly_altitude(object_name):
 
 
 @app.route('/plot_monthly_altitude/<path:object_name>')
-@login_required
 def plot_monthly_altitude(object_name):
     data = get_ra_dec(object_name)
     if not data or data['RA (hours)'] is None or data['DEC (degrees)'] is None:
@@ -1312,7 +1312,6 @@ def plot_monthly_altitude(object_name):
 
 
 @app.route('/plot/<object_name>')
-@login_required
 def plot_altitude(object_name):
     print("DEBUG: request.args =", request.args)
     data = get_ra_dec(object_name)
@@ -1371,7 +1370,6 @@ def plot_altitude(object_name):
 
 
 @app.route('/graph_dashboard/<object_name>')
-@login_required
 def graph_dashboard(object_name):
     current_location_name = g.selected_location or "Unknown"
 
@@ -1428,7 +1426,6 @@ def graph_dashboard(object_name):
 
 
 @app.route('/plot_day/<object_name>')
-@login_required
 def plot_day(object_name):
 
     # 1. Parse query parameters for day, month, year
@@ -1477,7 +1474,6 @@ def plot_day(object_name):
     return send_file(plot_path, mimetype='image/png')
 
 @app.route('/get_date_info/<object_name>')
-@login_required
 def get_date_info(object_name):
     tz = pytz.timezone(g.tz_name)
     now = datetime.now(tz)  # current time in user's local timezone
@@ -1502,7 +1498,6 @@ def get_date_info(object_name):
 
 
 @app.route('/get_imaging_opportunities/<object_name>')
-@login_required
 def get_imaging_opportunities(object_name):
     # Load object data from config or SIMBAD.
     data = get_ra_dec(object_name)
