@@ -169,6 +169,7 @@ kill <the number you've found>
 ### Multi‑user vs. Single‑user Mode:
 The app can be configured for multi‑user mode (using separate configuration files per user) or single‑user mode (using a single file like config_default.yaml). While still in an early stage, it now possible to also have a guest access in multiuser mode.
 That means that the app would automatically start in guest mode and not with the login screen. This mode is quite restricted, but allows to get a rough impression of the app.
+The default setting of the app is "single user". To switch to "multiuser" a line needs to be added to the .env file: SINGLE_USER_MODE=False (to switch back to single user mode: SINGLE_USER_MODE=True)
 
 ### Installation on a server:
 In case you want to have access from various different devices (computers, iPad ...) from within or outside of your home network, you can install it on a server. The software is now optimized to run on a Raspberry Pi5 with good performance. In order to still being able to send objects to Stellarium, please read "[stellarium_access_from_server](stellarium_access_from_server.md)".
