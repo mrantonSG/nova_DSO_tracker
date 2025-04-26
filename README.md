@@ -1,3 +1,18 @@
+# Nova DSO Tracker
+
+A Flask-based web application designed specifically for astrophotographers, providing essential data for tracking deep-sky objects (DSOs).
+
+## Features
+- Real-time altitude and azimuth tracking for DSOs
+- Visibility forecasts based on altitude, moon illumination, and angular separation
+- Integration with Stellarium for live sky visualization
+- Customizable imaging opportunity alerts
+
+## Technologies Used
+- Python (Flask, AstroPy, Ephem)
+- Raspberry Pi compatible
+- API integrations (SIMBAD, Stellarium)
+
 # Nova DSO Altitude Tracker 2.5 - Quick Guide
 
 ### Purpose
