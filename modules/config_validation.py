@@ -17,7 +17,6 @@ config_schema = {
     'locations': {
         'type': 'dict',
         'required': True,
-        # Because location names (keys) are arbitrary, we validate the values using 'valuesrules'
         'valuesrules': {
             'type': 'dict',
             'schema': {
@@ -34,18 +33,32 @@ config_schema = {
             'type': 'dict',
             'schema': {
                 'Object': {'type': 'string', 'required': True},
-                'Name': {'type': 'string', 'nullable': True},
-                'RA': {'type': 'number', 'nullable': True},
-                'DEC': {'type': 'number', 'nullable': True},
-                'Project': {'type': 'string', 'nullable': True},
-                'Type': {'type': ['string', 'null'], 'nullable': True},
+                'Name': {'type': 'string', 'nullable': True, 'empty': True},
+                'RA': {
+                    'anyof': [
+                        {'type': 'float'},
+                        {'type': 'string'}
+                    ],
+                    'nullable': True,
+                    'empty': True
+                },
+                'DEC': {
+                    'anyof': [
+                        {'type': 'float'},
+                        {'type': 'string'}
+                    ],
+                    'nullable': True,
+                    'empty': True
+                },
+                'Project': {'type': 'string', 'nullable': True, 'empty': True},
+                'Type': {'type': 'string', 'nullable': True, 'empty': True},
             }
         }
     }
 }
 
 def validate_config(config_data):
-    v = Validator(config_schema)
+    v = Validator(config_schema, allow_unknown=True)
     if not v.validate(config_data):
         return False, v.errors
     return True, v.document
