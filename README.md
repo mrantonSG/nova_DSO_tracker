@@ -212,12 +212,20 @@ In case you want to have access from various different devices (computers, iPad 
 #### 💡 Tip for Raspberry Pi 5: 
 For better performance, run Nova with [Gunicorn](https://gunicorn.org), a lightweight WSGI server. Install it via pip install gunicorn, then start the app using gunicorn -w 4 -b 127.0.0.1:8090 nova:app. This reduces CPU load and improves response times compared to the built-in Flask server.
 
+### Docker Image:
+A pre-built Docker image is available on Docker Hub for easy setup:
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/mrantonsg/nova-tracker.svg)](https://hub.docker.com/r/mrantonsg/nova-tracker)
+
+**[View on Docker Hub: mrantonsg/nova-tracker](https://hub.docker.com/r/mrantonsg/nova-tracker)**
+
+See the Docker Hub page for instructions on how to run the container.
 
 ### Upgrading from an older version:
 First step: copy your config yaml to a safe place. You can use the "download configuration" function. After that, replace the files in your nova directory or you do a clean install (recommended)
 For the clean install you just follow the setup guide. Once all steps are done, copy your config yaml back into the new folder ("upload config") and start the app.
 
-### License
+### License:
 Nova DSO Tracker is licensed under the Apache 2.0 License **with the Commons Clause**.
 Free for personal, educational, and non-commercial use only. Commercial use requires explicit permission.
 See [LICENSE](LICENSE) for full details.
