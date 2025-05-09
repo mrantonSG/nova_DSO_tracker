@@ -52,6 +52,15 @@ config_schema = {
                 },
                 'Project': {'type': 'string', 'nullable': True, 'empty': True},
                 'Type': {'type': 'string', 'nullable': True, 'empty': True},
+
+                # ⬇️ New optional enrichment fields
+                'surface_brightness': {'type': 'float', 'required': False},
+                'fov_minimum': {'type': 'string', 'required': False},
+                'recommended_aperture': {'type': 'string', 'required': False},
+                'base_integration_f5': {'type': 'float', 'required': False},
+                'mag_source': {'type': 'string', 'required': False},
+                'size_source': {'type': 'string', 'required': False},
+                'type_source': {'type': 'string', 'required': False},
             }
         }
     }

@@ -3,16 +3,120 @@
 {% block title %}DSO Altitude Tracker{% endblock %}
 
 {% block head_extra %}
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; table-layout: auto; word-wrap: break-word; }
+    body {
+        font-family: 'Roboto', sans-serif;
+        padding: 20px;
+        margin: 0;
+        background-color: #ffffff;
+        color: #333;
+    }
+
+    /* Tab Styles */
+    .tab-container {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #ccc;
+    }
+
+    .tab-button {
+        padding: 10px 20px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        background-color: #e9e9e9;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+        font-size: 16px;
+    }
+
+    .tab-button.active {
+        background-color: #fff;
+        border-color: #ccc;
+        border-bottom: 2px solid #fff;
+        position: relative;
+        top: 1px;
+    }
+    /* End Tab Styles */
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid #ddd;
+        table-layout: auto;
+        word-wrap: break-word;
+    }
     th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
-    td:nth-child(1), th:nth-child(1),
-    td:nth-child(2), th:nth-child(2) { text-align: left; }
-    td:not(:nth-child(1)):not(:nth-child(2)),
-    th:not(:nth-child(1)):not(:nth-child(2)) { text-align: center; }
-    th { background-color: #f2f2f2; font-weight: normal; cursor: pointer; }
-    th span { display: block; font-weight: bold; font-size: 13px; }
-    body {padding: 20px; margin: 0; }
+
+    /* --- Column Widths --- */
+    th[data-column-key="Object"],
+    td[data-column-key="Object"] {
+        width: 120px;
+        min-width: 120px;
+        text-align: left;
+    }
+    th[data-column-key="Common Name"],
+    td[data-column-key="Common Name"] {
+        min-width: 150px;
+        text-align: left;
+    }
+
+    th[data-column-key="Altitude Current"], td[data-column-key="Altitude Current"],
+    th[data-column-key="Azimuth Current"], td[data-column-key="Azimuth Current"],
+    th[data-column-key="Altitude 11PM"], td[data-column-key="Altitude 11PM"],
+    th[data-column-key="Azimuth 11PM"], td[data-column-key="Azimuth 11PM"],
+    th[data-column-key="Observable Duration (min)"], td[data-column-key="Observable Duration (min)"],
+    th[data-column-key="Max Altitude (°)"], td[data-column-key="Max Altitude (°)"],
+    th[data-column-key="Angular Separation (°)"], td[data-column-key="Angular Separation (°)"] {
+        width: 100px;
+        min-width: 100px;
+        text-align: center;
+    }
+    th[data-column-key="Trend"], td[data-column-key="Trend"] {
+        width: 70px;
+        min-width: 70px;
+        text-align: center;
+    }
+    th[data-column-key="Transit Time"], td[data-column-key="Transit Time"] {
+        width: 80px;
+        min-width: 80px;
+        text-align: center;
+    }
+
+    th[data-column-key="Type"], td[data-column-key="Type"],
+    th[data-column-key="Magnitude"], td[data-column-key="Magnitude"],
+    th[data-column-key="Size"], td[data-column-key="Size"],
+    th[data-column-key="SB"], td[data-column-key="SB"] {
+        width: 100px;
+        min-width: 100px;
+        text-align: center;
+    }
+    /* --- End Column Widths --- */
+
+    #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
+    #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]) {
+        text-align: center;
+    }
+
+    #data-table > thead > tr:not(.filter-row) > th {
+        background-color: #f2f2f2;
+        font-weight: normal;
+        cursor: pointer;
+        min-height: 45px;
+        vertical-align: middle;
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    th span { display: block; font-weight: bold; font-size: 13px; line-height: 1.3; }
+    th span.subtext {
+      font-weight: normal;
+      font-size: 12px;
+      line-height: 1.3;
+      display: block;
+    }
+
     .highlight { background-color: #83b4c5; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
     #graph-section { display: none; text-align: left; margin-left: 0px; }
@@ -21,356 +125,438 @@
     .header-container { display: flex; align-items: baseline; }
     .header-container h1, .header-container h3 { margin-bottom: 20px; }
     .header-container h3 { margin-left: 10px; }
-    .info-container { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
+    .info-container { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
     .info-container p, .info-container label, .info-container select { margin: 0; }
     h3 { font-weight: normal; }
+    .filter-row th {
+        background-color: #f2f2f2;
+        vertical-align: top;
+    }
     .filter-row input {
-      width: 90%;
-      max-width: 200px;
+      width: 95%;
       box-sizing: border-box;
       padding: 4px;
       font-size: 13px;
+      font-family: 'Roboto', sans-serif;
+      margin-top: 2px;
+      margin-bottom: 2px;
     }
     #location-select {
-      width: 150px;
       height: 35px;
       font-size: 16px;
       padding: 5px;
       box-sizing: border-box;
-    }
-    th span.subtext {
-      font-weight: normal;
-      font-size: 12px;
-    }
-    .info-values p {
-      margin: 2px 0;
-      font-size: 16px;
-    }
-    .info-values small {
-      font-size: 12px;
-      color: #666;
+      font-family: 'Roboto', sans-serif;
     }
 
-    .info-values span {
-      font-weight: bold;
-      font-size: 16px;
-      color: #000;
-    }
-    .info-values {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-    .info-values p {
-      margin: 0;
-    }
-    .user-info {
-      margin-left: 20px;
-      font-size: 15px;
-      color: #444;
-      background-color: #f5f7f9;
-      padding: 6px 10px;
-      border-left: 4px solid #83b4c5;
-      border-radius: 4px;
-      display: inline-block;
-    }
-    .table-wrapper {
-      overflow-x: auto;
-    }
+    .info-values p { margin: 2px 0; font-size: 16px; }
+    .info-values small { font-size: 12px; color: #666; }
+    .info-values span { font-weight: bold; font-size: 16px; color: #000; }
+    .info-values { display: flex; flex-wrap: wrap; gap: 20px; }
+    .user-info { margin-left: 20px; font-size: 15px; color: #444; background-color: #f5f7f9; padding: 6px 10px; border-left: 4px solid #83b4c5; border-radius: 4px; display: inline-block; }
+    .table-wrapper { overflow-x: auto; }
+    .table-wrapper::-webkit-scrollbar { height: 8px; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb:hover { background: #888; }
 
-    .table-wrapper::-webkit-scrollbar {
-      height: 8px;
-    }
+    .col-always-visible {}
+    .col-position {}
+    .col-properties { display: none; }
+    th .sort-indicator { font-size: 0.8em; margin-left: 5px; display: inline-block; }
 
-    .table-wrapper::-webkit-scrollbar-thumb {
-      background: #ccc;
-      border-radius: 4px;
-    }
-
-    .table-wrapper::-webkit-scrollbar-thumb:hover {
-      background: #888;
-    }
   </style>
   <script>
+    let activeTab = 'position';
+    let currentSort = { columnKey: 'Object', ascending: true };
+
+    const columnConfig = {
+        'Object':           { header: 'Object<br><span class="subtext">&nbsp;</span>', dataKey: 'Object', type: 'always-visible', filterable: true, sortable: true },
+        'Common Name':      { header: 'Common name<br><span class="subtext">&nbsp;</span>', dataKey: 'Common Name', type: 'always-visible', filterable: true, sortable: true },
+        'Altitude Current': { header: 'Altitude<br><span class="subtext">(Current)</span>', dataKey: 'Altitude Current', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
+        'Azimuth Current':  { header: 'Azimuth <br><span class="subtext">(Current)</span>', dataKey: 'Azimuth Current', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
+        'Trend':            { header: 'Trend<br><span class="subtext">&nbsp;</span>', dataKey: 'Trend', type: 'position', filterable: false, sortable: true },
+        'Altitude 11PM':    { header: 'Altitude <br><span class="subtext">(11 PM)</span>', dataKey: 'Altitude 11PM', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
+        'Azimuth 11PM':     { header: 'Azimuth <br><span class="subtext">(11 PM)</span>', dataKey: 'Azimuth 11PM', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
+        'Transit Time':     { header: 'Transit <br><span class="subtext">(Local Time)</span>', dataKey: 'Transit Time', type: 'position', filterable: false, sortable: true },
+        'Observable Duration (min)': { header: 'Observable <br><span class="subtext">(minutes)</span>', dataKey: 'Observable Duration (min)', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : String(val) },
+        'Max Altitude (°)': { header: 'Max Altitude<br><span class="subtext">observable (°)</span>', dataKey: 'Max Altitude (°)', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(1)}°` },
+        'Angular Separation (°)': { header: 'Ang. Sep. <br><span class="subtext">to moon (°)</span>', dataKey: 'Angular Separation (°)', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${parseInt(val)}°` },
+        'Type':             { header: 'Type<br><span class="subtext">&nbsp;</span>', dataKey: 'Type', type: 'properties', filterable: true, sortable: true },
+        'Magnitude':        { header: 'Magnitude<br><span class="subtext">&nbsp;</span>', dataKey: 'Magnitude', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
+        'Size':             { header: "Size (')<br><span class='subtext'>&nbsp;</span>", dataKey: 'Size', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
+        'SB':               { header: 'SB<br><span class="subtext">&nbsp;</span>', dataKey: 'SB', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) }
+    };
+
     function formatDateISOtoEuropean(isoStr) {
-      const [year, month, day] = isoStr.split("-");
+      if (!isoStr || typeof isoStr !== 'string') return 'N/A';
+      const parts = isoStr.split("-");
+      if (parts.length !== 3) return isoStr;
+      const [year, month, day] = parts;
       return `${day}.${month}.${year}`;
     }
-    // Sorts the table rows based on columnIndex.
-    // When toggle==true, it toggles the order and saves the new values.
-    // When toggle==false, it uses the stored sort order.
-    function sortTable(columnIndex, toggle = true) {
+
+    function parseTimeToMinutes(timeStr) {
+      if (!timeStr || typeof timeStr !== 'string' || !/^\d{1,2}:\d{2}$/.test(timeStr)) return 0;
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function updateTabDisplay() {
+        const headers = document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]");
+        const filterCells = document.querySelectorAll("#data-table .filter-row th[data-column-key]");
+        const tableBodyRows = document.querySelectorAll("#data-body tr");
+
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.toggle('active', button.dataset.tab === activeTab);
+        });
+
+        headers.forEach(th => {
+            const columnKey = th.dataset.columnKey;
+            const config = columnConfig[columnKey];
+            if (config) {
+                let displayStyle = 'none';
+                if (config.type === 'always-visible') {
+                    displayStyle = 'table-cell';
+                } else if (config.type === 'position' && activeTab === 'position') {
+                    displayStyle = 'table-cell';
+                } else if (config.type === 'properties' && activeTab === 'properties') {
+                    displayStyle = 'table-cell';
+                }
+                th.style.display = displayStyle;
+            } else {
+                 th.style.display = 'none';
+            }
+        });
+
+        filterCells.forEach(thFilter => {
+            const columnKey = thFilter.dataset.columnKey;
+            const config = columnConfig[columnKey];
+            const input = thFilter.querySelector('input');
+            let thFilterDisplayStyle = 'none';
+
+            if (config) {
+                if (config.type === 'always-visible') {
+                    thFilterDisplayStyle = 'table-cell';
+                } else if (config.type === 'position' && activeTab === 'position') {
+                    thFilterDisplayStyle = 'table-cell';
+                } else if (config.type === 'properties' && activeTab === 'properties') {
+                    thFilterDisplayStyle = 'table-cell';
+                }
+                thFilter.style.display = thFilterDisplayStyle;
+
+                if (input) {
+                    if (!config.filterable || thFilterDisplayStyle === 'none') {
+                        input.disabled = true;
+                        input.style.visibility = 'hidden';
+                    } else {
+                        input.disabled = false;
+                        input.style.visibility = 'visible';
+                    }
+                }
+            } else {
+                thFilter.style.display = 'none';
+                if (input) {
+                    input.disabled = true;
+                    input.style.visibility = 'hidden';
+                }
+            }
+        });
+
+        tableBodyRows.forEach(row => {
+            const cells = row.querySelectorAll('td[data-column-key]');
+            cells.forEach(td => {
+                const columnKey = td.dataset.columnKey;
+                const config = columnConfig[columnKey];
+                if (config) {
+                    let displayStyle = 'none';
+                    if (config.type === 'always-visible') {
+                        displayStyle = 'table-cell';
+                    } else if (config.type === 'position' && activeTab === 'position') {
+                        displayStyle = 'table-cell';
+                    } else if (config.type === 'properties' && activeTab === 'properties') {
+                        displayStyle = 'table-cell';
+                    }
+                    td.style.display = displayStyle;
+                }
+            });
+        });
+         localStorage.setItem('activeTab', activeTab);
+    }
+
+    function sortTable(columnKey, toggle = true) {
       const table = document.getElementById("data-table");
       let sortOrder;
       if (toggle) {
-        // When clicking, use the current sort order from the table attribute.
-        sortOrder = table.getAttribute("data-sort-order") || "asc";
+        if (currentSort.columnKey === columnKey) {
+          currentSort.ascending = !currentSort.ascending;
+        } else {
+          currentSort.columnKey = columnKey;
+          currentSort.ascending = true;
+        }
+        sortOrder = currentSort.ascending ? "asc" : "desc";
+        localStorage.setItem("sortOrder", sortOrder);
+        localStorage.setItem("sortColumnKey", columnKey);
       } else {
-        // When reapplying sorting after refresh, use the stored order.
-        sortOrder = localStorage.getItem("sortOrder") || "asc";
+        sortOrder = localStorage.getItem("sortOrder") || (currentSort.ascending ? "asc" : "desc");
+        currentSort.ascending = sortOrder === "asc";
       }
-
+      table.setAttribute("data-sort-order", sortOrder);
       const tbody = document.getElementById("data-body");
       const rows = Array.from(tbody.getElementsByTagName("tr"));
-
+      const config = columnConfig[currentSort.columnKey];
       rows.sort((a, b) => {
-        const cellA = a.getElementsByTagName("td")[columnIndex].innerText.trim();
-        const cellB = b.getElementsByTagName("td")[columnIndex].innerText.trim();
+        const cellA_element = a.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
+        const cellB_element = b.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
+        if (!cellA_element || !cellB_element) return 0;
 
-        let numA, numB;
-        if (columnIndex === 7 && /^\d{1,2}:\d{2}$/.test(cellA) && /^\d{1,2}:\d{2}$/.test(cellB)) {
-          numA = parseTimeToMinutes(cellA);
-          numB = parseTimeToMinutes(cellB);
-        } else {
-          numA = parseFloat(cellA);
-          numB = parseFloat(cellB);
+        let valA_str = cellA_element.dataset.rawValue !== undefined ? cellA_element.dataset.rawValue : cellA_element.innerText.trim();
+        let valB_str = cellB_element.dataset.rawValue !== undefined ? cellB_element.dataset.rawValue : cellB_element.innerText.trim();
+
+        const isNA_A = valA_str === 'N/A' || valA_str === '';
+        const isNA_B = valB_str === 'N/A' || valB_str === '';
+
+        if (isNA_A && isNA_B) return 0;
+        if (isNA_A) return currentSort.ascending ? 1 : -1;
+        if (isNA_B) return currentSort.ascending ? -1 : 1;
+
+        let valA = valA_str;
+        let valB = valB_str;
+
+        const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                                 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                                 'Magnitude', 'Size', 'SB'];
+
+        if (config && numericSortKeys.includes(config.dataKey)) {
+            valA = parseFloat(valA_str);
+            valB = parseFloat(valB_str);
+        } else if (currentSort.columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) {
+            valA = parseTimeToMinutes(valA_str);
+            valB = parseTimeToMinutes(valB_str);
         }
-        if (!isNaN(numA) && !isNaN(numB)) {
-          return sortOrder === "asc" ? numA - numB : numB - numA;
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            if (isNaN(valA) && isNaN(valB)) return 0;
+            if (isNaN(valA)) return currentSort.ascending ? 1 : -1;
+            if (isNaN(valB)) return currentSort.ascending ? -1 : 1;
+            return currentSort.ascending ? valA - valB : valB - valA;
         }
-        return sortOrder === "asc" ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+
+        return currentSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
       });
-
-      // Re-append the sorted rows.
       rows.forEach(row => tbody.appendChild(row));
-
-      if (toggle) {
-        // Save the sort order used (the current one) and the column index.
-        localStorage.setItem("sortOrder", sortOrder);
-        localStorage.setItem("sortColumn", columnIndex);
-        // Then toggle the table attribute for next click.
-        const newOrder = sortOrder === "asc" ? "desc" : "asc";
-        table.setAttribute("data-sort-order", newOrder);
-      } else {
-        // When not toggling, just set the table attribute to the stored value.
-        table.setAttribute("data-sort-order", sortOrder);
-      }
-    }
-    // Save the filter value using a unique key per column.
-    function saveFilter(input, colIndex) {
-      localStorage.setItem("filter_col_" + colIndex, input.value);
-    }
-    // Helper function: Check a numeric cell against an operator condition (like ">200" or "<=400").
-    function checkNumericCondition(cellNumber, condition) {
-      condition = condition.trim();
-      let operator, value;
-      if (condition.startsWith(">=")) {
-        operator = ">=";
-        value = parseFloat(condition.substring(2));
-      } else if (condition.startsWith("<=")) {
-        operator = "<=";
-        value = parseFloat(condition.substring(2));
-      } else if (condition.startsWith(">")) {
-        operator = ">";
-        value = parseFloat(condition.substring(1));
-      } else if (condition.startsWith("<")) {
-        operator = "<";
-        value = parseFloat(condition.substring(1));
-      } else {
-        // If no operator is provided, do a simple substring match on the number as a string.
-        return String(cellNumber).toLowerCase().indexOf(condition.toLowerCase()) !== -1;
-      }
-      if (isNaN(value)) return false;
-      switch (operator) {
-        case ">":  return cellNumber > value;
-        case ">=": return cellNumber >= value;
-        case "<":  return cellNumber < value;
-        case "<=": return cellNumber <= value;
-        default:   return false;
-      }
+      updateSortIndicators();
     }
 
-    function filterTable() {
-      const table = document.getElementById("data-table");
-      const filterRow = table.querySelector(".filter-row");
-      if (!filterRow) return; // Ensure the filter row exists.
-      const inputs = filterRow.getElementsByTagName("input");
-
-      // Restore saved filter values from localStorage.
-      for (let i = 0; i < inputs.length; i++) {
-        let saved = localStorage.getItem("filter_col_" + i);
-        if (saved !== null) {
-          inputs[i].value = saved;
+    function updateSortIndicators() {
+        document.querySelectorAll('#data-table th .sort-indicator').forEach(span => span.innerHTML = '');
+        const activeTh = document.querySelector(`#data-table > thead > tr:not(.filter-row) > th[data-column-key="${currentSort.columnKey}"]`);
+        if (activeTh) {
+            const indicator = activeTh.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.innerHTML = currentSort.ascending ? '▲' : '▼';
+            }
         }
-      }
+    }
 
+    function saveFilter(inputElement, columnKey) {
+      localStorage.setItem("filter_col_key_" + columnKey, inputElement.value);
+    }
+
+    // MODIFIED filterTable function
+    function filterTable() {
       const tbody = document.getElementById("data-body");
       const rows = tbody.getElementsByTagName("tr");
+      const activeFilters = {};
 
-      // Loop over each table row.
+      // 1. Populate activeFilters from localStorage for ALL filterable columns
+      //    AND update input field values from localStorage.
+      for (const columnKey in columnConfig) {
+        if (columnConfig.hasOwnProperty(columnKey) && columnConfig[columnKey].filterable) {
+          const savedFilterValue = localStorage.getItem("filter_col_key_" + columnKey);
+          const inputElement = document.querySelector(`.filter-row th[data-column-key="${columnKey}"] input`);
+
+          if (inputElement) { // Ensure input element exists
+            if (savedFilterValue !== null) {
+              inputElement.value = savedFilterValue; // Always set input from localStorage
+              if (savedFilterValue.trim() !== '') {
+                activeFilters[columnKey] = savedFilterValue.trim().toLowerCase();
+              }
+            } else {
+              inputElement.value = ''; // Clear input if no saved filter
+            }
+          } else if (savedFilterValue !== null && savedFilterValue.trim() !== '') {
+            // If input element doesn't exist (e.g. column completely removed from HTML)
+            // but there's a saved filter, still apply it.
+            activeFilters[columnKey] = savedFilterValue.trim().toLowerCase();
+          }
+        }
+      }
+
+      // 2. Apply filters to rows
       for (let i = 0; i < rows.length; i++) {
         let showRow = true;
-        const cells = rows[i].getElementsByTagName("td");
+        for (const columnKey in activeFilters) {
+            if (activeFilters.hasOwnProperty(columnKey)) {
+                const filterValue = activeFilters[columnKey];
+                const config = columnConfig[columnKey]; // Config for the current filter's column
 
-        // Loop over each filter input (one per column).
-        for (let j = 0; j < inputs.length; j++) {
-          const filterValue = inputs[j].value.trim().toLowerCase();
-          if (filterValue !== "") {
-            let cellText = cells[j].innerText.trim().toLowerCase();
+                // This check is redundant if activeFilters is built correctly from filterable columns
+                // if (!config || !config.filterable) continue;
 
-            // If this is a numeric column (indexes 2, 3, 5, 6, 8, and 9 for Angular Separation)
-            if ([2, 3, 5, 6, 8, 9, 10].includes(j)) {
-              // Remove non-numeric characters (e.g., degree symbol)
-              cellText = cellText.replace(/[^0-9\.\-]/g, "");
-              const cellNumber = parseFloat(cellText);
-              if (isNaN(cellNumber)) {
-                showRow = false;
-                break;
-              }
-              // Split filter value into conditions (if user types multiple conditions separated by spaces).
-              const conditions = filterValue.split(" ").filter(cond => cond !== "");
-              for (let cond of conditions) {
-                let operator = "";
-                let valueStr = "";
-                if (cond.startsWith(">=")) {
-                  operator = ">=";
-                  valueStr = cond.substring(2);
-                } else if (cond.startsWith("<=")) {
-                  operator = "<=";
-                  valueStr = cond.substring(2);
-                } else if (cond.startsWith(">")) {
-                  operator = ">";
-                  valueStr = cond.substring(1);
-                } else if (cond.startsWith("<")) {
-                  operator = "<";
-                  valueStr = cond.substring(1);
-                } else {
-                  // If no operator, perform a substring match on the string version of cellNumber.
-                  if (String(cellNumber).indexOf(cond) === -1) {
-                    showRow = false;
-                    break;
-                  } else {
+                const cellElement = rows[i].querySelector(`td[data-column-key="${columnKey}"]`);
+                if (!cellElement) {
+                    showRow = false; break;
+                }
+                let cellText = (cellElement.dataset.rawValue || cellElement.innerText).trim().toLowerCase();
+
+                if (filterValue === "n/a" || filterValue === "na") {
+                    if (cellText !== "n/a") {
+                        showRow = false; break;
+                    }
                     continue;
-                  }
                 }
-                let conditionValue = parseFloat(valueStr);
-                if (isNaN(conditionValue)) {
-                  showRow = false;
-                  break;
+
+                const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                                     'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                                     'Magnitude', 'Size', 'SB'];
+
+                if (config && numericFilterKeys.includes(config.dataKey)) {
+                    if (cellText === "n/a") {
+                        showRow = false; break;
+                    }
+                    const cellNumber = parseFloat(cellText.replace(/[^0-9\.\-]/g, ""));
+                    if (isNaN(cellNumber)) {
+                        if (cellText.indexOf(filterValue) === -1) {
+                           showRow = false; break;
+                        }
+                        continue;
+                    }
+                    const conditions = filterValue.split(" ").filter(cond => cond !== "");
+                    let conditionMetOverall = true;
+                    for (let cond of conditions) {
+                        let operator = ""; let valueStr = "";
+                        if (cond.startsWith(">=")) { operator = ">="; valueStr = cond.substring(2); }
+                        else if (cond.startsWith("<=")) { operator = "<="; valueStr = cond.substring(2); }
+                        else if (cond.startsWith(">")) { operator = ">"; valueStr = cond.substring(1); }
+                        else if (cond.startsWith("<")) { operator = "<"; valueStr = cond.substring(1); }
+                        else {
+                            if (String(cellNumber).indexOf(cond) === -1 && cellText.indexOf(cond) === -1) {
+                                conditionMetOverall = false; break;
+                            }
+                            continue;
+                        }
+                        let conditionValue = parseFloat(valueStr);
+                        if (isNaN(conditionValue)) { conditionMetOverall = false; break; }
+
+                        let currentConditionMet = false;
+                        if (operator === ">" && cellNumber > conditionValue) currentConditionMet = true;
+                        else if (operator === ">=" && cellNumber >= conditionValue) currentConditionMet = true;
+                        else if (operator === "<" && cellNumber < conditionValue) currentConditionMet = true;
+                        else if (operator === "<=" && cellNumber <= conditionValue) currentConditionMet = true;
+
+                        if (!currentConditionMet) { conditionMetOverall = false; break;}
+                    }
+                    if (!conditionMetOverall) { showRow = false; break; }
+                } else { // Text columns
+                    if (filterValue.startsWith("!")) {
+                        if (cellText.includes(filterValue.substring(1))) { showRow = false; break; }
+                    } else {
+                        if (!cellText.includes(filterValue)) { showRow = false; break; }
+                    }
                 }
-                // Evaluate the numeric condition.
-                switch (operator) {
-                  case ">":
-                    if (!(cellNumber > conditionValue)) { showRow = false; }
-                    break;
-                  case ">=":
-                    if (!(cellNumber >= conditionValue)) { showRow = false; }
-                    break;
-                  case "<":
-                    if (!(cellNumber < conditionValue)) { showRow = false; }
-                    break;
-                  case "<=":
-                    if (!(cellNumber <= conditionValue)) { showRow = false; }
-                    break;
-                  default:
-                    break;
-                }
-                if (!showRow) break;
-              }
-              if (!showRow) break;
-            } else {
-              // For text columns
-              if (filterValue.startsWith("!")) {
-                const excludeTerm = filterValue.substring(1).trim();
-                if (cellText.indexOf(excludeTerm) !== -1) {
-                  showRow = false;
-                  break;
-                }
-              } else {
-                if (cellText.indexOf(filterValue) === -1) {
-                  showRow = false;
-                  break;
-                }
-              }
             }
-          }
         }
         rows[i].style.display = showRow ? "" : "none";
       }
     }
+
     function fetchData() {
       const localTime = new Date().toISOString();
-
-      // Show loading message
       const loadingDiv = document.getElementById("table-loading");
       loadingDiv.style.display = "block";
       loadingDiv.textContent = "Loading data...";
-
       fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
         .then(response => response.json())
         .then(data => {
-          // Hide loading on success
           loadingDiv.style.display = "none";
-
-          // Format and update header values
           document.getElementById('date').textContent = formatDateISOtoEuropean(data.date);
           document.getElementById('time').textContent = data.time;
           document.getElementById('phase').textContent = `${data.phase}%`;
-
           const tableBody = document.getElementById('data-body');
           tableBody.innerHTML = '';
-
           const altitudeThreshold = data.altitude_threshold || 20;
-
           data.objects.forEach(obj => {
             const row = document.createElement('tr');
             row.classList.add('clickable-row');
-            row.setAttribute('data-object', obj.Object);
-
+            row.setAttribute('data-object-id', obj.Object);
             if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) {
               row.style.backgroundColor = "#f8d7da";
             } else if (obj.Project && obj.Project.toLowerCase() !== "none") {
               row.style.backgroundColor = "#dce5ea";
             }
+            for (const key in columnConfig) {
+                if (columnConfig.hasOwnProperty(key)) {
+                    const config = columnConfig[key];
+                    const td = document.createElement('td');
+                    td.dataset.columnKey = key;
+                    let rawValue = obj[config.dataKey];
+                    let displayValue = rawValue;
 
-            const altCurrent = Number(obj['Altitude Current']) || 0;
-            const azCurrent = Number(obj['Azimuth Current']) || 0;
-            const alt11pm = Number(obj['Altitude 11PM']) || 0;
-            const az11pm = Number(obj['Azimuth 11PM']) || 0;
-            const maxAltNight = (obj['Max Altitude (°)'] !== undefined && !isNaN(Number(obj['Max Altitude (°)'])))
-              ? Number(obj['Max Altitude (°)']).toFixed(1) + '°'
-              : 'N/A';
-            const observable = (obj['Observable Duration (min)'] !== undefined)
-              ? obj['Observable Duration (min)']
-              : 'N/A';
+                    if (rawValue === null || rawValue === undefined || rawValue === "" || String(rawValue).trim().toLowerCase() === "n/a") {
+                        displayValue = "N/A";
+                        rawValue = "N/A";
+                    } else if (config.format) {
+                        displayValue = config.format(rawValue);
+                    } else if (typeof rawValue === 'number' && !Number.isInteger(rawValue)) {
+                        displayValue = parseFloat(rawValue).toFixed(1);
+                    }
 
-            const currentAltClass = altCurrent >= altitudeThreshold ? 'highlight' : '';
-            const elevenPMAltClass = alt11pm >= altitudeThreshold ? 'highlight' : '';
+                    if (rawValue !== undefined && String(rawValue).toLowerCase() !== "n/a" && !isNaN(parseFloat(rawValue))) {
+                        td.dataset.rawValue = String(rawValue);
+                    } else if (String(rawValue).toLowerCase() === "n/a") {
+                         td.dataset.rawValue = "N/A";
+                    }
 
-            row.innerHTML = `
-              <td>${obj.Object}</td>
-              <td>${obj['Common Name'] || 'N/A'}</td>
-              <td class="${currentAltClass}">${altCurrent.toFixed(2)}°</td>
-              <td>${azCurrent.toFixed(2)}°</td>
-              <td>${obj.Trend}</td>
-              <td class="${elevenPMAltClass}">${alt11pm.toFixed(2)}°</td>
-              <td>${az11pm.toFixed(2)}°</td>
-              <td>${obj['Transit Time'] || 'N/A'}</td>
-              <td>${observable}</td>
-              <td>${maxAltNight}</td>
-              <td>${(obj["Angular Separation (°)"] !== undefined && !isNaN(Number(obj["Angular Separation (°)"]))) ? parseInt(obj["Angular Separation (°)"]) + '°' : 'N/A'}</td>
-            `;
+                    td.innerHTML = String(displayValue);
 
+                    if ((config.dataKey === 'Altitude Current' && parseFloat(rawValue) >= altitudeThreshold) ||
+                        (config.dataKey === 'Altitude 11PM' && parseFloat(rawValue) >= altitudeThreshold)) {
+                        td.classList.add('highlight');
+                    }
+
+                    if (config.type === 'always-visible') td.classList.add('col-always-visible');
+                    else if (config.type === 'position') td.classList.add('col-position');
+                    else if (config.type === 'properties') td.classList.add('col-properties');
+
+                    row.appendChild(td);
+                }
+            }
             row.addEventListener('click', function () {
               const commonName = obj['Common Name'] || "";
               if (commonName.toLowerCase().startsWith("error:")) {
                 alert("Graph not available: " + commonName);
                 return;
               }
-              const objectName = this.getAttribute('data-object');
-              showGraph(objectName);
+              const objectId = this.getAttribute('data-object-id');
+              showGraph(objectId);
             });
-
             tableBody.appendChild(row);
           });
+          currentSort.columnKey = localStorage.getItem("sortColumnKey") || 'Object';
+          const storedSortOrder = localStorage.getItem("sortOrder") || "asc";
+          currentSort.ascending = storedSortOrder === "asc";
 
-          // Reapply stored sort order if available
-          const storedColumn = localStorage.getItem("sortColumn");
-          if (storedColumn !== null) {
-            sortTable(parseInt(storedColumn), false);
-          }
-
-          filterTable(); // Reapply filters
+          // Call updateTabDisplay first to ensure correct columns are targetable by sort/filter
+          updateTabDisplay();
+          // Then populate filter inputs from localStorage AND build activeFilters
+          filterTable(); // This now also updates input fields
+          // Then sort
+          sortTable(currentSort.columnKey, false);
+          // FilterTable again might be redundant if sort doesn't change which rows *could* be visible
+          // but it's safer to ensure rows are filtered after sorting if sort changes data order.
+          // However, filterTable itself applies the display:none/block.
+          // The main thing is that activeFilters is correctly built from localStorage.
+          updateSortIndicators();
         })
         .catch(error => {
           console.error('❌ Error fetching data:', error);
@@ -381,12 +567,6 @@
     function showGraph(objectName) {
       window.location.href = '/graph_dashboard/' + encodeURIComponent(objectName);
     }
-
-    function showList() {
-      document.getElementById('graph-section').style.display = 'none';
-      document.getElementById('list-section').style.display = 'block';
-    }
-
     function fetchLocations() {
       fetch('/get_locations')
         .then(response => response.json())
@@ -403,20 +583,13 @@
         })
         .catch(error => console.error('❌ Error fetching locations:', error));
     }
-
     function setLocation() {
       const selectedLocation = document.getElementById('location-select').value;
-
-      // Clear the table immediately
       const tableBody = document.getElementById('data-body');
       tableBody.innerHTML = '';
-
-      // Show loading message
       const loadingDiv = document.getElementById("table-loading");
       loadingDiv.style.display = "block";
       loadingDiv.innerHTML = "Loading...";
-
-      // Send the request to set location
       fetch('/set_location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -425,36 +598,12 @@
       .then(response => response.json())
       .then(data => {
         if (data.status === 'success') {
-          fetchData();         // Refresh the table
-          fetchSunEvents();    // Refresh dawn/dusk display
-
-          const iframe = document.getElementById('graph-iframe');
-          if (iframe && iframe.style.display !== 'none') {
-            let baseUrl = iframe.src.split('?')[0];
-            iframe.src = baseUrl + '?t=' + Date.now();
-          }
-        } else {
-          console.error("❌ Location update failed:", data);
-          loadingDiv.textContent = "❌ Error loading data.";
-        }
+          fetchData();
+          fetchSunEvents();
+        } else { console.error("❌ Location update failed:", data); loadingDiv.textContent = "❌ Error loading data."; }
       })
-      .catch(error => {
-        console.error('❌ Error setting location:', error);
-        loadingDiv.textContent = "❌ Error loading data.";
-      });
+      .catch(error => { console.error('❌ Error setting location:', error); loadingDiv.textContent = "❌ Error loading data."; });
     }
-
-    window.onload = () => {
-      fetchData();
-      fetchLocations();
-      fetchSunEvents();
-      setInterval(fetchData, 60000);
-      // Attach sort events to header cells.
-      const headers = document.querySelectorAll("#data-table th.sortable");
-      headers.forEach((header, index) => {
-        header.addEventListener("click", () => sortTable(index, true));
-      });
-    };
     function fetchSunEvents() {
       fetch('/sun_events')
         .then(response => response.json())
@@ -462,15 +611,47 @@
           document.getElementById('dawn').textContent = data.astronomical_dawn;
           document.getElementById('dusk').textContent = data.astronomical_dusk;
         })
-        .catch(error => {
-          console.error('❌ Error fetching sun events:', error);
+        .catch(error => { console.error('❌ Error fetching sun events:', error);});
+    }
+
+    window.onload = () => {
+      activeTab = localStorage.getItem('activeTab') || 'position';
+      fetchLocations();
+      fetchSunEvents();
+      fetchData(); // This will call updateTabDisplay, filterTable, sortTable
+      setInterval(fetchData, 60000);
+
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+          activeTab = button.dataset.tab;
+          updateTabDisplay();
+          // When tab changes, re-apply filters which also updates input values from localStorage
+          filterTable();
         });
-    }
-    function parseTimeToMinutes(timeStr) {
-      const [h, m] = timeStr.split(':').map(Number);
-      return h * 60 + m;
-    }
-    </script>
+      });
+
+      document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]").forEach(header => {
+        const columnKey = header.dataset.columnKey;
+        if (columnConfig[columnKey] && columnConfig[columnKey].sortable) {
+            header.addEventListener("click", () => sortTable(columnKey, true));
+        }
+      });
+
+      document.querySelectorAll(".filter-row input").forEach(input => {
+          const thParent = input.closest('th');
+          const columnKey = thParent ? thParent.dataset.columnKey : null;
+          if (columnKey && columnConfig[columnKey] && columnConfig[columnKey].filterable) {
+              input.addEventListener("keyup", () => {
+                  saveFilter(input, columnKey); // Save to localStorage
+                  filterTable(); // Re-apply filters (which reads from localStorage)
+              });
+          }
+      });
+      // Initial call to set up tab visibility and populate filters from localStorage
+      updateTabDisplay();
+      filterTable();
+    };
+  </script>
 {% endblock %}
 </head>
 <body>
@@ -521,8 +702,7 @@
     <small>Location:</small>
     <span>
       <select id="location-select" onchange="setLocation()">
-        <!-- options here -->
-      </select>
+        </select>
     </span>
   </p>
 
@@ -533,57 +713,58 @@
     <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
     <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
   </div>
-
 </div>
 
+<div class="tab-container">
+    <button class="tab-button active" data-tab="position">Position</button>
+    <button class="tab-button" data-tab="properties">Properties</button>
+</div>
 <div id="list-section">
   <div class="table-wrapper">
-    <table id="data-table" style="table-layout: fixed; width: 100%; min-width: 1000px;" data-sort-order="asc">
-      <col style="width: 10%;">
-      <col style="width: 25%;">
-      <col style="width: 7.14%;">
-      <col style="width: 7.14%;">
-      <col style="width: 5%;">
-      <col style="width: 7.14%;">
-      <col style="width: 7.14%;">
-      <col style="width: 7.14%;">
-      <col style="width: 7.14%;">
-      <col style="width: 7.14%;">
-      <col style="width: 7.14%;">
-
+    <table id="data-table" data-sort-order="asc">
       <thead>
         <tr>
-          <th class="sortable"><span>Object</span></th>
-          <th class="sortable"><span>Common name</span></th>
-          <th class="sortable"><span>Altitude<br><span class="subtext">(Current)</span></span></th>
-          <th class="sortable"><span>Azimuth <br><span class="subtext">(Current)</span></span></th>
-          <th class="sortable"><span>Trend</span></th>
-          <th class="sortable"><span>Altitude <br><span class="subtext">(11 PM)</span></span></th>
-          <th class="sortable"><span>Azimuth <br><span class="subtext">(11 PM)</span></span></th>
-          <th class="sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span></th>
-          <th class="sortable"><span>Observable <br><span class="subtext">(minutes)</span></span></th>
-          <th class="sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span></th>
-          <th class="sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span></th>
+          <th data-column-key="Object" class="col-always-visible sortable"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+          <th data-column-key="Common Name" class="col-always-visible sortable"><span>Common name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+
+          <th data-column-key="Altitude Current" class="col-position sortable"><span>Altitude<br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Azimuth Current" class="col-position sortable"><span>Azimuth <br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Trend" class="col-position sortable"><span>Trend</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+          <th data-column-key="Altitude 11PM" class="col-position sortable"><span>Altitude <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Azimuth 11PM" class="col-position sortable"><span>Azimuth <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Transit Time" class="col-position sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Observable Duration (min)" class="col-position sortable"><span>Observable <br><span class="subtext">(minutes)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Max Altitude (°)" class="col-position sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span><span class="sort-indicator"></span></th>
+          <th data-column-key="Angular Separation (°)" class="col-position sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span><span class="sort-indicator"></span></th>
+
+          <th data-column-key="Type" class="col-properties sortable"><span>Type</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+          <th data-column-key="Magnitude" class="col-properties sortable"><span>Magnitude</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+          <th data-column-key="Size" class="col-properties sortable"><span>Size (')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+          <th data-column-key="SB" class="col-properties sortable"><span>SB</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
         </tr>
         <tr class="filter-row">
-          <th><input type="text" placeholder="Search Object" onkeyup="saveFilter(this, 0); filterTable();"/></th>
-          <th><input type="text" placeholder="Search Common name" onkeyup="saveFilter(this, 1); filterTable();" /></th>
-          <th><input type="text" placeholder="Altitude °" onkeyup="saveFilter(this, 2); filterTable();" /></th>
-          <th><input type="text" placeholder="Azimuth °" onkeyup="saveFilter(this, 3); filterTable();" /></th>
-          <th><input type="text" placeholder="Trend" disabled style="visibility:hidden;" /></th>
-          <th><input type="text" placeholder="Altitude °" onkeyup="saveFilter(this, 5); filterTable();" /></th>
-          <th><input type="text" placeholder="Azimuth °" onkeyup="saveFilter(this, 6); filterTable();" /></th>
-          <th><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
-          <th><input type="text" placeholder="minutes" onkeyup="saveFilter(this, 8); filterTable();" /></th>
-          <th><input type="text" placeholder="Max Alt. °" onkeyup="saveFilter(this, 9); filterTable();" /></th>
-          <th><input type="text" placeholder="Ang. Sep. °" onkeyup="saveFilter(this, 10); filterTable();" /></th>
+          <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="Search Object" /></th>
+          <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="Search Common name" /></th>
+
+          <th data-column-key="Altitude Current" class="col-position"><input type="text" placeholder="Altitude °" /></th>
+          <th data-column-key="Azimuth Current" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
+          <th data-column-key="Trend" class="col-position"><input type="text" placeholder="Trend" disabled style="visibility:hidden;" /></th>
+          <th data-column-key="Altitude 11PM" class="col-position"><input type="text" placeholder="Altitude °" /></th>
+          <th data-column-key="Azimuth 11PM" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
+          <th data-column-key="Transit Time" class="col-position"><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
+          <th data-column-key="Observable Duration (min)" class="col-position"><input type="text" placeholder="minutes" /></th>
+          <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="Max Alt. °" /></th>
+          <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="Ang. Sep. °" /></th>
+
+          <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type" /></th>
+          <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
+          <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
+          <th data-column-key="SB" class="col-properties"><input type="text" placeholder="SB e.g. <22" /></th>
         </tr>
       </thead>
-
       <tbody id="data-body"></tbody>
     </table>
-  </div> <!-- Close scroll wrapper -->
-</div>
+  </div> </div>
 
 <div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
   Loading...
