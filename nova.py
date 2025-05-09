@@ -28,6 +28,7 @@ import yaml
 import shutil
 import subprocess
 import sys
+import time
 from modules.config_validation import validate_config
 
 import matplotlib
@@ -62,11 +63,13 @@ from modules.astro_calculations import (
     calculate_observable_duration_vectorized
 )
 
+from modules import nova_data_fetcher
+
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.5.0"
+APP_VERSION = "2.7.0"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -319,6 +322,39 @@ def load_config_for_request():
     g.objects = [ obj.get("Object") for obj in g.objects_list ]
 
 
+@app.route('/fetch_all_details', methods=['POST'])
+@login_required
+def fetch_all_details():
+    """Fetches missing details for all objects in the user's config."""
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    print(f"[FETCH ALL] Triggered for user: {username}")
+    try:
+        config_data = load_user_config(username)  # Load current config
+
+        # check_and_fill_object_data modifies config_data in place
+        # and returns True if changes were made and need saving
+        config_modified = check_and_fill_object_data(config_data)
+
+        if config_modified:
+            # Save the potentially modified config
+            save_user_config(username, config_data)
+            flash("Fetched and saved missing object details.", "success")
+            print("[FETCH ALL] Data fetched and config saved.")
+        else:
+            flash("No missing data found or no updates needed.", "info")
+            print("[FETCH ALL] No missing data needed fetching.")
+
+    except Exception as e:
+        print(f"[FETCH ALL ERROR] Failed during fetch all process: {e}")
+        flash(f"An error occurred during data fetching: {e}", "error")
+
+    # Redirect back to the config form to show updated data/messages
+    return redirect(url_for('config_form'))
+
 @app.route('/set_location', methods=['POST'])
 def set_location_api():
     data = request.get_json()
@@ -408,84 +444,168 @@ def import_config():
 
 
 def get_ra_dec(object_name):
+    # obj_key is already lowercase, which is good for matching
     obj_key = object_name.lower()
     objects_config = g.user_config.get("objects", [])
+    # Find the object's entry in the loaded YAML configuration
     obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
 
-    # ✅ If RA and DEC already exist in the config, return early
+    # Default values for the new fields if not found in config
+    default_type = "N/A"
+    default_magnitude = "N/A"  # Using string "N/A" for consistency if data is missing
+    default_size = "N/A"
+    default_sb = "N/A"
+    default_project = "none"  # Your existing default
+
     if obj_entry:
-        ra = obj_entry.get("RA")
-        dec = obj_entry.get("DEC")
-        if ra is not None and dec is not None:
+        # Get RA and DEC. If they exist, try to parse them.
+        ra_str = obj_entry.get("RA")
+        dec_str = obj_entry.get("DEC")
+
+        # Retrieve additional properties directly from the config entry
+        # Use .get() with a default value if the key might be missing
+        type_val = obj_entry.get("Type", default_type)
+        magnitude_val = obj_entry.get("Magnitude", default_magnitude)
+        size_val = obj_entry.get("Size", default_size)  # Assuming 'Size' is the key in YAML for arcminutes
+        sb_val = obj_entry.get("SB", default_sb)
+        project_val = obj_entry.get("Project", default_project)
+        common_name_val = obj_entry.get("Name", object_name)  # Use object_name as fallback for common name
+
+        if ra_str is not None and dec_str is not None:
             try:
+                # Ensure RA/DEC are floats. If they are already floats, this is fine.
+                # If they are strings that need conversion, this handles it.
+                ra_hours_float = float(ra_str)
+                dec_degrees_float = float(dec_str)
+
                 return {
-                    "Object": object_name,
-                    "Common Name": obj_entry.get("Name", object_name),
-                    "RA (hours)": float(ra),
-                    "DEC (degrees)": float(dec),
-                    "Project": obj_entry.get("Project", "none")
+                    "Object": object_name,  # Return original case for Object ID
+                    "Common Name": common_name_val,
+                    "RA (hours)": ra_hours_float,
+                    "DEC (degrees)": dec_degrees_float,
+                    "Project": project_val,
+                    "Type": type_val if type_val else default_type,  # Ensure "N/A" if empty string
+                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
+                    "Size": size_val if size_val else default_size,
+                    "SB": sb_val if sb_val else default_sb,
                 }
             except ValueError as ve:
-                print(f"[ERROR] Failed to parse RA/DEC for {object_name}: {ve}")
+                print(f"[ERROR] Failed to parse RA/DEC for {object_name} from config: {ve}")
+                # Return with error in Common Name, but still include other available config fields
                 return {
                     "Object": object_name,
-                    "Common Name": f"Error: Invalid RA/DEC format",
+                    "Common Name": f"Error: Invalid RA/DEC in config",
                     "RA (hours)": None,
                     "DEC (degrees)": None,
-                    "Project": obj_entry.get("Project", "none")
+                    "Project": project_val,
+                    "Type": type_val if type_val else default_type,
+                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
+                    "Size": size_val if size_val else default_size,
+                    "SB": sb_val if sb_val else default_sb,
                 }
-
-    # 🛰 Only fetch from SIMBAD if needed
-    print(f"[SIMBAD] Querying SIMBAD for {object_name}...")
-    Simbad.TIMEOUT = 60
-    Simbad.ROW_LIMIT = 1
-
-    try:
-        result = Simbad.query_object(object_name)
-        if result is None or len(result) == 0:
-            raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
-
-        result = {k.lower(): v for k, v in result.items()}
-        ra_value = result["ra"][0]
-        dec_value = result["dec"][0]
-
-        ra_hours = hms_to_hours(ra_value)
-        dec_degrees = dms_to_degrees(dec_value)
-
-        #  Save RA/DEC back into config for future use
-        if obj_entry:
-            obj_entry["RA"] = ra_hours
-            obj_entry["DEC"] = dec_degrees
         else:
-            objects_config.append({
+            # RA/DEC are missing in config, attempt SIMBAD lookup (existing logic)
+            # This part should ideally not fetch Type, Mag, Size, SB from SIMBAD here
+            # to keep this function focused on what's in the config or basic RA/DEC.
+            # For now, we'll keep your existing SIMBAD logic but ensure it doesn't overwrite Type, Mag etc.
+            # if they were already found (though in this branch, RA/DEC were missing).
+            print(f"[SIMBAD] RA/DEC missing for {object_name} in config. Querying SIMBAD...")
+            Simbad.TIMEOUT = 60
+            Simbad.ROW_LIMIT = 1
+            try:
+                result = Simbad.query_object(object_name)
+                if result is None or len(result) == 0:
+                    raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
+
+                # SIMBAD results are ByteStrings, need conversion
+                ra_value_simbad = result["RA"][0].decode('utf-8') if isinstance(result["RA"][0], bytes) else \
+                result["RA"][0]
+                dec_value_simbad = result["DEC"][0].decode('utf-8') if isinstance(result["DEC"][0], bytes) else \
+                result["DEC"][0]
+
+                ra_hours_simbad = hms_to_hours(ra_value_simbad)
+                dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
+
+                # Update the obj_entry in memory (and it will be saved if config is saved later)
+                obj_entry["RA"] = ra_hours_simbad
+                obj_entry["DEC"] = dec_degrees_simbad
+                # Do NOT update Type, Mag, Size, SB here from SIMBAD in this flow.
+                # That's handled by check_and_fill_object_data or fetch_object_details.
+
+                # It's better to save config explicitly when changes are made,
+                # not implicitly within a get function.
+                # save_user_config(current_user.username, g.user_config) # Consider removing save from here
+
+                return {
+                    "Object": object_name,
+                    "Common Name": common_name_val,  # Use name from config if available
+                    "RA (hours)": ra_hours_simbad,
+                    "DEC (degrees)": dec_degrees_simbad,
+                    "Project": project_val,
+                    "Type": type_val if type_val else default_type,  # From config
+                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,  # From config
+                    "Size": size_val if size_val else default_size,  # From config
+                    "SB": sb_val if sb_val else default_sb,  # From config
+                }
+            except Exception as ex:
+                error_message = f"Error: SIMBAD lookup failed: {str(ex)}"
+                print(f"[ERROR] {error_message} for {object_name}")
+                return {
+                    "Object": object_name,
+                    "Common Name": error_message,
+                    "RA (hours)": None,
+                    "DEC (degrees)": None,
+                    "Project": project_val,  # Still return project from config if object entry existed
+                    "Type": type_val if obj_entry and type_val else default_type,
+                    "Magnitude": magnitude_val if obj_entry and magnitude_val else default_magnitude,
+                    "Size": size_val if obj_entry and size_val else default_size,
+                    "SB": sb_val if obj_entry and sb_val else default_sb,
+                }
+    else:  # Object not in config at all
+        print(f"[INFO] Object {object_name} not found in config. Attempting SIMBAD lookup for RA/DEC only.")
+        # SIMBAD lookup for basic RA/DEC if object is entirely new
+        Simbad.TIMEOUT = 60
+        Simbad.ROW_LIMIT = 1
+        try:
+            result = Simbad.query_object(object_name)
+            if result is None or len(result) == 0:
+                raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
+
+            ra_value_simbad = result["RA"][0].decode('utf-8') if isinstance(result["RA"][0], bytes) else result["RA"][0]
+            dec_value_simbad = result["DEC"][0].decode('utf-8') if isinstance(result["DEC"][0], bytes) else \
+            result["DEC"][0]
+
+            ra_hours_simbad = hms_to_hours(ra_value_simbad)
+            dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
+
+            # This object isn't in the config, so we can't save it here.
+            # The config form is the place to add new objects.
+            # For the /data endpoint, we just provide what we can.
+            return {
                 "Object": object_name,
-                "Name": object_name,
-                "Type": "",
-                "Project": "none",
-                "RA": ra_hours,
-                "DEC": dec_degrees
-            })
-
-        save_user_config(current_user.username, g.user_config)
-
-        return {
-            "Object": object_name,
-            "Common Name": object_name,
-            "RA (hours)": ra_hours,
-            "DEC (degrees)": dec_degrees,
-            "Project": "none"
-        }
-
-    except Exception as ex:
-        error_message = f"Error: {str(ex)}"
-        print(f"[ERROR] SIMBAD lookup for {object_name} failed: {error_message}")
-        return {
-            "Object": object_name,
-            "Common Name": error_message,
-            "RA (hours)": None,
-            "DEC (degrees)": None,
-            "Project": error_message
-        }
+                "Common Name": object_name,  # Default to object_name as common name
+                "RA (hours)": ra_hours_simbad,
+                "DEC (degrees)": dec_degrees_simbad,
+                "Project": default_project,  # Default project
+                "Type": default_type,  # Default Type
+                "Magnitude": default_magnitude,  # Default Magnitude
+                "Size": default_size,  # Default Size
+                "SB": default_sb,  # Default SB
+            }
+        except Exception as ex:
+            error_message = f"Error: SIMBAD lookup failed: {str(ex)}"
+            print(f"[ERROR] {error_message} for {object_name}")
+            return {
+                "Object": object_name,
+                "Common Name": error_message,
+                "RA (hours)": None,
+                "DEC (degrees)": None,
+                "Project": default_project,
+                "Type": default_type,
+                "Magnitude": default_magnitude,
+                "Size": default_size,
+                "SB": default_sb,
+            }
 
 
 def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz_name, selected_location):
@@ -881,6 +1001,168 @@ def search_object():
         return jsonify({"status": "error", "message": data.get("Common Name", "Object not found.")}), 404
 
 
+def check_and_fill_object_data(config_data):
+    """
+    Iterates through objects in config_data, fetches missing or placeholder details
+    using nova_data_fetcher, and updates the config_data dictionary in place.
+    Returns True if any data was modified, False otherwise.
+    """
+    if not config_data or 'objects' not in config_data:
+        print("[CONFIG CHECK/FETCH] No 'objects' key in config_data or config_data is empty.")
+        return False
+
+    objects_list = config_data.get('objects', [])
+    if not isinstance(objects_list, list):
+        print("[WARNING] 'objects' in config is not a list. Skipping auto-fill.")
+        return False
+
+    modified = False
+    # Fields to check and their corresponding keys in the data returned by nova_data_fetcher
+    fields_to_check = {
+        # Config Key : Fetcher Key from nova_data_fetcher.get_astronomical_data()
+        "Type": "object_type",
+        "Magnitude": "magnitude",
+        "Size": "size_arcmin",  # Assuming your YAML uses "Size" for size_arcmin
+        "SB": "surface_brightness",
+    }
+
+    # Values that indicate a field should be (re-)fetched
+    refetch_trigger_values = [None, "", "Not Found", "Fetch Error"]
+    # Value to set if fetcher returns None for a field that was attempted
+    placeholder_on_fetch_failure = "Not Found"
+    # Value to set if the fetch operation itself throws an exception for an object
+    placeholder_on_exception = "Fetch Error"
+
+    print("[CONFIG CHECK/FETCH] Checking objects for missing or placeholder data...")
+    objects_processed_for_fetching = 0
+    objects_actually_updated = 0
+
+    for obj_entry in objects_list:
+        if not isinstance(obj_entry, dict) or "Object" not in obj_entry:
+            print(f"[WARNING] Skipping invalid object entry: {obj_entry}")
+            continue
+
+        object_name = obj_entry["Object"]
+
+        fields_that_need_update = {}
+        for config_key, fetcher_key in fields_to_check.items():
+            current_value = obj_entry.get(config_key)
+
+            # MODIFIED: Condition to trigger refetch
+            needs_refetch = False
+            if current_value in refetch_trigger_values:
+                needs_refetch = True
+            elif isinstance(current_value, str):
+                # Check for empty string after stripping, or case-insensitive "none"
+                if current_value.strip() == "" or current_value.strip().lower() == 'none':
+                    needs_refetch = True
+
+            if needs_refetch:
+                fields_that_need_update[config_key] = fetcher_key
+
+        if fields_that_need_update:
+            print(
+                f"--- Attempting to fetch/update data for {object_name} for fields: {list(fields_that_need_update.keys())} ---")
+            objects_processed_for_fetching += 1
+            object_had_an_update_this_round = False
+
+            try:
+                fetched_data = nova_data_fetcher.get_astronomical_data(object_name)
+
+                for config_key, fetcher_key in fields_that_need_update.items():
+                    new_value_from_fetcher = fetched_data.get(fetcher_key)
+
+                    if new_value_from_fetcher is not None and new_value_from_fetcher != "":
+                        try:
+                            if isinstance(new_value_from_fetcher, float):
+                                if config_key == "Magnitude":
+                                    new_value_formatted = round(new_value_from_fetcher, 2)
+                                elif config_key == "Size":
+                                    new_value_formatted = round(new_value_from_fetcher, 2)
+                                elif config_key == "SB":
+                                    new_value_formatted = round(new_value_from_fetcher, 2)
+                                else:
+                                    new_value_formatted = new_value_from_fetcher
+                            else:
+                                new_value_formatted = str(new_value_from_fetcher).strip()
+                        except ValueError:
+                            print(
+                                f"    [WARN] Could not format fetched value '{new_value_from_fetcher}' for {config_key} of {object_name}. Storing as is or placeholder.")
+                            new_value_formatted = placeholder_on_fetch_failure
+
+                        current_config_value = obj_entry.get(config_key)
+                        should_update = False
+                        if current_config_value in refetch_trigger_values or \
+                                (isinstance(current_config_value,
+                                            str) and current_config_value.strip().lower() == 'none'):
+                            should_update = True  # Always update if current value is a trigger
+                        elif current_config_value != new_value_formatted:
+                            should_update = True  # Update if different from existing valid value
+
+                        if should_update:
+                            obj_entry[config_key] = new_value_formatted
+                            print(
+                                f"    Updated '{config_key}' for {object_name} = {new_value_formatted} (Source: {fetched_data.get(fetcher_key.replace('_arcmin', '').replace('object_', '') + '_source', 'N/A')})")
+                            modified = True
+                            object_had_an_update_this_round = True
+                    else:
+                        if obj_entry.get(config_key) != placeholder_on_fetch_failure:
+                            obj_entry[config_key] = placeholder_on_fetch_failure
+                            print(
+                                f"    Marked '{config_key}' as '{placeholder_on_fetch_failure}' for {object_name} (fetcher returned no data for this field).")
+                            modified = True
+                            object_had_an_update_this_round = True
+
+                if object_had_an_update_this_round:
+                    objects_actually_updated += 1
+
+            except Exception as e:
+                print(f"[ERROR] Fetch operation failed for {object_name}: {e}")
+                for config_key in fields_that_need_update:
+                    if obj_entry.get(config_key) != placeholder_on_exception:
+                        obj_entry[config_key] = placeholder_on_exception
+                        modified = True
+                        object_had_an_update_this_round = True
+                if fields_that_need_update and not object_had_an_update_this_round:
+                    objects_actually_updated += 1
+
+            time.sleep(0.5)
+
+    if modified:
+        print(
+            f"[CONFIG CHECK/FETCH] Processed {objects_processed_for_fetching} objects for potential updates, {objects_actually_updated} objects had at least one field updated/marked. Config needs saving.")
+    else:
+        print("[CONFIG CHECK/FETCH] No objects required data fetching or re-fetching based on current criteria.")
+
+    return modified
+
+@app.route('/fetch_object_details', methods=['POST'])
+@login_required
+def fetch_object_details():
+    """
+    Fetch exactly Type, Magnitude, Size, SB for one object
+    using nova_data_fetcher.
+    """
+    req = request.get_json()
+    object_name = req.get("object")
+    if not object_name:
+        return jsonify({"status": "error", "message": "No object specified."}), 400
+
+    try:
+        fetched = nova_data_fetcher.get_astronomical_data(object_name)
+        return jsonify({
+            "status": "success",
+            "data": {
+                "Type":      fetched.get("object_type")        or "",
+                "Magnitude": fetched.get("magnitude")          or "",
+                "Size":      fetched.get("size_arcmin")        or "",
+                "SB":        fetched.get("surface_brightness") or ""
+            }
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route('/confirm_object', methods=['POST'])
 @login_required
 def confirm_object():
@@ -929,60 +1211,72 @@ def get_data():
     fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
 
-    object_data = []
+    object_data_list = [] # Renamed to avoid conflict with 'data' variable from get_ra_dec
     prev_alts = session.get('previous_altitudes', {})
 
-    for obj in g.objects:
-        data = get_ra_dec(obj)
-        if not data or data["RA (hours)"] is None or data["DEC (degrees)"] is None:
-            object_data.append({
-                'Object': obj,
-                'Common Name': data.get("Project", "Error"),
+    # g.objects is a list of object names from the config
+    for obj_name_from_config in g.objects:
+        # Call the modified get_ra_dec to get all details (RA/DEC + Type, Mag, etc. from config)
+        # The 'data' variable here will now hold the extended dictionary
+        obj_details = get_ra_dec(obj_name_from_config)
+
+        if not obj_details or obj_details.get("RA (hours)") is None or obj_details.get("DEC (degrees)") is None:
+            # Handle cases where essential RA/DEC are missing even after get_ra_dec logic
+            object_data_list.append({
+                'Object': obj_name_from_config,
+                'Common Name': obj_details.get("Common Name", "Error: RA/DEC lookup failed"),
                 'RA (hours)': "N/A",
                 'DEC (degrees)': "N/A",
-                'Altitude Current': 100,
+                'Altitude Current': 100, # Or some other error indicator
                 'Azimuth Current': "N/A",
                 'Altitude 11PM': "N/A",
                 'Azimuth 11PM': "N/A",
                 'Transit Time': "N/A",
                 'Observable Duration (min)': "N/A",
                 'Trend': "N/A",
-                'Project': data.get('Project', "none"),
+                'Project': obj_details.get('Project', "none"),
                 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
                 'Max Altitude (°)': "N/A",
+                'Angular Separation (°)': "N/A",
+                # Add placeholders for new fields in error case too
+                'Type': obj_details.get('Type', 'N/A'),
+                'Magnitude': obj_details.get('Magnitude', 'N/A'),
+                'Size': obj_details.get('Size', 'N/A'),
+                'SB': obj_details.get('SB', 'N/A'),
             })
             continue
 
         try:
-            ra = data["RA (hours)"]
-            dec = data["DEC (degrees)"]
+            ra = obj_details["RA (hours)"] # Already float from get_ra_dec
+            dec = obj_details["DEC (degrees)"] # Already float from get_ra_dec
 
             # --- Compute live values ---
             alt_current, az_current = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, current_time_utc)
 
             # --- Get 11PM/transit/obs/max from static_cache ---
-            cache_key = f"{obj.lower()}_{local_date}_{g.selected_location}"
+            # Using obj_name_from_config for cache key consistency
+            cache_key = f"{obj_name_from_config.lower()}_{local_date}_{g.selected_location}"
             if cache_key in static_cache:
-                cached = static_cache[cache_key]
+                cached_positional = static_cache[cache_key]
             else:
                 alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
                 transit_time = calculate_transit_time(ra, g.lat, g.lon, g.tz_name)
-                altitude_threshold = g.user_config.get("altitude_threshold", 20)
+                # altitude_threshold already defined above
                 obs_duration, max_alt = calculate_observable_duration_vectorized(
                     ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
                 )
-                cached = {
+                cached_positional = {
                     'Altitude 11PM': alt_11pm,
                     'Azimuth 11PM': az_11pm,
                     'Transit Time': transit_time,
-                    'Observable Duration (min)': int(obs_duration.total_seconds() / 60),
-                    'Max Altitude (°)': round(max_alt, 1)
+                    'Observable Duration (min)': int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                    'Max Altitude (°)': round(max_alt, 1) if max_alt is not None else "N/A"
                 }
-                static_cache[cache_key] = cached
+                static_cache[cache_key] = cached_positional
 
             # --- Moon angular separation (hourly cache) ---
             current_hour_str = current_datetime_local.strftime('%Y-%m-%d_%H')
-            moon_key = f"{obj.lower()}_{current_hour_str}_{g.selected_location}"
+            moon_key = f"{obj_name_from_config.lower()}_{current_hour_str}_{g.selected_location}"
 
             if moon_key in moon_separation_cache:
                 angular_sep = moon_separation_cache[moon_key]
@@ -992,44 +1286,64 @@ def get_data():
                 moon_coord = get_body('moon', time_obj, location=location)
                 moon_altaz = moon_coord.transform_to(AltAz(obstime=time_obj, location=location))
 
-                obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-                obj_altaz = obj_coord.transform_to(AltAz(obstime=time_obj, location=location))
+                obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg) # Renamed to avoid conflict
+                obj_altaz_sky = obj_coord_sky.transform_to(AltAz(obstime=time_obj, location=location))
 
-                angular_sep = obj_altaz.separation(moon_altaz).deg
+                angular_sep = obj_altaz_sky.separation(moon_altaz).deg
                 moon_separation_cache[moon_key] = round(angular_sep, 1)
 
-            # --- Trend ---
-            prev_alt = prev_alts.get(obj)
-            trend = '→'
-            if prev_alt is not None:
-                trend = '↑' if alt_current > prev_alt else '↓' if alt_current < prev_alt else '→'
-            prev_alts[obj] = alt_current
 
-            object_data.append({
-                'Object': data['Object'],
-                'Common Name': data['Common Name'],
-                'RA (hours)': ra,
-                'DEC (degrees)': dec,
+            # --- Trend ---
+            prev_alt = prev_alts.get(obj_name_from_config)
+            trend = '→' # Default trend
+            if prev_alt is not None: # Check if there's a previous altitude
+                if alt_current > prev_alt:
+                    trend = '↑'
+                elif alt_current < prev_alt:
+                    trend = '↓'
+            prev_alts[obj_name_from_config] = alt_current
+
+
+            # Append all data, including new fields from obj_details
+            object_data_list.append({
+                'Object': obj_details['Object'], # From get_ra_dec
+                'Common Name': obj_details['Common Name'], # From get_ra_dec
+                'RA (hours)': ra, # Already float
+                'DEC (degrees)': dec, # Already float
                 'Altitude Current': alt_current,
                 'Azimuth Current': az_current,
-                'Altitude 11PM': cached['Altitude 11PM'],
-                'Azimuth 11PM': cached['Azimuth 11PM'],
-                'Transit Time': cached['Transit Time'],
-                'Observable Duration (min)': cached['Observable Duration (min)'],
-                'Max Altitude (°)': cached['Max Altitude (°)'],
+                'Altitude 11PM': cached_positional['Altitude 11PM'],
+                'Azimuth 11PM': cached_positional['Azimuth 11PM'],
+                'Transit Time': cached_positional['Transit Time'],
+                'Observable Duration (min)': cached_positional['Observable Duration (min)'],
+                'Max Altitude (°)': cached_positional['Max Altitude (°)'],
                 'Angular Separation (°)': round(angular_sep) if angular_sep is not None else "N/A",
                 'Trend': trend,
-                'Project': data.get('Project', "none"),
+                'Project': obj_details.get('Project', "none"), # From get_ra_dec
                 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+                # NEWLY ADDED FIELDS (from obj_details, which gets them from config)
+                'Type': obj_details.get('Type', 'N/A'),
+                'Magnitude': obj_details.get('Magnitude', 'N/A'),
+                'Size': obj_details.get('Size', 'N/A'),
+                'SB': obj_details.get('SB', 'N/A'),
             })
 
         except Exception as e:
-            print(f"[ERROR] {obj}: {e}")
+            print(f"[ERROR processing object {obj_name_from_config} in /data]: {e}")
+            # Append with error indication if something goes wrong during processing an object
+            object_data_list.append({
+                'Object': obj_name_from_config,
+                'Common Name': f"Error processing: {e}",
+                # ... fill other fields with N/A or defaults ...
+                'Type': 'N/A', 'Magnitude': 'N/A', 'Size': 'N/A', 'SB': 'N/A',
+            })
+
 
     session['previous_altitudes'] = prev_alts
+    # Sort by current altitude, ensuring 'Altitude Current' is float for sorting
     sorted_objects = sorted(
-        object_data,
-        key=lambda x: x['Altitude Current'] if isinstance(x['Altitude Current'], (int, float)) else -1,
+        object_data_list,
+        key=lambda x: float(x['Altitude Current']) if isinstance(x.get('Altitude Current'), (int, float, str)) and str(x.get('Altitude Current')).replace('.', '', 1).isdigit() else -float('inf'),
         reverse=True
     )
     response = jsonify({
@@ -1040,13 +1354,11 @@ def get_data():
         "objects": sorted_objects
     })
 
-    # Add caching headers
-    cache_timeout = 60  # Cache for 60 seconds (adjust as needed)
+    cache_timeout = 60
     response.headers['Cache-Control'] = f'public, max-age={cache_timeout}'
     response.headers['Expires'] = (datetime.now(timezone.utc) + timedelta(seconds=cache_timeout)).strftime('%a, %d %b %Y %H:%M:%S GMT')
 
     return response
-
 
 @app.route('/sun_events')
 def sun_events():

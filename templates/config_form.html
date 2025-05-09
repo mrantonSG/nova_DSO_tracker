@@ -10,6 +10,7 @@
     body {
       padding: 20px;
       margin: 0;
+      font-family: 'Roboto', sans-serif;
     }
     fieldset {
       margin-top: 20px;
@@ -31,6 +32,7 @@
       font-size: 14px;
       padding: 5px;
       box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
     }
     .block {
       border: 0px solid #ddd;
@@ -41,8 +43,12 @@
     .error {
       color: red;
     }
-    .message {
+    .message { /* Default for success messages from Flask */
       color: green;
+    }
+    .progress-message { /* Style for our JS-driven progress message */
+        color: #007bff;
+        font-weight: bold;
     }
     .inline-button {
       padding: 5px 10px;
@@ -53,7 +59,6 @@
     input.short {
       width: 150px;
     }
-    /* Fixed width for labels inside inline fields */
     .inline-fields label {
       display: inline-block;
       width: 20px;
@@ -61,7 +66,6 @@
       margin: 0;
       padding: 0;
     }
-    /* Define fixed width for location ID cells */
     .location-id {
       width: 100px;
       display: flex;
@@ -69,7 +73,7 @@
       justify-content: flex-start;
     }
     .object-id {
-      width: 100px; /* For objects, already defined */
+      width: 100px;
     }
     .header-container { display: flex; align-items: baseline; }
     .header-container h1, .header-container h3 { margin-bottom: 20px; }
@@ -97,79 +101,71 @@
       background-color: #6795a4 !important;
     }
     input.object_field {
-      width: 50px;
+      width: 40px;
     }
     input.name_field {
-      width: 200px;
+      width: 250px;
     }
     input.project_field {
       width: 300px;
     }
     textarea.wide, textarea.project_field {
       width: 300px;
-      height: 80px;
+      height: 60px;
       box-sizing: border-box;
     }
-    /* --- Inline Fields Layout --- */
     .inline-fields {
       display: flex;
       flex-wrap: nowrap;
       align-items: flex-start;
-      gap: 10px;
+      gap: 15px;
       margin: 0 0 10px 0;
     }
-    /* Each field container (label + input) as a row */
     .inline-fields > div {
       display: flex;
       flex-direction: row;
-      align-items: flex-start;
+      align-items: center;
       gap: 5px;
     }
-    /* Ensure inputs and textareas have no extra top margin */
     .inline-fields input,
     .inline-fields textarea {
       margin-top: 0;
       box-sizing: border-box;
       font-size: 15px;
     }
-    .block .inline-fields label {
-      padding-top: 5px;
-    }
-    .inline-fields:not(.object-add-container) label {
-      padding-top: 5px;
-    }
+
     .locations-list, .objects-list {
       margin-top: 20px;
     }
     .location-id, .object-id {
-      padding-top: 3px;
     }
-    /* For short labels (e.g., Lat, Lon) */
     .short-label {
       display: inline-block;
       width: auto !important;
       margin-right: 2px !important;
       text-align: left !important;
+      white-space: nowrap;
     }
-    /* For longer labels (e.g., Timezone, Project) */
     .long-label {
       display: inline-block;
       width: 70px !important;
       margin-right: 5px !important;
       text-align: left !important;
+      white-space: nowrap;
     }
-    /* For longer labels (e.g., Timezone, Project) */
     .verylong-label {
       display: inline-block;
       width: 140px !important;
       margin-right: 5px !important;
       text-align: left !important;
+      white-space: nowrap;
     }
     .object-add-container .row {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 10px;
+      align-items: center;
     }
     .action-button {
       padding: 5px 10px;
@@ -198,7 +194,7 @@
     .dlback-button:hover {
       background-color: #6795a4 !important;
     }
-    .info-container {
+    .info-container-main {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -209,6 +205,7 @@
     .left-group,
     .right-group {
       display: flex;
+      align-items: center;
       gap: 10px;
     }
 
@@ -239,24 +236,41 @@
       opacity: 0.95;
       transition: opacity 0.3s ease;
     }
-  .toast-success { background-color: #4CAF50; }   /* green */
-  .toast-error { background-color: #f44336; }     /* red */
-  .toast-info { background-color: #2196F3; }      /* blue */
+  .toast-success { background-color: #4CAF50; }
+  .toast-error { background-color: #f44336; }
+  .toast-info { background-color: #2196F3; }
 
+    .second-row-fields {
+      margin-left: 117px;
+    }
+    .objects-list .inline-fields input[type="checkbox"],
+    .block .inline-fields input[type="checkbox"] {
+      transform: scale(1.5);
+      transform-origin: center left;
+      margin-top: 0;
+      margin-right: 5px;
+    }
+    .add-object-details-indent {
+      margin-left: 0px;
+    }
+    .add-object-details-indent > div {
+      gap: 15px;
+    }
   </style>
 {% endblock %}
 </head>
 <body>
+
 {% block body %}
   <div class="header-container">
     <h1>Nova</h1>
     <h3>DSO Tracker V{{ version }}</h3>
   </div>
-  <div class="info-container" style="justify-content: space-between; width: 100%;">
+  <div class="info-container-main">
     <div class="left-group">
       <a href="{{ url_for('index') }}" class="dlback-button">Back to Tracker</a>
     </div>
-    <div id="message-container" style="height: 24px;">
+    <div id="message-container" style="height: 24px; flex-grow: 1; text-align: center;">
       {% if error %}
         <p class="error" id="error-msg" style="margin: 0;">Error: {{ error }}</p>
       {% endif %}
@@ -264,63 +278,28 @@
         <p class="message" id="flash-msg" style="margin: 0;">{{ message }}</p>
       {% endif %}
     </div>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        // Fade out flash messages after 3 seconds
-        setTimeout(() => {
-          const flash = document.getElementById("flash-msg");
-          const error = document.getElementById("error-msg");
-
-          [flash, error].forEach(el => {
-            if (el) {
-              el.style.transition = "opacity 0.5s ease";
-              el.style.opacity = "0";
-              setTimeout(() => el.remove(), 500); // Remove from DOM after fade-out
-            }
-          });
-
-          // Remove query params from URL
-          const url = new URL(window.location.href);
-          url.searchParams.delete('message');
-          url.searchParams.delete('error');
-          window.history.replaceState({}, document.title, url.pathname + url.search);
-        }, 3000);
-      });
-    </script>
     <div class="right-group">
+      <form method="post" action="{{ url_for('fetch_all_details') }}" id="fetch-details-form">
+        <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
+      </form>
       <a href="{{ url_for('download_config') }}" class="file-button">Download Config</a>
       <a href="#" id="import-config-btn" class="file-button">Import Config</a>
-      <input type="file" id="config-upload" accept=".yaml" style="display: none;">
+      <input type="file" id="config-upload" accept=".yaml" style="display:none;">
     </div>
-<!--    <form id="update-form" action="{{ url_for('trigger_update') }}" method="post" style="display: inline;">-->
-<!--      <button type="submit" class="action-button" onclick="return confirm('Are you sure you want to update Nova? The app will restart.')">-->
-<!--        🔄 Update Nova-->
-<!--      </button>-->
-<!--    </form>-->
-
   </div>
 
-  <!-- General Settings (Altitude Threshold) -->
   <form method="post">
     <fieldset>
       <legend>General Settings</legend>
       <div class="inline-fields">
-        <!-- Altitude Threshold Field -->
         <div>
           <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
           <input type="number" name="altitude_threshold" id="altitude_threshold"
                  value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
         </div>
-
-        <!-- Hidden Input to Preserve Default Location -->
         <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
-        <br>
-
-
       </div>
-
       <hr>
-
       <div class="inline-fields">
         <div>
           <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
@@ -333,7 +312,6 @@
                  value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
         </div>
       </div>
-
       <div class="inline-fields">
         <div>
           <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
@@ -349,15 +327,13 @@
           <label class="verylong-label" for="search_horizon_months">Search months:</label>
           <input type="number" name="search_horizon_months" id="search_horizon_months"
                  value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
-          <br>
-          <button type="submit" name="submit_general" class="action-button">Save Settings</button>
         </div>
       </div>
+       <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
     </fieldset>
   </form>
 
   <hr>
-  <!-- Locations Form -->
   <form method="post">
     <fieldset>
       <legend>Locations Configuration</legend>
@@ -386,7 +362,6 @@
         </div>
       </fieldset>
       <hr>
-      <!-- Existing Locations arranged vertically -->
       <div class="locations-list">
         {% for loc_key, loc_val in locations.items() %}
           <div class="block">
@@ -407,8 +382,7 @@
                 <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
               </div>
               <div>
-                <label class="short-label" for="delete_loc_{{ loc_key }}">Delete:</label>
-                <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+                <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
               </div>
             </div>
           </div>
@@ -418,12 +392,10 @@
     </fieldset>
   </form>
 
-  <!-- Objects Form -->
   <form method="post">
     <fieldset>
       <legend>Add New Object</legend>
       <div class="object-add-container">
-        <!-- First row: Object ID and Common Name -->
         <div class="row">
           <div>
             <label class="long-label" for="new_object">Object ID:</label>
@@ -434,7 +406,6 @@
             <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
           </div>
         </div>
-        <!-- Second row: RA and DEC -->
         <div class="row">
           <div>
             <label class="long-label" for="new_ra">RA:</label>
@@ -445,116 +416,238 @@
             <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
           </div>
         </div>
-        <!-- Third row: Project -->
         <div class="inline-fields">
           <div>
             <label class="long-label" for="new_project">Notes:</label>
             <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
           </div>
         </div>
-        <!-- Fourth row: Feedback area and buttons -->
+        <div class="inline-fields add-object-details-indent">
+          <div>
+            <label class="short-label" for="new_type">Type:</label>
+            <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
+          </div>
+          <div>
+            <label class="short-label" for="new_magnitude">Mag:</label>
+            <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
+          </div>
+          <div>
+            <label class="short-label" for="new_size">Size:</label>
+            <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
+          </div>
+          <div>
+            <label class="short-label" for="new_sb">SB:</label>
+            <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
+          </div>
+        </div>
         <button id="submit_new_object" type="button" name="submit_new_object" value="1" class="action-button">Search</button>
         <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
         <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
-        <div class="row"></div>
-      </div>
+        <div class="row"></div> </div>
       <div id="object_result"></div>
     </fieldset>
     <hr>
-    <!-- Existing Objects arranged vertically -->
-    {% for obj in config.objects %}
-      <div class="block">
-        <div class="inline-fields">
-          <div class="object-id">
-            <strong>{{ obj.Object }}</strong>
+    <div class="objects-list">
+        {% for obj in config.objects %}
+          <div class="block">
+            <div class="inline-fields">
+              <div class="object-id">
+                <strong>{{ obj.Object }}</strong>
+              </div>
+              <div>
+                <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+              </div>
+              <div>
+                <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
+                <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
+              </div>
+              <div>
+                <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
+                <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
+              </div>
+              <div>
+                <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
+                <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
+              </div>
+              <div>
+                <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+              </div>
+            </div>
+            <div class="inline-fields second-row-fields">
+              <div>
+                <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
+                <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
+              </div>
+              <div>
+                <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
+                <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="short" step="0.01" value="{{ obj.Magnitude|default('') }}">
+              </div>
+              <div>
+                <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
+                <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="short" step="0.01" value="{{ obj.Size|default('') }}">
+              </div>
+              <div>
+                <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
+                <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="short" step="0.01" value="{{ obj.SB|default('') }}">
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
-            <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
-          </div>
-          <div>
-            <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
-            <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
-          </div>
-          <div>
-            <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
-            <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
-          </div>
-          <div>
-            <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
-            <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
-          </div>
-          <div>
-            <label class="short-label" for="delete_{{ obj.Object }}">Delete:</label>
-            <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
-          </div>
-        </div>
-      </div>
-    {% endfor %}
-    <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
+        {% endfor %}
+        <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
+    </div>
   </form>
   <br>
   <script>
+    // Removed fetchIntervalId as countdown is removed
+
+    function confirmAndFetchDetails(formElement) {
+        console.log("confirmAndFetchDetails called for form:", formElement.id);
+        const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
+        let estimatedTime = numObjects * 4;
+
+        let confirmationMessage = "Fetching all missing object details can take some time.\n";
+        if (numObjects > 0) {
+            confirmationMessage += `With ${numObjects} object(s), this might take around ${estimatedTime} seconds.\n`;
+        }
+        confirmationMessage += "Are you sure you want to proceed?";
+
+        if (confirm(confirmationMessage)) {
+            console.log("User confirmed fetch.");
+            const messageContainer = document.getElementById('message-container');
+            const button = document.getElementById('fetch-details-button');
+
+            if (button) {
+                button.disabled = true;
+                button.innerText = 'Processing...';
+                console.log("Button text and disabled state set.");
+            } else {
+                console.error("Fetch button not found!");
+            }
+
+            if (messageContainer) {
+                // Clear any existing flash messages
+                const existingError = document.getElementById('error-msg');
+                const existingFlash = document.getElementById('flash-msg');
+                if (existingError) existingError.remove();
+                if (existingFlash) existingFlash.remove();
+
+                let progressText = "Fetching details. This may take a moment.";
+                if (numObjects > 0) {
+                    progressText = `Fetching details for ${numObjects} object(s). Estimated time: ~${estimatedTime}s. Page will reload.`;
+                }
+                messageContainer.innerHTML = `<p class="progress-message">${progressText}</p>`;
+                console.log("Progress message set in message-container.");
+            } else {
+                console.error("Message container not found!");
+            }
+
+            // Use requestAnimationFrame to try and ensure UI updates are painted before submission
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    console.log("Submitting form now via JS using requestAnimationFrame.");
+                    formElement.submit();
+                });
+            });
+        } else {
+            console.log("User cancelled fetch.");
+        }
+    }
+
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const fetchDetailsForm = document.getElementById('fetch-details-form');
+      if (fetchDetailsForm) {
+        console.log("Adding submit listener to fetch-details-form");
+        fetchDetailsForm.addEventListener('submit', function(event) {
+          console.log("fetch-details-form submit event triggered.");
+          event.preventDefault();
+          confirmAndFetchDetails(this);
+        });
+      } else {
+          console.error("Fetch details form not found!");
+      }
+
+      // Modified: Only clear flash messages if no progress message is active
+      setTimeout(() => {
+        const messageContainer = document.getElementById('message-container');
+        const isProgressActive = messageContainer && messageContainer.querySelector('.progress-message');
+
+        if (!isProgressActive) {
+            const flash = document.getElementById("flash-msg");
+            const error = document.getElementById("error-msg");
+            [flash, error].forEach(el => {
+              if (el) {
+                el.style.transition = "opacity 0.5s ease";
+                el.style.opacity = "0";
+                setTimeout(() => el.remove(), 500);
+              }
+            });
+            const url = new URL(window.location.href);
+            url.searchParams.delete('message');
+            url.searchParams.delete('error');
+            window.history.replaceState({}, document.title, url.pathname + url.search);
+        }
+      }, 3000);
+
+      const resultDiv = document.getElementById('object_result');
       document.getElementById('submit_new_object').addEventListener('click', function(event) {
         event.preventDefault();
-        const resultDiv = document.getElementById('object_result');
-        resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
         const objectName = document.getElementById('new_object').value.trim();
         if (!objectName) {
           alert("Please enter an object identifier.");
           return;
         }
+        resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
         fetch('/search_object', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ object: objectName })
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
-          if (data.status === "success") {
-            resultDiv.innerHTML = `<p style="color: #83b4c5;">
-              Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})
-            </p>`;
-            document.getElementById('new_name').value = data.data["Common Name"];
-            document.getElementById('new_ra').value = data.data["RA (hours)"];
-            document.getElementById('new_dec').value = data.data["DEC (degrees)"];
-            document.getElementById('new_name').readOnly = true;
-            document.getElementById('new_ra').readOnly = true;
-            document.getElementById('new_dec').readOnly = true;
-            document.getElementById('confirm_add_object').style.display = 'inline-block';
-            document.getElementById('edit_object').style.display = 'inline-block';
+          if (data.status !== "success") throw new Error(data.message || 'SIMBAD lookup failed');
+          document.getElementById('new_name').value    = data.data["Common Name"];
+          document.getElementById('new_ra').value      = data.data["RA (hours)"];
+          document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
+          ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+          resultDiv.innerHTML = `<p style="color: #83b4c5;">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
+          return fetch('/fetch_object_details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ object: objectName })
+          });
+        })
+        .then(r => r.json())
+        .then(extra => {
+          if (extra.status === 'success') {
+            document.getElementById('new_type').value      = extra.data.Type      || '';
+            document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
+            document.getElementById('new_size').value      = extra.data.Size      || '';
+            document.getElementById('new_sb').value        = extra.data.SB        || '';
           } else {
-            resultDiv.innerHTML = `<p style="color:red;">SIMBAD did not return data: ${data.message}. You can add the object manually by entering RA and DEC.</p>`;
-            document.getElementById('new_name').readOnly = false;
-            document.getElementById('new_ra').readOnly = false;
-            document.getElementById('new_dec').readOnly = false;
-            document.getElementById('confirm_add_object').style.display = 'inline-block';
-            document.getElementById('edit_object').style.display = 'inline-block';
+            console.warn("Extra fields error:", extra.message);
           }
+          ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
         })
         .catch(err => {
-          console.error("Error searching object:", err);
-          resultDiv.innerHTML = `<p style="color:red;">Error occurred while searching.</p>`;
-          document.getElementById('new_name').readOnly = false;
-          document.getElementById('new_ra').readOnly = false;
-          document.getElementById('new_dec').readOnly = false;
-          document.getElementById('confirm_add_object').style.display = 'inline-block';
+          resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+          console.error(err);
         });
       });
 
       document.getElementById('confirm_add_object').addEventListener('click', function(event) {
         event.preventDefault();
-        const objectName = document.getElementById('new_object').value.trim();
-        const commonName = document.getElementById('new_name').value.trim();
-        const ra = document.getElementById('new_ra').value.trim();
-        const dec = document.getElementById('new_dec').value.trim();
-        const project = document.getElementById('new_project').value.trim();
         const payload = {
-          object: objectName,
-          name: commonName,
-          ra: ra,
-          dec: dec,
-          project: project
+            object: document.getElementById('new_object').value.trim(),
+            name: document.getElementById('new_name').value.trim(),
+            ra: document.getElementById('new_ra').value.trim(),
+            dec: document.getElementById('new_dec').value.trim(),
+            project: document.getElementById('new_project').value.trim(),
+            type: document.getElementById('new_type').value.trim(),
+            magnitude: document.getElementById('new_magnitude').value,
+            size: document.getElementById('new_size').value,
+            sb: document.getElementById('new_sb').value
         };
         fetch('/confirm_object', {
           method: 'POST',
@@ -563,63 +656,67 @@
         })
         .then(response => response.json())
         .then(data => {
-          const resultDiv = document.getElementById('object_result');
           if (data.status === "success") {
-            resultDiv.innerHTML = `<p style="color:green;">Object added successfully.</p>`;
-            document.getElementById('new_object').value = "";
-            document.getElementById('new_name').value = "";
-            document.getElementById('new_ra').value = "";
-            document.getElementById('new_dec').value = "";
-            document.getElementById('new_project').value = "";
-            document.getElementById('confirm_add_object').style.display = 'none';
-            document.getElementById('edit_object').style.display = 'none';
+            resultDiv.innerHTML = `<p style="color:green;">Object added successfully. Page will reload.</p>`;
+            setTimeout(() => window.location.reload(), 1500);
           } else {
-            resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message}</p>`;
+            throw new Error(data.message || 'Add failed');
           }
         })
         .catch(err => {
-          console.error("Error confirming object:", err);
-          document.getElementById('object_result').innerHTML = `<p style="color:red;">Error occurred while adding object.</p>`;
+          resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+          console.error(err);
         });
       });
 
       document.getElementById('edit_object').addEventListener('click', function(event) {
         event.preventDefault();
-        document.getElementById('new_name').readOnly = false;
-        document.getElementById('new_ra').readOnly = false;
-        document.getElementById('new_dec').readOnly = false;
+        ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.readOnly = false;
+        });
+        document.getElementById('new_object').readOnly = false;
       });
 
-    document.getElementById('import-config-btn').addEventListener('click', () => {
-    if (confirm("Are you sure you want to import a new config file? This will overwrite your current settings.")) {
-      document.getElementById('config-upload').click();
-    }
-  });
-
-    document.getElementById('config-upload').addEventListener('change', function () {
-      const file = this.files[0];
-      if (!file) return;
-
-      const formData = new FormData();
-      formData.append("file", file);
-
-      fetch("/import_config", {
-        method: "POST",
-        body: formData
-      })
-      .then(response => {
-        if (response.redirected) {
-          // ✅ Let Flask handle success/error messaging via redirect query params
-          window.location.href = response.url;
-        } else {
-          // Handle rare case: response not redirected but failed
-          response.text().then(msg => {
-            alert("❌ Import failed: " + msg);
-          });
+      document.getElementById('import-config-btn').addEventListener('click', () => {
+        if (confirm("This will overwrite your current configuration. Are you sure?")) {
+          document.getElementById('config-upload').click();
         }
-      })
-      .catch(err => {
-        alert("❌ Import failed: " + err.message);
+      });
+      document.getElementById('config-upload').addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const importButton = document.getElementById('import-config-btn');
+        const originalImportText = importButton.innerText;
+        const messageContainer = document.getElementById('message-container');
+
+        importButton.disabled = true;
+        importButton.innerText = "Importing...";
+        if(messageContainer) messageContainer.innerHTML = `<p class="progress-message">Importing configuration...</p>`;
+
+
+        fetch("/import_config", { method: "POST", body: formData })
+          .then(resp => {
+            if (resp.redirected) {
+              window.location.href = resp.url;
+            } else {
+              resp.text().then(msg => {
+                alert("Import failed: "+msg);
+                if(messageContainer) messageContainer.innerHTML = `<p class="error">Import failed.</p>`;
+                importButton.disabled = false;
+                importButton.innerText = originalImportText;
+              });
+            }
+          })
+          .catch(e => {
+            alert("Import failed: "+e.message);
+            if(messageContainer) messageContainer.innerHTML = `<p class="error">Import failed.</p>`;
+            importButton.disabled = false;
+            importButton.innerText = originalImportText;
+          });
       });
     });
   </script>
