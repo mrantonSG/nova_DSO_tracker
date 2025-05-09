@@ -47,7 +47,12 @@
         table-layout: auto;
         word-wrap: break-word;
     }
-    th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px 6px; /* MODIFIED: Consistent padding for th and td */
+        font-size: 15px;
+        vertical-align: middle; /* MODIFIED: Default vertical alignment */
+    }
 
     /* --- Column Widths --- */
     th[data-column-key="Object"],
@@ -103,10 +108,10 @@
         background-color: #f2f2f2;
         font-weight: normal;
         cursor: pointer;
-        min-height: 45px;
-        vertical-align: middle;
-        padding-top: 8px;
-        padding-bottom: 8px;
+        min-height: 45px; /* Helps maintain consistent header row height */
+        /* vertical-align: middle; already set for all th */
+        /* padding-top: 8px;  already set for all th */
+        /* padding-bottom: 8px; already set for all th */
     }
 
     th span { display: block; font-weight: bold; font-size: 13px; line-height: 1.3; }
@@ -116,6 +121,11 @@
       line-height: 1.3;
       display: block;
     }
+    /* MODIFIED: Ensure consistent line height for table body cells */
+    #data-body td {
+        line-height: 1.4; /* Adjust as needed for visual consistency */
+    }
+
 
     .highlight { background-color: #83b4c5; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
@@ -125,9 +135,27 @@
     .header-container { display: flex; align-items: baseline; }
     .header-container h1, .header-container h3 { margin-bottom: 20px; }
     .header-container h3 { margin-left: 10px; }
-    .info-container { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px; }
-    .info-container p, .info-container label, .info-container select { margin: 0; }
     h3 { font-weight: normal; }
+
+    .info-bar-container {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .info-bar-left {}
+    .info-bar-right {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: flex-start;
+    }
+    .info-bar-right > p, .info-bar-right > .info-values {
+        margin: 0;
+    }
+
     .filter-row th {
         background-color: #f2f2f2;
         vertical-align: top;
@@ -152,7 +180,12 @@
     .info-values p { margin: 2px 0; font-size: 16px; }
     .info-values small { font-size: 12px; color: #666; }
     .info-values span { font-weight: bold; font-size: 16px; color: #000; }
-    .info-values { display: flex; flex-wrap: wrap; gap: 20px; }
+    .info-values {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 20px;
+        align-items: center;
+    }
     .user-info { margin-left: 20px; font-size: 15px; color: #444; background-color: #f5f7f9; padding: 6px 10px; border-left: 4px solid #83b4c5; border-radius: 4px; display: inline-block; }
     .table-wrapper { overflow-x: auto; }
     .table-wrapper::-webkit-scrollbar { height: 8px; }
@@ -362,48 +395,43 @@
       localStorage.setItem("filter_col_key_" + columnKey, inputElement.value);
     }
 
-    // MODIFIED filterTable function
+    // MODIFIED filterTable function for multi-type filtering
     function filterTable() {
       const tbody = document.getElementById("data-body");
+      if (!tbody) return;
       const rows = tbody.getElementsByTagName("tr");
       const activeFilters = {};
 
-      // 1. Populate activeFilters from localStorage for ALL filterable columns
-      //    AND update input field values from localStorage.
       for (const columnKey in columnConfig) {
         if (columnConfig.hasOwnProperty(columnKey) && columnConfig[columnKey].filterable) {
           const savedFilterValue = localStorage.getItem("filter_col_key_" + columnKey);
           const inputElement = document.querySelector(`.filter-row th[data-column-key="${columnKey}"] input`);
 
-          if (inputElement) { // Ensure input element exists
+          if (inputElement) {
             if (savedFilterValue !== null) {
-              inputElement.value = savedFilterValue; // Always set input from localStorage
+              inputElement.value = savedFilterValue;
               if (savedFilterValue.trim() !== '') {
                 activeFilters[columnKey] = savedFilterValue.trim().toLowerCase();
               }
             } else {
-              inputElement.value = ''; // Clear input if no saved filter
+              inputElement.value = '';
             }
           } else if (savedFilterValue !== null && savedFilterValue.trim() !== '') {
-            // If input element doesn't exist (e.g. column completely removed from HTML)
-            // but there's a saved filter, still apply it.
             activeFilters[columnKey] = savedFilterValue.trim().toLowerCase();
           }
         }
       }
 
-      // 2. Apply filters to rows
       for (let i = 0; i < rows.length; i++) {
         let showRow = true;
-        for (const columnKey in activeFilters) {
-            if (activeFilters.hasOwnProperty(columnKey)) {
-                const filterValue = activeFilters[columnKey];
-                const config = columnConfig[columnKey]; // Config for the current filter's column
+        for (const columnKeyInFilter in activeFilters) {
+            if (activeFilters.hasOwnProperty(columnKeyInFilter)) {
+                const filterValue = activeFilters[columnKeyInFilter];
+                const config = columnConfig[columnKeyInFilter];
 
-                // This check is redundant if activeFilters is built correctly from filterable columns
-                // if (!config || !config.filterable) continue;
+                if (!config) continue;
 
-                const cellElement = rows[i].querySelector(`td[data-column-key="${columnKey}"]`);
+                const cellElement = rows[i].querySelector(`td[data-column-key="${columnKeyInFilter}"]`);
                 if (!cellElement) {
                     showRow = false; break;
                 }
@@ -416,52 +444,72 @@
                     continue;
                 }
 
-                const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                                     'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                                     'Magnitude', 'Size', 'SB'];
-
-                if (config && numericFilterKeys.includes(config.dataKey)) {
-                    if (cellText === "n/a") {
-                        showRow = false; break;
-                    }
-                    const cellNumber = parseFloat(cellText.replace(/[^0-9\.\-]/g, ""));
-                    if (isNaN(cellNumber)) {
-                        if (cellText.indexOf(filterValue) === -1) {
-                           showRow = false; break;
+                // MODIFICATION for 'Type' column to handle multiple comma/space separated values
+                if (config.dataKey === 'Type') {
+                    const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
+                    if (filterTypes.length > 0) {
+                        let typeMatch = false;
+                        for (const typeTerm of filterTypes) {
+                            // Exact match for type, or if cellText includes the typeTerm (e.g. "SyG" should match "Sy")
+                            if (cellText === typeTerm || cellText.includes(typeTerm)) {
+                                typeMatch = true;
+                                break;
+                            }
                         }
-                        continue;
+                        if (!typeMatch) {
+                            showRow = false; break;
+                        }
                     }
-                    const conditions = filterValue.split(" ").filter(cond => cond !== "");
-                    let conditionMetOverall = true;
-                    for (let cond of conditions) {
-                        let operator = ""; let valueStr = "";
-                        if (cond.startsWith(">=")) { operator = ">="; valueStr = cond.substring(2); }
-                        else if (cond.startsWith("<=")) { operator = "<="; valueStr = cond.substring(2); }
-                        else if (cond.startsWith(">")) { operator = ">"; valueStr = cond.substring(1); }
-                        else if (cond.startsWith("<")) { operator = "<"; valueStr = cond.substring(1); }
-                        else {
-                            if (String(cellNumber).indexOf(cond) === -1 && cellText.indexOf(cond) === -1) {
-                                conditionMetOverall = false; break;
+                }
+                // END MODIFICATION for 'Type' column
+                else {
+                    const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                                         'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                                         'Magnitude', 'Size', 'SB'];
+
+                    if (config && numericFilterKeys.includes(config.dataKey)) {
+                        if (cellText === "n/a") {
+                            showRow = false; break;
+                        }
+                        const cellNumber = parseFloat(cellText.replace(/[^0-9\.\-]/g, ""));
+                        if (isNaN(cellNumber)) {
+                            if (cellText.indexOf(filterValue) === -1) {
+                               showRow = false; break;
                             }
                             continue;
                         }
-                        let conditionValue = parseFloat(valueStr);
-                        if (isNaN(conditionValue)) { conditionMetOverall = false; break; }
+                        const conditions = filterValue.split(" ").filter(cond => cond !== "");
+                        let conditionMetOverall = true;
+                        for (let cond of conditions) {
+                            let operator = ""; let valueStr = "";
+                            if (cond.startsWith(">=")) { operator = ">="; valueStr = cond.substring(2); }
+                            else if (cond.startsWith("<=")) { operator = "<="; valueStr = cond.substring(2); }
+                            else if (cond.startsWith(">")) { operator = ">"; valueStr = cond.substring(1); }
+                            else if (cond.startsWith("<")) { operator = "<"; valueStr = cond.substring(1); }
+                            else {
+                                if (String(cellNumber).indexOf(cond) === -1 && cellText.indexOf(cond) === -1) {
+                                    conditionMetOverall = false; break;
+                                }
+                                continue;
+                            }
+                            let conditionValue = parseFloat(valueStr);
+                            if (isNaN(conditionValue)) { conditionMetOverall = false; break; }
 
-                        let currentConditionMet = false;
-                        if (operator === ">" && cellNumber > conditionValue) currentConditionMet = true;
-                        else if (operator === ">=" && cellNumber >= conditionValue) currentConditionMet = true;
-                        else if (operator === "<" && cellNumber < conditionValue) currentConditionMet = true;
-                        else if (operator === "<=" && cellNumber <= conditionValue) currentConditionMet = true;
+                            let currentConditionMet = false;
+                            if (operator === ">" && cellNumber > conditionValue) currentConditionMet = true;
+                            else if (operator === ">=" && cellNumber >= conditionValue) currentConditionMet = true;
+                            else if (operator === "<" && cellNumber < conditionValue) currentConditionMet = true;
+                            else if (operator === "<=" && cellNumber <= conditionValue) currentConditionMet = true;
 
-                        if (!currentConditionMet) { conditionMetOverall = false; break;}
-                    }
-                    if (!conditionMetOverall) { showRow = false; break; }
-                } else { // Text columns
-                    if (filterValue.startsWith("!")) {
-                        if (cellText.includes(filterValue.substring(1))) { showRow = false; break; }
-                    } else {
-                        if (!cellText.includes(filterValue)) { showRow = false; break; }
+                            if (!currentConditionMet) { conditionMetOverall = false; break;}
+                        }
+                        if (!conditionMetOverall) { showRow = false; break; }
+                    } else { // Original Text columns (excluding 'Type' which is now handled above)
+                        if (filterValue.startsWith("!")) {
+                            if (cellText.includes(filterValue.substring(1))) { showRow = false; break; }
+                        } else {
+                            if (!cellText.includes(filterValue)) { showRow = false; break; }
+                        }
                     }
                 }
             }
@@ -546,16 +594,9 @@
           const storedSortOrder = localStorage.getItem("sortOrder") || "asc";
           currentSort.ascending = storedSortOrder === "asc";
 
-          // Call updateTabDisplay first to ensure correct columns are targetable by sort/filter
           updateTabDisplay();
-          // Then populate filter inputs from localStorage AND build activeFilters
-          filterTable(); // This now also updates input fields
-          // Then sort
+          filterTable();
           sortTable(currentSort.columnKey, false);
-          // FilterTable again might be redundant if sort doesn't change which rows *could* be visible
-          // but it's safer to ensure rows are filtered after sorting if sort changes data order.
-          // However, filterTable itself applies the display:none/block.
-          // The main thing is that activeFilters is correctly built from localStorage.
           updateSortIndicators();
         })
         .catch(error => {
@@ -618,14 +659,13 @@
       activeTab = localStorage.getItem('activeTab') || 'position';
       fetchLocations();
       fetchSunEvents();
-      fetchData(); // This will call updateTabDisplay, filterTable, sortTable
+      fetchData();
       setInterval(fetchData, 60000);
 
       document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', () => {
           activeTab = button.dataset.tab;
           updateTabDisplay();
-          // When tab changes, re-apply filters which also updates input values from localStorage
           filterTable();
         });
       });
@@ -642,12 +682,11 @@
           const columnKey = thParent ? thParent.dataset.columnKey : null;
           if (columnKey && columnConfig[columnKey] && columnConfig[columnKey].filterable) {
               input.addEventListener("keyup", () => {
-                  saveFilter(input, columnKey); // Save to localStorage
-                  filterTable(); // Re-apply filters (which reads from localStorage)
+                  saveFilter(input, columnKey);
+                  filterTable();
               });
           }
       });
-      // Initial call to set up tab visibility and populate filters from localStorage
       updateTabDisplay();
       filterTable();
     };
@@ -660,60 +699,32 @@
     <h1>Nova</h1>
     <h3>DSO Tracker V{{ version }}</h3>
   </div>
-  <div style="font-size:14px; color:#444; margin-top:-4px; margin-bottom:12px;">
-    {% if is_guest %}
-      Mode: <strong>Guest</strong> —
-      <button onclick="location.href='{{ url_for('login') }}'"
-              style="margin-left:6px; padding:4px 10px; font-size:13px; background:#83b4c5; color:white; border:none; border-radius:4px; cursor:pointer;">
-        Log in
-      </button>
-      for full access.
-    {% elif SINGLE_USER_MODE %}
-      Mode: <strong>Single User</strong>
-    {% else %}
-      Mode: <strong>Multi User</strong> — Logged in as <strong>{{ current_user.username }}</strong>
-        <form action="{{ url_for('logout') }}" method="post" style="display: inline;">
-          <button type="submit"
-                  style="margin-left:6px;
-                         padding:4px 10px;
-                         font-size:13px;
-                         background:#83b4c5;
-                         color:white;
-                         border:none;
-                         border-radius:4px;
-                         cursor:pointer;"
-                  onmouseover="this.style.background='#6795a4';"
-                  onmouseout="this.style.background='#83b4c5';">
-            Log Out
-          </button>
-        </form>
-    {% endif %}
+  <div class="info-bar-container">
+    <div class="info-bar-left">
+        {% if not is_guest %}
+            <button type="button" id="back-button"
+                    onclick="window.location.href='{{ url_for('config_form') }}'">
+              Configuration
+            </button>
+        {% endif %}
+    </div>
+    <div class="info-bar-right">
+        <p style="margin:0; display:flex; align-items:center; gap: 5px;">
+            <small>Location:</small>
+            <span>
+              <select id="location-select" onchange="setLocation()">
+                </select>
+            </span>
+        </p>
+        <div class="info-values">
+            <p><small>Date:</small> <span id="date"></span></p>
+            <p><small>Time:</small> <span id="time"></span></p>
+            <p><small>Moon Illumination:</small> <span id="phase"></span></p>
+            <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
+            <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
+        </div>
+    </div>
   </div>
-</div>
-<div class="info-container">
-  {% if not is_guest %}
-    <button type="button" id="back-button"
-            onclick="window.location.href='{{ url_for('config_form') }}'">
-      Configuration
-    </button>
-  {% endif %}
-
-  <p>
-    <small>Location:</small>
-    <span>
-      <select id="location-select" onchange="setLocation()">
-        </select>
-    </span>
-  </p>
-
-  <div class="info-values">
-    <p><small>Date:</small> <span id="date"></span></p>
-    <p><small>Time:</small> <span id="time"></span></p>
-    <p><small>Moon Illumination:</small> <span id="phase"></span></p>
-    <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
-    <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
-  </div>
-</div>
 
 <div class="tab-container">
     <button class="tab-button active" data-tab="position">Position</button>
@@ -756,7 +767,7 @@
           <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="Max Alt. °" /></th>
           <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="Ang. Sep. °" /></th>
 
-          <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type" /></th>
+          <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type (e.g. PN,SNR)" /></th>
           <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
           <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
           <th data-column-key="SB" class="col-properties"><input type="text" placeholder="SB e.g. <22" /></th>
