@@ -13,7 +13,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 2.5 - Quick Guide
+# Nova DSO Altitude Tracker 2.7 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -24,18 +24,31 @@ Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Az
 
 In addition it provides information about the angular separation between the objects and the moon, the time they can be imaged and the maximum altitude they reach during this time.
 
+New with V 2.7 - additional DSO data are downloaded from various online catalogs.
+
 ### Main Interface
 When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. New in Version 2 is the column with the angular separation of the object to the moon.
 
-![Screenshot_V24_index.png](docs/Screenshot_V24_index.png)
+New in Version 2.7 are the two tabs in the layout. 
+The first "Position" contains all fields you are used to from the previous versions. The second tab "Properties" contain new, object specific fields.
+
+![Screenshot_27_index.png](../nova_DSO_tracker/docs/Screenshot_27_index.png)
 
 ### Sorting and Searching
-- **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order.
+- **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order. Also new in 2.7 is the sorting indicator for every column.
+
 - **Searching:** Each column header includes a search field allowing filtering. You can combine search terms and use logical operators like `<` or `>` for refined filtering. With `!` you can exclude content. Nova retains your sorting and filtering choices until you alter them.
 
-![ScreenshotV24_sort.png](docs/ScreenshotV24_sort.png)
+- You can now also add multiple phrases in a search field. For example multiple DSO types:
 
-In this example the objects are sorted by maximum observation time. To select objects with higher maximum altitude (during observation time) and with significant distance to the 40% illuminated moon, 2 additional filters are set. The 3rd filter excludes clusters.
+![Screenshot_27_filter_sort.png](../nova_DSO_tracker/docs/Screenshot_27_filter_sort.png)
+
+and you can combine filters and sorting from both tabs:
+
+![Screenshot_27_index_sort.png](../nova_DSO_tracker/docs/Screenshot_27_index_sort.png)
+
+In this example the objects are sorted by maximum observation time. 
+In combination with the filter under "Properties" this shows potential observation time only for the DSO type selected.
 If you have only a limited view to the sky, for instance because you image from a balcony, you can also set azimuth filters, to focus on objects actually visible to you.
 Once you set the sorting order and filters, the screen will continue updating every minute, so you can see where the the objects are at any moment. These settings will stay even when switch screens, until you manually reset them.
 
@@ -47,26 +60,46 @@ All you settings and objects are stored in a single .yaml file which you can fin
 - **Highlighting Objects:** Entering text in the "Notes" field (project in the yaml file) highlights the corresponding object in the main interface. The main purpose is to mark objects you plan to image. In the project field you can put all necessary information, such as the rig you plan to use.
 
 The configuration, including all locations objects and settings, can be downloaded as well as uploaded. When uploading the configuration file it doesnt matter how it is named, it will be automatically renamed to match the user ID (in MUM) or the default name (in SUM)
-![Screenshot_V24_config.png](docs/Screenshot_V24_config.png)
+
+![Screenshot_27_config.png](../nova_DSO_tracker/docs/Screenshot_27_config.png)
+
+### Importing / upgrading your configuration to V 2.7
+Since nova now includes more information, the configuration yaml file needs to be updated.
+After installing 2.7, you can import your previous config yaml file. 
+However - you will notice that the additional fields remain empty:
+
+![Screenshot_27_conf_beforeI.png](../nova_DSO_tracker/docs/Screenshot_27_conf_beforeI.png)
+
+What you need to do is to press the "Fetch Missing Details" button. A message will pop up reminding you that this process will take some time.
+
+![Screenshot_27_message.png](../nova_DSO_tracker/docs/Screenshot_27_message.png)
+
+In order to successfully add the information, your system needs to be connected to the internet.
+Nova will query multiple catalogs to find the requested information. If you have Stellarium on your computer, you should open it as well - nova will use it as fallback if the search in the various catalogs was not successful.
+
+After pressing "ok" just wait until the page reloads. 
+If everything went well, you can find the additional fields now filled out
+
+
+
 
 ### Detailed Object Information
 Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance. 
 New in V2 is the possibility to not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 Also new are a monthly and yearly view of the object and the moon.
 
-![Screenshot_V24_graph.png](docs/Screenshot_V24_graph.png)
+![Screenshot_27_graph.png](../nova_DSO_tracker/docs/Screenshot_27_graph.png)
 
-![Screenshot_V24_month.png](docs/Screenshot_V24_month.png)
+![Screenshot_27_month.png](../nova_DSO_tracker/docs/Screenshot_27_month.png)
 
-![Screenshot_V24_year.png](docs/Screenshot_V24_year.png)
+![Screenshot_27_year.png](docs/Screenshot_27_year.png)
 
 If you click on the button "Find Imaging Opportunities", you will get a list of dates when imaging the selected object is possible.
 
-![Screenshot_V24_opp.png](docs/Screenshot_V24_opp.png)
+![Screenshot_27_opport.png](../nova_DSO_tracker/docs/Screenshot_27_opport.png)
 
-You can edit the selection criteria in the configuration settings:
+You can edit the selection criteria for the opportunity search in the configuration settings.
 
-![Screenshot_V24_conf2.png](docs/Screenshot_V24_conf2.png)
 
 # Nova Astronomical Tracker Setup Guide
 
@@ -222,8 +255,9 @@ A pre-built Docker image is available on Docker Hub for easy setup:
 See the Docker Hub page for instructions on how to run the container.
 
 ### Upgrading from an older version:
-First step: copy your config yaml to a safe place. You can use the "download configuration" function. After that, replace the files in your nova directory or you do a clean install (recommended)
+First step: **copy your config yaml to a safe place. You can use the "download configuration" function.** After that, replace the files in your nova directory or you do a clean install (recommended)
 For the clean install you just follow the setup guide. Once all steps are done, copy your config yaml back into the new folder ("upload config") and start the app.
+Important note: the .env file contains relevant information, especially in multi user mode. It will not be overwritten by a new installation, but if you delete the program folder, it will be deleted as well and you should therefore create a copy of it and place it back once the installation is completed.
 
 ### License:
 Nova DSO Tracker is licensed under the Apache 2.0 License **with the Commons Clause**.

@@ -47,7 +47,8 @@
       color: green;
     }
     .progress-message { /* Style for our JS-driven progress message */
-        color: #6795a4;
+        color: #007bff;
+        font-weight: bold;
     }
     .inline-button {
       padding: 5px 10px;
@@ -533,7 +534,7 @@
 
                 let progressText = "Fetching details. This may take a moment.";
                 if (numObjects > 0) {
-                    progressText = `Fetching details for ${numObjects} object(s). Page will reload.`;
+                    progressText = `Fetching details for ${numObjects} object(s). Estimated time: ~${estimatedTime}s. Page will reload.`;
                 }
                 messageContainer.innerHTML = `<p class="progress-message">${progressText}</p>`;
                 console.log("Progress message set in message-container.");
