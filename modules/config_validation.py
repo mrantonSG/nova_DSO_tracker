@@ -1,5 +1,19 @@
 from cerberus import Validator
-import math
+import math  # For isnan
+
+
+# Default values for imaging_criteria if it's missing entirely
+# This function will be used by the default_setter
+def get_default_imaging_criteria(field, value, error):
+    if value is None:  # Or if field not present, Cerberus handles this
+        return {
+            'max_moon_illumination': 20,
+            'min_angular_distance': 30,
+            'min_max_altitude': 30,
+            'min_observable_minutes': 60,
+            'search_horizon_months': 6
+        }
+    return value  # Return existing value if present
 
 
 # Coercion function for numeric fields that might be strings or placeholders
@@ -10,20 +24,24 @@ def coerce_to_float_or_none(value):
         return float(value)
     if isinstance(value, str):
         val_strip = value.strip().lower()
-        if val_strip in ['n/a', 'none', 'nan', '']:
+        if val_strip in ['n/a', 'none', 'nan', '']:  # Added 'nan' as a common placeholder
             return None
         try:
             f_val = float(value)
-            return None if math.isnan(f_val) else f_val
+            return None if math.isnan(f_val) else f_val  # Handle if string like "NaN" converts to float NaN
         except ValueError:
-            return None
+            return None  # MODIFIED: If string is not a number and not a recognized placeholder, treat as None
     if value is None:
         return None
+    # For any other type, or if it's already a float NaN that slipped through (unlikely from YAML)
     try:
-        if math.isnan(value):  # Catch if value is already a float NaN
+        if math.isnan(value):
             return None
-    except TypeError:
+    except TypeError:  # value is not a number type
         pass
+
+    # If it's some other type that's not float/int/str and not None,
+    # let Cerberus's type validation handle it (it will likely fail if not float).
     return value
 
 
@@ -32,7 +50,15 @@ config_schema = {
     'default_location': {'type': 'string', 'required': True, 'empty': False},
     'imaging_criteria': {
         'type': 'dict',
-        'required': True,  # MODIFIED: Now required, as pre-processing in import will ensure it exists
+        'required': False,
+        'nullable': True,
+        'default_setter': lambda doc: {
+            'max_moon_illumination': 20,
+            'min_angular_distance': 30,
+            'min_max_altitude': 30,
+            'min_observable_minutes': 60,
+            'search_horizon_months': 6
+        },
         'schema': {
             'max_moon_illumination': {'type': 'integer', 'min': 0, 'max': 100, 'required': True, 'default': 20},
             'min_angular_distance': {'type': 'integer', 'min': 0, 'max': 180, 'required': True, 'default': 30},
@@ -65,8 +91,8 @@ config_schema = {
                 'Object': {'type': 'string', 'required': True, 'empty': False},
                 'Name': {'type': 'string', 'nullable': True, 'empty': True, 'default': ''},
                 'RA': {
-                    'anyof': [
-                        {'type': 'float', 'nullable': True},
+                    'anyof': [  # Keep anyof to allow Cerberus to attempt direct float match first
+                        {'type': 'float', 'nullable': True},  # Allow None if it's already a float NaN or None
                         {'type': 'string', 'nullable': True, 'empty': True}
                     ],
                     'coerce': coerce_to_float_or_none,
@@ -107,7 +133,7 @@ config_schema = {
 
 def validate_config(config_data):
     v = Validator(config_schema, allow_unknown=True)
-    is_valid = v.validate(config_data, update=True)  # update=True applies defaults from schema
+    is_valid = v.validate(config_data, update=True)
     if not is_valid:
         return False, v.errors
     return True, v.document
