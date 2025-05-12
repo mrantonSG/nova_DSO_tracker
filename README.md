@@ -248,9 +248,9 @@ For better performance, run Nova with [Gunicorn](https://gunicorn.org), a lightw
 ### Docker Image:
 A pre-built Docker image is available on Docker Hub for easy setup:
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/mrantonsg/nova-tracker.svg)](https://hub.docker.com/r/mrantonsg/nova-tracker)
+[![Docker Pulls](https://img.shields.io/docker/pulls/mrantonsg/nova-dso-tracker.svg)](https://hub.docker.com/r/mrantonsg/nova-dso-tracker)
 
-**[View on Docker Hub: mrantonsg/nova-tracker](https://hub.docker.com/r/mrantonsg/nova-tracker)**
+**[View on Docker Hub: mrantonsg/nova-dso-tracker](https://hub.docker.com/r/mrantonsg/nova-dso-tracker)**
 
 See the Docker Hub page for instructions on how to run the container.
 
