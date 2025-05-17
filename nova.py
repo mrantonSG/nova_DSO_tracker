@@ -69,7 +69,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.7.1"
+APP_VERSION = "2.7.2"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -444,169 +444,158 @@ def import_config():
 
 
 def get_ra_dec(object_name):
-    # obj_key is already lowercase, which is good for matching
     obj_key = object_name.lower()
     objects_config = g.user_config.get("objects", [])
-    # Find the object's entry in the loaded YAML configuration
     obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
 
-    # Default values for the new fields if not found in config
     default_type = "N/A"
-    default_magnitude = "N/A"  # Using string "N/A" for consistency if data is missing
+    default_magnitude = "N/A"
     default_size = "N/A"
     default_sb = "N/A"
-    default_project = "none"  # Your existing default
+    default_project = "none"
 
     if obj_entry:
-        # Get RA and DEC. If they exist, try to parse them.
         ra_str = obj_entry.get("RA")
         dec_str = obj_entry.get("DEC")
-
-        # Retrieve additional properties directly from the config entry
-        # Use .get() with a default value if the key might be missing
         type_val = obj_entry.get("Type", default_type)
         magnitude_val = obj_entry.get("Magnitude", default_magnitude)
-        size_val = obj_entry.get("Size", default_size)  # Assuming 'Size' is the key in YAML for arcminutes
+        size_val = obj_entry.get("Size", default_size)
         sb_val = obj_entry.get("SB", default_sb)
         project_val = obj_entry.get("Project", default_project)
-        common_name_val = obj_entry.get("Name", object_name)  # Use object_name as fallback for common name
+        common_name_val = obj_entry.get("Name", object_name)
 
         if ra_str is not None and dec_str is not None:
             try:
-                # Ensure RA/DEC are floats. If they are already floats, this is fine.
-                # If they are strings that need conversion, this handles it.
                 ra_hours_float = float(ra_str)
                 dec_degrees_float = float(dec_str)
-
                 return {
-                    "Object": object_name,  # Return original case for Object ID
+                    "Object": object_name,
                     "Common Name": common_name_val,
                     "RA (hours)": ra_hours_float,
                     "DEC (degrees)": dec_degrees_float,
-                    "Project": project_val,
-                    "Type": type_val if type_val else default_type,  # Ensure "N/A" if empty string
-                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
-                    "Size": size_val if size_val else default_size,
-                    "SB": sb_val if sb_val else default_sb,
-                }
-            except ValueError as ve:
-                print(f"[ERROR] Failed to parse RA/DEC for {object_name} from config: {ve}")
-                # Return with error in Common Name, but still include other available config fields
-                return {
-                    "Object": object_name,
-                    "Common Name": f"Error: Invalid RA/DEC in config",
-                    "RA (hours)": None,
-                    "DEC (degrees)": None,
                     "Project": project_val,
                     "Type": type_val if type_val else default_type,
                     "Magnitude": magnitude_val if magnitude_val else default_magnitude,
                     "Size": size_val if size_val else default_size,
                     "SB": sb_val if sb_val else default_sb,
                 }
-        else:
-            # RA/DEC are missing in config, attempt SIMBAD lookup (existing logic)
-            # This part should ideally not fetch Type, Mag, Size, SB from SIMBAD here
-            # to keep this function focused on what's in the config or basic RA/DEC.
-            # For now, we'll keep your existing SIMBAD logic but ensure it doesn't overwrite Type, Mag etc.
-            # if they were already found (though in this branch, RA/DEC were missing).
+            except ValueError as ve:
+                print(f"[ERROR] Failed to parse RA/DEC for {object_name} from config: {ve}")
+                return {
+                    "Object": object_name,
+                    "Common Name": f"Error: Invalid RA/DEC in config",
+                    "RA (hours)": None, "DEC (degrees)": None,
+                    "Project": project_val, "Type": type_val if type_val else default_type,
+                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
+                    "Size": size_val if size_val else default_size,
+                    "SB": sb_val if sb_val else default_sb,
+                }
+        else:  # RA/DEC are missing in config for an existing obj_entry
             print(f"[SIMBAD] RA/DEC missing for {object_name} in config. Querying SIMBAD...")
-            Simbad.TIMEOUT = 60
-            Simbad.ROW_LIMIT = 1
-            try:
-                result = Simbad.query_object(object_name)
-                if result is None or len(result) == 0:
-                    raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
+            # Fall through to SIMBAD lookup logic below
+            pass  # Explicitly falling through
 
-                # SIMBAD results are ByteStrings, need conversion
-                ra_value_simbad = result["RA"][0].decode('utf-8') if isinstance(result["RA"][0], bytes) else \
-                result["RA"][0]
-                dec_value_simbad = result["DEC"][0].decode('utf-8') if isinstance(result["DEC"][0], bytes) else \
-                result["DEC"][0]
+    # This block handles:
+    # 1. Object not in config at all.
+    # 2. Object in config but RA/DEC were missing (due to the 'pass' above).
+    if not obj_entry or (obj_entry and (obj_entry.get("RA") is None or obj_entry.get("DEC") is None)):
+        if not obj_entry:  # Case: Object not found in config
+            print(f"[INFO] Object {object_name} not found in config. Attempting SIMBAD lookup.")
+        # These values would be from config if obj_entry existed
+        common_name_to_use = obj_entry.get("Name", object_name) if obj_entry else object_name
+        project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
+        type_to_use = obj_entry.get("Type", default_type) if obj_entry else default_type
+        mag_to_use = obj_entry.get("Magnitude", default_magnitude) if obj_entry else default_magnitude
+        size_to_use = obj_entry.get("Size", default_size) if obj_entry else default_size
+        sb_to_use = obj_entry.get("SB", default_sb) if obj_entry else default_sb
 
-                ra_hours_simbad = hms_to_hours(ra_value_simbad)
-                dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
-
-                # Update the obj_entry in memory (and it will be saved if config is saved later)
-                obj_entry["RA"] = ra_hours_simbad
-                obj_entry["DEC"] = dec_degrees_simbad
-                # Do NOT update Type, Mag, Size, SB here from SIMBAD in this flow.
-                # That's handled by check_and_fill_object_data or fetch_object_details.
-
-                # It's better to save config explicitly when changes are made,
-                # not implicitly within a get function.
-                # save_user_config(current_user.username, g.user_config) # Consider removing save from here
-
-                return {
-                    "Object": object_name,
-                    "Common Name": common_name_val,  # Use name from config if available
-                    "RA (hours)": ra_hours_simbad,
-                    "DEC (degrees)": dec_degrees_simbad,
-                    "Project": project_val,
-                    "Type": type_val if type_val else default_type,  # From config
-                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,  # From config
-                    "Size": size_val if size_val else default_size,  # From config
-                    "SB": sb_val if sb_val else default_sb,  # From config
-                }
-            except Exception as ex:
-                error_message = f"Error: SIMBAD lookup failed: {str(ex)}"
-                print(f"[ERROR] {error_message} for {object_name}")
-                return {
-                    "Object": object_name,
-                    "Common Name": error_message,
-                    "RA (hours)": None,
-                    "DEC (degrees)": None,
-                    "Project": project_val,  # Still return project from config if object entry existed
-                    "Type": type_val if obj_entry and type_val else default_type,
-                    "Magnitude": magnitude_val if obj_entry and magnitude_val else default_magnitude,
-                    "Size": size_val if obj_entry and size_val else default_size,
-                    "SB": sb_val if obj_entry and sb_val else default_sb,
-                }
-    else:  # Object not in config at all
-        print(f"[INFO] Object {object_name} not found in config. Attempting SIMBAD lookup for RA/DEC only.")
-        # SIMBAD lookup for basic RA/DEC if object is entirely new
-        Simbad.TIMEOUT = 60
-        Simbad.ROW_LIMIT = 1
         try:
-            result = Simbad.query_object(object_name)
+            custom_simbad = Simbad()
+            custom_simbad.ROW_LIMIT = 1
+            custom_simbad.TIMEOUT = 60
+            # Explicitly request fields. 'ra' and 'dec' are for J2000 sexagesimal.
+            # 'main_id' for a common identifier, 'otype' for object type.
+            custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+
+            result = custom_simbad.query_object(object_name)
+
             if result is None or len(result) == 0:
                 raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
 
-            ra_value_simbad = result["RA"][0].decode('utf-8') if isinstance(result["RA"][0], bytes) else result["RA"][0]
-            dec_value_simbad = result["DEC"][0].decode('utf-8') if isinstance(result["DEC"][0], bytes) else \
-            result["DEC"][0]
+            # Crucial Debugging Line:
+            print(f"[SIMBAD DEBUG] Columns for {object_name}: {result.colnames}")
+
+            ra_col, dec_col = None, None
+            if 'RA' in result.colnames:
+                ra_col = 'RA'
+            elif 'ra' in result.colnames:
+                ra_col = 'ra'  # Check for lowercase
+            else:
+                raise ValueError(
+                    f"SIMBAD result for '{object_name}' is missing RA column. Available: {result.colnames}")
+
+            if 'DEC' in result.colnames:
+                dec_col = 'DEC'
+            elif 'dec' in result.colnames:
+                dec_col = 'dec'  # Check for lowercase
+            else:
+                raise ValueError(
+                    f"SIMBAD result for '{object_name}' is missing DEC column. Available: {result.colnames}")
+
+            ra_value_simbad = str(result[ra_col][0])
+            dec_value_simbad = str(result[dec_col][0])
 
             ra_hours_simbad = hms_to_hours(ra_value_simbad)
             dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
 
-            # This object isn't in the config, so we can't save it here.
-            # The config form is the place to add new objects.
-            # For the /data endpoint, we just provide what we can.
+            simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames and result['MAIN_ID'][
+                0] else common_name_to_use
+            simbad_otype = str(result['OTYPE'][0]) if 'OTYPE' in result.colnames and result['OTYPE'][0] else type_to_use
+
+            # If the object was in config but RA/DEC were missing, update the in-memory entry
+            if obj_entry:
+                obj_entry["RA"] = ra_hours_simbad
+                obj_entry["DEC"] = dec_degrees_simbad
+                if obj_entry.get("Name") in [None, "",
+                                             object_name] and simbad_main_id != object_name:  # Update common name if generic
+                    obj_entry["Name"] = simbad_main_id
+                if obj_entry.get("Type") in [None, "", "N/A"] and simbad_otype != "N/A":  # Update type if generic
+                    obj_entry["Type"] = simbad_otype
+
             return {
                 "Object": object_name,
-                "Common Name": object_name,  # Default to object_name as common name
+                "Common Name": simbad_main_id if not obj_entry or obj_entry.get("Name") in [None,
+                                                                                            ""] else obj_entry.get(
+                    "Name"),
                 "RA (hours)": ra_hours_simbad,
                 "DEC (degrees)": dec_degrees_simbad,
-                "Project": default_project,  # Default project
-                "Type": default_type,  # Default Type
-                "Magnitude": default_magnitude,  # Default Magnitude
-                "Size": default_size,  # Default Size
-                "SB": default_sb,  # Default SB
+                "Project": project_to_use,
+                "Type": simbad_otype if not obj_entry or obj_entry.get("Type") in [None, "", "N/A"] else obj_entry.get(
+                    "Type"),
+                "Magnitude": mag_to_use,  # These are not fetched by this basic SIMBAD query
+                "Size": size_to_use,
+                "SB": sb_to_use,
             }
+
         except Exception as ex:
-            error_message = f"Error: SIMBAD lookup failed: {str(ex)}"
+            # Provide more detailed error including exception type
+            error_message = f"Error: SIMBAD lookup failed ({type(ex).__name__}): {str(ex)}"
             print(f"[ERROR] {error_message} for {object_name}")
             return {
                 "Object": object_name,
                 "Common Name": error_message,
-                "RA (hours)": None,
-                "DEC (degrees)": None,
-                "Project": default_project,
-                "Type": default_type,
-                "Magnitude": default_magnitude,
-                "Size": default_size,
-                "SB": default_sb,
+                "RA (hours)": None, "DEC (degrees)": None,
+                "Project": project_to_use, "Type": type_to_use,  # Use defaults or config values if obj_entry existed
+                "Magnitude": mag_to_use, "Size": size_to_use, "SB": sb_to_use,
             }
 
+    print(f"[WARN] get_ra_dec: Unhandled case for object {object_name}")
+    return {
+        "Object": object_name, "Common Name": "Error: Could not determine RA/DEC",
+        "RA (hours)": None, "DEC (degrees)": None,
+        "Project": default_project, "Type": default_type,
+        "Magnitude": default_magnitude, "Size": default_size, "SB": default_sb,
+    }
 
 def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz_name, selected_location):
     times_local, times_utc = get_common_time_arrays(tz_name, local_date)
@@ -1171,10 +1160,20 @@ def confirm_object():
     common_name = req.get('name')
     ra = req.get('ra')
     dec = req.get('dec')
-    project = req.get('project', 'none')
+    project = req.get('project', 'none') # Default 'none' from original code
 
-    if not object_name or not common_name:
+    # NEW: Get Type, Magnitude, Size, SB from the request
+    obj_type = req.get('type')      # Assuming the frontend sends 'type'
+    magnitude = req.get('magnitude')  # Assuming the frontend sends 'magnitude'
+    size = req.get('size')          # Assuming the frontend sends 'size'
+    sb = req.get('sb')              # Assuming the frontend sends 'sb'
+
+
+    if not object_name or not common_name: # RA/DEC also essential for a new object
         return jsonify({"status": "error", "message": "Object ID and name are required."}), 400
+    if ra is None or dec is None: # RA/DEC are critical
+        return jsonify({"status": "error", "message": "RA and DEC are required for the object."}), 400
+
 
     config_data = load_user_config(current_user.username)
     objects_list = config_data.setdefault('objects', [])
@@ -1185,22 +1184,29 @@ def confirm_object():
         existing["Project"] = project
         existing["RA"] = ra
         existing["DEC"] = dec
+        # Update these fields if provided, otherwise keep existing or set to a default
+        existing["Type"] = obj_type if obj_type is not None else existing.get("Type", "")
+        existing["Magnitude"] = magnitude if magnitude is not None else existing.get("Magnitude", "")
+        existing["Size"] = size if size is not None else existing.get("Size", "")
+        existing["SB"] = sb if sb is not None else existing.get("SB", "")
     else:
         new_obj = {
             "Object": object_name,
             "Name": common_name,
             "Project": project,
-            "Type": "",
             "RA": ra,
-            "DEC": dec
+            "DEC": dec,
+            # Add the new fields here
+            "Type": obj_type if obj_type is not None else "", # Default to empty string if not provided
+            "Magnitude": magnitude if magnitude is not None else "",
+            "Size": size if size is not None else "",
+            "SB": sb if sb is not None else ""
+            # Consider if default should be "N/A" or actual None if field is truly absent
         }
         objects_list.append(new_obj)
 
     save_user_config(current_user.username, config_data)
     return jsonify({"status": "success"})
-
-
-from datetime import datetime, timedelta
 
 @app.route('/data')
 def get_data():
@@ -1371,6 +1377,7 @@ def sun_events():
 def index():
     return render_template('index.html')
 
+
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
@@ -1390,21 +1397,25 @@ def config_form():
                         raise ValueError("Altitude threshold must be between 0 and 90 degrees.")
                     g.user_config['altitude_threshold'] = threshold_value
                 except ValueError as ve:
-                    error = str(ve)
+                    error = str(ve)  # Capture error but continue if possible
 
-                g.user_config['default_location'] = new_default_location if new_default_location else "Singapore"
+                g.user_config[
+                    'default_location'] = new_default_location if new_default_location else "Singapore"  # Default from original
 
-                #  NEW: Save imaging criteria from form
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:
                     imaging["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
                     imaging["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
                     imaging["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
-                    imaging["min_angular_distance"] = int(request.form.get("min_angular_separation", 30))
+                    imaging["min_angular_distance"] = int(
+                        request.form.get("min_angular_separation", 30))  # name from original
                     imaging["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
                 except ValueError as ve:
-                    error = f"Invalid imaging criteria: {ve}"
+                    error = f"Invalid imaging criteria: {ve}" if not error else error + f"; Invalid imaging criteria: {ve}"
 
+                # Only set message and updated if no critical error has stopped us earlier
+                # The original code set this regardless of 'error' status for this block.
+                # To maintain similar flow, we'll set it, but errors might have occurred.
                 message = "Settings updated."
                 updated = True
 
@@ -1414,19 +1425,14 @@ def config_form():
                 new_location_lon = request.form.get("new_lon")
                 new_location_timezone = request.form.get("new_timezone")
 
-                # Validate inputs before adding
                 if not new_location_name or not new_location_lat or not new_location_lon or not new_location_timezone:
                     error = "All fields are required to add a new location."
                 else:
                     try:
                         lat_val = float(new_location_lat)
                         lon_val = float(new_location_lon)
-
-                        # Check if timezone is valid
                         if new_location_timezone not in pytz.all_timezones:
                             raise ValueError("Invalid timezone provided.")
-
-                        # Input looks good; save location
                         g.user_config.setdefault('locations', {})[new_location_name] = {
                             "lat": lat_val,
                             "lon": lon_val,
@@ -1434,81 +1440,120 @@ def config_form():
                         }
                         message = "New location added successfully."
                         updated = True
-
                     except ValueError as ve:
-                        error = f"Invalid input: {ve}"
+                        error = f"Invalid input for new location: {ve}"
 
             elif 'submit_locations' in request.form:
                 updated_locations = {}
+                changed_in_locations = False
                 for loc_key, loc_data in g.user_config.get("locations", {}).items():
                     if request.form.get(f"delete_loc_{loc_key}") == "on":
-                        continue
+                        changed_in_locations = True
+                        continue  # Skip deletion
+
+                    current_loc_dict = loc_data.copy()
                     new_lat = request.form.get(f"lat_{loc_key}", loc_data.get("lat"))
                     new_lon = request.form.get(f"lon_{loc_key}", loc_data.get("lon"))
                     new_timezone = request.form.get(f"timezone_{loc_key}", loc_data.get("timezone"))
-                    updated_locations[loc_key] = {
-                        "lat": float(new_lat),
-                        "lon": float(new_lon),
+
+                    potential_new_data = {
+                        "lat": float(new_lat) if new_lat is not None else None,  # Ensure conversion
+                        "lon": float(new_lon) if new_lon is not None else None,
                         "timezone": new_timezone
                     }
-                g.user_config['locations'] = updated_locations
-                message = "Locations updated."
-                updated = True
+                    updated_locations[loc_key] = potential_new_data
+                    if loc_data != potential_new_data:  # Compare dicts
+                        changed_in_locations = True
 
-            elif 'submit_new_object' in request.form:
+                if changed_in_locations:
+                    g.user_config['locations'] = updated_locations
+                    message = "Locations updated."
+                    updated = True
+                # else: # If no changes, don't necessarily set message/updated status
+
+            elif 'submit_new_object' in request.form:  # Ensure this block is correctly indented
                 new_object = request.form.get("new_object")
-                new_obj_name = request.form.get("new_name") or ""  # default to empty string if not provided
-                new_type = request.form.get("new_type", "")
+                new_obj_name = request.form.get("new_name") or ""
+                new_type = request.form.get("new_type", "")  # Default to empty string as in original
                 new_obj_project = request.form.get("new_project")
-                if new_object:  # only require the object identifier
+                if new_object:
                     g.user_config.setdefault('objects', []).append({
                         "Object": new_object,
-                        "Name": new_obj_name,  # even if empty, it gets stored
-                        "Project": new_obj_project if new_obj_project else "none",
+                        "Name": new_obj_name,
+                        "Project": new_obj_project if new_obj_project else "none",  # Keep original logic
                         "Type": new_type
+                        # RA, DEC, Mag, Size, SB are intentionally not set here;
+                        # they are fetched by 'check_and_fill_object_data' or 'fetch_all_details'
                     })
                     message = "New object added."
                     updated = True
+            # Ensure this 'elif' is at the same indentation level as the one above
+            elif 'submit_objects' in request.form:  # <<< THIS IS YOUR LIKELY LINE 1386
+                new_objects_list = []
+                original_objects_list = g.user_config.get("objects", [])
+                made_changes_this_block = False
 
-            elif 'submit_objects' in request.form:
-                updated_objects = []
-                for obj in g.user_config.get("objects", []):
-                    object_key = obj.get("Object")
-                    if request.form.get(f"delete_{object_key}") == "on":
+                for existing_obj_data in original_objects_list:
+                    object_key = existing_obj_data.get("Object")
+
+                    if not object_key:
+                        new_objects_list.append(existing_obj_data)
                         continue
-                    new_name = request.form.get(f"name_{object_key}", obj.get("Name"))
-                    new_ra = request.form.get(f"ra_{object_key}", obj.get("RA"))
-                    new_dec = request.form.get(f"dec_{object_key}", obj.get("DEC"))
-                    new_type = request.form.get(f"type_{object_key}", obj.get("Type"))
-                    new_project = request.form.get(f"project_{object_key}", obj.get("Project"))
-                    updated_obj = {
-                        "Object": object_key,
-                        "Name": new_name,
-                        "RA": new_ra,
-                        "DEC": new_dec,
-                        "Type": new_type,
-                        "Project": new_project
-                    }
-                    updated_objects.append(updated_obj)
-                g.user_config['objects'] = updated_objects
-                save_user_config(current_user.username, g.user_config)
 
-            if updated:
+                    if request.form.get(f"delete_{object_key}") == "on":
+                        made_changes_this_block = True
+                        continue
+
+                    current_obj_values = existing_obj_data.copy()
+                    fields_from_form = {
+                        "Name": request.form.get(f"name_{object_key}", current_obj_values.get("Name")),
+                        "RA": request.form.get(f"ra_{object_key}", current_obj_values.get("RA")),
+                        "DEC": request.form.get(f"dec_{object_key}", current_obj_values.get("DEC")),
+                        "Type": request.form.get(f"type_{object_key}", current_obj_values.get("Type")),
+                        "Project": request.form.get(f"project_{object_key}", current_obj_values.get("Project")),
+                        # Magnitude, Size, SB are preserved because we start with .copy()
+                        # and don't try to get them from the form here unless you add input fields for them.
+                    }
+
+                    for field_name, new_value in fields_from_form.items():
+                        # Check if the value actually changed before marking
+                        if current_obj_values.get(field_name) != new_value:
+                            current_obj_values[field_name] = new_value
+                            made_changes_this_block = True
+
+                    new_objects_list.append(current_obj_values)
+
+                if made_changes_this_block:
+                    g.user_config['objects'] = new_objects_list
+                    updated = True
+                    message = "Objects updated."
+
+            # Centralized save if any 'updated' flag was set to True in any block
+            if updated and not error:  # Check for error before saving, or decide how to handle partial saves
                 save_user_config(current_user.username, g.user_config)
+                if message:  # If a specific message was set
+                    message += " Configuration saved."
+                else:  # If no specific message, just say config saved
+                    message = "Configuration saved."
                 # Clear the in-memory persistent cache.
-                                # Optionally remove the cache file so that it's rebuilt.
-                message += " Configuration saved."
+                # Optionally remove the cache file so that it's rebuilt.
+            elif updated and error:
+                message = (
+                              message if message else "") + f" Configuration partially updated but errors occurred: {error}. Please review."
 
         except Exception as exception_value:
+            # Ensure error is set if an unexpected exception occurs
             error = str(exception_value)
+            # A message might already exist from a previous step, or we can set a new one.
+            message = (message if message else "") + f" An unexpected error occurred: {exception_value}"
 
-    if not error:
-        error = request.args.get("error")
-    if not message:
-        message = request.args.get("message")
+    # Prepare for rendering template
+    # Ensure error and message are passed, even if they were modified by an exception
+    final_error = error if error else request.args.get("error")
+    final_message = message if message else request.args.get("message")
 
-    return render_template('config_form.html', config=g.user_config, locations=g.locations, error=error, message=message)
-
+    return render_template('config_form.html', config=g.user_config, locations=g.locations, error=final_error,
+                           message=final_message)
 
 @app.before_request
 def precompute_time_arrays():
