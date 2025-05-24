@@ -69,7 +69,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.7.2"
+APP_VERSION = "2.7.3"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -81,6 +81,42 @@ config_mtime = {}
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
+
+# --- Stellarium API URL Configuration ---
+# Default URL for running directly on the host
+DEFAULT_STELLARIUM_HOST_URL = "http://localhost:8090"
+# Special DNS name for Docker Desktop to access the host
+DOCKER_DESKTOP_HOST_URL = "http://host.docker.internal:8090"
+
+# Start with the standard default
+stellarium_api_url = DEFAULT_STELLARIUM_HOST_URL
+print(f"[INIT] Default Stellarium URL: {stellarium_api_url}")
+
+# Check if running inside a Docker container by looking for /.dockerenv
+if os.path.exists('/.dockerenv'):
+    print("[INIT] Docker environment detected (found /.dockerenv).")
+    print(f"[INIT] Attempting to use Docker Desktop host URL for Stellarium: {DOCKER_DESKTOP_HOST_URL}")
+    stellarium_api_url = DOCKER_DESKTOP_HOST_URL
+    # Note: For Linux Docker (non-Docker Desktop), host.docker.internal might not resolve.
+    # In such cases, setting the STELLARIUM_API_URL_BASE environment variable is recommended.
+else:
+    print("[INIT] Not a Docker environment (/.dockerenv not found).")
+
+# Allow the environment variable to override any automatic detection (highest priority)
+STELLARIUM_API_URL_BASE_ENV_VAR = os.getenv("STELLARIUM_API_URL_BASE")
+if STELLARIUM_API_URL_BASE_ENV_VAR:
+    print(f"[INIT] Environment variable STELLARIUM_API_URL_BASE is set to: '{STELLARIUM_API_URL_BASE_ENV_VAR}'. This will be used.")
+    STELLARIUM_API_URL_BASE = STELLARIUM_API_URL_BASE_ENV_VAR
+else:
+    STELLARIUM_API_URL_BASE = stellarium_api_url
+    if os.path.exists('/.dockerenv'):
+        print(f"[INIT] STELLARIUM_API_URL_BASE environment variable not set. Using auto-detected Docker host URL: {STELLARIUM_API_URL_BASE}")
+    else:
+        print(f"[INIT] STELLARIUM_API_URL_BASE environment variable not set. Using default host URL: {STELLARIUM_API_URL_BASE}")
+
+print(f"[INIT] Final Stellarium API URL base for requests: {STELLARIUM_API_URL_BASE}")
+# --- End of Stellarium API URL Configuration ---
+
 # Automatically create .env if it doesn't exist
 if not os.path.exists(ENV_FILE):
     secret_key = secrets.token_hex(32)
@@ -274,20 +310,51 @@ def login():
 
     return render_template('login.html')
 
+
 @app.route('/proxy_focus', methods=['POST'])
+# @login_required # You had this commented out in your original code, add it if needed
 def proxy_focus():
     payload = request.form
     try:
-        r = requests.post("http://localhost:8090/api/main/focus", data=payload)
-        return jsonify({"status": "success", "stellarium_response": r.text})
-    except Exception as e:
-        user_ip = request.remote_addr
-        if user_ip == "127.0.0.1" or user_ip == "localhost":
-            message = "Stellarium is not running or remote control is not enabled."
-        else:
-            message = STELLARIUM_ERROR_MESSAGE or "Could not connect to Stellarium."
-        return jsonify({"status": "error", "message": message}), 500
+        # This line ensures the dynamically determined STELLARIUM_API_URL_BASE is used:
+        stellarium_focus_url = f"{STELLARIUM_API_URL_BASE}/api/main/focus"
 
+        print(f"[PROXY FOCUS] Attempting to connect to Stellarium at: {stellarium_focus_url}")  # For debugging
+
+        # Make the request to Stellarium
+        r = requests.post(stellarium_focus_url, data=payload, timeout=10)  # Added timeout
+        r.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+        print(f"[PROXY FOCUS] Stellarium response: {r.status_code}")  # For debugging
+        return jsonify({"status": "success", "stellarium_response": r.text})
+
+    except requests.exceptions.ConnectionError:
+        # Specific error if Stellarium isn't running or reachable at the URL
+        message = f"Could not connect to Stellarium at {STELLARIUM_API_URL_BASE}. Ensure Stellarium is running, Remote Control is enabled, and the URL is correct."
+        if STELLARIUM_ERROR_MESSAGE:  # User-defined message overrides if present
+            message = STELLARIUM_ERROR_MESSAGE
+        print(f"[PROXY FOCUS ERROR] ConnectionError: {message}")
+        return jsonify({"status": "error", "message": message}), 503  # 503 Service Unavailable
+
+    except requests.exceptions.Timeout:
+        # Specific error for timeouts
+        message = f"Connection to Stellarium at {STELLARIUM_API_URL_BASE} timed out after 10 seconds."
+        print(f"[PROXY FOCUS ERROR] Timeout: {message}")
+        return jsonify({"status": "error", "message": message}), 504  # 504 Gateway Timeout
+
+    except requests.exceptions.HTTPError as http_err:
+        # Specific error for HTTP errors from Stellarium (e.g., API errors)
+        error_details = http_err.response.text if http_err.response is not None else "No response details"
+        message = f"Stellarium at {STELLARIUM_API_URL_BASE} returned an error: {http_err}. Details: {error_details}"
+        status_code = http_err.response.status_code if http_err.response is not None else 500
+        print(f"[PROXY FOCUS ERROR] HTTPError {status_code}: {message}")
+        return jsonify({"status": "error", "message": message}), status_code
+
+    except Exception as e:
+        # Catch-all for other unexpected errors
+        message = STELLARIUM_ERROR_MESSAGE or f"An unexpected error occurred while attempting to contact Stellarium: {str(e)}"
+        print(f"[PROXY FOCUS ERROR] Unexpected error: {e}")  # Log the actual error
+        return jsonify({"status": "error", "message": message}), 500
 
 @app.before_request
 def load_config_for_request():
