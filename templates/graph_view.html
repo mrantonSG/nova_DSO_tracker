@@ -20,15 +20,7 @@
       margin-left: 10px;
       font-weight: normal;
     }
-    .info-container {
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      margin-bottom: 30px;
-    }
-    .info-container p, .info-container label, .info-container select {
-      margin: 0;
-    }
+
     #back-button {
       margin-top: 0;
       padding: 10px 20px;
@@ -55,11 +47,19 @@
     }
     /* Day/Month/Year controls */
     .date-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
+      display: flex;         /* For internal layout of Day, Month, Year inputs/buttons */
+      align-items: center;   /* Vertically aligns items within this line */
+      gap: 10px;             /* Spacing between items like Day, Month, Year, buttons */
+
+      margin-top: 10px;      /* Space from the graph image above - adjust as needed */
+      margin-bottom: 30px;   /* Space after this controls block - adjust as needed */
+
+      /* --- Key change for positioning: --- */
+      margin-left: 120px;      /* STARTING VALUE. Increase this (e.g., 20px, 50px, 100px)
+                                 to push the entire line from the left edge of the chart-section. */
+
     }
+
     .date-controls label, .date-controls input, .date-controls select {
       font-size: 14px;
       padding: 4px;
@@ -110,27 +110,121 @@
       padding: 10px;
       margin-left: 50px;
     }
-    .info-values {
+
+    /* Styles for the new two-column top information area */
+    .top-info-grid {
+      display: flex;
+      /* align-items: flex-start; */ /* Remove this or comment out */
+      align-items: stretch;      /* ADD THIS: Makes both columns equal height */
+      margin-bottom: 40px;     /* Or your preferred space before the graph */
+    }
+
+    .info-button-column {
+      flex-shrink: 0;
+      padding-right: 15px;
+      margin-right: 15px;
+      border-right: 1px solid #ccc; /* This border will now span the full stretched height */
+
+      /* Optional: Add these to keep the button at the top of its stretched column */
+      display: flex;
+      flex-direction: column; /* Though only one item, good practice */
+      align-items: flex-start; /* Aligns button to the top */
+      /* justify-content: flex-start; /* Ensures button is at the start if column is flex */
+    }
+
+    .info-details-column {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    /* Styles for .object-title-block-main, .object-common-name, .object-id-name,
+       .secondary-info-line-main and its children (p, small, span)
+       remain the same as in the previous correct version. */
+    /* ... (keep those other styles) ... */
+
+    .primary-info-line .inline-button { /* This rule was from a previous structure, check if still needed or if .info-button-column .inline-button is more appropriate */
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+
+    /* If .primary-info-line and .object-title-block classes are no longer used in the HTML for this section,
+       their specific CSS rules can be removed to avoid confusion.
+       The new structure uses .object-title-block-main. */
+
+    .object-title-block-main { /* Replaces .object-title-block if you used my latest HTML */
+      margin-bottom: 10px;
+    }
+    .object-common-name {
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #333;
+    }
+    .object-id-name {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #555;
+      margin-left: 4px;
+    }
+
+    .secondary-info-line-main { /* Replaces .secondary-info-line if you used my latest HTML */
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
       align-items: center;
+      /* width: 100%; /* Not strictly needed if .info-details-column grows and this is a child */
     }
-
-    .info-values p {
+    .secondary-info-line-main p {
       margin: 0;
       font-size: 16px;
     }
-
-    .info-values small {
+    .secondary-info-line-main small {
       font-size: 12px;
       color: #666;
     }
-
-    .info-values span {
+    .secondary-info-line-main span {
       font-weight: bold;
       font-size: 16px;
       color: #000;
+    }
+
+    /* Styles for the p, small, span inside .secondary-info-line-main */
+    /* These can be adapted from your previous .secondary-info-line p/small/span rules */
+    .secondary-info-line-main p {
+      margin: 0;
+      font-size: 16px;
+    }
+    .secondary-info-line-main small {
+      font-size: 12px;
+      color: #666;
+    }
+    .secondary-info-line-main span {
+      font-weight: bold;
+      font-size: 16px;
+      color: #000;
+    }
+
+    /* Your existing .inline-button style for "Back to Tracker" can remain */
+    .inline-button {
+      background-color: #83b4c5;
+      /* ... other .inline-button styles ... */
+    }
+
+    .object-title-block {
+      flex-grow: 1;
+    }
+
+    .object-common-name {
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .object-id-name {
+      font-size: 1.2em;
+      font-weight: bold;
+      color: #555;
+      margin-left: 4px;
     }
 
     .inline-button {
@@ -147,11 +241,86 @@
     .inline-button:hover {
       background-color: #6795a4 !important;
     }
+    /* NEW STYLES for Journal Sections on graph_view.html */
+    .content-section { /* Common class for distinct sections */
+        margin-top: 25px; /* Space above the section */
+        padding: 20px;
+        background-color: #f8f9fa; /* Light background for the section box */
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 25px; /* Space below the section */
+    }
+    .content-section h3 { /* Titles for Journal, Project Notes */
+        margin-top: 0;
+        color: #343a40;   /* Darker grey for heading */
+        border-bottom: 1px solid #ced4da;
+        padding-bottom: 10px;
+        font-size: 1.2em; /* Slightly larger section titles */
+        font-weight: 600;
+    }
+    .sessions-history-list {
+        list-style-type: none;
+        padding-left: 0;
+        max-height: 250px; /* Scrollable if many sessions */
+        overflow-y: auto;
+        border: 1px solid #ced4da; /* Border around the list */
+        border-radius: 4px;
+        background-color: #fff; /* White background for the list itself */
+        margin-top: 10px;
+    }
+    .sessions-history-list li {
+        padding: 7px 10px; /* Slightly adjusted padding */
+        border-bottom: 1px dotted #e0e0e0;
+        font-size: 0.85em; /* Slightly smaller font for list items */
+    }
+    .sessions-history-list li:last-child { border-bottom: none; }
+    .sessions-history-list li a { text-decoration: none; color: #0056b3; }
+    .sessions-history-list li a:hover { text-decoration: underline; }
+    .sessions-history-list li.current-session-item { /* Highlight for current session in list */
+        background-color: #cfe2ff;
+        border-left: 3px solid #0056b3;
+        padding-left: 7px; /* Adjust if border changes padding */
+    }
+    .sessions-history-list li.current-session-item a { font-weight:bold; }
+
+    .selected-session-details {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #ffffff; /* White background for details box */
+        border: 1px solid #bac8d3;
+        border-radius: 4px;
+        max-width: 770px;
+    }
+    .selected-session-details h4 { margin-top: 0; color: #2c3e50; font-size: 1.05em; font-weight: 600; }
+    .selected-session-details p, .selected-session-details div { margin-bottom: 6px; font-size: 0.9em; line-height: 1.5; }
+    .selected-session-details strong { color: #1c2833; }
+    .action-button-group {
+        display: flex;         /* Makes this a flex container */
+        align-items: center;   /* Vertically aligns flex items (buttons) to the center */
+        /* gap: 8px; */       /* Optional: Replaces margin-right on buttons for spacing */
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .action-button-group .inline-button {
+        margin-right: 8px;    /* Keep if not using 'gap' on the parent */
+        /* If using 'gap' on .action-button-group, you might remove margin-right here */
+        margin-bottom: 5px;
+        font-size: 13px;
+        padding: 6px 12px;
+        text-decoration: none;
+        box-sizing: border-box;
+        display: inline-block;
+        vertical-align: middle;
+        line-height: 1.2;
+    }
+    hr.detail-separator { border: 0; height: 1px; background: #e0e0e0; margin: 10px 0; } /* For separating groups of details */
+
     #opportunities-table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
       font-size: 14px;
+      margin-left: 20px;
     }
 
     #opportunities-table th, #opportunities-table td {
@@ -183,6 +352,7 @@
       font-weight: normal;
       color: #333;
       margin-bottom: 10px;
+      margin-left: 20px;
     }
     #opportunities-table th,
     #opportunities-table td {
@@ -198,12 +368,106 @@
       border-radius: 4px;
       font-family: monospace;
     }
+    .preserve-newlines {
+        white-space: pre-wrap;
+        margin-top: 4px; /* Optional: for spacing below the label */
+        padding-left: 10px; /* Optional: for indentation */
+        border-left: 2px solid #eee; /* Optional: visual cue */
+    }
+
+      /* Styles for Session History Table on graph_view.html */
+    .session-history-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 0.85em; /* Slightly smaller font */
+    }
+    .session-history-table th, .session-history-table td {
+        border: 1px solid #dde;
+        padding: 6px 8px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .session-history-table th {
+        background-color: #e9ecef; /* Lighter header */
+        font-weight: 600;
+    }
+    .session-history-table tr.clickable-session-row:hover {
+        background-color: #e6f7ff; /* Light blue hover */
+        cursor: pointer;
+    }
+    .session-history-table tr.current-session-item {
+        background-color: #cfe2ff !important; /* Ensure this highlight is visible */
+        font-weight: bold;
+    }
+    .session-history-table td.col-date, .session-history-table th.col-date { width: 120px; }
+    .session-history-table td.col-location, .session-history-table th.col-location { width: 150px; }
+    .session-history-table td.col-setup, .session-history-table th.col-setup { width: auto; } /* Takes remaining */
+    .session-history-table td.col-integ, .session-history-table th.col-integ { width: 100px; text-align: center; }
+    .session-history-table td.col-rating, .session-history-table th.col-rating { width: 100px; text-align: center; }
+
+    .selected-session-details .form-data-value { /* Now specificity is (0,2,0) - two classes */
+        padding: 8px 10px;    /* Increased padding slightly for much larger font */
+        background-color: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        min-height: 25px;    /* Increased min-height for larger font */
+        word-wrap: break-word;
+        font-size: 1.1em;  /* Let's try 1.1em first. 2em will be VERY large. Adjust from here. */
+        line-height: 1.5;    /* May need adjustment based on final font size */
+    }
+
+    /* You can still have a separate rule for the preserve-newlines variant if needed for other properties */
+    .selected-session-details div.form-data-value.preserve-newlines {
+        min-height: 80px;
+        background-color: #fff;
+        border: 1px dashed #ced4da;
+        /* font-size will be inherited from the rule above if not overridden here */
+    }
+    div.form-data-value.preserve-newlines { /* For textareas */
+        min-height: 80px; /* Give more space for multi-line notes */
+        background-color: #fff; /* White background might be better for readability for notes */
+        border: 1px dashed #ced4da; /* Dashed border to indicate it's display text */
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 3px;
+        font-weight: normal;
+        font-size: 1em;
+        color: #495057;
+        width: 320px; /* Suggested width - adjust as needed */
+        /* Optional: If a single word in a label is too long and you want it to break */
+        /* overflow-wrap: break-word; */
+    }
+    .form-group {
+        margin-bottom: 10px; /* Reduced margin */
+    }
+    .form-section-title { /* Already defined, ensure it's styled as you like */
+        font-size: 1.1em; /* Adjusted from previous */
+        font-weight: bold;
+        color: #333;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+    .form-row { display: flex; gap: 20px; flex-wrap: wrap; } /* Allow wrapping for form rows */
+    .form-row .form-group { flex: 1; min-width: 200px; } /* Min width before wrapping */
+
   </style>
   <script>
-  function formatDateISOtoEuropean(isoStr) {
-    const [year, month, day] = isoStr.split("-");
-    return `${day}.${month}.${year}`;
-  }
+
+    function formatDateISOtoEuropean(isoStr) {
+      if (!isoStr || typeof isoStr !== 'string') return 'N/A'; // Handle null, undefined, or non-string
+      const parts = isoStr.split("-");
+      if (parts.length !== 3) {
+        console.warn("formatDateISOtoEuropean received unexpected format:", isoStr);
+        return isoStr; // Return original if not YYYY-MM-DD
+      }
+      const [year, month, day] = parts;
+      return `${day}.${month}.${year}`;
+    }
+
 
   document.addEventListener("DOMContentLoaded", function() {
     // Load default chart and header on page load
@@ -235,77 +499,119 @@
     }
 
     function refreshChart() {
-      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
-      const day = document.getElementById('day-select').value;
-      const month = document.getElementById('month-select').value;
-      const year = document.getElementById('year-select').value;
-      const timestamp = Date.now();
+      const objectName = "{{ object_name }}"; // Directly use the Jinja variable
+      const dayEl = document.getElementById('day-select');
+      const monthEl = document.getElementById('month-select');
+      const yearEl = document.getElementById('year-select');
 
-      if (!objectName || !day || !month || !year) return;
+      // Corrected condition: only check elements that should exist
+      if (!dayEl || !monthEl || !yearEl) {
+          console.error("Date input elements not found in refreshChart.");
+          return;
+      }
 
-      const url = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&t=${timestamp}`;
+      const day = dayEl.value;
+      const month = monthEl.value;
+      const year = yearEl.value;
 
-      // Show loading message
-      document.getElementById('chart-loading').style.display = 'block';
+      // The objectName is already defined from Jinja
+      if (!objectName || !day || !month || !year) {
+          console.warn("Missing date/object info for initial refreshChart call for object:", objectName);
+          return;
+      }
 
-      const chartImg = document.getElementById('chart-img');
-      chartImg.style.opacity = '0.3';  // optional: fade effect
-      chartImg.onload = function() {
-        document.getElementById('chart-loading').style.display = 'none';
-        chartImg.style.opacity = '1';
-      };
-      chartImg.onerror = function() {
-        document.getElementById('chart-loading').textContent = "❌ Failed to load chart.";
-        chartImg.style.opacity = '0.5';
-      };
-
-      document.getElementById('chart-link').href = url;
-      chartImg.src = url;
-
-      // Update header info
-      fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
-          document.getElementById("phase-display").innerText = data.phase + "%";
-          document.getElementById("dusk-display").innerText = data.astronomical_dusk;
-          document.getElementById("dawn-display").innerText = data.astronomical_dawn;
-        })
-        .catch(error => console.error("Error updating header:", error));
+      let initialView = 'day'; // Default to day view for refresh
+      console.log("refreshChart is now calling changeView with view:", initialView);
+      changeView(initialView);
     }
 
     function changeView(view) {
-      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
-      const day = document.getElementById('day-select').value;
-      const month = document.getElementById('month-select').value;
-      const year = document.getElementById('year-select').value;
-      const timestamp = Date.now();
-      let url = "";
-      if (view === "day") {
-        url = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&t=${timestamp}`;
-      } else if (view === "month") {
-        url = `/plot_monthly_altitude/${encodeURIComponent(objectName)}?year=${year}&month=${month}&t=${timestamp}`;
-      } else if (view === "year") {
-        url = `/plot_yearly_altitude/${encodeURIComponent(objectName)}?year=${year}&t=${timestamp}`;
+      console.log("--- changeView called. View:", view, "---");
+      // Optional: Keep your debugging console logs for parameters if they are helpful
+      console.log("Effective graph_lat_param from Jinja:", "{{ graph_lat_param | default('JS_UNDEFINED', True) }}");
+      // ... other console logs ...
+
+      const objectName = "{{ object_name }}"; // Directly use the Jinja variable
+      const dayEl = document.getElementById('day-select');
+      const monthEl = document.getElementById('month-select');
+      const yearEl = document.getElementById('year-select');
+
+      // Corrected condition
+      if (!dayEl || !monthEl || !yearEl) {
+          console.error("Date input elements not found in changeView.");
+          return;
       }
-      console.log("changeView triggered with URL:", url);
-      document.getElementById('chart-link').href = url;
-      document.getElementById('chart-img').src = url;
-      // Also update header information
+
+      const day = dayEl.value;
+      const month = monthEl.value;
+      const year = yearEl.value;
+      const timestamp = Date.now();
+      let baseUrl = "";
+
+      // The objectName is already defined from Jinja
+      if (!objectName) {
+          console.error("Object name is missing in changeView.");
+          return;
+      }
+
+      if (view === "day") {
+        baseUrl = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`;
+      } else if (view === "month") {
+        baseUrl = `/plot_monthly_altitude/${encodeURIComponent(objectName)}?year=${year}&month=${month}`;
+      } else if (view === "year") {
+        baseUrl = `/plot_yearly_altitude/${encodeURIComponent(objectName)}?year=${year}`;
+      } else {
+        console.error("Unknown view type in changeView:", view);
+        return;
+      }
+
+      let locationQueryParams = "";
+      const plotLat = "{{ graph_lat_param | default('none', True) }}";
+      const plotLon = "{{ graph_lon_param | default('none', True) }}";
+      const plotTz = "{{ graph_tz_name_param | default('none', True) }}";
+      const plotLocName = "{{ graph_location_name_param | default('none', True) }}";
+
+      if (plotLat !== 'none' && plotLat !== '') locationQueryParams += `&plot_lat=${encodeURIComponent(plotLat)}`;
+      if (plotLon !== 'none' && plotLon !== '') locationQueryParams += `&plot_lon=${encodeURIComponent(plotLon)}`;
+      if (plotTz !== 'none' && plotTz !== '') locationQueryParams += `&plot_tz=${encodeURIComponent(plotTz)}`;
+      if (plotLocName !== 'none' && plotLocName !== '') locationQueryParams += `&plot_loc_name=${encodeURIComponent(plotLocName)}`;
+
+      const finalUrl = baseUrl + locationQueryParams + `&t=${timestamp}`;
+      console.log("changeView constructing graph URL:", finalUrl);
+
+      const chartLoadingEl = document.getElementById('chart-loading');
+      const chartImgEl = document.getElementById('chart-img');
+      const chartLinkEl = document.getElementById('chart-link');
+
+      if(chartLoadingEl) chartLoadingEl.style.display = 'block';
+      if(chartImgEl) chartImgEl.style.opacity = '0.3';
+
+      if(chartImgEl) {
+        chartImgEl.onload = function() { if(chartLoadingEl) chartLoadingEl.style.display = 'none'; chartImgEl.style.opacity = '1'; };
+        chartImgEl.onerror = function() { if(chartLoadingEl) chartLoadingEl.textContent = "❌ Failed to load chart."; chartImgEl.style.opacity = '0.5'; };
+        chartImgEl.src = finalUrl;
+      }
+      if(chartLinkEl) chartLinkEl.href = finalUrl;
+
       fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
         .then(response => response.json())
         .then(data => {
-          document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
-          document.getElementById("phase-display").innerText = data.phase + "%";
-          document.getElementById("dusk-display").innerText = data.astronomical_dusk;
-          document.getElementById("dawn-display").innerText = data.astronomical_dawn;
+          const dateDisplayEl = document.getElementById("date-display");
+          const phaseDisplayEl = document.getElementById("phase-display");
+          const duskDisplayEl = document.getElementById("dusk-display");
+          const dawnDisplayEl = document.getElementById("dawn-display");
+
+          if(dateDisplayEl) dateDisplayEl.innerText = formatDateISOtoEuropean(data.date);
+          if(phaseDisplayEl) phaseDisplayEl.innerText = data.phase + "%";
+          if(duskDisplayEl) duskDisplayEl.innerText = data.astronomical_dusk;
+          if(dawnDisplayEl) dawnDisplayEl.innerText = data.astronomical_dawn;
         })
-        .catch(error => console.error("Error updating header:", error));
+        .catch(error => console.error("Error updating header info via get_date_info:", error));
     }
 
     function saveProject() {
       const newProject = document.getElementById('project-field').value;
-      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      const objectName = "{{ object_name }}"; // Directly use Jinja variable
       fetch('/update_project', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -317,18 +623,17 @@
 
     function toggleSimbad() {
       var container = document.getElementById('simbadContainer');
+      const objectName = "{{ object_name }}"; // Directly use Jinja variable
       if (container.style.display === 'none' || container.style.display === '') {
-        document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(document.getElementById('object-input').value);
+        document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(objectName);
         container.style.display = 'block';
       } else {
         container.style.display = 'none';
       }
     }
 
-
-
     function loadImagingOpportunities() {
-      const objectName = document.getElementById('object-input').value || "{{ object_name }}";
+      const objectName = "{{ object_name }}"; // Directly use Jinja variable
       const section = document.getElementById("opportunities-section");
       const tbody = document.getElementById("opportunities-body");
 
@@ -350,7 +655,7 @@
 
             rows.forEach(r => {
               const isSelected = r.date === selectedDateStr;
-              const formattedDate = formatDateISOtoEuropean(r.date);
+              const formattedDate = formatDateISOtoEuropean(r.date); // Use formatting here too
 
               htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
                 <td>${formattedDate}</td>
@@ -361,7 +666,7 @@
                 <td style="text-align: center;">${r.rating || ""}</td>
               </tr>`;
             });
-                        tbody.innerHTML = htmlRows;
+            tbody.innerHTML = htmlRows;
           } else {
             tbody.innerHTML = `<tr><td colspan="6" style="color: red;">Error: ${data.message}</td></tr>`;
           }
@@ -372,6 +677,7 @@
             "<tr><td colspan='6' style='color:red;'>An error occurred while fetching data.</td></tr>";
         });
     }
+
     function selectSuggestedDate(dateStr) {
       // Update selectors
       const [year, month, day] = dateStr.split('-').map(Number);
@@ -393,10 +699,11 @@
         }
       });
     }
+
     function openInStellarium() {
       const stellariumStatusDiv = document.getElementById('stellarium-status');
       stellariumStatusDiv.textContent = "Sending object to Stellarium...";
-      const objectName = document.getElementById('object-input').value;
+      const objectName = "{{ object_name }}"; // Directly use Jinja variable
 
       fetch("/proxy_focus", {
         method: "POST",
@@ -408,7 +715,10 @@
         try {
           data = await response.json();
         } catch (err) {
-          throw new Error("Invalid JSON response from server");
+          // If response is not JSON, it might be HTML (e.g. error page from Stellarium/proxy)
+          const textResponse = await response.text();
+          console.error("Stellarium proxy response was not valid JSON:", textResponse);
+          throw new Error("Invalid JSON response from server. Raw: " + textResponse.substring(0, 100));
         }
 
         if (response.ok && data.status === "success") {
@@ -423,9 +733,10 @@
           `;
         }
       })
-      .catch(() => {
+      .catch((error) => { // Catch fetch errors or the error thrown above
+        console.error("Error in openInStellarium fetch/JSON parse:", error);
         // Fallback fetch to get the generic error message from server
-        fetch("/stellarium_error_message")
+        fetch("/stellarium_error_message") // This endpoint needs to exist in your Flask app
           .then(res => res.json())
           .then(data => {
             stellariumStatusDiv.innerHTML = `
@@ -443,6 +754,7 @@
           });
       });
     }
+
     document.addEventListener("DOMContentLoaded", function () {
       const dayInput = document.getElementById("day-select");
       const monthSelect = document.getElementById("month-select");
@@ -473,71 +785,338 @@
 </head>
 <body>
 {% block body %}
-  <!-- Top navigation -->
-  <div class="header-container">
-    <h1>Nova</h1>
-    <h3>DSO Tracker V{{ version }}</h3>
-  </div>
-  <div class="info-container info-values">
-    <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
-    <p><small>Location:</small> <span id="location-display">{{ location_name }}</span></p>
-    <p><small>Date:</small> <span id="date-display">{{ date }}</span></p>
-    <p><small>Moon Illumination (at midnight):</small> <span id="phase-display">{{ phase }}%</span></p>
-    <p><small>Astro Dusk:</small> <span id="dusk-display">{{ astronomical_dusk }}</span></p>
-    <p><small>Astro Dawn:</small> <span id="dawn-display">{{ astronomical_dawn }}</span></p>
-  </div>
+    <div class="header-container">
+      <h1>Nova</h1>
+      <h3>DSO Tracker V{{ version }}</h3>
+    </div>
+    <div class="top-info-grid"> {# Renamed for clarity, this will be our main flex row for the two columns #}
 
-  <!-- The main chart area -->
+      {# ---- Column 1: Back to Tracker Button ---- #}
+      <div class="info-button-column">
+        <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
+      </div>
+      {# ---- END: Column 1 ---- #}
+
+      {# ---- Column 2: Object Details and Secondary Info ---- #}
+      <div class="info-details-column">
+        {# Object Name/ID Display #}
+        <div class="object-title-block-main">
+            <span class="object-common-name">{{ alt_name | default(object_name, True) }}</span>
+            <span class="object-id-name">({{ object_name }})</span>
+        </div>
+
+        {# Secondary Info Line: Location, Date, Moon, etc. #}
+        <div class="secondary-info-line-main">
+          <p><small>Location:</small> <span id="location-display">{{ header_location_name }}</span></p>
+          <p><small>Date (Graph):</small> <span id="date-display">{{ header_date_display }}</span></p>
+          <p><small>Moon (for date):</small> <span id="phase-display">{{ header_moon_phase }}%</span></p>
+          <p><small>Astro Dusk:</small> <span id="dusk-display">{{ header_astro_dusk }}</span></p>
+          <p><small>Astro Dawn:</small> <span id="dawn-display">{{ header_astro_dawn }}</span></p>
+        </div>
+      </div>
+      {# ---- END: Column 2 ---- #}
+
+    </div>
   <div id="chart-section">
-    <!-- Date controls and object input -->
-    <div class="date-controls" style="display: flex; align-items: center; gap: 10px;">
-      <label>Object:</label>
-      <input type="text" id="object-input" value="{{ object_name }}" style="width: 150px;" readonly />
 
-      <label>Day:</label>
+    <div id="chart-loading" style="display:none; color: #6795a4; margin-bottom: 10px; margin-left: 10px;">Loading chart...</div>
+    {# The initial src for chart-img will be set by refreshChart() on DOMContentLoaded #}
+    <a id="chart-link" href="#" target="_blank">
+      <img id="chart-img" src="#" alt="Altitude Graph for {{ alt_name }}" />
+    </a>
+    <div class="date-controls">
+      <label for="day-select">Day:</label>
       <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;" />
 
-      <label>Month:</label>
+      <label for="month-select">Month:</label>
       <select id="month-select">
         {% for m in range(1, 13) %}
-          <option value="{{ m }}" {% if m == selected_month|int %}selected{% endif %}>{{ m }}</option>
+          <option value="{{ m }}" {% if m == selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
         {% endfor %}
       </select>
 
-      <label>Year:</label>
+      <label for="year-select">Year:</label>
       <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;" />
 
-      <!-- Inline view buttons -->
-      <button class="view-button" onclick="changeView('day')">Day</button>
-      <button class="view-button" onclick="changeView('month')">Month</button>
-      <button class="view-button" onclick="changeView('year')">Year</button>
+      <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
+      <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
+      <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
     </div>
-    <br/>
-          <div id="chart-loading" style="display:none; color: #6795a4; margin-bottom: 10px; margin-left: 10px;">
-            Loading chart...
-          </div>
-    <a id="chart-link" href="#" target="_blank">
-      <img id="chart-img" src="#" alt="Altitude Graph" />
-    </a>
   </div>
+  {# End of chart-section #}
 
-  <!-- Project field and additional controls -->
-  <div class="button-container">
-    <div class="opportunities-heading">Notes:<br></div>
-    <textarea id="project-field">{{ project }}</textarea>
-    <br><br>
-    <button class="inline-button" onclick="saveProject()">Save Project</button>
-    <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
-    <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
-    <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
-    <br><div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+
+  <div class="content-section journal-section-for-object">
+    <h3>Imaging Journal for {{ alt_name | default(object_name, True) }}</h3>
+    <div class="action-button-group">
+        {% if is_guest %}
+            <a href="#" onclick="alert('Please log in to add a journal session.'); return false;" class="inline-button">Add New Session</a>
+        {% else %}
+            <a href="{{ url_for('journal_add_for_target', object_name=object_name) }}" class="inline-button">Add New Session</a>
+        {% endif %}
+    </div>
+
+    {% if object_specific_sessions %}
+            <h4>Session History:</h4>
+            <div class="table-wrapper" style="max-height: 280px; overflow-y: auto; margin-bottom:15px;"> {# Make it scrollable #}
+                <table class="session-history-table">
+                    <thead>
+                        <tr>
+                            <th class="col-date">Date</th>
+                            <th class="col-location">Location</th>
+                            <th class="col-setup">Telescope Setup</th>
+                            <th class="col-integ">Integ. Time</th>
+                            <th class="col-rating">Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for session_item in object_specific_sessions %}
+                            <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}"
+                                onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}'">
+                                <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}</td>
+                                <td class="col-location">{{ session_item.location_name | default("N/A") }}</td>
+                                <td class="col-setup">{{ session_item.telescope_setup_notes | default("N/A") | truncate(50, True) }}</td>
+                                <td class="col-integ">
+                                    {% set integ_min = session_item.get('calculated_integration_time_minutes') %}
+                                    {{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min
+                                </td>
+                                <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and session_item.session_rating_subjective is not none %} ★{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if selected_session_data %}
+                <div class="selected-session-details"> {# Keep this outer wrapper #}
+                    <h4>Details for Session: {{ selected_session_data.session_date | date_eu }}
+                        {% if selected_session_data.session_id %}<small>(ID: {{ selected_session_data.session_id[:8] }}...)</small>{% endif %}
+                    </h4>
+                    <div class="action-button-group">
+                        {% if is_guest %}
+                            <a href="#" onclick="alert('Please log in to edit journal sessions.'); return false;" class="inline-button" style="background-color:#ffc107; color:black;">Edit This Session</a>
+                        {% else %}
+                            <a href="{{ url_for('journal_edit', session_id=selected_session_data.session_id) }}" class="inline-button" style="background-color:#ffc107; color:black;">Edit This Session</a>
+                        {% endif %}
+                        {% if is_guest %}
+                            <button type="button" class="inline-button" style="background-color:#dc3545;" onclick="alert('Please log in to delete journal sessions.');">Delete This Session</button>
+                        {% else %}
+                            <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this journal entry? This action cannot be undone.');">
+                                <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
+                            </form>
+                        {% endif %}
+                    </div>
+
+                    {# --- Mimicking journal_form.html structure --- #}
+                    <div class="form-section-title" style="margin-top:20px;">Core Info</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Session Date:</label>
+                            <p class="form-data-value">{{ selected_session_data.session_date | date_eu | default('N/A') }}</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Object:</label>
+                            <p class="form-data-value">{{ selected_session_data.target_object_id | default('N/A') }}</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Location:</label>
+                        <p class="form-data-value">{{ selected_session_data.location_name | default('N/A') }}</p>
+                    </div>
+
+                    <div class="form-section-title">Sky Conditions (Observed)</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Seeing (FWHM, arcsec):</label>
+                            <p class="form-data-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}{% if selected_session_data.seeing_observed_fwhm and selected_session_data.seeing_observed_fwhm not in ['N/A', None] %}"{% endif %}</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Transparency Scale:</label>
+                            <p class="form-data-value">{{ selected_session_data.transparency_observed_scale | default('N/A') }}</p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                         <div class="form-group">
+                            <label>SQM Reading:</label>
+                            <p class="form-data-value">{{ selected_session_data.sky_sqm_observed | default('N/A') }}</p>
+                        </div>
+                         <div class="form-group"> </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Weather Notes:</label>
+                        <div class="form-data-value preserve-newlines">{{ selected_session_data.weather_notes | default('N/A') }}</div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Moon Illumination (Session):</label>
+                            <p class="form-data-value">{{ selected_session_data.moon_illumination_session | default('N/A') }}{% if selected_session_data.moon_illumination_session not in ['N/A', None] %}%{% endif %}</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Moon Angular Separation (Session):</label>
+                            <p class="form-data-value">{{ selected_session_data.moon_angular_separation_session | default('N/A') }}{% if selected_session_data.moon_angular_separation_session not in ['N/A', None] %}°{% endif %}</p>
+                        </div>
+                    </div>
+                    <div class="form-section-title">Equipment & Guiding</div>
+                     <div class="form-group">
+                        <label>Telescope Setup Notes:</label>
+                        <p class="form-data-value">{{ selected_session_data.telescope_setup_notes | default('N/A') }}</p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Filter Used:</label>
+                            <p class="form-data-value">{{ selected_session_data.filter_used_session | default('N/A') }}</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Guiding RMS (avg, arcsec):</label>
+                            <p class="form-data-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}{% if selected_session_data.guiding_rms_avg_arcsec and selected_session_data.guiding_rms_avg_arcsec not in ['N/A', None] %}"{% endif %}</p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Guiding Equipment (Scope, Camera, Software):</label>
+                        <p class="form-data-value">{{ selected_session_data.guiding_equipment | default('N/A') }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Dither Settings:</label>
+                        <p class="form-data-value">{{ selected_session_data.dither_details | default('N/A') }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Acquisition Software:</label>
+                        <p class="form-data-value">{{ selected_session_data.acquisition_software | default('N/A') }}</p>
+                    </div>
+                <div class="form-section-title">Acquisition Details</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sub Exposure (seconds):</label>
+                            <p class="form-data-value">{{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Light Subs:</label>
+                            <p class="form-data-value">{{ selected_session_data.number_of_subs_light | default('N/A') }}</p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Gain:</label>
+                            <p class="form-data-value">{{ selected_session_data.gain_setting | default('N/A') }}</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Offset:</label>
+                            <p class="form-data-value">{{ selected_session_data.offset_setting | default('N/A') }}</p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Binning:</label>
+                            <p class="form-data-value">{{ selected_session_data.binning_session | default('N/A') }}</p>
+                        </div>
+                        <div class="form-group">
+                             <label>Total Integration:</label>
+                            <p class="form-data-value">
+                                {% set integ_min_detail = selected_session_data.get('calculated_integration_time_minutes') %}
+                                {{ integ_min_detail | round(0) if integ_min_detail is number and integ_min_detail != 'N/A' else 'N/A' }} min
+                            </p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Camera Temp Setpoint (°C):</label>
+                            <p class="form-data-value">{{ selected_session_data.camera_temp_setpoint_c | default('N/A') }}°C</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Camera Temp Actual Avg (°C):</label>
+                            <p class="form-data-value">{{ selected_session_data.camera_temp_actual_avg_c | default('N/A') }}°C</p>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title">Monochrome Filter Exposures</div>
+
+                    {% set filters_display = [
+                        ('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'),
+                        ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')
+                    ] %}
+
+                    {% for filt_key, filt_name in filters_display %}
+                        {% set subs_val = selected_session_data.get('filter_' + filt_key + '_subs') %}
+                        {% set exp_val = selected_session_data.get('filter_' + filt_key + '_exposure_sec') %}
+
+                        {# Only display the row if there's data for either subs or exposure for that filter #}
+                        {% if (subs_val is not none and subs_val|string|trim != '') or
+                              (exp_val is not none and exp_val|string|trim != '') %}
+                            {# The rest of the div.form-row and its content remains the same as before #}
+                            <div class="form-row" style="margin-bottom: 8px;">
+                                <div class="form-group" style="flex: 0 0 200px; display: flex; align-items: center;">
+                                    <label style="margin-bottom: 0;">{{ filt_name }} ({{ filt_key }}) Filter:</label>
+                                </div>
+                                <div class="form-group">
+                                    <label># Subs:</label>
+                                    <p class="form-data-value">{{ subs_val | default('N/A') }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Exp (sec/sub):</label>
+                                    <p class="form-data-value">{{ exp_val | default('N/A') }}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="form-section-title">Calibration Strategy</div>
+                    <div class="form-group">
+                        <label>Darks:</label>
+                        <p class="form-data-value">{{ selected_session_data.darks_strategy | default('N/A') }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Flats:</label>
+                        <p class="form-data-value">{{ selected_session_data.flats_strategy | default('N/A') }}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Bias / Dark Flats:</label>
+                        <p class="form-data-value">{{ selected_session_data.bias_darkflats_strategy | default('N/A') }}</p>
+                    </div>
+
+                    <div class="form-section-title">Outcome & Reflections</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Session Rating (1-5 ★):</label>
+                            <p class="form-data-value">{{ selected_session_data.session_rating_subjective | default('N/A') }}{% if selected_session_data.session_rating_subjective and selected_session_data.session_rating_subjective not in ['N/A', None] %} ★{% endif %}</p>
+                        </div>
+
+                    </div>
+
+                    <div class="form-group">
+                        <label>General Notes, Problems, Learnings:</label>
+                        <div class="form-data-value preserve-newlines">{{ selected_session_data.general_notes_problems_learnings | default('N/A') }}</div>
+                    </div>
+                </div>
+            {% elif object_specific_sessions %}
+                <p style="margin-top:15px; color:#555;"><em>Select a session from the history above to view its full details.</em></p>
+            {% endif %}
+    {% else %}
+        <p style="margin-top:15px; color:#777;">No journal entries found for {{ alt_name | default(object_name, True) }}.</p>
+    {% endif %}
   </div>
+  {# End of Journal Section #}
+
+
+  {# This was your 'button-container' div previously, now wrapped and styled #}
+  <div class="content-section project-notes-section">
+       <h3>Project Notes</h3>
+       <textarea id="project-field" name="project_notes_from_config" readonly title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
+       <div class="button-group"> {# Your existing group of buttons for this object #}
+           <button class="inline-button" onclick="saveProject()">Save Project Notes</button> {# If you make project-field editable #}
+           <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
+           <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
+           <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
+       </div>
+       <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+  </div>
+  {# End of Project Notes Section #}
+
 
   <div id="simbadContainer" style="display:none; margin-top:20px;">
     <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
   </div>
 
-  <div id="opportunities-section" style="display: none; max-width: 800px; margin-left: 60px;">
+  <div id="opportunities-section" style="display: none; max-width: 800px; margin-top: 30px;">
     <div class="opportunities-heading">Imaging Opportunities:<br><small>Note: The star rating does not differentiate whether the moon is above or below the horizon.</small></div>
     <table id="opportunities-table" class="opportunity-table center-text">
       <thead>
@@ -551,9 +1130,11 @@
         </tr>
       </thead>
       <tbody id="opportunities-body">
+        {# Populated by loadImagingOpportunities() #}
       </tbody>
     </table>
   </div>
+
 {% endblock %}
 </body>
 </html>

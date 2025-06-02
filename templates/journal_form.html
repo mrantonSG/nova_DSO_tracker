@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}{{ form_title | default('Journal Entry') }} - Nova DSO Tracker{% endblock %}
+
+{% block head_extra %}
+<style>
+    /* NEW: Added body font-family for consistency if not in base.html */
+    body {
+        font-family: 'Roboto', sans-serif; /* Matches index.html */
+        padding: 20px; /* Matches index.html */
+        margin: 0;
+        background-color: #ffffff; /* Matches index.html */
+        color: #333; /* Matches index.html */
+    }
+    /* NEW: Copied from index.html for header consistency */
+    .header-container {
+      display: flex;
+      align-items: baseline;
+    }
+    .header-container h1, .header-container h3 {
+      margin-bottom: 20px;
+    }
+    .header-container h3 {
+      margin-left: 10px;
+      font-weight: normal;
+    }
+    /* MODIFIED: .form-container margin for left alignment */
+    .form-container {
+        max-width: 800px; /* Retain max-width */
+        margin-top: 0px;    /* Will be spaced by h2 below header */
+        margin-bottom: 30px;
+        margin-left: 0;      /* Align to left (respecting body padding) */
+        margin-right: auto;  /* Allows max-width to take effect if screen is wider */
+        padding: 20px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+    .form-group { margin-bottom: 15px; }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px; /* Or 3px as you have in graph_view.html */
+      font-weight: normal; /* CHANGED from bold */
+      font-size: 14px; /* Or 0.85em as in graph_view.html */
+      /* color: #495057; */ /* Consider making color consistent too */
+    }
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group input[type="date"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+    .form-group textarea { min-height: 100px; }
+    .form-actions { margin-top: 20px; text-align: right; }
+    .form-actions button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #83b4c5;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+    .form-actions button[type="button"] { background-color: #aaa; }
+    .form-actions button:hover { opacity: 0.9; }
+    .form-section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+        margin-top: 25px;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+    .form-row { display: flex; gap: 20px; flex-wrap: wrap; } /* Added flex-wrap */
+    .form-row .form-group { flex: 1; min-width: 200px;} /* Added min-width for better wrapping */
+</style>
+{% endblock %}
+
+{% block body %}
+{# --- NEW: Standard App Header (like on index.html) --- #}
+<div class="header-container">
+  <h1>Nova</h1>
+  <h3>DSO Tracker V{{ version }}</h3>
+</div>
+
+{# --- NEW: Title for this specific form --- #}
+<h2 style="font-weight: normal; margin-top: 30px; margin-bottom: 20px; color: #333;">{{ form_title | default('Journal Entry') }}</h2>
+
+{# The form container itself now starts after the new h2 title #}
+<div class="form-container">
+    <form method="POST" action="{{ form_action_url }}">
+        {# Hidden field for session_id if editing, not present for add #}
+        {% if entry and entry.session_id %}
+            <input type="hidden" name="session_id" value="{{ entry.session_id }}">
+        {% endif %}
+
+        <div class="form-section-title">Core Info</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="session_date">Session Date:</label>
+                {# Removed 'required' from here and other fields as per earlier discussions to make them optional #}
+                {# If you want specific fields to be mandatory, add 'required' back to them #}
+                <input type="date" id="session_date" name="session_date" value="{{ entry.session_date if entry and entry.session_date else today_date }}">
+            </div>
+            <div class="form-group">
+                <label for="target_object_id">Target Object:</label>
+                <select id="target_object_id" name="target_object_id">
+                    <option value="">--- Select Target (Optional) ---</option>
+                    {% for obj in available_objects %}
+                        <option value="{{ obj.Object }}" {% if entry and entry.target_object_id == obj.Object %}selected{% endif %}>
+                            {{ obj.Name | default(obj.Object, True) }} ({{ obj.Object }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="location_name">Location:</label>
+            <select id="location_name" name="location_name">
+                <option value="">--- Select Location (Optional) ---</option>
+                {% for loc_name_key, loc_details in available_locations.items() %} {# Changed loc_name to loc_name_key to avoid conflict #}
+                     <option value="{{ loc_name_key }}" {% if entry and entry.location_name == loc_name_key %}selected{% elif not entry and loc_name_key == default_location %}selected{% endif %}>
+                        {{ loc_name_key }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-section-title">Sky Conditions (Observed)</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="seeing_observed_fwhm">Seeing (FWHM, arcsec):</label>
+                <input type="number" step="0.01" id="seeing_observed_fwhm" name="seeing_observed_fwhm" value="{{ entry.seeing_observed_fwhm if entry.seeing_observed_fwhm is not none else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="transparency_observed_scale">Transparency Scale:</label>
+                <input type="text" id="transparency_observed_scale" name="transparency_observed_scale" value="{{ entry.transparency_observed_scale if entry else '' }}" placeholder="e.g., Good (4/5), Clear">
+            </div>
+        </div>
+        <div class="form-row">
+             <div class="form-group">
+                <label for="sky_sqm_observed">SQM Reading:</label>
+                <input type="number" step="0.01" id="sky_sqm_observed" name="sky_sqm_observed" value="{{ entry.sky_sqm_observed if entry.sky_sqm_observed is not none else '' }}">
+            </div>
+             <div class="form-group"> </div> {# Placeholder for alignment #}
+        </div>
+        <div class="form-group">
+            <label for="weather_notes">Weather Notes:</label>
+            <textarea id="weather_notes" name="weather_notes">{{ entry.weather_notes if entry else '' }}</textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="moon_illumination_session">Moon Illumination at Session (%):</label>
+                <input type="number" id="moon_illumination_session" name="moon_illumination_session" min="0" max="100" step="1" value="{{ entry.moon_illumination_session if entry.moon_illumination_session is not none else '' }}" placeholder="e.g., 34">
+            </div>
+            <div class="form-group">
+                <label for="moon_angular_separation_session">Moon Angular Separation from Target (°):</label>
+                <input type="number" id="moon_angular_separation_session" name="moon_angular_separation_session" min="0" max="180" step="0.1" value="{{ entry.moon_angular_separation_session if entry.moon_angular_separation_session is not none else '' }}" placeholder="e.g., 45.5">
+            </div>
+        </div>
+
+        <div class="form-section-title">Equipment & Guiding</div>
+         <div class="form-group">
+            <label for="telescope_setup_notes">Telescope Setup Notes:</label>
+            <input type="text" id="telescope_setup_notes" name="telescope_setup_notes" value="{{ entry.telescope_setup_notes if entry else '' }}" placeholder="e.g., C11+Reducer+ASI2600">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="filter_used_session">Filter Used:</label>
+                <input type="text" id="filter_used_session" name="filter_used_session" value="{{ entry.filter_used_session if entry else '' }}" placeholder="e.g., L-Pro, Ha 7nm">
+            </div>
+            <div class="form-group">
+                <label for="guiding_rms_avg_arcsec">Guiding RMS (avg, arcsec):</label>
+                <input type="number" step="0.01" id="guiding_rms_avg_arcsec" name="guiding_rms_avg_arcsec" value="{{ entry.guiding_rms_avg_arcsec if entry.guiding_rms_avg_arcsec is not none else '' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="guiding_equipment">Guiding Equipment (Scope, Camera, Software):</label>
+            <input type="text" id="guiding_equipment" name="guiding_equipment" value="{{ entry.guiding_equipment if entry else '' }}" placeholder="e.g., 50mm guidescope + ASI120MM Mini, PHD2">
+        </div>
+        <div class="form-group">
+            <label for="dither_details">Dither Settings:</label>
+            <input type="text" id="dither_details" name="dither_details" value="{{ entry.dither_details if entry else '' }}" placeholder="e.g., Yes, 3px every 2 subs">
+        </div>
+        <div class="form-group">
+            <label for="acquisition_software">Acquisition Software:</label>
+            <input type="text" id="acquisition_software" name="acquisition_software" value="{{ entry.acquisition_software if entry else '' }}" placeholder="e.g., N.I.N.A., Sequence Generator Pro, Astroberry">
+        </div>
+        <div class="form-section-title">Acquisition Details</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="exposure_time_per_sub_sec">Sub Exposure (seconds):</label>
+                <input type="text" pattern="[0-9]*" inputmode="numeric" id="exposure_time_per_sub_sec" name="exposure_time_per_sub_sec" value="{{ entry.exposure_time_per_sub_sec if entry.exposure_time_per_sub_sec is not none else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="number_of_subs_light">Number of Light Subs:</label>
+                <input type="text" pattern="[0-9]*" inputmode="numeric" id="number_of_subs_light" name="number_of_subs_light" value="{{ entry.number_of_subs_light if entry.number_of_subs_light is not none else '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="gain_setting">Gain:</label>
+                <input type="number" id="gain_setting" name="gain_setting" value="{{ entry.gain_setting if entry.gain_setting is not none else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="offset_setting">Offset:</label>
+                <input type="number" id="offset_setting" name="offset_setting" value="{{ entry.offset_setting if entry.offset_setting is not none else '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="camera_temp_setpoint_c">Camera Temp Setpoint (°C):</label>
+                <input type="number" step="0.1" id="camera_temp_setpoint_c" name="camera_temp_setpoint_c" value="{{ entry.camera_temp_setpoint_c if entry.camera_temp_setpoint_c is not none else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="camera_temp_actual_avg_c">Camera Temp Actual Avg (°C):</label>
+                <input type="number" step="0.1" id="camera_temp_actual_avg_c" name="camera_temp_actual_avg_c" value="{{ entry.camera_temp_actual_avg_c if entry.camera_temp_actual_avg_c is not none else '' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="binning_session">Binning:</label>
+            <input type="text" id="binning_session" name="binning_session" value="{{ entry.binning_session if entry else '' }}" placeholder="e.g., 1x1, 2x2">
+        </div>
+        <div class="form-section-title">Monochrome Filter Exposures</div>
+        <p style="font-size:0.85em; margin-top:-10px; margin-bottom:10px; color:#555;"><em>Enter number of subframes and exposure time (in seconds) per subframe for each filter used. Leave blank if not used.</em></p>
+
+        {% set filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
+        {% for filt_key, filt_name in filters %}
+        <div class="form-row">
+            <div class="form-group" style="flex: 0 0 200px;"> {# Fixed width for label part #}
+                <label>{{ filt_name }} ({{ filt_key }}) Filter:</label>
+            </div>
+            <div class="form-group">
+                <label for="filter_{{ filt_key }}_subs"># Subs:</label>
+                <input type="number" id="filter_{{ filt_key }}_subs" name="filter_{{ filt_key }}_subs" min="0" step="1" value="{{ entry['filter_' + filt_key + '_subs'] if entry['filter_' + filt_key + '_subs'] is not none else '' }}" placeholder="Count">
+            </div>
+            <div class="form-group">
+                <label for="filter_{{ filt_key }}_exposure_sec">Exp (sec/sub):</label>
+                <input type="number" id="filter_{{ filt_key }}_exposure_sec" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" value="{{ entry['filter_' + filt_key + '_exposure_sec'] if entry['filter_' + filt_key + '_exposure_sec'] is not none else '' }}" placeholder="Seconds">
+            </div>
+        </div>
+        {% endfor %}
+        <div class="form-section-title">Calibration Strategy</div>
+        <div class="form-group">
+            <label for="darks_strategy">Darks:</label>
+            <input type="text" id="darks_strategy" name="darks_strategy" value="{{ entry.darks_strategy if entry else '' }}" placeholder="e.g., Library match, Taken post-session">
+        </div>
+        <div class="form-group">
+            <label for="flats_strategy">Flats:</label>
+            <input type="text" id="flats_strategy" name="flats_strategy" value="{{ entry.flats_strategy if entry else '' }}" placeholder="e.g., Morning sky, Panel">
+        </div>
+        <div class="form-group">
+            <label for="bias_darkflats_strategy">Bias / Dark Flats:</label>
+            <input type="text" id="bias_darkflats_strategy" name="bias_darkflats_strategy" value="{{ entry.bias_darkflats_strategy if entry else '' }}" placeholder="e.g., Library match">
+        </div>
+
+        <div class="form-section-title">Outcome & Reflections</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="session_rating_subjective">Session Rating (1-5 ★):</label>
+                <input type="number" min="1" max="5" id="session_rating_subjective" name="session_rating_subjective" value="{{ entry.session_rating_subjective if entry.session_rating_subjective is not none else '' }}">
+            </div>
+
+        </div>
+
+        <div class="form-group">
+            <label for="general_notes_problems_learnings">General Notes, Problems, Learnings:</label>
+            <textarea id="general_notes_problems_learnings" name="general_notes_problems_learnings">{{ entry.general_notes_problems_learnings if entry else '' }}</textarea>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" onclick="window.location.href='{{ cancel_url | default(url_for('index')) }}'">Cancel</button>
+            <button type="submit">{{ submit_button_text | default('Save Entry') }}</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
