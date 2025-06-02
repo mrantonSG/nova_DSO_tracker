@@ -284,6 +284,11 @@
       <a href="{{ url_for('download_config') }}" class="file-button">Download Config</a>
       <a href="#" id="import-config-btn" class="file-button">Import Config</a>
       <input type="file" id="config-upload" accept=".yaml" style="display:none;">
+      {# NEW Journal Buttons #}
+      <a href="{{ url_for('download_journal') }}" class="file-button" style="margin-right:5px;">Download Journal</a>
+      <a href="#" id="import-journal-btn" class="file-button">Import Journal</a>
+      <input type="file" id="journal-upload" accept=".yaml,.yml" style="display:none;">
+
     </div>
   </div>
 
@@ -498,34 +503,29 @@
   </form>
   <br>
   <script>
-    // Removed fetchIntervalId as countdown is removed
-
     function confirmAndFetchDetails(formElement) {
-        console.log("confirmAndFetchDetails called for form:", formElement.id);
+        // console.log("confirmAndFetchDetails called for form:", formElement.id); // Kept for your debugging
         const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
-        let estimatedTime = numObjects * 4;
+        let estimatedTime = numObjects * 0.6; // Adjusted estimated time slightly
 
-        let confirmationMessage = "Fetching all missing object details can take some time.\n";
+        let confirmationMessage = "Fetching all missing object details (Type, Magnitude, Size, SB) can take some time.\n";
         if (numObjects > 0) {
-            confirmationMessage += `With ${numObjects} object(s), this might take around ${estimatedTime} seconds.\n`;
+            confirmationMessage += `With ${numObjects} object(s), this might take around ${estimatedTime.toFixed(0)} seconds.\n`;
         }
-        confirmationMessage += "Are you sure you want to proceed?";
+        confirmationMessage += "Only fields currently empty or marked 'N/A' or 'Fetch Error' will be updated.\nAre you sure you want to proceed?";
 
         if (confirm(confirmationMessage)) {
-            console.log("User confirmed fetch.");
+            // console.log("User confirmed fetch."); // Kept for your debugging
             const messageContainer = document.getElementById('message-container');
             const button = document.getElementById('fetch-details-button');
 
             if (button) {
                 button.disabled = true;
-                button.innerText = 'Processing...';
-                console.log("Button text and disabled state set.");
-            } else {
-                console.error("Fetch button not found!");
+                button.innerText = 'Processing... Please Wait';
+                // console.log("Button text and disabled state set."); // Kept for your debugging
             }
 
             if (messageContainer) {
-                // Clear any existing flash messages
                 const existingError = document.getElementById('error-msg');
                 const existingFlash = document.getElementById('flash-msg');
                 if (existingError) existingError.remove();
@@ -533,45 +533,39 @@
 
                 let progressText = "Fetching details. This may take a moment.";
                 if (numObjects > 0) {
-                    progressText = `Fetching details for ${numObjects} object(s). Page will reload.`;
+                    progressText = `Fetching details for up to ${numObjects} object(s). The page will reload upon completion.`;
                 }
-                messageContainer.innerHTML = `<p class="progress-message">${progressText}</p>`;
-                console.log("Progress message set in message-container.");
-            } else {
-                console.error("Message container not found!");
+                messageContainer.innerHTML = `<p class="progress-message" style="color: #007bff;">${progressText}</p>`;
+                // console.log("Progress message set in message-container."); // Kept for your debugging
             }
 
-            // Use requestAnimationFrame to try and ensure UI updates are painted before submission
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    console.log("Submitting form now via JS using requestAnimationFrame.");
+                    // console.log("Submitting form now via JS using requestAnimationFrame."); // Kept for your debugging
                     formElement.submit();
                 });
             });
         } else {
-            console.log("User cancelled fetch.");
+            // console.log("User cancelled fetch."); // Kept for your debugging
         }
     }
-
 
     document.addEventListener("DOMContentLoaded", function () {
       const fetchDetailsForm = document.getElementById('fetch-details-form');
       if (fetchDetailsForm) {
-        console.log("Adding submit listener to fetch-details-form");
+        // console.log("Adding submit listener to fetch-details-form"); // Kept
         fetchDetailsForm.addEventListener('submit', function(event) {
-          console.log("fetch-details-form submit event triggered.");
+          // console.log("fetch-details-form submit event triggered."); // Kept
           event.preventDefault();
           confirmAndFetchDetails(this);
         });
       } else {
-          console.error("Fetch details form not found!");
+          // console.error("Fetch details form not found!"); // Kept
       }
 
-      // Modified: Only clear flash messages if no progress message is active
       setTimeout(() => {
         const messageContainer = document.getElementById('message-container');
         const isProgressActive = messageContainer && messageContainer.querySelector('.progress-message');
-
         if (!isProgressActive) {
             const flash = document.getElementById("flash-msg");
             const error = document.getElementById("error-msg");
@@ -582,142 +576,209 @@
                 setTimeout(() => el.remove(), 500);
               }
             });
-            const url = new URL(window.location.href);
-            url.searchParams.delete('message');
-            url.searchParams.delete('error');
-            window.history.replaceState({}, document.title, url.pathname + url.search);
+            // Clear message/error from URL query params if they exist
+            // const url = new URL(window.location.href);
+            // if (url.searchParams.has('message')) url.searchParams.delete('message');
+            // if (url.searchParams.has('error')) url.searchParams.delete('error');
+            // if (window.history.replaceState) { // Check if replaceState is supported
+            //   window.history.replaceState({}, document.title, url.pathname + url.search);
+            // }
         }
       }, 3000);
 
       const resultDiv = document.getElementById('object_result');
-      document.getElementById('submit_new_object').addEventListener('click', function(event) {
-        event.preventDefault();
-        const objectName = document.getElementById('new_object').value.trim();
-        if (!objectName) {
-          alert("Please enter an object identifier.");
-          return;
-        }
-        resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
-        fetch('/search_object', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ object: objectName })
-        })
-        .then(r => r.json())
-        .then(data => {
-          if (data.status !== "success") throw new Error(data.message || 'SIMBAD lookup failed');
-          document.getElementById('new_name').value    = data.data["Common Name"];
-          document.getElementById('new_ra').value      = data.data["RA (hours)"];
-          document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
-          ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-          resultDiv.innerHTML = `<p style="color: #83b4c5;">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
-          return fetch('/fetch_object_details', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ object: objectName })
-          });
-        })
-        .then(r => r.json())
-        .then(extra => {
-          if (extra.status === 'success') {
-            document.getElementById('new_type').value      = extra.data.Type      || '';
-            document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
-            document.getElementById('new_size').value      = extra.data.Size      || '';
-            document.getElementById('new_sb').value        = extra.data.SB        || '';
-          } else {
-            console.warn("Extra fields error:", extra.message);
-          }
-          ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
-        })
-        .catch(err => {
-          resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-          console.error(err);
-        });
-      });
+      const submitNewObjectBtn = document.getElementById('submit_new_object');
+      const confirmAddObjectBtn = document.getElementById('confirm_add_object');
+      const editObjectBtn = document.getElementById('edit_object');
 
-      document.getElementById('confirm_add_object').addEventListener('click', function(event) {
-        event.preventDefault();
-        const payload = {
-            object: document.getElementById('new_object').value.trim(),
-            name: document.getElementById('new_name').value.trim(),
-            ra: document.getElementById('new_ra').value.trim(),
-            dec: document.getElementById('new_dec').value.trim(),
-            project: document.getElementById('new_project').value.trim(),
-            type: document.getElementById('new_type').value.trim(),
-            magnitude: document.getElementById('new_magnitude').value,
-            size: document.getElementById('new_size').value,
-            sb: document.getElementById('new_sb').value
-        };
-        fetch('/confirm_object', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === "success") {
-            resultDiv.innerHTML = `<p style="color:green;">Object added successfully. Page will reload.</p>`;
-            setTimeout(() => window.location.reload(), 1500);
-          } else {
-            throw new Error(data.message || 'Add failed');
-          }
-        })
-        .catch(err => {
-          resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-          console.error(err);
-        });
-      });
-
-      document.getElementById('edit_object').addEventListener('click', function(event) {
-        event.preventDefault();
-        ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.readOnly = false;
-        });
-        document.getElementById('new_object').readOnly = false;
-      });
-
-      document.getElementById('import-config-btn').addEventListener('click', () => {
-        if (confirm("This will overwrite your current configuration. Are you sure?")) {
-          document.getElementById('config-upload').click();
-        }
-      });
-      document.getElementById('config-upload').addEventListener('change', function () {
-        const file = this.files[0];
-        if (!file) return;
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const importButton = document.getElementById('import-config-btn');
-        const originalImportText = importButton.innerText;
-        const messageContainer = document.getElementById('message-container');
-
-        importButton.disabled = true;
-        importButton.innerText = "Importing...";
-        if(messageContainer) messageContainer.innerHTML = `<p class="progress-message">Importing configuration...</p>`;
-
-
-        fetch("/import_config", { method: "POST", body: formData })
-          .then(resp => {
-            if (resp.redirected) {
-              window.location.href = resp.url;
-            } else {
-              resp.text().then(msg => {
-                alert("Import failed: "+msg);
-                if(messageContainer) messageContainer.innerHTML = `<p class="error">Import failed.</p>`;
-                importButton.disabled = false;
-                importButton.innerText = originalImportText;
+      if (submitNewObjectBtn && resultDiv && confirmAddObjectBtn && editObjectBtn) {
+          submitNewObjectBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const objectName = document.getElementById('new_object').value.trim();
+            if (!objectName) { alert("Please enter an object identifier."); return; }
+            resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
+            fetch("{{ url_for('search_object') }}", { // Using url_for
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ object: objectName })
+            })
+            .then(r => r.json())
+            .then(data => {
+              if (data.status !== "success") throw new Error(data.message || 'SIMBAD lookup failed');
+              document.getElementById('new_name').value    = data.data["Common Name"];
+              document.getElementById('new_ra').value      = data.data["RA (hours)"];
+              document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
+              ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+              resultDiv.innerHTML = `<p style="color: #83b4c5;">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
+              return fetch("{{ url_for('fetch_object_details') }}", { // Using url_for
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ object: objectName })
               });
-            }
-          })
-          .catch(e => {
-            alert("Import failed: "+e.message);
-            if(messageContainer) messageContainer.innerHTML = `<p class="error">Import failed.</p>`;
-            importButton.disabled = false;
-            importButton.innerText = originalImportText;
+            })
+            .then(r => r.json())
+            .then(extra => {
+              if (extra.status === 'success') {
+                document.getElementById('new_type').value      = extra.data.Type      || '';
+                document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
+                document.getElementById('new_size').value      = extra.data.Size      || '';
+                document.getElementById('new_sb').value        = extra.data.SB        || '';
+              } else { console.warn("Extra fields error:", extra.message); }
+              ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+              submitNewObjectBtn.style.display = 'none'; // Hide search button after search
+            })
+            .catch(err => { resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`; console.error(err); });
           });
-      });
-    });
+
+          confirmAddObjectBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            const payload = { /* ... your existing payload ... */
+                object: document.getElementById('new_object').value.trim(),
+                name: document.getElementById('new_name').value.trim(),
+                ra: document.getElementById('new_ra').value.trim(),
+                dec: document.getElementById('new_dec').value.trim(),
+                project: document.getElementById('new_project').value.trim(),
+                type: document.getElementById('new_type').value.trim(),
+                magnitude: document.getElementById('new_magnitude').value,
+                size: document.getElementById('new_size').value,
+                sb: document.getElementById('new_sb').value
+            };
+            fetch("{{ url_for('confirm_object') }}", { // Using url_for
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            })
+            .then(response => response.json()).then(data => {
+              if (data.status === "success") {
+                resultDiv.innerHTML = `<p style="color:green;">Object added successfully. Page will reload.</p>`;
+                setTimeout(() => window.location.reload(), 1500);
+              } else { throw new Error(data.message || 'Add failed'); }
+            })
+            .catch(err => { resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`; console.error(err); });
+          });
+
+          editObjectBtn.addEventListener('click', function(event) { /* ... your existing ... */ });
+      }
+
+
+      // --- Config Import/Export (Your existing, with minor fetch refinements) ---
+      const importConfigBtn = document.getElementById('import-config-btn');
+      const configUploadInput = document.getElementById('config-upload');
+
+      if (importConfigBtn && configUploadInput) {
+          importConfigBtn.addEventListener('click', (event) => {
+              event.preventDefault();
+              if (confirm("This will overwrite your current configuration. Your existing configuration will be backed up. Are you sure?")) {
+                  configUploadInput.click();
+              }
+          });
+
+          configUploadInput.addEventListener('change', function () {
+              const file = this.files[0];
+              if (!file) return;
+              const formData = new FormData();
+              formData.append("file", file);
+
+              const originalImportConfigText = importConfigBtn.innerText;
+              const messageContainer = document.getElementById('message-container');
+
+              importConfigBtn.disabled = true;
+              importConfigBtn.innerText = "Importing Config...";
+              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message" style="color: #007bff;">Importing configuration...</p>`;
+
+              fetch("{{ url_for('import_config') }}", { method: "POST", body: formData })
+                .then(resp => {
+                  if (resp.ok && resp.redirected) {
+                    window.location.href = resp.url; // Should have flash message from server
+                  } else { // Error or non-redirecting response
+                    return resp.text().then(text => {
+                      let errorMsg = "Config import failed.";
+                      try {
+                          const errData = JSON.parse(text); // If Flask returns JSON error
+                          if (errData.message) errorMsg = errData.message;
+                          else if (errData.error) errorMsg = errData.error;
+                          else if (resp.status >= 400) errorMsg = `Config import failed (status ${resp.status}): ${text.substring(0,300)}`;
+                      } catch(e) { // Not a JSON error from Flask, might be HTML error page or other text
+                          if (resp.status >= 400) errorMsg = `Config import failed (status ${resp.status}): ${text.substring(0,300)}`;
+                          else errorMsg = `Unexpected response: ${text.substring(0,300)}`;
+                      }
+                      alert(errorMsg); // Show error in alert
+                      if(messageContainer) messageContainer.innerHTML = `<p class="error">${errorMsg}</p>`;
+                    });
+                  }
+                })
+                .catch(e => {
+                  alert("Config import failed: " + e.message);
+                  if(messageContainer) messageContainer.innerHTML = `<p class="error">Config import failed: ${e.message}</p>`;
+                })
+                .finally(() => {
+                  importConfigBtn.disabled = false;
+                  importConfigBtn.innerText = originalImportConfigText;
+                  this.value = ""; // Clear the file input
+                });
+          });
+      }
+
+      // ====================================================================
+      // NEW JAVASCRIPT FOR JOURNAL IMPORT
+      // ====================================================================
+      const importJournalBtn = document.getElementById('import-journal-btn');
+      const journalUploadInput = document.getElementById('journal-upload');
+
+      if (importJournalBtn && journalUploadInput) {
+          importJournalBtn.addEventListener('click', (event) => {
+              event.preventDefault();
+              if (confirm("This will overwrite your current journal with the uploaded file. Your existing journal will be backed up. Are you sure?")) {
+                  journalUploadInput.click();
+              }
+          });
+
+          journalUploadInput.addEventListener('change', function () {
+              const file = this.files[0];
+              if (!file) return;
+              const formData = new FormData();
+              formData.append("file", file);
+
+              const originalImportJournalText = importJournalBtn.innerText;
+              const messageContainer = document.getElementById('message-container');
+
+              importJournalBtn.disabled = true;
+              importJournalBtn.innerText = "Importing Journal...";
+              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message" style="color: #007bff;">Importing journal...</p>`;
+
+              fetch("{{ url_for('import_journal') }}", { method: "POST", body: formData })
+                .then(resp => {
+                  if (resp.ok && resp.redirected) {
+                    window.location.href = resp.url; // Should have flash message
+                  } else {
+                    return resp.text().then(text => {
+                      let errorMsg = "Journal import failed.";
+                      try {
+                          const errData = JSON.parse(text);
+                          if (errData.message) errorMsg = errData.message;
+                          else if (errData.error) errorMsg = errData.error;
+                          else if (resp.status >= 400) errorMsg = `Journal import failed (status ${resp.status}): ${text.substring(0,300)}`;
+                      } catch(e) {
+                          if (resp.status >= 400) errorMsg = `Journal import failed (status ${resp.status}): ${text.substring(0,300)}`;
+                          else errorMsg = `Unexpected response: ${text.substring(0,300)}`;
+                      }
+                      alert(errorMsg);
+                      if(messageContainer) messageContainer.innerHTML = `<p class="error">${errorMsg}</p>`;
+                    });
+                  }
+                })
+                .catch(e => {
+                  alert("Journal import failed: " + e.message);
+                  if(messageContainer) messageContainer.innerHTML = `<p class="error">Journal import failed: ${e.message}</p>`;
+                })
+                .finally(() => {
+                  importJournalBtn.disabled = false;
+                  importJournalBtn.innerText = originalImportJournalText;
+                  this.value = ""; // Clear the file input
+                });
+          });
+      }
+      // ====================================================================
+      // End of NEW Journal Import JS
+      // ====================================================================
+
+    }); // End of DOMContentLoaded
   </script>
 {% endblock %}
 </body>

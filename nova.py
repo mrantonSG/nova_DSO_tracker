@@ -21,6 +21,7 @@ import requests
 import secrets
 from dotenv import load_dotenv
 import calendar
+import json
 
 import pytz
 import ephem
@@ -30,6 +31,7 @@ import subprocess
 import sys
 import time
 from modules.config_validation import validate_config
+import uuid
 
 import matplotlib
 matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
@@ -69,7 +71,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.7.3"
+APP_VERSION = "2.8.0"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -149,6 +151,28 @@ usernames = config("USERS", default="").split(",")
 
 users = {}
 
+def python_format_date_eu(value_iso_str):
+    """Jinja filter to convert YYYY-MM-DD string to DD.MM.YYYY string."""
+    if not value_iso_str or not isinstance(value_iso_str, str):
+        return value_iso_str  # Return as is if not a valid string
+    try:
+        # If it's already DD.MM.YYYY (e.g. from form input passed back on error)
+        if '.' in value_iso_str and len(value_iso_str.split('.')[0]) <= 2:
+            try:
+                # Validate it is indeed DD.MM.YYYY then return it
+                datetime.strptime(value_iso_str, '%d.%m.%Y')
+                return value_iso_str
+            except ValueError:
+                # It had dots but wasn't DD.MM.YYYY, so try parsing as YYYY-MM-DD
+                pass # Fall through to YYYY-MM-DD parsing
+
+        date_obj = datetime.strptime(value_iso_str, '%Y-%m-%d')
+        return date_obj.strftime('%d.%m.%Y')
+    except ValueError:
+        return value_iso_str  # Return original if any parsing fails
+
+app.jinja_env.filters['date_eu'] = python_format_date_eu
+
 for username in usernames:
     username = username.strip()
     if username:
@@ -166,6 +190,441 @@ class User(UserMixin):
     def __init__(self, user_id, username):
         self.id = user_id
         self.username = username
+
+def load_journal(username):
+    """Loads journal data for the given username from a YAML file."""
+    if SINGLE_USER_MODE:
+        filename = "journal_default.yaml"
+    else:
+        filename = f"journal_{username}.yaml"
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+
+    if not os.path.exists(filepath):
+        print(f"ⓘ Journal file '{filename}' not found. Returning empty journal.")
+        return {"sessions": []}  # Return structure with empty sessions list
+
+    try:
+        with open(filepath, "r", encoding="utf-8") as file: # Added encoding
+            data = yaml.safe_load(file)
+            if data is None: # Handles empty YAML file
+                print(f"ⓘ Journal file '{filename}' is empty. Returning empty journal.")
+                return {"sessions": []}
+            # Ensure 'sessions' key exists and is a list
+            if "sessions" not in data or not isinstance(data["sessions"], list):
+                print(f"⚠️ Journal file '{filename}' is missing 'sessions' list or it's malformed. Initializing.")
+                data["sessions"] = []
+            return data
+    except Exception as e:
+        print(f"❌ ERROR: Failed to load journal '{filename}': {e}")
+        return {"sessions": []} # Return default structure on error
+
+def save_journal(username, journal_data):
+    """Saves journal data for the given username to a YAML file."""
+    if SINGLE_USER_MODE:
+        filename = "journal_default.yaml"
+    else:
+        filename = f"journal_{username}.yaml"
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+
+    try:
+        with open(filepath, "w", encoding="utf-8") as file: # Added encoding
+            yaml.dump(journal_data, file, sort_keys=False, allow_unicode=True, indent=2) # Added indent for readability
+        print(f"💾 Journal saved to '{filename}' successfully.")
+    except Exception as e:
+        print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
+
+def generate_session_id():
+    """Generates a unique session ID."""
+    return uuid.uuid4().hex
+
+@app.route('/journal')
+@login_required # Or handle SINGLE_USER_MODE appropriately if guests can see a default journal
+def journal_list_view():
+    if SINGLE_USER_MODE:
+        username = "default"
+        # If you want g.is_guest to be available in journal_list.html for SINGLE_USER_MODE
+        # ensure it's set correctly or just pass a specific variable.
+        # For SINGLE_USER_MODE, the user is effectively always "logged in".
+        is_guest_for_template = False
+    elif current_user.is_authenticated:
+        username = current_user.username
+        is_guest_for_template = False
+    else:
+        # This case should ideally not be hit if @login_required is effective.
+        # If you allow guests to see a specific journal, handle 'guest_user' here.
+        # For now, let's assume they get redirected to login.
+        # If you reach here due to some other logic, provide default.
+        flash("Please log in to view the journal.", "info")
+        return redirect(url_for('login'))
+
+    journal_data = load_journal(username)
+    sessions = journal_data.get('sessions', [])
+
+    # Optionally sort sessions by date descending before passing to template
+    try:
+        sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
+    except Exception as e:
+        print(f"Warning: Could not sort journal sessions by date: {e}")
+
+
+    return render_template('journal_list.html',
+                           journal_sessions=sessions,
+                           is_guest=is_guest_for_template # Pass if your base.html or journal_list.html needs it
+                           )
+
+
+def safe_float(value_str):
+    if value_str is None or str(value_str).strip() == "":  # Check for None and empty string
+        return None
+    try:
+        return float(value_str)
+    except ValueError:
+        print(f"Warning: Could not convert '{value_str}' to float.")
+        return None
+
+
+def safe_int(value_str):
+    if value_str is None or str(value_str).strip() == "":  # Check for None and empty string
+        return None
+    try:
+        # First try float conversion to handle inputs like "10.0" for an int field, then convert to int
+        return int(float(value_str))
+    except ValueError:
+        print(f"Warning: Could not convert '{value_str}' to int.")
+        return None
+
+
+@app.route('/journal/add', methods=['GET', 'POST'])
+@login_required
+def journal_add():
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        if not current_user.is_authenticated:  # Should be caught by @login_required
+            flash("Please log in to add a journal entry.", "warning")
+            return redirect(url_for('login'))
+        username = current_user.username
+
+    if request.method == 'POST':
+        try:
+            journal_data = load_journal(username)
+            if not isinstance(journal_data.get('sessions'), list):
+                journal_data['sessions'] = []
+
+            new_session_data = {
+                "session_id": generate_session_id(),
+                "session_date": request.form.get("session_date") or datetime.now().strftime('%Y-%m-%d'),
+                "target_object_id": request.form.get("target_object_id", "").strip(),
+                "location_name": request.form.get("location_name", "").strip(),
+                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
+                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
+                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
+                "weather_notes": request.form.get("weather_notes", "").strip(),
+                "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
+                "filter_used_session": request.form.get("filter_used_session", "").strip(),
+                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
+                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
+                "dither_details": request.form.get("dither_details", "").strip(),
+                "acquisition_software": request.form.get("acquisition_software", "").strip(),
+                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
+                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
+                "gain_setting": safe_int(request.form.get("gain_setting")),
+                "offset_setting": safe_int(request.form.get("offset_setting")),
+                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
+                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
+                "binning_session": request.form.get("binning_session", "").strip(),
+                "darks_strategy": request.form.get("darks_strategy", "").strip(),
+                "flats_strategy": request.form.get("flats_strategy", "").strip(),
+                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
+                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
+                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
+                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
+                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
+                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
+                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
+                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
+                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
+                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
+                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
+                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
+                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
+                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
+                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
+                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
+                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
+                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
+                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
+            }
+
+            final_session_entry = {}
+            for k, v in new_session_data.items():
+                is_empty_str_for_non_special_field = isinstance(v, str) and v.strip() == "" and k not in [
+                    "target_object_id", "location_name"]
+                is_none_for_non_special_field = v is None and k not in ["target_object_id", "location_name"]
+                if not (is_empty_str_for_non_special_field or is_none_for_non_special_field):
+                    final_session_entry[k] = v
+            if "session_id" not in final_session_entry:
+                final_session_entry["session_id"] = new_session_data["session_id"]
+            if "session_date" not in final_session_entry or not final_session_entry["session_date"]:
+                final_session_entry["session_date"] = datetime.now().strftime('%Y-%m-%d')
+
+            journal_data['sessions'].append(final_session_entry)
+            save_journal(username, journal_data)
+            flash("New journal entry added successfully!", "success")
+
+            target_object_id_for_redirect = final_session_entry.get("target_object_id")
+            new_session_id_for_redirect = final_session_entry.get("session_id")
+
+            if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
+                return redirect(url_for('graph_dashboard', object_name=target_object_id_for_redirect,
+                                        session_id=new_session_id_for_redirect))
+            else:
+                return redirect(url_for('index'))  # Or 'journal_list_view' if you prefer for targetless entries
+
+        except Exception as e:
+            flash(f"Error adding journal entry: {e}", "error")
+            print(f"❌ ERROR in journal_add POST: {e}")
+            return redirect(url_for('journal_add'))  # Back to a fresh add form on error
+
+    # --- GET request logic ---
+    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
+    available_locations = g.locations if hasattr(g, 'locations') else {}
+    default_loc = g.selected_location if hasattr(g, 'selected_location') else ""
+
+    preselected_target_id = request.args.get('target', None)
+    entry_for_form = {}
+
+    if preselected_target_id:
+        entry_for_form["target_object_id"] = preselected_target_id
+
+    if not entry_for_form.get("location_name") and default_loc:
+        entry_for_form["location_name"] = default_loc
+
+    today_date_str = datetime.now().strftime('%Y-%m-%d')
+    if not entry_for_form.get("session_date"):
+        entry_for_form["session_date"] = today_date_str
+
+    # Determine Cancel URL for "Add" mode
+    cancel_url_for_add = url_for('index')  # Default cancel for a general add
+    if preselected_target_id:
+        # If adding for a specific target (e.g. from graph_view "Add for this object" button),
+        # cancel goes back to that target's graph view (without a session_id).
+        cancel_url_for_add = url_for('graph_dashboard', object_name=preselected_target_id)
+
+    return render_template('journal_form.html',
+                           form_title="Add New Imaging Session",
+                           form_action_url=url_for('journal_add'),
+                           submit_button_text="Add Session",
+                           available_objects=available_objects,
+                           available_locations=available_locations,
+                           entry=entry_for_form,  # Contains pre-selected target_object_id, location_name, session_date
+                           cancel_url=cancel_url_for_add
+                           )
+
+
+@app.route('/journal/edit/<session_id>', methods=['GET', 'POST'])
+@login_required
+def journal_edit(session_id):
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        if not current_user.is_authenticated:
+            flash("Please log in to edit journal entries.", "warning")
+            return redirect(url_for('login'))
+        username = current_user.username
+
+    journal_data = load_journal(username)
+    sessions = journal_data.get('sessions', [])
+
+    session_to_edit = None
+    session_index = -1
+
+    for index, session_item in enumerate(sessions):  # Renamed loop variable
+        if session_item.get('session_id') == session_id:
+            session_to_edit = session_item
+            session_index = index
+            break
+
+    if session_index == -1 or not session_to_edit:  # More robust check
+        flash(f"Journal entry with ID {session_id} not found.", "error")
+        return redirect(url_for('journal_list_view'))  # Or url_for('index')
+
+    if request.method == 'POST':
+        try:
+            updated_session_data = {
+                "session_id": session_id,  # Keep original ID
+                "session_date": request.form.get("session_date") or session_to_edit.get(
+                    "session_date") or datetime.now().strftime('%Y-%m-%d'),
+                "target_object_id": request.form.get("target_object_id", "").strip(),
+                "location_name": request.form.get("location_name", "").strip(),
+                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
+                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
+                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
+                "weather_notes": request.form.get("weather_notes", "").strip(),
+                "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
+                "filter_used_session": request.form.get("filter_used_session", "").strip(),
+                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
+                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
+                "dither_details": request.form.get("dither_details", "").strip(),
+                "acquisition_software": request.form.get("acquisition_software", "").strip(),
+                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
+                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
+                "gain_setting": safe_int(request.form.get("gain_setting")),
+                "offset_setting": safe_int(request.form.get("offset_setting")),
+                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
+                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
+                "binning_session": request.form.get("binning_session", "").strip(),
+                "darks_strategy": request.form.get("darks_strategy", "").strip(),
+                "flats_strategy": request.form.get("flats_strategy", "").strip(),
+                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
+                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
+                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
+                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
+                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
+                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
+                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
+                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
+                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
+                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
+                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
+                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
+                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
+                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
+                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
+                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
+                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
+                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
+                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
+            }
+
+            final_updated_entry = {}
+            for k, v in updated_session_data.items():
+                is_empty_str_for_non_special_field = isinstance(v, str) and v.strip() == "" and k not in [
+                    "target_object_id", "location_name", "session_id"]
+                is_none_for_non_special_field = v is None and k not in ["target_object_id", "location_name",
+                                                                        "session_id"]
+                if not (is_empty_str_for_non_special_field or is_none_for_non_special_field):
+                    final_updated_entry[k] = v
+            if "session_id" not in final_updated_entry:
+                final_updated_entry["session_id"] = session_id  # Ensure ID is preserved
+            if "session_date" not in final_updated_entry or not final_updated_entry["session_date"]:
+                final_updated_entry["session_date"] = session_to_edit.get("session_date") or datetime.now().strftime(
+                    '%Y-%m-%d')
+
+            sessions[session_index] = final_updated_entry
+            journal_data['sessions'] = sessions
+            save_journal(username, journal_data)
+
+            flash_message_target = final_updated_entry.get('target_object_id', session_id[:8] + "...")
+            flash_message_date = final_updated_entry.get('session_date', 'entry')
+            flash(f"Journal entry for '{flash_message_target}' on {flash_message_date} updated successfully!",
+                  "success")
+
+            target_object_id_for_redirect = final_updated_entry.get("target_object_id")
+            if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
+                return redirect(
+                    url_for('graph_dashboard', object_name=target_object_id_for_redirect, session_id=session_id))
+            else:
+                return redirect(url_for('index'))
+
+        except Exception as e:
+            flash(f"Error updating journal entry: {e}", "error")
+            print(f"❌ ERROR in journal_edit POST for session {session_id}: {e}")
+            return redirect(url_for('journal_edit', session_id=session_id))
+
+    # --- GET request logic ---
+    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
+    available_locations = g.locations if hasattr(g, 'locations') else {}
+
+    # Determine Cancel URL for "Edit" mode
+    target_object_id_for_cancel = session_to_edit.get("target_object_id")
+    cancel_url_for_edit = url_for('index')  # Default fallback
+
+    if target_object_id_for_cancel and target_object_id_for_cancel.strip() != "":
+        cancel_url_for_edit = url_for('graph_dashboard',
+                                      object_name=target_object_id_for_cancel,
+                                      session_id=session_id)  # Link back to this specific session view
+    elif session_id:  # If no target, but we are editing a specific session
+        cancel_url_for_edit = url_for('journal_list_view')  # Fallback to main journal list
+
+    return render_template('journal_form.html',
+                           form_title=f"Edit Imaging Session (ID: {session_to_edit.get('session_id', '')[:8]}...)",
+                           form_action_url=url_for('journal_edit', session_id=session_id),
+                           submit_button_text="Save Changes",
+                           entry=session_to_edit,  # Pre-fill form with existing session data
+                           available_objects=available_objects,
+                           available_locations=available_locations,
+                           cancel_url=cancel_url_for_edit  # Pass the cancel URL
+                           )
+
+@app.route('/journal/delete/<session_id>', methods=['POST'])
+@login_required  # Or your custom logic for SINGLE_USER_MODE access
+def journal_delete(session_id):
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        if not current_user.is_authenticated:  # Should be caught by @login_required
+            flash("Please log in to delete journal entries.", "warning")
+            return redirect(url_for('login'))  # Or your login route name
+        username = current_user.username
+
+    journal_data = load_journal(username)
+    sessions = journal_data.get('sessions', [])
+
+    session_to_delete = None
+    target_object_id_of_deleted_session = None  # Variable to store the target ID
+
+    for session_item in sessions:  # Changed loop variable to avoid conflict if 'session' is used by Flask
+        if session_item.get('session_id') == session_id:
+            session_to_delete = session_item
+            target_object_id_of_deleted_session = session_item.get('target_object_id')
+            break
+
+    if session_to_delete:
+        try:
+            sessions.remove(session_to_delete)  # Remove the session from the list
+            journal_data['sessions'] = sessions  # Assign the modified list back to the main data
+            save_journal(username, journal_data)  # Save the updated journal data
+
+            flash_message_target = target_object_id_of_deleted_session if target_object_id_of_deleted_session else "N/A"
+            # Provide a more specific flash message, perhaps using a few chars of the ID if target is missing
+            flash_id_snippet = session_id[:8] + "..." if session_id and len(session_id) > 8 else session_id
+            flash(f"Journal entry for '{flash_message_target}' (ID: {flash_id_snippet}) deleted successfully.",
+                  "success")
+
+            # --- CORRECTED REDIRECT LOGIC after successful delete ---
+            if target_object_id_of_deleted_session and target_object_id_of_deleted_session.strip() != "":
+                print(f"Redirecting after delete to graph_dashboard for object: {target_object_id_of_deleted_session}")
+                return redirect(url_for('graph_dashboard', object_name=target_object_id_of_deleted_session))
+            else:
+                # Fallback if target_object_id was somehow missing or empty from the deleted session
+                print(
+                    f"Redirecting after delete to main journal list (target_object_id was missing for deleted session).")
+                return redirect(url_for('journal_list_view'))  # Or url_for('index') if you prefer
+            # --- END OF CORRECTED REDIRECT LOGIC ---
+
+        except Exception as e:  # Catch potential errors during remove or save
+            flash(f"Error processing deletion for session ID {session_id}: {e}", "error")
+            print(f"ERROR during deletion/save for session {session_id}: {e}")
+            # If error during save, redirect back to where the user was, if possible, or a safe page.
+            # Re-fetching target_object_id here as it might be lost if session_to_delete was modified
+            # This is a basic fallback; more sophisticated state restoration might be needed for complex cases.
+            if target_object_id_of_deleted_session and target_object_id_of_deleted_session.strip() != "":
+                return redirect(url_for('graph_dashboard', object_name=target_object_id_of_deleted_session,
+                                        session_id=session_id))  # Back to object page, session might still appear if save failed
+            else:
+                return redirect(url_for('journal_list_view'))  # General fallback
+
+    else:  # This else is for 'if session_to_delete:' (i.e., session was not found)
+        flash(f"Journal entry with ID {session_id} not found for deletion.", "error")
+        # If the session was not found at all, redirecting to journal_list_view or index is appropriate.
+        return redirect(url_for('journal_list_view'))
+
+@app.route('/journal/add_for_target/<path:object_name>')
+@login_required
+def journal_add_for_target(object_name):
+    # Redirect to the main add form, passing the object_name as a query parameter
+    return redirect(url_for('journal_add', target=object_name))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -460,6 +919,133 @@ def download_config():
         return send_file(filepath, as_attachment=True)
     else:
         return "Configuration file not found.", 404
+
+@app.route('/download_journal')
+@login_required # Or your custom logic for SINGLE_USER_MODE
+def download_journal():
+    if SINGLE_USER_MODE:
+        filename = "journal_default.yaml"
+        # Ensure the user is effectively logged in for single user mode if needed by send_file context
+    else:
+        if not current_user.is_authenticated: # Should be caught by @login_required
+            flash("Please log in to download your journal.", "warning")
+            return redirect(url_for('login'))
+        username = current_user.username
+        filename = f"journal_{username}.yaml"
+
+    # Construct the full path to the file
+    # Assuming your journal YAML files are in the same directory as app.py (instance path or app root)
+    # If they are in a subdirectory e.g. 'user_data/', adjust the path.
+    # For consistency with how load_journal/save_journal build paths:
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+
+
+    if os.path.exists(filepath):
+        try:
+            return send_file(filepath, as_attachment=True, download_name=filename)
+        except Exception as e:
+            print(f"Error sending journal file: {e}")
+            flash("Error downloading journal file.", "error")
+            return redirect(url_for('config_form')) # Or some other appropriate page
+    else:
+        flash(f"Journal file '{filename}' not found.", "error")
+        # If no journal exists, you could offer to download an empty template,
+        # but for now, just an error is fine.
+        return redirect(url_for('config_form')) # Redirect back to config form
+
+
+def validate_journal_data(journal_data):
+    """
+    Basic validation for imported journal data.
+    Returns True if valid, False otherwise.
+    Can be expanded for more detailed schema validation later.
+    """
+    if not isinstance(journal_data, dict):
+        return False, "Uploaded journal is not a valid dictionary structure."
+    if "sessions" not in journal_data:
+        return False, "Uploaded journal is missing the top-level 'sessions' key."
+    if not isinstance(journal_data["sessions"], list):
+        return False, "The 'sessions' key in the uploaded journal must be a list."
+
+    # Optional: Check if each session has a session_id (basic check)
+    for i, session in enumerate(journal_data["sessions"]):
+        if not isinstance(session, dict):
+            return False, f"Session entry at index {i} is not a valid dictionary."
+        if "session_id" not in session or not session["session_id"]:
+            return False, f"Session entry at index {i} is missing a 'session_id'."
+        # Add more checks per session if desired (e.g., session_date format)
+    return True, "Journal data seems structurally valid."
+
+
+@app.route('/import_journal', methods=['POST'])
+@login_required  # Or your custom logic
+def import_journal():
+    if 'file' not in request.files:
+        flash("No file selected for journal import.", "error")
+        return redirect(url_for('config_form'))
+
+    file = request.files['file']
+    if file.filename == '':
+        flash("No file selected for journal import.", "error")
+        return redirect(url_for('config_form'))
+
+    if file and file.filename.endswith('.yaml'):
+        try:
+            contents = file.read().decode('utf-8')
+            new_journal_data = yaml.safe_load(contents)
+
+            if new_journal_data is None:  # Handle completely empty YAML file
+                new_journal_data = {"sessions": []}
+
+            # Basic validation for the journal structure
+            is_valid, message = validate_journal_data(new_journal_data)
+            if not is_valid:
+                flash(f"Invalid journal file structure: {message}", "error")
+                return redirect(url_for('config_form'))
+
+            # Determine the correct journal filename for this user
+            if SINGLE_USER_MODE:
+                username = "default"
+                journal_filename = "journal_default.yaml"
+            else:
+                if not current_user.is_authenticated:
+                    flash("Please log in to import a journal.", "warning")
+                    return redirect(url_for('login'))
+                username = current_user.username
+                journal_filename = f"journal_{username}.yaml"
+
+            journal_filepath = os.path.join(os.path.dirname(__file__), journal_filename)
+
+            # Backup current journal file if it exists
+            if os.path.exists(journal_filepath):
+                backup_dir = os.path.join(os.path.dirname(journal_filepath), "backups")
+                os.makedirs(backup_dir, exist_ok=True)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                backup_filename = f"{journal_filename}_backup_{timestamp}.yaml"
+                backup_path = os.path.join(backup_dir, backup_filename)
+                try:
+                    shutil.copy(journal_filepath, backup_path)
+                    print(f"[IMPORT JOURNAL] Backed up current journal to {backup_path}")
+                except Exception as backup_e:
+                    print(f"Warning: Could not back up existing journal: {backup_e}")
+
+            # Save new journal data (overwrite existing)
+            save_journal(username, new_journal_data)  # Use your existing save_journal function
+
+            flash("Journal imported successfully! Your old journal (if any) has been backed up.", "success")
+            return redirect(url_for('config_form'))
+
+        except yaml.YAMLError as ye:
+            print(f"[IMPORT JOURNAL ERROR] Invalid YAML format: {ye}")
+            flash(f"Import failed: Invalid YAML format in the journal file. {ye}", "error")
+            return redirect(url_for('config_form'))
+        except Exception as e:
+            print(f"[IMPORT JOURNAL ERROR] {e}")
+            flash(f"Import failed: An unexpected error occurred. {str(e)}", "error")
+            return redirect(url_for('config_form'))
+    else:
+        flash("Invalid file type. Please upload a .yaml journal file.", "error")
+        return redirect(url_for('config_form'))
 
 
 @app.route('/import_config', methods=['POST'])
@@ -1440,9 +2026,106 @@ def sun_events():
     events["date"] = local_date
     return jsonify(events)
 
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Determine username for loading appropriate journal and config
+    # This logic should align with how you manage users throughout your app.
+    # Your @app.before_request already handles setting up g.user_config, g.locations etc.
+    # We just need to ensure we get the correct 'username' for the journal.
+
+    if SINGLE_USER_MODE:
+        username = "default"
+        # g.is_guest is likely set to False by your before_request that logs in a dummy user
+    elif current_user.is_authenticated:
+        username = current_user.username
+    else:
+        # If guests can view the index page but have no specific journal,
+        # or if you have a 'journal_guest.yaml'.
+        # For now, assuming a guest might get an empty journal or one named 'guest_user'.
+        # Your @app.before_request loads config for 'guest_user' if not authenticated,
+        # so we can try to load a journal for 'guest_user'.
+        username = "guest_user"
+
+    journal_data = load_journal(username)  # Your function to load journal YAML
+    sessions = journal_data.get('sessions', [])
+
+    # --- Add target_common_name and calculated_integration_time to each session ---
+    # This assumes g.user_config is populated by your @app.before_request
+    # and contains the 'objects' list.
+    objects_from_config = []
+    if hasattr(g, 'user_config') and g.user_config and "objects" in g.user_config:
+        objects_from_config = g.user_config.get("objects", [])
+
+    object_names_lookup = {
+        obj.get("Object"): obj.get("Name", obj.get("Object"))  # Fallback to Object ID if Name is missing
+        for obj in objects_from_config if obj.get("Object")  # Ensure obj has an "Object" key
+    }
+
+    for session_entry in sessions:  # Renamed to avoid conflict with flask.session
+        # Ensure target_object_id exists and is a string before lookup
+        target_id = session_entry.get('target_object_id')
+        if isinstance(target_id, str):
+            session_entry['target_common_name'] = object_names_lookup.get(target_id, target_id)
+        else:
+            session_entry['target_common_name'] = "N/A"  # Or some other placeholder if ID is missing/invalid
+
+        # ----- START: New Total Integration Time Calculation Logic -----
+        total_integration_seconds = 0
+        has_any_integration_data = False  # Flag to see if any exposure data was found
+
+        # 1. Add time from general/OSC fields (if they exist and are valid)
+        try:
+            num_subs_general_str = session_entry.get('number_of_subs_light')
+            exp_time_general_str = session_entry.get('exposure_time_per_sub_sec')
+
+            if num_subs_general_str is not None and exp_time_general_str is not None:
+                num_subs_general = int(str(num_subs_general_str))  # Ensure conversion from potential string
+                exp_time_general = int(str(exp_time_general_str))  # Ensure conversion
+                if num_subs_general > 0 and exp_time_general > 0:  # Only count if valid positive values
+                    total_integration_seconds += (num_subs_general * exp_time_general)
+                    has_any_integration_data = True
+        except (ValueError, TypeError):
+            # If general fields are invalid or missing, just skip them
+            pass
+
+        # 2. Add time from monochrome filter fields
+        mono_filters_keys = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+        for filt_key in mono_filters_keys:
+            try:
+                subs_val_str = session_entry.get(f'filter_{filt_key}_subs')
+                exp_val_str = session_entry.get(f'filter_{filt_key}_exposure_sec')
+
+                if subs_val_str is not None and exp_val_str is not None:
+                    subs_val = int(str(subs_val_str))  # Ensure conversion
+                    exp_val = int(str(exp_val_str))  # Ensure conversion
+                    if subs_val > 0 and exp_val > 0:  # Only count if valid positive values
+                        total_integration_seconds += (subs_val * exp_val)
+                        has_any_integration_data = True
+            except (ValueError, TypeError):
+                # If fields for a specific filter are invalid or missing, skip that filter
+                pass
+
+        # 3. Convert total seconds to minutes or set to 'N/A'
+        if has_any_integration_data:
+            # Round to the nearest whole minute, or use 1 decimal if you prefer more precision
+            session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
+        else:
+            session_entry['calculated_integration_time_minutes'] = 'N/A'
+        # ----- END: New Total Integration Time Calculation Logic -----
+
+    # Sort sessions by date descending by default for the journal tab initial view
+    try:
+        sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
+    except Exception as e:
+        print(f"Warning: Could not sort journal sessions by date in index route: {e}")
+
+    return render_template('index.html',
+                           journal_sessions=sessions
+                           # Pass any other variables your index.html template already expects.
+                           # For example, if your base.html or index.html uses 'is_guest':
+                           # is_guest = g.is_guest if hasattr(g, 'is_guest') else (not current_user.is_authenticated and not SINGLE_USER_MODE)
+                           )
 
 
 @app.route('/config_form', methods=['GET', 'POST'])
@@ -1674,65 +2357,134 @@ def bypass_login_in_single_user():
 
 @app.route('/plot_yearly_altitude/<path:object_name>')
 def plot_yearly_altitude(object_name):
+    # --- Determine Year for the plot from request.args ---
+    current_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'  # For default year
+    now_for_defaults = datetime.now(pytz.timezone(current_tz_name))
+    try:
+        year = int(request.args.get('year', now_for_defaults.year))
+        # Year validation can be added if necessary
+    except ValueError:
+        year = now_for_defaults.year
+        # Optionally flash a message or log if invalid year provided
 
-    data = get_ra_dec(object_name)
-    if not data or data['RA (hours)'] is None or data['DEC (degrees)'] is None:
-        return jsonify({"error": f"No valid RA/DEC for object {object_name}."}), 400
+    # --- Get Object Details ---
+    object_details_for_plot = get_ra_dec(object_name)
+    if not object_details_for_plot or object_details_for_plot.get('RA (hours)') is None:
+        print(f"ERROR: /plot_yearly_altitude - Could not get RA/DEC for object: {object_name}")
+        return jsonify({'error': f'Data for object {object_name} not found.'}), 404
 
-    alt_name = data.get("Common Name", object_name)
-    ra = data['RA (hours)']
-    dec = data['DEC (degrees)']
+    ra_hours = object_details_for_plot['RA (hours)']
+    dec_degrees = object_details_for_plot['DEC (degrees)']
+    alt_name_for_plot = object_details_for_plot.get("Common Name", object_name)
 
-    year = request.args.get('year', default=2025, type=int)
+    # --- Determine Location details for the plot ---
+    default_lat = g.lat if hasattr(g, 'lat') else 0.0
+    default_lon = g.lon if hasattr(g, 'lon') else 0.0
+    default_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
+    default_location_name = g.selected_location if hasattr(g,
+                                                           'selected_location') and g.selected_location else 'Default Location'
 
-    plot_path = plot_yearly_altitude_curve(
+    plot_lat_str = request.args.get('plot_lat')
+    plot_lon_str = request.args.get('plot_lon')
+    plot_lat = float(plot_lat_str) if plot_lat_str is not None else None
+    plot_lon = float(plot_lon_str) if plot_lon_str is not None else None
+    plot_tz_name = request.args.get('plot_tz', type=str)
+    plot_location_display_name = request.args.get('plot_loc_name', type=str)
+
+    final_lat = plot_lat if plot_lat is not None else default_lat
+    final_lon = plot_lon if plot_lon is not None else default_lon
+    final_tz_name = plot_tz_name if plot_tz_name else default_tz_name
+    final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
+
+    print(f"DEBUG: /plot_yearly_altitude - Plotting for obj='{object_name}', loc='{final_location_name}', year={year}")
+
+    # Call your actual Matplotlib plotting function for yearly view
+    filepath = plot_yearly_altitude_curve(  # Your function that generates the image
         object_name=object_name,
-        alt_name=alt_name,
-        ra=ra,
-        dec=dec,
-        lat=g.lat,
-        lon=g.lon,
-        tz_name=g.tz_name,
-        selected_location=g.selected_location,
+        alt_name=alt_name_for_plot,
+        ra=ra_hours,
+        dec=dec_degrees,
+        lat=final_lat,
+        lon=final_lon,
+        tz_name=final_tz_name,
+        selected_location=final_location_name,  # For graph title/filename
         year=year
     )
 
-    # Return the plot file directly or embed in a template
-    return send_file(plot_path, mimetype='image/png')
-
+    if os.path.exists(filepath):
+        return send_file(filepath, mimetype='image/png')
+    else:
+        print(f"ERROR: /plot_yearly_altitude - Plot file not found for '{object_name}' at path: {filepath}")
+        return jsonify({'error': f'Yearly plot image {os.path.basename(filepath)} not found.'}), 404
 
 @app.route('/plot_monthly_altitude/<path:object_name>')
 def plot_monthly_altitude(object_name):
-    data = get_ra_dec(object_name)
-    if not data or data['RA (hours)'] is None or data['DEC (degrees)'] is None:
-        return jsonify({"error": f"No valid RA/DEC for object {object_name}."}), 400
+    # --- Determine Year and Month for the plot from request.args ---
+    current_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
+    now_for_defaults = datetime.now(pytz.timezone(current_tz_name))
+    try:
+        year = int(request.args.get('year', now_for_defaults.year))
+        month = int(request.args.get('month', now_for_defaults.month))
+        # Basic validation
+        if not (1 <= month <= 12):
+            month = now_for_defaults.month
+        # Year validation can be added if necessary (e.g., range)
+    except ValueError:
+        year = now_for_defaults.year
+        month = now_for_defaults.month
+        # Optionally flash a message or log if invalid year/month provided
 
-    alt_name = data.get("Common Name", object_name)
-    ra = data['RA (hours)']
-    dec = data['DEC (degrees)']
+    # --- Get Object Details ---
+    object_details_for_plot = get_ra_dec(object_name)
+    if not object_details_for_plot or object_details_for_plot.get('RA (hours)') is None:
+        print(f"ERROR: /plot_monthly_altitude - Could not get RA/DEC for object: {object_name}")
+        return jsonify({'error': f'Data for object {object_name} not found.'}), 404
 
-    import datetime
-    now = datetime.datetime.now(pytz.timezone(g.tz_name))
-    year = request.args.get('year', default=now.year, type=int)
-    month = request.args.get('month', default=now.month, type=int)
-    # Validate month: if invalid (<1 or >12), use current month.
-    if month < 1 or month > 12:
-        month = now.month
+    ra_hours = object_details_for_plot['RA (hours)']
+    dec_degrees = object_details_for_plot['DEC (degrees)']
+    alt_name_for_plot = object_details_for_plot.get("Common Name", object_name)
 
-    plot_path = plot_monthly_altitude_curve(
+    # --- Determine Location details for the plot ---
+    default_lat = g.lat if hasattr(g, 'lat') else 0.0
+    default_lon = g.lon if hasattr(g, 'lon') else 0.0
+    default_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
+    default_location_name = g.selected_location if hasattr(g,
+                                                           'selected_location') and g.selected_location else 'Default Location'
+
+    plot_lat_str = request.args.get('plot_lat')
+    plot_lon_str = request.args.get('plot_lon')
+    plot_lat = float(plot_lat_str) if plot_lat_str is not None else None
+    plot_lon = float(plot_lon_str) if plot_lon_str is not None else None
+    plot_tz_name = request.args.get('plot_tz', type=str)
+    plot_location_display_name = request.args.get('plot_loc_name', type=str)
+
+    final_lat = plot_lat if plot_lat is not None else default_lat
+    final_lon = plot_lon if plot_lon is not None else default_lon
+    final_tz_name = plot_tz_name if plot_tz_name else default_tz_name
+    final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
+
+    print(
+        f"DEBUG: /plot_monthly_altitude - Plotting for obj='{object_name}', loc='{final_location_name}', year={year}, month={month}")
+
+    # Call your actual Matplotlib plotting function for monthly view
+    filepath = plot_monthly_altitude_curve(  # Your function that generates the image
         object_name=object_name,
-        alt_name=alt_name,
-        ra=ra,
-        dec=dec,
-        lat=g.lat,
-        lon=g.lon,
-        tz_name=g.tz_name,
-        selected_location=g.selected_location,
+        alt_name=alt_name_for_plot,
+        ra=ra_hours,
+        dec=dec_degrees,
+        lat=final_lat,
+        lon=final_lon,
+        tz_name=final_tz_name,
+        selected_location=final_location_name,  # For graph title/filename
         year=year,
         month=month
     )
 
-    return send_file(plot_path, mimetype='image/png')
+    if os.path.exists(filepath):
+        return send_file(filepath, mimetype='image/png')
+    else:
+        print(f"ERROR: /plot_monthly_altitude - Plot file not found for '{object_name}' at path: {filepath}")
+        return jsonify({'error': f'Monthly plot image {os.path.basename(filepath)} not found.'}), 404
 
 
 @app.route('/plot/<object_name>')
@@ -1792,110 +2544,272 @@ def plot_altitude(object_name):
             return jsonify({'error': 'Plot not found'}), 404
     return jsonify({"error": "Object not found"}), 404
 
-
-@app.route('/graph_dashboard/<object_name>')
+@app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
-    current_location_name = g.selected_location or "Unknown"
+    # --- Initialize effective context with global defaults/URL args ---
+    effective_location_name = g.selected_location if hasattr(g,
+                                                             'selected_location') and g.selected_location else "Unknown"
+    effective_lat = g.lat if hasattr(g, 'lat') else 0.0 # Ensure float for calcs
+    effective_lon = g.lon if hasattr(g, 'lon') else 0.0 # Ensure float for calcs
+    effective_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
 
-    tz = pytz.timezone(g.tz_name)
-    now = datetime.now(tz)
+    now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
 
+    effective_day = now_at_effective_location.day
+    effective_month = now_at_effective_location.month
+    effective_year = now_at_effective_location.year
+
+    # Override with URL args if present
+    if request.args.get('day'):
+        try: effective_day = int(request.args.get('day'))
+        except ValueError: pass
+    if request.args.get('month'):
+        try: effective_month = int(request.args.get('month'))
+        except ValueError: pass
+    if request.args.get('year'):
+        try: effective_year = int(request.args.get('year'))
+        except ValueError: pass
+
+    # --- Journal Data Logic ---
+    if SINGLE_USER_MODE:
+        username_for_journal = "default"
+    elif current_user.is_authenticated:
+        username_for_journal = current_user.username
+    else:
+        username_for_journal = "guest_user" # Or handle as per your guest policy
+
+    object_specific_sessions = []
+    selected_session_data = None
+    requested_session_id = request.args.get('session_id')
+
+    if username_for_journal:
+        journal_data = load_journal(username_for_journal)
+        all_user_sessions = journal_data.get('sessions', [])
+
+        # --- Add calculated_integration_time_minutes to EACH session ---
+        for session_for_calc in all_user_sessions:
+
+            # ----- START: New Total Integration Time Calculation Logic (for graph_dashboard) -----
+            total_integration_seconds = 0
+            has_any_integration_data = False
+
+            # 1. Add time from general/OSC fields
+            try:
+                num_subs_general_str = session_for_calc.get('number_of_subs_light')
+                exp_time_general_str = session_for_calc.get('exposure_time_per_sub_sec')
+
+                if num_subs_general_str is not None and exp_time_general_str is not None:
+                    num_subs_general = int(str(num_subs_general_str))
+                    exp_time_general = int(str(exp_time_general_str))
+                    if num_subs_general > 0 and exp_time_general > 0:
+                        total_integration_seconds += (num_subs_general * exp_time_general)
+                        has_any_integration_data = True
+            except (ValueError, TypeError):
+                pass
+
+            # 2. Add time from monochrome filter fields
+            mono_filters_keys = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+            for filt_key in mono_filters_keys:
+                try:
+                    subs_val_str = session_for_calc.get(f'filter_{filt_key}_subs')
+                    exp_val_str = session_for_calc.get(f'filter_{filt_key}_exposure_sec')
+
+                    if subs_val_str is not None and exp_val_str is not None:
+                        subs_val = int(str(subs_val_str))
+                        exp_val = int(str(exp_val_str))
+                        if subs_val > 0 and exp_val > 0:
+                            total_integration_seconds += (subs_val * exp_val)
+                            has_any_integration_data = True
+                except (ValueError, TypeError):
+                    pass
+
+            # 3. Convert total seconds to minutes or set to 'N/A'
+            if has_any_integration_data:
+                session_for_calc['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
+            else:
+                session_for_calc['calculated_integration_time_minutes'] = 'N/A'
+            # ----- END: New Total Integration Time Calculation Logic -----
+
+        object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
+        object_specific_sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
+
+        if requested_session_id:
+            selected_session_data = next(
+                (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
+            if selected_session_data:
+                # 1. Override Effective Date with Session Date
+                session_date_str = selected_session_data.get('session_date')
+                if session_date_str:
+                    try:
+                        session_date_obj = datetime.strptime(session_date_str, '%Y-%m-%d')
+                        effective_day = session_date_obj.day
+                        effective_month = session_date_obj.month
+                        effective_year = session_date_obj.year
+                    except ValueError:
+                        flash(f"Invalid date in session. Using current/URL date.", "warning")
+
+                # 2. Override Effective Location with Session Location
+                session_loc_name = selected_session_data.get('location_name')
+                if session_loc_name:
+                    all_locations_config = g.user_config.get("locations", {})
+                    session_loc_details = all_locations_config.get(session_loc_name)
+                    if session_loc_details:
+                        effective_lat = session_loc_details.get('lat', effective_lat)
+                        effective_lon = session_loc_details.get('lon', effective_lon)
+                        effective_tz_name = session_loc_details.get('timezone', effective_tz_name)
+                        effective_location_name = session_loc_name
+                        # Update now_at_effective_location if tz changed
+                        now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
+                    else:
+                        flash(f"Location '{session_loc_name}' from session not in config. Using default.", "warning")
+            elif requested_session_id: # session_id was in URL but no matching session found
+                flash(f"Requested session ID '{requested_session_id}' not found for this object.", "info")
+
+    # --- Finalize effective date string and dependent calculations ---
     try:
-        selected_day = int(request.args.get('day') or now.day)
+        if not (1 <= effective_month <= 12): effective_month = now_at_effective_location.month
+        max_days_in_month = calendar.monthrange(effective_year, effective_month)[1]
+        if not (1 <= effective_day <= max_days_in_month):
+            effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
+        effective_date_obj = datetime(effective_year, effective_month, effective_day)
+        effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
     except ValueError:
-        selected_day = now.day
+        effective_date_obj = now_at_effective_location.date()
+        effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
+        effective_day, effective_month, effective_year = effective_date_obj.day, effective_date_obj.month, effective_date_obj.year
+        flash("Invalid date components, defaulting to today.", "warning")
 
+    effective_local_tz = pytz.timezone(effective_tz_name)
     try:
-        selected_month = int(request.args.get('month') or now.month)
-    except ValueError:
-        selected_month = now.month
-    if selected_month < 1 or selected_month > 12:
-        selected_month = now.month
+        dt_for_moon_naive = datetime(effective_year, effective_month, effective_day, 12, 0, 0)
+        dt_for_moon_local = effective_local_tz.localize(dt_for_moon_naive)
+        moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 0)
+    except Exception as e:
+        print(f"Error calculating moon phase for {effective_date_str} at {effective_location_name}: {e}")
+        moon_phase_for_effective_date = "N/A"
 
-    try:
-        selected_year = int(request.args.get('year') or now.year)
-    except ValueError:
-        selected_year = now.year
-    if selected_year < 1:
-        selected_year = now.year
+    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat, effective_lon)
 
-    selected_date_str = f"{selected_year}-{selected_month:02d}-{selected_day:02d}"
-    selected_date = tz.localize(datetime.strptime(selected_date_str, "%Y-%m-%d"))
+    object_main_details = get_ra_dec(object_name)
+    if not object_main_details or object_main_details.get("RA (hours)") is None:
+        flash(f"Details for '{object_name}' could not be found.", "error")
+        return redirect(url_for('index'))
 
-    # Moon phase
-    now_local = datetime.now(pytz.timezone(g.tz_name))
-    phase = round(ephem.Moon(now_local).phase, 0)
-
-    # Sun events
-    sun_events = calculate_sun_events_cached(selected_date_str,g.tz_name, g.lat, g.lon)
-
-    project = get_ra_dec(object_name).get("Project", "none")
-    timestamp = now.timestamp()
+    # --- DEBUG PRINT STATEMENTS ---
+    if selected_session_data:
+        print("DEBUG: graph_dashboard - selected_session_data going to template:")
+        print(json.dumps(selected_session_data, indent=2))
+        print(f"DEBUG: Calculated Integ. Time: {selected_session_data.get('calculated_integration_time_minutes')}, Type: {type(selected_session_data.get('calculated_integration_time_minutes'))}")
+        print(f"DEBUG: Raw Subs: {selected_session_data.get('number_of_subs_light')}, Type: {type(selected_session_data.get('number_of_subs_light'))}")
+        print(f"DEBUG: Raw Exp Time: {selected_session_data.get('exposure_time_per_sub_sec')}, Type: {type(selected_session_data.get('exposure_time_per_sub_sec'))}")
+    # --- END OF DEBUG PRINT STATEMENTS ---
 
     return render_template('graph_view.html',
                            object_name=object_name,
-                           selected_day=selected_day,
-                           selected_month=selected_month,
-                           selected_year=selected_year,
-                           selected_date=selected_date_str,
-                           project=project,
-                           filename="your_daily_graph_filename.png",  # adjust if needed
-                           timestamp=timestamp,
-                           date=selected_date_str,
-                           time=selected_date.strftime('%H:%M:%S'),
-                           phase=phase,
-                           astronomical_dawn=sun_events.get("astronomical_dawn", "N/A"),
-                           astronomical_dusk=sun_events.get("astronomical_dusk", "N/A"),
-                           location_name=current_location_name)
+                           alt_name=object_main_details.get("Common Name", object_name),
+                           selected_day=effective_day,
+                           selected_month=effective_month,
+                           selected_year=effective_year,
+                           selected_date_for_display=effective_date_str,
+                           header_location_name=effective_location_name,
+                           header_date_display=effective_date_str,
+                           header_moon_phase=moon_phase_for_effective_date,
+                           header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                           header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                           project_notes_from_config=object_main_details.get("Project", "N/A"),
+                           timestamp=datetime.now(effective_local_tz).timestamp(),
+                           object_specific_sessions=object_specific_sessions,
+                           selected_session_data=selected_session_data,
+                           current_session_id=requested_session_id if selected_session_data else None,
+                           graph_location_name_param=effective_location_name,
+                           graph_lat_param=effective_lat,
+                           graph_lon_param=effective_lon,
+                           graph_tz_name_param=effective_tz_name
+                           )
 
-
-@app.route('/plot_day/<object_name>')
+@app.route('/plot_day/<path:object_name>')
 def plot_day(object_name):
-
-    # 1. Parse query parameters for day, month, year
-    now_local = datetime.now(pytz.timezone(g.tz_name))
-    day_str = request.args.get('day')
-    month_str = request.args.get('month')
-    year_str = request.args.get('year')
+    # --- Determine Date for the plot from request.args ---
+    # Get timezone from global context 'g', default to UTC if not available
+    current_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
+    now_for_defaults = datetime.now(pytz.timezone(current_tz_name))
 
     try:
-        day = int(day_str) if day_str and day_str.strip() else now_local.day
-    except ValueError:
-        day = now_local.day
+        day = int(request.args.get('day', now_for_defaults.day))
+        month = int(request.args.get('month', now_for_defaults.month))
+        year = int(request.args.get('year', now_for_defaults.year))
 
-    try:
-        month = int(month_str) if month_str and month_str.strip() else now_local.month
-    except ValueError:
-        month = now_local.month
+        # Basic validation for month and day
+        if not (1 <= month <= 12): month = now_for_defaults.month
+        # Use calendar.monthrange to get the actual number of days in the selected month and year
+        max_days_in_month = calendar.monthrange(year, month)[1]
+        if not (1 <= day <= max_days_in_month):
+            # If current month/year, default to current day, else default to 1st day of selected month
+            day = now_for_defaults.day if month == now_for_defaults.month and year == now_for_defaults.year else 1
 
-    try:
-        year = int(year_str) if year_str and year_str.strip() else now_local.year
-    except ValueError:
-        year = now_local.year
+        local_date_for_plot = f"{year}-{month:02d}-{day:02d}"
+    except ValueError:  # Handles cases like non-integer input for day/month/year
+        local_date_for_plot = now_for_defaults.strftime('%Y-%m-%d')
+        # If date parsing fails, you might want to log this or ensure defaults are robustly set
+        # For now, this ensures local_date_for_plot always has a value.
 
-    local_date = f"{year}-{month:02d}-{day:02d}"
-    print("DEBUG: Plotting day graph for date:", local_date)
+    # --- Get Object Details ---
+    object_details_for_plot = get_ra_dec(object_name)  # Your existing function
+    if not object_details_for_plot or object_details_for_plot.get('RA (hours)') is None:
+        print(f"ERROR: /plot_day - Could not get RA/DEC for object: {object_name}")
+        # Consider returning a standard "image not available" placeholder or a 404 HTTP error
+        return jsonify({'error': f'Data for object {object_name} not found.'}), 404
 
-    # 2. Fetch RA/DEC from config or SIMBAD
-    data = get_ra_dec(object_name)
-    if not data or data.get('RA (hours)') is None:
-        return jsonify({"error": "No valid RA/DEC for object"}), 400
+    ra_hours = object_details_for_plot['RA (hours)']
+    dec_degrees = object_details_for_plot['DEC (degrees)']
+    alt_name_for_plot = object_details_for_plot.get("Common Name", object_name)
 
-    # 3. Generate the plot (same code as monthly/yearly approach)
-    alt_name = data.get("Common Name", object_name)
-    plot_path = plot_altitude_curve(
-        object_name,
-        alt_name,
-        data['RA (hours)'],
-        data['DEC (degrees)'],
-        g.lat, g.lon,
-        local_date,
-        g.tz_name,
-        g.selected_location
+    # --- Determine Location details for the plot ---
+    # These g values are set by @app.before_request based on user's general/global selection
+    default_lat = g.lat if hasattr(g, 'lat') else 0.0  # Provide a float default
+    default_lon = g.lon if hasattr(g, 'lon') else 0.0  # Provide a float default
+    default_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
+    default_location_name = g.selected_location if hasattr(g,
+                                                           'selected_location') and g.selected_location else 'Default Location'
+
+    # Try to get plot-specific location parameters from the URL query string
+    plot_lat_str = request.args.get('plot_lat')
+    plot_lon_str = request.args.get('plot_lon')
+
+    plot_lat = float(plot_lat_str) if plot_lat_str is not None else None
+    plot_lon = float(plot_lon_str) if plot_lon_str is not None else None
+    plot_tz_name = request.args.get('plot_tz', type=str)  # Will be None if not provided
+    plot_location_display_name = request.args.get('plot_loc_name', type=str)  # Will be None if not provided
+
+    # Use provided plot parameters if they exist and are valid, otherwise use defaults from g
+    final_lat = plot_lat if plot_lat is not None else default_lat
+    final_lon = plot_lon if plot_lon is not None else default_lon
+    final_tz_name = plot_tz_name if plot_tz_name else default_tz_name  # Use default if None or empty
+    final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
+
+    print(
+        f"DEBUG: /plot_day - Plotting for obj='{object_name}', loc='{final_location_name}', lat={final_lat}, lon={final_lon}, tz='{final_tz_name}', date='{local_date_for_plot}'")
+
+    # Call your actual Matplotlib plotting function
+    filepath = plot_altitude_curve(  # This is your function that generates the image
+        object_name=object_name,
+        alt_name=alt_name_for_plot,  # Common name for the graph title
+        ra=ra_hours,
+        dec=dec_degrees,
+        lat=final_lat,  # Pass the final determined latitude
+        lon=final_lon,  # Pass the final determined longitude
+        local_date=local_date_for_plot,  # Date for the plot
+        tz_name=final_tz_name,  # Pass the final determined timezone name
+        selected_location=final_location_name  # Pass the final location name (for graph title/filename)
     )
 
-    # 4. Return the PNG directly
-    return send_file(plot_path, mimetype='image/png')
+    if os.path.exists(filepath):
+        return send_file(filepath, mimetype='image/png')
+    else:
+        print(
+            f"ERROR: /plot_day - Plot file not found or could not be generated for '{object_name}' at path: {filepath}")
+        # You could return a placeholder "error image" or a 404 HTTP error
+        return jsonify({'error': f'Plot image {os.path.basename(filepath)} not found on server.'}), 404
 
 @app.route('/get_date_info/<object_name>')
 def get_date_info(object_name):

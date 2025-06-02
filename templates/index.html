@@ -49,7 +49,7 @@
     }
     th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
 
-    /* --- Column Widths --- */
+    /* --- Column Widths (DSO Table) --- */
     th[data-column-key="Object"],
     td[data-column-key="Object"] {
         width: 120px;
@@ -61,8 +61,8 @@
         min-width: 150px;
         text-align: left;
     }
-
-    th[data-column-key="Altitude Current"], td[data-column-key="Altitude Current"],
+    /* ... (keep your other specific column width styles for #data-table) ... */
+     th[data-column-key="Altitude Current"], td[data-column-key="Altitude Current"],
     th[data-column-key="Azimuth Current"], td[data-column-key="Azimuth Current"],
     th[data-column-key="Altitude 11PM"], td[data-column-key="Altitude 11PM"],
     th[data-column-key="Azimuth 11PM"], td[data-column-key="Azimuth 11PM"],
@@ -94,12 +94,14 @@
     }
     /* --- End Column Widths --- */
 
+
     #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
     #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]) {
         text-align: center;
     }
 
-    #data-table > thead > tr:not(.filter-row) > th {
+    #data-table > thead > tr:not(.filter-row) > th,
+    #journal-data-table > thead > tr:not(.filter-row) > th { /* Apply to both tables */
         background-color: #f2f2f2;
         font-weight: normal;
         cursor: pointer;
@@ -116,15 +118,15 @@
       line-height: 1.3;
       display: block;
     }
-    #data-body td {
+    #data-body td, #journal-data-body td { /* Apply to both tables */
         line-height: 1.4;
     }
 
 
     .highlight { background-color: #83b4c5; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
-    #graph-section { display: none; text-align: left; margin-left: 0px; }
-    #back-button { /* Configuration button */
+    #graph-section { display: none; text-align: left; margin-left: 0px; } /* If used on this page */
+    #back-button {
       margin-top: 0px;
       padding: 10px 20px;
       font-size: 16px;
@@ -140,7 +142,6 @@
     .header-container h3 { margin-left: 10px; }
     h3 { font-weight: normal; }
 
-    /* MODIFIED: Styles for the info bar layout */
     .info-bar-wrapper {
         display: flex;
         flex-direction: column;
@@ -169,23 +170,22 @@
     .info-bar-container {
         display: flex;
         align-items: center;
-        flex-wrap: wrap; /* Allow wrapping of all items in this bar if needed */
+        flex-wrap: wrap;
         gap: 20px;
     }
 
-    .info-bar-location-datetime-group { /* This group will contain location and date/time */
+    .info-bar-location-datetime-group {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
         gap: 15px;
-        flex-grow: 1; /* Allow this group to take available space if config button is present */
+        flex-grow: 1;
         justify-content: flex-start;
     }
      .info-bar-location-datetime-group > p,
      .info-bar-location-datetime-group > .info-values {
         margin: 0;
     }
-    /* END MODIFIED */
 
     .filter-row th {
         background-color: #f2f2f2;
@@ -217,24 +217,116 @@
         gap: 10px 20px;
         align-items: center;
     }
-    .table-wrapper { overflow-x: auto; }
+    .table-wrapper { overflow-x: auto; margin-bottom: 20px; } /* Added margin-bottom */
     .table-wrapper::-webkit-scrollbar { height: 8px; }
     .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
     .table-wrapper::-webkit-scrollbar-thumb:hover { background: #888; }
 
-    .col-always-visible {}
-    .col-position {}
-    .col-properties { display: none; }
+    /* .col-always-visible {} */ /* Not strictly needed if controlled by JS display property */
+    /* .col-position {} */
+    /* .col-properties { display: none; } */ /* JS will handle this */
     th .sort-indicator { font-size: 0.8em; margin-left: 5px; display: inline-block; }
 
-  </style>
-  <script>
-    let activeTab = 'position';
-    let currentSort = { columnKey: 'Object', ascending: true };
+    /* Styles for journal grouped items - Option 1 (blanking means less CSS needed) */
+    /* If you choose to style them (e.g. lighter text) instead of blanking:
+    #journal-data-table td.journal-grouped-secondary {
+        color: #999;
+    }
+    */
 
+    /* --- Journal Table Specific Styles --- */
+
+    /* Ensure general header styling is similar to #data-table if not already covered by a common rule */
+    #journal-data-table > thead > tr:not(.filter-row) > th {
+        background-color: #f2f2f2; /* From your #data-table style */
+        font-weight: normal;      /* From your #data-table style */
+        cursor: pointer;          /* From your #data-table style */
+        min-height: 45px;         /* From your #data-table style */
+        vertical-align: middle;   /* Good for consistency */
+        padding-top: 8px;         /* From your #data-table style */
+        padding-bottom: 8px;      /* From your #data-table style */
+    }
+
+    /* Default alignment for journal table headers & cells: Center */
+    #journal-data-table th,
+    #journal-data-table td {
+        text-align: center;
+        vertical-align: middle; /* Align content vertically in the middle of cells */
+    }
+
+    /* Left alignment for specific Journal table columns (Headers & Data cells) */
+    #journal-data-table th[data-journal-column-key="target_object_id"],
+    #journal-data-table td[data-journal-column-key="target_object_id"],
+    #journal-data-table th[data-journal-column-key="target_common_name"],
+    #journal-data-table td[data-journal-column-key="target_common_name"],
+    #journal-data-table th[data-journal-column-key="location_name"],
+    #journal-data-table td[data-journal-column-key="location_name"],
+    #journal-data-table th[data-journal-column-key="session_date"],
+    #journal-data-table th[data-journal-column-key="telescope_setup_notes"],
+    #journal-data-table td[data-journal-column-key="telescope_setup_notes"] {
+        text-align: left;
+    }
+
+    /* Column Widths for Journal Table */
+    #journal-data-table th[data-journal-column-key="target_object_id"],
+    #journal-data-table td[data-journal-column-key="target_object_id"] {
+        width: 120px;       /* Match DSO table Object column */
+        min-width: 120px;
+    }
+
+    #journal-data-table th[data-journal-column-key="target_common_name"],
+    #journal-data-table td[data-journal-column-key="target_common_name"] {
+        min-width: 150px;   /* Match DSO table Common Name column (or adjust as needed) */
+        /* Width can be auto or you can set a specific one if necessary */
+    }
+
+    #journal-data-table th[data-journal-column-key="session_date"],
+    #journal-data-table td[data-journal-column-key="session_date"] {
+        width: 100px;       /* Narrower Date column */
+        min-width: 100px;
+    }
+
+    #journal-data-table th[data-journal-column-key="location_name"],
+    #journal-data-table td[data-journal-column-key="location_name"] {
+        min-width: 100px; /* Try 100px or 110px */
+        width: 110px;     /* Optionally set a fixed width too */
+        text-align: left; /* Re-confirming, as it's textual */
+    }
+    #journal-data-table th[data-journal-column-key="telescope_setup_notes"],
+    #journal-data-table td[data-journal-column-key="telescope_setup_notes"] {
+        min-width: 200px;  /* Allow more space for setup notes */
+        /* If notes are too long, they will be truncated by JS format function */
+    }
+
+    #journal-data-table th[data-journal-column-key="calculated_integration_time_minutes"],
+    #journal-data-table td[data-journal-column-key="calculated_integration_time_minutes"] {
+        width: 100px;      /* Narrower Integ. Time column */
+        min-width: 100px;
+    }
+
+    #journal-data-table th[data-journal-column-key="session_rating_subjective"],
+    #journal-data-table td[data-journal-column-key="session_rating_subjective"] {
+        width: 100px;      /* Narrower Rating column */
+        min-width: 100px;
+    }
+
+    /* Ensure filter row inputs themselves are not overly affected by TH text-align if they are not 100% width */
+    #journal-data-table .filter-row input {
+        text-align: left; /* Typically input text is left-aligned */
+    }
+  </style>
+
+  <script>
+    // ========================================================================
+    // Configuration & Global State Variables
+    // ========================================================================
+    let activeTab = localStorage.getItem('activeTab') || 'position';
+
+    // --- DSO Table Configuration ---
+    let currentSort = { columnKey: 'Altitude Current', ascending: false };
     const columnConfig = {
         'Object':           { header: 'Object<br><span class="subtext">&nbsp;</span>', dataKey: 'Object', type: 'always-visible', filterable: true, sortable: true },
-        'Common Name':      { header: 'Common name<br><span class="subtext">&nbsp;</span>', dataKey: 'Common Name', type: 'always-visible', filterable: true, sortable: true },
+        'Common Name':      { header: 'Common Name<br><span class="subtext">&nbsp;</span>', dataKey: 'Common Name', type: 'always-visible', filterable: true, sortable: true },
         'Altitude Current': { header: 'Altitude<br><span class="subtext">(Current)</span>', dataKey: 'Altitude Current', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
         'Azimuth Current':  { header: 'Azimuth <br><span class="subtext">(Current)</span>', dataKey: 'Azimuth Current', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${parseFloat(val).toFixed(2)}°` },
         'Trend':            { header: 'Trend<br><span class="subtext">&nbsp;</span>', dataKey: 'Trend', type: 'position', filterable: false, sortable: true },
@@ -250,6 +342,23 @@
         'SB':               { header: 'SB<br><span class="subtext">&nbsp;</span>', dataKey: 'SB', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) }
     };
 
+    // --- Journal Table Configuration ---
+    const allJournalSessions = {{ journal_sessions | tojson | safe }};
+    let currentJournalSort = { columnKey: 'session_date', ascending: false };
+    const journalColumnConfig = {
+        'target_object_id': { headerText: 'Object', dataKey: 'target_object_id', sortable: true, filterable: true },
+        'target_common_name': { headerText: 'Common Name', dataKey: 'target_common_name', sortable: true, filterable: true },
+        'session_date': { headerText: 'Date', dataKey: 'session_date', sortable: true, filterable: true, format: formatDateISOtoEuropean },
+        'location_name': { headerText: 'Location', dataKey: 'location_name', sortable: true, filterable: true },
+        'telescope_setup_notes': { headerText: 'Telescope Setup', dataKey: 'telescope_setup_notes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) ? 'N/A' : String(val).substring(0, 40) + (String(val).length > 40 ? '...' : '') }, // New field, added a simple truncate
+        'calculated_integration_time_minutes': { headerText: 'Total Integration', dataKey: 'calculated_integration_time_minutes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min` },
+        'session_rating_subjective': { headerText: 'Session Rating', dataKey: 'session_rating_subjective', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${String(val)} ★` }
+        // Removed: Filter, Guiding RMS, Seeing FWHM, Notes Summary (as per your new list)
+    };
+
+    // ========================================================================
+    // Helper Functions
+    // ========================================================================
     function formatDateISOtoEuropean(isoStr) {
       if (!isoStr || typeof isoStr !== 'string') return 'N/A';
       const parts = isoStr.split("-");
@@ -264,415 +373,354 @@
       return h * 60 + m;
     }
 
+    // ========================================================================
+    // Tab Display Logic
+    // ========================================================================
     function updateTabDisplay() {
-        const headers = document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]");
-        const filterCells = document.querySelectorAll("#data-table .filter-row th[data-column-key]");
-        const tableBodyRows = document.querySelectorAll("#data-body tr");
+        const dsoTableWrapper = document.getElementById('dso-table-wrapper');
+        const dsoLoadingDiv = document.getElementById('table-loading');
+        const journalTableWrapper = document.getElementById('journal-table-wrapper');
 
         document.querySelectorAll('.tab-button').forEach(button => {
             button.classList.toggle('active', button.dataset.tab === activeTab);
         });
 
+        if (dsoTableWrapper) dsoTableWrapper.style.display = 'none';
+        if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
+        if (journalTableWrapper) journalTableWrapper.style.display = 'none';
+
+        if (activeTab === 'position' || activeTab === 'properties') {
+            if (dsoTableWrapper) dsoTableWrapper.style.display = 'block';
+            applyDsoColumnVisibility();
+            const dsoTableBody = document.getElementById('data-body');
+            if (dsoTableBody && dsoTableBody.innerHTML.trim() === '') {
+                if(dsoLoadingDiv) dsoLoadingDiv.style.display = 'block'; // Show loading for DSO
+                fetchData();
+            } else {
+                 // Data already loaded, just ensure visibility and sort/filter are current
+                 filterTable();
+                 sortTable(currentSort.columnKey, false); // false to not toggle, just apply
+            }
+        } else if (activeTab === 'journal') {
+            if (journalTableWrapper) journalTableWrapper.style.display = 'block';
+            populateJournalTable();
+        }
+        localStorage.setItem('activeTab', activeTab);
+    }
+
+    function applyDsoColumnVisibility() {
+        const headers = document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]");
+        const filterCells = document.querySelectorAll("#data-table .filter-row th[data-column-key]");
+        const tableBodyRows = document.querySelectorAll("#data-body tr");
+
         headers.forEach(th => {
             const columnKey = th.dataset.columnKey;
             const config = columnConfig[columnKey];
             if (config) {
-                let displayStyle = 'none';
-                if (config.type === 'always-visible') {
-                    displayStyle = 'table-cell';
-                } else if (config.type === 'position' && activeTab === 'position') {
-                    displayStyle = 'table-cell';
-                } else if (config.type === 'properties' && activeTab === 'properties') {
-                    displayStyle = 'table-cell';
-                }
-                th.style.display = displayStyle;
-            } else {
-                 th.style.display = 'none';
+                th.style.display = (config.type === 'always-visible' || config.type === activeTab) ? 'table-cell' : 'none';
             }
         });
-
         filterCells.forEach(thFilter => {
             const columnKey = thFilter.dataset.columnKey;
             const config = columnConfig[columnKey];
             const input = thFilter.querySelector('input');
-            let thFilterDisplayStyle = 'none';
-
+            let show = false;
             if (config) {
-                if (config.type === 'always-visible') {
-                    thFilterDisplayStyle = 'table-cell';
-                } else if (config.type === 'position' && activeTab === 'position') {
-                    thFilterDisplayStyle = 'table-cell';
-                } else if (config.type === 'properties' && activeTab === 'properties') {
-                    thFilterDisplayStyle = 'table-cell';
-                }
-                thFilter.style.display = thFilterDisplayStyle;
-
+                show = (config.type === 'always-visible' || config.type === activeTab);
+                thFilter.style.display = show ? 'table-cell' : 'none';
                 if (input) {
-                    if (!config.filterable || thFilterDisplayStyle === 'none') {
-                        input.disabled = true;
-                        input.style.visibility = 'hidden';
-                    } else {
-                        input.disabled = false;
-                        input.style.visibility = 'visible';
-                    }
-                }
-            } else {
-                thFilter.style.display = 'none';
-                if (input) {
-                    input.disabled = true;
-                    input.style.visibility = 'hidden';
+                    input.disabled = !show || !config.filterable;
+                    input.style.visibility = show && config.filterable ? 'visible' : 'hidden';
                 }
             }
         });
-
         tableBodyRows.forEach(row => {
             const cells = row.querySelectorAll('td[data-column-key]');
             cells.forEach(td => {
                 const columnKey = td.dataset.columnKey;
                 const config = columnConfig[columnKey];
                 if (config) {
-                    let displayStyle = 'none';
-                    if (config.type === 'always-visible') {
-                        displayStyle = 'table-cell';
-                    } else if (config.type === 'position' && activeTab === 'position') {
-                        displayStyle = 'table-cell';
-                    } else if (config.type === 'properties' && activeTab === 'properties') {
-                        displayStyle = 'table-cell';
-                    }
-                    td.style.display = displayStyle;
+                    td.style.display = (config.type === 'always-visible' || config.type === activeTab) ? 'table-cell' : 'none';
                 }
             });
         });
-         localStorage.setItem('activeTab', activeTab);
     }
 
-    function sortTable(columnKey, toggle = true) {
-      const table = document.getElementById("data-table");
-      let sortOrder;
-      if (toggle) {
-        if (currentSort.columnKey === columnKey) {
-          currentSort.ascending = !currentSort.ascending;
+    // ========================================================================
+    // DSO Table Functions
+    // ========================================================================
+    function sortTable(columnKey, toggle = true) { // DSO Table Sort
+        const table = document.getElementById("data-table");
+        if (!table) return;
+        let sortOrder;
+        if (toggle) {
+            if (currentSort.columnKey === columnKey) { currentSort.ascending = !currentSort.ascending; }
+            else { currentSort.columnKey = columnKey; currentSort.ascending = true; }
+            localStorage.setItem("dso_sortOrder", currentSort.ascending ? "asc" : "desc");
+            localStorage.setItem("dso_sortColumnKey", columnKey);
         } else {
-          currentSort.columnKey = columnKey;
-          currentSort.ascending = true;
-        }
-        sortOrder = currentSort.ascending ? "asc" : "desc";
-        localStorage.setItem("sortOrder", sortOrder);
-        localStorage.setItem("sortColumnKey", columnKey);
-      } else {
-        sortOrder = localStorage.getItem("sortOrder") || (currentSort.ascending ? "asc" : "desc");
-        currentSort.ascending = sortOrder === "asc";
-      }
-      table.setAttribute("data-sort-order", sortOrder);
-      const tbody = document.getElementById("data-body");
-      const rows = Array.from(tbody.getElementsByTagName("tr"));
-      const config = columnConfig[currentSort.columnKey];
-      rows.sort((a, b) => {
-        const cellA_element = a.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
-        const cellB_element = b.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
-        if (!cellA_element || !cellB_element) return 0;
-
-        let valA_str = cellA_element.dataset.rawValue !== undefined ? cellA_element.dataset.rawValue : cellA_element.innerText.trim();
-        let valB_str = cellB_element.dataset.rawValue !== undefined ? cellB_element.dataset.rawValue : cellB_element.innerText.trim();
-
-        const isNA_A = valA_str === 'N/A' || valA_str === '';
-        const isNA_B = valB_str === 'N/A' || valB_str === '';
-
-        if (isNA_A && isNA_B) return 0;
-        if (isNA_A) return currentSort.ascending ? 1 : -1;
-        if (isNA_B) return currentSort.ascending ? -1 : 1;
-
-        let valA = valA_str;
-        let valB = valB_str;
-
-        const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                                 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                                 'Magnitude', 'Size', 'SB'];
-
-        if (config && numericSortKeys.includes(config.dataKey)) {
-            valA = parseFloat(valA_str);
-            valB = parseFloat(valB_str);
-        } else if (currentSort.columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) {
-            valA = parseTimeToMinutes(valA_str);
-            valB = parseTimeToMinutes(valB_str);
-        }
-
-        if (typeof valA === 'number' && typeof valB === 'number') {
-            if (isNaN(valA) && isNaN(valB)) return 0;
-            if (isNaN(valA)) return currentSort.ascending ? 1 : -1;
-            if (isNaN(valB)) return currentSort.ascending ? -1 : 1;
-            return currentSort.ascending ? valA - valB : valB - valA;
-        }
-
-        return currentSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
-      });
-      rows.forEach(row => tbody.appendChild(row));
-      updateSortIndicators();
-    }
-
-    function updateSortIndicators() {
-        document.querySelectorAll('#data-table th .sort-indicator').forEach(span => span.innerHTML = '');
-        const activeTh = document.querySelector(`#data-table > thead > tr:not(.filter-row) > th[data-column-key="${currentSort.columnKey}"]`);
-        if (activeTh) {
-            const indicator = activeTh.querySelector('.sort-indicator');
-            if (indicator) {
-                indicator.innerHTML = currentSort.ascending ? '▲' : '▼';
+            const storedSortOrder = localStorage.getItem("dso_sortOrder");
+            const storedSortColumnKey = localStorage.getItem("dso_sortColumnKey");
+            if (storedSortColumnKey) {
+                currentSort.columnKey = storedSortColumnKey;
+                currentSort.ascending = (storedSortOrder === "asc");
             }
         }
+        sortOrder = currentSort.ascending ? "asc" : "desc";
+        table.setAttribute("data-sort-order", sortOrder);
+        const tbody = document.getElementById("data-body");
+        if (!tbody) return;
+        const rows = Array.from(tbody.getElementsByTagName("tr"));
+        const config = columnConfig[currentSort.columnKey];
+
+        rows.sort((a, b) => {
+            const cellA_element = a.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
+            const cellB_element = b.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
+            if (!cellA_element || !cellB_element) return 0;
+            let valA_str = cellA_element.dataset.rawValue !== undefined ? cellA_element.dataset.rawValue : cellA_element.innerText.trim();
+            let valB_str = cellB_element.dataset.rawValue !== undefined ? cellB_element.dataset.rawValue : cellB_element.innerText.trim();
+            const isNA_A = valA_str === 'N/A' || valA_str === ''; const isNA_B = valB_str === 'N/A' || valB_str === '';
+            if (isNA_A && isNA_B) return 0; if (isNA_A) return currentSort.ascending ? 1 : -1; if (isNA_B) return currentSort.ascending ? -1 : 1;
+            let valA = valA_str; let valB = valB_str;
+            const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
+            if (config && numericSortKeys.includes(config.dataKey)) { valA = parseFloat(valA_str); valB = parseFloat(valB_str); }
+            else if (currentSort.columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) { valA = parseTimeToMinutes(valA_str); valB = parseTimeToMinutes(valB_str); }
+            if (typeof valA === 'number' && typeof valB === 'number') { if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentSort.ascending ? 1 : -1; if (isNaN(valB)) return currentSort.ascending ? -1 : 1; return currentSort.ascending ? valA - valB : valB - valA; }
+            return currentSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+        });
+        rows.forEach(row => tbody.appendChild(row));
+        updateSortIndicators();
     }
 
-    function saveFilter(inputElement, columnKey) {
-      localStorage.setItem("filter_col_key_" + columnKey, inputElement.value);
+    function updateSortIndicators() { // DSO Table
+        document.querySelectorAll('#data-table > thead > tr:not(.filter-row) > th .sort-indicator').forEach(span => span.innerHTML = '');
+        const activeTh = document.querySelector(`#data-table > thead > tr:not(.filter-row) > th[data-column-key="${currentSort.columnKey}"]`);
+        if (activeTh) { const indicator = activeTh.querySelector('.sort-indicator'); if (indicator) indicator.innerHTML = currentSort.ascending ? '▲' : '▼'; }
     }
 
-    function filterTable() {
+    function filterTable() { // DSO Table
       const tbody = document.getElementById("data-body");
       if (!tbody) return;
       const rows = tbody.getElementsByTagName("tr");
       const activeFilters = {};
-
       for (const columnKey in columnConfig) {
         if (columnConfig.hasOwnProperty(columnKey) && columnConfig[columnKey].filterable) {
-          const savedFilterValue = localStorage.getItem("filter_col_key_" + columnKey);
-          const inputElement = document.querySelector(`.filter-row th[data-column-key="${columnKey}"] input`);
-
-          if (inputElement) {
-            if (savedFilterValue !== null) {
-              inputElement.value = savedFilterValue;
-              if (savedFilterValue.trim() !== '') {
-                activeFilters[columnKey] = savedFilterValue.trim().toLowerCase();
-              }
-            } else {
-              inputElement.value = '';
-            }
-          } else if (savedFilterValue !== null && savedFilterValue.trim() !== '') {
-            activeFilters[columnKey] = savedFilterValue.trim().toLowerCase();
+          const inputElement = document.querySelector(`#data-table .filter-row th[data-column-key="${columnKey}"] input`);
+          if (inputElement && inputElement.value.trim() !== '') {
+            activeFilters[columnKey] = inputElement.value.trim().toLowerCase();
           }
         }
       }
-
       for (let i = 0; i < rows.length; i++) {
         let showRow = true;
         for (const columnKeyInFilter in activeFilters) {
-            if (activeFilters.hasOwnProperty(columnKeyInFilter)) {
-                const filterValue = activeFilters[columnKeyInFilter];
-                const config = columnConfig[columnKeyInFilter];
-
-                if (!config) continue;
-
-                const cellElement = rows[i].querySelector(`td[data-column-key="${columnKeyInFilter}"]`);
-                if (!cellElement) {
-                    showRow = false; break;
-                }
-                let cellText = (cellElement.dataset.rawValue || cellElement.innerText).trim().toLowerCase();
-
-                if (filterValue === "n/a" || filterValue === "na") {
-                    if (cellText !== "n/a") {
-                        showRow = false; break;
-                    }
-                    continue;
-                }
-
-                if (config.dataKey === 'Type') {
-                    const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
-                    if (filterTypes.length > 0) {
-                        let typeMatch = false;
-                        for (const typeTerm of filterTypes) {
-                            if (cellText === typeTerm || cellText.includes(typeTerm)) {
-                                typeMatch = true;
-                                break;
-                            }
-                        }
-                        if (!typeMatch) {
-                            showRow = false; break;
-                        }
-                    }
-                }
-                else {
-                    const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                                         'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                                         'Magnitude', 'Size', 'SB'];
-
-                    if (config && numericFilterKeys.includes(config.dataKey)) {
-                        if (cellText === "n/a") {
-                            showRow = false; break;
-                        }
-                        const cellNumber = parseFloat(cellText.replace(/[^0-9\.\-]/g, ""));
-                        if (isNaN(cellNumber)) {
-                            if (cellText.indexOf(filterValue) === -1) {
-                               showRow = false; break;
-                            }
-                            continue;
-                        }
-                        const conditions = filterValue.split(" ").filter(cond => cond !== "");
-                        let conditionMetOverall = true;
-                        for (let cond of conditions) {
-                            let operator = ""; let valueStr = "";
-                            if (cond.startsWith(">=")) { operator = ">="; valueStr = cond.substring(2); }
-                            else if (cond.startsWith("<=")) { operator = "<="; valueStr = cond.substring(2); }
-                            else if (cond.startsWith(">")) { operator = ">"; valueStr = cond.substring(1); }
-                            else if (cond.startsWith("<")) { operator = "<"; valueStr = cond.substring(1); }
-                            else {
-                                if (String(cellNumber).indexOf(cond) === -1 && cellText.indexOf(cond) === -1) {
-                                    conditionMetOverall = false; break;
-                                }
-                                continue;
-                            }
-                            let conditionValue = parseFloat(valueStr);
-                            if (isNaN(conditionValue)) { conditionMetOverall = false; break; }
-
-                            let currentConditionMet = false;
-                            if (operator === ">" && cellNumber > conditionValue) currentConditionMet = true;
-                            else if (operator === ">=" && cellNumber >= conditionValue) currentConditionMet = true;
-                            else if (operator === "<" && cellNumber < conditionValue) currentConditionMet = true;
-                            else if (operator === "<=" && cellNumber <= conditionValue) currentConditionMet = true;
-
-                            if (!currentConditionMet) { conditionMetOverall = false; break;}
-                        }
-                        if (!conditionMetOverall) { showRow = false; break; }
-                    } else {
-                        if (filterValue.startsWith("!")) {
-                            if (cellText.includes(filterValue.substring(1))) { showRow = false; break; }
-                        } else {
-                            if (!cellText.includes(filterValue)) { showRow = false; break; }
-                        }
-                    }
-                }
+            const filterValue = activeFilters[columnKeyInFilter]; const config = columnConfig[columnKeyInFilter];
+            if (!config) continue;
+            const cellElement = rows[i].querySelector(`td[data-column-key="${columnKeyInFilter}"]`);
+            if (!cellElement) { showRow = false; break; }
+            let cellText = (cellElement.dataset.rawValue || cellElement.innerText).trim().toLowerCase();
+            if (filterValue === "n/a" || filterValue === "na") { if (cellText !== "n/a") { showRow = false; break; } continue; }
+            if (config.dataKey === 'Type') { /* ... your type filter ... */
+                const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
+                if (filterTypes.length > 0) { let typeMatch = false; for (const typeTerm of filterTypes) { if (cellText === typeTerm || cellText.includes(typeTerm)) { typeMatch = true; break; } } if (!typeMatch) { showRow = false; break; } }
+            } else {
+                const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
+                if (config && numericFilterKeys.includes(config.dataKey)) { /* ... your numeric filter ... */
+                    if (cellText === "n/a") { showRow = false; break; } const cellNumber = parseFloat(cellText.replace(/[^0-9\.\-]/g, ""));
+                    if (isNaN(cellNumber)) { if (cellText.indexOf(filterValue) === -1) {showRow = false; break;} continue; }
+                    const conditions = filterValue.split(" ").filter(cond => cond !== ""); let conditionMetOverall = true;
+                    for (let cond of conditions) {
+                        let operator = ""; let valueStr = "";
+                        if (cond.startsWith(">=")) { operator = ">="; valueStr = cond.substring(2); } else if (cond.startsWith("<=")) { operator = "<="; valueStr = cond.substring(2); }
+                        else if (cond.startsWith(">")) { operator = ">"; valueStr = cond.substring(1); } else if (cond.startsWith("<")) { operator = "<"; valueStr = cond.substring(1); }
+                        else { if (String(cellNumber).indexOf(cond) === -1 && cellText.indexOf(cond) === -1) { conditionMetOverall = false; break; } continue; }
+                        let conditionValue = parseFloat(valueStr); if (isNaN(conditionValue)) { conditionMetOverall = false; break; }
+                        let currentConditionMet = false;
+                        if (operator === ">" && cellNumber > conditionValue) currentConditionMet = true; else if (operator === ">=" && cellNumber >= conditionValue) currentConditionMet = true;
+                        else if (operator === "<" && cellNumber < conditionValue) currentConditionMet = true; else if (operator === "<=" && cellNumber <= conditionValue) currentConditionMet = true;
+                        if (!currentConditionMet) { conditionMetOverall = false; break;}
+                    } if (!conditionMetOverall) { showRow = false; break; }
+                } else { if (filterValue.startsWith("!")) { if (cellText.includes(filterValue.substring(1))) { showRow = false; break; } } else { if (!cellText.includes(filterValue)) { showRow = false; break; } } }
             }
-        }
-        rows[i].style.display = showRow ? "" : "none";
+        } rows[i].style.display = showRow ? "" : "none";
       }
     }
 
+    function saveFilter(inputElement, columnKey, tableType = 'dso') {
+      localStorage.setItem(tableType + "_filter_col_key_" + columnKey, inputElement.value);
+    }
+
     function fetchData() {
-      const localTime = new Date().toISOString();
-      const loadingDiv = document.getElementById("table-loading");
-      loadingDiv.style.display = "block";
-      loadingDiv.textContent = "Loading data...";
-      fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
-        .then(response => response.json())
+        const localTime = new Date().toISOString();
+        const loadingDiv = document.getElementById("table-loading");
+        const dsoTableBody = document.getElementById('data-body');
+
+        // This flag is now primarily for the loading message and error display logic
+        const isDsoTabActive = (activeTab === 'position' || activeTab === 'properties');
+
+        if (isDsoTabActive && loadingDiv) { // Show loading message only if a DSO tab is currently active
+            loadingDiv.style.display = "block";
+            loadingDiv.textContent = "Loading DSO data...";
+        } else if (loadingDiv) {
+            // If Journal tab is active (or any other case where loading shouldn't be shown), ensure it's hidden.
+            loadingDiv.style.display = "none";
+        }
+
+        fetch(`/data?local_time=${encodeURIComponent(localTime)}`)
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => { throw new Error(`HTTP error ${response.status}: ${text.substring(0, 200)}`); });
+            }
+            return response.json();
+        })
         .then(data => {
-          loadingDiv.style.display = "none";
-          document.getElementById('date').textContent = formatDateISOtoEuropean(data.date);
-          document.getElementById('time').textContent = data.time;
-          document.getElementById('phase').textContent = `${data.phase}%`;
-          const tableBody = document.getElementById('data-body');
-          tableBody.innerHTML = '';
+          // ALWAYS update header info (date, time, phase)
+          const dateEl = document.getElementById('date');
+          const timeEl = document.getElementById('time');
+          const phaseEl = document.getElementById('phase');
+          if (dateEl && data.date !== undefined) dateEl.textContent = formatDateISOtoEuropean(data.date);
+          if (timeEl && data.time !== undefined) timeEl.textContent = data.time;
+          if (phaseEl && data.phase !== undefined) phaseEl.textContent = `${data.phase}%`;
+
+          // --- MODIFICATION: The DSO table DOM (#data-body) is now updated regardless of activeTab ---
+          if (!dsoTableBody) {
+              console.error("DSO table body ('data-body') not found by fetchData.");
+              if (loadingDiv) loadingDiv.style.display = "none"; // Ensure loading is hidden
+              return;
+          }
+
+          dsoTableBody.innerHTML = ''; // Clear existing DSO data from #data-body
           const altitudeThreshold = data.altitude_threshold || 20;
           data.objects.forEach(obj => {
-            const row = document.createElement('tr');
-            row.classList.add('clickable-row');
-            row.setAttribute('data-object-id', obj.Object);
-            if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) {
-              row.style.backgroundColor = "#f8d7da";
-            } else if (obj.Project && obj.Project.toLowerCase() !== "none") {
-              row.style.backgroundColor = "#dce5ea";
-            }
-            for (const key in columnConfig) {
-                if (columnConfig.hasOwnProperty(key)) {
-                    const config = columnConfig[key];
-                    const td = document.createElement('td');
-                    td.dataset.columnKey = key;
-                    let rawValue = obj[config.dataKey];
-                    let displayValue = rawValue;
+              const row = document.createElement('tr'); row.classList.add('clickable-row'); row.setAttribute('data-object-id', obj.Object);
+              if (obj['Common Name'] && obj['Common Name'].toLowerCase().startsWith("error:")) { row.style.backgroundColor = "#f8d7da"; }
+              else if (obj.Project && obj.Project.toLowerCase() !== "none") { row.style.backgroundColor = "#dce5ea"; }
 
-                    if (rawValue === null || rawValue === undefined || rawValue === "" || String(rawValue).trim().toLowerCase() === "n/a") {
-                        displayValue = "N/A";
-                        rawValue = "N/A";
-                    } else if (config.format) {
-                        displayValue = config.format(rawValue);
-                    } else if (typeof rawValue === 'number' && !Number.isInteger(rawValue)) {
-                        displayValue = parseFloat(rawValue).toFixed(1);
-                    }
-
-                    if (rawValue !== undefined && String(rawValue).toLowerCase() !== "n/a" && !isNaN(parseFloat(rawValue))) {
-                        td.dataset.rawValue = String(rawValue);
-                    } else if (String(rawValue).toLowerCase() === "n/a") {
-                         td.dataset.rawValue = "N/A";
-                    }
-
-                    td.innerHTML = String(displayValue);
-
-                    if ((config.dataKey === 'Altitude Current' && parseFloat(rawValue) >= altitudeThreshold) ||
-                        (config.dataKey === 'Altitude 11PM' && parseFloat(rawValue) >= altitudeThreshold)) {
-                        td.classList.add('highlight');
-                    }
-
-                    if (config.type === 'always-visible') td.classList.add('col-always-visible');
-                    else if (config.type === 'position') td.classList.add('col-position');
-                    else if (config.type === 'properties') td.classList.add('col-properties');
-
-                    row.appendChild(td);
-                }
-            }
-            row.addEventListener('click', function () {
-              const commonName = obj['Common Name'] || "";
-              if (commonName.toLowerCase().startsWith("error:")) {
-                alert("Graph not available: " + commonName);
-                return;
+              for (const key in columnConfig) {
+                  if (columnConfig.hasOwnProperty(key)) {
+                      const config = columnConfig[key]; const td = document.createElement('td'); td.dataset.columnKey = key;
+                      let rawValue = obj[config.dataKey]; let displayValue = rawValue;
+                      if (rawValue === null || rawValue === undefined || rawValue === "" || String(rawValue).trim().toLowerCase() === "n/a") { displayValue = "N/A"; rawValue = "N/A"; }
+                      else if (config.format) { displayValue = config.format(rawValue); }
+                      else if (typeof rawValue === 'number' && !Number.isInteger(rawValue)) { displayValue = parseFloat(rawValue).toFixed(1); }
+                      if (rawValue !== undefined && String(rawValue).toLowerCase() !== "n/a" && !isNaN(parseFloat(String(rawValue)))) { td.dataset.rawValue = String(rawValue); }
+                      else if (String(rawValue).toLowerCase() === "n/a") { td.dataset.rawValue = "N/A"; }
+                      td.innerHTML = String(displayValue);
+                      if ((config.dataKey === 'Altitude Current' && parseFloat(rawValue) >= altitudeThreshold) || (config.dataKey === 'Altitude 11PM' && parseFloat(rawValue) >= altitudeThreshold)) { td.classList.add('highlight'); }
+                      row.appendChild(td);
+                  }
               }
-              const objectId = this.getAttribute('data-object-id');
-              showGraph(objectId);
-            });
-            tableBody.appendChild(row);
+              row.addEventListener('click', function () { const commonName = obj['Common Name'] || ""; if (commonName.toLowerCase().startsWith("error:")) { alert("Graph not available: " + commonName); return; } const objectId = this.getAttribute('data-object-id'); showGraph(objectId); });
+              dsoTableBody.appendChild(row);
           });
-          currentSort.columnKey = localStorage.getItem("sortColumnKey") || 'Object';
-          const storedSortOrder = localStorage.getItem("sortOrder") || "asc";
-          currentSort.ascending = storedSortOrder === "asc";
 
-          updateTabDisplay();
-          filterTable();
-          sortTable(currentSort.columnKey, false);
-          updateSortIndicators();
+          // These functions will now operate on the #data-body even if it's hidden.
+          // applyDsoColumnVisibility will use the current `activeTab` value.
+          // When the user switches to a DSO tab, updateTabDisplay will call applyDsoColumnVisibility again,
+          // ensuring the correct columns are displayed based on the then-active tab ('position' or 'properties').
+          applyDsoColumnVisibility();
+          filterTable(); // Apply current filters to the newly populated (but possibly hidden) table
+          sortTable(currentSort.columnKey, false); // Re-apply sort to the new data
+          // --- END OF MODIFICATION FOR ALWAYS UPDATING DSO TABLE DOM ---
+
+          // Ensure loadingDiv is hidden after all processing is done for this fetch run
+          if (loadingDiv) loadingDiv.style.display = "none";
         })
         .catch(error => {
-          console.error('❌ Error fetching data:', error);
-          loadingDiv.textContent = "❌ Error loading data.";
+          console.error('❌ Error fetching/processing data in fetchData:', error);
+          if (loadingDiv) {
+              // Only show error in loadingDiv if a DSO tab was active when fetch started
+              if (isDsoTabActive) {
+                  loadingDiv.textContent = "❌ Error loading data.";
+                  // Keep error visible for a bit, or let next successful fetch hide it.
+              } else {
+                loadingDiv.style.display = "none"; // Ensure it's hidden if Journal tab was active
+              }
+          }
+          const timeEl = document.getElementById('time');
+          if(timeEl) timeEl.textContent = "--:--:--"; // Indicate error in time display
         });
     }
 
-    function showGraph(objectName) {
-      window.location.href = '/graph_dashboard/' + encodeURIComponent(objectName);
-    }
-    function fetchLocations() {
-      fetch('/get_locations')
+    function showGraph(objectName) { window.location.href = '/graph_dashboard/' + encodeURIComponent(objectName); }
+    function fetchLocations() { /* ... Your existing, ensure it populates #location-select ... */
+        fetch('/get_locations')
         .then(response => response.json())
         .then(data => {
           let locationSelect = document.getElementById('location-select');
+          if (!locationSelect) return;
           locationSelect.innerHTML = '';
           data.locations.forEach(location => {
-            let option = document.createElement('option');
-            option.value = location;
-            option.textContent = location;
+            let option = document.createElement('option'); option.value = location; option.textContent = location;
             if (location === data.selected) option.selected = true;
             locationSelect.appendChild(option);
           });
         })
         .catch(error => console.error('❌ Error fetching locations:', error));
     }
+
     function setLocation() {
-      const selectedLocation = document.getElementById('location-select').value;
-      const tableBody = document.getElementById('data-body');
-      tableBody.innerHTML = '';
-      const loadingDiv = document.getElementById("table-loading");
-      loadingDiv.style.display = "block";
-      loadingDiv.innerHTML = "Loading...";
-      fetch('/set_location', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location: selectedLocation })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          fetchData();
-          fetchSunEvents();
-        } else { console.error("❌ Location update failed:", data); loadingDiv.textContent = "❌ Error loading data."; }
-      })
-      .catch(error => { console.error('❌ Error setting location:', error); loadingDiv.textContent = "❌ Error loading data."; });
+        const selectedLocation = document.getElementById('location-select').value;
+        const dsoTableBody = document.getElementById('data-body');
+        if (dsoTableBody) dsoTableBody.innerHTML = ''; // Clear DSO table
+
+        const journalTableBody = document.getElementById('journal-data-body');
+        if (journalTableBody) journalTableBody.innerHTML = ''; // Clear Journal table
+
+        const loadingDiv = document.getElementById("table-loading");
+
+        // --- MODIFICATION: Conditional display of "Updating location..." ---
+        if (loadingDiv) {
+            if (activeTab !== 'journal') { // Only show if not on Journal tab
+                loadingDiv.innerHTML = "Updating location...";
+                loadingDiv.style.display = "block";
+            } else {
+                // Ensure the loading div is hidden if on Journal tab
+                loadingDiv.style.display = "none";
+            }
+        }
+        // --- End of MODIFICATION ---
+
+        fetch('/set_location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: selectedLocation })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (activeTab === 'position' || activeTab === 'properties') {
+                    fetchData(); // fetchData will handle its own loadingDiv for DSO tabs
+                    fetchSunEvents();
+                } else if (activeTab === 'journal') {
+                    populateJournalTable();
+                    fetchSunEvents();
+                    // Ensure loadingDiv is hidden (as a safeguard, though it shouldn't have been shown)
+                    if (loadingDiv) loadingDiv.style.display = "none";
+                }
+            } else {
+                console.error("❌ Location update failed:", data);
+                if (loadingDiv && activeTab !== 'journal') { // Only show error in div if not on Journal tab
+                    loadingDiv.textContent = "❌ Error updating location.";
+                    loadingDiv.style.display = "block"; // Make sure it's visible
+                } else if (activeTab === 'journal') {
+                    console.error("Location update failed while on journal tab. UI message suppressed.");
+                }
+            }
+        })
+        .catch(error => {
+            console.error('❌ Error setting location:', error);
+            if (loadingDiv && activeTab !== 'journal') { // Only show error in div if not on Journal tab
+                loadingDiv.textContent = "❌ Error setting location.";
+                loadingDiv.style.display = "block"; // Make sure it's visible
+            } else if (activeTab === 'journal') {
+                console.error("Error setting location while on journal tab. UI message suppressed.");
+            }
+        });
     }
-    function fetchSunEvents() {
-      fetch('/sun_events')
+
+    function fetchSunEvents() { /* ... Your existing ... */
+        fetch('/sun_events')
         .then(response => response.json())
         .then(data => {
           document.getElementById('dawn').textContent = data.astronomical_dawn;
@@ -681,19 +729,380 @@
         .catch(error => { console.error('❌ Error fetching sun events:', error);});
     }
 
+
+    // ========================================================================
+    // Journal Table Functions
+    // ========================================================================
+    function populateJournalTable() {
+        const tableBody = document.getElementById('journal-data-body');
+        if (!tableBody || !allJournalSessions) return;
+
+        let sessionsToDisplay = [...allJournalSessions]; // Use a copy
+
+        // --- Filtering for Journal Table (REVISED) ---
+        const journalFilterInputs = document.querySelectorAll("#journal-filter-row input");
+        const activeJournalFilters = {};
+        journalFilterInputs.forEach(input => {
+            const thParent = input.closest('th');
+            if (thParent) {
+                const columnKey = thParent.dataset.journalColumnKey;
+                const value = input.value.trim().toLowerCase();
+                if (value !== '') activeJournalFilters[columnKey] = value;
+            }
+        });
+
+        const journalNumericFilterKeys = [
+            'calculated_integration_time_minutes',
+            'guiding_rms_avg_arcsec',
+            'seeing_observed_fwhm',
+            'session_rating_subjective'
+            // Add any other journalColumnConfig keys that should be treated as numeric for filtering
+        ];
+
+        if (Object.keys(activeJournalFilters).length > 0) {
+            sessionsToDisplay = sessionsToDisplay.filter(session => {
+                for (const key in activeJournalFilters) {
+                    const filterValue = activeJournalFilters[key]; // User's input, e.g., "<15.03.2025" or "2025-03"
+                    const config = journalColumnConfig[key];
+                    if (!config) continue;
+
+                    let rawSessionValueStr = String(session[config.dataKey] || '').toLowerCase(); // Default for text fields
+                    let formattedSessionValueStr = ""; // For date display format matching
+
+                    if (config.dataKey === 'session_date') {
+                        rawSessionValueStr = session[config.dataKey] || ""; // This is YYYY-MM-DD
+                        if (rawSessionValueStr && config.format) {
+                            formattedSessionValueStr = config.format(rawSessionValueStr).toLowerCase(); // DD.MM.YYYY
+                        }
+                    } else if (config.dataKey === 'calculated_integration_time_minutes') {
+                        rawSessionValueStr = String(session.calculated_integration_time_minutes === undefined || session.calculated_integration_time_minutes === null ? 'N/A' : session.calculated_integration_time_minutes).toLowerCase();
+                    }
+                    // else use rawSessionValueStr as set above
+
+                    if (filterValue === "n/a" || filterValue === "na") {
+                        if (rawSessionValueStr !== "n/a" && rawSessionValueStr !== "") return false;
+                        continue;
+                    }
+
+                    // --- REVISED Date Filtering Logic ---
+                    if (config.dataKey === 'session_date') {
+                        const sessionDateString_YYYY_MM_DD = session[config.dataKey] || ""; // Should be "YYYY-MM-DD"
+                        if (!sessionDateString_YYYY_MM_DD) return false; // Skip if session has no date
+
+                        let operator = null;
+                        let dateFilterStringUserInput = filterValue; // Original user input for this column
+
+                        if (dateFilterStringUserInput.startsWith(">=")) { operator = ">="; dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim(); }
+                        else if (dateFilterStringUserInput.startsWith("<=")) { operator = "<="; dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim(); }
+                        else if (dateFilterStringUserInput.startsWith(">")) { operator = ">"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
+                        else if (dateFilterStringUserInput.startsWith("<")) { operator = "<"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
+                        else {
+                            dateFilterStringUserInput = dateFilterStringUserInput.trim(); // No operator, just trim
+                        }
+
+                        try {
+                            let filterDateObj = null;
+
+                            // Attempt to parse the user's filter date string (DD.MM.YYYY or YYYY-MM-DD)
+                            if (dateFilterStringUserInput.includes('.')) { // User typed DD.MM.YYYY
+                                const parts = dateFilterStringUserInput.split('.');
+                                if (parts.length === 3 && parts.every(p => !isNaN(parseInt(p)))) {
+                                    filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])));
+                                }
+                            } else if (dateFilterStringUserInput.includes('-')) { // User typed YYYY-MM-DD (or YYYY-MM, or YYYY)
+                                const parts = dateFilterStringUserInput.split('-');
+                                if (parts.length === 3 && parts.every(p => !isNaN(parseInt(p)))) {
+                                     filterDateObj = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2])));
+                                } else if (parts.length === 2 && parts.every(p => !isNaN(parseInt(p)))) { // YYYY-MM
+                                     filterDateObj = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, 1));
+                                } else if (parts.length === 1 && /^\d{4}$/.test(parts[0])) { // YYYY
+                                     filterDateObj = new Date(Date.UTC(parseInt(parts[0]), 0, 1));
+                                }
+                            } else if (/^\d{4}$/.test(dateFilterStringUserInput) && !operator) { // Allow YYYY for includes search
+                                // Handled by simple includes if no operator
+                            } else if (dateFilterStringUserInput.length > 0 && operator) {
+                                // If there's an operator but we couldn't parse the date for range comparison
+                                console.log("DEBUG Date Filter: Could not parse for range operation:", dateFilterStringUserInput);
+                                return false;
+                            }
+
+
+                            // Parse session date string (YYYY-MM-DD)
+                            const sessionParts = sessionDateString_YYYY_MM_DD.split('-');
+                            if (sessionParts.length !== 3) return false; // Invalid session date format
+                            const sessionDateObj = new Date(Date.UTC(parseInt(sessionParts[0]), parseInt(sessionParts[1]) - 1, parseInt(sessionParts[2])));
+
+                            if (isNaN(sessionDateObj.getTime())) {
+                                 console.log("DEBUG Date Filter: Invalid sessionDate from data:", sessionDateString_YYYY_MM_DD);
+                                 return false;
+                            }
+
+
+                            if (operator && filterDateObj && !isNaN(filterDateObj.getTime())) {
+                                // No need to call setUTCHours(0,0,0,0) if using Date.UTC for creation
+                                console.log("DEBUG Date Filter (Range):",
+                                            "Operator:", operator,
+                                            "Session Date:", sessionDateObj.toISOString().substring(0,10),
+                                            "Filter Date:", filterDateObj.toISOString().substring(0,10));
+
+                                if (operator === ">=" && sessionDateObj < filterDateObj) return false;
+                                if (operator === "<=" && sessionDateObj > filterDateObj) return false;
+                                if (operator === ">" && sessionDateObj <= filterDateObj) return false;
+                                if (operator === "<" && sessionDateObj >= filterDateObj) return false;
+                            } else if (!operator) { // No operator, simple 'includes' string matching
+                                const formattedSessionDateForDisplay = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase();
+                                console.log("DEBUG Date Filter (Includes):",
+                                            "Filter Value:", dateFilterStringUserInput,
+                                            "Raw Session Date (YYYY-MM-DD):", sessionDateString_YYYY_MM_DD,
+                                            "Formatted Session Date (DD.MM.YYYY):", formattedSessionDateForDisplay);
+                                // Match against raw YYYY-MM-DD or formatted DD.MM.YYYY
+                                if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) &&
+                                    !formattedSessionDateForDisplay.includes(dateFilterStringUserInput)) {
+                                    return false;
+                                }
+                            } else if (operator && (!filterDateObj || isNaN(filterDateObj.getTime()))) {
+                                // Operator was present, but we couldn't make a valid Date object from the filter string
+                                console.log("DEBUG Date Filter: Operator present but filter date invalid for range:", dateFilterStringUserInput);
+                                return false;
+                            }
+                        } catch (e) {
+                            console.error("Date filter general error:", e, "Filter value:", filterValue);
+                            return false;
+                        }
+                        continue; // Date filter processed, move to next filter key
+                    }
+                    // --- END REVISED Date Filtering Logic ---
+
+                    // Numeric filtering logic (from previous implementation)
+                    if (journalNumericFilterKeys.includes(config.dataKey)) {
+                        // ... (your existing robust numeric filter logic using rawSessionValueStr for text part, and parsing for operators) ...
+                        // Make sure to use rawSessionValue from session[config.dataKey] for actual numeric conversion.
+                        let sessionNumericValue = session[config.dataKey];
+                        if (config.dataKey === 'calculated_integration_time_minutes') {
+                             sessionNumericValue = session.calculated_integration_time_minutes;
+                        }
+
+                        if (sessionNumericValue === 'N/A' || sessionNumericValue === null || sessionNumericValue === undefined) {
+                            if (filterValue === "n/a" || filterValue === "na") continue; // it matches "N/A"
+                            return false; // doesn't match anything else if it's N/A
+                        }
+                        const cellNumber = parseFloat(sessionNumericValue);
+
+                        if (isNaN(cellNumber)) {
+                            if (!rawSessionValueStr.includes(filterValue)) return false; // Fallback to text
+                            continue;
+                        }
+                        // ... (the rest of your numeric operator logic: >, <, >=, <= ) ...
+                        // This is a simplified placeholder - re-insert your full numeric operator logic here:
+                        const conditions = filterValue.split(" ").filter(cond => cond !== "");
+                        let conditionMetOverall = true;
+                        for (let cond of conditions) {
+                            let op = ""; let valStr = "";
+                            if (cond.startsWith(">=")) { op = ">="; valStr = cond.substring(2); }
+                            else if (cond.startsWith("<=")) { op = "<="; valStr = cond.substring(2); }
+                            else if (cond.startsWith(">")) { op = ">"; valStr = cond.substring(1); }
+                            else if (cond.startsWith("<")) { op = "<"; valStr = cond.substring(1); }
+                            else { if (String(cellNumber).indexOf(cond) === -1 && rawSessionValueStr.indexOf(cond) === -1) { conditionMetOverall = false; break; } continue; }
+                            let condVal = parseFloat(valStr);
+                            if (isNaN(condVal)) { conditionMetOverall = false; break; }
+                            let currentCondMet = false;
+                            if (op === ">" && cellNumber > condVal) currentCondMet = true;
+                            else if (op === ">=" && cellNumber >= condVal) currentCondMet = true;
+                            else if (op === "<" && cellNumber < condVal) currentCondMet = true;
+                            else if (op === "<=" && cellNumber <= condVal) currentCondMet = true;
+                            if (!currentCondMet) { conditionMetOverall = false; break;}
+                        }
+                        if (!conditionMetOverall) return false;
+
+
+                    } else { // Default: Text filtering
+                        if (filterValue.startsWith("!")) {
+                            if (rawSessionValueStr.includes(filterValue.substring(1))) return false;
+                        } else {
+                            if (!rawSessionValueStr.includes(filterValue)) return false;
+                        }
+                    }
+                }
+                return true; // All active filters passed for this session
+            });
+        }
+        // --- End Journal Filtering ---
+
+        // --- Sorting for Journal Table (Your existing sort logic for journal - should be okay) ---
+        // (Ensure this sorting logic is called *after* filtering)
+        const sortConfig = journalColumnConfig[currentJournalSort.columnKey];
+        if (sortConfig) {
+            sessionsToDisplay.sort((a, b) => {
+                // ... your existing journal sort logic here ...
+                // (using valA_str, valB_str, isNA_A, isNA_B, specific type conversions for date/numbers)
+                let valA_str = String(a[sortConfig.dataKey] === undefined ? '' : a[sortConfig.dataKey]);
+                let valB_str = String(b[sortConfig.dataKey] === undefined ? '' : b[sortConfig.dataKey]);
+
+                if (sortConfig.dataKey === 'calculated_integration_time_minutes') {
+                    valA_str = String(a.calculated_integration_time_minutes === undefined || a.calculated_integration_time_minutes === 'N/A' ? -Infinity : a.calculated_integration_time_minutes);
+                    valB_str = String(b.calculated_integration_time_minutes === undefined || b.calculated_integration_time_minutes === 'N/A' ? -Infinity : b.calculated_integration_time_minutes);
+                } else if (sortConfig.dataKey === 'session_date') {
+                    // Use raw date for reliable sorting, N/A or invalid dates go to end
+                    valA_str = String(a[sortConfig.dataKey] || '9999-99-99'); // Sort N/A last
+                    valB_str = String(b[sortConfig.dataKey] || '9999-99-99');
+                } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) { // Use same keys for consistency
+                     valA_str = String(a[sortConfig.dataKey] === 'N/A' || a[sortConfig.dataKey] === null || a[sortConfig.dataKey] === undefined ? -Infinity : a[sortConfig.dataKey]);
+                     valB_str = String(b[sortConfig.dataKey] === 'N/A' || b[sortConfig.dataKey] === null || b[sortConfig.dataKey] === undefined ? -Infinity : b[sortConfig.dataKey]);
+                }
+
+                const isNA_A = valA_str.toLowerCase() === 'n/a' || valA_str === '' || valA_str === String(-Infinity);
+                const isNA_B = valB_str.toLowerCase() === 'n/a' || valB_str === '' || valB_str === String(-Infinity);
+
+                if (isNA_A && isNA_B) return 0;
+                if (isNA_A) return currentJournalSort.ascending ? 1 : -1;
+                if (isNA_B) return currentJournalSort.ascending ? -1 : 1;
+
+                let valA = valA_str; let valB = valB_str;
+                if (sortConfig.dataKey === 'session_date') {
+                    valA = new Date(valA_str); valB = new Date(valB_str);
+                     if (isNaN(valA.getTime()) && isNaN(valB.getTime())) return 0;
+                     if (isNaN(valA.getTime())) return currentJournalSort.ascending ? 1 : -1;
+                     if (isNaN(valB.getTime())) return currentJournalSort.ascending ? -1 : 1;
+                    return currentJournalSort.ascending ? valA - valB : valB - valA;
+                } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
+                    valA = parseFloat(valA_str); valB = parseFloat(valB_str);
+                    if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentJournalSort.ascending ? 1 : -1; if (isNaN(valB)) return currentJournalSort.ascending ? -1 : 1;
+                    return currentJournalSort.ascending ? valA - valB : valB - valA;
+                }
+                return currentJournalSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+            });
+        }
+        // --- End Journal Sorting ---
+
+
+        tableBody.innerHTML = ''; // Clear previous rows
+        let previousTargetIdForGrouping = null;
+
+        sessionsToDisplay.forEach(session => {
+            // ... (rest of your row creation and conditional display logic for Target/Common Name - this should remain the same) ...
+            const row = document.createElement('tr');
+            row.classList.add('clickable-row');
+            row.setAttribute('data-session-id', session.session_id);
+            row.setAttribute('data-target-object-id', session.target_object_id);
+
+            let showFullTargetInfoThisRow = true;
+            if (currentJournalSort.columnKey === 'target_object_id' || currentJournalSort.columnKey === 'target_common_name') {
+                if (session.target_object_id === previousTargetIdForGrouping) {
+                    showFullTargetInfoThisRow = false;
+                }
+                previousTargetIdForGrouping = session.target_object_id;
+            }
+
+            for (const key in journalColumnConfig) {
+                const config = journalColumnConfig[key];
+                const td = document.createElement('td');
+                td.dataset.journalColumnKey = key;
+                let rawValue = session[config.dataKey]; // This is the key from journalColumnConfig
+                let displayValue = "";
+
+                 if (config.dataKey === 'calculated_integration_time_minutes') { // Use the pre-calculated value
+                    rawValue = session.calculated_integration_time_minutes;
+                 }
+
+
+                if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
+                    displayValue = "N/A";
+                } else if (config.format) {
+                    displayValue = config.format(rawValue);
+                } else {
+                    displayValue = String(rawValue);
+                }
+
+                if ((config.dataKey === 'target_object_id' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) {
+                    td.innerHTML = "";
+                } else {
+                    td.innerHTML = String(displayValue);
+                }
+                // For sorting raw numeric values if needed later, though sorting above uses data directly
+                if (typeof session[config.dataKey] === 'number' && !isNaN(session[config.dataKey])) {
+                    td.dataset.rawValue = session[config.dataKey];
+                } else if (config.dataKey === 'calculated_integration_time_minutes' && typeof session.calculated_integration_time_minutes === 'number' && !isNaN(session.calculated_integration_time_minutes) ) {
+                    td.dataset.rawValue = session.calculated_integration_time_minutes;
+                }
+
+
+                row.appendChild(td);
+            }
+
+            row.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target-object-id');
+                const sessionId = this.getAttribute('data-session-id');
+                if (targetId && sessionId) {
+                    window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}`;
+                } else { console.warn("Missing targetId or sessionId for journal row click", session); }
+            });
+            tableBody.appendChild(row);
+        });
+        updateJournalSortIndicators();
+    }
+
+    function sortJournalTable(columnKey, toggle = true) {
+        if (toggle) {
+            if (currentJournalSort.columnKey === columnKey) { currentJournalSort.ascending = !currentJournalSort.ascending; }
+            else { currentJournalSort.columnKey = columnKey; currentJournalSort.ascending = true; }
+            localStorage.setItem("journal_sortOrder", currentJournalSort.ascending ? "asc" : "desc");
+            localStorage.setItem("journal_sortColumnKey", columnKey);
+        } else {
+            const storedSortOrder = localStorage.getItem("journal_sortOrder");
+            const storedSortColumnKey = localStorage.getItem("journal_sortColumnKey");
+            if (storedSortColumnKey) {
+                currentJournalSort.columnKey = storedSortColumnKey;
+                currentJournalSort.ascending = (storedSortOrder === "asc");
+            }
+        }
+        populateJournalTable();
+    }
+
+    function updateJournalSortIndicators() {
+        document.querySelectorAll('#journal-data-table th .sort-indicator').forEach(span => span.innerHTML = '');
+        const activeTh = document.querySelector(`#journal-data-table > thead > tr:not(.filter-row) > th[data-journal-column-key="${currentJournalSort.columnKey}"]`);
+        if (activeTh) { const indicator = activeTh.querySelector('.sort-indicator'); if (indicator) { indicator.innerHTML = currentJournalSort.ascending ? '▲' : '▼'; } }
+    }
+
+    function filterJournalTable() { populateJournalTable(); }
+    function saveJournalFilter(inputElement, columnKey) { localStorage.setItem("journal_filter_col_key_" + columnKey, inputElement.value); }
+
+    // ========================================================================
+    // window.onload Event Handler
+    // ========================================================================
     window.onload = () => {
       activeTab = localStorage.getItem('activeTab') || 'position';
+
+      // Restore DSO sort state
+      const initialDsoSortColumnKey = localStorage.getItem("dso_sortColumnKey") || 'Altitude Current';
+      const initialDsoSortOrder = localStorage.getItem("dso_sortOrder") || 'desc';
+      currentSort.columnKey = initialDsoSortColumnKey;
+      currentSort.ascending = (initialDsoSortOrder === "asc");
+
+      // Restore Journal sort state
+      const initialJournalSortColumnKey = localStorage.getItem("journal_sortColumnKey") || 'session_date';
+      const initialJournalSortOrder = localStorage.getItem("journal_sortOrder") || 'desc';
+      currentJournalSort.columnKey = initialJournalSortColumnKey;
+      currentJournalSort.ascending = (initialJournalSortOrder === "asc");
+
       fetchLocations();
       fetchSunEvents();
       fetchData();
+
+      updateTabDisplay();
+
+      if (activeTab === 'position' || activeTab === 'properties') {
+          // filterTable() and sortTable() are called at the end of fetchData()
+      } else if (activeTab === 'journal') {
+
+      }
+
+
+
       setInterval(fetchData, 60000);
 
       document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', () => {
-          activeTab = button.dataset.tab;
-          updateTabDisplay();
-          filterTable();
-        });
+        button.addEventListener('click', () => { activeTab = button.dataset.tab; updateTabDisplay(); });
       });
 
       document.querySelectorAll("#data-table > thead > tr:not(.filter-row) > th[data-column-key]").forEach(header => {
@@ -702,25 +1111,41 @@
             header.addEventListener("click", () => sortTable(columnKey, true));
         }
       });
-
-      document.querySelectorAll(".filter-row input").forEach(input => {
-          const thParent = input.closest('th');
-          const columnKey = thParent ? thParent.dataset.columnKey : null;
+      document.querySelectorAll("#data-table .filter-row input").forEach(input => {
+          const thParent = input.closest('th'); const columnKey = thParent ? thParent.dataset.columnKey : null;
           if (columnKey && columnConfig[columnKey] && columnConfig[columnKey].filterable) {
-              input.addEventListener("keyup", () => {
-                  saveFilter(input, columnKey);
-                  filterTable();
-              });
+              input.addEventListener("keyup", () => { saveFilter(input, columnKey, 'dso'); filterTable(); });
           }
       });
-      updateTabDisplay();
-      filterTable();
+
+      document.querySelectorAll("#journal-data-table > thead > tr:not(.filter-row) > th[data-journal-column-key]").forEach(header => {
+        const columnKey = header.dataset.journalColumnKey;
+        if (journalColumnConfig[columnKey] && journalColumnConfig[columnKey].sortable) {
+            header.addEventListener("click", () => sortJournalTable(columnKey, true));
+        }
+      });
+      document.querySelectorAll("#journal-filter-row input").forEach(input => {
+          const thParent = input.closest('th'); const columnKey = thParent ? thParent.dataset.journalColumnKey : null;
+          if (columnKey && journalColumnConfig[columnKey] && journalColumnConfig[columnKey].filterable) {
+              input.addEventListener("keyup", () => { saveJournalFilter(input, columnKey); filterJournalTable(); });
+          }
+      });
+
+      // Restore filter inputs
+      for (const key in columnConfig) {
+        if (columnConfig[key].filterable) { const val = localStorage.getItem("dso_filter_col_key_" + key); const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
+      }
+      for (const key in journalColumnConfig) {
+        if (journalColumnConfig[key].filterable) { const val = localStorage.getItem("journal_filter_col_key_" + key); const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
+      }
+       // Apply filters on load, after restoring input values
+        filterTable(); // For DSO
+        filterJournalTable(); // For Journal - this will call populateJournalTable
     };
-  </script>
+    </script>
 {% endblock %}
 </head>
-<body>
-{% block body %}
+<body> {% block body %}
   <div class="header-container">
     <h1>Nova</h1>
     <h3>DSO Tracker V{{ version }}</h3>
@@ -747,7 +1172,7 @@
       </div>
 
       <div class="info-bar-container">
-        {% if not is_guest %}
+        {% if SINGLE_USER_MODE or not is_guest %}
             <div>
                 <button type="button" id="back-button"
                         onclick="window.location.href='{{ url_for('config_form') }}'">
@@ -777,58 +1202,84 @@
 <div class="tab-container">
     <button class="tab-button active" data-tab="position">Position</button>
     <button class="tab-button" data-tab="properties">Properties</button>
+    <button class="tab-button" data-tab="journal">Journal</button>
 </div>
 <div id="list-section">
-  <div class="table-wrapper">
-    <table id="data-table" data-sort-order="asc">
-      <thead>
-        <tr>
-          <th data-column-key="Object" class="col-always-visible sortable"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-          <th data-column-key="Common Name" class="col-always-visible sortable"><span>Common name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+    <div class="table-wrapper" id="dso-table-wrapper">
+        <table id="data-table" data-sort-order="asc">
+          <thead>
+            <tr> {# Main Headers for DSO Table #}
+              <th data-column-key="Object" class="col-always-visible sortable"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Common Name" class="col-always-visible sortable"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Altitude Current" class="col-position sortable"><span>Altitude<br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Azimuth Current" class="col-position sortable"><span>Azimuth <br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Trend" class="col-position sortable"><span>Trend</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Altitude 11PM" class="col-position sortable"><span>Altitude <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Azimuth 11PM" class="col-position sortable"><span>Azimuth <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Transit Time" class="col-position sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Observable Duration (min)" class="col-position sortable"><span>Observable <br><span class="subtext">(minutes)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Max Altitude (°)" class="col-position sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Angular Separation (°)" class="col-position sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Type" class="col-properties sortable"><span>Type</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Magnitude" class="col-properties sortable"><span>Magnitude</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Size" class="col-properties sortable"><span>Size (')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="SB" class="col-properties sortable"><span>SB</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+            </tr>
+            <tr class="filter-row"> {# Filter Row for DSO Table #}
+              <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="Search Object" /></th>
+              <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="Search Common Name" /></th>
+              <th data-column-key="Altitude Current" class="col-position"><input type="text" placeholder="Altitude °" /></th>
+              <th data-column-key="Azimuth Current" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
+              <th data-column-key="Trend" class="col-position"><input type="text" placeholder="Trend" disabled style="visibility:hidden;" /></th>
+              <th data-column-key="Altitude 11PM" class="col-position"><input type="text" placeholder="Altitude °" /></th>
+              <th data-column-key="Azimuth 11PM" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
+              <th data-column-key="Transit Time" class="col-position"><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
+              <th data-column-key="Observable Duration (min)" class="col-position"><input type="text" placeholder="minutes" /></th>
+              <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="Max Alt. °" /></th>
+              <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="Ang. Sep. °" /></th>
+              <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type (e.g. PN,SNR)" /></th>
+              <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
+              <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
+              <th data-column-key="SB" class="col-properties"><input type="text" placeholder="SB e.g. <22" /></th>
+            </tr>
+          </thead>
+          <tbody id="data-body"></tbody>
+        </table>
+    </div>
 
-          <th data-column-key="Altitude Current" class="col-position sortable"><span>Altitude<br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Azimuth Current" class="col-position sortable"><span>Azimuth <br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Trend" class="col-position sortable"><span>Trend</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-          <th data-column-key="Altitude 11PM" class="col-position sortable"><span>Altitude <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Azimuth 11PM" class="col-position sortable"><span>Azimuth <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Transit Time" class="col-position sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Observable Duration (min)" class="col-position sortable"><span>Observable <br><span class="subtext">(minutes)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Max Altitude (°)" class="col-position sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span><span class="sort-indicator"></span></th>
-          <th data-column-key="Angular Separation (°)" class="col-position sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span><span class="sort-indicator"></span></th>
+    <div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
+      Loading...
+    </div>
 
-          <th data-column-key="Type" class="col-properties sortable"><span>Type</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-          <th data-column-key="Magnitude" class="col-properties sortable"><span>Magnitude</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-          <th data-column-key="Size" class="col-properties sortable"><span>Size (')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-          <th data-column-key="SB" class="col-properties sortable"><span>SB</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-        </tr>
-        <tr class="filter-row">
-          <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="Search Object" /></th>
-          <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="Search Common name" /></th>
+    <div class="table-wrapper" id="journal-table-wrapper" style="display:none;">
+        <table id="journal-data-table" data-sort-order="desc">
+            <thead>
+                <tr>
+                    <th data-journal-column-key="target_object_id"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="target_common_name"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="session_date"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="location_name"><span>Location</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="telescope_setup_notes"><span>Telescope Setup</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="calculated_integration_time_minutes"><span>Total Integration</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="session_rating_subjective"><span>Session Rating</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                </tr>
+                <tr class="filter-row" id="journal-filter-row">
+                    <th data-journal-column-key="target_object_id"><input type="text" placeholder="Object ID"/></th>
+                    <th data-journal-column-key="target_common_name"><input type="text" placeholder="Common Name"/></th>
+                    <th data-journal-column-key="session_date"><input type="text" placeholder="DD.MM.YYYY"/></th> {# Changed placeholder #}
+                    <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
+                    <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
+                    <th data-journal-column-key="calculated_integration_time_minutes"><input type="text" placeholder="e.g. >120"/></th>
+                    <th data-journal-column-key="session_rating_subjective"><input type="text" placeholder="e.g. 4"/></th>
+                </tr>
+            </thead>
+            <tbody id="journal-data-body">
+                </tbody>
+        </table>
+    </div>
+</div> {# End of list-section #}
 
-          <th data-column-key="Altitude Current" class="col-position"><input type="text" placeholder="Altitude °" /></th>
-          <th data-column-key="Azimuth Current" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
-          <th data-column-key="Trend" class="col-position"><input type="text" placeholder="Trend" disabled style="visibility:hidden;" /></th>
-          <th data-column-key="Altitude 11PM" class="col-position"><input type="text" placeholder="Altitude °" /></th>
-          <th data-column-key="Azimuth 11PM" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
-          <th data-column-key="Transit Time" class="col-position"><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
-          <th data-column-key="Observable Duration (min)" class="col-position"><input type="text" placeholder="minutes" /></th>
-          <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="Max Alt. °" /></th>
-          <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="Ang. Sep. °" /></th>
-
-          <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type (e.g. PN,SNR)" /></th>
-          <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
-          <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
-          <th data-column-key="SB" class="col-properties"><input type="text" placeholder="SB e.g. <22" /></th>
-        </tr>
-      </thead>
-      <tbody id="data-body"></tbody>
-    </table>
-  </div> </div>
-
-<div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
-  Loading...
-</div>
-
+{# This graph-section was in your original index.html. Adjust if it's not needed here. #}
 <div id="graph-section" style="display: none;">
   <iframe id="graph-iframe"
           style="width: 100%; max-width:1500px; height: 1000px; border: none;"
@@ -836,5 +1287,4 @@
   </iframe>
 </div>
 {% endblock %}
-</body>
-</html>
+</body> </html>
