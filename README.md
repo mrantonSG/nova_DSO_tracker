@@ -7,13 +7,14 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Visibility forecasts based on altitude, moon illumination, and angular separation
 - Integration with Stellarium for live sky visualization
 - Customizable imaging opportunity alerts
+- Imaging Journal
 
 ## Technologies Used
 - Python (Flask, AstroPy, Ephem)
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 2.7 - Quick Guide
+# Nova DSO Altitude Tracker 2.8 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -24,15 +25,16 @@ Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Az
 
 In addition it provides information about the angular separation between the objects and the moon, the time they can be imaged and the maximum altitude they reach during this time.
 
-New with V 2.7 - additional DSO data are downloaded from various online catalogs.
+New with V 2.8 - Imaging Journal, to take note of your imaging sessions
 
 ### Main Interface
 When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. New in Version 2 is the column with the angular separation of the object to the moon.
 
-New in Version 2.7 are the two tabs in the layout. 
-The first "Position" contains all fields you are used to from the previous versions. The second tab "Properties" contain new, object specific fields.
+New in Version 2.8 is the third tab in the layout. 
+The first "Position" contains all fields you are used to from the previous versions. The second tab "Properties" contain object specific fields and the third tab a Journal, that allows you to take notes about your imaging sessions.
 
-![Screenshot_27_index.png](docs/Screenshot_27_index.png)
+![Screenshot_28_index.png](docs/Screenshot_28_index.png)
+
 
 ### Sorting and Searching
 - **Sorting:** By default, objects are sorted by descending altitude. You can change sorting by clicking on column headers. Clicking twice reverses the sorting order. Also new in 2.7 is the sorting indicator for every column.
@@ -41,11 +43,11 @@ The first "Position" contains all fields you are used to from the previous versi
 
 - You can now also add multiple phrases in a search field. For example multiple DSO types:
 
-![Screenshot_27_filter_sort.png](docs/Screenshot_27_filter_sort.png)
+![Screenshot_28_filter.png](docs/Screenshot_28_filter.png)
 
 and you can combine filters and sorting from both tabs:
 
-![Screenshot_27_index_sort.png](docs/Screenshot_27_index_sort.png)
+![Screenshot_28_filter_sort.png](docs/Screenshot_28_filter_sort.png)
 
 In this example the objects are sorted by maximum observation time. 
 In combination with the filter under "Properties" this shows potential observation time only for the DSO type selected.
@@ -63,10 +65,10 @@ The configuration, including all locations objects and settings, can be download
 
 ![Screenshot_27_config.png](docs/Screenshot_27_config.png)
 
-### Importing / upgrading your configuration to V 2.7
+### Importing / upgrading your configuration to V 2.7 or later
 Since nova now includes more information, the configuration yaml file needs to be updated.
-After installing 2.7, you can import your previous config yaml file. 
-However - you will notice that the additional fields remain empty:
+After installing the latest version, you can import your previous config yaml file. 
+However - you will notice that the additional fields remain empty if your yaml file was created by a version < 2.7:
 
 ![Screenshot_27_conf_beforeI.png](docs/Screenshot_27_conf_beforeI.png)
 
@@ -88,11 +90,11 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 New in V2 is the possibility to not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 Also new are a monthly and yearly view of the object and the moon.
 
-![Screenshot_27_graph.png](docs/Screenshot_27_graph.png)
+![Screenshot_28_graphic.png](docs/Screenshot_28_graphic.png)
 
-![Screenshot_27_month.png](docs/Screenshot_27_month.png)
+![Screenshot_28_month.png](docs/Screenshot_28_month.png)
 
-![Screenshot_27_year.png](docs/Screenshot_27_year.png)
+![Screenshot_28_year.png](docs/Screenshot_28_year.png)
 
 If you click on the button "Find Imaging Opportunities", you will get a list of dates when imaging the selected object is possible.
 
@@ -100,6 +102,19 @@ If you click on the button "Find Imaging Opportunities", you will get a list of 
 
 You can edit the selection criteria for the opportunity search in the configuration settings.
 
+### Imaging Journal
+With Version 2.8 came the additional possibility to take notes to imaging sessions.
+On the main screen you can find the Journal at the third tab:
+
+![Screenshot_28_Index_journal.png](docs/Screenshot_28_Index_journal.png)
+
+Here you can find all your imaging sessions. If you want to see the detail, click on it and the graph screen for that particular day will open and in addition you will find the session details:
+
+![Screenshot_28_sessions.png](docs/Screenshot_28_sessions.png)
+
+You can add new sessions by clicking the "add new session" button - and filling up the form:
+
+![Screenshot_28_addform.png](docs/Screenshot_28_addform.png)
 
 # Nova Astronomical Tracker Setup Guide
 
