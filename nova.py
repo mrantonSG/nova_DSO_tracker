@@ -71,7 +71,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.8.0"
+APP_VERSION = "2.8.1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -311,9 +311,13 @@ def journal_add():
             if not isinstance(journal_data.get('sessions'), list):
                 journal_data['sessions'] = []
 
+            # Define the user's timezone-aware date once
+            user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
+            today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
+
             new_session_data = {
                 "session_id": generate_session_id(),
-                "session_date": request.form.get("session_date") or datetime.now().strftime('%Y-%m-%d'),
+                "session_date": request.form.get("session_date") or today_date_in_user_tz,
                 "target_object_id": request.form.get("target_object_id", "").strip(),
                 "location_name": request.form.get("location_name", "").strip(),
                 "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
@@ -400,9 +404,13 @@ def journal_add():
     if not entry_for_form.get("location_name") and default_loc:
         entry_for_form["location_name"] = default_loc
 
-    today_date_str = datetime.now().strftime('%Y-%m-%d')
+    # Get the timezone from the g object, with a safe fallback to UTC
+    user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
+    # Get the current date specifically for that timezone
+    today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
+
     if not entry_for_form.get("session_date"):
-        entry_for_form["session_date"] = today_date_str
+        entry_for_form["session_date"] = today_date_in_user_tz
 
     # Determine Cancel URL for "Add" mode
     cancel_url_for_add = url_for('index')  # Default cancel for a general add
@@ -1866,6 +1874,13 @@ def get_data():
     local_tz = pytz.timezone(g.tz_name)
     current_datetime_local = datetime.now(local_tz)
     local_date = current_datetime_local.strftime('%Y-%m-%d')
+
+    # Define the "observing date" by subtracting 12 hours before getting the date part.
+    # This correctly assigns post-midnight hours to the previous calendar date's "night".
+    observing_date_for_calcs = current_datetime_local - timedelta(hours=12)
+    local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
+    local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
+
     current_time_utc = current_datetime_local.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
     fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
