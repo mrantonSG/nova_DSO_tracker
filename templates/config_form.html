@@ -591,13 +591,14 @@
       const confirmAddObjectBtn = document.getElementById('confirm_add_object');
       const editObjectBtn = document.getElementById('edit_object');
 
-      if (submitNewObjectBtn && resultDiv && confirmAddObjectBtn && editObjectBtn) {
+      // Attaches the event listener for the "Search" button
+      if (submitNewObjectBtn) {
           submitNewObjectBtn.addEventListener('click', function(event) {
             event.preventDefault();
             const objectName = document.getElementById('new_object').value.trim();
             if (!objectName) { alert("Please enter an object identifier."); return; }
             resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
-            fetch("{{ url_for('search_object') }}", { // Using url_for
+            fetch("{{ url_for('search_object') }}", {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ object: objectName })
             })
@@ -609,7 +610,7 @@
               document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
               ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
               resultDiv.innerHTML = `<p style="color: #83b4c5;">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
-              return fetch("{{ url_for('fetch_object_details') }}", { // Using url_for
+              return fetch("{{ url_for('fetch_object_details') }}", {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ object: objectName })
               });
@@ -627,10 +628,13 @@
             })
             .catch(err => { resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`; console.error(err); });
           });
+      }
 
+      // Attaches the event listener for the "Confirm Add" button
+      if (confirmAddObjectBtn) {
           confirmAddObjectBtn.addEventListener('click', function(event) {
             event.preventDefault();
-            const payload = { /* ... your existing payload ... */
+            const payload = {
                 object: document.getElementById('new_object').value.trim(),
                 name: document.getElementById('new_name').value.trim(),
                 ra: document.getElementById('new_ra').value.trim(),
@@ -641,7 +645,7 @@
                 size: document.getElementById('new_size').value,
                 sb: document.getElementById('new_sb').value
             };
-            fetch("{{ url_for('confirm_object') }}", { // Using url_for
+            fetch("{{ url_for('confirm_object') }}", {
               method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             })
             .then(response => response.json()).then(data => {
@@ -652,8 +656,18 @@
             })
             .catch(err => { resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`; console.error(err); });
           });
+      }
 
-          editObjectBtn.addEventListener('click', function(event) { /* ... your existing ... */ });
+      // **FIXED**: Attaches the event listener for the "Edit" button correctly
+      if (editObjectBtn) {
+          editObjectBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.readOnly = false;
+            });
+            document.getElementById('new_object').readOnly = false;
+          });
       }
 
 
