@@ -314,6 +314,24 @@
     #journal-data-table .filter-row input {
         text-align: left; /* Typically input text is left-aligned */
     }
+
+    #remove-filters-container {
+      margin-left: auto;  /* This pushes the button to the far right */
+      align-self: center; /* This vertically centers it with the tabs */
+    }
+
+    #remove-filters-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #a1b0b4; /* A slightly different color to stand out */
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #remove-filters-btn:hover {
+        background-color: #849398 !important;
+    }
   </style>
 
   <script>
@@ -372,6 +390,50 @@
       const [h, m] = timeStr.split(':').map(Number);
       return h * 60 + m;
     }
+    function updateRemoveFiltersButtonVisibility() {
+        const btnContainer = document.getElementById('remove-filters-container');
+        if (!btnContainer) return;
+
+        let isAnyFilterActive = false;
+        const allFilterInputs = document.querySelectorAll('#data-table .filter-row input, #journal-filter-row input');
+
+        for (const input of allFilterInputs) {
+            // Check only filterable inputs
+            if (input.value.trim() !== '') {
+                isAnyFilterActive = true;
+                break; // Found an active filter, no need to check further
+            }
+        }
+        btnContainer.style.display = isAnyFilterActive ? 'block' : 'none';
+    }
+
+    /**
+     * Clears all filter inputs, removes them from localStorage, and refreshes tables.
+     */
+    function clearAllFilters() {
+        // Clear DSO filters
+        for (const key in columnConfig) {
+            if (columnConfig[key].filterable) {
+                const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`);
+                if (inputEl) inputEl.value = '';
+                localStorage.removeItem("dso_filter_col_key_" + key);
+            }
+        }
+
+        // Clear Journal filters
+        for (const key in journalColumnConfig) {
+            if (journalColumnConfig[key].filterable) {
+                const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`);
+                if (inputEl) inputEl.value = '';
+                localStorage.removeItem("journal_filter_col_key_" + key);
+            }
+        }
+
+        // Refresh the tables to reflect the cleared filters
+        filterTable();
+        filterJournalTable();
+    }
+
 
     // ========================================================================
     // Tab Display Logic
@@ -406,6 +468,10 @@
             populateJournalTable();
         }
         localStorage.setItem('activeTab', activeTab);
+
+        // --- THIS IS THE FIX ---
+        // Add this line to ensure the button visibility is checked every time the tab changes.
+        updateRemoveFiltersButtonVisibility();
     }
 
     function applyDsoColumnVisibility() {
@@ -544,6 +610,7 @@
             }
         } rows[i].style.display = showRow ? "" : "none";
       }
+      updateRemoveFiltersButtonVisibility();
     }
 
     function saveFilter(inputElement, columnKey, tableType = 'dso') {
@@ -1085,22 +1152,22 @@
       currentJournalSort.columnKey = initialJournalSortColumnKey;
       currentJournalSort.ascending = (initialJournalSortOrder === "asc");
 
+      // --- START: NEW CODE - Add event listener for the Remove Filter button ---
+      const removeFiltersBtn = document.getElementById('remove-filters-btn');
+      if (removeFiltersBtn) {
+        removeFiltersBtn.addEventListener('click', clearAllFilters);
+      }
+      // --- END: NEW CODE ---
+
       fetchLocations();
       fetchSunEvents();
-      fetchData();
+      fetchData(); // This will eventually call filterTable()
 
       updateTabDisplay();
 
-      if (activeTab === 'position' || activeTab === 'properties') {
-          // filterTable() and sortTable() are called at the end of fetchData()
-      } else if (activeTab === 'journal') {
-
-      }
-
-
-
       setInterval(fetchData, 60000);
 
+      // (All your existing event listeners for tabs, headers, and filter inputs)
       document.querySelectorAll('.tab-button').forEach(button => {
         button.addEventListener('click', () => { activeTab = button.dataset.tab; updateTabDisplay(); });
       });
@@ -1131,16 +1198,22 @@
           }
       });
 
-      // Restore filter inputs
+      // Restore filter input values from localStorage
       for (const key in columnConfig) {
         if (columnConfig[key].filterable) { const val = localStorage.getItem("dso_filter_col_key_" + key); const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
       }
       for (const key in journalColumnConfig) {
         if (journalColumnConfig[key].filterable) { const val = localStorage.getItem("journal_filter_col_key_" + key); const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
       }
-       // Apply filters on load, after restoring input values
-        filterTable(); // For DSO
-        filterJournalTable(); // For Journal - this will call populateJournalTable
+
+       // Apply filters on load using the restored values
+        filterTable(); // For DSO table
+        filterJournalTable(); // For Journal table
+
+       // --- START: NEW CODE - Final check for button visibility on page load ---
+       // This ensures the button appears if filters were saved from a previous session
+       updateRemoveFiltersButtonVisibility();
+       // --- END: NEW CODE ---
     };
     </script>
 {% endblock %}
@@ -1203,6 +1276,12 @@
     <button class="tab-button active" data-tab="position">Position</button>
     <button class="tab-button" data-tab="properties">Properties</button>
     <button class="tab-button" data-tab="journal">Journal</button>
+
+    <div id="remove-filters-container" style="display: none;">
+     <button type="button" id="remove-filters-btn">
+       Remove Filter
+     </button>
+    </div>
 </div>
 <div id="list-section">
     <div class="table-wrapper" id="dso-table-wrapper">
