@@ -368,7 +368,7 @@
         'target_common_name': { headerText: 'Common Name', dataKey: 'target_common_name', sortable: true, filterable: true },
         'session_date': { headerText: 'Date', dataKey: 'session_date', sortable: true, filterable: true, format: formatDateISOtoEuropean },
         'location_name': { headerText: 'Location', dataKey: 'location_name', sortable: true, filterable: true },
-        'telescope_setup_notes': { headerText: 'Telescope Setup', dataKey: 'telescope_setup_notes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) ? 'N/A' : String(val).substring(0, 40) + (String(val).length > 40 ? '...' : '') }, // New field, added a simple truncate
+        'telescope_setup_notes': { headerText: 'Telescope Setup', dataKey: 'telescope_setup_notes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) ? 'N/A' : String(val).substring(0, 60) + (String(val).length > 60 ? '...' : '') }, // New field, added a simple truncate
         'calculated_integration_time_minutes': { headerText: 'Total Integration', dataKey: 'calculated_integration_time_minutes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min` },
         'session_rating_subjective': { headerText: 'Session Rating', dataKey: 'session_rating_subjective', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${String(val)} ★` }
         // Removed: Filter, Guiding RMS, Seeing FWHM, Notes Summary (as per your new list)

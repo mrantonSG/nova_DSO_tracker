@@ -71,7 +71,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.8.1"
+APP_VERSION = "2.8.3"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -1060,31 +1060,48 @@ def import_journal():
 def import_config():
     try:
         if 'file' not in request.files:
-            return "No file uploaded", 400
+            # Correctly use flash and redirect for user feedback
+            flash("No file selected for import.", "error")
+            return redirect(url_for('config_form'))
 
         file = request.files['file']
-        contents = file.read().decode('utf-8')
+        if file.filename == '':
+            flash("No file selected for import.", "error")
+            return redirect(url_for('config_form'))
 
-        # Parse YAML safely
+        contents = file.read().decode('utf-8')
         new_config = yaml.safe_load(contents)
 
-        # Validate using Cerberus via the helper function
         valid, errors = validate_config(new_config)
         if not valid:
-            error_message = f"Configuration validation failed: {errors}"
-            print("[IMPORT ERROR]", error_message)
-            return error_message, 400
+            error_message = f"Configuration validation failed: {json.dumps(errors, indent=2)}"
+            flash(error_message, "error")
+            return redirect(url_for('config_form'))
 
-        # Determine the correct config file for this user
-        username = current_user.username
-        config_path = os.path.join(os.path.dirname(__file__), f"config_{username}.yaml")
+        # ====================================================================
+        # FIXED LOGIC: Explicitly check SINGLE_USER_MODE
+        # ====================================================================
+        if SINGLE_USER_MODE:
+            username_for_backup = "default"
+            config_filename = "config_default.yaml"
+        else:
+            # Ensure there is an authenticated user in multi-user mode
+            if not current_user.is_authenticated:
+                flash("You must be logged in to import a configuration.", "error")
+                return redirect(url_for('login'))
+            username_for_backup = current_user.username
+            config_filename = f"config_{username_for_backup}.yaml"
+
+        config_path = os.path.join(os.path.dirname(__file__), config_filename)
+        # ====================================================================
 
         # Backup current config if it exists
         if os.path.exists(config_path):
             backup_dir = os.path.join(os.path.dirname(config_path), "backups")
             os.makedirs(backup_dir, exist_ok=True)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            backup_path = os.path.join(backup_dir, f"{username}_backup_{timestamp}.yaml")
+            # Use the determined username for the backup file name
+            backup_path = os.path.join(backup_dir, f"{username_for_backup}_backup_{timestamp}.yaml")
             shutil.copy(config_path, backup_path)
             print(f"[IMPORT] Backed up current config to {backup_path}")
 
@@ -1093,11 +1110,17 @@ def import_config():
             yaml.dump(new_config, f, default_flow_style=False)
 
         print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
-        return redirect(url_for('config_form', message="Config imported successfully!"))
+        flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
+        return redirect(url_for('config_form'))
 
+    except yaml.YAMLError as ye:
+        print(f"[IMPORT ERROR] Invalid YAML: {ye}")
+        flash(f"Import failed: The uploaded file was not valid YAML. ({ye})", "error")
+        return redirect(url_for('config_form'))
     except Exception as e:
         print(f"[IMPORT ERROR] {e}")
-        return redirect(url_for('config_form', error=f"Import failed: {str(e)}"))
+        flash(f"Import failed: An unexpected error occurred. {str(e)}", "error")
+        return redirect(url_for('config_form'))
 
 # =============================================================================
 # Astronomical Calculations
@@ -1878,7 +1901,6 @@ def get_data():
     # Define the "observing date" by subtracting 12 hours before getting the date part.
     # This correctly assigns post-midnight hours to the previous calendar date's "night".
     observing_date_for_calcs = current_datetime_local - timedelta(hours=12)
-    local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
     local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
 
     current_time_utc = current_datetime_local.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
