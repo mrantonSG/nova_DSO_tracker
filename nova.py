@@ -17,6 +17,8 @@ March 2025, Anton Gutscher
 import os
 from datetime import datetime, timedelta, timezone
 from decouple import config
+from ics import Calendar, Event
+import arrow
 import requests
 import secrets
 from dotenv import load_dotenv
@@ -71,7 +73,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.8.3"
+APP_VERSION = "2.8.4"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -2972,6 +2974,79 @@ def get_imaging_opportunities(object_name):
         })
 
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
+
+@app.route('/generate_ics/<object_name>')
+def generate_ics(object_name):
+    # --- 1. Get required parameters from the URL query string ---
+    date_str = request.args.get('date') # e.g., "2025-08-19"
+    tz_name = request.args.get('tz')
+    lat = float(request.args.get('lat'))
+    lon = float(request.args.get('lon'))
+
+    # Get optional parameters for the event description
+    max_alt = request.args.get('max_alt', 'N/A')
+    moon_illum = request.args.get('moon_illum', 'N/A')
+    obs_dur = request.args.get('obs_dur', 'N/A')
+
+    if not all([date_str, tz_name, lat is not None, lon is not None]):
+        return "Error: Missing required parameters (date, tz, lat, lon).", 400
+
+    try:
+        # --- 2. Calculate Precise Start and End Times ---
+        target_date = datetime.strptime(date_str, '%Y-%m-%d')
+        next_day_date = target_date + timedelta(days=1)
+        next_day_date_str = next_day_date.strftime('%Y-%m-%d')
+
+        # Get sun events for the target evening and the next morning
+        sun_events_today = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+        sun_events_next_day = calculate_sun_events_cached(next_day_date_str, tz_name, lat, lon)
+
+        dusk_str = sun_events_today.get("astronomical_dusk", "20:00") # Fallback time
+        dawn_str = sun_events_next_day.get("astronomical_dawn", "05:00") # Fallback time
+
+        # Create timezone-aware datetime objects for the event start (dusk) and end (dawn)
+        local_tz = pytz.timezone(tz_name)
+        start_time_local = local_tz.localize(datetime.combine(target_date, datetime.strptime(dusk_str, "%H:%M").time()))
+        end_time_local = local_tz.localize(datetime.combine(next_day_date, datetime.strptime(dawn_str, "%H:%M").time()))
+
+        # Convert to arrow objects for easy UTC conversion, which .ics requires
+        start_time_utc = arrow.get(start_time_local)
+        end_time_utc = arrow.get(end_time_local)
+
+        # --- 3. Get Object's Common Name ---
+        object_details = get_ra_dec(object_name)
+        common_name = object_details.get("Common Name", object_name)
+
+        # --- 4. Create the Calendar Event ---
+        c = Calendar()
+        e = Event()
+        e.name = f"Imaging: {common_name}"
+        e.begin = start_time_utc
+        e.end = end_time_utc
+        e.location = f"Lat: {lat}, Lon: {lon}"
+        e.description = (
+            f"Astrophotography opportunity for {common_name} ({object_name}).\n\n"
+            f"Details for the night of {date_str}:\n"
+            f"- Max Altitude: {max_alt}°\n"
+            f"- Observable Duration: {obs_dur} min\n"
+            f"- Moon Illumination: {moon_illum}%\n\n"
+            f"Event times are set from Astronomical Dusk to the next Astronomical Dawn."
+        )
+
+        c.events.add(e)
+
+        # --- 5. Return the .ics file as a response ---
+        ics_content = str(c)
+        filename = f"imaging_{object_name.replace(' ', '_')}_{date_str}.ics"
+
+        return ics_content, 200, {
+            'Content-Type': 'text/calendar; charset=utf-8',
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+
+    except Exception as ex:
+        print(f"ERROR generating ICS file: {ex}")
+        return f"An error occurred while generating the calendar file: {ex}", 500
 
 # =============================================================================
 # Main Entry Point
