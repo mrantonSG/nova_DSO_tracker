@@ -100,8 +100,9 @@ The daily graph also displays a vertical dashed line indicating the meridian tra
 ![Screenshot_28_year.png](docs/Screenshot_28_year.png)
 
 If you click on the button "Find Imaging Opportunities", you will get a list of dates when imaging the selected object is possible.
+From here you can also add the information to your calendar.
 
-![Screenshot_27_opport.png](docs/Screenshot_27_opport.png)
+![Screenshot_29_opportunities.png](docs/Screenshot_29_opportunities.png)
 
 You can edit the selection criteria for the opportunity search in the configuration settings.
 
