@@ -1,0 +1,1371 @@
+altitude_threshold: 20
+default_location: Singapore
+locations:
+  Perth:
+    lat: -31.9522
+    lon: 115.8614
+    timezone: Australia/Perth
+  Singapore:
+    lat: 1.3521
+    lon: 103.8198
+    timezone: Asia/Singapore
+objects:
+- DEC: '-5.3876'
+  Magnitude: 4.0
+  Name: Orion Nebula
+  Object: M42
+  Project: None
+  RA: '5.588006666666667'
+  SB: 12.84
+  Size: 66.0
+  Type: HII
+- DEC: '44.330000000000005'
+  Magnitude: 4.0
+  Name: North America Nebula
+  Object: NGC 7000
+  Project: None
+  RA: '20.97972222222222'
+  SB: 14.13
+  Size: 120.0
+  Type: Cl*
+- DEC: '-59.699944444444434'
+  Magnitude: 13.89
+  Name: Carina Nebula
+  Object: NGC 3372
+  Project: None
+  RA: '10.750619444444444'
+  SB: 24.02
+  Size: 120.0
+  Type: HII
+- DEC: '-6.385'
+  Magnitude: 9.5
+  Name: Angel Nebula
+  Object: NGC 2170
+  Project: None
+  RA: '6.13'
+  SB: 10.74
+  Size: 2.0
+  Type: RNe
+- DEC: '-36.13123371386014'
+  Magnitude: 99.0
+  Name: Cat's Paw Nebula
+  Object: NGC 6334
+  Project: None
+  RA: '17.347961543191886'
+  SB: 105.05
+  Size: 18.3
+  Type: HII
+- DEC: '24.114'
+  Magnitude: 1.2
+  Name: Pleiades
+  Object: M45
+  Project: None
+  RA: '3.7733999999999996'
+  SB: 10.37
+  Size: 76.86
+  Type: OpC
+- DEC: '0.07916666666666666'
+  Magnitude: 8.0
+  Name: Caspar the friendly Ghost
+  Object: M78
+  Project: None
+  RA: '5.779388888888889'
+  SB: 12.25
+  Size: 8.0
+  Type: RNe
+- DEC: '22.5699996948'
+  Magnitude: 15.98
+  Name: Jellyfish Nebula
+  Object: IC 443
+  Project: None
+  RA: '6.283333333333333'
+  SB: 23.98
+  Size: 45.0
+  Type: SNR
+- DEC: '-69.1'
+  Magnitude: 7.25
+  Name: Tarantula Nebula
+  Object: NGC 2070
+  Project: None
+  RA: '5.645'
+  SB: 9.71
+  Size: 3.5
+  Type: Cl*
+- DEC: '-20.837152011779995'
+  Magnitude: 13.52
+  Name: Helix Nebula
+  Object: NGC 7293
+  Project: None
+  RA: '22.494040390198666'
+  SB: 18.9
+  Size: 13.4
+  Type: PN
+- DEC: '-47.47947222222223'
+  Magnitude: 3.7
+  Name: Omega Centauri
+  Object: NGC 5139
+  Project: None
+  RA: '13.446466666666664'
+  SB: 11.24
+  Size: 36.3
+  Type: GlC
+- DEC: '-43.019112508083325'
+  Magnitude: 6.84
+  Name: Centaurus A
+  Object: NGC 5128
+  Project: None
+  RA: '13.424337558455555'
+  SB: 13.63
+  Size: 25.7
+  Type: S0pec
+- DEC: '-13.792'
+  Magnitude: 6.0
+  Name: Eagle Nebula
+  Object: M16
+  Project: None
+  RA: '18.31253333333333'
+  SB: 15.25
+  Size: 80.0
+  Type: OpC
+- DEC: '-36.140658333333334'
+  Magnitude: 9.63
+  Name: Great Barred Spiral Galaxy
+  Object: NGC 1365
+  Project: None
+  RA: '3.560127222222222'
+  SB: 14.52
+  Size: 10.72
+  Type: SB(s)b
+- DEC: '47.19525833333333'
+  Magnitude: 8.36
+  Name: Whirlpool Galaxy
+  Object: M51
+  Project: None
+  RA: '13.497971666666666'
+  SB: 13.1
+  Size: 10.0
+  Type: SA
+- DEC: '-13.226666666666667'
+  Magnitude: 99.0
+  Name: Thors Helmet
+  Object: NGC 2359
+  Project: None
+  RA: '7.308333333333334'
+  SB: 103.74
+  Size: 10.0
+  Type: HII
+- DEC: '-23.4'
+  Magnitude: 4.61
+  Name: Rho Ophiuchi
+  Object: IC 4604
+  Project: None
+  RA: '16.433333333333334'
+  SB: 13.24
+  Size: 60.0
+  Type: GNe
+- DEC: '-63.75000000000001'
+  Magnitude: Not Found
+  Name: Coalsack Nebula
+  Object: TGU H1867
+  Project: None
+  RA: '12.524999999999997'
+  SB: Not Found
+  Size: 403.8
+  Type: DNe
+- DEC: '52.43333333333333'
+  Magnitude: 5.0
+  Name: Giraffe Nebula
+  Object: LDN 1295
+  Project: None
+  RA: '0.7466666666666666'
+  SB: 9.74
+  Size: 10.0
+  Type: DNe
+- DEC: '-72.80027777777778'
+  Magnitude: 2.2
+  Name: Small Magellanic Cloud
+  Object: NGC 292
+  Project: None
+  RA: '0.8772222222222222'
+  SB: 12.93
+  Size: 158.11
+  Type: G
+- DEC: '57.13333333333333'
+  Magnitude: 17.57
+  Name: Double Cluster
+  Object: NGC 869/884
+  Project: None
+  RA: '2.341666666666667'
+  SB: Not Found
+  Size: Not Found
+  Type: OpC
+- DEC: '-64.426'
+  Magnitude: 1.9
+  Name: Southern Pleiades
+  Object: IC 2602
+  Project: None
+  RA: '10.707533333333334'
+  SB: 12.84
+  Size: 173.9
+  Type: OpC
+- DEC: '20.91179858002'
+  Magnitude: 9.68
+  Name: Eskimo Nebula
+  Object: NGC 2392
+  Project: None
+  RA: '7.486324205502668'
+  SB: 7.05
+  Size: 0.34
+  Type: PN
+- DEC: '41.268750000000004'
+  Magnitude: 3.44
+  Name: Andromeda Galaxy
+  Object: M31
+  Project: None
+  RA: '0.7123138888888889'
+  SB: 14.68
+  Size: 199.53
+  Type: SA(s)b
+- DEC: '33.029134246539996'
+  Magnitude: 15.77
+  Name: Ring Nebula
+  Object: M57
+  Project: None
+  RA: '18.893082434975334'
+  SB: 15.82
+  Size: 1.15
+  Type: PN
+- DEC: '66.632986315'
+  Magnitude: 11.28
+  Name: Cats Eye Nebula
+  Object: NGC 6543
+  Project: None
+  RA: '17.975945544091335'
+  SB: 9.99
+  Size: 0.62
+  Type: PN
+- DEC: '55.01902300891'
+  Magnitude: 15.78
+  Name: Owl Nebula
+  Object: M97
+  Project: None
+  RA: '11.24658674855'
+  SB: 18.13
+  Size: 3.33
+  Type: PN
+- DEC: '34.41577779903001'
+  Magnitude: 9.48
+  Name: NGC 7331 & Stephans Quintet
+  Object: NGC 7331
+  Project: None
+  RA: '22.61779183439133'
+  SB: 14.32
+  Size: 10.47
+  Type: LIN
+- DEC: '47.30371944444444'
+  Magnitude: 8.41
+  Name: Spiral galaxy in the constellation Canes Venatici
+  Object: M106
+  Project: None
+  RA: '12.316005555555554'
+  SB: 14.4
+  Size: 17.78
+  Type: SAB
+- DEC: '61.20166666666667'
+  Magnitude: 10.0
+  Name: Bubble Nebula
+  Object: NGC 7635
+  Project: None
+  RA: '23.346749999999997'
+  SB: 17.84
+  Size: 41.67
+  Type: HII
+- DEC: '42.34831944444444'
+  Magnitude: 9.93
+  Name: Silver Sliver galaxy
+  Object: NGC 891
+  Project: None
+  RA: '2.3758075'
+  SB: 15.12
+  Size: 12.3
+  Type: H2G
+- DEC: '-69.75611111111111'
+  Magnitude: 0.4
+  Name: Large Magellanic Cloud
+  Object: LMC
+  Project: None
+  RA: '5.392944444444444'
+  SB: 12.68
+  Size: 322.83
+  Type: G
+- DEC: '-60.37100000000001'
+  Magnitude: 4.2
+  Name: Jewel Box Cluster
+  Object: NGC 4755
+  Project: None
+  RA: '12.894333333333332'
+  SB: 9.0
+  Size: 10.3
+  Type: OpC
+- DEC: '36.46131944444445'
+  Magnitude: 5.8
+  Name: Hercules Cluster
+  Object: M13
+  Project: None
+  RA: '16.69489833333333'
+  SB: 13.13
+  Size: 33.0
+  Type: GlC
+- DEC: '-11.623054494444448'
+  Magnitude: 8.0
+  Name: Sombrero galaxy
+  Object: M104
+  Project: None
+  RA: '12.666508849727775'
+  SB: 12.39
+  Size: 8.51
+  Type: LIN
+- DEC: '59.33200469074'
+  Magnitude: 14.22
+  Name: Leo Triplet
+  Object: NGC 5985
+  Project: None
+  RA: '15.660292937282668'
+  SB: 17.26
+  Size: 4.57
+  Type: SBbc
+- DEC: '30.708333333333332'
+  Magnitude: 16.97
+  Name: Veil Nebula
+  Object: NGC 6960
+  Project: None
+  RA: '20.760555555555552'
+  SB: 28.32
+  Size: 210.0
+  Type: ISM
+- DEC: '57.514'
+  Magnitude: 3.5
+  Name: Elephant Trunk Nebula
+  Object: IC 1396
+  Project: None
+  RA: '21.64966666666667'
+  SB: 14.06
+  Size: 146.0
+  Type: OpC
+- DEC: '38.355000000000004'
+  Magnitude: 7.4
+  Name: Crescent Nebula
+  Object: NGC 6888
+  Project: None
+  RA: '20.201944444444443'
+  SB: 13.64
+  Size: 20.0
+  Type: ISM
+- DEC: '22.721197794319995'
+  Magnitude: 14.09
+  Name: Dumbbell Nebula
+  Object: M27
+  Project: None
+  RA: '19.993434218058'
+  SB: 17.96
+  Size: 6.7
+  Type: PN
+- DEC: '68.16333333333334'
+  Magnitude: 6.8
+  Name: Iris Nebula
+  Object: NGC 7023
+  Project: None
+  RA: '21.02691666666667'
+  SB: 11.54
+  Size: 10.0
+  Type: RNe
+- DEC: '58.125'
+  Magnitude: 7.2
+  Name: Wizard Nebula
+  Object: NGC 7380
+  Project: None
+  RA: '22.7878'
+  SB: 12.1
+  Size: 10.8
+  Type: OpC
+- DEC: '30.660175111980003'
+  Magnitude: 5.72
+  Name: Triangulum galaxy
+  Object: M33
+  Project: None
+  RA: '1.5641379374786666'
+  SB: 14.36
+  Size: 60.26
+  Type: SA(s)cd
+- DEC: '47.246'
+  Magnitude: 7.2
+  Name: Cocoon Nebula
+  Object: IC 5146
+  Project: None
+  RA: '21.891466666666663'
+  SB: 11.51
+  Size: 8.2
+  Type: OpC
+- DEC: '69.67970277777778'
+  Magnitude: 8.41
+  Name: Cigar galaxy
+  Object: M82
+  Project: None
+  RA: '9.931230555555555'
+  SB: 13.39
+  Size: 11.2
+  Type: S
+- DEC: '53.42137513468'
+  Magnitude: 17.13
+  Name: Jones-Emberson 1
+  Object: PN ARO 121
+  Project: None
+  RA: '7.96433803437'
+  SB: 20.87
+  Size: 6.33
+  Type: PN
+- DEC: '31.31'
+  Magnitude: 9.5
+  Name: Embryo Nebula
+  Object: NGC 1333
+  Project: None
+  RA: '3.486466666666666'
+  SB: 22.64
+  Size: 480.0
+  Type: OpC
+- DEC: '27.833333333333332'
+  Magnitude: 14.55
+  Name: Spaghetti Nebula
+  Object: SNR G180.0-01.7
+  Project: none
+  RA: '5.65'
+  SB: 25.56
+  Size: 180.0
+  Type: SNR
+- DEC: '9.877'
+  Magnitude: 14.92
+  Name: Cone Nebula
+  Object: NGC 2264
+  Project: None
+  RA: '6.681133333333334'
+  SB: 26.56
+  Size: 240.0
+  Type: OpC
+- DEC: '-23.928339811070003'
+  Magnitude: 6.91
+  Name: Dolphin Nebula
+  Object: Sh 2-308
+  Project: none
+  RA: '6.903623322455333'
+  SB: 13.15
+  Size: 20.0
+  Type: WR*
+- DEC: '-24.386666666666667'
+  Magnitude: 6.0
+  Name: Lagoon Nebula
+  Object: M8
+  Project: none
+  RA: '18.060277777777777'
+  SB: 15.51
+  Size: 90.0
+  Type: OpC
+- DEC: '20.486666666666668'
+  Magnitude: 6.8
+  Name: Monkey Head Nebula
+  Object: NGC 2175
+  Project: none
+  RA: '6.160833333333334'
+  SB: 14.55
+  Size: 40.0
+  Type: OpC
+- DEC: '27.959673631221666'
+  Magnitude: 3.08
+  Name: Double Star
+  Object: Albireo
+  Project: none
+  RA: '19.51202100093389'
+  SB: Not Found
+  Size: Not Found
+  Type: '**'
+- DEC: '19.621'
+  Magnitude: 3.1
+  Name: Beehive Cluster
+  Object: NGC 2632
+  Project: none
+  RA: '8.670266666666667'
+  SB: 13.2
+  Size: 118.2
+  Type: OpC
+- DEC: '0.04666666666666667'
+  Magnitude: 6.0
+  Name: Dark Nebula in Orion
+  Object: LDN 1627
+  Project: none
+  RA: '5.774166666666667'
+  SB: 10.38
+  Size: 8.5
+  Type: DNe
+- DEC: '25.987391666666667'
+  Magnitude: 12.43
+  Name: Needle Galaxy
+  Object: NGC 4565
+  Project: none
+  RA: '12.605778888888887'
+  SB: 17.87
+  Size: 13.8
+  Type: LIN
+- DEC: '-7.9'
+  Magnitude: 8.0
+  Name: Witch Head Nebula
+  Object: IC 2118
+  Project: none
+  RA: '5.033333333333333'
+  SB: 19.01
+  Size: 180.0
+  Type: RNe
+- DEC: '-19.3'
+  Magnitude: 4.03
+  Name: Blue Horse Nebula
+  Object: IC 4592
+  Project: none
+  RA: '16.216666666666665'
+  SB: 12.66
+  Size: 60.0
+  Type: RNe
+- DEC: '-2.4583333333333335'
+  Magnitude: 17.91
+  Name: Horse Head Nebula
+  Object: Barnard 33
+  Project: none
+  RA: '5.683055555555556'
+  SB: 21.54
+  Size: 6.0
+  Type: DNe
+- DEC: '60.419'
+  Magnitude: 6.5
+  Name: Soul Nebula
+  Object: IC 1848
+  Project: none
+  RA: '2.8569999999999993'
+  SB: 13.14
+  Size: 24.0
+  Type: OpC
+- DEC: '61.47099999999999'
+  Magnitude: 6.5
+  Name: Heart Nebula
+  Object: IC 1805
+  Project: none
+  RA: '2.5473333333333334'
+  SB: 11.86
+  Size: 13.3
+  Type: OpC
+- DEC: '-63.37278'
+  Magnitude: 15.88
+  Name: Running Chicken Nebula
+  Object: IC 2944
+  Project: none
+  RA: '11.638888666666666'
+  SB: 23.63
+  Size: 40.0
+  Type: OpC
+- DEC: '-37.1031'
+  Magnitude: 13.0
+  Name: Butterfly Nebula
+  Object: NGC 6302
+  Project: None
+  RA: '17.229026666666666'
+  SB: 11.11
+  Size: 0.47
+  Type: PN
+- DEC: '59.949999999999996'
+  Magnitude: 99.0
+  Name: Flying Bat Nebula
+  Object: SH2-129
+  Project: None
+  RA: '21.196666666666662'
+  SB: 109.47
+  Size: 140.0
+  Type: HII
+- DEC: '-61.3072'
+  Magnitude: 99.0
+  Name: Statue of Liberty Nebula
+  Object: NGC 3576
+  Project: None
+  RA: '11.19812'
+  SB: 109.89
+  Size: 170.0
+  Type: HII
+- DEC: '22.0174'
+  Magnitude: 8.4
+  Name: Crab Nebula
+  Object: M1
+  Project: none
+  RA: '5.575493333333333'
+  SB: 12.36
+  Size: 7.0
+  Type: SNR
+- DEC: '-0.8232499999999998'
+  Magnitude: 6.25
+  Name: Globular Cluster
+  Object: M2
+  Project: None
+  RA: '21.557505555555558'
+  SB: 11.54
+  Size: 12.9
+  Type: GlC
+- DEC: '28.37727777777778'
+  Magnitude: 6.39
+  Name: Globular Cluster
+  Object: M3
+  Project: None
+  RA: '13.703227777777775'
+  SB: 12.18
+  Size: 16.2
+  Type: GlC
+- DEC: '-26.525750000000002'
+  Magnitude: 5.9
+  Name: Globular Cluster
+  Object: M4
+  Project: None
+  RA: '16.393116666666668'
+  SB: 12.74
+  Size: 26.3
+  Type: GlC
+- DEC: '2.081027777777778'
+  Magnitude: 5.95
+  Name: Globular Cluster
+  Object: M5
+  Project: None
+  RA: '15.309227777777782'
+  SB: 11.89
+  Size: 17.4
+  Type: GlC
+- DEC: '-32.242'
+  Magnitude: 4.2
+  Name: Butterfly Cluster
+  Object: M6
+  Project: None
+  RA: '17.671266666666664'
+  SB: 10.44
+  Size: 20.0
+  Type: OpC
+- DEC: '-34.841'
+  Magnitude: 3.3
+  Name: Ptolemy's Cluster
+  Object: M7
+  Project: None
+  RA: '17.89646666666666'
+  SB: 13.04
+  Size: 100.1
+  Type: OpC
+- DEC: '-18.51625'
+  Magnitude: 8.42
+  Name: Globular Cluster
+  Object: M9
+  Project: None
+  RA: '17.31993888888889'
+  SB: 12.86
+  Size: 8.7
+  Type: GlC
+- DEC: '-4.100305555555555'
+  Magnitude: 4.98
+  Name: Globular Cluster
+  Object: M10
+  Project: None
+  RA: '16.95251388888889'
+  SB: 10.61
+  Size: 15.1
+  Type: GlC
+- DEC: '-6.272'
+  Magnitude: 5.8
+  Name: Wild Duck Cluster
+  Object: M11
+  Project: None
+  RA: '18.851066666666668'
+  SB: 10.28
+  Size: 8.9
+  Type: OpC
+- DEC: '-1.9485277777777774'
+  Magnitude: 6.07
+  Name: Globular Cluster
+  Object: M12
+  Project: None
+  RA: '16.787272222222224'
+  SB: 11.61
+  Size: 14.5
+  Type: GlC
+- DEC: '-3.245916666666667'
+  Magnitude: 5.73
+  Name: Globular Cluster
+  Object: M14
+  Project: None
+  RA: '17.626708333333337'
+  SB: 11.12
+  Size: 13.5
+  Type: GlC
+- DEC: '12.166999999999998'
+  Magnitude: 6.4
+  Name: Globular Cluster
+  Object: M15
+  Project: None
+  RA: '21.499536111111112'
+  SB: 11.59
+  Size: 12.3
+  Type: GlC
+- DEC: '-16.171666666666663'
+  Magnitude: 6.0
+  Name: Omega Nebula
+  Object: M17
+  Project: None
+  RA: '18.34638888888889'
+  SB: 6.8
+  Size: 1.63
+  Type: OpC
+- DEC: '-17.089'
+  Magnitude: 16.15
+  Name: Open Cluster
+  Object: M18
+  Project: None
+  RA: '18.332599999999996'
+  SB: 19.38
+  Size: 5.0
+  Type: OpC
+- DEC: '-26.267944444444442'
+  Magnitude: 5.57
+  Name: Globular Cluster
+  Object: M19
+  Project: None
+  RA: '17.043802777777778'
+  SB: 10.22
+  Size: 9.6
+  Type: GlC
+- DEC: '-22.971666666666664'
+  Magnitude: 8.5
+  Name: Trifid Nebula
+  Object: M20
+  Project: None
+  RA: '18.045'
+  SB: 15.47
+  Size: 28.0
+  Type: OpC
+- DEC: '-22.505000000000003'
+  Magnitude: 5.9
+  Name: Open Cluster
+  Object: M21
+  Project: None
+  RA: '18.069066666666668'
+  SB: 15.84
+  Size: 110.0
+  Type: OpC
+- DEC: '-23.90475'
+  Magnitude: 5.1
+  Name: Globular Cluster
+  Object: M22
+  Project: None
+  RA: '18.606650000000002'
+  SB: 11.74
+  Size: 24.0
+  Type: GlC
+- DEC: '-18.986999999999995'
+  Magnitude: 15.58
+  Name: Open Cluster
+  Object: M23
+  Project: None
+  RA: '17.949133333333336'
+  SB: 23.04
+  Size: 35.0
+  Type: OpC
+- DEC: '-18.55'
+  Magnitude: 15.56
+  Name: Sagittarius Star Cloud
+  Object: M24
+  Project: None
+  RA: '18.279999999999998'
+  SB: 25.69
+  Size: 120.0
+  Type: As*
+- DEC: '-19.114'
+  Magnitude: 4.6
+  Name: Open Cluster
+  Object: M25
+  Project: None
+  RA: '18.529133333333334'
+  SB: 11.82
+  Size: 31.3
+  Type: OpC
+- DEC: '-9.386'
+  Magnitude: 8.87
+  Name: Open Cluster
+  Object: M26
+  Project: None
+  RA: '18.754466666666666'
+  SB: 12.86
+  Size: 7.1
+  Type: OpC
+- DEC: '-24.869833333333332'
+  Magnitude: 6.9
+  Name: Globular Cluster
+  Object: M28
+  Project: None
+  RA: '18.409136111111106'
+  SB: 11.88
+  Size: 11.2
+  Type: GlC
+- DEC: '38.487'
+  Magnitude: 6.6
+  Name: Open Cluster
+  Object: M29
+  Project: None
+  RA: '20.3962'
+  SB: 11.86
+  Size: 12.7
+  Type: OpC
+- DEC: '-23.17986111111111'
+  Magnitude: 7.1
+  Name: Globular Cluster
+  Object: M30
+  Project: None
+  RA: '21.672811111111113'
+  SB: 12.04
+  Size: 11.0
+  Type: GlC
+- DEC: '40.86517'
+  Magnitude: 8.08
+  Name: Galaxy towards a Group of Galaxies
+  Object: M32
+  Project: None
+  RA: '0.711618'
+  SB: 10.46
+  Size: 3.38
+  Type: GiG
+- DEC: '42.722'
+  Magnitude: 16.35
+  Name: Open Cluster
+  Object: M34
+  Project: None
+  RA: '2.7020666666666666'
+  SB: 24.51
+  Size: 48.4
+  Type: OpC
+- DEC: '24.336'
+  Magnitude: 5.1
+  Name: Open Cluster Theia 203
+  Object: M35
+  Project: None
+  RA: '6.151466666666667'
+  SB: 12.75
+  Size: 38.3
+  Type: OpC
+- DEC: '34.135'
+  Magnitude: 6.0
+  Name: Open Cluster
+  Object: M36
+  Project: None
+  RA: '5.6056'
+  SB: 16.13
+  Size: 120.0
+  Type: OpC
+- DEC: '32.545'
+  Magnitude: 5.6
+  Name: Open Cluster
+  Object: M37
+  Project: None
+  RA: '5.8716'
+  SB: 11.77
+  Size: 19.3
+  Type: OpC
+- DEC: '35.824'
+  Magnitude: 6.4
+  Name: Open Cluster Theia 874
+  Object: M38
+  Project: None
+  RA: '5.4778'
+  SB: 12.6
+  Size: 19.6
+  Type: OpC
+- DEC: '48.247'
+  Magnitude: 16.62
+  Name: Open Cluster Theia 517
+  Object: M39
+  Project: None
+  RA: '21.525933333333334'
+  SB: 26.76
+  Size: 120.4
+  Type: OpC
+- DEC: '58.083333333333336'
+  Magnitude: 16.53
+  Name: Object of Unknown Nature Winnecke 4
+  Object: M40
+  Project: None
+  RA: '12.37'
+  SB: Not Found
+  Size: Not Found
+  Type: '?'
+- DEC: '-20.716'
+  Magnitude: 4.5
+  Name: Open Cluster
+  Object: M41
+  Project: None
+  RA: '6.7665999999999995'
+  SB: 12.24
+  Size: 39.8
+  Type: OpC
+- DEC: '-5.27'
+  Magnitude: 9.0
+  Name: Mairan's Nebula
+  Object: M43
+  Project: None
+  RA: '5.591944444444445'
+  SB: 15.24
+  Size: 20.0
+  Type: HII
+- DEC: '-14.843999999999998'
+  Magnitude: 6.1
+  Name: Open Cluster
+  Object: M46
+  Project: None
+  RA: '7.696333333333333'
+  SB: 12.85
+  Size: 25.3
+  Type: OpC
+- DEC: '-14.489000000000004'
+  Magnitude: 4.4
+  Name: Open Cluster
+  Object: M47
+  Project: None
+  RA: '7.609800000000001'
+  SB: 11.6
+  Size: 31.1
+  Type: OpC
+- DEC: '-5.726'
+  Magnitude: 5.8
+  Name: Open Cluster
+  Object: M48
+  Project: None
+  RA: '8.227466666666666'
+  SB: 13.77
+  Size: 44.3
+  Type: OpC
+- DEC: '8.0004'
+  Magnitude: 12.17
+  Name: Seyfert 2 Galaxy
+  Object: M49
+  Project: None
+  RA: '12.496326666666667'
+  SB: 17.11
+  Size: 10.96
+  Type: Sy2
+- DEC: '42.02936891003'
+  Magnitude: 8.59
+  Name: Sunflower Galaxy
+  Object: M63
+  Project: None
+  RA: '13.263687274831332'
+  SB: 13.93
+  Size: 13.18
+  Type: LIN
+- DEC: '21.682658333333332'
+  Magnitude: 8.52
+  Name: Black Eye Galaxy
+  Object: M64
+  Project: None
+  RA: '12.94547111111111'
+  SB: 13.21
+  Size: 9.77
+  Type: SyG
+- DEC: '13.092305751019998'
+  Magnitude: 9.3
+  Name: Galaxy in Pair of Galaxies
+  Object: M65
+  Project: ''
+  RA: '11.315530129299333'
+  SB: 13.64
+  Size: 8.32
+  Type: GiP
+- DEC: '12.9915'
+  Magnitude: 8.92
+  Name: Galaxy in Pair of Galaxies
+  Object: M66
+  Project: ''
+  RA: '11.337506666666666'
+  SB: 13.31
+  Size: 8.51
+  Type: GiP
+- DEC: '11.8183'
+  Magnitude: 9.66
+  Name: Seyfert 2 Galaxy
+  Object: M58
+  Project: None
+  RA: '12.628759999999998'
+  SB: 13.15
+  Size: 5.62
+  Type: Sy2
+- DEC: '11.64691930771'
+  Magnitude: 9.8
+  Name: Galaxy towards a Group of Galaxies
+  Object: M59
+  Project: None
+  RA: '12.700627260421331'
+  SB: 13.24
+  Size: 5.5
+  Type: GiG
+- DEC: '11.552693333333336'
+  Magnitude: 8.8
+  Name: Galaxy in Pair of Galaxies
+  Object: M60
+  Project: None
+  RA: '12.727768888888887'
+  SB: 13.04
+  Size: 7.94
+  Type: GiP
+- DEC: '69.06529514038'
+  Magnitude: 6.94
+  Name: Bode's Galaxy
+  Object: M81
+  Project: None
+  RA: '9.925881293236'
+  SB: 13.33
+  Size: 21.38
+  Type: Sy2
+- DEC: '54.34875'
+  Magnitude: 7.86
+  Name: Pinwheel Galaxy
+  Object: M101
+  Project: None
+  RA: '14.05349527777778'
+  SB: 14.3
+  Size: 21.88
+  Type: GiP
+- DEC: '41.68541867226'
+  Magnitude: 8.07
+  Name: Galaxy towards a Group of Galaxies
+  Object: M110
+  Project: None
+  RA: '0.6727936763886666'
+  SB: 10.42
+  Size: 3.33
+  Type: GiG
+- DEC: '13.589488888888889'
+  Magnitude: 9.48
+  Name: Hamburger Galaxy (part of Leo triplet)
+  Object: NGC 3628
+  Project: none
+  RA: '11.338060555555556'
+  SB: 14.77
+  Size: 12.88
+  Type: GiP
+- DEC: '37.38024558325933'
+  Magnitude: 17.81
+  Name: Celestial Snow Angel
+  Object: Sh 2-106
+  Project: None
+  RA: '20.45745561643817'
+  SB: 19.93
+  Size: 3.0
+  Type: HII
+- DEC: '-57.93388888888889'
+  Magnitude: 16.35
+  Name: Banana Nebula
+  Object: NGC 3199
+  Project: none
+  RA: '10.275777777777778'
+  SB: 21.97
+  Size: 15.0
+  Type: HII
+- DEC: '28.694579999999995'
+  Magnitude: 14.4
+  Name: Medusa Nebula
+  Object: Abell 21
+  Project: none
+  RA: '0.34409600000000007'
+  SB: 20.52
+  Size: 18.94
+  Type: ClG
+- DEC: '17.2'
+  Magnitude: 20.36
+  Name: Drunken Dragon Nebula
+  Object: 'LBN 762 '
+  Project: none
+  RA: '3.0'
+  SB: Not Found
+  Size: Not Found
+  Type: HII
+- DEC: '33.483333333333334'
+  Magnitude: 17.7
+  Name: Tadpole Nebula
+  Object: IC 410
+  Project: none
+  RA: '5.366666666666666'
+  SB: 25.45
+  Size: 40.0
+  Type: Cl*
+- DEC: '-65.50978921723'
+  Magnitude: 7.7
+  Name: Ring Nebula in Carina
+  Object: RCW 58
+  Project: ''
+  RA: '11.104778676434'
+  SB: 11.66
+  Size: 7.0
+  Type: WR*
+- DEC: '11.25797673963'
+  Magnitude: 11.31
+  Name: Siamese Twin Galaxy (1)
+  Object: NGC 4567
+  Project: None
+  RA: '12.609082776318667'
+  SB: 13.34
+  Size: 2.88
+  Type: GiP
+- DEC: '-37.208200000000005'
+  Magnitude: 8.53
+  Name: Lenticular Galaxy in Fornax
+  Object: NGC 1316
+  Project: none
+  RA: '3.378274722222222'
+  SB: 13.87
+  Size: 13.18
+  Type: GiP
+- DEC: '0.4431805555555555'
+  Magnitude: 10.59
+  Name: Spiral Galaxy in Cetus
+  Object: NGC 1055
+  Project: None
+  RA: '2.695898055555556'
+  SB: 14.28
+  Size: 6.17
+  Type: GiP
+- DEC: '-63.85747141083999'
+  Magnitude: 8.25
+  Name: Pavo Galaxy
+  Object: NGC 6744
+  Project: None
+  RA: '19.162814887514'
+  SB: 14.19
+  Size: 17.38
+  Type: GiG
+- DEC: '33.42183268931'
+  Magnitude: 9.79
+  Name: UFO Galaxy
+  Object: NGC 2683
+  Project: none
+  RA: '8.878140689710667'
+  SB: 14.23
+  Size: 8.71
+  Type: AGN
+- DEC: '13.645680555555558'
+  Magnitude: 11.16
+  Name: Polar Ring Galaxy in Pisces
+  Object: NGC 660
+  Project: ''
+  RA: '1.7173194444444448'
+  SB: 14.9
+  Size: 6.31
+  Type: Sy2
+- DEC: '-25.87166045775'
+  Magnitude: 11.16
+  Name: Robins Egg Nebula
+  Object: NGC 1360
+  Project: none
+  RA: '3.554068570220667'
+  SB: 14.93
+  Size: 6.4
+  Type: PN
+- DEC: '25.50075919183'
+  Magnitude: 12.44
+  Name: ' Intermediate barred spiral galaxy'
+  Object: NGC 4725
+  Project: none
+  RA: '12.840714343555332'
+  SB: 17.13
+  Size: 9.77
+  Type: Sy2
+- DEC: '21.500830555555552'
+  Magnitude: 9.07
+  Name: Barred Galaxy in Leo
+  Object: NGC 2903
+  Project: none
+  RA: '9.536141944444445'
+  SB: 14.11
+  Size: 11.48
+  Type: H2G
+- DEC: '-32.87415556696'
+  Magnitude: 12.1
+  Name: Haley's Coronet
+  Object: NGC 1532
+  Project: None
+  RA: '4.201211458105333'
+  SB: 17.29
+  Size: 12.3
+  Type: GiP
+- DEC: '-62.644999999999996'
+  Magnitude: 14.4
+  Name: Super Nova Remnant (first observed)
+  Object: RCW 86
+  Project: None
+  RA: '14.674722222222222'
+  SB: 16.52
+  Size: 3.0
+  Type: HII
+- DEC: '-42.99666666666667'
+  Magnitude: 99.0
+  Name: 'Supernova Remnant '
+  Object: Puppis A
+  Project: ''
+  RA: '8.401944444444444'
+  SB: 107.63
+  Size: 60.0
+  Type: SNR
+- DEC: '-44.1'
+  Magnitude: Not Found
+  Name: 'Vela Supernova Remnant '
+  Object: Gum 16
+  Project: none
+  RA: '8.55'
+  SB: Not Found
+  Size: Not Found
+  Type: HII
+- DEC: '-0.1113888888888889'
+  Magnitude: 19.65
+  Name: Serpens Dwarf Globular Cluster
+  Object: Palomar 5
+  Project: none
+  RA: '15.268138888888888'
+  SB: 24.3
+  Size: 9.6
+  Type: GlC
+- DEC: '38.88191666666667'
+  Magnitude: 10.05
+  Name: Intergalactic Wanderer Globular Cluster
+  Object: NGC 2419
+  Project: none
+  RA: '7.635697222222222'
+  SB: 12.85
+  Size: 4.1
+  Type: GlC
+- DEC: '-37.051444444444435'
+  Magnitude: 7.4
+  Name: Globular Cluster in Scorpius
+  Object: NGC 6441
+  Project: none
+  RA: '17.83696111111111'
+  SB: 11.6
+  Size: 7.8
+  Type: GlC
+- DEC: '-40.04655555555555'
+  Magnitude: 7.3
+  Name: Globular Cluster in Columba
+  Object: NGC 1851
+  Project: none
+  RA: '5.235211111111111'
+  SB: 12.24
+  Size: 11.0
+  Type: GlC
+- DEC: '16.18791388888889'
+  Magnitude: 10.46
+  Name: Globular Cluster at the fringe of the Milky Way
+  Object: NGC 7006
+  Project: none
+  RA: '21.024851388888887'
+  SB: 10.42
+  Size: 1.11
+  Type: GlC
+- DEC: '5.615'
+  Magnitude: 17.24
+  Name: Open Cluster near Rho Ophiuchi
+  Object: IC 4665
+  Project: none
+  RA: '17.77026666666666'
+  SB: 25.89
+  Size: 60.7
+  Type: OpC
+- DEC: '-67.84666666666666'
+  Magnitude: 15.26
+  Name: Superbubble in the LMC
+  Object: LHA 120-N 70
+  Project: none
+  RA: '5.721527777777777'
+  SB: 19.22
+  Size: 7.0
+  Type: HII
+- DEC: '-45.95'
+  Magnitude: 99.0
+  Name: The Pencil Nebula
+  Object: NGC 2736
+  Project: none
+  RA: '9.003333333333334'
+  SB: 104.31
+  Size: 13.0
+  Type: HII
+- DEC: '-11.871936423910004'
+  Magnitude: 11.76
+  Name: Skull Nebula
+  Object: NGC 246
+  Project: none
+  RA: '0.7842616761560001'
+  SB: 14.36
+  Size: 3.73
+  Type: PN
+- DEC: '25.06325'
+  Magnitude: 20.13
+  Name: Mysterious Nebula in Taurus
+  Object: IRAS 05437+2502
+  Project: none
+  RA: '5.780990666666667'
+  SB: Not Found
+  Size: Not Found
+  Type: LP*
+- DEC: '-59.125277777777775'
+  Magnitude: 99.0
+  Name: Toby Jug Nebula
+  Object: IC 2220
+  Project: none
+  RA: '7.947583333333333'
+  SB: Not Found
+  Size: Not Found
+  Type: RNe
+- DEC: '-12.718055555555555'
+  Magnitude: 99.0
+  Name: giant Bubble in Scorpius
+  Object: Sh2-27
+  Project: none
+  RA: '16.59911111111111'
+  SB: 112.14
+  Size: 480.0
+  Type: HII
+- DEC: '34.38333333333333'
+  Magnitude: 6.0
+  Name: Flaming Star Nebula
+  Object: IC 405
+  Project: none
+  RA: '5.29'
+  SB: 14.23
+  Size: 50.0
+  Type: Rad
+- DEC: '42.236242000000004'
+  Magnitude: 8.83
+  Name: Jewel Bug Nebula
+  Object: 'NGC 7027 '
+  Project: ''
+  RA: '21.11710332'
+  SB: 5.06
+  Size: 0.2
+  Type: PN
+- DEC: '35.325'
+  Magnitude: 8.5
+  Name: Northern Trifid
+  Object: NGC 1579
+  Project: none
+  RA: '4.500933333333333'
+  SB: 13.87
+  Size: 13.4
+  Type: OpC
+- DEC: '-19.672027777777778'
+  Magnitude: 99.0
+  Name: Reflection Nebula in Saggitarius
+  Object: IC 1284
+  Project: none
+  RA: '18.29433888888889'
+  SB: 104.83
+  Size: 16.5
+  Type: GNe
