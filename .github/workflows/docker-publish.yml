@@ -1,0 +1,40 @@
+# .github/workflows/docker-publish.yml
+
+name: Docker Publish on Release
+
+# This workflow runs ONLY when a new release is published
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Check out the repository's code
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      # Step 2: Log in to Docker Hub using the secrets we created
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 3: Automatically extract metadata like tags and labels
+      # This will automatically use your release version (e.g., v2.9.0) as the Docker tag
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: mrantonsg/nova-dso-tracker
+
+      # Step 4: Build the Docker image and push it to Docker Hub
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
