@@ -332,6 +332,17 @@
     #remove-filters-btn:hover {
         background-color: #849398 !important;
     }
+
+    th[data-column-key="Type"], td[data-column-key="Type"],
+    th[data-column-key="Magnitude"], td[data-column-key="Magnitude"],
+    th[data-column-key="Size"], td[data-column-key="Size"],
+    th[data-column-key="SB"], td[data-column-key="SB"],
+    th[data-column-key="Constellation"], td[data-column-key="Constellation"] { /* Added here */
+        width: 100px;
+        min-width: 100px;
+        text-align: center;
+    }
+
   </style>
 
   <script>
@@ -354,6 +365,7 @@
         'Observable Duration (min)': { header: 'Observable <br><span class="subtext">(minutes)</span>', dataKey: 'Observable Duration (min)', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : String(val) },
         'Max Altitude (°)': { header: 'Max Altitude<br><span class="subtext">observable (°)</span>', dataKey: 'Max Altitude (°)', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(1)}°` },
         'Angular Separation (°)': { header: 'Ang. Sep. <br><span class="subtext">to moon (°)</span>', dataKey: 'Angular Separation (°)', type: 'position', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${parseInt(val)}°` },
+        'Constellation':    { header: 'Con<br><span class="subtext">&nbsp;</span>', dataKey: 'Constellation', type: 'properties', filterable: true, sortable: true },
         'Type':             { header: 'Type<br><span class="subtext">&nbsp;</span>', dataKey: 'Type', type: 'properties', filterable: true, sortable: true },
         'Magnitude':        { header: 'Magnitude<br><span class="subtext">&nbsp;</span>', dataKey: 'Magnitude', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
         'Size':             { header: "Size (')<br><span class='subtext'>&nbsp;</span>", dataKey: 'Size', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
@@ -1299,6 +1311,7 @@
               <th data-column-key="Observable Duration (min)" class="col-position sortable"><span>Observable <br><span class="subtext">(minutes)</span></span><span class="sort-indicator"></span></th>
               <th data-column-key="Max Altitude (°)" class="col-position sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span><span class="sort-indicator"></span></th>
               <th data-column-key="Angular Separation (°)" class="col-position sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Constellation" class="col-properties sortable"><span>Constellation</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Type" class="col-properties sortable"><span>Type</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Magnitude" class="col-properties sortable"><span>Magnitude</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Size" class="col-properties sortable"><span>Size (')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
@@ -1316,6 +1329,7 @@
               <th data-column-key="Observable Duration (min)" class="col-position"><input type="text" placeholder="minutes" /></th>
               <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="Max Alt. °" /></th>
               <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="Ang. Sep. °" /></th>
+              <th data-column-key="Constellation" class="col-properties"><input type="text" placeholder="e.g. Cyg" /></th>
               <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type (e.g. PN,SNR)" /></th>
               <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
               <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
