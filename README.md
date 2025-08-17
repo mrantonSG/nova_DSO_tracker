@@ -14,7 +14,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 2.8 - Quick Guide
+# Nova DSO Altitude Tracker 2.9 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -25,14 +25,17 @@ Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Az
 
 In addition it provides information about the angular separation between the objects and the moon, the time they can be imaged and the maximum altitude they reach during this time.
 
-New with V 2.8 - Imaging Journal, to take note of your imaging sessions
+Includes a comprehensive Imaging Journal to log your imaging sessions.
 
 ### Main Interface
 When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. New in Version 2 is the column with the angular separation of the object to the moon.
 
-New in Version 2.8 is the third tab in the layout. 
-The first "Position" contains all fields you are used to from the previous versions. The second tab "Properties" contain object specific fields and the third tab a Journal, that allows you to take notes about your imaging sessions.
+The main view is organized into three tabs: "Position", "Properties", and "Journal".
+The first "Position" contains all fields you are used to from the previous versions.
 
+The second tab, "Properties", contains object-specific physical data such as the object's Type, Magnitude, Size, and its Constellation (shown as a three-letter abbreviation).
+
+The third tab, "Journal" lets you take notes to your imaging sessions.
 ![Screenshot_28_index.png](docs/Screenshot_28_index.png)
 
 
@@ -43,7 +46,7 @@ The first "Position" contains all fields you are used to from the previous versi
 
 - You can now also add multiple phrases in a search field. For example multiple DSO types:
 
-![Screenshot_28_filter.png](docs/Screenshot_28_filter.png)
+![Screenshot_29_filter.png](docs/Screenshot_29_filter.png)
 
 and you can combine filters and sorting from both tabs:
 
@@ -87,10 +90,10 @@ If everything went well, you can find the additional fields now filled out
 
 ### Detailed Object Information
 Clicking on a DSO in the main list opens detailed graphical information about its nightly position and altitude. These graphics are generated on-demand and might take a few seconds to appear, depending on your computer's performance. 
-New in V2 is the possibility to not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
-Also new are a monthly and yearly view of the object and the moon.
+You can not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
+The daily graph also displays a vertical dashed line indicating the meridian transit, which is the point of highest altitude and a crucial time for equatorial mount users to plan for a "meridian flip."
 
-![Screenshot_28_graphic.png](docs/Screenshot_28_graphic.png)
+![Screenshot_29_graphic.png](docs/Screenshot_29_graphic.png)
 
 ![Screenshot_28_month.png](docs/Screenshot_28_month.png)
 
@@ -103,7 +106,7 @@ If you click on the button "Find Imaging Opportunities", you will get a list of 
 You can edit the selection criteria for the opportunity search in the configuration settings.
 
 ### Imaging Journal
-With Version 2.8 came the additional possibility to take notes to imaging sessions.
+Nova DSO Tracker also offers the additional possibility to take notes to imaging sessions.
 On the main screen you can find the Journal at the third tab:
 
 ![Screenshot_28_Index_journal.png](docs/Screenshot_28_Index_journal.png)
@@ -174,7 +177,7 @@ Your terminal prompt should now start with `(nova)`.
 Install the required Python packages:
 
 ```bash
-pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple python-dotenv cerberus ics
+pip install Flask numpy pytz ephem PyYAML matplotlib astroquery astropy flask_login python-decouple python-dotenv cerberus ics arrow
 ```
 
 (Optional) Verify installed packages:

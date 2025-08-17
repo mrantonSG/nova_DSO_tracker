@@ -13,18 +13,44 @@ from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
 import astropy.units as u
 
-def calculate_transit_time(ra_hours, lat, lon, tz_name):
-    local_tz = pytz.timezone(tz_name)
-    now_local = datetime.now(local_tz)
-    date_str = now_local.strftime('%Y-%m-%d')
-    midnight_local = local_tz.localize(datetime.strptime(date_str, '%Y-%m-%d'))
-    midnight_utc = midnight_local.astimezone(pytz.utc)
-    midnight_time = Time(midnight_utc)
-    lst_midnight = midnight_time.sidereal_time('mean', longitude=lon * u.deg).hour
-    delta_hours = (ra_hours - lst_midnight) % 24
-    transit_utc = midnight_time + delta_hours * u.hour
-    transit_local = transit_utc.to_datetime(timezone=pytz.utc).astimezone(local_tz)
-    return transit_local.strftime('%H:%M')
+
+def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
+    """
+    Calculates the meridian transit time for a given object, location, and date.
+    """
+    try:
+        observer = ephem.Observer()
+        observer.lat = str(lat)
+        observer.lon = str(lon)
+        observer.elevation = 0
+
+        local_tz = pytz.timezone(tz_name)
+
+        # KEY FIX: Set the observer's date to noon on the specific local_date_str.
+        # This provides a stable starting point for finding the correct transit for that night.
+        date_obj = datetime.strptime(local_date_str, '%Y-%m-%d')
+        noon_local = local_tz.localize(date_obj.replace(hour=12, minute=0, second=0, microsecond=0))
+        observer.date = noon_local.astimezone(pytz.utc)
+
+        body = ephem.FixedBody()
+        body._ra = ephem.hours(str(ra))
+        body._dec = ephem.degrees(str(dec))
+        #body.compute(observer)
+
+        transit_time_utc = observer.next_transit(body).datetime()
+        transit_time_local = transit_time_utc.replace(tzinfo=pytz.utc).astimezone(local_tz)
+
+        return transit_time_local.strftime('%H:%M')
+
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        # For circumpolar or never-rising objects, we can calculate the highest point differently.
+        # For simplicity, returning the time of max altitude from a different function might be better,
+        # but for now, we can try to find the meridian passing time.
+        # This part of the logic can be complex; let's stick to the primary fix for now.
+        return "N/A"
+    except Exception as e:
+            print(f"DEBUG: Error in calculate_transit_time: {e}")  # Add this line to see the error
+            return "N/A"
 
 def get_utc_time_for_local_11pm(tz_name):
     local_tz = pytz.timezone(tz_name)

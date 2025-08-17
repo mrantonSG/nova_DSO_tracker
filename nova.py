@@ -24,6 +24,8 @@ import secrets
 from dotenv import load_dotenv
 import calendar
 import json
+import numpy as np
+from yaml.constructor import ConstructorError
 
 import pytz
 import ephem
@@ -42,27 +44,21 @@ import matplotlib.dates as mdates
 
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from flask import session, get_flashed_messages, Blueprint
+from flask import session, get_flashed_messages
 from flask import Flask, send_from_directory
 
 from astroquery.simbad import Simbad
-from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation
 from astropy.time import Time
 import astropy.units as u
 
 from modules.astro_calculations import (
     calculate_transit_time,
     get_utc_time_for_local_11pm,
-    is_decimal,
-    parse_ra_dec,
     hms_to_hours,
     dms_to_degrees,
     ra_dec_to_alt_az,
-    calculate_max_observable_altitude,
-    calculate_altitude_curve,
     get_common_time_arrays,
-    # ephem_to_local,
-    # calculate_sun_events,
     calculate_sun_events_cached,
     calculate_observable_duration_vectorized
 )
@@ -73,7 +69,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.8.4"
+APP_VERSION = "2.9.0"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -152,6 +148,29 @@ login_manager.login_message = None
 usernames = config("USERS", default="").split(",")
 
 users = {}
+
+def convert_to_native_python(val):
+    """Converts a NumPy data type to a native Python type if necessary."""
+    if isinstance(val, np.generic):
+        return val.item()  # .item() is the key function here
+    return val
+
+
+def recursively_clean_numpy_types(data):
+    """
+    Recursively traverses a dict or list and converts any NumPy
+    numeric types to native Python types.
+    """
+    if isinstance(data, dict):
+        for key, value in data.items():
+            data[key] = recursively_clean_numpy_types(value)
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            data[i] = recursively_clean_numpy_types(item)
+    elif isinstance(data, np.generic):
+        return data.item()  # This is the core conversion
+
+    return data
 
 def python_format_date_eu(value_iso_str):
     """Jinja filter to convert YYYY-MM-DD string to DD.MM.YYYY string."""
@@ -694,11 +713,16 @@ def trigger_update():
         script_path = os.path.join(os.path.dirname(__file__), 'updater.py')
         subprocess.Popen([sys.executable, script_path])
         print("Exiting current app to allow updater to restart it...")
-        os._exit(0)  # Force exit without cleanup
+        sys.exit(0)  # Force exit without cleanup
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+
 def load_user_config(username):
+    """
+    Loads user configuration from a YAML file. If the file contains unsafe
+    NumPy tags, it will automatically repair the file and continue.
+    """
     global config_cache, config_mtime
     if SINGLE_USER_MODE:
         filename = "config_default.yaml"
@@ -706,40 +730,67 @@ def load_user_config(username):
         filename = f"config_{username}.yaml"
     filepath = os.path.join(os.path.dirname(__file__), filename)
 
-    try:
-        # Check if the file has changed or if it's not in the cache
-        if filepath not in config_cache or not os.path.exists(filepath) or (os.path.exists(filepath) and os.path.getmtime(filepath) > config_mtime.get(filepath, 0)):
-            if not os.path.exists(filepath):
-                print(f"⚠️ Config file '{filename}' not found. Creating from default.")
-                try:
-                    shutil.copy("config_default.yaml", filename)
-                except FileNotFoundError:
-                    print("❌ ERROR: Default config file 'config_default.yaml' is missing!")
-                    config_cache[filepath] = {}  # Return empty config to prevent crashes
-                    config_mtime[filepath] = 0
-                    return {}
-                except Exception as e:
-                    print(f"❌ ERROR: Failed to create user config: {e}")
-                    config_cache[filepath] = {}
-                    config_mtime[filepath] = 0
-                    return {}
-
-            with open(filepath, "r") as file:
-                config_cache[filepath] = yaml.safe_load(file) or {}
-            if os.path.exists(filepath):
-                config_mtime[filepath] = os.path.getmtime(filepath)
-            else:
-                config_mtime[filepath] = 0  # Or some default value
-
-            print(f"[LOAD CONFIG] Loading (and caching) {filename}")
-        else:
-            print(f"[LOAD CONFIG] Loading from cache: {filename}")
+    # Caching logic
+    if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
+            filepath, 0):
+        print(f"[LOAD CONFIG] Loading from cache: {filename}")
         return config_cache[filepath]
 
-    except Exception as e:
-        print(f"❌ ERROR: Failed to load user config: {e}")
-        return {}  # Return empty config to prevent crashes
+    if not os.path.exists(filepath):
+        print(f"⚠️ Config file '{filename}' not found. Using default.")
+        return {}
 
+    # --- AUTOMATIC REPAIR LOGIC ---
+    try:
+        # First, try to load with the safe loader.
+        with open(filepath, "r", encoding='utf-8') as file:
+            config_data = yaml.safe_load(file) or {}
+        print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
+
+    except ConstructorError as e:
+        # If safe_load fails due to an unknown tag, attempt repair.
+        if 'numpy' in str(e):
+            print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
+            try:
+                # 1. Create a backup of the corrupted file
+                backup_dir = os.path.join(os.path.dirname(filepath), "backups")
+                os.makedirs(backup_dir, exist_ok=True)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                backup_path = os.path.join(backup_dir, f"{filename}_corrupted_backup_{timestamp}.yaml")
+                shutil.copy(filepath, backup_path)
+                print(f"    -> Backed up corrupted file to '{backup_path}'")
+
+                # 2. Re-read with UnsafeLoader to load the NumPy object into memory
+                with open(filepath, "r", encoding='utf-8') as file:
+                    # --- THIS IS THE KEY CHANGE ---
+                    corrupted_data = yaml.load(file, Loader=yaml.UnsafeLoader)
+
+                # 3. Clean the data in memory using our recursive function
+                cleaned_data = recursively_clean_numpy_types(corrupted_data)
+                print("    -> Successfully cleaned data in memory.")
+
+                # 4. Overwrite the original file with the clean data
+                save_user_config(username, cleaned_data)
+                print(f"    -> Repaired and saved clean data to '{filename}'.")
+
+                config_data = cleaned_data
+
+            except Exception as repair_e:
+                print(f"❌ [CONFIG REPAIR] Automatic repair failed: {repair_e}")
+                print("    -> The application might not function correctly. Please check the backed up file.")
+                return {}
+        else:
+            print(f"❌ ERROR: Unrecoverable YAML error in '{filename}': {e}")
+            return {}
+
+    except Exception as e:
+        print(f"❌ ERROR: A critical error occurred while loading config '{filename}': {e}")
+        return {}
+
+    # Update cache
+    config_cache[filepath] = config_data
+    config_mtime[filepath] = os.path.getmtime(filepath)
+    return config_data
 
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
@@ -1139,10 +1190,12 @@ def get_ra_dec(object_name):
     default_size = "N/A"
     default_sb = "N/A"
     default_project = "none"
+    default_constellation = "N/A"
 
     if obj_entry:
         ra_str = obj_entry.get("RA")
         dec_str = obj_entry.get("DEC")
+        constellation_val = obj_entry.get("Constellation", default_constellation)  # Get existing constellation
         type_val = obj_entry.get("Type", default_type)
         magnitude_val = obj_entry.get("Magnitude", default_magnitude)
         size_val = obj_entry.get("Size", default_size)
@@ -1154,8 +1207,18 @@ def get_ra_dec(object_name):
             try:
                 ra_hours_float = float(ra_str)
                 dec_degrees_float = float(dec_str)
+
+                if constellation_val in [None, "N/A", ""]:
+                    try:
+                        coords = SkyCoord(ra=ra_hours_float*u.hourangle, dec=dec_degrees_float*u.deg)
+                        constellation_val = get_constellation(coords, short_name=True)
+                    except Exception as e:
+                        print(f"Constellation calculation failed for {object_name}: {e}")
+                        constellation_val = "N/A"
+
                 return {
                     "Object": object_name,
+                    "Constellation": constellation_val,  # Add to return dictionary
                     "Common Name": common_name_val,
                     "RA (hours)": ra_hours_float,
                     "DEC (degrees)": dec_degrees_float,
@@ -1169,6 +1232,7 @@ def get_ra_dec(object_name):
                 print(f"[ERROR] Failed to parse RA/DEC for {object_name} from config: {ve}")
                 return {
                     "Object": object_name,
+                    "Constellation": "N/A",
                     "Common Name": f"Error: Invalid RA/DEC in config",
                     "RA (hours)": None, "DEC (degrees)": None,
                     "Project": project_val, "Type": type_val if type_val else default_type,
@@ -1238,6 +1302,12 @@ def get_ra_dec(object_name):
                 0] else common_name_to_use
             simbad_otype = str(result['OTYPE'][0]) if 'OTYPE' in result.colnames and result['OTYPE'][0] else type_to_use
 
+            try:
+                coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
+                constellation_simbad = get_constellation(coords, short_name=True)
+            except Exception:
+                constellation_simbad = "N/A"
+
             # If the object was in config but RA/DEC were missing, update the in-memory entry
             if obj_entry:
                 obj_entry["RA"] = ra_hours_simbad
@@ -1250,6 +1320,7 @@ def get_ra_dec(object_name):
 
             return {
                 "Object": object_name,
+                "Constellation": constellation_simbad,
                 "Common Name": simbad_main_id if not obj_entry or obj_entry.get("Name") in [None,
                                                                                             ""] else obj_entry.get(
                     "Name"),
@@ -1269,6 +1340,7 @@ def get_ra_dec(object_name):
             print(f"[ERROR] {error_message} for {object_name}")
             return {
                 "Object": object_name,
+                "Constellation": "N/A",
                 "Common Name": error_message,
                 "RA (hours)": None, "DEC (degrees)": None,
                 "Project": project_to_use, "Type": type_to_use,  # Use defaults or config values if obj_entry existed
@@ -1491,12 +1563,47 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
             except Exception as e:
                  print(f"Error plotting text for event {event}: {e}") # Catch potential errors during plotting
 
+    try:
+        transit_time_str = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+        if transit_time_str and transit_time_str != "N/A":
+            transit_hour, transit_minute = map(int, transit_time_str.split(':'))
+            plot_date_obj = datetime.strptime(local_date, '%Y-%m-%d').date()
+
+            # --- KEY LOGIC CHANGE ---
+            # If transit is after midnight (e.g., 00:24), assign it to the next calendar day
+            # so it correctly falls within the 'night of' the selected date on the plot.
+            effective_date = plot_date_obj
+            if transit_hour < 12:  # Simple check for any time between 00:00 and 11:59
+                effective_date += timedelta(days=1)
+
+            transit_dt_naive = datetime.combine(effective_date, datetime.min.time()) + timedelta(hours=transit_hour,
+                                                                                                 minutes=transit_minute)
+
+            # Draw the vertical line and text (this part is now correct)
+            ax.axvline(x=transit_dt_naive, color='crimson', linestyle='--', linewidth=1.5, label='Meridian Transit')
+
+            ax.text(mdates.date2num(transit_dt_naive), -88, f" {transit_time_str} ",
+                    color='crimson',
+                    ha='center', va='bottom',
+                    fontsize=8,
+                    rotation=90,
+                    fontweight='bold',
+                    bbox=dict(facecolor='white', alpha=0.9, edgecolor='none', pad=1.5))
+    except Exception as e:
+        print(f"WARNING: Could not plot meridian line for {object_name}. Reason: {e}")
+
 
     lines, labels = ax.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
 
-    # Changed bbox_to_anchor x-value from 1.03 to 1.05
-    ax.legend(lines + lines2, labels + labels2, loc='upper left', bbox_to_anchor=(1.05, 1.0), borderaxespad=0.)
+    # Combine all labels and handles, then use a dictionary to automatically remove duplicates
+    all_labels = labels + labels2
+    all_lines = lines + lines2
+    unique_entries = dict(zip(all_labels, all_lines))
+
+    # Create the legend from the unique (de-duplicated) entries
+    ax.legend(unique_entries.values(), unique_entries.keys(), loc='upper left', bbox_to_anchor=(1.05, 1.0),
+              borderaxespad=0.)
 
     ax.grid(True, linestyle=':', color='dimgray', alpha=1.0)
 
@@ -1719,6 +1826,24 @@ def check_and_fill_object_data(config_data):
 
         object_name = obj_entry["Object"]
 
+        # --- NEW: Auto-calculate Constellation if missing ---
+        current_constellation = obj_entry.get("Constellation")
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+        # Check if constellation is missing and if RA/DEC are present and valid
+        if current_constellation in refetch_triggers and 'RA' in obj_entry and 'DEC' in obj_entry:
+            try:
+                ra_h = float(obj_entry['RA'])
+                dec_d = float(obj_entry['DEC'])
+                coords = SkyCoord(ra=ra_h*u.hourangle, dec=dec_d*u.deg)
+                new_constellation = get_constellation(coords, short_name=True)
+                obj_entry['Constellation'] = new_constellation
+                print(f"    Calculated and updated 'Constellation' for {object_name} = {new_constellation}")
+                modified = True
+            except (ValueError, TypeError, KeyError) as e:
+                print(f"    Could not calculate constellation for {object_name} due to invalid RA/DEC: {e}")
+        # --- END NEW ---
+
         fields_that_need_update = {}
         for config_key, fetcher_key in fields_to_check.items():
             current_value = obj_entry.get(config_key)
@@ -1748,31 +1873,37 @@ def check_and_fill_object_data(config_data):
                     new_value_from_fetcher = fetched_data.get(fetcher_key)
 
                     if new_value_from_fetcher is not None and new_value_from_fetcher != "":
+
+                        # --- NEW ROBUST TYPE CONVERSION ---
                         try:
-                            if isinstance(new_value_from_fetcher, float):
-                                if config_key == "Magnitude":
-                                    new_value_formatted = round(new_value_from_fetcher, 2)
-                                elif config_key == "Size":
-                                    new_value_formatted = round(new_value_from_fetcher, 2)
-                                elif config_key == "SB":
-                                    new_value_formatted = round(new_value_from_fetcher, 2)
+                            # Check if it's any kind of number (Python float, int, or any NumPy number)
+                            if isinstance(new_value_from_fetcher, (np.number, float, int)):
+                                # Convert to a standard Python float first
+                                native_float = float(new_value_from_fetcher)
+
+                                # Apply rounding based on the field
+                                if config_key in ["Magnitude", "Size", "SB"]:
+                                    new_value_formatted = round(native_float, 2)
                                 else:
-                                    new_value_formatted = new_value_from_fetcher
+                                    new_value_formatted = native_float
                             else:
+                                # If it's not a number, treat it as a string
                                 new_value_formatted = str(new_value_from_fetcher).strip()
-                        except ValueError:
+                        except (ValueError, TypeError):
                             print(
-                                f"    [WARN] Could not format fetched value '{new_value_from_fetcher}' for {config_key} of {object_name}. Storing as is or placeholder.")
-                            new_value_formatted = placeholder_on_fetch_failure
+                                f"    [WARN] Could not format fetched value '{new_value_from_fetcher}' for {config_key}. Storing as string or placeholder.")
+                            new_value_formatted = str(
+                                new_value_from_fetcher).strip() if new_value_from_fetcher else placeholder_on_fetch_failure
+                        # --- END OF NEW CONVERSION ---
 
                         current_config_value = obj_entry.get(config_key)
                         should_update = False
                         if current_config_value in refetch_trigger_values or \
                                 (isinstance(current_config_value,
                                             str) and current_config_value.strip().lower() == 'none'):
-                            should_update = True  # Always update if current value is a trigger
+                            should_update = True
                         elif current_config_value != new_value_formatted:
-                            should_update = True  # Update if different from existing valid value
+                            should_update = True
 
                         if should_update:
                             obj_entry[config_key] = new_value_formatted
@@ -1790,7 +1921,6 @@ def check_and_fill_object_data(config_data):
 
                 if object_had_an_update_this_round:
                     objects_actually_updated += 1
-
             except Exception as e:
                 print(f"[ERROR] Fetch operation failed for {object_name}: {e}")
                 for config_key in fields_that_need_update:
@@ -1811,6 +1941,7 @@ def check_and_fill_object_data(config_data):
 
     return modified
 
+
 @app.route('/fetch_object_details', methods=['POST'])
 @login_required
 def fetch_object_details():
@@ -1825,18 +1956,26 @@ def fetch_object_details():
 
     try:
         fetched = nova_data_fetcher.get_astronomical_data(object_name)
+
+        # --- FIX: Convert NumPy types to native Python types before sending to browser ---
+        clean_data = {
+            "Type": convert_to_native_python(fetched.get("object_type")),
+            "Magnitude": convert_to_native_python(fetched.get("magnitude")),
+            "Size": convert_to_native_python(fetched.get("size_arcmin")),
+            "SB": convert_to_native_python(fetched.get("surface_brightness"))
+        }
+
         return jsonify({
             "status": "success",
             "data": {
-                "Type":      fetched.get("object_type")        or "",
-                "Magnitude": fetched.get("magnitude")          or "",
-                "Size":      fetched.get("size_arcmin")        or "",
-                "SB":        fetched.get("surface_brightness") or ""
+                "Type": clean_data.get("Type") or "",
+                "Magnitude": clean_data.get("Magnitude") or "",
+                "Size": clean_data.get("Size") or "",
+                "SB": clean_data.get("SB") or ""
             }
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 @app.route('/confirm_object', methods=['POST'])
 @login_required
@@ -1846,20 +1985,19 @@ def confirm_object():
     common_name = req.get('name')
     ra = req.get('ra')
     dec = req.get('dec')
-    project = req.get('project', 'none') # Default 'none' from original code
+    project = req.get('project', 'none')
+    constellation = req.get('constellation')
 
-    # NEW: Get Type, Magnitude, Size, SB from the request
-    obj_type = req.get('type')      # Assuming the frontend sends 'type'
-    magnitude = req.get('magnitude')  # Assuming the frontend sends 'magnitude'
-    size = req.get('size')          # Assuming the frontend sends 'size'
-    sb = req.get('sb')              # Assuming the frontend sends 'sb'
+    # --- FIX: Use the helper function to clean data before saving ---
+    obj_type = convert_to_native_python(req.get('type'))
+    magnitude = convert_to_native_python(req.get('magnitude'))
+    size = convert_to_native_python(req.get('size'))
+    sb = convert_to_native_python(req.get('sb'))
 
-
-    if not object_name or not common_name: # RA/DEC also essential for a new object
+    if not object_name or not common_name:
         return jsonify({"status": "error", "message": "Object ID and name are required."}), 400
-    if ra is None or dec is None: # RA/DEC are critical
+    if ra is None or dec is None:
         return jsonify({"status": "error", "message": "RA and DEC are required for the object."}), 400
-
 
     config_data = load_user_config(current_user.username)
     objects_list = config_data.setdefault('objects', [])
@@ -1870,10 +2008,10 @@ def confirm_object():
         existing["Project"] = project
         existing["RA"] = ra
         existing["DEC"] = dec
-        # Update these fields if provided, otherwise keep existing or set to a default
         existing["Type"] = obj_type if obj_type is not None else existing.get("Type", "")
         existing["Magnitude"] = magnitude if magnitude is not None else existing.get("Magnitude", "")
         existing["Size"] = size if size is not None else existing.get("Size", "")
+        existing["Constellation"] = constellation if constellation is not None else existing.get("Constellation", "N/A")
         existing["SB"] = sb if sb is not None else existing.get("SB", "")
     else:
         new_obj = {
@@ -1882,12 +2020,11 @@ def confirm_object():
             "Project": project,
             "RA": ra,
             "DEC": dec,
-            # Add the new fields here
-            "Type": obj_type if obj_type is not None else "", # Default to empty string if not provided
+            "Constellation": constellation if constellation is not None else "N/A",
+            "Type": obj_type if obj_type is not None else "",
             "Magnitude": magnitude if magnitude is not None else "",
             "Size": size if size is not None else "",
             "SB": sb if sb is not None else ""
-            # Consider if default should be "N/A" or actual None if field is truly absent
         }
         objects_list.append(new_obj)
 
@@ -1937,6 +2074,7 @@ def get_data():
                 'Max Altitude (°)': "N/A",
                 'Angular Separation (°)': "N/A",
                 # Add placeholders for new fields in error case too
+                'Constellation': obj_details.get('Constellation', 'N/A'),
                 'Type': obj_details.get('Type', 'N/A'),
                 'Magnitude': obj_details.get('Magnitude', 'N/A'),
                 'Size': obj_details.get('Size', 'N/A'),
@@ -1958,7 +2096,7 @@ def get_data():
                 cached_positional = static_cache[cache_key]
             else:
                 alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
-                transit_time = calculate_transit_time(ra, g.lat, g.lon, g.tz_name)
+                transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
                 # altitude_threshold already defined above
                 obs_duration, max_alt = calculate_observable_duration_vectorized(
                     ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
@@ -2020,6 +2158,7 @@ def get_data():
                 'Project': obj_details.get('Project', "none"), # From get_ra_dec
                 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
                 # NEWLY ADDED FIELDS (from obj_details, which gets them from config)
+                'Constellation': obj_details.get('Constellation', 'N/A'),
                 'Type': obj_details.get('Type', 'N/A'),
                 'Magnitude': obj_details.get('Magnitude', 'N/A'),
                 'Size': obj_details.get('Size', 'N/A'),
@@ -2032,6 +2171,7 @@ def get_data():
             object_data_list.append({
                 'Object': obj_name_from_config,
                 'Common Name': f"Error processing: {e}",
+                'Constellation': 'N/A',
                 # ... fill other fields with N/A or defaults ...
                 'Type': 'N/A', 'Magnitude': 'N/A', 'Size': 'N/A', 'SB': 'N/A',
             })

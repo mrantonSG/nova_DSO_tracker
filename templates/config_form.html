@@ -41,13 +41,12 @@
       margin-bottom: 10px;
     }
     .error {
-      color: red;
+      color: #dc3545; /* A standard, clear red for errors */
     }
-    .message { /* Default for success messages from Flask */
-      color: green;
-    }
-    .progress-message { /* Style for our JS-driven progress message */
-        color: #6795a4;
+
+    .message,
+    .progress-message {
+      color: #6795a4; /* The consistent color for success and info messages */
     }
     .inline-button {
       padding: 5px 10px;
@@ -100,7 +99,10 @@
       background-color: #6795a4 !important;
     }
     input.object_field {
-      width: 40px;
+      width: 65px;
+    }
+    .field-small-numeric {
+      width: 102px; /* New, smaller width for Mag, Size, SB */
     }
     input.name_field {
       width: 250px;
@@ -428,6 +430,10 @@
         </div>
         <div class="inline-fields add-object-details-indent">
           <div>
+            <label class="short-label" for="new_constellation">Con:</label>
+            <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
+          </div>
+          <div>
             <label class="short-label" for="new_type">Type:</label>
             <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
           </div>
@@ -480,20 +486,24 @@
             </div>
             <div class="inline-fields second-row-fields">
               <div>
+                <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
+                <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
+              </div>
+              <div>
                 <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
                 <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
               </div>
               <div>
                 <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
-                <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="short" step="0.01" value="{{ obj.Magnitude|default('') }}">
+                <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
               </div>
               <div>
                 <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
-                <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="short" step="0.01" value="{{ obj.Size|default('') }}">
+                <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
               </div>
               <div>
                 <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
-                <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="short" step="0.01" value="{{ obj.SB|default('') }}">
+                <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
               </div>
             </div>
           </div>
@@ -535,7 +545,7 @@
                 if (numObjects > 0) {
                     progressText = `Fetching details for up to ${numObjects} object(s). The page will reload upon completion.`;
                 }
-                messageContainer.innerHTML = `<p class="progress-message" style="color: #007bff;">${progressText}</p>`;
+                messageContainer.innerHTML = `<p class="progress-message">${progressText}</p>`;
                 // console.log("Progress message set in message-container."); // Kept for your debugging
             }
 
@@ -597,7 +607,7 @@
             event.preventDefault();
             const objectName = document.getElementById('new_object').value.trim();
             if (!objectName) { alert("Please enter an object identifier."); return; }
-            resultDiv.innerHTML = '<p style="color:blue;">Searching SIMBAD, please wait...</p>';
+            resultDiv.innerHTML = '<p class="progress-message">Searching SIMBAD, please wait...</p>';
             fetch("{{ url_for('search_object') }}", {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ object: objectName })
@@ -608,8 +618,9 @@
               document.getElementById('new_name').value    = data.data["Common Name"];
               document.getElementById('new_ra').value      = data.data["RA (hours)"];
               document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
+              document.getElementById('new_constellation').value = data.data["Constellation"] || '';
               ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-              resultDiv.innerHTML = `<p style="color: #83b4c5;">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
+              resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
               return fetch("{{ url_for('fetch_object_details') }}", {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ object: objectName })
@@ -626,7 +637,7 @@
               ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
               submitNewObjectBtn.style.display = 'none'; // Hide search button after search
             })
-            .catch(err => { resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`; console.error(err); });
+            .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
           });
       }
 
@@ -643,6 +654,7 @@
                 type: document.getElementById('new_type').value.trim(),
                 magnitude: document.getElementById('new_magnitude').value,
                 size: document.getElementById('new_size').value,
+                constellation: document.getElementById('new_constellation').value.trim(),
                 sb: document.getElementById('new_sb').value
             };
             fetch("{{ url_for('confirm_object') }}", {
@@ -650,11 +662,11 @@
             })
             .then(response => response.json()).then(data => {
               if (data.status === "success") {
-                resultDiv.innerHTML = `<p style="color:green;">Object added successfully. Page will reload.</p>`;
+                resultDiv.innerHTML = `<p class="message">Object added successfully. Page will reload.</p>`;
                 setTimeout(() => window.location.reload(), 1500);
               } else { throw new Error(data.message || 'Add failed'); }
             })
-            .catch(err => { resultDiv.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`; console.error(err); });
+            .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
           });
       }
 
@@ -694,7 +706,7 @@
 
               importConfigBtn.disabled = true;
               importConfigBtn.innerText = "Importing Config...";
-              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message" style="color: #007bff;">Importing configuration...</p>`;
+              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message">Importing ...</p>`;
 
               fetch("{{ url_for('import_config') }}", { method: "POST", body: formData })
                 .then(resp => {
@@ -754,7 +766,7 @@
 
               importJournalBtn.disabled = true;
               importJournalBtn.innerText = "Importing Journal...";
-              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message" style="color: #007bff;">Importing journal...</p>`;
+              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message">Importing configuration...</p>`;
 
               fetch("{{ url_for('import_journal') }}", { method: "POST", body: formData })
                 .then(resp => {
