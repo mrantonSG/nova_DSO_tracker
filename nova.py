@@ -69,7 +69,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.9.0"
+APP_VERSION = "2.9.1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -2083,27 +2083,64 @@ def get_data():
             continue
 
         try:
-            ra = obj_details["RA (hours)"] # Already float from get_ra_dec
-            dec = obj_details["DEC (degrees)"] # Already float from get_ra_dec
+            ra = obj_details["RA (hours)"]
+            dec = obj_details["DEC (degrees)"]
 
-            # --- Compute live values ---
-            alt_current, az_current = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, current_time_utc)
+            # --- Pre-calculate full altitude curve for trend analysis ---
+            # The get_common_time_arrays function generates a 24-hour timeline
+            # starting from noon on the local_date.
+            times_local_for_trend, times_utc_for_trend = get_common_time_arrays(g.tz_name, local_date)
+
+            location_for_trend = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+            sky_coord_for_trend = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            altaz_frame_for_trend = AltAz(obstime=times_utc_for_trend, location=location_for_trend)
+            altitudes_for_trend = sky_coord_for_trend.transform_to(altaz_frame_for_trend).alt.deg
+            azimuths_for_trend = sky_coord_for_trend.transform_to(altaz_frame_for_trend).az.deg
+
+            # --- Corrected and Improved Trend Calculation ---
+            now_utc = datetime.now(pytz.utc)
+
+            # Find the index of the time closest to now in our pre-calculated list
+            time_diffs = [abs((t - now_utc).total_seconds()) for t in times_local_for_trend]
+            current_index = np.argmin(time_diffs)
+            current_alt = altitudes_for_trend[current_index]
+            current_az = azimuths_for_trend[current_index]
+
+            # Find the index for one minute from now
+            one_minute_later = now_utc + timedelta(minutes=1)
+            future_time_diffs = [abs((t - one_minute_later).total_seconds()) for t in times_local_for_trend]
+            next_index = np.argmin(future_time_diffs)
+
+            # Ensure we are looking at a future point
+            if next_index <= current_index and next_index + 1 < len(altitudes_for_trend):
+                next_index += 1
+
+            next_alt = altitudes_for_trend[next_index]
+
+            # Determine trend symbol
+            if abs(next_alt - current_alt) < 0.01:
+                trend = '–'  # Peaking
+            elif next_alt > current_alt:
+                trend = '↑'  # Rising
+            else:
+                trend = '↓'  # Setting
+            # --- End of Trend Calculation ---
 
             # --- Get 11PM/transit/obs/max from static_cache ---
-            # Using obj_name_from_config for cache key consistency
             cache_key = f"{obj_name_from_config.lower()}_{local_date}_{g.selected_location}"
             if cache_key in static_cache:
                 cached_positional = static_cache[cache_key]
             else:
-                alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
+                # This part now only calculates values that are truly static for the night
                 transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
-                # altitude_threshold already defined above
                 obs_duration, max_alt = calculate_observable_duration_vectorized(
                     ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
                 )
+                fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
+                alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
                 cached_positional = {
-                    'Altitude 11PM': alt_11pm,
-                    'Azimuth 11PM': az_11pm,
+                    'Altitude 11PM': f"{alt_11pm:.2f}",
+                    'Azimuth 11PM': f"{az_11pm:.2f}",
                     'Transit Time': transit_time,
                     'Observable Duration (min)': int(obs_duration.total_seconds() / 60) if obs_duration else 0,
                     'Max Altitude (°)': round(max_alt, 1) if max_alt is not None else "N/A"
@@ -2113,51 +2150,35 @@ def get_data():
             # --- Moon angular separation (hourly cache) ---
             current_hour_str = current_datetime_local.strftime('%Y-%m-%d_%H')
             moon_key = f"{obj_name_from_config.lower()}_{current_hour_str}_{g.selected_location}"
-
             if moon_key in moon_separation_cache:
                 angular_sep = moon_separation_cache[moon_key]
             else:
+                # ... (your existing moon separation logic) ...
                 location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
                 time_obj = Time(current_time_utc, format='isot', scale='utc')
                 moon_coord = get_body('moon', time_obj, location=location)
-                moon_altaz = moon_coord.transform_to(AltAz(obstime=time_obj, location=location))
+                obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                frame = AltAz(obstime=time_obj, location=location)
+                moon_altaz = moon_coord.transform_to(frame)
+                obj_altaz = obj_coord_sky.transform_to(frame)
+                angular_sep = obj_altaz.separation(moon_altaz).deg
+                moon_separation_cache[moon_key] = angular_sep
 
-                obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg) # Renamed to avoid conflict
-                obj_altaz_sky = obj_coord_sky.transform_to(AltAz(obstime=time_obj, location=location))
-
-                angular_sep = obj_altaz_sky.separation(moon_altaz).deg
-                moon_separation_cache[moon_key] = round(angular_sep, 1)
-
-
-            # --- Trend ---
-            prev_alt = prev_alts.get(obj_name_from_config)
-            trend = '→' # Default trend
-            if prev_alt is not None: # Check if there's a previous altitude
-                if alt_current > prev_alt:
-                    trend = '↑'
-                elif alt_current < prev_alt:
-                    trend = '↓'
-            prev_alts[obj_name_from_config] = alt_current
-
-
-            # Append all data, including new fields from obj_details
+            # Append all data
             object_data_list.append({
-                'Object': obj_details['Object'], # From get_ra_dec
-                'Common Name': obj_details['Common Name'], # From get_ra_dec
-                'RA (hours)': ra, # Already float
-                'DEC (degrees)': dec, # Already float
-                'Altitude Current': alt_current,
-                'Azimuth Current': az_current,
+                'Object': obj_details['Object'],
+                'Common Name': obj_details['Common Name'],
+                'Altitude Current': f"{current_alt:.2f}",
+                'Azimuth Current': f"{current_az:.2f}",
+                'Trend': trend,
                 'Altitude 11PM': cached_positional['Altitude 11PM'],
                 'Azimuth 11PM': cached_positional['Azimuth 11PM'],
                 'Transit Time': cached_positional['Transit Time'],
                 'Observable Duration (min)': cached_positional['Observable Duration (min)'],
                 'Max Altitude (°)': cached_positional['Max Altitude (°)'],
                 'Angular Separation (°)': round(angular_sep) if angular_sep is not None else "N/A",
-                'Trend': trend,
-                'Project': obj_details.get('Project', "none"), # From get_ra_dec
+                'Project': obj_details.get('Project', "none"),
                 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-                # NEWLY ADDED FIELDS (from obj_details, which gets them from config)
                 'Constellation': obj_details.get('Constellation', 'N/A'),
                 'Type': obj_details.get('Type', 'N/A'),
                 'Magnitude': obj_details.get('Magnitude', 'N/A'),
