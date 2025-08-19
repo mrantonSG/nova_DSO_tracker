@@ -644,7 +644,7 @@
 
       section.style.display = "block";
       // Update colspan to 7 to account for the new column
-      tbody.innerHTML = `<tr><td colspan="7" style="color: gray;">Searching for optimal dates...</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="color: gray;">Searching for optimal dates...</td></tr>`;
 
       fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`)
         .then(response => response.json())
@@ -652,7 +652,7 @@
           if (data.status === "success") {
             const rows = data.results;
             if (rows.length === 0) {
-              tbody.innerHTML = `<tr><td colspan="7" style="color: orange;">No good dates found...</td></tr>`;
+              tbody.innerHTML = `<tr><td colspan="9" style="color: orange;">No good dates found...</td></tr>`;
               return;
             }
 
@@ -664,13 +664,13 @@
               const formattedDate = formatDateISOtoEuropean(r.date);
 
               // Build the URL for the .ics file generator
-              const ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}`;
+              const ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`;
 
               const filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`;
 
               htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
                 <td>${formattedDate}</td>
-                <td>${r.obs_minutes}</td>
+                <td>${r.from_time}</td> <td>${r.to_time}</td>  <td>${r.obs_minutes}</td>
                 <td>${r.max_alt}</td>
                 <td>${r.moon_illumination}</td>
                 <td>${r.moon_separation}</td>
@@ -683,14 +683,14 @@
             tbody.innerHTML = htmlRows;
           } else {
             // Update colspan here too
-            tbody.innerHTML = `<tr><td colspan="7" style="color: red;">Error: ${data.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="color: red;">Error: ${data.message}</td></tr>`;
           }
         })
         .catch(error => {
           console.error("Error fetching opportunities:", error);
           // And here
           tbody.innerHTML =
-            "<tr><td colspan='7' style='color:red;'>An error occurred.</td></tr>";
+            "<tr><td colspan='9' style='color:red;'>An error occurred.</td></tr>";
         });
     }
 
@@ -1138,7 +1138,7 @@
       <thead>
         <tr>
           <th>Date</th>
-          <th>Obs Duration (min)</th>
+          <th>From</th> <th>To</th> <th>Obs Duration (min)</th>
           <th>Max Alt (°)</th>
           <th>Moon Illum (%)</th>
           <th>Ang Sep (°)</th>
