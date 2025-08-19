@@ -306,48 +306,26 @@ def get_common_time_arrays(tz_name, local_date):
 
 def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name, altitude_threshold):
     """
-    Calculate the duration (as a timedelta) over which a celestial object is observable
-    (i.e. its altitude is above a given threshold) during the night and determine the maximum altitude.
-
-    Parameters:
-      ra (float): Right ascension of the object (in hours)
-      dec (float): Declination of the object (in degrees)
-      lat (float): Observer's latitude (in degrees)
-      lon (float): Observer's longitude (in degrees)
-      local_date (str): The local date for the calculation in 'YYYY-MM-DD' format
-      tz_name (str): Time zone name (e.g., 'Asia/Singapore')
-      altitude_threshold (float): The minimum altitude (in degrees) at which the object is considered observable
-
-    Returns:
-      observable_duration (timedelta): Total duration when the object's altitude exceeds the threshold.
-      max_altitude (float): The maximum altitude (in degrees) attained by the object during the night.
+    Calculates observable duration, max altitude, and the start and end times of that window.
     """
-
-    # Create a timezone object using the provided tz_name
     local_tz = pytz.timezone(tz_name)
     date_obj = datetime.strptime(local_date, "%Y-%m-%d")
 
-    # Retrieve sun events using the cached version (make sure calculate_sun_events_cached is updated too)
     sun_events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
     dusk_str = sun_events.get("astronomical_dusk")
     dawn_str = sun_events.get("astronomical_dawn")
 
     if not dusk_str or not dawn_str:
-        print(f"[WARN] Missing sun events for {local_date}")
-        return timedelta(0), 0
+        return timedelta(0), 0, None, None
 
-    # Convert dusk and dawn strings to time objects
     dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
     dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
 
-    # Combine the local date with dusk and dawn times
     dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
     dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
-    # If dawn is less than or equal to dusk (i.e. dawn occurs after midnight), add one day to dawn_dt
     if dawn_dt <= dusk_dt:
         dawn_dt += timedelta(days=1)
 
-    # Define a sample interval (e.g. every 10 minutes)
     sample_interval = timedelta(minutes=10)
     times = []
     current = dusk_dt
@@ -356,25 +334,30 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
         current += sample_interval
 
     if not times:
-        return timedelta(0), 0
+        return timedelta(0), 0, None, None
 
-    # Convert the sample times to UTC for Astropy
     times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times],
                      format='isot', scale='utc')
-
-    # Create an EarthLocation and SkyCoord for the object
     location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-
-    # Transform the object coordinates into the AltAz frame for all sample times
     frame = AltAz(obstime=times_utc, location=location_obj)
     altaz = sky_coord.transform_to(frame)
     altitudes = altaz.alt.deg
 
-    # Use the provided threshold to determine which samples are "observable"
+    # --- NEW LOGIC TO FIND START AND END TIMES ---
     mask = np.array(altitudes) > altitude_threshold
+    observable_indices = np.where(mask)[0]
+
+    observable_from = None
+    observable_to = None
+    if observable_indices.size > 0:
+        start_index = observable_indices[0]
+        end_index = observable_indices[-1]
+        observable_from = times[start_index]
+        observable_to = times[end_index]
+    # --- END NEW LOGIC ---
+
     observable_minutes = int(np.sum(mask) * 10)
     max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
 
-    return timedelta(minutes=observable_minutes), max_altitude
-
+    return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to

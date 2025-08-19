@@ -69,7 +69,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.9.1"
+APP_VERSION = "2.9.2"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -694,15 +694,14 @@ def get_static_nightly_values(ra, dec, obj_name, local_date, fixed_time_utc_str,
     alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
     transit_time = calculate_transit_time(ra, lat, lon, tz_name)
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    observable_duration, max_altitude = calculate_observable_duration_vectorized(
+    obs_duration, max_altitude, _obs_from, _obs_to = calculate_observable_duration_vectorized(
         ra, dec, lat, lon, local_date, tz_name, altitude_threshold
     )
-
     static_cache[key] = {
         "Altitude 11PM": alt_11pm,
         "Azimuth 11PM": az_11pm,
         "Transit Time": transit_time,
-        "Observable Duration (min)": int(observable_duration.total_seconds() / 60),
+        "Observable Duration (min)": int(obs_duration.total_seconds() / 60),
         "Max Altitude (°)": round(max_altitude, 1) if max_altitude is not None else "N/A"
     }
     return static_cache[key]
@@ -2133,7 +2132,7 @@ def get_data():
             else:
                 # This part now only calculates values that are truly static for the night
                 transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
-                obs_duration, max_alt = calculate_observable_duration_vectorized(
+                obs_duration, max_alt, _obs_from, _obs_to = calculate_observable_duration_vectorized(
                     ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
                 )
                 fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
@@ -3076,7 +3075,7 @@ def get_imaging_opportunities(object_name):
 
         # Calculate observable duration and maximum altitude.
         altitude_threshold = g.user_config.get("altitude_threshold", 20)
-        obs_duration, max_altitude = calculate_observable_duration_vectorized(
+        obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
             ra, dec, g.lat, g.lon, date_str, g.tz_name, altitude_threshold
         )
         # Apply thresholds.
@@ -3128,6 +3127,8 @@ def get_imaging_opportunities(object_name):
         final_results.append({
             "date": date_str,
             "obs_minutes": int(obs_duration.total_seconds() / 60),
+            "from_time": obs_from.strftime('%H:%M') if obs_from else "N/A",
+            "to_time": obs_to.strftime('%H:%M') if obs_to else "N/A",
             "max_alt": round(max_altitude, 1),
             "moon_illumination": round(moon_phase, 1),
             "moon_separation": round(separation, 1),
@@ -3136,43 +3137,57 @@ def get_imaging_opportunities(object_name):
 
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
 
+
 @app.route('/generate_ics/<object_name>')
 def generate_ics(object_name):
-    # --- 1. Get required parameters from the URL query string ---
-    date_str = request.args.get('date') # e.g., "2025-08-19"
+    # --- 1. Get parameters from the URL query string ---
+    date_str = request.args.get('date')
     tz_name = request.args.get('tz')
     lat = float(request.args.get('lat'))
     lon = float(request.args.get('lon'))
+    from_time_str = request.args.get('from_time')
+    to_time_str = request.args.get('to_time')
 
-    # Get optional parameters for the event description
+    # Optional parameters for description
     max_alt = request.args.get('max_alt', 'N/A')
     moon_illum = request.args.get('moon_illum', 'N/A')
     obs_dur = request.args.get('obs_dur', 'N/A')
 
-    if not all([date_str, tz_name, lat is not None, lon is not None]):
-        return "Error: Missing required parameters (date, tz, lat, lon).", 400
+    if not all([date_str, tz_name, from_time_str, to_time_str]):
+        return "Error: Missing required parameters.", 400
+    if "N/A" in [from_time_str, to_time_str]:
+        return "Error: Cannot create calendar event for an object with no observable time.", 400
 
     try:
-        # --- 2. Calculate Precise Start and End Times ---
-        target_date = datetime.strptime(date_str, '%Y-%m-%d')
-        next_day_date = target_date + timedelta(days=1)
-        next_day_date_str = next_day_date.strftime('%Y-%m-%d')
-
-        # Get sun events for the target evening and the next morning
-        sun_events_today = calculate_sun_events_cached(date_str, tz_name, lat, lon)
-        sun_events_next_day = calculate_sun_events_cached(next_day_date_str, tz_name, lat, lon)
-
-        dusk_str = sun_events_today.get("astronomical_dusk", "20:00") # Fallback time
-        dawn_str = sun_events_next_day.get("astronomical_dawn", "05:00") # Fallback time
-
-        # Create timezone-aware datetime objects for the event start (dusk) and end (dawn)
+        # --- 2. Calculate Precise Start and End Datetimes ---
+        target_night_start_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         local_tz = pytz.timezone(tz_name)
-        start_time_local = local_tz.localize(datetime.combine(target_date, datetime.strptime(dusk_str, "%H:%M").time()))
-        end_time_local = local_tz.localize(datetime.combine(next_day_date, datetime.strptime(dawn_str, "%H:%M").time()))
 
-        # Convert to arrow objects for easy UTC conversion, which .ics requires
-        start_time_utc = arrow.get(start_time_local)
-        end_time_utc = arrow.get(end_time_local)
+        from_time = datetime.strptime(from_time_str, "%H:%M").time()
+        to_time = datetime.strptime(to_time_str, "%H:%M").time()
+
+        # --- NEW LOGIC to determine the correct calendar date ---
+        # Calculate dusk on the "night of" date to use as a reference.
+        sun_events_today = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+        dusk_str = sun_events_today.get("astronomical_dusk", "20:00")
+        dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
+
+        # If the observation starts before that evening's dusk, it must be on the next calendar day.
+        start_date = target_night_start_date
+        if from_time < dusk_time:
+            start_date += timedelta(days=1)
+
+        # Determine the end date. If the 'to_time' is earlier than 'from_time', it crosses another midnight.
+        end_date = start_date
+        if to_time < from_time:
+            end_date += timedelta(days=1)
+        # --- END NEW LOGIC ---
+
+        start_time_local_naive = datetime.combine(start_date, from_time)
+        end_time_local_naive = datetime.combine(end_date, to_time)
+
+        start_time_local = local_tz.localize(start_time_local_naive)
+        end_time_local = local_tz.localize(end_time_local_naive)
 
         # --- 3. Get Object's Common Name ---
         object_details = get_ra_dec(object_name)
@@ -3182,23 +3197,24 @@ def generate_ics(object_name):
         c = Calendar()
         e = Event()
         e.name = f"Imaging: {common_name}"
-        e.begin = start_time_utc
-        e.end = end_time_utc
+        e.begin = arrow.get(start_time_local)
+        e.end = arrow.get(end_time_local)
         e.location = f"Lat: {lat}, Lon: {lon}"
         e.description = (
             f"Astrophotography opportunity for {common_name} ({object_name}).\n\n"
-            f"Details for the night of {date_str}:\n"
-            f"- Max Altitude: {max_alt}°\n"
+            f"Details for the night starting {date_str}:\n"
+            f"- Observable From: {from_time_str}\n"
+            f"- Observable To: {to_time_str}\n"
             f"- Observable Duration: {obs_dur} min\n"
+            f"- Max Altitude: {max_alt}°\n"
             f"- Moon Illumination: {moon_illum}%\n\n"
-            f"Event times are set from Astronomical Dusk to the next Astronomical Dawn."
+            f"Event times are set to the calculated observable window for this night."
         )
-
         c.events.add(e)
 
-        # --- 5. Return the .ics file as a response ---
+        # --- 5. Return the .ics file ---
         ics_content = str(c)
-        filename = f"imaging_{object_name.replace(' ', '_')}_{date_str}.ics"
+        filename = f"imaging_{object_name.replace(' ', '_')}_{start_date.strftime('%Y-%m-%d')}.ics"
 
         return ics_content, 200, {
             'Content-Type': 'text/calendar; charset=utf-8',
@@ -3208,6 +3224,7 @@ def generate_ics(object_name):
     except Exception as ex:
         print(f"ERROR generating ICS file: {ex}")
         return f"An error occurred while generating the calendar file: {ex}", 500
+
 
 # =============================================================================
 # Main Entry Point
