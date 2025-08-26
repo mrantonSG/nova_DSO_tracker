@@ -26,6 +26,10 @@ import calendar
 import json
 import numpy as np
 from yaml.constructor import ConstructorError
+import threading
+import glob
+from datetime import datetime, timedelta
+import traceback
 
 import pytz
 import ephem
@@ -69,7 +73,7 @@ from modules import nova_data_fetcher
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "2.9.3"
+APP_VERSION = "3.X.b1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -77,6 +81,8 @@ load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
 nightly_curves_cache = {}
+cache_worker_status = {}
+monthly_top_targets_cache = {}
 config_cache = {}
 config_mtime = {}
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
@@ -258,6 +264,310 @@ def save_journal(username, journal_data):
 def generate_session_id():
     """Generates a unique session ID."""
     return uuid.uuid4().hex
+
+def trigger_outlook_update_for_user(username):
+    """
+    Loads a user's config and starts Outlook cache workers for all their locations.
+    """
+    print(f"[TRIGGER] Firing Outlook cache update for user '{username}' due to a project note change.")
+    try:
+        user_cfg = load_user_config(username)
+        locations = user_cfg.get('locations', {})
+        for loc_name in locations.keys():
+            # We don't need to check for staleness here, we want to force the update.
+            print(f"    -> Starting Outlook worker for location '{loc_name}'.")
+            thread = threading.Thread(target=update_outlook_cache, args=(loc_name, user_cfg.copy()))
+            thread.start()
+    except Exception as e:
+        print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
+
+def trigger_startup_cache_workers():
+    """
+    Checks caches on startup and launches workers sequentially with a delay
+    to avoid overwhelming the CPU. Prioritizes the default location.
+    """
+    print("[STARTUP] Checking all caches for freshness...")
+
+    usernames_to_check = list(users.keys())
+    if SINGLE_USER_MODE:
+        usernames_to_check.append('default')
+
+    for username in set(usernames_to_check):
+        try:
+            print(f"--- Checking caches for user: {username} ---")
+            config = load_user_config(username)
+            if not config:
+                print(f"    -> No config found for user '{username}', skipping.")
+                continue
+
+            locations = config.get("locations", {})
+            default_location = config.get("default_location")
+
+            # --- NEW: Staggered and Prioritized Worker Launch ---
+
+            # 1. Create a prioritized list of locations to process
+            locations_to_process = []
+            if default_location and default_location in locations:
+                locations_to_process.append(default_location)
+            for loc_name in locations.keys():
+                if loc_name != default_location:
+                    locations_to_process.append(loc_name)
+
+            # 2. Define a function to launch a worker for a single location
+            def launch_worker(loc_name, user_cfg):
+                print(f"[STARTUP] Starting main data cache warmer for '{username}' at location: '{loc_name}'.")
+                warm_thread = threading.Thread(target=warm_main_cache, args=(loc_name, user_cfg.copy()))
+                warm_thread.start()
+
+            # 3. Launch workers one by one with a delay
+            for i, loc_name in enumerate(locations_to_process):
+                delay = 0 if i == 0 else 15  # No delay for the first (default), 15s for others
+
+                # Use a Timer thread to launch the worker after a delay
+                timer_thread = threading.Timer(
+                    delay,
+                    launch_worker,
+                    args=(loc_name, config)
+                )
+                timer_thread.start()
+
+                if delay > 0:
+                    print(f"    -> Scheduling warmer for '{loc_name}' to start in {delay} seconds.")
+
+        except Exception as e:
+            print(f"❌ [STARTUP] ERROR: Could not trigger startup cache workers for user '{username}': {e}")
+
+
+def update_outlook_cache(location_name, user_config):
+    """
+    NEW LOGIC: Finds ALL good imaging opportunities for PROJECT objects only
+    and saves them sorted by date.
+    """
+    with app.app_context():
+        print(f"[OUTLOOK WORKER] Starting for location '{location_name}'.")
+        cache_worker_status[location_name] = "running"
+        cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+
+        try:
+            g.user_config = user_config
+            g.locations = user_config.get("locations", {})
+            loc_cfg = g.locations.get(location_name, {})
+            g.lat, g.lon, g.tz_name = loc_cfg.get("lat"), loc_cfg.get("lon"), loc_cfg.get("timezone", "UTC")
+            g.objects_list = g.user_config.get("objects", [])
+
+            lat, lon, tz_name = g.lat, g.lon, g.tz_name
+            altitude_threshold = user_config.get("altitude_threshold", 20)
+            if not all([lat, lon, tz_name]): raise ValueError(f"Missing lat/lon/tz for '{location_name}'")
+
+            criteria = {**{"min_observable_minutes": 60, "min_max_altitude": 30},
+                        **user_config.get("imaging_criteria", {})}
+
+            # --- NEW: Filter for objects with a project note ONLY ---
+            all_objects_from_config = user_config.get("objects", [])
+            project_objects = [
+                obj for obj in all_objects_from_config
+                if obj.get("Project") and obj.get("Project").lower().strip() not in ["", "none"]
+            ]
+            print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects.")
+
+            all_good_opportunities = []
+            local_tz = pytz.timezone(tz_name)
+            start_date = datetime.now(local_tz).date()
+            dates_to_check = [start_date + timedelta(days=i) for i in range(30)]
+
+            for obj_config_entry in project_objects:
+                try:
+                    time.sleep(0.01)
+                    object_name_from_config = obj_config_entry.get("Object")
+                    if not object_name_from_config: continue
+
+                    obj_details = get_ra_dec(object_name_from_config)
+                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get(
+                        "DEC (degrees)")
+                    if not all([object_name, ra, dec]): continue
+
+                    # --- NEW: Loop through dates and collect ALL good nights ---
+                    for d in dates_to_check:
+                        date_str = d.strftime('%Y-%m-%d')
+                        obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(ra, dec, lat, lon,
+                                                                                                    date_str, tz_name,
+                                                                                                    altitude_threshold)
+
+                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
+                                criteria["min_observable_minutes"]:
+                            continue
+
+                        # Perform scoring (same as before)
+                        moon_phase = ephem.Moon(
+                            local_tz.localize(datetime.combine(d, datetime.now().time())).astimezone(pytz.utc)).phase
+                        sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+                        dusk = sun_events.get("astronomical_dusk", "20:00")
+                        dusk_dt = local_tz.localize(datetime.combine(d, datetime.strptime(dusk, "%H:%M").time()))
+                        location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+                        frame = AltAz(obstime=Time(dusk_dt.astimezone(pytz.utc)), location=location_obj)
+                        obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                        moon_coord = get_body('moon', Time(dusk_dt.astimezone(pytz.utc)), location=location_obj)
+                        separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+                        score_alt = min((max_altitude - 20) / 70, 1) if max_altitude > 20 else 0
+                        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
+                        score_moon_illum = 1 - min(moon_phase / 100, 1)
+                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
+                                                                                                     1)
+                        composite_score = 100 * (
+                                    0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
+
+                        # --- NEW: If score is good, add it to the list ---
+                        if composite_score > 75:  # Set a threshold for what constitutes a "good" opportunity
+                            stars = int(round((composite_score / 100) * 4)) + 1
+                            good_night_opportunity = {
+                                "object_name": object_name,
+                                "common_name": obj_details.get("Common Name", object_name),
+                                "date": date_str,  # Note the key is now 'date'
+                                "score": composite_score,
+                                "rating": "★" * stars + "☆" * (5 - stars),
+                                "rating_num": stars,
+                                "max_alt": round(max_altitude, 1),
+                                "obs_dur": int(obs_duration.total_seconds() / 60),
+                                "project": obj_config_entry.get("Project", "none"),
+                                "type": obj_details.get("Type", "N/A"),
+                                "constellation": obj_details.get("Constellation", "N/A"),
+                                "magnitude": obj_details.get("Magnitude", "N/A"),
+                                "size": obj_details.get("Size", "N/A"),
+                                "sb": obj_details.get("SB", "N/A")
+                            }
+                            all_good_opportunities.append(good_night_opportunity)
+
+                except Exception as e:
+                    import traceback
+                    print(
+                        f"[OUTLOOK WORKER] WARNING: Skipping object '{obj_config_entry.get('Object', 'Unknown')}' due to an error: {e}")
+                    traceback.print_exc()
+                    continue
+
+            # --- NEW: Sort the final list of all opportunities by date ---
+            opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
+
+            cache_content = {
+                "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name},
+                "opportunities": opportunities_sorted_by_date
+            }
+
+            with open(cache_filename, 'w') as f:
+                json.dump(cache_content, f)
+            print(f"[OUTLOOK WORKER] Successfully updated cache file: {cache_filename}")
+            cache_worker_status[location_name] = "complete"
+
+        except Exception as e:
+            import traceback
+            print(f"❌ [OUTLOOK WORKER] FATAL ERROR for location '{location_name}': {e}")
+            traceback.print_exc()
+            cache_worker_status[location_name] = "error"
+
+def warm_main_cache(location_name, user_config):
+    """
+    Warms the main data cache on startup and then triggers the Outlook cache
+    update for the same location.
+    """
+    print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
+    try:
+        local_tz = pytz.timezone(user_config["locations"][location_name]["timezone"])
+        observing_date_for_calcs = datetime.now(local_tz) - timedelta(hours=12)
+        local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
+
+        for obj_entry in user_config.get("objects", []):
+            time.sleep(0.01)
+            obj_name = obj_entry.get("Object")
+            if not obj_name: continue
+
+            cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+            if cache_key in nightly_curves_cache:
+                continue
+
+            ra = float(obj_entry.get("RA", 0))
+            dec = float(obj_entry.get("DEC", 0))
+            lat = float(user_config["locations"][location_name]["lat"])
+            lon = float(user_config["locations"][location_name]["lon"])
+            tz_name = user_config["locations"][location_name]["timezone"]
+            alt_threshold = user_config.get("altitude_threshold", 20)
+
+            times_local, times_utc = get_common_time_arrays(tz_name, local_date)
+            location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            altaz_frame = AltAz(obstime=times_utc, location=location)
+            altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+            azimuths = sky_coord.transform_to(altaz_frame).az.deg
+            transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                ra, dec, lat, lon, local_date, tz_name, alt_threshold
+            )
+            fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+
+            nightly_curves_cache[cache_key] = {
+                "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths,
+                "transit_time": transit_time,
+                "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
+            }
+
+        print(f"[CACHE WARMER] Main data cache warming complete for '{location_name}'.")
+
+        # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
+        print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
+        # We re-use the same logic from the old startup function to check if an update is needed
+        cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+        needs_update = False
+        if not os.path.exists(cache_filename):
+            needs_update = True
+            print(f"    -> Outlook cache for '{location_name}' not found. Triggering update.")
+        else:
+            try:
+                with open(cache_filename, 'r') as f:
+                    data = json.load(f)
+                last_run_str = data.get("metadata", {}).get("last_successful_run_utc")
+                if not last_run_str or (
+                        datetime.now(pytz.utc) - datetime.fromisoformat(last_run_str)).total_seconds() > 86400:
+                    needs_update = True
+                    print(f"    -> Outlook cache for '{location_name}' is stale. Triggering update.")
+                else:
+                    print(f"    -> Outlook cache for '{location_name}' is already fresh. Skipping.")
+            except (json.JSONDecodeError, KeyError):
+                needs_update = True
+                print(f"    -> Outlook cache for '{location_name}' is corrupted. Triggering update.")
+
+        if needs_update:
+            thread = threading.Thread(target=update_outlook_cache, args=(location_name, user_config.copy()))
+            thread.start()
+
+    except Exception as e:
+        import traceback
+        print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
+        traceback.print_exc()
+
+@app.route('/get_outlook_data')
+def get_outlook_data():
+    # --- NEW: Check for guest user first ---
+    if hasattr(g, 'is_guest') and g.is_guest:
+        # Guests have no projects, so their outlook is always empty.
+        return jsonify({"status": "complete", "results": []})
+
+    # --- Original logic for logged-in users continues below ---
+    location_name = g.selected_location
+    cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+
+    if os.path.exists(cache_filename):
+        try:
+            with open(cache_filename, 'r') as f:
+                data = json.load(f)
+            return jsonify({"status": "complete", "results": data.get("opportunities", [])})
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"❌ ERROR: Could not read or parse outlook cache file '{cache_filename}': {e}")
+            return jsonify({"status": "error", "results": []})
+    else:
+        worker_status = cache_worker_status.get(location_name, "idle")
+        return jsonify({"status": worker_status, "results": []})
+
 
 @app.route('/journal')
 @login_required # Or handle SINGLE_USER_MODE appropriately if guests can see a default journal
@@ -746,6 +1056,7 @@ def load_user_config(username):
         with open(filepath, "r", encoding='utf-8') as file:
             config_data = yaml.safe_load(file) or {}
         print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
+        print(f"DEBUG: Loaded locations keys: {list(config_data.get('locations', {}).keys())}")
 
     except ConstructorError as e:
         # If safe_load fails due to an unknown tag, attempt repair.
@@ -1164,6 +1475,15 @@ def import_config():
 
         print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
         flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
+        print("[CONFIG] Config imported. Checking for new locations needing an Outlook cache.")
+        user_config_for_thread = new_config.copy()
+        for loc_name in user_config_for_thread.get('locations', {}).keys():
+            cache_filename = f"outlook_cache_{loc_name.lower().replace(' ', '_')}.json"
+            if not os.path.exists(cache_filename):
+                print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
+                thread = threading.Thread(target=update_outlook_cache, args=(loc_name, user_config_for_thread))
+                thread.start()
+
         return redirect(url_for('config_form'))
 
     except yaml.YAMLError as ye:
@@ -2037,9 +2357,33 @@ def get_data():
     local_tz = pytz.timezone(g.tz_name)
     current_datetime_local = datetime.now(local_tz)
 
-    # Define the "observing date" correctly for caching
-    observing_date_for_calcs = current_datetime_local - timedelta(hours=12)
-    local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
+    # --- NEW, MORE ACCURATE OBSERVING DATE LOGIC ---
+    # 1. Get today's and yesterday's dates
+    today_str = current_datetime_local.strftime('%Y-%m-%d')
+    yesterday_obj = current_datetime_local - timedelta(days=1)
+    yesterday_str = yesterday_obj.strftime('%Y-%m-%d')
+
+    # 2. Get today's astronomical dawn time
+    sun_events_today = calculate_sun_events_cached(today_str, g.tz_name, g.lat, g.lon)
+    dawn_today_str = sun_events_today.get("astronomical_dawn")
+
+    observing_date_str = today_str  # Assume today is the observing date by default
+
+    if dawn_today_str:
+        try:
+            # Create a datetime object for today's dawn
+            dawn_today_time = datetime.strptime(dawn_today_str, "%H:%M").time()
+            dawn_today_dt = local_tz.localize(datetime.combine(current_datetime_local.date(), dawn_today_time))
+
+            # 3. If the current time is BEFORE today's dawn, we are still in YESTERDAY's observing night
+            if current_datetime_local < dawn_today_dt:
+                observing_date_str = yesterday_str
+        except (ValueError, TypeError) as e:
+            print(f"Warning: Could not parse dawn time '{dawn_today_str}'. Defaulting to today's date. Error: {e}")
+            # Fallback to today_str if dawn time is invalid
+
+    local_date = observing_date_str
+    # --- END OF NEW LOGIC ---
 
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
     object_data_list = []
@@ -2051,7 +2395,6 @@ def get_data():
             # Handle error case for objects without coordinates
             object_data_list.append({
                 'Object': obj_name_from_config, 'Common Name': obj_details.get("Common Name", "Error: RA/DEC missing"),
-                # ... (add other fields with "N/A")
                 'Altitude Current': "N/A", 'Azimuth Current': "N/A", 'Trend': "N/A", 'Altitude 11PM': "N/A",
                 'Azimuth 11PM': "N/A", 'Transit Time': "N/A", 'Observable Duration (min)': "N/A",
                 'Max Altitude (°)': "N/A", 'Angular Separation (°)': "N/A",
@@ -2066,49 +2409,36 @@ def get_data():
         ra = obj_details["RA (hours)"]
         dec = obj_details["DEC (degrees)"]
 
-        # --- NEW CACHING LOGIC for nightly data ---
         cache_key = f"{obj_name_from_config.lower()}_{local_date}_{g.selected_location}"
 
         if cache_key not in nightly_curves_cache:
             print(f"[CACHE MISS] Calculating full night data for {obj_name_from_config} on {local_date}")
-            # --- Perform expensive calculations ONCE per night ---
             times_local, times_utc = get_common_time_arrays(g.tz_name, local_date)
-
             location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
             sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
             altaz_frame = AltAz(obstime=times_utc, location=location)
             altitudes = sky_coord.transform_to(altaz_frame).alt.deg
             azimuths = sky_coord.transform_to(altaz_frame).az.deg
-
             transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
             obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
                 ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
             )
-
             fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
 
-            # Store all calculated data in the cache
             nightly_curves_cache[cache_key] = {
-                "times_local": times_local,
-                "altitudes": altitudes,
-                "azimuths": azimuths,
-                "transit_time": transit_time,
+                "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
                 "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
                 "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-                "alt_11pm": f"{alt_11pm:.2f}",
-                "az_11pm": f"{az_11pm:.2f}"
+                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
             }
 
-        # --- Use data from the cache for all real-time calculations ---
         cached_night_data = nightly_curves_cache[cache_key]
         altitudes_cached = cached_night_data["altitudes"]
         azimuths_cached = cached_night_data["azimuths"]
         times_local_cached = cached_night_data["times_local"]
-
         now_utc = datetime.now(pytz.utc)
 
-        # Find current alt/az and trend using the cached curves (this is very fast)
         time_diffs = [abs((t - now_utc).total_seconds()) for t in times_local_cached]
         current_index = np.argmin(time_diffs)
         current_alt = altitudes_cached[current_index]
@@ -2118,8 +2448,7 @@ def get_data():
         future_time_diffs = [abs((t - one_minute_later).total_seconds()) for t in times_local_cached]
         next_index = np.argmin(future_time_diffs)
 
-        if next_index <= current_index and next_index + 1 < len(altitudes_cached):
-            next_index += 1
+        if next_index <= current_index and next_index + 1 < len(altitudes_cached): next_index += 1
         next_alt = altitudes_cached[next_index]
 
         if abs(next_alt - current_alt) < 0.01:
@@ -2129,47 +2458,35 @@ def get_data():
         else:
             trend = '↓'
 
-        # --- Moon separation (hourly cache, still dynamic) ---
-        # This calculation remains as it depends on the current hour
         current_hour_str = current_datetime_local.strftime('%Y-%m-%d_%H')
         moon_key = f"{obj_name_from_config.lower()}_{current_hour_str}_{g.selected_location}"
-        if moon_key in moon_separation_cache:
-            angular_sep = moon_separation_cache[moon_key]
-        else:
-            current_time_utc_str = datetime.now(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
-            location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-            time_obj = Time(current_time_utc_str, format='isot', scale='utc')
-            moon_coord = get_body('moon', time_obj, location=location)
-            obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-            frame = AltAz(obstime=time_obj, location=location)
-            moon_altaz = moon_coord.transform_to(frame)
-            obj_altaz = obj_coord_sky.transform_to(frame)
-            angular_sep = obj_altaz.separation(moon_altaz).deg
-            moon_separation_cache[moon_key] = angular_sep
 
-        # Append all data to the list
+        # This part has been simplified in the provided `nova.py` file, so we adopt that.
+        # It's better to calculate this once per object rather than using an hourly cache.
+        current_time_utc_str = datetime.now(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
+        location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+        time_obj = Time(current_time_utc_str, format='isot', scale='utc')
+        moon_coord = get_body('moon', time_obj, location=location)
+        obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        frame = AltAz(obstime=time_obj, location=location)
+        moon_altaz = moon_coord.transform_to(frame)
+        obj_altaz = obj_coord_sky.transform_to(frame)
+        angular_sep = obj_altaz.separation(moon_altaz).deg
+
         object_data_list.append({
-            'Object': obj_details['Object'],
-            'Common Name': obj_details['Common Name'],
-            'Altitude Current': f"{current_alt:.2f}",
-            'Azimuth Current': f"{current_az:.2f}",
-            'Trend': trend,
-            'Altitude 11PM': cached_night_data['alt_11pm'],
-            'Azimuth 11PM': cached_night_data['az_11pm'],
-            'Transit Time': cached_night_data['transit_time'],
+            'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
+            'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}",
+            'Trend': trend, 'Altitude 11PM': cached_night_data['alt_11pm'],
+            'Azimuth 11PM': cached_night_data['az_11pm'], 'Transit Time': cached_night_data['transit_time'],
             'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
             'Max Altitude (°)': cached_night_data['max_altitude'],
             'Angular Separation (°)': round(angular_sep) if angular_sep is not None else "N/A",
-            'Project': obj_details.get('Project', "none"),
-            'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-            'Constellation': obj_details.get('Constellation', 'N/A'),
-            'Type': obj_details.get('Type', 'N/A'),
-            'Magnitude': obj_details.get('Magnitude', 'N/A'),
-            'Size': obj_details.get('Size', 'N/A'),
+            'Project': obj_details.get('Project', "none"), 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+            'Constellation': obj_details.get('Constellation', 'N/A'), 'Type': obj_details.get('Type', 'N/A'),
+            'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'),
             'SB': obj_details.get('SB', 'N/A'),
         })
 
-    # Sort and return the JSON response (this part remains the same)
     sorted_objects = sorted(
         object_data_list,
         key=lambda x: float(x['Altitude Current']) if x.get('Altitude Current') != "N/A" else -91,
@@ -2354,6 +2671,11 @@ def config_form():
                         }
                         message = "New location added successfully."
                         updated = True
+
+                        print(f"[CONFIG] New location '{new_location_name}' added. Triggering Outlook cache update.")
+                        user_config_for_thread = g.user_config.copy()
+                        thread = threading.Thread(target=update_outlook_cache, args=(new_location_name, user_config_for_thread))
+                        thread.start()
                     except ValueError as ve:
                         error = f"Invalid input for new location: {ve}"
 
@@ -2445,6 +2767,7 @@ def config_form():
             # Centralized save if any 'updated' flag was set to True in any block
             if updated and not error:  # Check for error before saving, or decide how to handle partial saves
                 save_user_config(current_user.username, g.user_config)
+                trigger_outlook_update_for_user(current_user.username)
                 if message:  # If a specific message was set
                     message += " Configuration saved."
                 else:  # If no specific message, just say config saved
@@ -2502,6 +2825,8 @@ def update_project():
 
         # Save the updated configuration.
         save_user_config(current_user.username, config)
+
+        trigger_outlook_update_for_user(current_user.username)
 
         # Optionally update the persistent cache.
         key = object_name.lower()
@@ -3194,13 +3519,16 @@ def generate_ics(object_name):
 # =============================================================================
 # Main Entry Point
 # =============================================================================
+if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    trigger_startup_cache_workers()
 if __name__ == '__main__':
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
 
     app.run(
         debug=not disable_debug,
-        use_reloader=not disable_debug,
+        use_reloader=False,
+        # use_reloader=not disable_debug,
         host='0.0.0.0',
         port=5001
     )
