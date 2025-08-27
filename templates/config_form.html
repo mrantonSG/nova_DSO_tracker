@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Nova – Configuration{% endblock %}
+{% block title %}Nova – Configuration{% endblock %}
 
 {% block head_extra %}
   <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
@@ -257,6 +257,125 @@
     .add-object-details-indent > div {
       gap: 15px;
     }
+    /* --- NEW Tab Styles --- */
+    .tab-container {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #ccc;
+    }
+
+    .tab-button {
+        padding: 10px 20px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        background-color: #e9e9e9;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+        font-size: 16px;
+    }
+
+    .tab-button.active {
+        background-color: #fff;
+        border-color: #ccc;
+        border-bottom: 2px solid #fff;
+        position: relative;
+        top: 1px;
+    }
+
+    /* --- Styles for Rigs Tab (from index.html) --- */
+    .container { display: flex; gap: 2em; flex-wrap: wrap; }
+    .column { background-color: #fff; padding: 1.5em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex: 1; min-width: 350px;}
+    .column h2, .column h3 { color: #2c3e50; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.5em; margin-top: 0; }
+    .column details > summary { cursor: pointer; font-weight: bold; }
+    .column hr { border: 0; border-top: 1px solid #ecf0f1; margin: 1.5em 0; }
+    .column .form-group { margin-bottom: 1em; }
+    .column .form-group label { display: block; margin-bottom: 0.5em; font-weight: 600; font-size: 0.9em; }
+    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .column ul { list-style-type: none; padding: 0; }
+
+    /* --- MODIFIED Button Style for Rigs Tab --- */
+    .column button {
+      background-color: #83b4c5;
+      color: white;
+      padding: 5px 10px;      /* CHANGED */
+      border: none;
+      border-radius: 5px;     /* CHANGED */
+      cursor: pointer;
+      font-size: 14px;      /* CHANGED */
+    }
+
+    .column button:hover {
+      background-color: #6795a4;
+    }
+    .column li {
+      background-color: #fdfdfd;
+      border: 1px solid #eee;
+      padding: 0.8em;
+      margin-bottom: 0.5em;
+      border-radius: 4px;
+      font-size: 0.95em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .column li .item-info {
+        flex-grow: 1;
+    }
+    .column li .item-actions {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+    /* --- NEW Edit/Delete Button Styles --- */
+    .edit-btn, .delete-btn {
+        color: white;
+        border: none;
+        padding: 5px 10px;      /* CHANGED */
+        font-size: 14px;      /* CHANGED */
+        border-radius: 5px;     /* CHANGED */
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .edit-btn { background-color: #778899; }
+    .edit-btn:hover { background-color: #5a6875; }
+    .delete-btn { background-color: #dc3545; }
+    .delete-btn:hover { background-color: #c82333; }
+
+    /* --- NEW Dropdown Button Styles --- */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-btn {
+      padding-right: 20px; /* Make space for the arrow */
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f1f1f1;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 5px;
+      overflow: hidden; /* Ensures contained items have rounded corners */
+    }
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      font-size: 14px;
+    }
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+    .show {
+      display: block;
+    }
+
   </style>
 {% endblock %}
 </head>
@@ -272,539 +391,780 @@
       <a href="{{ url_for('index') }}" class="dlback-button">Back to Tracker</a>
     </div>
     <div id="message-container" style="height: 24px; flex-grow: 1; text-align: center;">
-      {% if error %}
-        <p class="error" id="error-msg" style="margin: 0;">Error: {{ error }}</p>
-      {% endif %}
-      {% if message %}
-        <p class="message" id="flash-msg" style="margin: 0;">{{ message }}</p>
-      {% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <p class="{{ 'error' if category == 'error' else 'message' }} flash-transient" style="margin: 0;">{{ message }}</p>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
     </div>
-    <div class="right-group">
+<div class="right-group">
       <form method="post" action="{{ url_for('fetch_all_details') }}" id="fetch-details-form">
         <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
       </form>
-      <a href="{{ url_for('download_config') }}" class="file-button">Download Config</a>
-      <a href="#" id="import-config-btn" class="file-button">Import Config</a>
-      <input type="file" id="config-upload" accept=".yaml" style="display:none;">
-      {# NEW Journal Buttons #}
-      <a href="{{ url_for('download_journal') }}" class="file-button" style="margin-right:5px;">Download Journal</a>
-      <a href="#" id="import-journal-btn" class="file-button">Import Journal</a>
-      <input type="file" id="journal-upload" accept=".yaml,.yml" style="display:none;">
 
+      <div class="dropdown">
+        <button class="file-button dropdown-btn">Download ▼</button>
+        <div class="dropdown-content">
+          <a href="{{ url_for('download_config') }}">Configuration</a>
+          <a href="{{ url_for('download_journal') }}">Journal</a>
+          <a href="{{ url_for('download_rig_config') }}">Rigs</a>
+        </div>
+      </div>
+
+      <div class="dropdown">
+        <button class="file-button dropdown-btn">Import ▼</button>
+        <div class="dropdown-content">
+          <a href="#" id="import-config-btn">Configuration</a>
+          <a href="#" id="import-journal-btn">Journal</a>
+          <a href="#" id="import-rigs-btn">Rigs</a>
+        </div>
+      </div>
+
+      <input type="file" id="config-upload" accept=".yaml" style="display:none;">
+      <input type="file" id="journal-upload" accept=".yaml,.yml" style="display:none;">
+      <input type="file" id="rigs-upload" accept=".yaml,.yml" style="display:none;">
     </div>
   </div>
 
-  <form method="post">
-    <fieldset>
-      <legend>General Settings</legend>
-      <div class="inline-fields">
-        <div>
-          <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
-          <input type="number" name="altitude_threshold" id="altitude_threshold"
-                 value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
-        </div>
-        <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
-      </div>
-      <hr>
-      <div class="inline-fields">
-        <div>
-          <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
-          <input type="number" name="min_observable_minutes" id="min_observable_minutes"
-                 value="{{ config.get('imaging_criteria', {}).get('min_observable_minutes', 60) }}" min="0" max="600">
-        </div>
-        <div>
-          <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
-          <input type="number" name="min_max_altitude" id="min_max_altitude"
-                 value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
-        </div>
-      </div>
-      <div class="inline-fields">
-        <div>
-          <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
-          <input type="number" name="max_moon_illumination" id="max_moon_illumination"
-                 value="{{ config.get('imaging_criteria', {}).get('max_moon_illumination', 20) }}" min="0" max="100">
-        </div>
-        <div>
-          <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
-          <input type="number" name="min_angular_separation" id="min_angular_separation"
-                 value="{{ config.get('imaging_criteria', {}).get('min_angular_distance', 30) }}" min="0" max="180">
-        </div>
-        <div>
-          <label class="verylong-label" for="search_horizon_months">Search months:</label>
-          <input type="number" name="search_horizon_months" id="search_horizon_months"
-                 value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
-        </div>
-      </div>
-       <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
-    </fieldset>
-  </form>
+  <div class="tab-container">
+    <button class="tab-button" data-tab="general">General</button>
+    <button class="tab-button" data-tab="locations">Locations</button>
+    <button class="tab-button" data-tab="objects">Objects</button>
+    <button class="tab-button" data-tab="rigs">Rigs</button>
+  </div>
 
-  <hr>
-  <form method="post">
-    <fieldset>
-      <legend>Locations Configuration</legend>
+  <div id="general-tab-content">
+      <form method="post">
+        <fieldset>
+          <legend>General Settings</legend>
+          <div class="inline-fields">
+            <div>
+              <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
+              <input type="number" name="altitude_threshold" id="altitude_threshold"
+                     value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
+            </div>
+            <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
+          </div>
+          <hr>
+          <div class="inline-fields">
+            <div>
+              <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
+              <input type="number" name="min_observable_minutes" id="min_observable_minutes"
+                     value="{{ config.get('imaging_criteria', {}).get('min_observable_minutes', 60) }}" min="0" max="600">
+            </div>
+            <div>
+              <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
+              <input type="number" name="min_max_altitude" id="min_max_altitude"
+                     value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
+            </div>
+          </div>
+          <div class="inline-fields">
+            <div>
+              <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
+              <input type="number" name="max_moon_illumination" id="max_moon_illumination"
+                     value="{{ config.get('imaging_criteria', {}).get('max_moon_illumination', 20) }}" min="0" max="100">
+            </div>
+            <div>
+              <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
+              <input type="number" name="min_angular_separation" id="min_angular_separation"
+                     value="{{ config.get('imaging_criteria', {}).get('min_angular_distance', 30) }}" min="0" max="180">
+            </div>
+            <div>
+              <label class="verylong-label" for="search_horizon_months">Search months:</label>
+              <input type="number" name="search_horizon_months" id="search_horizon_months"
+                     value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
+            </div>
+          </div>
+           <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
+        </fieldset>
+      </form>
+  </div>
+
+  <div id="locations-tab-content">
+      <form method="post">
+        <fieldset>
+          <legend>Locations Configuration</legend>
+          <fieldset>
+            <legend>Add New Location</legend>
+            <div class="inline-fields">
+              <div>
+                <label class="short-label" for="new_location">Name:</label>
+                <input type="text" name="new_location" id="new_location" placeholder="e.g., New York">
+              </div>
+              <div>
+                <label class="short-label" for="new_lat">Lat:</label>
+                <input type="text" name="new_lat" id="new_lat" placeholder="40.7128">
+              </div>
+              <div>
+                <label class="short-label" for="new_lon">Lon:</label>
+                <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
+              </div>
+              <div>
+                <label class="short-label" for="new_timezone">Timezone:</label>
+                <input type="text" name="new_timezone" id="new_timezone" placeholder="America/New_York">
+              </div>
+              <div>
+                <button type="submit" name="submit_new_location" value="1" class="action-button">Add</button>
+              </div>
+            </div>
+          </fieldset>
+          <hr>
+          <div class="locations-list">
+            {% for loc_key, loc_val in locations.items() %}
+              <div class="block">
+                <div class="inline-fields">
+                  <div class="location-id">
+                    <strong>{{ loc_key }}</strong>
+                  </div>
+                  <div>
+                    <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
+                    <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
+                    <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
+                  </div>
+                  <div>
+                    <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
+                    <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+            <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
+          </div>
+        </fieldset>
+      </form>
+  </div>
+
+  <div id="objects-tab-content">
       <fieldset>
-        <legend>Add New Location</legend>
-        <div class="inline-fields">
-          <div>
-            <label class="short-label" for="new_location">Name:</label>
-            <input type="text" name="new_location" id="new_location" placeholder="e.g., New York">
+        <legend>Add New Object</legend>
+        <div class="object-add-container">
+          <div class="row">
+            <div>
+              <label class="long-label" for="new_object">Object ID:</label>
+              <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
+            </div>
+            <div>
+              <label class="long-label" for="new_name">Name:</label>
+              <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+            </div>
           </div>
-          <div>
-            <label class="short-label" for="new_lat">Lat:</label>
-            <input type="text" name="new_lat" id="new_lat" placeholder="40.7128">
+          <div class="row">
+            <div>
+              <label class="long-label" for="new_ra">RA:</label>
+              <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
+            </div>
+            <div>
+              <label class="long-label" for="new_dec">DEC:</label>
+              <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
+            </div>
           </div>
-          <div>
-            <label class="short-label" for="new_lon">Lon:</label>
-            <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
+          <div class="inline-fields">
+            <div>
+              <label class="long-label" for="new_project">Notes:</label>
+              <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
+            </div>
           </div>
-          <div>
-            <label class="short-label" for="new_timezone">Timezone:</label>
-            <input type="text" name="new_timezone" id="new_timezone" placeholder="America/New_York">
+          <div class="inline-fields add-object-details-indent">
+            <div>
+              <label class="short-label" for="new_constellation">Con:</label>
+              <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
+            </div>
+            <div>
+              <label class="short-label" for="new_type">Type:</label>
+              <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
+            </div>
+            <div>
+              <label class="short-label" for="new_magnitude">Mag:</label>
+              <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
+            </div>
+            <div>
+              <label class="short-label" for="new_size">Size:</label>
+              <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
+            </div>
+            <div>
+              <label class="short-label" for="new_sb">SB:</label>
+              <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
+            </div>
           </div>
-          <div>
-            <button type="submit" name="submit_new_location" value="1" class="action-button">Add</button>
-          </div>
-        </div>
+          <button id="submit_new_object" type="button" name="submit_new_object" value="1" class="action-button">Search</button>
+          <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
+          <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
+          <div class="row"></div> </div>
+        <div id="object_result"></div>
       </fieldset>
       <hr>
-      <div class="locations-list">
-        {% for loc_key, loc_val in locations.items() %}
-          <div class="block">
-            <div class="inline-fields">
-              <div class="location-id">
-                <strong>{{ loc_key }}</strong>
+      <form method="post">
+        <div class="objects-list">
+            {% for obj in config.objects %}
+              <div class="block">
+                <div class="inline-fields">
+                  <div class="object-id">
+                    <strong>{{ obj.Object }}</strong>
+                  </div>
+                  <div>
+                    <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                    <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
+                    <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
+                    <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
+                    <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
+                  </div>
+                  <div>
+                    <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+                  </div>
+                </div>
+                <div class="inline-fields second-row-fields">
+                  <div>
+                    <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
+                    <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
+                  </div>
+                  <div>
+                    <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
+                    <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
+                    <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
+                    <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
+                    <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
+                  </div>
+                </div>
               </div>
-              <div>
-                <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
-                <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
-              </div>
-              <div>
-                <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
-                <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
-              </div>
-              <div>
-                <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
-                <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
-              </div>
-              <div>
-                <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-        <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
-      </div>
-    </fieldset>
-  </form>
+            {% endfor %}
+            <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
+        </div>
+      </form>
+  </div>
 
-  <form method="post">
-    <fieldset>
-      <legend>Add New Object</legend>
-      <div class="object-add-container">
-        <div class="row">
-          <div>
-            <label class="long-label" for="new_object">Object ID:</label>
-            <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
-          </div>
-          <div>
-            <label class="long-label" for="new_name">Name:</label>
-            <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
-          </div>
+  <div id="rigs-tab-content">
+    <div class="container">
+        <div class="column">
+            <h2>1. Define Your Components</h2>
+            <p style="font-size:14px; color: #555;">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
+            <details open>
+                <summary><h3>Telescopes (<span id="tele-count">0</span>)</h3></summary>
+                <form action="{{ url_for('add_component') }}" method="post" id="form-telescope">
+                    <input type="hidden" name="component_type" value="telescopes">
+                    <input type="hidden" name="component_id" value="">
+                    <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
+                    <div class="form-group"><label for="aperture">Aperture (mm):</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
+                    <div class="form-group"><label for="focal_length">Focal Length (mm):</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
+                    <button type="submit">Add Telescope</button>
+                </form>
+                <hr>
+                <ul id="telescope-list"></ul>
+            </details>
+            <hr>
+
+            <details open>
+                <summary><h3>Cameras (<span id="cam-count">0</span>)</h3></summary>
+                <form action="{{ url_for('add_component') }}" method="post" id="form-camera">
+                    <input type="hidden" name="component_type" value="cameras">
+                    <input type="hidden" name="component_id" value="">
+                    <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
+                    <div class="form-group"><label for="sensor_w">Sensor Width (mm):</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
+                    <div class="form-group"><label for="sensor_h">Sensor Height (mm):</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
+                    <div class="form-group"><label for="pixel_s">Pixel Size (μm):</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
+                    <button type="submit">Add Camera</button>
+                </form>
+                <hr>
+                <ul id="camera-list"></ul>
+            </details>
+            <hr>
+
+            <details open>
+                <summary><h3>Reducers / Extenders (<span id="red-count">0</span>)</h3></summary>
+                <form action="{{ url_for('add_component') }}" method="post" id="form-reducer">
+                    <input type="hidden" name="component_type" value="reducers_extenders">
+                    <input type="hidden" name="component_id" value="">
+                    <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
+                    <div class="form-group"><label for="factor">Factor:</label><input type="number" step="any" name="factor" id="factor" required placeholder="e.g., 0.7 for reducer"></div>
+                    <button type="submit">Add Reducer/Extender</button>
+                </form>
+                <hr>
+                <ul id="reducer-list"></ul>
+            </details>
         </div>
-        <div class="row">
-          <div>
-            <label class="long-label" for="new_ra">RA:</label>
-            <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
-          </div>
-          <div>
-            <label class="long-label" for="new_dec">DEC:</label>
-            <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
-          </div>
+
+        <div class="column">
+            <h2>2. Configure Your Rigs</h2>
+            <p style="font-size:14px; color: #555;">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
+            <form action="{{ url_for('add_rig') }}" method="post" id="form-rig">
+                <input type="hidden" name="rig_id" value="">
+                <div class="form-group"><label for="rig_name">Rig Name:</label><input type="text" name="rig_name" id="rig_name" required placeholder="e.g., C11 Deep Sky Rig"></div>
+                <div class="form-group">
+                    <label for="tele_select">Telescope:</label>
+                    <select name="telescope_id" id="tele_select" required>
+                        <option value="" disabled selected>-- Select a Telescope --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cam_select">Camera:</label>
+                    <select name="camera_id" id="cam_select" required>
+                        <option value="" disabled selected>-- Select a Camera --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="red_select">Reducer / Extender (Optional):</label>
+                    <select name="reducer_extender_id" id="red_select">
+                        <option value="">-- None --</option>
+                    </select>
+                </div>
+                <button type="submit">Create Rig</button>
+            </form>
+             <hr>
+            <h3>Existing Rigs (<span id="rig-count">0</span>)</h3>
+            <ul id="existing-rigs-list"></ul>
         </div>
-        <div class="inline-fields">
-          <div>
-            <label class="long-label" for="new_project">Notes:</label>
-            <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
-          </div>
-        </div>
-        <div class="inline-fields add-object-details-indent">
-          <div>
-            <label class="short-label" for="new_constellation">Con:</label>
-            <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
-          </div>
-          <div>
-            <label class="short-label" for="new_type">Type:</label>
-            <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
-          </div>
-          <div>
-            <label class="short-label" for="new_magnitude">Mag:</label>
-            <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
-          </div>
-          <div>
-            <label class="short-label" for="new_size">Size:</label>
-            <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
-          </div>
-          <div>
-            <label class="short-label" for="new_sb">SB:</label>
-            <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
-          </div>
-        </div>
-        <button id="submit_new_object" type="button" name="submit_new_object" value="1" class="action-button">Search</button>
-        <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
-        <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
-        <div class="row"></div> </div>
-      <div id="object_result"></div>
-    </fieldset>
-    <hr>
-    <div class="objects-list">
-        {% for obj in config.objects %}
-          <div class="block">
-            <div class="inline-fields">
-              <div class="object-id">
-                <strong>{{ obj.Object }}</strong>
-              </div>
-              <div>
-                <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
-                <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
-              </div>
-              <div>
-                <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
-                <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
-              </div>
-              <div>
-                <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
-                <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
-              </div>
-              <div>
-                <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
-                <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
-              </div>
-              <div>
-                <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
-              </div>
-            </div>
-            <div class="inline-fields second-row-fields">
-              <div>
-                <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
-                <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
-              </div>
-              <div>
-                <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
-                <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
-              </div>
-              <div>
-                <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
-                <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
-              </div>
-              <div>
-                <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
-                <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
-              </div>
-              <div>
-                <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
-                <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-        <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
     </div>
-  </form>
-  <br>
-  <script>
-    function confirmAndFetchDetails(formElement) {
-        // console.log("confirmAndFetchDetails called for form:", formElement.id); // Kept for your debugging
-        const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
-        let estimatedTime = numObjects * 0.6; // Adjusted estimated time slightly
+  </div>
 
+  <br>
+
+<script>
+    // --- Global variables ---
+    let rigsData = {}; // Store all rig data globally
+    let rigsDataLoaded = false;
+
+    // --- Rigs Tab Functions ---
+
+    function populateComponentFormForEdit(type, id) {
+        // --- NEW, ROBUST LOGIC ---
+        // First, determine the correct key for the component list based on the type.
+        let componentListKey;
+        if (type === 'telescope') {
+            componentListKey = 'telescopes';
+        } else if (type === 'camera') {
+            componentListKey = 'cameras';
+        } else if (type === 'reducer_extender') {
+            componentListKey = 'reducers_extenders';
+        } else {
+            // If the type is unknown, stop and log an error.
+            console.error("Unknown component type provided to populateComponentFormForEdit:", type);
+            return;
+        }
+
+        // Now, find the component in the correct list using the determined key.
+        const component = rigsData.components[componentListKey].find(c => c.id === id);
+        // --- END NEW LOGIC ---
+
+        if (!component) {
+            console.error("Could not find component with ID:", id, "in list:", componentListKey);
+            return; // Exit if the component can't be found.
+        }
+
+        // Map internal type 'reducer_extender' to the form's ID 'form-reducer'
+        const formType = type === 'reducer_extender' ? 'reducer' : type;
+        const form = document.getElementById(`form-${formType}`);
+
+        // Change the form's action to the update route
+        form.action = "{{ url_for('update_component') }}";
+
+        // Populate the form fields with the component's data
+        form.querySelector('input[name="component_id"]').value = component.id;
+        form.querySelector('input[name="name"]').value = component.name;
+
+        if (type === 'telescope') {
+            form.querySelector('input[name="aperture_mm"]').value = component.aperture_mm;
+            form.querySelector('input[name="focal_length_mm"]').value = component.focal_length_mm;
+        } else if (type === 'camera') {
+            form.querySelector('input[name="sensor_width_mm"]').value = component.sensor_width_mm;
+            form.querySelector('input[name="sensor_height_mm"]').value = component.sensor_height_mm;
+            form.querySelector('input[name="pixel_size_um"]').value = component.pixel_size_um;
+        } else if (type === 'reducer_extender') {
+            form.querySelector('input[name="factor"]').value = component.factor;
+        }
+
+        // Update the button text and scroll the form into view
+        form.querySelector('button[type="submit"]').textContent = 'Update Component';
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function populateRigFormForEdit(id) {
+        const rig = rigsData.rigs.find(r => r.rig_id === id);
+        if (!rig) return;
+
+        const form = document.getElementById('form-rig');
+        form.querySelector('input[name="rig_id"]').value = rig.rig_id;
+        form.querySelector('input[name="rig_name"]').value = rig.rig_name;
+        form.querySelector('select[name="telescope_id"]').value = rig.telescope_id;
+        form.querySelector('select[name="camera_id"]').value = rig.camera_id;
+        form.querySelector('select[name="reducer_extender_id"]').value = rig.reducer_extender_id || '';
+        form.querySelector('button[type="submit"]').textContent = 'Update Rig';
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function fetchRigsData() {
+        if (rigsDataLoaded) return;
+        fetch('/get_rig_data')
+            .then(response => response.json())
+            .then(data => {
+                rigsData = data; // Store data globally
+                renderRigsUI();
+                rigsDataLoaded = true;
+            })
+            .catch(error => console.error("Error fetching rigs data:", error));
+    }
+
+    function renderRigsUI() {
+        const data = rigsData; // Use global data
+        if (!data.components) return;
+
+        const { telescopes, cameras, reducers_extenders } = data.components;
+        const { rigs } = data;
+
+        document.getElementById('telescope-list').innerHTML = telescopes.map(t => `
+            <li>
+                <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)</div>
+                <div class="item-actions">
+                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
+                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                        <input type="hidden" name="component_id" value="${t.id}">
+                        <input type="hidden" name="component_type" value="telescopes">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </div>
+            </li>`).join('') || '<li>No telescopes defined.</li>';
+
+        document.getElementById('camera-list').innerHTML = cameras.map(c => `
+            <li>
+                <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)</div>
+                <div class="item-actions">
+                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
+                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                        <input type="hidden" name="component_id" value="${c.id}">
+                        <input type="hidden" name="component_type" value="cameras">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </div>
+            </li>`).join('') || '<li>No cameras defined.</li>';
+
+        document.getElementById('reducer-list').innerHTML = reducers_extenders.map(r => `
+            <li>
+                <div class="item-info">${r.name} (${r.factor}x)</div>
+                <div class="item-actions">
+                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
+                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                        <input type="hidden" name="component_id" value="${r.id}">
+                        <input type="hidden" name="component_type" value="reducers_extenders">
+                        <button type="submit" class="delete-btn">Delete</button>
+                    </form>
+                </div>
+            </li>`).join('') || '<li>No reducers defined.</li>';
+
+        const teleSelect = document.getElementById('tele_select');
+        const camSelect = document.getElementById('cam_select');
+        const redSelect = document.getElementById('red_select');
+        if(teleSelect) teleSelect.innerHTML = '<option value="" disabled selected>-- Select a Telescope --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        if(camSelect) camSelect.innerHTML = '<option value="" disabled selected>-- Select a Camera --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        if(redSelect) redSelect.innerHTML = '<option value="">-- None --</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
+
+        const rigList = document.getElementById('existing-rigs-list');
+        rigList.innerHTML = rigs.map(rig => {
+            const tele = telescopes.find(t => t.id === rig.telescope_id);
+            const cam = cameras.find(c => c.id === rig.camera_id);
+            const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
+            let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
+            if (rig.image_scale) {
+                detailsHtml += `<hr style="margin: 0.5em 0; border-color: #f5f5f5;"><small style="color: #666;">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+            }
+            return `<li>
+                        <div class="item-info">${detailsHtml}</div>
+                        <div class="item-actions">
+                            <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
+                            <form action="{{ url_for('delete_rig') }}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
+                                <input type="hidden" name="rig_id" value="${rig.rig_id}">
+                                <button type="submit" class="delete-btn">Delete</button>
+                            </form>
+                        </div>
+                    </li>`;
+        }).join('') || '<li>No rigs configured yet.</li>';
+
+        document.getElementById('tele-count').innerText = telescopes.length;
+        document.getElementById('cam-count').innerText = cameras.length;
+        document.getElementById('red-count').innerText = reducers_extenders.length;
+        document.getElementById('rig-count').innerText = rigs.length;
+    }
+
+    // --- General Page Logic ---
+    function confirmAndFetchDetails(formElement) {
+        const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
+        let estimatedTime = numObjects * 0.6;
         let confirmationMessage = "Fetching all missing object details (Type, Magnitude, Size, SB) can take some time.\n";
         if (numObjects > 0) {
             confirmationMessage += `With ${numObjects} object(s), this might take around ${estimatedTime.toFixed(0)} seconds.\n`;
         }
         confirmationMessage += "Only fields currently empty or marked 'N/A' or 'Fetch Error' will be updated.\nAre you sure you want to proceed?";
-
         if (confirm(confirmationMessage)) {
-            // console.log("User confirmed fetch."); // Kept for your debugging
             const messageContainer = document.getElementById('message-container');
             const button = document.getElementById('fetch-details-button');
-
             if (button) {
                 button.disabled = true;
                 button.innerText = 'Processing... Please Wait';
-                // console.log("Button text and disabled state set."); // Kept for your debugging
             }
-
             if (messageContainer) {
                 const existingError = document.getElementById('error-msg');
                 const existingFlash = document.getElementById('flash-msg');
                 if (existingError) existingError.remove();
                 if (existingFlash) existingFlash.remove();
-
-                let progressText = "Fetching details. This may take a moment.";
-                if (numObjects > 0) {
-                    progressText = `Fetching details for up to ${numObjects} object(s). The page will reload upon completion.`;
-                }
+                let progressText = `Fetching details for up to ${numObjects} object(s). The page will reload upon completion.`;
                 messageContainer.innerHTML = `<p class="progress-message">${progressText}</p>`;
-                // console.log("Progress message set in message-container."); // Kept for your debugging
             }
-
             requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    // console.log("Submitting form now via JS using requestAnimationFrame."); // Kept for your debugging
-                    formElement.submit();
-                });
+                requestAnimationFrame(() => formElement.submit());
             });
-        } else {
-            // console.log("User cancelled fetch."); // Kept for your debugging
         }
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-      const fetchDetailsForm = document.getElementById('fetch-details-form');
-      if (fetchDetailsForm) {
-        // console.log("Adding submit listener to fetch-details-form"); // Kept
-        fetchDetailsForm.addEventListener('submit', function(event) {
-          // console.log("fetch-details-form submit event triggered."); // Kept
-          event.preventDefault();
-          confirmAndFetchDetails(this);
-        });
-      } else {
-          // console.error("Fetch details form not found!"); // Kept
-      }
+    // --- Main Initializer ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Tab Management ---
+        const tabs = document.querySelectorAll('.tab-button');
+        const contentPanels = {
+            general: document.getElementById('general-tab-content'),
+            locations: document.getElementById('locations-tab-content'),
+            objects: document.getElementById('objects-tab-content'),
+            rigs: document.getElementById('rigs-tab-content')
+        };
+        let activeTab = localStorage.getItem('activeConfigTab') || 'general';
 
-      setTimeout(() => {
-        const messageContainer = document.getElementById('message-container');
-        const isProgressActive = messageContainer && messageContainer.querySelector('.progress-message');
-        if (!isProgressActive) {
-            const flash = document.getElementById("flash-msg");
-            const error = document.getElementById("error-msg");
-            [flash, error].forEach(el => {
-              if (el) {
-                el.style.transition = "opacity 0.5s ease";
-                el.style.opacity = "0";
-                setTimeout(() => el.remove(), 500);
-              }
+        function updateTabDisplay() {
+            Object.values(contentPanels).forEach(panel => {
+                if(panel) panel.style.display = 'none';
             });
-            // Clear message/error from URL query params if they exist
-            // const url = new URL(window.location.href);
-            // if (url.searchParams.has('message')) url.searchParams.delete('message');
-            // if (url.searchParams.has('error')) url.searchParams.delete('error');
-            // if (window.history.replaceState) { // Check if replaceState is supported
-            //   window.history.replaceState({}, document.title, url.pathname + url.search);
-            // }
+            tabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === activeTab);
+            });
+            if (contentPanels[activeTab]) {
+                contentPanels[activeTab].style.display = 'block';
+            }
+            if (activeTab === 'rigs') {
+                fetchRigsData();
+            }
+            localStorage.setItem('activeConfigTab', activeTab);
         }
-      }, 3000);
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                activeTab = tab.dataset.tab;
+                updateTabDisplay();
+            });
+        });
+        updateTabDisplay(); // Initial call
 
-      const resultDiv = document.getElementById('object_result');
-      const submitNewObjectBtn = document.getElementById('submit_new_object');
-      const confirmAddObjectBtn = document.getElementById('confirm_add_object');
-      const editObjectBtn = document.getElementById('edit_object');
+        // --- Message Fader ---
+        setTimeout(() => {
+            const messageContainer = document.getElementById('message-container');
+            if (messageContainer && !messageContainer.querySelector('.progress-message')) {
+                document.querySelectorAll(".flash-transient").forEach(el => {
+                    el.style.transition = "opacity 0.5s ease";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 500);
+                });
+            }
+        }, 3000);
 
-      // Attaches the event listener for the "Search" button
-      if (submitNewObjectBtn) {
-          submitNewObjectBtn.addEventListener('click', function(event) {
-            event.preventDefault();
-            const objectName = document.getElementById('new_object').value.trim();
-            if (!objectName) { alert("Please enter an object identifier."); return; }
-            resultDiv.innerHTML = '<p class="progress-message">Searching SIMBAD, please wait...</p>';
-            fetch("{{ url_for('search_object') }}", {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ object: objectName })
-            })
-            .then(r => r.json())
-            .then(data => {
-              if (data.status !== "success") throw new Error(data.message || 'SIMBAD lookup failed');
-              document.getElementById('new_name').value    = data.data["Common Name"];
-              document.getElementById('new_ra').value      = data.data["RA (hours)"];
-              document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
-              document.getElementById('new_constellation').value = data.data["Constellation"] || '';
-              ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-              resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
-              return fetch("{{ url_for('fetch_object_details') }}", {
+        // --- Fetch Details Logic ---
+        const fetchDetailsForm = document.getElementById('fetch-details-form');
+        if (fetchDetailsForm) {
+            fetchDetailsForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                confirmAndFetchDetails(this);
+            });
+        }
+
+        // --- Add Object Form Logic ---
+        const resultDiv = document.getElementById('object_result');
+        const submitNewObjectBtn = document.getElementById('submit_new_object');
+        const confirmAddObjectBtn = document.getElementById('confirm_add_object');
+        const editObjectBtn = document.getElementById('edit_object');
+        if (submitNewObjectBtn) {
+            submitNewObjectBtn.addEventListener('click', function(event) {
+                // ... (add object search logic is unchanged)
+                event.preventDefault();
+                const objectName = document.getElementById('new_object').value.trim();
+                if (!objectName) { alert("Please enter an object identifier."); return; }
+                resultDiv.innerHTML = '<p class="progress-message">Searching SIMBAD, please wait...</p>';
+                fetch("{{ url_for('search_object') }}", {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ object: objectName })
-              });
-            })
-            .then(r => r.json())
-            .then(extra => {
-              if (extra.status === 'success') {
-                document.getElementById('new_type').value      = extra.data.Type      || '';
-                document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
-                document.getElementById('new_size').value      = extra.data.Size      || '';
-                document.getElementById('new_sb').value        = extra.data.SB        || '';
-              } else { console.warn("Extra fields error:", extra.message); }
-              ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
-              submitNewObjectBtn.style.display = 'none'; // Hide search button after search
-            })
-            .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
-          });
-      }
-
-      // Attaches the event listener for the "Confirm Add" button
-      if (confirmAddObjectBtn) {
-          confirmAddObjectBtn.addEventListener('click', function(event) {
-            event.preventDefault();
-            const payload = {
-                object: document.getElementById('new_object').value.trim(),
-                name: document.getElementById('new_name').value.trim(),
-                ra: document.getElementById('new_ra').value.trim(),
-                dec: document.getElementById('new_dec').value.trim(),
-                project: document.getElementById('new_project').value.trim(),
-                type: document.getElementById('new_type').value.trim(),
-                magnitude: document.getElementById('new_magnitude').value,
-                size: document.getElementById('new_size').value,
-                constellation: document.getElementById('new_constellation').value.trim(),
-                sb: document.getElementById('new_sb').value
-            };
-            fetch("{{ url_for('confirm_object') }}", {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-            })
-            .then(response => response.json()).then(data => {
-              if (data.status === "success") {
-                resultDiv.innerHTML = `<p class="message">Object added successfully. Page will reload.</p>`;
-                setTimeout(() => window.location.reload(), 1500);
-              } else { throw new Error(data.message || 'Add failed'); }
-            })
-            .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
-          });
-      }
-
-      // **FIXED**: Attaches the event listener for the "Edit" button correctly
-      if (editObjectBtn) {
-          editObjectBtn.addEventListener('click', function(event) {
-            event.preventDefault();
-            ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.readOnly = false;
+                })
+                .then(r => r.json())
+                .then(data => {
+                  if (data.status !== "success") throw new Error(data.message || 'SIMBAD lookup failed');
+                  document.getElementById('new_name').value    = data.data["Common Name"];
+                  document.getElementById('new_ra').value      = data.data["RA (hours)"];
+                  document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
+                  document.getElementById('new_constellation').value = data.data["Constellation"] || '';
+                  ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
+                  return fetch("{{ url_for('fetch_object_details') }}", {
+                      method: 'POST', headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ object: objectName })
+                  });
+                })
+                .then(r => r.json())
+                .then(extra => {
+                  if (extra.status === 'success') {
+                      document.getElementById('new_type').value      = extra.data.Type      || '';
+                      document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
+                      document.getElementById('new_size').value      = extra.data.Size      || '';
+                      document.getElementById('new_sb').value        = extra.data.SB        || '';
+                  } else { console.warn("Extra fields error:", extra.message); }
+                  ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                  submitNewObjectBtn.style.display = 'none';
+                })
+                .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
             });
-            document.getElementById('new_object').readOnly = false;
-          });
-      }
-
-
-      // --- Config Import/Export (Your existing, with minor fetch refinements) ---
-      const importConfigBtn = document.getElementById('import-config-btn');
-      const configUploadInput = document.getElementById('config-upload');
-
-      if (importConfigBtn && configUploadInput) {
-          importConfigBtn.addEventListener('click', (event) => {
-              event.preventDefault();
-              if (confirm("This will overwrite your current configuration. Your existing configuration will be backed up. Are you sure?")) {
-                  configUploadInput.click();
-              }
-          });
-
-          configUploadInput.addEventListener('change', function () {
-              const file = this.files[0];
-              if (!file) return;
-              const formData = new FormData();
-              formData.append("file", file);
-
-              const originalImportConfigText = importConfigBtn.innerText;
-              const messageContainer = document.getElementById('message-container');
-
-              importConfigBtn.disabled = true;
-              importConfigBtn.innerText = "Importing Config...";
-              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message">Importing ...</p>`;
-
-              fetch("{{ url_for('import_config') }}", { method: "POST", body: formData })
-                .then(resp => {
-                  if (resp.ok && resp.redirected) {
-                    window.location.href = resp.url; // Should have flash message from server
-                  } else { // Error or non-redirecting response
-                    return resp.text().then(text => {
-                      let errorMsg = "Config import failed.";
-                      try {
-                          const errData = JSON.parse(text); // If Flask returns JSON error
-                          if (errData.message) errorMsg = errData.message;
-                          else if (errData.error) errorMsg = errData.error;
-                          else if (resp.status >= 400) errorMsg = `Config import failed (status ${resp.status}): ${text.substring(0,300)}`;
-                      } catch(e) { // Not a JSON error from Flask, might be HTML error page or other text
-                          if (resp.status >= 400) errorMsg = `Config import failed (status ${resp.status}): ${text.substring(0,300)}`;
-                          else errorMsg = `Unexpected response: ${text.substring(0,300)}`;
-                      }
-                      alert(errorMsg); // Show error in alert
-                      if(messageContainer) messageContainer.innerHTML = `<p class="error">${errorMsg}</p>`;
-                    });
-                  }
+        }
+        if (confirmAddObjectBtn) {
+            // ... (confirm add object logic is unchanged)
+            confirmAddObjectBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                const payload = {
+                    object: document.getElementById('new_object').value.trim(),
+                    name: document.getElementById('new_name').value.trim(),
+                    ra: document.getElementById('new_ra').value.trim(),
+                    dec: document.getElementById('new_dec').value.trim(),
+                    project: document.getElementById('new_project').value.trim(),
+                    type: document.getElementById('new_type').value.trim(),
+                    magnitude: document.getElementById('new_magnitude').value,
+                    size: document.getElementById('new_size').value,
+                    constellation: document.getElementById('new_constellation').value.trim(),
+                    sb: document.getElementById('new_sb').value
+                };
+                fetch("{{ url_for('confirm_object') }}", {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 })
-                .catch(e => {
-                  alert("Config import failed: " + e.message);
-                  if(messageContainer) messageContainer.innerHTML = `<p class="error">Config import failed: ${e.message}</p>`;
+                .then(response => response.json()).then(data => {
+                if (data.status === "success") {
+                    resultDiv.innerHTML = `<p class="message">Object added successfully. Page will reload.</p>`;
+                    setTimeout(() => window.location.reload(), 1500);
+                } else { throw new Error(data.message || 'Add failed'); }
                 })
-                .finally(() => {
-                  importConfigBtn.disabled = false;
-                  importConfigBtn.innerText = originalImportConfigText;
-                  this.value = ""; // Clear the file input
+                .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
+            });
+        }
+        if (editObjectBtn) {
+            // ... (edit object logic is unchanged)
+            editObjectBtn.addEventListener('click', function(event) {
+                event.preventDefault();
+                ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.readOnly = false;
                 });
-          });
-      }
+                document.getElementById('new_object').readOnly = false;
+            });
+        }
 
-      // ====================================================================
-      // NEW JAVASCRIPT FOR JOURNAL IMPORT
-      // ====================================================================
-      const importJournalBtn = document.getElementById('import-journal-btn');
-      const journalUploadInput = document.getElementById('journal-upload');
-
-      if (importJournalBtn && journalUploadInput) {
-          importJournalBtn.addEventListener('click', (event) => {
-              event.preventDefault();
-              if (confirm("This will overwrite your current journal with the uploaded file. Your existing journal will be backed up. Are you sure?")) {
-                  journalUploadInput.click();
-              }
-          });
-
-          journalUploadInput.addEventListener('change', function () {
-              const file = this.files[0];
-              if (!file) return;
-              const formData = new FormData();
-              formData.append("file", file);
-
-              const originalImportJournalText = importJournalBtn.innerText;
-              const messageContainer = document.getElementById('message-container');
-
-              importJournalBtn.disabled = true;
-              importJournalBtn.innerText = "Importing Journal...";
-              if(messageContainer) messageContainer.innerHTML = `<p class="progress-message">Importing configuration...</p>`;
-
-              fetch("{{ url_for('import_journal') }}", { method: "POST", body: formData })
-                .then(resp => {
-                  if (resp.ok && resp.redirected) {
-                    window.location.href = resp.url; // Should have flash message
-                  } else {
-                    return resp.text().then(text => {
-                      let errorMsg = "Journal import failed.";
-                      try {
-                          const errData = JSON.parse(text);
-                          if (errData.message) errorMsg = errData.message;
-                          else if (errData.error) errorMsg = errData.error;
-                          else if (resp.status >= 400) errorMsg = `Journal import failed (status ${resp.status}): ${text.substring(0,300)}`;
-                      } catch(e) {
-                          if (resp.status >= 400) errorMsg = `Journal import failed (status ${resp.status}): ${text.substring(0,300)}`;
-                          else errorMsg = `Unexpected response: ${text.substring(0,300)}`;
-                      }
-                      alert(errorMsg);
-                      if(messageContainer) messageContainer.innerHTML = `<p class="error">${errorMsg}</p>`;
-                    });
-                  }
-                })
-                .catch(e => {
-                  alert("Journal import failed: " + e.message);
-                  if(messageContainer) messageContainer.innerHTML = `<p class="error">Journal import failed: ${e.message}</p>`;
-                })
-                .finally(() => {
-                  importJournalBtn.disabled = false;
-                  importJournalBtn.innerText = originalImportJournalText;
-                  this.value = ""; // Clear the file input
+        // --- Dropdown Menu & Import Logic ---
+        document.querySelectorAll('.dropdown-btn').forEach(button => {
+            button.addEventListener('click', function(event) {
+                document.querySelectorAll('.dropdown-content.show').forEach(openDropdown => {
+                    if (openDropdown !== this.nextElementSibling) openDropdown.classList.remove('show');
                 });
-          });
-      }
-      // ====================================================================
-      // End of NEW Journal Import JS
-      // ====================================================================
+                this.nextElementSibling.classList.toggle('show');
+                event.stopPropagation();
+            });
+        });
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('.dropdown-btn')) {
+                document.querySelectorAll('.dropdown-content.show').forEach(openDropdown => {
+                    openDropdown.classList.remove('show');
+                });
+            }
+        });
 
-    }); // End of DOMContentLoaded
+        const importConfigBtn = document.getElementById('import-config-btn');
+        const configUploadInput = document.getElementById('config-upload');
+        if (importConfigBtn && configUploadInput) {
+            importConfigBtn.addEventListener('click', event => {
+                event.preventDefault();
+                if (confirm("This will overwrite your current configuration. Your existing configuration will be backed up. Are you sure?")) {
+                    configUploadInput.click();
+                }
+            });
+            configUploadInput.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                const formData = new FormData();
+                formData.append("file", this.files[0]);
+                fetch("{{ url_for('import_config') }}", { method: "POST", body: formData })
+                  .then(resp => {
+                      if (resp.ok && resp.redirected) window.location.href = resp.url;
+                      else return resp.text().then(text => { throw new Error(text || 'Import failed') });
+                  })
+                  .catch(err => alert("Config import failed: " + err.message))
+                  .finally(() => { this.value = ""; });
+            });
+        }
+
+        const importJournalBtn = document.getElementById('import-journal-btn');
+        const journalUploadInput = document.getElementById('journal-upload');
+        if (importJournalBtn && journalUploadInput) {
+            importJournalBtn.addEventListener('click', event => {
+                event.preventDefault();
+                if (confirm("This will overwrite your current journal. Your existing journal will be backed up. Are you sure?")) {
+                    journalUploadInput.click();
+                }
+            });
+            journalUploadInput.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                const formData = new FormData();
+                formData.append("file", this.files[0]);
+                fetch("{{ url_for('import_journal') }}", { method: "POST", body: formData })
+                  .then(resp => {
+                      if (resp.ok && resp.redirected) window.location.href = resp.url;
+                      else return resp.text().then(text => { throw new Error(text || 'Import failed') });
+                  })
+                  .catch(err => alert("Journal import failed: " + err.message))
+                  .finally(() => { this.value = ""; });
+            });
+        }
+
+        const importRigsBtn = document.getElementById('import-rigs-btn');
+        const rigsUploadInput = document.getElementById('rigs-upload');
+        if (importRigsBtn && rigsUploadInput) {
+            importRigsBtn.addEventListener('click', event => {
+                event.preventDefault();
+                if (confirm("This will overwrite your current rigs file. The existing file will be backed up. Are you sure?")) {
+                    rigsUploadInput.click();
+                }
+            });
+            rigsUploadInput.addEventListener('change', function () {
+                if (!this.files[0]) return;
+                const formData = new FormData();
+                formData.append("file", this.files[0]);
+                fetch("{{ url_for('import_rig_config') }}", { method: "POST", body: formData })
+                  .then(resp => {
+                      if (resp.ok && resp.redirected) window.location.href = resp.url;
+                      else return resp.json().then(err => { throw new Error(err.message || 'Import failed') });
+                  })
+                  .catch(err => alert("Rigs import failed: " + err.message))
+                  .finally(() => { this.value = ""; });
+            });
+        }
+    });
   </script>
 {% endblock %}
 </body>
