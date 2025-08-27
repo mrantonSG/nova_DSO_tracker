@@ -1023,6 +1023,7 @@ def journal_add():
                            cancel_url=cancel_url_for_add
                            )
 
+
 @app.route('/journal/edit/<session_id>', methods=['GET', 'POST'])
 @login_required
 def journal_edit(session_id):
@@ -1036,7 +1037,6 @@ def journal_edit(session_id):
 
     journal_data = load_journal(username)
     sessions = journal_data.get('sessions', [])
-
     session_to_edit = None
     session_index = -1
 
@@ -1052,41 +1052,65 @@ def journal_edit(session_id):
 
     if request.method == 'POST':
         try:
-            # This block for collecting form data needs to be complete in your file
+            # This is the full logic for updating the entry
             updated_session_data = {
                 "session_id": session_id,
-                "session_date": request.form.get("session_date") or session_to_edit.get(
-                    "session_date") or datetime.now().strftime('%Y-%m-%d'),
+                "session_date": request.form.get("session_date") or session_to_edit.get("session_date"),
                 "target_object_id": request.form.get("target_object_id", "").strip(),
                 "location_name": request.form.get("location_name", "").strip(),
+                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
+                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
+                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
+                "weather_notes": request.form.get("weather_notes", "").strip(),
                 "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
-                # (and all your other form fields...)
+                "filter_used_session": request.form.get("filter_used_session", "").strip(),
+                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
+                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
+                "dither_details": request.form.get("dither_details", "").strip(),
+                "acquisition_software": request.form.get("acquisition_software", "").strip(),
+                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
+                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
+                "gain_setting": safe_int(request.form.get("gain_setting")),
+                "offset_setting": safe_int(request.form.get("offset_setting")),
+                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
+                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
+                "binning_session": request.form.get("binning_session", "").strip(),
+                "darks_strategy": request.form.get("darks_strategy", "").strip(),
+                "flats_strategy": request.form.get("flats_strategy", "").strip(),
+                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
+                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
+                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
+                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
+                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
+                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
+                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
+                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
+                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
+                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
+                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
+                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
+                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
+                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
+                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
+                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
+                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
+                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
+                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
             }
 
-            final_updated_entry = {}
-            for k, v in updated_session_data.items():
-                is_empty_str_for_non_special_field = isinstance(v, str) and v.strip() == "" and k not in [
-                    "target_object_id", "location_name", "session_id"]
-                is_none_for_non_special_field = v is None and k not in ["target_object_id", "location_name",
-                                                                        "session_id"]
-                if not (is_empty_str_for_non_special_field or is_none_for_non_special_field):
-                    final_updated_entry[k] = v
-            if "session_id" not in final_updated_entry:
-                final_updated_entry["session_id"] = session_id
-            if "session_date" not in final_updated_entry or not final_updated_entry["session_date"]:
-                final_updated_entry["session_date"] = session_to_edit.get("session_date") or datetime.now().strftime(
-                    '%Y-%m-%d')
+            final_updated_entry = {k: v for k, v in updated_session_data.items() if v is not None and v != ""}
+            final_updated_entry['session_id'] = session_id  # Ensure session_id is always present
 
             sessions[session_index] = final_updated_entry
             journal_data['sessions'] = sessions
             save_journal(username, journal_data)
 
-            # THIS IS THE CORRECTED PART - Define variables before using them in the flash message
             flash_message_target = final_updated_entry.get('target_object_id', session_id[:8] + "...")
             flash_message_date = final_updated_entry.get('session_date', 'entry')
             flash(f"Journal entry for '{flash_message_target}' on {flash_message_date} updated successfully!",
                   "success")
 
+            # --- THIS IS THE CRITICAL REDIRECT LOGIC ---
             target_object_id_for_redirect = final_updated_entry.get("target_object_id")
             if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
                 return redirect(
@@ -1097,17 +1121,46 @@ def journal_edit(session_id):
         except Exception as e:
             flash(f"Error updating journal entry: {e}", "error")
             print(f"❌ ERROR in journal_edit POST for session {session_id}: {e}")
-            traceback.print_exc() # Added for better debugging
+            traceback.print_exc()
             return redirect(url_for('journal_edit', session_id=session_id))
 
-    # --- GET request logic (This part should already be correct from the last fix) ---
+    # --- GET request logic (for loading the form) ---
     available_rigs = []
-    # (rest of GET logic is unchanged)
-    # ...
-    return render_template('journal_form.html',
-                           # (all template variables)
-                           )
+    rig_data = load_rig_config(username, SINGLE_USER_MODE)
+    if rig_data and rig_data.get('rigs'):
+        components = rig_data.get('components', {})
+        telescopes = {t['id']: t['name'] for t in components.get('telescopes', [])}
+        cameras = {c['id']: c['name'] for c in components.get('cameras', [])}
+        reducers = {r['id']: r['name'] for r in components.get('reducers_extenders', [])}
+        for rig in rig_data['rigs']:
+            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
+            cam_name = cameras.get(rig['camera_id'], 'N/A')
+            resolved_parts = [tele_name]
+            if rig.get('reducer_extender_id'):
+                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
+                resolved_parts.append(reducer_name)
+            resolved_parts.append(cam_name)
+            available_rigs.append({'rig_name': rig['rig_name'], 'resolved_string': ' + '.join(resolved_parts)})
 
+    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
+    available_locations = g.locations if hasattr(g, 'locations') else {}
+    target_object_id_for_cancel = session_to_edit.get("target_object_id")
+    cancel_url_for_edit = url_for('index')
+
+    if target_object_id_for_cancel and target_object_id_for_cancel.strip() != "":
+        cancel_url_for_edit = url_for('graph_dashboard', object_name=target_object_id_for_cancel, session_id=session_id)
+    elif session_id:
+        cancel_url_for_edit = url_for('journal_list_view')
+
+    return render_template('journal_form.html',
+                           form_title=f"Edit Imaging Session",
+                           form_action_url=url_for('journal_edit', session_id=session_id),
+                           submit_button_text="Save Changes",
+                           entry=session_to_edit,
+                           available_objects=available_objects,
+                           available_locations=available_locations,
+                           available_rigs=available_rigs,
+                           cancel_url=cancel_url_for_edit)
 
 @app.route('/journal/delete/<session_id>', methods=['POST'])
 @login_required  # Or your custom logic for SINGLE_USER_MODE access
