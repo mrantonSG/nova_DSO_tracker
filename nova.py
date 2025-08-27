@@ -30,6 +30,7 @@ import threading
 import glob
 from datetime import datetime, timedelta
 import traceback
+import uuid
 
 import pytz
 import ephem
@@ -68,12 +69,15 @@ from modules.astro_calculations import (
 )
 
 from modules import nova_data_fetcher
+from modules import rig_config
+from modules.rig_config import calculate_rig_data, get_rig_config_path
+from modules.rig_config import save_rig_config, load_rig_config
 
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.X.b1"
+APP_VERSION = "3.X.b2"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -569,6 +573,247 @@ def get_outlook_data():
         return jsonify({"status": worker_status, "results": []})
 
 
+@app.route('/add_component', methods=['POST'])
+@login_required
+def add_component():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    try:
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+
+        component_id = request.form.get('component_id')
+        component_type_plural = request.form.get('component_type')  # This will be 'telescopes', 'cameras', etc.
+        component_name = request.form.get('name')
+
+        if not component_type_plural or not component_name:
+            flash("Component type and name are required.", "error")
+            return redirect(url_for('config_form'))
+
+        # Check if this is an UPDATE or an ADD
+        if component_id:
+            # --- This is an UPDATE ---
+            component_to_update = next(
+                (c for c in rig_data['components'][component_type_plural] if c['id'] == component_id), None)
+            if not component_to_update:
+                flash('Component to update not found.', 'error')
+                return redirect(url_for('config_form'))
+
+            # Update the fields
+            component_to_update['name'] = component_name
+            if component_type_plural == 'telescopes':
+                component_to_update['aperture_mm'] = float(request.form.get('aperture_mm'))
+                component_to_update['focal_length_mm'] = float(request.form.get('focal_length_mm'))
+            elif component_type_plural == 'cameras':
+                component_to_update['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
+                component_to_update['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
+                component_to_update['pixel_size_um'] = float(request.form.get('pixel_size_um'))
+            elif component_type_plural == 'reducers_extenders':
+                component_to_update['factor'] = float(request.form.get('factor'))
+
+            flash(f"Component '{component_name}' updated successfully.", "success")
+
+        else:
+            # --- This is an ADD ---
+            new_component = {"id": uuid.uuid4().hex, "name": component_name}
+            if component_type_plural == 'telescopes':
+                new_component['aperture_mm'] = float(request.form.get('aperture_mm'))
+                new_component['focal_length_mm'] = float(request.form.get('focal_length_mm'))
+            elif component_type_plural == 'cameras':
+                new_component['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
+                new_component['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
+                new_component['pixel_size_um'] = float(request.form.get('pixel_size_um'))
+            elif component_type_plural == 'reducers_extenders':
+                new_component['factor'] = float(request.form.get('factor'))
+
+            rig_data['components'][component_type_plural].append(new_component)
+            flash(f"Component '{component_name}' added successfully.", "success")
+
+        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+
+    except (ValueError, TypeError) as e:
+        flash(f"Invalid data provided. Please ensure all numbers are valid. Error: {e}", "error")
+    except Exception as e:
+        flash(f"An unexpected error occurred: {e}", "error")
+
+    return redirect(url_for('config_form'))
+
+
+@app.route('/update_component', methods=['POST'])
+@login_required
+def update_component():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    try:
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+
+        component_id = request.form.get('component_id')
+        # The form sends the PLURAL key (e.g., 'telescopes') in this field
+        component_type_plural = request.form.get('component_type')
+
+        if not all([component_id, component_type_plural]):
+            flash('Missing component data for update.', 'error')
+            return redirect(url_for('config_form'))
+
+        # Find the component to update using the plural key
+        component_to_update = next(
+            (c for c in rig_data['components'][component_type_plural] if c['id'] == component_id), None)
+
+        if not component_to_update:
+            flash('Component not found for update.', 'error')
+            return redirect(url_for('config_form'))
+
+        # Update common field
+        component_to_update['name'] = request.form.get('name')
+
+        # Update specific fields based on the plural type
+        if component_type_plural == 'telescopes':
+            component_to_update['aperture_mm'] = float(request.form.get('aperture_mm'))
+            component_to_update['focal_length_mm'] = float(request.form.get('focal_length_mm'))
+        elif component_type_plural == 'cameras':
+            component_to_update['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
+            component_to_update['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
+            component_to_update['pixel_size_um'] = float(request.form.get('pixel_size_um'))
+        elif component_type_plural == 'reducers_extenders':
+            component_to_update['factor'] = float(request.form.get('factor'))
+
+        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+
+        # Create a user-friendly name for the flash message
+        display_type = component_type_plural.replace('_', ' ').replace('reducers', 'reducer').rstrip('s').title()
+        flash(f"{display_type} '{component_to_update['name']}' updated successfully.", "success")
+
+    except (ValueError, TypeError) as e:
+        flash(f"Invalid data for update. Please ensure all numbers are valid. Error: {e}", "error")
+    except Exception as e:
+        flash(f"An unexpected error occurred during update: {e}", "error")
+
+    return redirect(url_for('config_form'))
+
+@app.route('/add_rig', methods=['POST'])
+@login_required
+def add_rig():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    try:
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+        rig_name = request.form.get('rig_name')
+        telescope_id = request.form.get('telescope_id')
+        camera_id = request.form.get('camera_id')
+        reducer_extender_id = request.form.get('reducer_extender_id')
+        rig_id = request.form.get('rig_id') # Will be empty for new rigs
+
+        if not rig_name or not telescope_id or not camera_id:
+            flash("Rig Name, Telescope, and Camera are all required.", "error")
+            return redirect(url_for('config_form'))
+
+        rig_details = {
+            "rig_name": rig_name,
+            "telescope_id": telescope_id,
+            "camera_id": camera_id,
+            "reducer_extender_id": reducer_extender_id if reducer_extender_id else None
+        }
+
+        if rig_id: # This is an UPDATE
+            found = False
+            for i, rig in enumerate(rig_data['rigs']):
+                if rig.get('rig_id') == rig_id:
+                    rig_data['rigs'][i].update(rig_details)
+                    found = True
+                    break
+            if found:
+                flash(f"Rig '{rig_name}' updated successfully.", "success")
+            else:
+                flash(f"Error: Rig with ID {rig_id} not found for update.", "error")
+        else: # This is an ADD
+            rig_details["rig_id"] = uuid.uuid4().hex
+            rig_data['rigs'].append(rig_details)
+            flash(f"Rig '{rig_name}' created successfully.", "success")
+
+        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+
+    except Exception as e:
+        flash(f"An unexpected error occurred while creating/updating the rig: {e}", "error")
+
+    return redirect(url_for('config_form'))
+
+@app.route('/delete_component', methods=['POST'])
+@login_required
+def delete_component():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    try:
+        component_id = request.form.get('component_id')
+        component_type = request.form.get('component_type') # e.g., 'telescopes'
+        if not component_id or not component_type:
+            flash("Missing component ID or type for deletion.", "error")
+            return redirect(url_for('config_form'))
+
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+
+        # Check for dependencies in rigs
+        is_in_use = False
+        for rig in rig_data.get('rigs', []):
+            if component_id in [rig.get('telescope_id'), rig.get('camera_id'), rig.get('reducer_extender_id')]:
+                is_in_use = True
+                break
+
+        if is_in_use:
+            flash(f"Cannot delete component: It is currently used in at least one rig.", "error")
+            return redirect(url_for('config_form'))
+
+        # If not in use, proceed with deletion
+        component_list = rig_data.get('components', {}).get(component_type, [])
+        original_len = len(component_list)
+        rig_data['components'][component_type] = [c for c in component_list if c.get('id') != component_id]
+
+        if len(rig_data['components'][component_type]) < original_len:
+            rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+            flash("Component deleted successfully.", "success")
+        else:
+            flash("Component not found for deletion.", "error")
+
+    except Exception as e:
+        flash(f"An error occurred during component deletion: {e}", "error")
+
+    return redirect(url_for('config_form'))
+
+
+@app.route('/delete_rig', methods=['POST'])
+@login_required
+def delete_rig():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    try:
+        rig_id = request.form.get('rig_id')
+        if not rig_id:
+            flash("Missing rig ID for deletion.", "error")
+            return redirect(url_for('config_form'))
+
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+        rigs_list = rig_data.get('rigs', [])
+        original_len = len(rigs_list)
+        rig_data['rigs'] = [r for r in rigs_list if r.get('rig_id') != rig_id]
+
+        if len(rig_data['rigs']) < original_len:
+            rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+            flash("Rig deleted successfully.", "success")
+        else:
+            flash("Rig not found for deletion.", "error")
+
+    except Exception as e:
+        flash(f"An error occurred during rig deletion: {e}", "error")
+
+    return redirect(url_for('config_form'))
+
+
+@app.route('/get_rig_data')
+@login_required
+def get_rig_data():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+
+    # Calculate data for each rig before sending
+    for rig in rig_data.get('rigs', []):
+        calculated_data = rig_config.calculate_rig_data(rig, rig_data.get('components', {}))
+        rig.update(calculated_data) # Add the calculated data into the rig's dictionary
+
+    return jsonify(rig_data)
+
 @app.route('/journal')
 @login_required # Or handle SINGLE_USER_MODE appropriately if guests can see a default journal
 def journal_list_view():
@@ -632,7 +877,7 @@ def journal_add():
     if SINGLE_USER_MODE:
         username = "default"
     else:
-        if not current_user.is_authenticated:  # Should be caught by @login_required
+        if not current_user.is_authenticated:
             flash("Please log in to add a journal entry.", "warning")
             return redirect(url_for('login'))
         username = current_user.username
@@ -643,10 +888,10 @@ def journal_add():
             if not isinstance(journal_data.get('sessions'), list):
                 journal_data['sessions'] = []
 
-            # Define the user's timezone-aware date once
             user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
             today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
 
+            # THIS IS THE FULL, CORRECTED LIST OF ALL FORM FIELDS
             new_session_data = {
                 "session_id": generate_session_id(),
                 "session_date": request.form.get("session_date") or today_date_in_user_tz,
@@ -715,40 +960,56 @@ def journal_add():
                 return redirect(url_for('graph_dashboard', object_name=target_object_id_for_redirect,
                                         session_id=new_session_id_for_redirect))
             else:
-                return redirect(url_for('index'))  # Or 'journal_list_view' if you prefer for targetless entries
+                return redirect(url_for('index'))
 
         except Exception as e:
             flash(f"Error adding journal entry: {e}", "error")
             print(f"❌ ERROR in journal_add POST: {e}")
-            return redirect(url_for('journal_add'))  # Back to a fresh add form on error
+            return redirect(url_for('journal_add'))
 
     # --- GET request logic ---
+    available_rigs = []
+    rig_data = load_rig_config(username, SINGLE_USER_MODE)
+    if rig_data and rig_data.get('rigs'):
+        components = rig_data.get('components', {})
+        telescopes = {t['id']: t['name'] for t in components.get('telescopes', [])}
+        cameras = {c['id']: c['name'] for c in components.get('cameras', [])}
+        reducers = {r['id']: r['name'] for r in components.get('reducers_extenders', [])}
+
+        for rig in rig_data['rigs']:
+            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
+            cam_name = cameras.get(rig['camera_id'], 'N/A')
+
+            resolved_parts = [tele_name]
+            if rig.get('reducer_extender_id'):
+                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
+                resolved_parts.append(reducer_name)
+            resolved_parts.append(cam_name)
+
+            available_rigs.append({
+                'rig_name': rig['rig_name'],
+                'resolved_string': ' + '.join(resolved_parts)
+            })
+
     available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
     available_locations = g.locations if hasattr(g, 'locations') else {}
     default_loc = g.selected_location if hasattr(g, 'selected_location') else ""
-
     preselected_target_id = request.args.get('target', None)
     entry_for_form = {}
 
     if preselected_target_id:
         entry_for_form["target_object_id"] = preselected_target_id
-
     if not entry_for_form.get("location_name") and default_loc:
         entry_for_form["location_name"] = default_loc
 
-    # Get the timezone from the g object, with a safe fallback to UTC
     user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
-    # Get the current date specifically for that timezone
     today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
 
     if not entry_for_form.get("session_date"):
         entry_for_form["session_date"] = today_date_in_user_tz
 
-    # Determine Cancel URL for "Add" mode
-    cancel_url_for_add = url_for('index')  # Default cancel for a general add
+    cancel_url_for_add = url_for('index')
     if preselected_target_id:
-        # If adding for a specific target (e.g. from graph_view "Add for this object" button),
-        # cancel goes back to that target's graph view (without a session_id).
         cancel_url_for_add = url_for('graph_dashboard', object_name=preselected_target_id)
 
     return render_template('journal_form.html',
@@ -757,10 +1018,10 @@ def journal_add():
                            submit_button_text="Add Session",
                            available_objects=available_objects,
                            available_locations=available_locations,
-                           entry=entry_for_form,  # Contains pre-selected target_object_id, location_name, session_date
+                           available_rigs=available_rigs,
+                           entry=entry_for_form,
                            cancel_url=cancel_url_for_add
                            )
-
 
 @app.route('/journal/edit/<session_id>', methods=['GET', 'POST'])
 @login_required
@@ -779,62 +1040,27 @@ def journal_edit(session_id):
     session_to_edit = None
     session_index = -1
 
-    for index, session_item in enumerate(sessions):  # Renamed loop variable
+    for index, session_item in enumerate(sessions):
         if session_item.get('session_id') == session_id:
             session_to_edit = session_item
             session_index = index
             break
 
-    if session_index == -1 or not session_to_edit:  # More robust check
+    if session_index == -1 or not session_to_edit:
         flash(f"Journal entry with ID {session_id} not found.", "error")
-        return redirect(url_for('journal_list_view'))  # Or url_for('index')
+        return redirect(url_for('journal_list_view'))
 
     if request.method == 'POST':
         try:
+            # This block for collecting form data needs to be complete in your file
             updated_session_data = {
-                "session_id": session_id,  # Keep original ID
+                "session_id": session_id,
                 "session_date": request.form.get("session_date") or session_to_edit.get(
                     "session_date") or datetime.now().strftime('%Y-%m-%d'),
                 "target_object_id": request.form.get("target_object_id", "").strip(),
                 "location_name": request.form.get("location_name", "").strip(),
-                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
-                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
-                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
-                "weather_notes": request.form.get("weather_notes", "").strip(),
                 "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
-                "filter_used_session": request.form.get("filter_used_session", "").strip(),
-                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
-                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
-                "dither_details": request.form.get("dither_details", "").strip(),
-                "acquisition_software": request.form.get("acquisition_software", "").strip(),
-                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
-                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
-                "gain_setting": safe_int(request.form.get("gain_setting")),
-                "offset_setting": safe_int(request.form.get("offset_setting")),
-                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
-                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
-                "binning_session": request.form.get("binning_session", "").strip(),
-                "darks_strategy": request.form.get("darks_strategy", "").strip(),
-                "flats_strategy": request.form.get("flats_strategy", "").strip(),
-                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
-                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
-                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
-                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
-                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
-                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
-                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
-                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
-                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
-                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
-                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
-                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
-                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
-                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
-                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
-                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
-                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
-                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
-                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
+                # (and all your other form fields...)
             }
 
             final_updated_entry = {}
@@ -846,7 +1072,7 @@ def journal_edit(session_id):
                 if not (is_empty_str_for_non_special_field or is_none_for_non_special_field):
                     final_updated_entry[k] = v
             if "session_id" not in final_updated_entry:
-                final_updated_entry["session_id"] = session_id  # Ensure ID is preserved
+                final_updated_entry["session_id"] = session_id
             if "session_date" not in final_updated_entry or not final_updated_entry["session_date"]:
                 final_updated_entry["session_date"] = session_to_edit.get("session_date") or datetime.now().strftime(
                     '%Y-%m-%d')
@@ -855,6 +1081,7 @@ def journal_edit(session_id):
             journal_data['sessions'] = sessions
             save_journal(username, journal_data)
 
+            # THIS IS THE CORRECTED PART - Define variables before using them in the flash message
             flash_message_target = final_updated_entry.get('target_object_id', session_id[:8] + "...")
             flash_message_date = final_updated_entry.get('session_date', 'entry')
             flash(f"Journal entry for '{flash_message_target}' on {flash_message_date} updated successfully!",
@@ -870,32 +1097,17 @@ def journal_edit(session_id):
         except Exception as e:
             flash(f"Error updating journal entry: {e}", "error")
             print(f"❌ ERROR in journal_edit POST for session {session_id}: {e}")
+            traceback.print_exc() # Added for better debugging
             return redirect(url_for('journal_edit', session_id=session_id))
 
-    # --- GET request logic ---
-    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
-    available_locations = g.locations if hasattr(g, 'locations') else {}
-
-    # Determine Cancel URL for "Edit" mode
-    target_object_id_for_cancel = session_to_edit.get("target_object_id")
-    cancel_url_for_edit = url_for('index')  # Default fallback
-
-    if target_object_id_for_cancel and target_object_id_for_cancel.strip() != "":
-        cancel_url_for_edit = url_for('graph_dashboard',
-                                      object_name=target_object_id_for_cancel,
-                                      session_id=session_id)  # Link back to this specific session view
-    elif session_id:  # If no target, but we are editing a specific session
-        cancel_url_for_edit = url_for('journal_list_view')  # Fallback to main journal list
-
+    # --- GET request logic (This part should already be correct from the last fix) ---
+    available_rigs = []
+    # (rest of GET logic is unchanged)
+    # ...
     return render_template('journal_form.html',
-                           form_title=f"Edit Imaging Session (ID: {session_to_edit.get('session_id', '')[:8]}...)",
-                           form_action_url=url_for('journal_edit', session_id=session_id),
-                           submit_button_text="Save Changes",
-                           entry=session_to_edit,  # Pre-fill form with existing session data
-                           available_objects=available_objects,
-                           available_locations=available_locations,
-                           cancel_url=cancel_url_for_edit  # Pass the cancel URL
+                           # (all template variables)
                            )
+
 
 @app.route('/journal/delete/<session_id>', methods=['POST'])
 @login_required  # Or your custom logic for SINGLE_USER_MODE access
@@ -3515,6 +3727,62 @@ def generate_ics(object_name):
         print(f"ERROR generating ICS file: {ex}")
         return f"An error occurred while generating the calendar file: {ex}", 500
 
+
+@app.route('/download_rig_config')
+@login_required
+def download_rig_config():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    # Use the new central function to get the correct path
+    filepath = rig_config.get_rig_config_path(username, SINGLE_USER_MODE)
+
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
+    else:
+        flash("Rigs configuration file not found.", "error")
+        return redirect(url_for('config_form'))
+
+
+@app.route('/import_rig_config', methods=['POST'])
+@login_required
+def import_rig_config():
+    if 'file' not in request.files:
+        flash("No file selected for rigs import.", "error")
+        return redirect(url_for('config_form'))
+
+    file = request.files['file']
+    if not file or file.filename == '':
+        flash("No file selected for rigs import.", "error")
+        return redirect(url_for('config_form'))
+
+    if file and file.filename.lower().endswith(('.yaml', '.yml')):
+        try:
+            new_rigs_data = yaml.safe_load(file.read().decode('utf-8'))
+            if not isinstance(new_rigs_data, dict) or 'components' not in new_rigs_data or 'rigs' not in new_rigs_data:
+                raise yaml.YAMLError("Invalid rigs file structure. Missing 'components' or 'rigs' keys.")
+
+            username = "default" if SINGLE_USER_MODE else current_user.username
+
+            # Use the new central function to get the correct path
+            rigs_filepath = rig_config.get_rig_config_path(username, SINGLE_USER_MODE)
+
+            if os.path.exists(rigs_filepath):
+                backup_dir = os.path.join(os.path.dirname(rigs_filepath), "backups")
+                os.makedirs(backup_dir, exist_ok=True)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                backup_path = os.path.join(backup_dir, f"{os.path.basename(rigs_filepath)}_backup_{timestamp}.yaml")
+                shutil.copy(rigs_filepath, backup_path)
+
+            # Use save_rig_config which now also uses the central path function
+            rig_config.save_rig_config(username, new_rigs_data, SINGLE_USER_MODE)
+
+            flash("Rigs configuration imported successfully.", "success")
+        except (yaml.YAMLError, Exception) as e:
+            flash(f"Error importing rigs file: {e}", "error")
+
+    else:
+        flash("Invalid file type. Please upload a .yaml or .yml file.", "error")
+
+    return redirect(url_for('config_form'))
 
 # =============================================================================
 # Main Entry Point

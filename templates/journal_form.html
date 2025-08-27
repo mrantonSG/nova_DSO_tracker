@@ -168,14 +168,24 @@
         </div>
 
         <div class="form-section-title">Equipment & Guiding</div>
-         <div class="form-group">
+
+        <div class="form-group">
+            <label for="rig-selector">Select a Rig (Optional)</label>
+            <select id="rig-selector">
+                <option value="">-- Manually Enter Setup Below --</option>
+                {% for rig in available_rigs %}
+                    <option value="{{ rig.resolved_string }}">{{ rig.rig_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
             <label for="telescope_setup_notes">Telescope Setup Notes:</label>
-            <input type="text" id="telescope_setup_notes" name="telescope_setup_notes" value="{{ entry.telescope_setup_notes if entry else '' }}" placeholder="e.g., C11+Reducer+ASI2600">
+            <textarea id="telescope_setup_notes" name="telescope_setup_notes" rows="3" placeholder="e.g., C11+Reducer+ASI2600">{{ entry.telescope_setup_notes or '' }}</textarea>
         </div>
         <div class="form-row">
             <div class="form-group">
                 <label for="filter_used_session">Filter Used:</label>
-                <input type="text" id="filter_used_session" name="filter_used_session" value="{{ entry.filter_used_session if entry else '' }}" placeholder="e.g., L-Pro, Ha 7nm">
+                <input type="text" id="filter_used_session" name="filter_used_session" value="{{ entry.filter_used_session or '' }}" placeholder="e.g., L-Pro, Ha 7nm">
             </div>
             <div class="form-group">
                 <label for="guiding_rms_avg_arcsec">Guiding RMS (avg, arcsec):</label>
@@ -184,16 +194,17 @@
         </div>
         <div class="form-group">
             <label for="guiding_equipment">Guiding Equipment (Scope, Camera, Software):</label>
-            <input type="text" id="guiding_equipment" name="guiding_equipment" value="{{ entry.guiding_equipment if entry else '' }}" placeholder="e.g., 50mm guidescope + ASI120MM Mini, PHD2">
+            <input type="text" id="guiding_equipment" name="guiding_equipment" value="{{ entry.guiding_equipment or '' }}" placeholder="e.g., 50mm guidescope + ASI120MM Mini, PHD2">
         </div>
         <div class="form-group">
             <label for="dither_details">Dither Settings:</label>
-            <input type="text" id="dither_details" name="dither_details" value="{{ entry.dither_details if entry else '' }}" placeholder="e.g., Yes, 3px every 2 subs">
+            <input type="text" id="dither_details" name="dither_details" value="{{ entry.dither_details or '' }}" placeholder="e.g., Yes, 3px every 2 subs">
         </div>
         <div class="form-group">
             <label for="acquisition_software">Acquisition Software:</label>
-            <input type="text" id="acquisition_software" name="acquisition_software" value="{{ entry.acquisition_software if entry else '' }}" placeholder="e.g., N.I.N.A., Sequence Generator Pro, Astroberry">
+            <input type="text" id="acquisition_software" name="acquisition_software" value="{{ entry.acquisition_software or '' }}" placeholder="e.g., N.I.N.A., Sequence Generator Pro, Astroberry">
         </div>
+
         <div class="form-section-title">Acquisition Details</div>
         <div class="form-row">
             <div class="form-group">
@@ -282,4 +293,22 @@
         </div>
     </form>
 </div>
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rigSelector = document.getElementById('rig-selector');
+    const setupNotes = document.getElementById('telescope_setup_notes');
+
+    if (rigSelector && setupNotes) {
+        rigSelector.addEventListener('change', function() {
+            const selectedValue = this.value;
+            if (selectedValue) {
+                setupNotes.value = selectedValue;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+
 {% endblock %}
