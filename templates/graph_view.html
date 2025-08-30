@@ -454,6 +454,23 @@
     .form-row { display: flex; gap: 20px; flex-wrap: wrap; } /* Allow wrapping for form rows */
     .form-row .form-group { flex: 1; min-width: 200px; } /* Min width before wrapping */
 
+    /* --- NEW CSS for the Framing Table --- */
+    .framing-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    .framing-table th, .framing-table td {
+        border: 1px solid #eee;
+        padding: 10px;
+        text-align: left;
+        font-size: 14px;
+    }
+    .framing-table th {
+        background-color: #f9f9f9;
+        font-weight: 600;
+    }
+
   </style>
   <script>
 
@@ -1112,6 +1129,52 @@
   </div>
   {# End of Journal Section #}
 
+    {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
+      <div class="content-section">
+          <h3>Framing With Your Rigs</h3>
+          <table class="framing-table">
+              <thead>
+                  <tr>
+                      <th>Rig Name</th>
+                      <th>Rig FOV</th>
+                      <th>Object Size</th>
+                      <th>Fit Assessment</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% set object_size = object_main_details.Size | float %}
+                  {% for rig in available_rigs %}
+                      {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
+                          {% set rig_fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
+
+                          {% set fit_ratio = (object_size / rig_fov_min) * 100 %}
+
+                          {% if fit_ratio < 10 %}
+                              {% set fit_text = "Wide Field" %}
+                              {% set fit_color = "#3498db" %} {# Blue for wide #}
+                          {% elif fit_ratio <= 75 %}
+                              {% set fit_text = "Good Fit" %}
+                              {% set fit_color = "#2ecc71" %} {# Green for good #}
+                          {% elif fit_ratio <= 100 %}
+                              {% set fit_text = "Tight Fit" %}
+                              {% set fit_color = "#f39c12" %} {# Orange for tight #}
+                          {% else %}
+                              {% set fit_text = "Mosaic Required" %}
+                              {% set fit_color = "#e74c3c" %} {# Red for too big #}
+                          {% endif %}
+
+                          <tr>
+                              <td><strong>{{ rig.rig_name }}</strong></td>
+                              <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
+                              <td>{{ object_size }}'</td>
+                              <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
+                          </tr>
+                      {% endif %}
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
+      {% endif %}
 
   {# This was your 'button-container' div previously, now wrapped and styled #}
   <div class="content-section project-notes-section">
