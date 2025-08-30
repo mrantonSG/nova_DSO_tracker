@@ -3443,7 +3443,15 @@ def graph_dashboard(object_name):
         moon_phase_for_effective_date = "N/A"
 
     sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat, effective_lon)
-
+    rigs_with_fov = []
+    rig_data = load_rig_config(username_for_journal, SINGLE_USER_MODE)
+    if rig_data and rig_data.get('rigs'):
+        all_components = rig_data.get('components', {})
+        for rig in rig_data.get('rigs', []):
+            # Recalculate derived data like FOV for each rig
+            calculated_data = calculate_rig_data(rig, all_components)
+            rig.update(calculated_data)
+            rigs_with_fov.append(rig)
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
         flash(f"Details for '{object_name}' could not be found.", "error")
@@ -3459,28 +3467,29 @@ def graph_dashboard(object_name):
     # --- END OF DEBUG PRINT STATEMENTS ---
 
     return render_template('graph_view.html',
-                           object_name=object_name,
-                           alt_name=object_main_details.get("Common Name", object_name),
-                           selected_day=effective_day,
-                           selected_month=effective_month,
-                           selected_year=effective_year,
-                           selected_date_for_display=effective_date_str,
-                           header_location_name=effective_location_name,
-                           header_date_display=effective_date_str,
-                           header_moon_phase=moon_phase_for_effective_date,
-                           header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
-                           header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                           project_notes_from_config=object_main_details.get("Project", "N/A"),
-                           timestamp=datetime.now(effective_local_tz).timestamp(),
-                           object_specific_sessions=object_specific_sessions,
-                           selected_session_data=selected_session_data,
-                           current_session_id=requested_session_id if selected_session_data else None,
-                           graph_location_name_param=effective_location_name,
-                           graph_lat_param=effective_lat,
-                           graph_lon_param=effective_lon,
-                           graph_tz_name_param=effective_tz_name
-                           )
-
+                               object_name=object_name,
+                               alt_name=object_main_details.get("Common Name", object_name),
+                               object_main_details=object_main_details,  # ADDED THIS
+                               available_rigs=rigs_with_fov,             # ADDED THIS
+                               selected_day=effective_day,
+                               selected_month=effective_month,
+                               selected_year=effective_year,
+                               selected_date_for_display=effective_date_str,
+                               header_location_name=effective_location_name,
+                               header_date_display=effective_date_str,
+                               header_moon_phase=moon_phase_for_effective_date,
+                               header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                               header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                               project_notes_from_config=object_main_details.get("Project", "N/A"),
+                               timestamp=datetime.now(effective_local_tz).timestamp(),
+                               object_specific_sessions=object_specific_sessions,
+                               selected_session_data=selected_session_data,
+                               current_session_id=requested_session_id if selected_session_data else None,
+                               graph_location_name_param=effective_location_name,
+                               graph_lat_param=effective_lat,
+                               graph_lon_param=effective_lon,
+                               graph_tz_name_param=effective_tz_name
+                               )
 @app.route('/plot_day/<path:object_name>')
 def plot_day(object_name):
     # --- Determine Date for the plot from request.args ---
