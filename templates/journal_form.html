@@ -12,18 +12,6 @@
         background-color: #ffffff; /* Matches index.html */
         color: #333; /* Matches index.html */
     }
-    /* NEW: Copied from index.html for header consistency */
-    .header-container {
-      display: flex;
-      align-items: baseline;
-    }
-    .header-container h1, .header-container h3 {
-      margin-bottom: 20px;
-    }
-    .header-container h3 {
-      margin-left: 10px;
-      font-weight: normal;
-    }
     /* MODIFIED: .form-container margin for left alignment */
     .form-container {
         max-width: 800px; /* Retain max-width */
@@ -85,11 +73,7 @@
 {% endblock %}
 
 {% block body %}
-{# --- NEW: Standard App Header (like on index.html) --- #}
-<div class="header-container">
-  <h1>Nova</h1>
-  <h3>DSO Tracker V{{ version }}</h3>
-</div>
+
 
 {# --- NEW: Title for this specific form --- #}
 <h2 style="font-weight: normal; margin-top: 30px; margin-bottom: 20px; color: #333;">{{ form_title | default('Journal Entry') }}</h2>

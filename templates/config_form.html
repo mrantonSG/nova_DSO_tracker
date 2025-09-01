@@ -12,11 +12,11 @@
       margin: 0;
       font-family: 'Roboto', sans-serif;
     }
+    /* MODIFIED: Fieldset style removed to eliminate frames */
     fieldset {
-      margin-top: 20px;
-      padding: 10px;
-      background: #f9f9f9;
-      border: 1px solid #ddd !important;
+      border: none;
+      padding: 0;
+      margin: 0;
     }
     legend {
       font-size: 16px;
@@ -39,18 +39,33 @@
       background: #ecf1f1;
       padding: 8px;
       margin-bottom: 10px;
+      border-radius: 4px; /* Added for softer edges */
     }
     .error {
-      color: #dc3545; /* A standard, clear red for errors */
+      color: #dc3545;
     }
 
     .message,
     .progress-message {
-      color: #6795a4; /* The consistent color for success and info messages */
+      color: #6795a4;
     }
-    .inline-button {
-      padding: 5px 10px;
+
+    /* --- NEW: Main container for frameless tabs --- */
+    .config-section {
+        padding: 1.5em;
+        background-color: #f9f9f9;
+        border-radius: 8px;
     }
+    .config-section h2, .config-section h3 {
+        color: #333;
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 0;
+        margin-bottom: 1.5em;
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 0.5em;
+    }
+
     input.wide {
       width: 300px;
     }
@@ -73,36 +88,16 @@
     .object-id {
       width: 100px;
     }
-    .header-container { display: flex; align-items: baseline; }
-    .header-container h1, .header-container h3 { margin-bottom: 20px; }
-    .header-container h3 { margin-left: 10px; }
+
     h3, h4 {
       font-weight: normal;
     }
-    .info-container {
-      display: flex;
-      gap: 20px;
-      align-items: baseline;
-      margin-bottom: 20px;
-    }
-    #back-button {
-      margin-top: 0;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #83b4c5;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    #back-button:hover {
-      background-color: #6795a4 !important;
-    }
+
     input.object_field {
       width: 65px;
     }
     .field-small-numeric {
-      width: 102px; /* New, smaller width for Mag, Size, SB */
+      width: 102px;
     }
     input.name_field {
       width: 250px;
@@ -137,8 +132,6 @@
 
     .locations-list, .objects-list {
       margin-top: 20px;
-    }
-    .location-id, .object-id {
     }
     .short-label {
       display: inline-block;
@@ -223,23 +216,6 @@
     .file-button:hover {
       background-color: #6795a4;
     }
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      color: #fff;
-      z-index: 10000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      opacity: 0.95;
-      transition: opacity 0.3s ease;
-    }
-  .toast-success { background-color: #4CAF50; }
-  .toast-error { background-color: #f44336; }
-  .toast-info { background-color: #2196F3; }
 
     .second-row-fields {
       margin-left: 117px;
@@ -257,13 +233,11 @@
     .add-object-details-indent > div {
       gap: 15px;
     }
-    /* --- NEW Tab Styles --- */
     .tab-container {
         display: flex;
         margin-bottom: 15px;
         border-bottom: 2px solid #ccc;
     }
-
     .tab-button {
         padding: 10px 20px;
         cursor: pointer;
@@ -274,7 +248,6 @@
         border-radius: 5px 5px 0 0;
         font-size: 16px;
     }
-
     .tab-button.active {
         background-color: #fff;
         border-color: #ccc;
@@ -283,34 +256,31 @@
         top: 1px;
     }
 
-    /* --- Styles for Rigs Tab (from index.html) --- */
+    /* Styles for Rigs Tab */
     .container { display: flex; gap: 2em; flex-wrap: wrap; }
-    .column { background-color: #fff; padding: 1.5em; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); flex: 1; min-width: 350px;}
-    .column h2, .column h3 { color: #2c3e50; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.5em; margin-top: 0; }
+    .column { background-color: #f9f9f9; padding: 1.5em; border-radius: 8px; flex: 1; min-width: 350px;}
+    .column h2, .column h3 { color: #333; font-size: 16px; font-weight: bold; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
     .column details > summary { cursor: pointer; font-weight: bold; }
     .column hr { border: 0; border-top: 1px solid #ecf0f1; margin: 1.5em 0; }
     .column .form-group { margin-bottom: 1em; }
-    .column .form-group label { display: block; margin-bottom: 0.5em; font-weight: 600; font-size: 0.9em; }
+    .column .form-group label { display: block; margin-bottom: 5px; font-weight: normal; font-size: 14px; }
     .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
     .column ul { list-style-type: none; padding: 0; }
-
-    /* --- MODIFIED Button Style for Rigs Tab --- */
     .column button {
       background-color: #83b4c5;
       color: white;
-      padding: 5px 10px;      /* CHANGED */
+      padding: 5px 10px;
       border: none;
-      border-radius: 5px;     /* CHANGED */
+      border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;      /* CHANGED */
+      font-size: 14px;
     }
-
     .column button:hover {
       background-color: #6795a4;
     }
     .column li {
-      background-color: #fdfdfd;
-      border: 1px solid #eee;
+      background-color: #ecf1f1;
+      border: none;
       padding: 0.8em;
       margin-bottom: 0.5em;
       border-radius: 4px;
@@ -328,13 +298,12 @@
         gap: 5px;
         flex-shrink: 0;
     }
-    /* --- NEW Edit/Delete Button Styles --- */
     .edit-btn, .delete-btn {
         color: white;
         border: none;
-        padding: 5px 10px;      /* CHANGED */
-        font-size: 14px;      /* CHANGED */
-        border-radius: 5px;     /* CHANGED */
+        padding: 5px 10px;
+        font-size: 14px;
+        border-radius: 5px;
         cursor: pointer;
         text-decoration: none;
         display: inline-block;
@@ -343,14 +312,12 @@
     .edit-btn:hover { background-color: #5a6875; }
     .delete-btn { background-color: #dc3545; }
     .delete-btn:hover { background-color: #c82333; }
-
-    /* --- NEW Dropdown Button Styles --- */
     .dropdown {
       position: relative;
       display: inline-block;
     }
     .dropdown-btn {
-      padding-right: 20px; /* Make space for the arrow */
+      padding-right: 20px;
     }
     .dropdown-content {
       display: none;
@@ -360,7 +327,7 @@
       box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
       z-index: 1;
       border-radius: 5px;
-      overflow: hidden; /* Ensures contained items have rounded corners */
+      overflow: hidden;
     }
     .dropdown-content a {
       color: black;
@@ -375,7 +342,7 @@
     .show {
       display: block;
     }
-    .sampling-info {
+      .sampling-info {
         font-size: 0.9em;
         margin-top: 5px;
         display: block;
@@ -401,10 +368,7 @@
 <body>
 
 {% block body %}
-  <div class="header-container">
-    <h1>Nova</h1>
-    <h3>DSO Tracker V{{ version }}</h3>
-  </div>
+
   <div class="info-container-main">
     <div class="left-group">
       <a href="{{ url_for('index') }}" class="dlback-button">Back to Tracker</a>
@@ -454,59 +418,58 @@
     <button class="tab-button" data-tab="rigs">Rigs</button>
   </div>
 
-  <div id="general-tab-content">
-      <form method="post">
-        <fieldset>
-          <legend>General Settings</legend>
-          <div class="inline-fields">
-            <div>
-              <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
-              <input type="number" name="altitude_threshold" id="altitude_threshold"
-                     value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
-            </div>
-            <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
-          </div>
-          <hr>
-          <div class="inline-fields">
-            <div>
-              <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
-              <input type="number" name="min_observable_minutes" id="min_observable_minutes"
-                     value="{{ config.get('imaging_criteria', {}).get('min_observable_minutes', 60) }}" min="0" max="600">
-            </div>
-            <div>
-              <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
-              <input type="number" name="min_max_altitude" id="min_max_altitude"
-                     value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
-            </div>
-          </div>
-          <div class="inline-fields">
-            <div>
-              <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
-              <input type="number" name="max_moon_illumination" id="max_moon_illumination"
-                     value="{{ config.get('imaging_criteria', {}).get('max_moon_illumination', 20) }}" min="0" max="100">
-            </div>
-            <div>
-              <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
-              <input type="number" name="min_angular_separation" id="min_angular_separation"
-                     value="{{ config.get('imaging_criteria', {}).get('min_angular_distance', 30) }}" min="0" max="180">
-            </div>
-            <div>
-              <label class="verylong-label" for="search_horizon_months">Search months:</label>
-              <input type="number" name="search_horizon_months" id="search_horizon_months"
-                     value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
-            </div>
-          </div>
-           <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
-        </fieldset>
-      </form>
-  </div>
+    <div id="general-tab-content">
+        <div class="config-section">
+          <h2>General Settings</h2>
+          <form method="post">
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
+                  <input type="number" name="altitude_threshold" id="altitude_threshold"
+                         value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
+                </div>
+                <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
+              </div>
+              <hr>
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
+                  <input type="number" name="min_observable_minutes" id="min_observable_minutes"
+                         value="{{ config.get('imaging_criteria', {}).get('min_observable_minutes', 60) }}" min="0" max="600">
+                </div>
+                <div>
+                  <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
+                  <input type="number" name="min_max_altitude" id="min_max_altitude"
+                         value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
+                </div>
+              </div>
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
+                  <input type="number" name="max_moon_illumination" id="max_moon_illumination"
+                         value="{{ config.get('imaging_criteria', {}).get('max_moon_illumination', 20) }}" min="0" max="100">
+                </div>
+                <div>
+                  <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
+                  <input type="number" name="min_angular_separation" id="min_angular_separation"
+                         value="{{ config.get('imaging_criteria', {}).get('min_angular_distance', 30) }}" min="0" max="180">
+                </div>
+                <div>
+                  <label class="verylong-label" for="search_horizon_months">Search months:</label>
+                  <input type="number" name="search_horizon_months" id="search_horizon_months"
+                         value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
+                </div>
+              </div>
+               <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
+          </form>
+        </div>
+      </div>
 
-  <div id="locations-tab-content">
-      <form method="post">
-        <fieldset>
-          <legend>Locations Configuration</legend>
-          <fieldset>
-            <legend>Add New Location</legend>
+    <div id="locations-tab-content">
+        <div class="config-section">
+          <h2>Locations Configuration</h2>
+          <form method="post">
+            <h3>Add New Location</h3>
             <div class="inline-fields">
               <div>
                 <label class="short-label" for="new_location">Name:</label>
@@ -528,153 +491,153 @@
                 <button type="submit" name="submit_new_location" value="1" class="action-button">Add</button>
               </div>
             </div>
-          </fieldset>
-          <hr>
-          <div class="locations-list">
-            {% for loc_key, loc_val in locations.items() %}
-              <div class="block">
-                <div class="inline-fields">
-                  <div class="location-id">
-                    <strong>{{ loc_key }}</strong>
-                  </div>
-                  <div>
-                    <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
-                    <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
-                    <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
-                  </div>
-                  <div>
-                    <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
-                    <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+            <hr>
+            <div class="locations-list">
+              {% for loc_key, loc_val in locations.items() %}
+                <div class="block">
+                  <div class="inline-fields">
+                    <div class="location-id">
+                      <strong>{{ loc_key }}</strong>
+                    </div>
+                    <div>
+                      <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
+                      <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
+                    </div>
+                    <div>
+                      <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
+                      <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
+                    </div>
+                    <div>
+                      <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
+                      <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
+                    </div>
+                    <div>
+                      <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+                    </div>
                   </div>
                 </div>
-              </div>
-            {% endfor %}
-            <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
-          </div>
-        </fieldset>
-      </form>
-  </div>
+              {% endfor %}
+              <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
-  <div id="objects-tab-content">
-      <fieldset>
-        <legend>Add New Object</legend>
-        <div class="object-add-container">
-          <div class="row">
-            <div>
-              <label class="long-label" for="new_object">Object ID:</label>
-              <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
-            </div>
-            <div>
-              <label class="long-label" for="new_name">Name:</label>
-              <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
-            </div>
+<div id="objects-tab-content">
+    <div class="config-section">
+      <h2>Objects Configuration</h2>
+      <h3>Add New Object</h3>
+      <div class="object-add-container">
+        <div class="row">
+          <div>
+            <label class="long-label" for="new_object">Object ID:</label>
+            <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
           </div>
-          <div class="row">
-            <div>
-              <label class="long-label" for="new_ra">RA:</label>
-              <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
-            </div>
-            <div>
-              <label class="long-label" for="new_dec">DEC:</label>
-              <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
-            </div>
+          <div>
+            <label class="long-label" for="new_name">Name:</label>
+            <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
           </div>
-          <div class="inline-fields">
-            <div>
-              <label class="long-label" for="new_project">Notes:</label>
-              <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
-            </div>
+        </div>
+        <div class="row">
+          <div>
+            <label class="long-label" for="new_ra">RA:</label>
+            <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
           </div>
-          <div class="inline-fields add-object-details-indent">
-            <div>
-              <label class="short-label" for="new_constellation">Con:</label>
-              <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
-            </div>
-            <div>
-              <label class="short-label" for="new_type">Type:</label>
-              <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
-            </div>
-            <div>
-              <label class="short-label" for="new_magnitude">Mag:</label>
-              <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
-            </div>
-            <div>
-              <label class="short-label" for="new_size">Size:</label>
-              <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
-            </div>
-            <div>
-              <label class="short-label" for="new_sb">SB:</label>
-              <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
-            </div>
+          <div>
+            <label class="long-label" for="new_dec">DEC:</label>
+            <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
           </div>
-          <button id="submit_new_object" type="button" name="submit_new_object" value="1" class="action-button">Search</button>
-          <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
-          <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
-          <div class="row"></div> </div>
-        <div id="object_result"></div>
-      </fieldset>
+        </div>
+        <div class="inline-fields">
+          <div>
+            <label class="long-label" for="new_project">Notes:</label>
+            <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
+          </div>
+        </div>
+        <div class="inline-fields add-object-details-indent">
+          <div>
+            <label class="short-label" for="new_constellation">Con:</label>
+            <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
+          </div>
+          <div>
+            <label class="short-label" for="new_type">Type:</label>
+            <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
+          </div>
+          <div>
+            <label class="short-label" for="new_magnitude">Mag:</label>
+            <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
+          </div>
+          <div>
+            <label class="short-label" for="new_size">Size:</label>
+            <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
+          </div>
+          <div>
+            <label class="short-label" for="new_sb">SB:</label>
+            <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
+          </div>
+        </div>
+        <button id="submit_new_object" type="button" class="action-button">Search</button>
+        <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
+        <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
+      </div>
+      <div id="object_result"></div>
       <hr>
       <form method="post">
         <div class="objects-list">
-            {% for obj in config.objects %}
-              <div class="block">
-                <div class="inline-fields">
-                  <div class="object-id">
-                    <strong>{{ obj.Object }}</strong>
-                  </div>
-                  <div>
-                    <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
-                    <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
-                    <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
-                    <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
-                    <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
-                  </div>
-                  <div>
-                    <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
-                  </div>
+          {% for obj in config.objects %}
+            <div class="block">
+              <div class="inline-fields">
+                <div class="object-id">
+                  <strong>{{ obj.Object }}</strong>
                 </div>
-                <div class="inline-fields second-row-fields">
-                  <div>
-                    <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
-                    <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
-                  </div>
-                  <div>
-                    <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
-                    <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
-                    <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
-                    <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
-                    <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
-                  </div>
+                <div>
+                  <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                  <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+                </div>
+                <div>
+                  <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
+                  <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
+                </div>
+                <div>
+                  <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
+                  <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
+                </div>
+                <div>
+                  <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
+                  <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
+                </div>
+                <div>
+                  <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
                 </div>
               </div>
-            {% endfor %}
-            <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
+              <div class="inline-fields second-row-fields">
+                <div>
+                  <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
+                  <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
+                </div>
+                <div>
+                  <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
+                  <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
+                </div>
+                <div>
+                  <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
+                  <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
+                </div>
+                <div>
+                  <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
+                  <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
+                </div>
+                <div>
+                  <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
+                  <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+          <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
         </div>
       </form>
+    </div>
   </div>
 
   <div id="rigs-tab-content">
