@@ -1130,51 +1130,63 @@
   {# End of Journal Section #}
 
     {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
-      <div class="content-section">
-          <h3>Framing With Your Rigs</h3>
-          <table class="framing-table">
-              <thead>
-                  <tr>
-                      <th>Rig Name</th>
-                      <th>Rig FOV</th>
-                      <th>Object Size</th>
-                      <th>Fit Assessment</th>
-                  </tr>
-              </thead>
-              <tbody>
-                  {% set object_size = object_main_details.Size | float %}
-                  {% for rig in available_rigs %}
-                      {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
-                          {% set rig_fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
+    <div class="content-section">
+        <h3>Framing With Your Rigs</h3>
+        <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
+        <table class="framing-table">
+            <thead>
+                <tr>
+                    <th>Rig Name</th>
+                    <th>Rig FOV</th>
+                    <th>Object Size</th>
+                    <th>Fit Assessment</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set object_size = object_main_details.Size | float %}
+                {% for rig in available_rigs %}
+                    {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
+                        {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
+                        {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
 
-                          {% set fit_ratio = (object_size / rig_fov_min) * 100 %}
+                        {# --- NEW, MORE DETAILED LOGIC --- #}
+                        {% if object_size > fov_max %}
+                            {% set fit_text = "Mosaic Required" %}
+                            {% set fit_color = "#e74c3c" %} {# Red #}
 
-                          {% if fit_ratio < 10 %}
-                              {% set fit_text = "Wide Field" %}
-                              {% set fit_color = "#3498db" %} {# Blue for wide #}
-                          {% elif fit_ratio <= 75 %}
-                              {% set fit_text = "Good Fit" %}
-                              {% set fit_color = "#2ecc71" %} {# Green for good #}
-                          {% elif fit_ratio <= 100 %}
-                              {% set fit_text = "Tight Fit" %}
-                              {% set fit_color = "#f39c12" %} {# Orange for tight #}
-                          {% else %}
-                              {% set fit_text = "Mosaic Required" %}
-                              {% set fit_color = "#e74c3c" %} {# Red for too big #}
-                          {% endif %}
+                        {% elif object_size > fov_min %}
+                            {% set fit_text = "Fits with Rotation" %}
+                            {% set fit_color = "#f39c12" %} {# Orange #}
 
-                          <tr>
-                              <td><strong>{{ rig.rig_name }}</strong></td>
-                              <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
-                              <td>{{ object_size }}'</td>
-                              <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
-                          </tr>
-                      {% endif %}
-                  {% endfor %}
-              </tbody>
-          </table>
-      </div>
-      {% endif %}
+                        {% else %}
+                            {# The object fits easily, so now we assess how well #}
+                            {% set fit_ratio = (object_size / fov_min) * 100 %}
+
+                            {% if fit_ratio < 5 %}
+                                {# NEW CATEGORY for very small objects #}
+                                {% set fit_text = "Small Target" %}
+                                {% set fit_color = "#9b59b6" %} {# Purple #}
+                            {% elif fit_ratio < 20 %}
+                                {% set fit_text = "Wide Field" %}
+                                {% set fit_color = "#3498db" %} {# Blue #}
+                            {% else %}
+                                {% set fit_text = "Good Fit" %}
+                                {% set fit_color = "#2ecc71" %} {# Green #}
+                            {% endif %}
+                        {% endif %}
+
+                        <tr>
+                            <td><strong>{{ rig.rig_name }}</strong></td>
+                            <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
+                            <td>{{ object_size }}'</td>
+                            <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
   {# This was your 'button-container' div previously, now wrapped and styled #}
   <div class="content-section project-notes-section">

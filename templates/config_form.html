@@ -375,6 +375,25 @@
     .show {
       display: block;
     }
+    .sampling-info {
+        font-size: 0.9em;
+        margin-top: 5px;
+        display: block;
+        font-weight: bold;
+    }
+    .sampling-binning-tip {
+        font-size: 0.8em;
+        display: block;
+        margin-top: 2px;
+        font-weight: normal;
+        font-style: italic;
+        color: #666;
+    }
+    .sampling-oversampled { color: #9b59b6; }      /* Purple */
+    .sampling-slightly-oversampled { color: #3498db; } /* Blue */
+    .sampling-good { color: #2ecc71; }            /* Green */
+    .sampling-slightly-undersampled { color: #f39c12; } /* Orange */
+    .sampling-undersampled { color: #e74c3c; }      /* Red */
 
   </style>
 {% endblock %}
@@ -735,6 +754,15 @@
                 <button type="submit">Create Rig</button>
             </form>
              <hr>
+            <div class="form-group">
+                <label for="seeing-select">Select Your Typical Seeing:</label>
+                <select id="seeing-select">
+                    <option value="none" selected>-- Select Seeing to Assess Rigs --</option>
+                    <option value="1.0-2.0">Excellent Seeing (1.0" - 2.0" FWHM)</option>
+                    <option value="2.0-4.0">Good Seeing (2.0" - 4.0" FWHM)</option>
+                    <option value="4.0-6.0">Poor Seeing (> 4.0" FWHM)</option>
+                </select>
+            </div>
             <h3>Existing Rigs (<span id="rig-count">0</span>)</h3>
             <ul id="existing-rigs-list"></ul>
         </div>
@@ -890,7 +918,7 @@
             if (rig.image_scale) {
                 detailsHtml += `<hr style="margin: 0.5em 0; border-color: #f5f5f5;"><small style="color: #666;">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
             }
-            return `<li>
+            return `<li data-rig-id="${rig.rig_id}">
                         <div class="item-info">${detailsHtml}</div>
                         <div class="item-actions">
                             <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
@@ -907,6 +935,73 @@
         document.getElementById('red-count').innerText = reducers_extenders.length;
         document.getElementById('rig-count').innerText = rigs.length;
     }
+
+    function updateSamplingInfo() {
+            const seeingSelect = document.getElementById('seeing-select');
+            const selectedSeeing = seeingSelect.value;
+
+            const rigListItems = document.querySelectorAll('#existing-rigs-list li');
+
+            rigListItems.forEach(item => {
+                const infoContainer = item.querySelector('.item-info');
+                // Remove any old sampling info and tips
+                infoContainer.querySelectorAll('.sampling-info, .sampling-binning-tip').forEach(el => el.remove());
+
+                if (selectedSeeing === 'none') return;
+
+                const rigId = item.dataset.rigId;
+                const rig = rigsData.rigs.find(r => r.rig_id === rigId);
+
+                if (rig && rig.image_scale) {
+                    const imageScale = rig.image_scale;
+                    const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
+                    const seeingAvg = (seeingLow + seeingHigh) / 2;
+
+                    // --- Logic for Average Value ---
+                    const samplingAvg = seeingAvg / imageScale;
+
+                    // --- More Granular Logic ---
+                    let text = '';
+                    let colorClass = '';
+                    let isOversampled = false;
+
+                    if (samplingAvg > 4.0) {
+                        text = `Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`;
+                        colorClass = 'sampling-oversampled';
+                        isOversampled = true;
+                    } else if (samplingAvg > 3.0) {
+                        text = `Slightly Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`;
+                        colorClass = 'sampling-slightly-oversampled';
+                        isOversampled = true;
+                    } else if (samplingAvg >= 1.0) {
+                        text = `Good Sampling: ${samplingAvg.toFixed(1)} px/FWHM`;
+                        colorClass = 'sampling-good';
+                    } else if (samplingAvg >= 0.67) {
+                        text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`;
+                        colorClass = 'sampling-slightly-undersampled';
+                    } else {
+                        text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`;
+                        colorClass = 'sampling-undersampled';
+                    }
+
+                    // Create and append the main info element
+                    const infoEl = document.createElement('span');
+                    infoEl.className = `sampling-info ${colorClass}`;
+                    infoEl.textContent = text;
+                    infoContainer.appendChild(infoEl);
+
+                    // --- Binning Suggestion Logic ---
+                    if (isOversampled) {
+                        const binningEl = document.createElement('small');
+                        binningEl.className = 'sampling-binning-tip';
+                        const binnedScale = (imageScale * 2).toFixed(2);
+                        const binnedSampling = (samplingAvg / 2).toFixed(1);
+                        binningEl.textContent = `Tip: 2x2 binning would yield ~${binnedScale}"/px (${binnedSampling} px/FWHM)`;
+                        infoContainer.appendChild(binningEl);
+                    }
+                }
+            });
+        }
 
     // --- General Page Logic ---
     function confirmAndFetchDetails(formElement) {
@@ -949,6 +1044,11 @@
             rigs: document.getElementById('rigs-tab-content')
         };
         let activeTab = localStorage.getItem('activeConfigTab') || 'general';
+
+        const seeingSelect = document.getElementById('seeing-select');
+        if (seeingSelect) {
+            seeingSelect.addEventListener('change', updateSamplingInfo);
+        }
 
         function updateTabDisplay() {
             Object.values(contentPanels).forEach(panel => {
