@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.X.b2"
+APP_VERSION = "3.0.0b1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -89,6 +89,7 @@ cache_worker_status = {}
 monthly_top_targets_cache = {}
 config_cache = {}
 config_mtime = {}
+LATEST_VERSION_INFO = {}
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
@@ -268,6 +269,41 @@ def save_journal(username, journal_data):
 def generate_session_id():
     """Generates a unique session ID."""
     return uuid.uuid4().hex
+
+
+def check_for_updates():
+    """
+    Checks GitHub for the latest release version in a background thread.
+    """
+    global LATEST_VERSION_INFO
+    owner = "mrantonSG"
+    repo = "nova_DSO_tracker"
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+    print(f"[VERSION CHECK] Fetching latest release info from {url}")
+
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # Raise an exception for bad status codes
+
+        data = response.json()
+        latest_version = data.get("tag_name", "").lstrip('v')  # Get version and remove leading 'v'
+        current_version = APP_VERSION
+
+        if latest_version and latest_version != current_version:
+            print(f"[VERSION CHECK] New version found: {latest_version}")
+            LATEST_VERSION_INFO = {
+                "new_version": latest_version,
+                "url": data.get("html_url")
+            }
+        else:
+            print("[VERSION CHECK] You are running the latest version.")
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ [VERSION CHECK] Could not connect to GitHub API: {e}")
+    except Exception as e:
+        print(f"❌ [VERSION CHECK] An unexpected error occurred: {e}")
+
 
 def trigger_outlook_update_for_user(username):
     """
@@ -572,6 +608,10 @@ def get_outlook_data():
         worker_status = cache_worker_status.get(location_name, "idle")
         return jsonify({"status": worker_status, "results": []})
 
+@app.route('/api/latest_version')
+def get_latest_version():
+    """An API endpoint for the frontend to check for updates."""
+    return jsonify(LATEST_VERSION_INFO)
 
 @app.route('/add_component', methods=['POST'])
 @login_required
@@ -3852,6 +3892,10 @@ def import_rig_config():
 if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     trigger_startup_cache_workers()
 if __name__ == '__main__':
+    # Start the background thread to check for updates
+    update_thread = threading.Thread(target=check_for_updates)
+    update_thread.daemon = True
+    update_thread.start()
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
 

@@ -9,17 +9,6 @@
       padding: 20px;
       margin: 0;
     }
-    .header-container {
-      display: flex;
-      align-items: baseline;
-    }
-    .header-container h1, .header-container h3 {
-      margin-bottom: 20px;
-    }
-    .header-container h3 {
-      margin-left: 10px;
-      font-weight: normal;
-    }
 
     #back-button {
       margin-top: 0;
@@ -818,10 +807,7 @@
 </head>
 <body>
 {% block body %}
-    <div class="header-container">
-      <h1>Nova</h1>
-      <h3>DSO Tracker V{{ version }}</h3>
-    </div>
+
     <div class="top-info-grid"> {# Renamed for clarity, this will be our main flex row for the two columns #}
 
       {# ---- Column 1: Back to Tracker Button ---- #}

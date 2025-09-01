@@ -113,10 +113,6 @@
 {% endblock %}
 
 {% block body %}
-  <div class="header-container">
-    <h1>Nova</h1>
-    <h3>DSO Tracker V{{ version }}</h3>
-  </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
