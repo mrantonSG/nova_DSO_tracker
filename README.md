@@ -14,7 +14,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 2.9 - Quick Guide
+# Nova DSO Altitude Tracker 3.0 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -35,8 +35,10 @@ The first "Position" contains all fields you are used to from the previous versi
 
 The second tab, "Properties", contains object-specific physical data such as the object's Type, Magnitude, Size, and its Constellation (shown as a three-letter abbreviation).
 
-The third tab, "Journal" lets you take notes to your imaging sessions.
-![Screenshot_28_index.png](docs/Screenshot_28_index.png)
+The third tab, "Outlook" shows the upcoming imaging opportunities for your highlighted objects.
+
+The fourth tab, "Journal" lets you take notes to your imaging sessions.
+![Screenshot_28_index.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_index.png)
 
 
 ### Sorting and Searching
@@ -46,11 +48,11 @@ The third tab, "Journal" lets you take notes to your imaging sessions.
 
 - You can now also add multiple phrases in a search field. For example multiple DSO types:
 
-![Screenshot_29_filter.png](docs/Screenshot_29_filter.png)
+![Screenshot_29_filter.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_filter.png)
 
 and you can combine filters and sorting from both tabs:
 
-![Screenshot_28_filter_sort.png](docs/Screenshot_28_filter_sort.png)
+![Screenshot_28_filter_sort.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_filter_sort.png)
 
 In this example the objects are sorted by maximum observation time. 
 In combination with the filter under "Properties" this shows potential observation time only for the DSO type selected.
@@ -66,18 +68,20 @@ All you settings and objects are stored in a single .yaml file which you can fin
 
 The configuration, including all locations objects and settings, can be downloaded as well as uploaded. When uploading the configuration file it doesnt matter how it is named, it will be automatically renamed to match the user ID (in MUM) or the default name (in SUM)
 
-![Screenshot_27_config.png](docs/Screenshot_27_config.png)
+Under the tab "Rigs" you can configure your equipment, configure rigs and calculate the sampling. The rigs configured here can later be selected in the journal.
+
+![Screenshot_27_config.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_rigs.png)
 
 ### Importing / upgrading your configuration to V 2.7 or later
 Since nova now includes more information, the configuration yaml file needs to be updated.
 After installing the latest version, you can import your previous config yaml file. 
 However - you will notice that the additional fields remain empty if your yaml file was created by a version < 2.7:
 
-![Screenshot_27_conf_beforeI.png](docs/Screenshot_27_conf_beforeI.png)
+![Screenshot_27_conf_beforeI.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_27_conf_beforeI.png)
 
 What you need to do is to press the "Fetch Missing Details" button. A message will pop up reminding you that this process will take some time.
 
-![Screenshot_27_message.png](docs/Screenshot_27_message.png)
+![Screenshot_27_message.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_27_message.png)
 
 In order to successfully add the information, your system needs to be connected to the internet.
 Nova will query multiple catalogs to find the requested information. If you have Stellarium on your computer, you should open it as well - nova will use it as fallback if the search in the various catalogs was not successful.
@@ -93,16 +97,21 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 You can not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 The daily graph also displays a vertical dashed line indicating the meridian transit, which is the point of highest altitude and a crucial time for equatorial mount users to plan for a "meridian flip."
 
-![Screenshot_29_graphic.png](docs/Screenshot_29_graphic.png)
+![Screenshot_29_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_29_graphic.png)
 
-![Screenshot_28_month.png](docs/Screenshot_28_month.png)
+![Screenshot_28_month.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_month.png)
 
-![Screenshot_28_year.png](docs/Screenshot_28_year.png)
+![Screenshot_28_year.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_year.png)
 
-If you click on the button "Find Imaging Opportunities", you will get a list of dates when imaging the selected object is possible.
+If you click on the button "Find Imaging Opportunities", you will get a list of dates and times when imaging the selected object is possible.
 From here you can also add the information to your calendar.
 
-![Screenshot_29_opportunities.png](docs/Screenshot_29_opportunities.png)
+![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_29_opportunities.png)
+
+In addition, you will also see an approximate fit of your configured rigs.
+
+![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_rig_fit.png)
+
 
 You can edit the selection criteria for the opportunity search in the configuration settings.
 
@@ -110,17 +119,27 @@ You can edit the selection criteria for the opportunity search in the configurat
 Nova DSO Tracker also offers the additional possibility to take notes to imaging sessions.
 On the main screen you can find the Journal at the third tab:
 
-![Screenshot_28_Index_journal.png](docs/Screenshot_28_Index_journal.png)
+![Screenshot_28_Index_journal.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_Index_journal.png)
 
 Here you can find all your imaging sessions. If you want to see the detail, click on it and the graph screen for that particular day will open and in addition you will find the session details:
 
-![Screenshot_28_sessions.png](docs/Screenshot_28_sessions.png)
+![Screenshot_28_sessions.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_sessions.png)
 
 You can add new sessions by clicking the "add new session" button - and filling up the form:
 
-![Screenshot_28_addform.png](docs/Screenshot_28_addform.png)
+![Screenshot_28_addform.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_addform.png)
 
 # Nova Astronomical Tracker Setup Guide
+
+The easiest way to install Nova DSO Tracker is via Docker. There is also a video that explains the process.
+<div align="center">
+
+[![Watch the video](https://img.youtube.com/vi/CF__VZEtH_I/0.jpg)](https://youtu.be/CF__VZEtH_I)
+
+</div>
+
+
+Alternatively you can of course run it directly in Python:
 
 This guide walks you through setting up your Flask astronomical tracking app, including creating a virtual environment and installing all required dependencies.
 
