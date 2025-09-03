@@ -323,22 +323,22 @@ def trigger_outlook_update_for_user(username):
 
 def trigger_startup_cache_workers():
     """
-    IMPROVED: Prioritizes the default location for immediate caching and
-    runs other locations in parallel in the background.
+    REVISED FOR RELIABILITY: Processes all locations sequentially with a delay
+    to prevent overwhelming resource-constrained systems like a Raspberry Pi.
     """
     print("[STARTUP] Checking all caches for freshness...")
 
-    # Determine the user for whom to run the cache workers
     if SINGLE_USER_MODE:
         usernames_to_check = ["default"]
     else:
-        # In multi-user mode, you might want to run this for all users.
-        # This keeps the original logic of checking all defined users.
         usernames_to_check = list(users.keys())
+
+    # A single list to hold all tasks (username, location, config)
+    all_tasks = []
 
     for username in set(usernames_to_check):
         try:
-            print(f"--- Checking caches for user: {username} ---")
+            print(f"--- Preparing tasks for user: {username} ---")
             config = load_user_config(username)
             if not config:
                 print(f"    -> No config found for user '{username}', skipping.")
@@ -347,36 +347,39 @@ def trigger_startup_cache_workers():
             locations = config.get("locations", {})
             default_location = config.get("default_location")
 
-            # --- STRATEGY: 1. Launch worker for the DEFAULT location IMMEDIATELY ---
+            # Add the default location to the front of the list to be processed first
             if default_location and default_location in locations:
-                print(f"[STARTUP] Prioritizing immediate cache warm-up for default location: '{default_location}'.")
-                # We pass the username, location, and config to the worker
-                warm_thread = threading.Thread(target=warm_main_cache, args=(username, default_location, config.copy()))
-                warm_thread.start()
-            else:
-                print("[STARTUP] No default location set or found, skipping immediate warm-up.")
+                all_tasks.insert(0, (username, default_location, config.copy()))
 
-
-            # --- STRATEGY: 2. Launch workers for ALL OTHER locations in parallel after a short delay ---
-            other_locations = [
-                loc_name for loc_name in locations.keys() if loc_name != default_location
-            ]
-
-            if other_locations:
-                print(f"[STARTUP] Scheduling background cache warm-up for other locations: {', '.join(other_locations)}")
-                # This function will be called once after 5 seconds
-                def launch_background_workers():
-                    print("[STARTUP] Kicking off parallel background workers...")
-                    for loc_name in other_locations:
-                        bg_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, config.copy()))
-                        bg_thread.start()
-
-                # Use a Timer to start the background process after 5 seconds,
-                # allowing the main app to load without interference.
-                threading.Timer(5.0, launch_background_workers).start()
+            # Add all other locations to the list
+            for loc_name in locations.keys():
+                if loc_name != default_location:
+                    all_tasks.append((username, loc_name, config.copy()))
 
         except Exception as e:
-            print(f"❌ [STARTUP] ERROR: Could not trigger startup cache workers for user '{username}': {e}")
+            print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
+
+    # Now, execute all tasks one by one with a delay between them
+    def run_tasks_sequentially(tasks):
+        if not tasks:
+            print("[STARTUP] All cache workers have completed.")
+            return
+
+        # Get the next task from the list
+        username, loc_name, cfg = tasks.pop(0)
+
+        print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
+        worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg))
+        worker_thread.start()
+
+        # Schedule the next task to run after a 15-second delay
+        threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
+
+    print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
+    if all_tasks:
+        # Kick off the sequential process
+        run_tasks_sequentially(all_tasks)
+
 
 def update_outlook_cache(username, location_name, user_config):
     """
@@ -384,9 +387,11 @@ def update_outlook_cache(username, location_name, user_config):
     and saves them sorted by date.
     """
     with app.app_context():
-        # Note: You can update this print statement for better logging if you wish
+        # Create a unique key for the status dictionary
+        status_key = f"{username}_{location_name}"
+
         print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
-        cache_worker_status[location_name] = "running" # This status cache might also need a username key
+        cache_worker_status[status_key] = "running"
         cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
 
         try:
@@ -409,7 +414,7 @@ def update_outlook_cache(username, location_name, user_config):
                 obj for obj in all_objects_from_config
                 if obj.get("Project") and obj.get("Project").lower().strip() not in ["", "none"]
             ]
-            print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects.")
+            print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects for user '{username}'.")
 
             all_good_opportunities = []
             local_tz = pytz.timezone(tz_name)
@@ -489,20 +494,20 @@ def update_outlook_cache(username, location_name, user_config):
             opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
 
             cache_content = {
-                "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name},
+                "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username},
                 "opportunities": opportunities_sorted_by_date
             }
 
             with open(cache_filename, 'w') as f:
                 json.dump(cache_content, f)
             print(f"[OUTLOOK WORKER] Successfully updated cache file: {cache_filename}")
-            cache_worker_status[location_name] = "complete"
+            cache_worker_status[status_key] = "complete"
 
         except Exception as e:
             import traceback
-            print(f"❌ [OUTLOOK WORKER] FATAL ERROR for location '{location_name}': {e}")
+            print(f"❌ [OUTLOOK WORKER] FATAL ERROR for user '{username}' at location '{location_name}': {e}")
             traceback.print_exc()
-            cache_worker_status[location_name] = "error"
+            cache_worker_status[status_key] = "error"
 
 def warm_main_cache(username, location_name, user_config):
     """
@@ -587,6 +592,7 @@ def warm_main_cache(username, location_name, user_config):
         print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
         traceback.print_exc()
 
+
 @app.route('/get_outlook_data')
 def get_outlook_data():
     # --- NEW: Check for guest user first ---
@@ -594,11 +600,14 @@ def get_outlook_data():
         # Guests have no projects, so their outlook is always empty.
         return jsonify({"status": "complete", "results": []})
 
-    # --- Logic to determine username and build the correct filename ---
+    # --- Original logic for logged-in users continues below ---
     if SINGLE_USER_MODE:
         username = "default"
-    else:
+    elif current_user.is_authenticated:
         username = current_user.username
+    else:
+        # Handle cases where no user is logged in in multi-user mode
+        return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
     location_name = g.selected_location
     cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
@@ -612,7 +621,9 @@ def get_outlook_data():
             print(f"❌ ERROR: Could not read or parse outlook cache file '{cache_filename}': {e}")
             return jsonify({"status": "error", "results": []})
     else:
-        worker_status = cache_worker_status.get(location_name, "idle")
+        # Create the unique key to check the worker's status
+        status_key = f"{username}_{location_name}"
+        worker_status = cache_worker_status.get(status_key, "idle")
         return jsonify({"status": worker_status, "results": []})
 
 @app.route('/api/latest_version')
