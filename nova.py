@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.0.0b1"
+APP_VERSION = "3.0.0"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -316,21 +316,25 @@ def trigger_outlook_update_for_user(username):
         for loc_name in locations.keys():
             # We don't need to check for staleness here, we want to force the update.
             print(f"    -> Starting Outlook worker for location '{loc_name}'.")
-            thread = threading.Thread(target=update_outlook_cache, args=(loc_name, user_cfg.copy()))
+            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy()))
             thread.start()
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
 
 def trigger_startup_cache_workers():
     """
-    Checks caches on startup and launches workers sequentially with a delay
-    to avoid overwhelming the CPU. Prioritizes the default location.
+    IMPROVED: Prioritizes the default location for immediate caching and
+    runs other locations in parallel in the background.
     """
     print("[STARTUP] Checking all caches for freshness...")
 
-    usernames_to_check = list(users.keys())
+    # Determine the user for whom to run the cache workers
     if SINGLE_USER_MODE:
-        usernames_to_check.append('default')
+        usernames_to_check = ["default"]
+    else:
+        # In multi-user mode, you might want to run this for all users.
+        # This keeps the original logic of checking all defined users.
+        usernames_to_check = list(users.keys())
 
     for username in set(usernames_to_check):
         try:
@@ -343,50 +347,47 @@ def trigger_startup_cache_workers():
             locations = config.get("locations", {})
             default_location = config.get("default_location")
 
-            # --- NEW: Staggered and Prioritized Worker Launch ---
-
-            # 1. Create a prioritized list of locations to process
-            locations_to_process = []
+            # --- STRATEGY: 1. Launch worker for the DEFAULT location IMMEDIATELY ---
             if default_location and default_location in locations:
-                locations_to_process.append(default_location)
-            for loc_name in locations.keys():
-                if loc_name != default_location:
-                    locations_to_process.append(loc_name)
-
-            # 2. Define a function to launch a worker for a single location
-            def launch_worker(loc_name, user_cfg):
-                print(f"[STARTUP] Starting main data cache warmer for '{username}' at location: '{loc_name}'.")
-                warm_thread = threading.Thread(target=warm_main_cache, args=(loc_name, user_cfg.copy()))
+                print(f"[STARTUP] Prioritizing immediate cache warm-up for default location: '{default_location}'.")
+                # We pass the username, location, and config to the worker
+                warm_thread = threading.Thread(target=warm_main_cache, args=(username, default_location, config.copy()))
                 warm_thread.start()
+            else:
+                print("[STARTUP] No default location set or found, skipping immediate warm-up.")
 
-            # 3. Launch workers one by one with a delay
-            for i, loc_name in enumerate(locations_to_process):
-                delay = 0 if i == 0 else 15  # No delay for the first (default), 15s for others
 
-                # Use a Timer thread to launch the worker after a delay
-                timer_thread = threading.Timer(
-                    delay,
-                    launch_worker,
-                    args=(loc_name, config)
-                )
-                timer_thread.start()
+            # --- STRATEGY: 2. Launch workers for ALL OTHER locations in parallel after a short delay ---
+            other_locations = [
+                loc_name for loc_name in locations.keys() if loc_name != default_location
+            ]
 
-                if delay > 0:
-                    print(f"    -> Scheduling warmer for '{loc_name}' to start in {delay} seconds.")
+            if other_locations:
+                print(f"[STARTUP] Scheduling background cache warm-up for other locations: {', '.join(other_locations)}")
+                # This function will be called once after 5 seconds
+                def launch_background_workers():
+                    print("[STARTUP] Kicking off parallel background workers...")
+                    for loc_name in other_locations:
+                        bg_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, config.copy()))
+                        bg_thread.start()
+
+                # Use a Timer to start the background process after 5 seconds,
+                # allowing the main app to load without interference.
+                threading.Timer(5.0, launch_background_workers).start()
 
         except Exception as e:
             print(f"❌ [STARTUP] ERROR: Could not trigger startup cache workers for user '{username}': {e}")
 
-
-def update_outlook_cache(location_name, user_config):
+def update_outlook_cache(username, location_name, user_config):
     """
     NEW LOGIC: Finds ALL good imaging opportunities for PROJECT objects only
     and saves them sorted by date.
     """
     with app.app_context():
-        print(f"[OUTLOOK WORKER] Starting for location '{location_name}'.")
-        cache_worker_status[location_name] = "running"
-        cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+        # Note: You can update this print statement for better logging if you wish
+        print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
+        cache_worker_status[location_name] = "running" # This status cache might also need a username key
+        cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
 
         try:
             g.user_config = user_config
@@ -503,7 +504,7 @@ def update_outlook_cache(location_name, user_config):
             traceback.print_exc()
             cache_worker_status[location_name] = "error"
 
-def warm_main_cache(location_name, user_config):
+def warm_main_cache(username, location_name, user_config):
     """
     Warms the main data cache on startup and then triggers the Outlook cache
     update for the same location.
@@ -577,7 +578,8 @@ def warm_main_cache(location_name, user_config):
                 print(f"    -> Outlook cache for '{location_name}' is corrupted. Triggering update.")
 
         if needs_update:
-            thread = threading.Thread(target=update_outlook_cache, args=(location_name, user_config.copy()))
+            # Pass username to the thread's target function
+            thread = threading.Thread(target=update_outlook_cache, args=(username, location_name, user_config.copy()))
             thread.start()
 
     except Exception as e:
@@ -592,9 +594,14 @@ def get_outlook_data():
         # Guests have no projects, so their outlook is always empty.
         return jsonify({"status": "complete", "results": []})
 
-    # --- Original logic for logged-in users continues below ---
+    # --- Logic to determine username and build the correct filename ---
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
     location_name = g.selected_location
-    cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+    cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
 
     if os.path.exists(cache_filename):
         try:
@@ -1783,10 +1790,11 @@ def import_config():
         print("[CONFIG] Config imported. Checking for new locations needing an Outlook cache.")
         user_config_for_thread = new_config.copy()
         for loc_name in user_config_for_thread.get('locations', {}).keys():
-            cache_filename = f"outlook_cache_{loc_name.lower().replace(' ', '_')}.json"
+            # Use the new filename format for the check
+            cache_filename = f"outlook_cache_{username_for_backup}_{loc_name.lower().replace(' ', '_')}.json"
             if not os.path.exists(cache_filename):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
-                thread = threading.Thread(target=update_outlook_cache, args=(loc_name, user_config_for_thread))
+                thread = threading.Thread(target=update_outlook_cache, args=(username_for_backup, loc_name, user_config_for_thread))
                 thread.start()
 
         return redirect(url_for('config_form'))
