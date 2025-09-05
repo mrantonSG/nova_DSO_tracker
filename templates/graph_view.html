@@ -474,7 +474,7 @@
         background-color: #fefefe; /* Aladin looks better on a light background */
         margin: 3% auto; /* Adjusted margin for better centering */
         padding: 20px;
-        border: 1px solid #888;
+        border: 1px solid #83b4c5;
         width: 90%; /* Use more of the screen width */
         max-width: 840px;
         position: relative;
@@ -500,7 +500,57 @@
         margin: 0;
         padding: 0;
     }
+    /* Hide Aladin’s floating mouse-position readout to avoid redundancy */
+    #aladin-lite-div .aladin-location,
+    #aladin-lite-div .aladin-mouse-position {
+      display: none !important;
+    }
 
+     /* Header bar at the top of the modal */
+    .modal-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 56px 6px 16px; /* right padding leaves space for the × button */
+      border-bottom: 1px solid #83b4c5;
+    }
+
+    /* Nova brand style (matches your site typography) */
+    .brand-strong {
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      font-size: 20px;
+    }
+    .brand-light {
+      font-weight: 400;
+      margin-left: 6px;
+      color: #555;
+      font-size: 20px;
+    }
+
+    /* Little pill on the right for the FOV text */
+    .fov-chip {
+      font-size: 13px;
+      color: #444;
+      background: #f3f5f7;
+      border: 1px solid #e2e6ea;
+      border-radius: 999px;
+      padding: 4px 10px;
+      white-space: nowrap;
+    }
+
+    /* Make sure the close button sits above and doesn’t overlap content */
+    .modal .close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      z-index: 3;         /* above header text */
+      line-height: 1;
+      font-size: 22px;
+      color: #999;
+    }
+    .modal .close:hover { color: #666; }
   </style>
 
 {% endblock %}
@@ -916,140 +966,482 @@
     <div id="framing-modal" class="modal">
       <div class="modal-content">
         <span class="modal-close" onclick="closeFramingAssistant()">&times;</span>
-        <div class="framing-controls">
-            <div>
-                <label for="framing-rig-select">Select Rig:</label>
-                <select id="framing-rig-select" onchange="updateFramingChart(true)">
-                    {% if available_rigs %}
-                        {% for rig in available_rigs %}
-                            <option value="{{ rig.rig_id }}"
-                                    data-fovw="{{ rig.fov_w_arcmin }}"
-                                    data-fovh="{{ rig.fov_h_arcmin }}">
-                                {{ rig.rig_name }}
-                            </option>
-                        {% endfor %}
-                    {% else %}
-                        <option value="">No rigs configured</option>
-                    {% endif %}
-                </select>
-            </div>
-            <div>
-                <label for="framing-rotation">Rotation:</label>
-                <input type="range" id="framing-rotation" min="0" max="360" value="0" step="1" oninput="window.updateFramingChart(false)" onchange="window.updateFramingChart(false)">
-                <span id="rotation-value">0°</span>
-            </div>
+
+        <!-- Modal header (inside the white panel) -->
+        <div class="modal-header-bar">
+          <div class="brand">
+            <span class="brand-strong">Nova</span>
+            <span class="brand-light">DSO Tracker</span>
+          </div>
+          <span id="fov-vs-object" class="fov-chip"></span>
         </div>
+
+          <!-- QoL utility bar -->
+    <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)">
+        Lock FOV to object
+      </label>
+
+      <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
+      <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
+
+
+        <!-- Filled by JS -->
+      </span>
+    </div>
+    <div class="framing-controls">
+      <div>
+        <label for="framing-rig-select">Select Rig:</label>
+        <select id="framing-rig-select" onchange="updateFramingChart(true)">
+          {% if available_rigs %}
+            {% for rig in available_rigs %}
+              <option value="{{ rig.rig_id }}"
+                      data-fovw="{{ rig.fov_w_arcmin }}"
+                      data-fovh="{{ rig.fov_h_arcmin }}">
+                {{ rig.rig_name }}
+              </option>
+            {% endfor %}
+          {% else %}
+            <option value="">No rigs configured</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <div>
+        <label for="framing-rotation">Rotation:</label>
+        <input type="range" id="framing-rotation" min="0" max="360" value="0" step="1"
+               oninput="window.updateFramingChart(false)" onchange="window.updateFramingChart(false)">
+        <span id="rotation-value">0°</span>
+      </div>
+
+      <div>
+        <label for="survey-select">Survey:</label>
+        <select id="survey-select" onchange="setSurvey(this.value)">
+          <option value="P/DSS2/color">DSS2 (color)</option>
+          <option value="P/allWISE/color">AllWISE (color)</option>
+          <option value="P/2MASS/color">2MASS (color)</option>
+          <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
+          <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
+          <option value="CDS/P/SHASSA">SHASSA Hα</option>
+          <option value="P/SDSS9/color">SDSS9 (color)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Image tuning + RA/Dec utility bar -->
+    <div class="framing-controls" style="flex-wrap: wrap;">
+      <div>
+        <label>Brightness</label>
+        <input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()">
+      </div>
+      <div>
+        <label>Contrast</label>
+        <input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()">
+      </div>
+      <div>
+        <label>Gamma</label>
+        <input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" oninput="updateImageAdjustments()">
+      </div>
+      <div>
+        <label>Saturation</label>
+        <input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()">
+      </div>
+
+      <div style="display:flex; align-items:center; gap:6px;">
+        <label>RA</label>
+        <input id="ra-readout" type="text" style="width:160px;" readonly>
+        <label>Dec</label>
+        <input id="dec-readout" type="text" style="width:160px;" readonly>
+        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
+        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="useReadoutAsFovCenter()">Use current RA/Dec</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:12px;color:#555;">Tip: Click on the sky to move the FOV center.</span>
+        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="resetFovCenterToObject()">Recenter to object</button>
+        <div style="display:flex; align-items:center; gap:4px;">
+          <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">↑</button>
+          <div>
+            <button class="inline-button" style="padding:4px 8px;" title="Nudge Left" onclick="nudgeFov(-1, 0)">←</button>
+            <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" onclick="nudgeFov(+1, 0)">→</button>
+          </div>
+          <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">↓</button>
+          <span style="font-size:12px;color:#555;">(1′ steps)</span>
+        </div>
+      </div>
+    </div>
         <div id="aladin-lite-div"></div>
       </div>
     </div>
 
-<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
-
 
 <script>
+    const OBJECT_SIZE_ARCMIN = null;
     // --- Aladin Lite Variables ---
     let aladin = null;
     let fovLayer = null;
 
+    // NEW: base image layer handle + FOV center
+    let baseSurvey = null;
+    let fovCenter = null; // { ra: number, dec: number }
+
+    // --- QoL state ---
+    let lockToObject = false;
+    let objectCoords = null; // {ra, dec} resolved once per open
+
     // --- Aladin Lite Functions ---
     function openFramingAssistant() {
-        const framingModal = document.getElementById('framing-modal');
-        const framingRigSelect = document.getElementById('framing-rig-select');
+      const framingModal = document.getElementById('framing-modal');
+      const framingRigSelect = document.getElementById('framing-rig-select');
 
-        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
-            alert("Please configure at least one rig on the Configuration page first.");
-            return;
-        }
-        framingModal.style.display = 'block';
+      if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
+          alert("Please configure at least one rig on the Configuration page first.");
+          return;
+      }
+      // NEW: start with first rig selected
+      framingRigSelect.selectedIndex = 0;
 
-        // Initialize Aladin Lite only once when the modal is first opened
-        if (!aladin) {
-            aladin = A.aladin('#aladin-lite-div', {
-                survey: "P/DSS2/color",
-                fov: 1.5,
-                cooFrame: 'ICRS',
-                showFullscreenControl: false,
-                showGotoControl: false
-            });
-            // Create a dedicated layer for our FOV overlay
-            fovLayer = A.graphicOverlay({ color: '#15B215', lineWidth: 2 });
-            aladin.addOverlay(fovLayer);
-        }
+      framingModal.style.display = 'block';
 
-        // Set initial rotation and update the chart
-        document.getElementById('framing-rotation').value = 0;
-        updateFramingChart(true); // `true` indicates a full recenter
+      if (!aladin) {
+        aladin = A.aladin('#aladin-lite-div', {
+          survey: "P/DSS2/color",
+          fov: 1.5,
+          cooFrame: 'ICRS',
+          showFullscreenControl: false,
+          showGotoControl: false
+        });
+
+        // Remember base image layer for tuning
+        baseSurvey = aladin.getBaseImageLayer();
+        // Create a dedicated overlay for FOV
+        fovLayer = A.graphicOverlay({ color: '#83b4c5', lineWidth: 3 });
+        aladin.addOverlay(fovLayer);
+        const canvas = document.getElementById('aladin-lite-div');
+
+
+        // Click → set FOV center to cursor
+        canvas.addEventListener('click', (ev) => {
+            if (lockToObject) return;
+          const rect = canvas.getBoundingClientRect();
+          const x = ev.clientX - rect.left;
+          const y = ev.clientY - rect.top;
+          const sky = aladin.pix2world(x, y);
+          if (!sky) return;
+          fovCenter = { ra: sky[0], dec: sky[1] };
+          updateFramingChart(false); // don’t recentre view; redraw overlay
+          updateReadoutFromCenter();
+        });
+
+        // Key nudges: arrows / WASD, 1 arcmin per keypress
+        window.addEventListener('keydown', (e) => {
+          const k = e.key.toLowerCase();
+          if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) {
+            e.preventDefault();
+            if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
+            if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
+            if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
+            if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
+          }
+        });
+      }
+
+      // Reset rotation and center to object on open
+      document.getElementById('framing-rotation').value = 0;
+      fovCenter = null; // means “use view center/object”
+      updateFramingChart(true);
+      updateFovVsObjectLabel();
+      // Restore from URL if params exist
+        try {
+          const q = new URLSearchParams(location.search);
+          const rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec'));
+          const rot = parseFloat(q.get('rot')), surv = q.get('survey');
+
+          if (rig) {
+            const sel = document.getElementById('framing-rig-select');
+            const i = Array.from(sel.options).findIndex(o => o.value === rig);
+            if (i >= 0) sel.selectedIndex = i;
+          }
+          if (!Number.isNaN(rot)) {
+            document.getElementById('framing-rotation').value = rot;
+            document.getElementById('rotation-value').textContent = `${Math.round(rot)}°`;
+          }
+          if (q.has('survey')) setSurvey(surv);
+
+          if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
+            fovCenter = { ra, dec };
+            updateFramingChart(false);
+            updateReadoutFromCenter();
+          } else {
+            // ensure we still draw once with rig & rotation applied
+            updateFramingChart(false);
+            updateReadoutFromCenter();
+          }
+        } catch(e){}
     }
 
     function closeFramingAssistant() {
         const framingModal = document.getElementById('framing-modal');
         framingModal.style.display = 'none';
     }
+    function flipFraming90() {
+      const slider = document.getElementById('framing-rotation');
+      let v = parseFloat(slider.value) || 0;
+      v = (v + 90) % 360;
+      slider.value = v;
+      document.getElementById('rotation-value').textContent = `${Math.round(v)}°`;
+      updateFramingChart(false);
+      updateReadoutFromCenter();
+    }
 
     window.updateFramingChart = function(recenter = true) {
-        if (!aladin) return;
+      if (!aladin) return;
 
-        const objectName = "{{ object_name }}";
-        const framingRigSelect = document.getElementById('framing-rig-select');
-        const rotationSlider = document.getElementById('framing-rotation');
-        const rotationValueSpan = document.getElementById('rotation-value');
-        const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
+      const objectName = "{{ object_name }}";
+      const framingRigSelect = document.getElementById('framing-rig-select');
+      const rotationSlider = document.getElementById('framing-rotation');
+      const rotationValueSpan = document.getElementById('rotation-value');
+      const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
+      if (!selectedOption) return;
 
-        // Get FOV from the selected rig's data attributes
-        const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw);
-        const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
-        const fovInDegrees = Math.max(fovWidthArcmin, fovHeightArcmin) / 60;
+      const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw);
+      const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
+      const fovInDegrees = Math.max(fovWidthArcmin, fovHeightArcmin) / 60;
 
-        // Get rotation
-        const rotation = parseFloat(rotationSlider.value);
-        if(rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
+      const rotation = parseFloat(rotationSlider.value);
+      if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
 
-        // Center the view on the object and set zoom
+      // Center the view on the object once, if asked
         if (recenter) {
-            aladin.gotoObject(objectName, {
-                callback: function() {
-                    aladin.setFov(fovInDegrees * 1.5);
-                }
-            });
+        aladin.gotoObject(objectName, {
+          success: () => {
+            aladin.setFov(fovInDegrees * 1.5);
+            const rc = aladin.getRaDec();        // <— this line is essential
+            objectCoords = { ra: rc[0], dec: rc[1] };
+            fovCenter = lockToObject ? { ...objectCoords } : { ra: rc[0], dec: rc[1] };
+            drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+            updateReadoutFromCenter?.();
+          },
+          error: () => {
+            const rc = aladin.getRaDec();
+            fovCenter = { ra: rc[0], dec: rc[1] };
+            drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+            updateReadoutFromCenter?.();
+          }
+        });
+          return;
         }
 
-        // Clear previous FOV rectangle
-        fovLayer.removeAll();
+      // Otherwise, reuse existing fovCenter or default to current view center
+      if (!fovCenter) {
+        const rc = aladin.getRaDec();
+        fovCenter = { ra: rc[0], dec: rc[1] };
+      }
+      drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+    }
 
-        // Draw the new FOV rectangle with rotation
-        const raDec = aladin.getRaDec();
-        const raCenter = raDec[0];
-        const decCenter = raDec[1];
+    function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
+      if (!aladin || !fovLayer || !center) return;
 
-        // Convert arcminutes → degrees
-        const halfW = fovWidthArcmin / 120;
-        const halfH = fovHeightArcmin / 120;
+      fovLayer.removeAll();
 
-        // Rotation in radians
-        const angle = rotation * Math.PI / 180;
+      // Convert FOV to degrees (half-sizes)
+      const halfW_deg = (fovWidthArcmin / 60) / 2;
+      const halfH_deg = (fovHeightArcmin / 60) / 2;
 
-        // Function to rotate local offsets
-        function rotate(x, y, theta) {
-            return [
-                x * Math.cos(theta) - y * Math.sin(theta),
-                x * Math.sin(theta) + y * Math.cos(theta)
-            ];
-        }
+      const angle = rotationDeg * Math.PI / 180;
+      const decRad = center.dec * Math.PI / 180;
+      const cosDec = Math.abs(Math.cos(decRad)) > 1e-6 ? Math.cos(decRad) : 1e-6; // avoid div/0 near poles
 
-        // Compute corners relative to center
-        const corners = [
-            rotate(-halfW, -halfH, angle),
-            rotate( halfW, -halfH, angle),
-            rotate( halfW,  halfH, angle),
-            rotate(-halfW,  halfH, angle),
+      // Rotate in a local tangent plane where:
+      //   x_true = ΔRA * cos(dec)   and   y_true = ΔDec
+      function rotate(x, y, t) {
+        return [
+          x * Math.cos(t) - y * Math.sin(t),
+          x * Math.sin(t) + y * Math.cos(t)
         ];
+      }
 
-        // Convert to sky coordinates (approx, works fine for small FOVs)
-        const polyCoords = corners.map(([dx, dy]) => [raCenter + dx, decCenter + dy]);
+      // Build corners in the "true" plane (no cos(dec) scaling yet)
+      const cornersTrue = [
+        rotate(-halfW_deg, -halfH_deg, angle),
+        rotate( halfW_deg, -halfH_deg, angle),
+        rotate( halfW_deg,  halfH_deg, angle),
+        rotate(-halfW_deg,  halfH_deg, angle),
+      ];
 
-        // Draw polygon
-        const fovFootprint = A.footprint(A.polygon(polyCoords));
-        fovLayer.add(fovFootprint);
+      // Convert back to RA/Dec offsets:
+      //   ΔRA = x_true / cos(dec),  ΔDec = y_true
+      const polyCoords = cornersTrue.map(([x_true, y_true]) => {
+        const dRA  = x_true / cosDec;
+        const dDec = y_true;
+        return [center.ra + dRA, center.dec + dDec];
+      });
+
+      // Close the polygon
+      polyCoords.push(polyCoords[0]);
+
+      // Draw in your teal
+      const fovPolygon = A.polygon(polyCoords, { color: '#83b4c5', lineWidth: 3 });
+      const fovFootprint = A.footprint(fovPolygon);
+      fovLayer.add(fovFootprint);
+
+      // Keep the RA/Dec boxes synced
+      updateReadoutFromCenter?.();
+    }
+
+    function setSurvey(hipsId) {
+      if (!aladin) return;
+      const newLayer = aladin.newImageSurvey(hipsId);
+      aladin.setBaseImageLayer(newLayer);
+      baseSurvey = aladin.getBaseImageLayer();
+      // reapply current image adjustments to the new layer
+      updateImageAdjustments();
+    }
+    function updateImageAdjustments() {
+      if (!baseSurvey) return;
+      const b = parseFloat(document.getElementById('img-bright').value);
+      const c = parseFloat(document.getElementById('img-contrast').value);
+      const g = parseFloat(document.getElementById('img-gamma').value);
+      const s = parseFloat(document.getElementById('img-sat').value);
+
+      // API: setBrightness(-1..1), setContrast(-1..1), setGamma(0.1..10), setSaturation(-1..1)
+      baseSurvey.setBrightness(b);
+      baseSurvey.setContrast(c);
+      baseSurvey.setGamma(g);
+      baseSurvey.setSaturation(s);
+    }
+    function updateReadout(raDeg, decDeg) {
+      document.getElementById('ra-readout').value  = formatRA(raDeg);
+      document.getElementById('dec-readout').value = formatDec(decDeg);
+    }
+
+    function updateReadoutFromCenter() {
+      // If center not set yet, fall back to current view center
+      const c = fovCenter || (() => {
+        const rc = aladin.getRaDec();
+        return { ra: rc[0], dec: rc[1] };
+      })();
+      updateReadout(c.ra, c.dec);
+    }
+
+    function copyRaDec() {
+      const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`;
+      navigator.clipboard.writeText(text).then(()=> {
+        // optional toast
+      });
+    }
+
+    function useReadoutAsFovCenter() {
+      const raStr  = document.getElementById('ra-readout').value;
+      const decStr = document.getElementById('dec-readout').value;
+      const sky = parseRaDec(raStr, decStr);
+      if (!sky) return;
+      fovCenter = { ra: sky.ra, dec: sky.dec };
+      updateFramingChart(false);
+      updateReadoutFromCenter();
+    }
+
+    function resetFovCenterToObject() {
+      fovCenter = null; // will fall back to view center after gotoObject
+      updateFramingChart(true);
+      updateFovVsObjectLabel();
+    }
+
+    // 1 arcmin nudges; dx positive → RA+, dy positive → Dec+
+    function nudgeFov(dxArcmin, dyArcmin) {
+      if (lockToObject && objectCoords) {
+        fovCenter = { ra: objectCoords.ra, dec: objectCoords.dec };
+        updateFramingChart(false);
+        updateReadoutFromCenter();
+        return;
+      }
+      if (!fovCenter) {
+        const rc = aladin.getRaDec();
+        fovCenter = { ra: rc[0], dec: rc[1] };
+      }
+      fovCenter.ra  += dxArcmin / 60.0;
+      fovCenter.dec += dyArcmin / 60.0;
+      updateFramingChart(false);
+      updateReadoutFromCenter();
+    }
+    function applyLockToObject(locked) {
+      lockToObject = !!locked;
+
+      // When enabling, snap overlay center to the object immediately
+      if (lockToObject) {
+        // Prefer precise object coords if we have them; else view center is fine right after goto
+        const c = objectCoords || (() => {
+          const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] };
+        })();
+        fovCenter = { ra: c.ra, dec: c.dec };
+        updateFramingChart(false);
+        updateReadoutFromCenter();
+      }
+    }
+    function updateFovVsObjectLabel() {
+      const el = document.getElementById('fov-vs-object');
+      if (!el) return;
+
+      const sel = document.getElementById('framing-rig-select');
+      if (!sel || sel.selectedIndex < 0) { el.textContent = ''; return; }
+
+      const opt = sel.options[sel.selectedIndex];
+      const fovW = parseFloat(opt.dataset.fovw); // arcmin
+      const fovH = parseFloat(opt.dataset.fovh); // arcmin
+      if (!isFinite(fovW) || !isFinite(fovH)) { el.textContent = ''; return; }
+
+      let text = `FOV ${Math.round(fovW)}′ × ${Math.round(fovH)}′`;
+
+      if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) {
+        const minSide = Math.min(fovW, fovH);
+        const fitAcross = minSide / OBJECT_SIZE_ARCMIN;
+        // e.g., "Object ~ 20′ → fits ~3.1× across the short side"
+        text += ` • Object ~ ${Math.round(OBJECT_SIZE_ARCMIN)}′ → ${fitAcross >= 1 ? 'fits' : 'spans'} ${fitAcross.toFixed(1)}× ${fitAcross >= 1 ? 'across' : 'of'} short side`;
+      }
+
+      el.textContent = text;
+    }
+    // If user tries to move center while locked, ignore and re-snap.
+
+    // Optionally, keep the VIEW panned onto the object whenever user drags while locked.
+    // Simple heuristic: on mouseup, jump back to object.
+    (function recenterViewWhenLocked(){
+      const canvas = document.getElementById('aladin-lite-div');
+      if (!canvas) return;
+      canvas.addEventListener('mouseup', () => {
+        if (lockToObject && objectCoords) {
+          aladin.gotoObject([objectCoords.ra, objectCoords.dec]);
+        }
+      });
+    })();
+    // Formatting helpers
+    function pad(n, w=2){return n.toString().padStart(w,'0');}
+    function formatRA(raDeg){
+      const totalSec = raDeg/15*3600;
+      const h = Math.floor(totalSec/3600);
+      const m = Math.floor((totalSec%3600)/60);
+      const s = (totalSec%60).toFixed(2);
+      return `${pad(h)}:${pad(m)}:${pad(s,5)}`;
+    }
+    function formatDec(decDeg){
+      const sign = decDeg>=0 ? '+' : '-';
+      const abs = Math.abs(decDeg);
+      const d = Math.floor(abs);
+      const m = Math.floor((abs-d)*60);
+      const s = ((abs-d)*60 - m)*60;
+      return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4,'0')}`;
+    }
+    function parseRaDec(raHMS, decDMS){
+      try{
+        const [h,m,s]=raHMS.split(':').map(parseFloat);
+        const ra = (h + m/60 + s/3600) * 15.0;
+        const sign = decDMS.trim()[0]==='-' ? -1 : 1;
+        const [d,dm,ds]=decDMS.replace('+','').replace('-','').split(':').map(parseFloat);
+        const dec = sign*(d + dm/60 + ds/3600);
+        return {ra,dec};
+      }catch(e){ return null; }
     }
 
     // --- Your Original Page Functions ---
@@ -1257,7 +1649,39 @@
             closeFramingAssistant();
         }
     });
+    function copyFramingUrl() {
+      if (!aladin) return;
+      const framingRigSelect = document.getElementById('framing-rig-select');
+      const rotation = parseFloat(document.getElementById('framing-rotation').value) || 0;
 
+      // Use current known center
+      const center = fovCenter || (() => {
+        const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] };
+      })();
+
+      // Survey ID (HiPS name). Try to pull from the select; fall back to current base layer.
+      const surveySel = document.getElementById('survey-select');
+      const surveyId = surveySel ? surveySel.value : (aladin.getBaseImageLayer()?.hips?.id || '');
+
+      const params = new URLSearchParams({
+        rig: framingRigSelect.value || '',
+        ra:  center.ra.toFixed(6),
+        dec: center.dec.toFixed(6),
+        rot: (rotation % 360).toFixed(1),
+        survey: surveyId
+      });
+
+      const url = `${location.origin}${location.pathname}?${params.toString()}`;
+      navigator.clipboard.writeText(url);
+    }
+      // Auto-open the Framing Assistant when a URL contains rig + (ra or dec)
+      window.addEventListener('load', () => {
+        const q = new URLSearchParams(location.search);
+        if (q.has('rig') && (q.has('ra') || q.has('dec'))) {
+          // Slight defer so the modal is visible before Aladin builds
+          setTimeout(() => openFramingAssistant(), 0);
+        }
+      });
 </script>
 
 {% endblock %}
