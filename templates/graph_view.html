@@ -79,7 +79,7 @@
     }
     #project-field {
       width: 100%;
-      max-width: 800px;
+      max-width: 970px;
       height: 150px;
       box-sizing: border-box;
       font-size: 15px;
@@ -928,6 +928,7 @@
   <div class="content-section project-notes-section">
        <h3>Project Notes</h3>
        <textarea id="project-field" name="project_notes_from_config" title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
+       <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
        <div class="button-group"> {# Your existing group of buttons for this object #}
            <button class="inline-button" onclick="saveProject()">Save Project Notes</button> {# If you make project-field editable #}
            <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
@@ -985,15 +986,12 @@
 
       <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
       <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
-
-
-        <!-- Filled by JS -->
-      </span>
+      <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="insertFramingIntoProject()">Insert into Project</button>
     </div>
     <div class="framing-controls">
       <div>
         <label for="framing-rig-select">Select Rig:</label>
-        <select id="framing-rig-select" onchange="updateFramingChart(true)">
+        <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();">
           {% if available_rigs %}
             {% for rig in available_rigs %}
               <option value="{{ rig.rig_id }}"
@@ -1147,16 +1145,15 @@
         });
       }
 
-      // Reset rotation and center to object on open
-      document.getElementById('framing-rotation').value = 0;
-      fovCenter = null; // means “use view center/object”
-      updateFramingChart(true);
-      updateFovVsObjectLabel();
-      // Restore from URL if params exist
+        // Restore from URL FIRST so the first draw uses correct rig/rot/survey/center
+        let haveRot = false;
         try {
-          const q = new URLSearchParams(location.search);
-          const rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec'));
-          const rot = parseFloat(q.get('rot')), surv = q.get('survey');
+          const q   = new URLSearchParams(location.search);
+          const rig = q.get('rig');
+          const ra  = parseFloat(q.get('ra'));
+          const dec = parseFloat(q.get('dec'));
+          const rot = parseFloat(q.get('rot'));
+          const surv= q.get('survey');
 
           if (rig) {
             const sel = document.getElementById('framing-rig-select');
@@ -1166,19 +1163,28 @@
           if (!Number.isNaN(rot)) {
             document.getElementById('framing-rotation').value = rot;
             document.getElementById('rotation-value').textContent = `${Math.round(rot)}°`;
+            haveRot = true;
           }
           if (q.has('survey')) setSurvey(surv);
-
           if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
             fovCenter = { ra, dec };
-            updateFramingChart(false);
-            updateReadoutFromCenter();
           } else {
-            // ensure we still draw once with rig & rotation applied
-            updateFramingChart(false);
-            updateReadoutFromCenter();
+            fovCenter = null; // will fall back to view center after gotoObject
           }
-        } catch(e){}
+        } catch (e) {
+          // ignore and fall back
+        }
+
+        // If no rot provided, default to 0 explicitly
+        if (!haveRot) {
+          document.getElementById('framing-rotation').value = 0;
+          document.getElementById('rotation-value').textContent = `0°`;
+        }
+
+        // Now do the first draw with correct state already applied
+        updateFramingChart(true);
+        updateFovVsObjectLabel();
+        updateReadoutFromCenter();
     }
 
     function closeFramingAssistant() {
@@ -1209,8 +1215,9 @@
       const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
       const fovInDegrees = Math.max(fovWidthArcmin, fovHeightArcmin) / 60;
 
-      const rotation = parseFloat(rotationSlider.value);
-      if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
+        const _rot = parseFloat(rotationSlider.value);
+        const rotation = Number.isFinite(_rot) ? _rot : 0;
+        if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
 
       // Center the view on the object once, if asked
         if (recenter) {
@@ -1246,48 +1253,82 @@
 
       fovLayer.removeAll();
 
-      // Convert FOV to degrees (half-sizes)
-      const halfW_deg = (fovWidthArcmin / 60) / 2;
-      const halfH_deg = (fovHeightArcmin / 60) / 2;
+      // Half-sizes in DEGREES
+      const halfW = (fovWidthArcmin  / 60) / 2;
+      const halfH = (fovHeightArcmin / 60) / 2;
 
-      const angle = rotationDeg * Math.PI / 180;
-      const decRad = center.dec * Math.PI / 180;
-      const cosDec = Math.abs(Math.cos(decRad)) > 1e-6 ? Math.cos(decRad) : 1e-6; // avoid div/0 near poles
+      // Rotation in radians
+      const ang = rotationDeg * Math.PI / 180;
 
-      // Rotate in a local tangent plane where:
-      //   x_true = ΔRA * cos(dec)   and   y_true = ΔDec
-      function rotate(x, y, t) {
-        return [
-          x * Math.cos(t) - y * Math.sin(t),
-          x * Math.sin(t) + y * Math.cos(t)
-        ];
+      // Center (radians)
+      const ra0  = center.ra  * Math.PI / 180;
+      const dec0 = center.dec * Math.PI / 180;
+
+      // Unit vector at center
+      const cX = Math.cos(dec0) * Math.cos(ra0);
+      const cY = Math.cos(dec0) * Math.sin(ra0);
+      const cZ = Math.sin(dec0);
+
+      // Local basis at center: East & North unit vectors
+      // East: d/dRA at fixed Dec -> (-sinRA, cosRA, 0)
+      const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
+      // North: d/dDec at fixed RA -> (-sinDec*cosRA, -sinDec*sinRA, cosDec)
+      const nX = -Math.sin(dec0)*Math.cos(ra0);
+      const nY = -Math.sin(dec0)*Math.sin(ra0);
+      const nZ =  Math.cos(dec0);
+
+      // Rotate a point (x,y) in the local tangent plane by 'ang'
+      function rot2d(x, y) {
+        return [ x*Math.cos(ang) - y*Math.sin(ang),
+                 x*Math.sin(ang) + y*Math.cos(ang) ];
       }
 
-      // Build corners in the "true" plane (no cos(dec) scaling yet)
-      const cornersTrue = [
-        rotate(-halfW_deg, -halfH_deg, angle),
-        rotate( halfW_deg, -halfH_deg, angle),
-        rotate( halfW_deg,  halfH_deg, angle),
-        rotate(-halfW_deg,  halfH_deg, angle),
-      ];
+      // Corners before spherical mapping (deg in the local plane)
+      const raw = [
+        [-halfW, -halfH],
+        [ halfW, -halfH],
+        [ halfW,  halfH],
+        [-halfW,  halfH],
+      ].map(([x,y]) => rot2d(x,y));
 
-      // Convert back to RA/Dec offsets:
-      //   ΔRA = x_true / cos(dec),  ΔDec = y_true
-      const polyCoords = cornersTrue.map(([x_true, y_true]) => {
-        const dRA  = x_true / cosDec;
-        const dDec = y_true;
-        return [center.ra + dRA, center.dec + dDec];
-      });
+      // Map each (x_deg, y_deg) to the sphere and return [ra_deg, dec_deg]
+      function planeToSky(x_deg, y_deg) {
+        const dx = x_deg * Math.PI/180;  // angular distance east (radians)
+        const dy = y_deg * Math.PI/180;  // angular distance north (radians)
+        const r  = Math.hypot(dx, dy);
 
-      // Close the polygon
-      polyCoords.push(polyCoords[0]);
+        if (r < 1e-12) {
+          // exactly the center
+          return [center.ra, center.dec];
+        }
 
-      // Draw in your teal
-      const fovPolygon = A.polygon(polyCoords, { color: '#83b4c5', lineWidth: 3 });
+        // Direction unit vector in 3D: (dx * East + dy * North) / r
+        const dirX = (dx*eX + dy*nX) / r;
+        const dirY = (dx*eY + dy*nY) / r;
+        const dirZ = (dx*eZ + dy*nZ) / r;
+
+        // Great-circle step: new = center*cos(r) + dir*sin(r)
+        const s = Math.sin(r), c = Math.cos(r);
+        const pX = c*cX + s*dirX;
+        const pY = c*cY + s*dirY;
+        const pZ = c*cZ + s*dirZ;
+
+        // Back to RA/Dec
+        let ra  = Math.atan2(pY, pX);
+        if (ra < 0) ra += 2*Math.PI;
+        const dec = Math.asin(pZ);
+        return [ ra*180/Math.PI, dec*180/Math.PI ];
+      }
+
+      // Build polygon
+      const polyCoords = raw.map(([x,y]) => planeToSky(x, y));
+      polyCoords.push(polyCoords[0]); // close
+
+      // Draw (teal, thicker line)
+      const fovPolygon   = A.polygon(polyCoords, { color: '#83b4c5', lineWidth: 3 });
       const fovFootprint = A.footprint(fovPolygon);
       fovLayer.add(fovFootprint);
 
-      // Keep the RA/Dec boxes synced
       updateReadoutFromCenter?.();
     }
 
@@ -1392,7 +1433,7 @@
       const fovH = parseFloat(opt.dataset.fovh); // arcmin
       if (!isFinite(fovW) || !isFinite(fovH)) { el.textContent = ''; return; }
 
-      let text = `FOV ${Math.round(fovW)}′ × ${Math.round(fovH)}′`;
+      let text = `FOV (Rig): ${Math.round(fovW)}′ × ${Math.round(fovH)}′`;
 
       if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) {
         const minSide = Math.min(fovW, fovH);
@@ -1682,6 +1723,146 @@
           setTimeout(() => openFramingAssistant(), 0);
         }
       });
+    function insertFramingIntoProject() {
+      if (!aladin) return;
+
+      // Gather framing
+      const rigSel   = document.getElementById('framing-rig-select');
+      const rigId    = rigSel?.value || '';
+      const rigName  = rigSel?.options[rigSel.selectedIndex]?.text || rigId || 'unknown rig';
+
+      const rot      = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
+      const survey   = document.getElementById('survey-select')?.selectedOptions?.[0]?.text
+                    || document.getElementById('survey-select')?.value || '';
+
+      // Center in decimal degrees
+      const center   = fovCenter || (() => {
+        const rc = aladin.getRaDec();
+        return { ra: rc[0], dec: rc[1] };
+      })();
+
+      // HMS/DMS (we already have format helpers in your file; fallback if missing)
+      const raHms  = (typeof formatRA === 'function')  ? formatRA(center.ra)  : center.ra.toFixed(6);
+      const decDms = (typeof formatDec === 'function') ? formatDec(center.dec) : center.dec.toFixed(6);
+
+      // Current FOV from the selected rig
+      const opt     = rigSel?.options[rigSel.selectedIndex];
+      const fovW    = opt ? parseFloat(opt.dataset.fovw) : NaN;
+      const fovH    = opt ? parseFloat(opt.dataset.fovh) : NaN;
+      const fovTxt  = (isFinite(fovW) && isFinite(fovH)) ? `${Math.round(fovW)}′×${Math.round(fovH)}′` : '';
+
+      // Make a shareable URL if your helper exists; otherwise build it inline
+      let url = '';
+      try {
+        if (typeof copyFramingUrl === 'function') {
+          // re-use it: temporarily override clipboard to capture value
+          const params = new URLSearchParams({
+            rig: rigId,
+            ra: center.ra.toFixed(6),
+            dec: center.dec.toFixed(6),
+            rot: (rot % 360).toFixed(1),
+            survey: document.getElementById('survey-select')?.value || ''
+          });
+          url = `${location.origin}${location.pathname}?${params.toString()}`;
+        }
+      } catch(e) {}
+
+      const ts = new Date().toLocaleString();
+      const entry =
+    `[Framing | ${ts}]
+    Rig: ${rigName}${fovTxt ? ` (${fovTxt})` : ''}
+    Center: RA ${raHms}  Dec ${decDms}  (deg: ${center.ra.toFixed(6)}, ${center.dec.toFixed(6)})
+    Rotation: ${Math.round(rot)}°
+    Survey: ${survey}
+    ${url ? `URL: ${url}\n` : ''}`;
+
+      // Find a “Project” field (textarea or input) by common ids/names
+      const projectField = document.getElementById('project-field');
+
+      if (projectField) {
+        const sep = projectField.value && !projectField.value.endsWith('\n') ? '\n\n' : '';
+        projectField.value = (projectField.value || '') + sep + entry + '\n';
+        projectField.focus();
+        // Move caret to end for convenience
+        if (projectField.setSelectionRange) {
+          const len = projectField.value.length;
+          projectField.setSelectionRange(len, len);
+        }
+        if (url) setProjectQuickLink(url);
+      } else {
+        // Fallback: copy to clipboard so you can paste anywhere
+        navigator.clipboard.writeText(entry);
+        alert('No “Project” field found on this page.\n\nThe framing entry has been copied to your clipboard. Paste it where you want to keep it.');
+      }
+    }
+    function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+    function setProjectQuickLink(url) {
+      const box = document.getElementById('project-quick-link');
+      if (!box) return;
+      if (!url) { box.innerHTML = ''; return; }
+
+      // Create the button and bind a proper click handler (no inline onclick)
+      const jsArg = String(url);               // keep original string
+      box.innerHTML = `<button id="open-framing-from-notes" class="inline-button">Open framing</button>`;
+      const btn = document.getElementById('open-framing-from-notes');
+      btn.addEventListener('click', () => {
+        try {
+          // Prefer the URL-restoring flow; fall back to just opening the modal
+          if (typeof window.openFramingAssistantFromUrl === 'function') {
+            window.openFramingAssistantFromUrl(jsArg);
+          } else {
+            openFramingAssistant();
+          }
+        } catch (e) {
+          console.error('Quick-link click failed:', e);
+          openFramingAssistant(); // at least open the modal
+        }
+      });
+    }
+    window.openFramingAssistantFromUrl = function(url) {
+      try {
+        // De-HTMLify just in case
+        const clean = String(url || '').replace(/&amp;/g, '&');
+
+        // Parse relative OR absolute URL safely
+        const q = new URL(clean, location.href).searchParams;
+
+        // Merge params into current URL (no reload)
+        const newParams = new URLSearchParams(location.search);
+        ['rig','ra','dec','rot','survey'].forEach(k => {
+          if (q.has(k)) newParams.set(k, q.get(k));
+        });
+        history.replaceState(null, '', location.pathname + '?' + newParams.toString());
+
+        // Open the modal — your existing restore-on-open code will apply everything
+        openFramingAssistant();
+      } catch (e) {
+        console.error('openFramingAssistantFromUrl failed:', e);
+        alert('Sorry—opening the saved framing failed. Check the console for details.');
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const ta = document.getElementById('project-field');
+      if (!ta) return;
+      // Try to find the last URL in the existing notes and show it as a quick link
+      const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g);
+      if (m && m.length) setProjectQuickLink(m[m.length - 1]);
+    });
+    function safeOpenFramingFromUrl(url) {
+      try {
+        if (typeof window.openFramingAssistantFromUrl === 'function') {
+          window.openFramingAssistantFromUrl(url);
+        } else {
+          console.warn('openFramingAssistantFromUrl missing; falling back');
+          openFramingAssistant();
+        }
+      } catch (e) {
+        console.error('safeOpenFramingFromUrl error:', e);
+        openFramingAssistant(); // still open the modal even if URL parsing failed
+      }
+    }
 </script>
 
 {% endblock %}
