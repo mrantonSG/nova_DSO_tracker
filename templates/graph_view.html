@@ -3,6 +3,8 @@
 {% block title %}Graph – Nova DSO Tracker{% endblock %}
 
 {% block head_extra %}
+
+  <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
   <style>
     /* Basic styles, merged from index and additional styling */
     body {
@@ -460,349 +462,47 @@
         font-weight: 600;
     }
 
+    .framing-controls { color: black; } /* Make control text readable */
+
+    /* --- CSS for the Framing Modal --- */
+    .modal {
+        display: none; position: fixed; z-index: 1000;
+        left: 0; top: 0; width: 100%; height: 100%;
+        overflow: auto; background-color: rgba(0,0,0,0.6);
+    }
+    .modal-content {
+        background-color: #fefefe; /* Aladin looks better on a light background */
+        margin: 3% auto; /* Adjusted margin for better centering */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 90%; /* Use more of the screen width */
+        max-width: 840px;
+        position: relative;
+        border-radius: 8px;
+    }
+    .modal-close {
+        color: #aaa;
+        position: absolute;
+        top: 5px;
+        right: 20px;
+        font-size: 35px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .modal-close:hover { color: black; }
+    .framing-controls {
+        margin-bottom: 15px; display: flex; gap: 20px; align-items: center; color: black;
+    }
+    .framing-controls select, .framing-controls button { font-size: 14px; padding: 5px; }
+    #aladin-lite-div {
+        width: 100%;
+        height: 700px; /* Give it a fixed height */
+        margin: 0;
+        padding: 0;
+    }
+
   </style>
-  <script>
 
-    function formatDateISOtoEuropean(isoStr) {
-      if (!isoStr || typeof isoStr !== 'string') return 'N/A'; // Handle null, undefined, or non-string
-      const parts = isoStr.split("-");
-      if (parts.length !== 3) {
-        console.warn("formatDateISOtoEuropean received unexpected format:", isoStr);
-        return isoStr; // Return original if not YYYY-MM-DD
-      }
-      const [year, month, day] = parts;
-      return `${day}.${month}.${year}`;
-    }
-
-
-  document.addEventListener("DOMContentLoaded", function() {
-    // Load default chart and header on page load
-    document.getElementById("opportunities-body").innerHTML = "";
-    refreshChart();
-
-    // Format displayed date in the header
-    const dateEl = document.getElementById("date-display");
-    if (dateEl && dateEl.innerText.includes("-")) {
-      dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
-    }
-  });
-    function setLocation() {
-      const selectedLocation = document.getElementById('location-select').value;
-      fetch('/set_location', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location: selectedLocation })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          refreshChart();
-        } else {
-          console.error("Location update failed:", data);
-        }
-      })
-      .catch(error => console.error('Error setting location:', error));
-    }
-
-    function refreshChart() {
-      const objectName = "{{ object_name }}"; // Directly use the Jinja variable
-      const dayEl = document.getElementById('day-select');
-      const monthEl = document.getElementById('month-select');
-      const yearEl = document.getElementById('year-select');
-
-      // Corrected condition: only check elements that should exist
-      if (!dayEl || !monthEl || !yearEl) {
-          console.error("Date input elements not found in refreshChart.");
-          return;
-      }
-
-      const day = dayEl.value;
-      const month = monthEl.value;
-      const year = yearEl.value;
-
-      // The objectName is already defined from Jinja
-      if (!objectName || !day || !month || !year) {
-          console.warn("Missing date/object info for initial refreshChart call for object:", objectName);
-          return;
-      }
-
-      let initialView = 'day'; // Default to day view for refresh
-      console.log("refreshChart is now calling changeView with view:", initialView);
-      changeView(initialView);
-    }
-
-    function changeView(view) {
-      console.log("--- changeView called. View:", view, "---");
-      // Optional: Keep your debugging console logs for parameters if they are helpful
-      console.log("Effective graph_lat_param from Jinja:", "{{ graph_lat_param | default('JS_UNDEFINED', True) }}");
-      // ... other console logs ...
-
-      const objectName = "{{ object_name }}"; // Directly use the Jinja variable
-      const dayEl = document.getElementById('day-select');
-      const monthEl = document.getElementById('month-select');
-      const yearEl = document.getElementById('year-select');
-
-      // Corrected condition
-      if (!dayEl || !monthEl || !yearEl) {
-          console.error("Date input elements not found in changeView.");
-          return;
-      }
-
-      const day = dayEl.value;
-      const month = monthEl.value;
-      const year = yearEl.value;
-      const timestamp = Date.now();
-      let baseUrl = "";
-
-      // The objectName is already defined from Jinja
-      if (!objectName) {
-          console.error("Object name is missing in changeView.");
-          return;
-      }
-
-      if (view === "day") {
-        baseUrl = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`;
-      } else if (view === "month") {
-        baseUrl = `/plot_monthly_altitude/${encodeURIComponent(objectName)}?year=${year}&month=${month}`;
-      } else if (view === "year") {
-        baseUrl = `/plot_yearly_altitude/${encodeURIComponent(objectName)}?year=${year}`;
-      } else {
-        console.error("Unknown view type in changeView:", view);
-        return;
-      }
-
-      let locationQueryParams = "";
-      const plotLat = "{{ graph_lat_param | default('none', True) }}";
-      const plotLon = "{{ graph_lon_param | default('none', True) }}";
-      const plotTz = "{{ graph_tz_name_param | default('none', True) }}";
-      const plotLocName = "{{ graph_location_name_param | default('none', True) }}";
-
-      if (plotLat !== 'none' && plotLat !== '') locationQueryParams += `&plot_lat=${encodeURIComponent(plotLat)}`;
-      if (plotLon !== 'none' && plotLon !== '') locationQueryParams += `&plot_lon=${encodeURIComponent(plotLon)}`;
-      if (plotTz !== 'none' && plotTz !== '') locationQueryParams += `&plot_tz=${encodeURIComponent(plotTz)}`;
-      if (plotLocName !== 'none' && plotLocName !== '') locationQueryParams += `&plot_loc_name=${encodeURIComponent(plotLocName)}`;
-
-      const finalUrl = baseUrl + locationQueryParams + `&t=${timestamp}`;
-      console.log("changeView constructing graph URL:", finalUrl);
-
-      const chartLoadingEl = document.getElementById('chart-loading');
-      const chartImgEl = document.getElementById('chart-img');
-      const chartLinkEl = document.getElementById('chart-link');
-
-      if(chartLoadingEl) chartLoadingEl.style.display = 'block';
-      if(chartImgEl) chartImgEl.style.opacity = '0.3';
-
-      if(chartImgEl) {
-        chartImgEl.onload = function() { if(chartLoadingEl) chartLoadingEl.style.display = 'none'; chartImgEl.style.opacity = '1'; };
-        chartImgEl.onerror = function() { if(chartLoadingEl) chartLoadingEl.textContent = "❌ Failed to load chart."; chartImgEl.style.opacity = '0.5'; };
-        chartImgEl.src = finalUrl;
-      }
-      if(chartLinkEl) chartLinkEl.href = finalUrl;
-
-      fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
-        .then(response => response.json())
-        .then(data => {
-          const dateDisplayEl = document.getElementById("date-display");
-          const phaseDisplayEl = document.getElementById("phase-display");
-          const duskDisplayEl = document.getElementById("dusk-display");
-          const dawnDisplayEl = document.getElementById("dawn-display");
-
-          if(dateDisplayEl) dateDisplayEl.innerText = formatDateISOtoEuropean(data.date);
-          if(phaseDisplayEl) phaseDisplayEl.innerText = data.phase + "%";
-          if(duskDisplayEl) duskDisplayEl.innerText = data.astronomical_dusk;
-          if(dawnDisplayEl) dawnDisplayEl.innerText = data.astronomical_dawn;
-        })
-        .catch(error => console.error("Error updating header info via get_date_info:", error));
-    }
-
-    function saveProject() {
-      const newProject = document.getElementById('project-field').value;
-      const objectName = "{{ object_name }}"; // Directly use Jinja variable
-      fetch('/update_project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ object: objectName, project: newProject })
-      }).then(res => res.json()).then(data => {
-        alert(data.status === "success" ? "Project updated successfully!" : data.error);
-      });
-    }
-
-    function toggleSimbad() {
-      var container = document.getElementById('simbadContainer');
-      const objectName = "{{ object_name }}"; // Directly use Jinja variable
-      if (container.style.display === 'none' || container.style.display === '') {
-        document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(objectName);
-        container.style.display = 'block';
-      } else {
-        container.style.display = 'none';
-      }
-    }
-
-    function loadImagingOpportunities() {
-      const objectName = "{{ object_name }}";
-      const section = document.getElementById("opportunities-section");
-      const tbody = document.getElementById("opportunities-body");
-
-      // These parameters are needed to build the calendar link
-      const plotLat = "{{ graph_lat_param }}";
-      const plotLon = "{{ graph_lon_param }}";
-      const plotTz = "{{ graph_tz_name_param }}";
-
-      section.style.display = "block";
-      // Update colspan to 7 to account for the new column
-      tbody.innerHTML = `<tr><td colspan="9" style="color: gray;">Searching for optimal dates...</td></tr>`;
-
-      fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === "success") {
-            const rows = data.results;
-            if (rows.length === 0) {
-              tbody.innerHTML = `<tr><td colspan="9" style="color: orange;">No good dates found...</td></tr>`;
-              return;
-            }
-
-            let htmlRows = "";
-            const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`;
-
-            rows.forEach(r => {
-              const isSelected = r.date === selectedDateStr;
-              const formattedDate = formatDateISOtoEuropean(r.date);
-
-              // Build the URL for the .ics file generator
-              const ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`;
-
-              const filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`;
-
-              htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
-                <td>${formattedDate}</td>
-                <td>${r.from_time}</td> <td>${r.to_time}</td>  <td>${r.obs_minutes}</td>
-                <td>${r.max_alt}</td>
-                <td>${r.moon_illumination}</td>
-                <td>${r.moon_separation}</td>
-                <td style="text-align: center;">${r.rating || ""}</td>
-                <td onclick="event.stopPropagation();">
-                    <a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a>
-                </td>
-              </tr>`;
-            });
-            tbody.innerHTML = htmlRows;
-          } else {
-            // Update colspan here too
-            tbody.innerHTML = `<tr><td colspan="9" style="color: red;">Error: ${data.message}</td></tr>`;
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching opportunities:", error);
-          // And here
-          tbody.innerHTML =
-            "<tr><td colspan='9' style='color:red;'>An error occurred.</td></tr>";
-        });
-    }
-
-    function selectSuggestedDate(dateStr) {
-      // Update selectors
-      const [year, month, day] = dateStr.split('-').map(Number);
-      document.getElementById('year-select').value = year;
-      document.getElementById('month-select').value = month;
-      document.getElementById('day-select').value = day;
-
-      // Refresh chart
-      changeView('day');
-
-      // Highlight selected row
-      const tbody = document.getElementById("opportunities-body");
-      const rows = tbody.querySelectorAll("tr");
-      rows.forEach(row => {
-        if (row.getAttribute("data-date") === dateStr) {
-          row.classList.add("highlight");
-        } else {
-          row.classList.remove("highlight");
-        }
-      });
-    }
-
-    function openInStellarium() {
-      const stellariumStatusDiv = document.getElementById('stellarium-status');
-      stellariumStatusDiv.textContent = "Sending object to Stellarium...";
-      const objectName = "{{ object_name }}"; // Directly use Jinja variable
-
-      fetch("/proxy_focus", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ target: objectName, mode: "center" })
-      })
-      .then(async response => {
-        let data;
-        try {
-          data = await response.json();
-        } catch (err) {
-          // If response is not JSON, it might be HTML (e.g. error page from Stellarium/proxy)
-          const textResponse = await response.text();
-          console.error("Stellarium proxy response was not valid JSON:", textResponse);
-          throw new Error("Invalid JSON response from server. Raw: " + textResponse.substring(0, 100));
-        }
-
-        if (response.ok && data.status === "success") {
-          stellariumStatusDiv.textContent = "Stellarium view updated successfully!";
-          stellariumStatusDiv.style.color = "#83b4c5";
-        } else {
-          stellariumStatusDiv.innerHTML = `
-            <p style="color:red;">
-              Error updating Stellarium:<br><br>
-              ${data.message || "An unknown error occurred."}
-            </p>
-          `;
-        }
-      })
-      .catch((error) => { // Catch fetch errors or the error thrown above
-        console.error("Error in openInStellarium fetch/JSON parse:", error);
-        // Fallback fetch to get the generic error message from server
-        fetch("/stellarium_error_message") // This endpoint needs to exist in your Flask app
-          .then(res => res.json())
-          .then(data => {
-            stellariumStatusDiv.innerHTML = `
-              <p style="color:red;">
-                ${data.message || "Could not connect to Stellarium or the server."}
-              </p>
-            `;
-          })
-          .catch(() => {
-            stellariumStatusDiv.innerHTML = `
-              <p style="color:red;">
-                Stellarium is unreachable and no additional help message is available.
-              </p>
-            `;
-          });
-      });
-    }
-
-    document.addEventListener("DOMContentLoaded", function () {
-      const dayInput = document.getElementById("day-select");
-      const monthSelect = document.getElementById("month-select");
-      const yearInput = document.getElementById("year-select");
-
-      function updateDayLimit() {
-        const year = parseInt(yearInput.value);
-        const month = parseInt(monthSelect.value);
-        const daysInMonth = new Date(year, month, 0).getDate();
-
-        if (parseInt(dayInput.value) > daysInMonth) {
-          dayInput.value = daysInMonth;
-        }
-
-        dayInput.max = daysInMonth;
-      }
-
-      // Hook up event listeners
-      monthSelect.addEventListener("change", updateDayLimit);
-      yearInput.addEventListener("change", updateDayLimit);
-
-      // Set initial limit
-      updateDayLimit();
-    });
-
-  </script>
 {% endblock %}
 </head>
 <body>
@@ -1180,6 +880,7 @@
        <textarea id="project-field" name="project_notes_from_config" title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
        <div class="button-group"> {# Your existing group of buttons for this object #}
            <button class="inline-button" onclick="saveProject()">Save Project Notes</button> {# If you make project-field editable #}
+           <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
            <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
            <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
@@ -1212,6 +913,352 @@
       </tbody>
     </table>
   </div>
+    <div id="framing-modal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeFramingAssistant()">&times;</span>
+        <div class="framing-controls">
+            <div>
+                <label for="framing-rig-select">Select Rig:</label>
+                <select id="framing-rig-select" onchange="updateFramingChart(true)">
+                    {% if available_rigs %}
+                        {% for rig in available_rigs %}
+                            <option value="{{ rig.rig_id }}"
+                                    data-fovw="{{ rig.fov_w_arcmin }}"
+                                    data-fovh="{{ rig.fov_h_arcmin }}">
+                                {{ rig.rig_name }}
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="">No rigs configured</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div>
+                <label for="framing-rotation">Rotation:</label>
+                <input type="range" id="framing-rotation" min="0" max="360" value="0" step="1" oninput="window.updateFramingChart(false)" onchange="window.updateFramingChart(false)">
+                <span id="rotation-value">0°</span>
+            </div>
+        </div>
+        <div id="aladin-lite-div"></div>
+      </div>
+    </div>
+
+<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+
+
+<script>
+    // --- Aladin Lite Variables ---
+    let aladin = null;
+    let fovLayer = null;
+
+    // --- Aladin Lite Functions ---
+    function openFramingAssistant() {
+        const framingModal = document.getElementById('framing-modal');
+        const framingRigSelect = document.getElementById('framing-rig-select');
+
+        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
+            alert("Please configure at least one rig on the Configuration page first.");
+            return;
+        }
+        framingModal.style.display = 'block';
+
+        // Initialize Aladin Lite only once when the modal is first opened
+        if (!aladin) {
+            aladin = A.aladin('#aladin-lite-div', {
+                survey: "P/DSS2/color",
+                fov: 1.5,
+                cooFrame: 'ICRS',
+                showFullscreenControl: false,
+                showGotoControl: false
+            });
+            // Create a dedicated layer for our FOV overlay
+            fovLayer = A.graphicOverlay({ color: '#15B215', lineWidth: 2 });
+            aladin.addOverlay(fovLayer);
+        }
+
+        // Set initial rotation and update the chart
+        document.getElementById('framing-rotation').value = 0;
+        updateFramingChart(true); // `true` indicates a full recenter
+    }
+
+    function closeFramingAssistant() {
+        const framingModal = document.getElementById('framing-modal');
+        framingModal.style.display = 'none';
+    }
+
+    window.updateFramingChart = function(recenter = true) {
+        if (!aladin) return;
+
+        const objectName = "{{ object_name }}";
+        const framingRigSelect = document.getElementById('framing-rig-select');
+        const rotationSlider = document.getElementById('framing-rotation');
+        const rotationValueSpan = document.getElementById('rotation-value');
+        const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
+
+        // Get FOV from the selected rig's data attributes
+        const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw);
+        const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
+        const fovInDegrees = Math.max(fovWidthArcmin, fovHeightArcmin) / 60;
+
+        // Get rotation
+        const rotation = parseFloat(rotationSlider.value);
+        if(rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
+
+        // Center the view on the object and set zoom
+        if (recenter) {
+            aladin.gotoObject(objectName, {
+                callback: function() {
+                    aladin.setFov(fovInDegrees * 1.5);
+                }
+            });
+        }
+
+        // Clear previous FOV rectangle
+        fovLayer.removeAll();
+
+        // Draw the new FOV rectangle with rotation
+        const raDec = aladin.getRaDec();
+        const raCenter = raDec[0];
+        const decCenter = raDec[1];
+
+        // Convert arcminutes → degrees
+        const halfW = fovWidthArcmin / 120;
+        const halfH = fovHeightArcmin / 120;
+
+        // Rotation in radians
+        const angle = rotation * Math.PI / 180;
+
+        // Function to rotate local offsets
+        function rotate(x, y, theta) {
+            return [
+                x * Math.cos(theta) - y * Math.sin(theta),
+                x * Math.sin(theta) + y * Math.cos(theta)
+            ];
+        }
+
+        // Compute corners relative to center
+        const corners = [
+            rotate(-halfW, -halfH, angle),
+            rotate( halfW, -halfH, angle),
+            rotate( halfW,  halfH, angle),
+            rotate(-halfW,  halfH, angle),
+        ];
+
+        // Convert to sky coordinates (approx, works fine for small FOVs)
+        const polyCoords = corners.map(([dx, dy]) => [raCenter + dx, decCenter + dy]);
+
+        // Draw polygon
+        const fovFootprint = A.footprint(A.polygon(polyCoords));
+        fovLayer.add(fovFootprint);
+    }
+
+    // --- Your Original Page Functions ---
+
+    function formatDateISOtoEuropean(iso_str) {
+        if (!iso_str || typeof iso_str !== 'string') return 'N/A';
+        const parts = iso_str.split("-");
+        if (parts.length !== 3) {
+            console.warn("formatDateISOtoEuropean received unexpected format:", iso_str);
+            return iso_str;
+        }
+        const [year, month, day] = parts;
+        return `${day}.${month}.${year}`;
+    }
+
+    function setLocation() {
+        const selectedLocation = document.getElementById('location-select').value;
+        fetch('/set_location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: selectedLocation })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                refreshChart();
+            } else {
+                console.error("Location update failed:", data);
+            }
+        })
+        .catch(error => console.error('Error setting location:', error));
+    }
+
+    function refreshChart() {
+        changeView('day');
+    }
+
+    function changeView(view) {
+        const objectName = "{{ object_name }}";
+        const day = document.getElementById('day-select').value;
+        const month = document.getElementById('month-select').value;
+        const year = document.getElementById('year-select').value;
+        const timestamp = Date.now();
+        let baseUrl = "";
+
+        if (view === "day") {
+            baseUrl = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`;
+        } else if (view === "month") {
+            baseUrl = `/plot_monthly_altitude/${encodeURIComponent(objectName)}?year=${year}&month=${month}`;
+        } else if (view === "year") {
+            baseUrl = `/plot_yearly_altitude/${encodeURIComponent(objectName)}?year=${year}`;
+        } else {
+            return;
+        }
+
+        let locationQueryParams = "";
+        const plotLat = "{{ graph_lat_param | default('', True) }}";
+        const plotLon = "{{ graph_lon_param | default('', True) }}";
+        const plotTz = "{{ graph_tz_name_param | default('', True) }}";
+        const plotLocName = "{{ graph_location_name_param | default('', True) }}";
+
+        if (plotLat) locationQueryParams += `&plot_lat=${encodeURIComponent(plotLat)}`;
+        if (plotLon) locationQueryParams += `&plot_lon=${encodeURIComponent(plotLon)}`;
+        if (plotTz) locationQueryParams += `&plot_tz=${encodeURIComponent(plotTz)}`;
+        if (plotLocName) locationQueryParams += `&plot_loc_name=${encodeURIComponent(plotLocName)}`;
+
+        const finalUrl = baseUrl + locationQueryParams + `&t=${timestamp}`;
+        document.getElementById('chart-loading').style.display = 'block';
+        document.getElementById('chart-img').style.opacity = '0.3';
+        document.getElementById('chart-img').src = finalUrl;
+        document.getElementById('chart-link').href = finalUrl;
+
+        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
+                document.getElementById("phase-display").innerText = data.phase + "%";
+                document.getElementById("dusk-display").innerText = data.astronomical_dusk;
+                document.getElementById("dawn-display").innerText = data.astronomical_dawn;
+            })
+            .catch(error => console.error("Error updating header info:", error));
+    }
+
+    function saveProject() {
+        const newProject = document.getElementById('project-field').value;
+        const objectName = "{{ object_name }}";
+        fetch('/update_project', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ object: objectName, project: newProject })
+        }).then(res => res.json()).then(data => {
+            alert(data.status === "success" ? "Project updated successfully!" : data.error);
+        });
+    }
+
+    function toggleSimbad() {
+        var container = document.getElementById('simbadContainer');
+        const objectName = "{{ object_name }}";
+        if (container.style.display === 'none' || container.style.display === '') {
+            document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(objectName);
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    function loadImagingOpportunities() {
+        const objectName = "{{ object_name }}";
+        document.getElementById("opportunities-section").style.display = "block";
+        const tbody = document.getElementById("opportunities-body");
+        tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`;
+
+        fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success") {
+                    if (data.results.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="9">No good dates found.</td></tr>`;
+                        return;
+                    }
+                    let htmlRows = "";
+                    const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`;
+                    const plotLat = "{{ graph_lat_param }}";
+                    const plotLon = "{{ graph_lon_param }}";
+                    const plotTz = "{{ graph_tz_name_param }}";
+
+                    data.results.forEach(r => {
+                        const isSelected = r.date === selectedDateStr;
+                        const formattedDate = formatDateISOtoEuropean(r.date);
+                        const ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`;
+                        const filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`;
+                        htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
+                            <td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td>
+                            <td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td>
+                            <td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`;
+                    });
+                    tbody.innerHTML = htmlRows;
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`;
+                }
+            });
+    }
+
+    function selectSuggestedDate(dateStr) {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        document.getElementById('year-select').value = year;
+        document.getElementById('month-select').value = month;
+        document.getElementById('day-select').value = day;
+        changeView('day');
+        const rows = document.getElementById("opportunities-body").querySelectorAll("tr");
+        rows.forEach(row => {
+            row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr);
+        });
+    }
+
+    function openInStellarium() {
+        document.getElementById('stellarium-status').textContent = "Sending object to Stellarium...";
+        const objectName = "{{ object_name }}";
+        fetch("/proxy_focus", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({ target: objectName, mode: "center" })
+        })
+        .then(async response => {
+            let data = await response.json().catch(() => ({ message: "Invalid response from server." }));
+            if (response.ok && data.status === "success") {
+                document.getElementById('stellarium-status').textContent = "Stellarium view updated!";
+                document.getElementById('stellarium-status').style.color = "#83b4c5";
+            } else {
+                document.getElementById('stellarium-status').innerHTML = `<p style="color:red;">Error:<br>${data.message || "Unknown error"}</p>`;
+            }
+        });
+    }
+
+    // --- Initial setup on page load ---
+    document.getElementById('chart-img').onload = function() {
+        document.getElementById('chart-loading').style.display = 'none';
+        document.getElementById('chart-img').style.opacity = '1';
+    };
+    refreshChart();
+    const dateEl = document.getElementById("date-display");
+    if (dateEl && dateEl.innerText.includes("-")) {
+        dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
+    }
+    const dayInput = document.getElementById("day-select");
+    const monthSelect = document.getElementById("month-select");
+    const yearInput = document.getElementById("year-select");
+    function updateDayLimit() {
+        const year = parseInt(yearInput.value);
+        const month = parseInt(monthSelect.value);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        if (parseInt(dayInput.value) > daysInMonth) {
+            dayInput.value = daysInMonth;
+        }
+        dayInput.max = daysInMonth;
+    }
+    monthSelect.addEventListener("change", updateDayLimit);
+    yearInput.addEventListener("change", updateDayLimit);
+    updateDayLimit();
+
+    // Event listener for closing modal by clicking outside
+    const framingModal = document.getElementById('framing-modal');
+    window.addEventListener('click', function(event) {
+        if (event.target == framingModal) {
+            closeFramingAssistant();
+        }
+    });
+
+</script>
 
 {% endblock %}
 </body>
