@@ -14,7 +14,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 3.0 - Quick Guide
+# Nova DSO Altitude Tracker 3.1 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -26,6 +26,8 @@ Positions (RA, DEC) are automatically fetched from SIMBAD. Altitude (Alt) and Az
 In addition it provides information about the angular separation between the objects and the moon, the time they can be imaged and the maximum altitude they reach during this time.
 
 Includes a comprehensive Imaging Journal to log your imaging sessions.
+
+Powerful, interactive framing assistant
 
 ### Main Interface
 When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. New in Version 2 is the column with the angular separation of the object to the moon.
@@ -110,10 +112,14 @@ From here you can also add the information to your calendar.
 
 In addition, you will also see an approximate fit of your configured rigs.
 
-![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_rig_fit.png)
+![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_31_rig_fit.png)
 
 
 You can edit the selection criteria for the opportunity search in the configuration settings.
+
+The "Show Framing" button opens a powerful framing assistant.
+
+![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_31_framing.png)
 
 ### Imaging Journal
 Nova DSO Tracker also offers the additional possibility to take notes to imaging sessions.
