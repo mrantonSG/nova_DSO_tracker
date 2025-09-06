@@ -470,16 +470,7 @@
         left: 0; top: 0; width: 100%; height: 100%;
         overflow: auto; background-color: rgba(0,0,0,0.6);
     }
-    .modal-content {
-        background-color: #fefefe; /* Aladin looks better on a light background */
-        margin: 3% auto; /* Adjusted margin for better centering */
-        padding: 20px;
-        border: 1px solid #83b4c5;
-        width: 90%; /* Use more of the screen width */
-        max-width: 840px;
-        position: relative;
-        border-radius: 8px;
-    }
+
     .modal-close {
         color: #aaa;
         position: absolute;
@@ -494,12 +485,7 @@
         margin-bottom: 15px; display: flex; gap: 20px; align-items: center; color: black;
     }
     .framing-controls select, .framing-controls button { font-size: 14px; padding: 5px; }
-    #aladin-lite-div {
-        width: 100%;
-        height: 700px; /* Give it a fixed height */
-        margin: 0;
-        padding: 0;
-    }
+
     /* Hide Aladin’s floating mouse-position readout to avoid redundancy */
     #aladin-lite-div .aladin-location,
     #aladin-lite-div .aladin-mouse-position {
@@ -551,6 +537,206 @@
       color: #999;
     }
     .modal .close:hover { color: #666; }
+
+    /* Overlay – fill screen, unchanged */
+    #framing-modal {
+      position: fixed;
+      inset: 0;
+      display: none;              /* set to block when open */
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+    }
+
+    /* Modal content: fluid width/height with sane caps */
+    #framing-modal-content {
+      /* Center the box */
+      position: relative;
+      margin: 4vh auto 6vh auto;
+
+      /* Width scales with screen: min 320px, ideal 70vw, max 1200px */
+      width: clamp(320px, 70vw, 1200px);
+
+      /* Height scales with screen: min 400px, ideal 78vh, max 900px */
+      height: clamp(400px, 78vh, 900px);
+
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+      overflow: hidden;           /* keep internals tidy */
+
+      /* Make internals layout nicely */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header / toolbar area at the top of the modal */
+    #framing-header,
+    #framing-toolbar {
+      padding: 10px 16px;
+    }
+
+    /* Put your controls (rig select, rotation, survey, buttons) in a wrapping row */
+    #framing-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      border-top: 1px solid #e9eef2;
+      border-bottom: 1px solid #e9eef2;
+    }
+
+    /* The main content area (holds the Aladin canvas) should grow and scroll as needed */
+    #framing-body {
+      flex: 1 1 auto;             /* <-- key: take all remaining height */
+      min-height: 240px;          /* safety on tiny screens */
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;           /* canvas should not overflow the box */
+      padding: 10px 16px 14px 16px;
+    }
+
+    /* Aladin container fills the body */
+    #aladin-lite-div {
+      flex: 1 1 auto;
+      min-height: 200px;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    /* Chip / readout strip can wrap on small widths */
+    .framing-readout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      margin: 8px 0 10px;
+    }
+
+    /* Smaller screens: expand to near full-screen and tighten paddings */
+    @media (max-width: 1280px) {
+      #framing-modal-content {
+        width: 96vw;
+        height: 92vh;
+        margin: 2vh auto;
+      }
+      #framing-toolbar, #framing-body {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+      /* Optional: reduce control spacing */
+      #framing-toolbar { gap: 8px 10px; }
+    }
+
+    /* Very small screens: stack controls more aggressively */
+    @media (max-width: 900px) {
+      .framing-readout { gap: 6px 10px; }
+      /* If you have long labels, make them inline and shorter */
+      .inline-label { white-space: nowrap; font-size: 0.95rem; }
+    }
+    /* Fullscreen modifier */
+    #framing-modal-content.fullscreen {
+      width: 98vw !important;
+      height: 96vh !important;
+      margin: 2vh auto !important;
+    }
+    /* Header / toolbar area at the top of the modal */
+    #framing-header,
+    #framing-toolbar,
+    .framing-controls {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    /* Fullscreen mode */
+    #framing-modal-content.fullscreen {
+      width: 98vw !important;
+      height: 96vh !important;
+      margin: 2vh auto !important;
+    }
+
+    /* Fullscreen toggle button (⤢) */
+    .fullscreen-btn {
+      float: right;
+      border: none;
+      background: transparent;
+      font-size: 1.3rem;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .fullscreen-btn:hover {
+      color: #0077aa;
+    }
+    .modal-controls {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .fullscreen-btn {
+      border: none;
+      background: transparent;
+      font-size: 1.2rem;
+      cursor: pointer;
+      line-height: 1;
+      color: #444;
+    }
+    .fullscreen-btn:hover {
+      color: #0077aa;
+    }
+
+    .close {
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #666;
+    }
+    .close:hover {
+      color: #d00;
+    }
+    /* Top-right controls bar */
+    .modal-controls{
+      position:absolute;
+      top:8px;
+      right:12px;
+      z-index:2;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      pointer-events:auto;
+    }
+
+    /* Ensure old .close rules don't fight us */
+    .modal-controls .close,
+    .modal-controls .close-btn{
+      position:static !important;
+      float:none !important;
+    }
+
+    /* Uniform icon buttons with real hit-area (no overlap) */
+    .fullscreen-btn,
+    .close-btn{
+      width:28px;
+      height:28px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;          /* icon size */
+      line-height:1;
+      border:0;
+      border-radius:6px;
+      background:transparent;
+      color:#444;
+      cursor:pointer;
+    }
+    .fullscreen-btn:hover{ color:#0a7db8; }
+    .close-btn:hover{ color:#d22; }
+
+    /* If your FOV chip is also absolutely positioned near the right edge,
+       keep it from colliding with the controls */
+    .fov-chip{
+      margin-right:48px; /* gives space for the two buttons */
+    }
   </style>
 
 {% endblock %}
@@ -965,8 +1151,11 @@
     </table>
   </div>
     <div id="framing-modal" class="modal">
-      <div class="modal-content">
-        <span class="modal-close" onclick="closeFramingAssistant()">&times;</span>
+        <div id="framing-modal-content">
+        <div class="modal-controls">
+          <button type="button" class="fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen" onclick="toggleFramingFullscreen(this)">⤢</button>
+          <button type="button" class="close-btn" aria-label="Close" title="Close" onclick="closeFramingAssistant()">×</button>
+        </div>
 
         <!-- Modal header (inside the white panel) -->
         <div class="modal-header-bar">
@@ -1094,14 +1283,14 @@
       const framingRigSelect = document.getElementById('framing-rig-select');
 
       if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
-          alert("Please configure at least one rig on the Configuration page first.");
-          return;
+        alert("Please configure at least one rig on the Configuration page first.");
+        return;
       }
-      // NEW: start with first rig selected
-      framingRigSelect.selectedIndex = 0;
 
+      // Show the modal
       framingModal.style.display = 'block';
 
+      // Initialize Aladin once
       if (!aladin) {
         aladin = A.aladin('#aladin-lite-div', {
           survey: "P/DSS2/color",
@@ -1111,28 +1300,43 @@
           showGotoControl: false
         });
 
-        // Remember base image layer for tuning
         baseSurvey = aladin.getBaseImageLayer();
-        // Create a dedicated overlay for FOV
+
+        // Overlay for the FOV polygon
         fovLayer = A.graphicOverlay({ color: '#83b4c5', lineWidth: 3 });
         aladin.addOverlay(fovLayer);
+
         const canvas = document.getElementById('aladin-lite-div');
-
-
+          // --- Watch for canvas size changes so FOV frame always stays visible ---
+        if (window.ResizeObserver && canvas) {
+          let roTimer = null;
+          const ro = new ResizeObserver(() => {
+            clearTimeout(roTimer);
+            roTimer = setTimeout(() => {
+              const sel = document.getElementById('framing-rig-select');
+              if (sel && sel.selectedIndex >= 0) {
+                const opt = sel.options[sel.selectedIndex];
+                applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
+              }
+              updateFramingChart(false);
+            }, 80);
+          });
+          ro.observe(canvas);
+        }
         // Click → set FOV center to cursor
         canvas.addEventListener('click', (ev) => {
-            if (lockToObject) return;
+          if (lockToObject) return;
           const rect = canvas.getBoundingClientRect();
           const x = ev.clientX - rect.left;
           const y = ev.clientY - rect.top;
           const sky = aladin.pix2world(x, y);
           if (!sky) return;
           fovCenter = { ra: sky[0], dec: sky[1] };
-          updateFramingChart(false); // don’t recentre view; redraw overlay
+          updateFramingChart(false);
           updateReadoutFromCenter();
         });
 
-        // Key nudges: arrows / WASD, 1 arcmin per keypress
+        // Keyboard nudges (1′)
         window.addEventListener('keydown', (e) => {
           const k = e.key.toLowerCase();
           if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) {
@@ -1145,46 +1349,89 @@
         });
       }
 
-        // Restore from URL FIRST so the first draw uses correct rig/rot/survey/center
-        let haveRot = false;
-        try {
-          const q   = new URLSearchParams(location.search);
-          const rig = q.get('rig');
-          const ra  = parseFloat(q.get('ra'));
-          const dec = parseFloat(q.get('dec'));
-          const rot = parseFloat(q.get('rot'));
-          const surv= q.get('survey');
+      // -------- Restore from URL (rig/center/rotation/survey) --------
+      let haveCenter = false;
+      let haveRot = false;
+      let haveRigRestored = false;
 
-          if (rig) {
-            const sel = document.getElementById('framing-rig-select');
-            const i = Array.from(sel.options).findIndex(o => o.value === rig);
-            if (i >= 0) sel.selectedIndex = i;
+      try {
+        const q   = new URLSearchParams(location.search);
+        const rig = q.get('rig');
+        const ra  = parseFloat(q.get('ra'));
+        const dec = parseFloat(q.get('dec'));
+        const rot = parseFloat(q.get('rot'));
+        const surv= q.get('survey');
+
+        // Rig
+        if (rig) {
+          const sel = document.getElementById('framing-rig-select');
+          if (sel) {
+            const idx = Array.from(sel.options).findIndex(o => o.value === rig);
+            if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; }
           }
-          if (!Number.isNaN(rot)) {
-            document.getElementById('framing-rotation').value = rot;
-            document.getElementById('rotation-value').textContent = `${Math.round(rot)}°`;
-            haveRot = true;
-          }
-          if (q.has('survey')) setSurvey(surv);
-          if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
-            fovCenter = { ra, dec };
-          } else {
-            fovCenter = null; // will fall back to view center after gotoObject
-          }
-        } catch (e) {
-          // ignore and fall back
         }
 
-        // If no rot provided, default to 0 explicitly
-        if (!haveRot) {
-          document.getElementById('framing-rotation').value = 0;
-          document.getElementById('rotation-value').textContent = `0°`;
+        // Rotation
+        if (!Number.isNaN(rot)) {
+          const rotInput = document.getElementById('framing-rotation');
+          if (rotInput) rotInput.value = rot;
+          const rotSpan = document.getElementById('rotation-value');
+          if (rotSpan) rotSpan.textContent = `${Math.round(rot)}°`;
+          haveRot = true;
         }
 
-        // Now do the first draw with correct state already applied
-        updateFramingChart(true);
-        updateFovVsObjectLabel();
-        updateReadoutFromCenter();
+        // Survey
+        if (surv) {
+          if (typeof setSurvey === 'function') setSurvey(surv);
+          else {
+            const s = document.getElementById('survey-select');
+            if (s) s.value = surv;
+          }
+        }
+
+        // Saved frame center
+        if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
+          fovCenter = { ra, dec };       // IMPORTANT: assign the real variable, not window.*
+          haveCenter = true;
+        } else {
+          fovCenter = null;
+        }
+      } catch (e) {
+        // ignore; keep current defaults
+      }
+
+      // Defaults if not provided
+      if (!haveRot) {
+        const rotInput = document.getElementById('framing-rotation');
+        if (rotInput) rotInput.value = 0;
+        const rotSpan = document.getElementById('rotation-value');
+        if (rotSpan) rotSpan.textContent = `0°`;
+      }
+      if (!haveRigRestored) {
+        // Do NOT force index 0 if a rig is already selected; leave as-is
+      }
+
+      // If there is a saved center: unlock and center Aladin there BEFORE first draw
+      if (haveCenter) {
+        const lockBox = document.getElementById('lock-to-object');
+        if (lockBox) lockBox.checked = false;
+        lockToObject = false;
+        if (aladin && typeof aladin.gotoRaDec === 'function') {
+          aladin.gotoRaDec(fovCenter.ra, fovCenter.dec);
+        }
+        if (haveCenter) {
+          const sel = document.getElementById('framing-rig-select');
+          if (sel && sel.selectedIndex >= 0) {
+            const opt = sel.options[sel.selectedIndex];
+            applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
+          }
+        }
+      }
+
+      // First draw: if haveCenter, don't recenter to object
+      updateFramingChart(haveCenter ? false : true);
+      updateFovVsObjectLabel?.();
+      updateReadoutFromCenter?.();
     }
 
     function closeFramingAssistant() {
@@ -1201,6 +1448,30 @@
       updateReadoutFromCenter();
     }
 
+    // Always zoom so the current rig's FOV just fits in view.
+    // fovW_arcmin and fovH_arcmin are arcminutes.
+    function applyRigFovZoom(fovW_arcmin, fovH_arcmin, rotationDeg = 0, margin = 1.06) {
+      if (!aladin) return;
+      const host = document.getElementById('aladin-lite-div');
+      if (!host) return;
+
+      const wpx = host.clientWidth, hpx = host.clientHeight;
+      if (!(wpx > 0 && hpx > 0)) return;
+      const aspect = wpx / hpx;               // width / height in pixels
+
+      const wDeg = parseFloat(fovW_arcmin) / 60;
+      const hDeg = parseFloat(fovH_arcmin) / 60;
+      if (!(isFinite(wDeg) && isFinite(hDeg) && wDeg > 0 && hDeg > 0)) return;
+
+      // Account for rotation: bounding box of a rotated rectangle
+      const th = (parseFloat(rotationDeg) || 0) * Math.PI / 180;
+      const needWidthDeg  = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th));
+      const needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
+
+      // setFov() controls the *width* in degrees. Ensure BOTH axes fit:
+      const requiredWidthDeg = Math.max(needWidthDeg * margin, needHeightDeg * margin * aspect);
+      aladin.setFov(requiredWidthDeg);
+    }
     window.updateFramingChart = function(recenter = true) {
       if (!aladin) return;
 
@@ -1211,20 +1482,23 @@
       const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
       if (!selectedOption) return;
 
-      const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw);
+      const fovWidthArcmin  = parseFloat(selectedOption.dataset.fovw);
       const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
-      const fovInDegrees = Math.max(fovWidthArcmin, fovHeightArcmin) / 60;
 
-        const _rot = parseFloat(rotationSlider.value);
-        const rotation = Number.isFinite(_rot) ? _rot : 0;
-        if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
+      const _rot = parseFloat(rotationSlider.value);
+      const rotation = Number.isFinite(_rot) ? _rot : 0;
+      if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
 
-      // Center the view on the object once, if asked
-        if (recenter) {
+      // ✅ Always zoom based on the CURRENT rig and rotation
+      applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+
+      if (recenter) {
         aladin.gotoObject(objectName, {
           success: () => {
-            aladin.setFov(fovInDegrees * 1.5);
-            const rc = aladin.getRaDec();        // <— this line is essential
+            // ✅ Zoom again after gotoObject so frame fits perfectly
+            applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+
+            const rc = aladin.getRaDec();
             objectCoords = { ra: rc[0], dec: rc[1] };
             fovCenter = lockToObject ? { ...objectCoords } : { ra: rc[0], dec: rc[1] };
             drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
@@ -1237,16 +1511,16 @@
             updateReadoutFromCenter?.();
           }
         });
-          return;
-        }
+        return;
+      }
 
-      // Otherwise, reuse existing fovCenter or default to current view center
+      // No recenter: reuse existing center
       if (!fovCenter) {
         const rc = aladin.getRaDec();
         fovCenter = { ra: rc[0], dec: rc[1] };
       }
       drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-    }
+    };
 
     function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
       if (!aladin || !fovLayer || !center) return;
@@ -1695,10 +1969,16 @@
       const framingRigSelect = document.getElementById('framing-rig-select');
       const rotation = parseFloat(document.getElementById('framing-rotation').value) || 0;
 
-      // Use current known center
-      const center = fovCenter || (() => {
-        const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] };
-      })();
+    // Center in decimal degrees (prefer the readout → then explicit fovCenter → then view center)
+    const center = (() => {
+      const raStr  = document.getElementById('ra-readout')?.value;
+      const decStr = document.getElementById('dec-readout')?.value;
+      const fromReadout = (raStr && decStr && typeof parseRaDec === 'function') ? parseRaDec(raStr, decStr) : null;
+      if (fromReadout) return { ra: fromReadout.ra, dec: fromReadout.dec };
+      if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) return { ra: fovCenter.ra, dec: fovCenter.dec };
+      const rc = aladin.getRaDec();
+      return { ra: rc[0], dec: rc[1] };
+    })();
 
       // Survey ID (HiPS name). Try to pull from the select; fall back to current base layer.
       const surveySel = document.getElementById('survey-select');
@@ -1723,6 +2003,7 @@
           setTimeout(() => openFramingAssistant(), 0);
         }
       });
+
     function insertFramingIntoProject() {
       if (!aladin) return;
 
@@ -1733,39 +2014,52 @@
 
       const rot      = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
       const survey   = document.getElementById('survey-select')?.selectedOptions?.[0]?.text
-                    || document.getElementById('survey-select')?.value || '';
+                     || document.getElementById('survey-select')?.value || '';
 
-      // Center in decimal degrees
-      const center   = fovCenter || (() => {
+      // Ensure the readout reflects the latest center before reading it
+      updateReadoutFromCenter?.();
+
+      // ---- NEW center derivation ----
+      let center = null;
+
+      const raStr  = document.getElementById('ra-readout')?.value;
+      const decStr = document.getElementById('dec-readout')?.value;
+      if (raStr && decStr && typeof parseRaDec === 'function') {
+        const parsed = parseRaDec(raStr, decStr); // { ra, dec } in degrees
+        if (parsed && Number.isFinite(parsed.ra) && Number.isFinite(parsed.dec)) {
+          center = parsed;
+        }
+      }
+
+      if (!center && fovCenter) {
+        center = { ra: fovCenter.ra, dec: fovCenter.dec };
+      }
+      if (!center) {
         const rc = aladin.getRaDec();
-        return { ra: rc[0], dec: rc[1] };
-      })();
+        center = { ra: rc[0], dec: rc[1] };
+      }
+      // ---- /NEW ----
 
-      // HMS/DMS (we already have format helpers in your file; fallback if missing)
       const raHms  = (typeof formatRA === 'function')  ? formatRA(center.ra)  : center.ra.toFixed(6);
       const decDms = (typeof formatDec === 'function') ? formatDec(center.dec) : center.dec.toFixed(6);
 
-      // Current FOV from the selected rig
       const opt     = rigSel?.options[rigSel.selectedIndex];
       const fovW    = opt ? parseFloat(opt.dataset.fovw) : NaN;
       const fovH    = opt ? parseFloat(opt.dataset.fovh) : NaN;
       const fovTxt  = (isFinite(fovW) && isFinite(fovH)) ? `${Math.round(fovW)}′×${Math.round(fovH)}′` : '';
 
-      // Make a shareable URL if your helper exists; otherwise build it inline
+      // Build a shareable URL
       let url = '';
       try {
-        if (typeof copyFramingUrl === 'function') {
-          // re-use it: temporarily override clipboard to capture value
-          const params = new URLSearchParams({
-            rig: rigId,
-            ra: center.ra.toFixed(6),
-            dec: center.dec.toFixed(6),
-            rot: (rot % 360).toFixed(1),
-            survey: document.getElementById('survey-select')?.value || ''
-          });
-          url = `${location.origin}${location.pathname}?${params.toString()}`;
-        }
-      } catch(e) {}
+        const params = new URLSearchParams({
+          rig: rigId,
+          ra: center.ra.toFixed(6),
+          dec: center.dec.toFixed(6),
+          rot: (rot % 360).toFixed(1),
+          survey: document.getElementById('survey-select')?.value || ''
+        });
+        url = `${location.origin}${location.pathname}?${params.toString()}`;
+      } catch (e) {}
 
       const ts = new Date().toLocaleString();
       const entry =
@@ -1776,25 +2070,23 @@
     Survey: ${survey}
     ${url ? `URL: ${url}\n` : ''}`;
 
-      // Find a “Project” field (textarea or input) by common ids/names
       const projectField = document.getElementById('project-field');
 
       if (projectField) {
         const sep = projectField.value && !projectField.value.endsWith('\n') ? '\n\n' : '';
         projectField.value = (projectField.value || '') + sep + entry + '\n';
         projectField.focus();
-        // Move caret to end for convenience
         if (projectField.setSelectionRange) {
           const len = projectField.value.length;
           projectField.setSelectionRange(len, len);
         }
         if (url) setProjectQuickLink(url);
       } else {
-        // Fallback: copy to clipboard so you can paste anywhere
         navigator.clipboard.writeText(entry);
         alert('No “Project” field found on this page.\n\nThe framing entry has been copied to your clipboard. Paste it where you want to keep it.');
       }
     }
+
     function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
     function setProjectQuickLink(url) {
@@ -1861,6 +2153,53 @@
       } catch (e) {
         console.error('safeOpenFramingFromUrl error:', e);
         openFramingAssistant(); // still open the modal even if URL parsing failed
+      }
+    }
+    function toggleFramingFullscreen() {
+      const box = document.getElementById('framing-modal-content');
+      box.classList.toggle('fullscreen');
+      // resize Aladin after toggling fullscreen
+      setTimeout(() => {
+        if (aladin && document.getElementById('aladin-lite-div')) {
+          updateFramingChart(false);
+        }
+      }, 100);
+    }
+    function toggleFramingFullscreen(btn){
+      const box=document.getElementById('framing-modal-content');
+      box.classList.toggle('fullscreen');
+      btn.textContent = box.classList.contains('fullscreen') ? '↙' : '⤢';
+      setTimeout(()=>{ if (aladin) updateFramingChart(false); },50);
+    }
+    window.addEventListener('resize', () => {
+      if (document.getElementById('framing-modal').style.display === 'block') {
+        if (aladin) updateFramingChart(false);
+      }
+    });
+    // Ensure the current Aladin zoom is large enough to display the entire rig FOV (+margin)
+    function ensureFovFitsRig(margin = 1.35) {
+      if (!aladin) return;
+      const sel = document.getElementById('framing-rig-select');
+      if (!sel || sel.selectedIndex < 0) return;
+
+      const opt = sel.options[sel.selectedIndex];
+      const wArcmin = parseFloat(opt.dataset.fovw);
+      const hArcmin = parseFloat(opt.dataset.fovh);
+      if (!isFinite(wArcmin) || !isFinite(hArcmin)) return;
+
+      // Required horizontal FOV in degrees (largest dimension) + a small margin
+      const need = (Math.max(wArcmin, hArcmin) / 60) * margin;
+
+      // Current horizontal FOV from Aladin
+      let curr = null;
+      try {
+        const gf = aladin.getFov && aladin.getFov();     // often returns [fovX, fovY]
+        curr = Array.isArray(gf) ? Math.max(gf[0], gf[1]) : gf;
+      } catch (e) {}
+
+      // Only zoom out if needed; don't interfere with a user who zoomed out further
+      if (!curr || curr < need * 0.98) {
+        aladin.setFov(need);
       }
     }
 </script>
