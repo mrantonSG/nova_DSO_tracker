@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.1.1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -315,7 +315,7 @@ def trigger_outlook_update_for_user(username):
         locations = user_cfg.get('locations', {})
         for loc_name in locations.keys():
             # We don't need to check for staleness here, we want to force the update.
-            print(f"    -> Starting Outlook worker for location '{loc_name}'.")
+            # print(f"    -> Starting Outlook worker for location '{loc_name}'.")
             thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy()))
             thread.start()
     except Exception as e:
@@ -390,7 +390,7 @@ def update_outlook_cache(username, location_name, user_config):
         # Create a unique key for the status dictionary
         status_key = f"{username}_{location_name}"
 
-        print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
+        # print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
         cache_worker_status[status_key] = "running"
         cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
 
@@ -414,7 +414,7 @@ def update_outlook_cache(username, location_name, user_config):
                 obj for obj in all_objects_from_config
                 if obj.get("Project") and obj.get("Project").lower().strip() not in ["", "none"]
             ]
-            print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects for user '{username}'.")
+            # print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects for user '{username}'.")
 
             all_good_opportunities = []
             local_tz = pytz.timezone(tz_name)
@@ -500,7 +500,7 @@ def update_outlook_cache(username, location_name, user_config):
 
             with open(cache_filename, 'w') as f:
                 json.dump(cache_content, f)
-            print(f"[OUTLOOK WORKER] Successfully updated cache file: {cache_filename}")
+            # print(f"[OUTLOOK WORKER] Successfully updated cache file: {cache_filename}")
             cache_worker_status[status_key] = "complete"
 
         except Exception as e:
@@ -514,7 +514,7 @@ def warm_main_cache(username, location_name, user_config):
     Warms the main data cache on startup and then triggers the Outlook cache
     update for the same location.
     """
-    print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
+    # print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
     try:
         local_tz = pytz.timezone(user_config["locations"][location_name]["timezone"])
         observing_date_for_calcs = datetime.now(local_tz) - timedelta(hours=12)
@@ -557,10 +557,10 @@ def warm_main_cache(username, location_name, user_config):
                 "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
             }
 
-        print(f"[CACHE WARMER] Main data cache warming complete for '{location_name}'.")
+        # print(f"[CACHE WARMER] Main data cache warming complete for '{location_name}'.")
 
         # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
-        print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
+        # print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
         # We re-use the same logic from the old startup function to check if an update is needed
         cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
         needs_update = False
@@ -1379,7 +1379,7 @@ def load_user_config(username):
         with open(filepath, "r", encoding='utf-8') as file:
             config_data = yaml.safe_load(file) or {}
         print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
-        print(f"DEBUG: Loaded locations keys: {list(config_data.get('locations', {}).keys())}")
+        # print(f"DEBUG: Loaded locations keys: {list(config_data.get('locations', {}).keys())}")
 
     except ConstructorError as e:
         # If safe_load fails due to an unknown tag, attempt repair.
@@ -1473,13 +1473,13 @@ def proxy_focus():
         # This line ensures the dynamically determined STELLARIUM_API_URL_BASE is used:
         stellarium_focus_url = f"{STELLARIUM_API_URL_BASE}/api/main/focus"
 
-        print(f"[PROXY FOCUS] Attempting to connect to Stellarium at: {stellarium_focus_url}")  # For debugging
+        # print(f"[PROXY FOCUS] Attempting to connect to Stellarium at: {stellarium_focus_url}")  # For debugging
 
         # Make the request to Stellarium
         r = requests.post(stellarium_focus_url, data=payload, timeout=10)  # Added timeout
         r.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
 
-        print(f"[PROXY FOCUS] Stellarium response: {r.status_code}")  # For debugging
+        # print(f"[PROXY FOCUS] Stellarium response: {r.status_code}")  # For debugging
         return jsonify({"status": "success", "stellarium_response": r.text})
 
     except requests.exceptions.ConnectionError:
@@ -1917,7 +1917,7 @@ def get_ra_dec(object_name):
                 raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
 
             # Crucial Debugging Line:
-            print(f"[SIMBAD DEBUG] Columns for {object_name}: {result.colnames}")
+            # print(f"[SIMBAD DEBUG] Columns for {object_name}: {result.colnames}")
 
             ra_col, dec_col = None, None
             if 'RA' in result.colnames:
@@ -2736,7 +2736,7 @@ def get_data():
         cache_key = f"{obj_name_from_config.lower()}_{local_date}_{g.selected_location}"
 
         if cache_key not in nightly_curves_cache:
-            print(f"[CACHE MISS] Calculating full night data for {obj_name_from_config} on {local_date}")
+            #print(f"[CACHE MISS] Calculating full night data for {obj_name_from_config} on {local_date}")
             times_local, times_utc = get_common_time_arrays(g.tz_name, local_date)
             location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
             sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
@@ -3209,7 +3209,7 @@ def plot_yearly_altitude(object_name):
     final_tz_name = plot_tz_name if plot_tz_name else default_tz_name
     final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
 
-    print(f"DEBUG: /plot_yearly_altitude - Plotting for obj='{object_name}', loc='{final_location_name}', year={year}")
+    # print(f"DEBUG: /plot_yearly_altitude - Plotting for obj='{object_name}', loc='{final_location_name}', year={year}")
 
     # Call your actual Matplotlib plotting function for yearly view
     filepath = plot_yearly_altitude_curve(  # Your function that generates the image
@@ -3302,7 +3302,7 @@ def plot_monthly_altitude(object_name):
 
 @app.route('/plot/<object_name>')
 def plot_altitude(object_name):
-    print("DEBUG: request.args =", request.args)
+    # print("DEBUG: request.args =", request.args)
     data = get_ra_dec(object_name)
     if data:
         if data['RA (hours)'] is None or data['DEC (degrees)'] is None:
@@ -3331,7 +3331,7 @@ def plot_altitude(object_name):
             year = now_local.year
 
         local_date = f"{year}-{month:02d}-{day:02d}"
-        print("DEBUG: Plotting for date:", local_date)  # Debug print
+        # print("DEBUG: Plotting for date:", local_date)  # Debug print
 
         filepath = plot_altitude_curve(
             object_name,
