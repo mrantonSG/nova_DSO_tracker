@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.1.1"
+APP_VERSION = "3.2.D1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -3904,6 +3904,166 @@ def import_rig_config():
         flash("Invalid file type. Please upload a .yaml or .yml file.", "error")
 
     return redirect(url_for('config_form'))
+
+@app.route('/api/get_monthly_plot_data/<path:object_name>')
+def get_monthly_plot_data(object_name):
+    # This function provides data for the monthly chart view.
+    data = get_ra_dec(object_name)
+    if not data or data.get('RA (hours)') is None:
+        return jsonify({"error": "Object data not found"}), 404
+
+    year = int(request.args.get('year'))
+    month = int(request.args.get('month'))
+    lat = float(request.args.get('plot_lat', g.lat))
+    lon = float(request.args.get('plot_lon', g.lon))
+    tz_name = request.args.get('plot_tz', g.tz_name)
+    local_tz = pytz.timezone(tz_name)
+
+    num_days = calendar.monthrange(year, month)[1]
+    dates, obj_altitudes, moon_altitudes = [], [], []
+
+    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    sky_coord = SkyCoord(ra=data['RA (hours)'] * u.hourangle, dec=data['DEC (degrees)'] * u.deg)
+
+    for day in range(1, num_days + 1):
+        local_midnight = local_tz.localize(datetime(year, month, day, 0, 0))
+        time_astropy = Time(local_midnight.astimezone(pytz.utc))
+
+        altaz_frame = AltAz(obstime=time_astropy, location=location)
+        obj_alt = sky_coord.transform_to(altaz_frame).alt.deg
+        moon_coord = get_body('moon', time_astropy, location)
+        moon_alt = moon_coord.transform_to(altaz_frame).alt.deg
+
+        dates.append(local_midnight.strftime('%Y-%m-%d'))
+        obj_altitudes.append(obj_alt)
+        moon_altitudes.append(moon_alt)
+
+    return jsonify({
+        "dates": dates,
+        "object_alt": obj_altitudes,
+        "moon_alt": moon_altitudes
+    })
+
+
+@app.route('/api/get_yearly_plot_data/<path:object_name>')
+def get_yearly_plot_data(object_name):
+    # This function provides data for the yearly chart view.
+    data = get_ra_dec(object_name)
+    if not data or data.get('RA (hours)') is None:
+        return jsonify({"error": "Object data not found"}), 404
+
+    year = int(request.args.get('year'))
+    lat = float(request.args.get('plot_lat', g.lat))
+    lon = float(request.args.get('plot_lon', g.lon))
+    tz_name = request.args.get('plot_tz', g.tz_name)
+    local_tz = pytz.timezone(tz_name)
+
+    dates, obj_altitudes, moon_altitudes = [], [], []
+
+    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    sky_coord = SkyCoord(ra=data['RA (hours)'] * u.hourangle, dec=data['DEC (degrees)'] * u.deg)
+
+    for month in range(1, 13):
+        local_midnight = local_tz.localize(datetime(year, month, 15, 0, 0))  # Check mid-month
+        time_astropy = Time(local_midnight.astimezone(pytz.utc))
+
+        altaz_frame = AltAz(obstime=time_astropy, location=location)
+        obj_alt = sky_coord.transform_to(altaz_frame).alt.deg
+        moon_coord = get_body('moon', time_astropy, location)
+        moon_alt = moon_coord.transform_to(altaz_frame).alt.deg
+
+        dates.append(local_midnight.strftime('%Y-%m-15'))
+        obj_altitudes.append(obj_alt)
+        moon_altitudes.append(moon_alt)
+
+    return jsonify({
+        "dates": dates,
+        "object_alt": obj_altitudes,
+        "moon_alt": moon_altitudes
+    })
+
+@app.route('/api/get_plot_data/<path:object_name>')
+def get_plot_data(object_name):
+    """
+    API endpoint to provide all necessary data for client-side chart rendering.
+    """
+    # --- 1. Get object and date/location parameters ---
+    data = get_ra_dec(object_name)
+    if not data or data.get('RA (hours)') is None:
+        return jsonify({"error": "Object data not found or invalid."}), 404
+
+    ra = data['RA (hours)']
+    dec = data['DEC (degrees)']
+
+    # Use the same logic as your plot_day endpoint to determine date and location
+    plot_lat_str = request.args.get('plot_lat', g.lat)
+    plot_lon_str = request.args.get('plot_lon', g.lon)
+    plot_tz_name = request.args.get('plot_tz', g.tz_name)
+
+    try:
+        lat = float(plot_lat_str)
+        lon = float(plot_lon_str)
+        local_tz = pytz.timezone(plot_tz_name)
+    except (ValueError, pytz.UnknownTimeZoneError):
+        return jsonify({"error": "Invalid location or timezone data."}), 400
+
+    now_local = datetime.now(local_tz)
+    day = int(request.args.get('day', now_local.day))
+    month = int(request.args.get('month', now_local.month))
+    year = int(request.args.get('year', now_local.year))
+    local_date = f"{year}-{month:02d}-{day:02d}"
+
+    # --- 2. Perform all necessary astronomical calculations ---
+    # Time arrays
+    times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date)
+
+    # Object altitude and azimuth
+    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+    altaz_frame = AltAz(obstime=times_utc, location=location)
+    altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+    azimuths = sky_coord.transform_to(altaz_frame).az.deg
+
+    # Moon altitude and azimuth
+    moon_altitudes = []
+    moon_azimuths = []
+    for t_utc in times_utc:
+        frame = AltAz(obstime=t_utc, location=location)
+        moon_coord = get_body('moon', t_utc, location)
+        moon_altaz = moon_coord.transform_to(frame)
+        moon_altitudes.append(moon_altaz.alt.deg)
+        moon_azimuths.append(moon_altaz.az.deg)
+
+    # Sun events for vertical lines and shading
+    sun_events_curr = calculate_sun_events_cached(local_date, plot_tz_name, lat, lon)
+    next_date_obj = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
+    next_date_str = next_date_obj.strftime('%Y-%m-%d')
+    sun_events_next = calculate_sun_events_cached(next_date_str, plot_tz_name, lat, lon)
+
+    # Meridian transit time
+    transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
+
+    # --- 3. Package data into a JSON-serializable dictionary ---
+    # Convert datetime objects to ISO 8601 strings for JSON
+    times_iso = [t.isoformat() for t in times_local]
+
+    plot_data = {
+        "times": times_iso,
+        "object_alt": list(altitudes),
+        "object_az": list(azimuths),
+        "moon_alt": moon_altitudes,
+        "moon_az": moon_azimuths,
+        "sun_events": {
+            "current": sun_events_curr,
+            "next": sun_events_next,
+        },
+        "transit_time": transit_time_str,
+        "date": local_date,
+        "timezone": plot_tz_name
+    }
+
+    return jsonify(plot_data)
+
 
 # =============================================================================
 # Main Entry Point
