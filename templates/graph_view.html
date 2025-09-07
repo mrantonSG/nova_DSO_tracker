@@ -1278,7 +1278,7 @@
 
       <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
       <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
-      <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="insertFramingIntoProject()">Insert into Project</button>
+      <button type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="insertFramingIntoProject()">Insert into Project</button>
     </div>
     <div class="framing-controls">
       <div>
@@ -1365,11 +1365,21 @@
       </div>
     </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
 
 <script>
+
+      const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
+      Chart.defaults.adapters = Chart.defaults.adapters || {};
+      Chart.defaults.adapters.date = {
+        ...(Chart.defaults.adapters.date || {}),
+        zone: plotTz
+      };
+      console.log('Adapter:', Chart._adapters?._date?.id, 'Zone:', Chart.defaults.adapters.date.zone);
+
     const OBJECT_SIZE_ARCMIN = null;
     // --- Aladin Lite Variables ---
     let aladin = null;
@@ -1378,10 +1388,11 @@
     let altitudeChart = null; // Global variable to hold the chart instance
 
     // Function to parse a HH:MM time string and combine it with a date object
-    function getDateTime(baseDate, timeStr) {
-        if (!timeStr || !timeStr.includes(':')) return null;
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hours, minutes);
+    function getDateTimeMs(baseDateISO, timeStr) {
+      if (!timeStr || !timeStr.includes(':')) return null;
+      const [hour, minute] = timeStr.split(':').map(Number);
+      const base = luxon.DateTime.fromISO(baseDateISO, { zone: plotTz }).startOf('day');
+      return base.set({ hour, minute, second: 0, millisecond: 0 }).toMillis();
     }
 
     // The main function to fetch data and render the chart
@@ -1411,30 +1422,72 @@
         const data = await resp.json();
 
         // --- build times + annotations
-        const labels = data.times;
+        // Robust “to milliseconds” parser for mixed inputs
+        function toMs(val) {
+          // Numeric? treat < 1e12 as seconds; otherwise milliseconds
+          if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
+
+          if (typeof val === 'string') {
+            // Does the string already carry a timezone/offset? (…Z or ±HH:MM)
+            const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
+
+            if (hasOffset) {
+              // Respect the embedded offset, then show in plotTz
+              return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
+            } else {
+              // “Naive” wall time → interpret directly in plotTz
+              return luxon.DateTime.fromISO(val, { zone: plotTz }).toMillis();
+            }
+          }
+          return null;
+        }
+
+        const labels = data.times.map(toMs);
         const annotations = {};
 
         const baseDate = new Date(data.date);
         const nextDate = new Date(baseDate);
         nextDate.setDate(baseDate.getDate() + 1);
 
-        // helper
-        function getDateTime(baseD, hhmm) {
+
+        // Base day and “next” day in the *plot timezone*
+        const baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });   // YYYY-MM-DD at 00:00 in plotTz
+        const nextDt = baseDt.plus({ days: 1 });
+
+        // helper: HH:MM on a Luxon date in plotTz → ms
+        function wallTimeMs(dt, hhmm) {
           if (!hhmm || !hhmm.includes(':')) return null;
           const [h, m] = hhmm.split(':').map(Number);
-          return new Date(baseD.getFullYear(), baseD.getMonth(), baseD.getDate(), h, m);
+          return dt.set({ hour: h, minute: m, second: 0, millisecond: 0 }).toMillis();
         }
 
-        // sun events
-        const sunsetTime  = getDateTime(baseDate, data.sun_events.current.sunset);
-        const duskTime    = getDateTime(baseDate, data.sun_events.current.astronomical_dusk);
-        const dawnTime    = getDateTime(nextDate, data.sun_events.next.astronomical_dawn);
-        const sunriseTime = getDateTime(nextDate, data.sun_events.next.sunrise);
+        // sun events (all are numbers = epoch ms)
+        const sunsetTime  = wallTimeMs(baseDt, data.sun_events.current.sunset);
+        const duskTime    = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
+        const dawnTime    = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
+        const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
+
+        // Use Luxon to compute midnight at the plotting location’s timezone, then work in ms
+        const firstMs = labels[0];
+        const lastMs  = labels[labels.length - 1];
+        const originalWindowMs = lastMs - firstMs;
+
+        const midnightMs = luxon.DateTime
+          .fromISO(data.date, { zone: plotTz })
+          .plus({ days: 1 })       // midnight that splits the night (00:00 of "next" date)
+          .startOf('day')
+          .toMillis();
+
+        const currentCenterMs = (firstMs + lastMs) / 2;
+        const delta = midnightMs - currentCenterMs;
+
+        const xMinCentered = firstMs + delta;
+        const xMaxCentered = xMinCentered + originalWindowMs;
 
         if (sunsetTime) {
           annotations.sunsetLine = {
             type: 'line',
-            xMin: sunsetTime.toISOString(), xMax: sunsetTime.toISOString(),
+            xMin: sunsetTime,  xMax: sunsetTime,
             borderColor: 'black', borderWidth: 1,
             label: { display: true, content: 'Sunset', position: 'start', rotation: 90,  font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
           };
@@ -1442,7 +1495,7 @@
         if (duskTime) {
           annotations.duskLine = {
             type: 'line',
-            xMin: duskTime.toISOString(), xMax: duskTime.toISOString(),
+            xMin: duskTime,    xMax: duskTime,
             borderColor: 'black', borderWidth: 1,
             label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
           };
@@ -1450,7 +1503,7 @@
         if (dawnTime) {
           annotations.dawnLine = {
             type: 'line',
-            xMin: dawnTime.toISOString(), xMax: dawnTime.toISOString(),
+            xMin: dawnTime,    xMax: dawnTime,
             borderColor: 'black', borderWidth: 1,
             label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
           };
@@ -1458,26 +1511,50 @@
         if (sunriseTime) {
           annotations.sunriseLine = {
             type: 'line',
-            xMin: sunriseTime.toISOString(), xMax: sunriseTime.toISOString(),
+            xMin: sunriseTime, xMax: sunriseTime,
             borderColor: 'black', borderWidth: 1,
             label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
           };
         }
 
-        // optional transit line (if present)
         if (data.transit_time && data.transit_time !== "N/A") {
-          const transitBaseDate = new Date(labels[0]);
-          const t = getDateTime(transitBaseDate, data.transit_time);
-          if (t && t < new Date(labels[0])) t.setDate(t.getDate() + 1);
-          if (t) {
-            annotations.transitLine = {
-              type: 'line',
-              xMin: t.toISOString(), xMax: t.toISOString(),
-              borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6],
-              clip: false,
-              label: { display: true, content: data.transit_time, position: 'start', rotation: 90, font: { size: 10, weight: 'bold' }, color: 'crimson', backgroundColor: 'rgba(255,255,255,0.7)'}
-            };
-          }
+          // We already have baseDt/nextDt in plotTz, and duskTime/dawnTime as epoch ms
+          // Example: baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });
+          const parts = (data.transit_time || '').split(':');
+          const th = Number(parts[0] || 0);
+          const tm = Number(parts[1] || 0);
+
+          // Two candidates: same wall time on the base day, and on the next day
+          const t0 = baseDt.set({ hour: th, minute: tm, second: 0, millisecond: 0 }).toMillis();     // evening candidate
+          const t1 = baseDt.plus({ days: 1 }).set({ hour: th, minute: tm, second: 0, millisecond: 0 }).toMillis(); // after-midnight candidate
+
+          // Night window [astronomical dusk .. astronomical dawn]
+          const nightStart = duskTime;   // ms (same night, typically before midnight)
+          const nightEnd   = dawnTime;   // ms (next morning, after midnight)
+
+          // Choose the candidate that lands inside the night window; if neither, pick the closer to midnight
+          const inWindow = (t) => t >= nightStart && t <= nightEnd;
+          const transitMs = inWindow(t0)
+            ? t0
+            : inWindow(t1)
+              ? t1
+              : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
+
+          annotations.transitLine = {
+            type: 'line',
+            xMin: transitMs, xMax: transitMs,
+            borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6],
+            clip: false,
+            label: {
+              display: true,
+              content: data.transit_time,    // e.g., "23:03"
+              position: 'start',
+              rotation: 90,
+              font: { size: 10, weight: 'bold' },
+              color: 'crimson',
+              backgroundColor: 'rgba(255,255,255,0.7)'
+            }
+          };
         }
 
         // night-shade background as a plugin (so we don’t touch options.beforeDraw)
@@ -1491,7 +1568,7 @@
 
             // left: start → dusk
             if (duskTime) {
-              const duskPx = scales.x.getPixelForValue(duskTime.valueOf());
+              const duskPx = scales.x.getPixelForValue(duskTime);
               ctx.fillRect(chartArea.left, chartArea.top, duskPx - chartArea.left, chartArea.height);
             } else {
               ctx.fillRect(chartArea.left, chartArea.top, chartArea.width / 2, chartArea.height);
@@ -1499,7 +1576,7 @@
 
             // right: dawn → end
             if (dawnTime) {
-              const dawnPx = scales.x.getPixelForValue(dawnTime.valueOf());
+              const dawnPx = scales.x.getPixelForValue(dawnTime);
               ctx.fillRect(dawnPx, chartArea.top, chartArea.right - dawnPx, chartArea.height);
             } else {
               ctx.fillRect(chartArea.left + chartArea.width / 2, chartArea.top, chartArea.width / 2, chartArea.height);
@@ -1517,15 +1594,16 @@
           data: {
             labels,
             datasets: [
-              { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 3, pointRadius: 0, tension: 0.1 },
-              { label: 'Moon Altitude',            data: data.moon_alt,   borderColor: 'gold',     yAxisID: 'yAltitude', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
+              { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+              { label: 'Moon Altitude',            data: data.moon_alt,   borderColor: 'gold',     yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
               { label: 'Horizon',                  data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
-              { label: '{{ object_name }} Azimuth',data: data.object_az,  borderColor: 'cyan',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
-              { label: 'Moon Azimuth',             data: data.moon_az,    borderColor: 'gold',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 2.5, pointRadius: 0, tension: 0.1 }
+              { label: '{{ object_name }} Azimuth',data: data.object_az,  borderColor: 'cyan',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+              { label: 'Moon Azimuth',             data: data.moon_az,    borderColor: 'gold',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
             ]
           },
           plugins: [nightShade],
           options: {
+            adapters: { date: { zone: plotTz } },
             responsive: true,
             maintainAspectRatio: true,
             aspectRatio: 2,
@@ -1533,26 +1611,45 @@
               annotation: { annotations },
               legend: { position: 'top' },
               title: {
-                display: true,
+                display: false,
                 text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`,
                 align: 'start',
                 font: { size: 16 }
               }
             },
             scales: {
-              x: {
-                type: 'time',
-                time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
-                title: { display: true, text: `Time (Local - {{ header_location_name }})` },
-                grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2,2] }
-              },
+                x: {
+                  type: 'time',
+                  adapters: {
+                      date: {
+                          zone: plotTz
+                      }
+                  },
+                  parsing: false,                           // we pass epoch ms already
+                  time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+
+                  // keep midnight centered using your computed window
+                  min: xMinCentered,
+                  max: xMaxCentered,
+                  bounds: 'ticks',
+
+                  // let the adapter format in the plot timezone (no custom callback here)
+                  ticks: { source: 'auto' },
+
+                  grid:  { color: 'rgba(128,128,128,0.5)', borderDash: [2, 2] },
+                  title: { display: true, text: `Time (Local - {{ header_location_name }})` }
+                },
+
               yAltitude: {
-                position: 'left', min: -90, max: 90,
+                position: 'left',
+                min: -90, max: 90,
                 title: { display: true, text: 'Altitude (°)' },
-                grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2,2] }
+                grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2, 2] }
               },
+
               yAzimuth: {
-                position: 'right', min: 0, max: 360,
+                position: 'right',
+                min: 0, max: 360,
                 title: { display: true, text: 'Azimuth (°)' },
                 grid: { drawOnChartArea: false }
               }
@@ -1583,7 +1680,7 @@
       const year     = document.getElementById('year-select').value;
       const plotLat  = "{{ graph_lat_param | default('', True) }}";
       const plotLon  = "{{ graph_lon_param | default('', True) }}";
-      const plotTz   = "{{ graph_tz_name_param | default('', True) }}";
+      const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
 
       let titleText, objAlt = [], moonAlt = [], horizon = [];
 
@@ -1643,6 +1740,7 @@
             ]
           },
           options: {
+            adapters: { date: { zone: plotTz } },
             responsive: true,
             maintainAspectRatio: true,
             aspectRatio: 2,
@@ -1662,7 +1760,7 @@
             },
             plugins: {
               legend: { position: 'top' },
-              title:  { display: true, text: titleText, align: 'start', font: { size: 16 } }
+              title:  { display: false, text: titleText, align: 'start', font: { size: 16 } }
             }
           }
         });
@@ -2235,6 +2333,55 @@
         });
     }
 
+      function insertFramingIntoProject() {
+        try {
+          const ta = document.getElementById('project-field');
+          if (!ta) { alert('Project notes box not found.'); return; }
+
+          // Collect current framing settings
+          const sel   = document.getElementById('framing-rig-select');
+          const rigId = sel?.value || '';
+          const rigName = (sel && sel.selectedIndex >= 0)
+            ? sel.options[sel.selectedIndex].textContent.trim()
+            : 'rig?';
+
+          const rotInput = document.getElementById('framing-rotation');
+          const rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0;
+
+          const survSel = document.getElementById('survey-select');
+          const survey  = survSel?.value || '';
+
+          // Use fovCenter if set, otherwise fall back to objectCoords
+          const center = (window.fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec))
+            ? { ra: fovCenter.ra, dec: fovCenter.dec }
+            : (window.objectCoords ? { ra: objectCoords.ra, dec: objectCoords.dec } : null);
+
+          // Build a shareable URL with current framing state
+          const qs = new URLSearchParams();
+          if (rigId) qs.set('rig', rigId);
+          if (center) { qs.set('ra', center.ra.toFixed(6)); qs.set('dec', center.dec.toFixed(6)); }
+          qs.set('rot', String(rotDeg));
+          if (survey) qs.set('survey', survey);
+          const url = `${location.origin}${location.pathname}?${qs.toString()}`;
+
+          // Build a readable note
+          const centerTxt = center
+            ? `RA ${center.ra.toFixed(3)}°, Dec ${center.dec.toFixed(3)}°`
+            : 'center = object';
+          const note =
+            `\n[Framing] ${rigName}, rot ${rotDeg}°, ${centerTxt}, survey ${survey || 'default'}\n${url}\n`;
+
+          // Append into the Project notes
+          if (ta.value && !ta.value.endsWith('\n')) ta.value += '\n';
+          ta.value += note;
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+          ta.scrollTop = ta.scrollHeight;  // scroll to the inserted text
+        } catch (e) {
+          console.error('insertFramingIntoProject failed', e);
+          alert('Could not insert framing into Project. See console for details.');
+        }
+      }
+
     function toggleSimbad() {
         var container = document.getElementById('simbadContainer');
         const objectName = "{{ object_name }}";
@@ -2263,7 +2410,7 @@
                     const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`;
                     const plotLat = "{{ graph_lat_param }}";
                     const plotLon = "{{ graph_lon_param }}";
-                    const plotTz = "{{ graph_tz_name_param }}";
+
 
                     data.results.forEach(r => {
                         const isSelected = r.date === selectedDateStr;
