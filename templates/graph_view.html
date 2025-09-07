@@ -737,6 +737,108 @@
     .fov-chip{
       margin-right:48px; /* gives space for the two buttons */
     }
+    #chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 1000px; /* Or your preferred max width */
+      margin: auto;
+      height: 55vh; /* Adjust height as needed */
+    }
+
+      /* Align the day/month/year chart with the left edge (like the Back button) */
+    #altitudeChartCanvas {            /* the canvas itself */
+      display: block;                 /* avoid inline baseline quirks */
+      margin-left: 0;                 /* ensure no auto-centering */
+    }
+
+    /* If a parent was centering via margin:auto or flex, override it */
+    .chart-container,
+    .canvas-wrapper,
+    #chart-container,
+    #chart-section {
+      margin-left: 0 !important;      /* undo margin: 0 auto */
+      margin-right: auto !important;  /* left-align inside wide area */
+      text-align: left !important;    /* undo text-align:center if present */
+      justify-content: flex-start !important; /* undo flex center if present */
+      padding-left: 24px;             /* match header/button left padding */
+    }
+    /* Reserve space so the chart never jumps */
+    #chart-area {
+      position: relative;
+      min-height: 480px; /* adjust if your charts are taller/shorter */
+    }
+
+    #altitudeChartCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Overlay message */
+    .loading-overlay {
+      position: absolute;
+      inset: 0; /* top/right/bottom/left = 0 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.6); /* light veil */
+      backdrop-filter: blur(2px);
+      font: 600 18px/1.2 system-ui, sans-serif;
+      color: #334;
+      z-index: 2;
+
+      /* fade animation */
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 200ms ease, visibility 200ms ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    /* 1) Width control (percentage of screen) */
+    #chart-wrapper {
+      width: 80%;          /* ← change this to any % you like */
+      max-width: 1100px;   /* optional cap so it never gets too wide */
+      margin-left: 0;      /* align left with your Back button */
+      /* If you ever want it centered, use: margin: 0 auto; */
+    }
+
+    /* 2) Keep the overlay behavior we added earlier */
+    #chart-area {
+      position: relative;
+      /* no fixed height here — Chart.js will set canvas height from aspectRatio */
+    }
+
+    /* 3) Make the canvas fill the wrapper width; height is auto from aspectRatio */
+    #altitudeChartCanvas {
+      display: block;
+      width: 100% !important;
+      height: auto !important;
+    }
+
+    /* 4) Loading overlay (unchanged) */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(2px);
+      font: 600 18px/1.2 system-ui, sans-serif;
+      color: #334;
+      z-index: 2;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 200ms ease, visibility 200ms ease;
+    }
+    .loading-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
   </style>
 
 {% endblock %}
@@ -774,11 +876,12 @@
     </div>
   <div id="chart-section">
 
-    <div id="chart-loading" style="display:none; color: #6795a4; margin-bottom: 10px; margin-left: 10px;">Loading chart...</div>
-    {# The initial src for chart-img will be set by refreshChart() on DOMContentLoaded #}
-    <a id="chart-link" href="#" target="_blank">
-      <img id="chart-img" src="#" alt="Altitude Graph for {{ alt_name }}" />
-    </a>
+    <div id="chart-wrapper">
+      <div id="chart-area">
+        <canvas id="altitudeChartCanvas"></canvas>
+        <div id="chart-loading" class="loading-overlay">Loading chart...</div>
+      </div>
+    </div>
     <div class="date-controls">
       <label for="day-select">Day:</label>
       <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;" />
@@ -1262,12 +1365,321 @@
       </div>
     </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js"></script>
 
 <script>
     const OBJECT_SIZE_ARCMIN = null;
     // --- Aladin Lite Variables ---
     let aladin = null;
     let fovLayer = null;
+    // --- NEW CLIENT-SIDE CHARTING LOGIC ---
+    let altitudeChart = null; // Global variable to hold the chart instance
+
+    // Function to parse a HH:MM time string and combine it with a date object
+    function getDateTime(baseDate, timeStr) {
+        if (!timeStr || !timeStr.includes(':')) return null;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hours, minutes);
+    }
+
+    // The main function to fetch data and render the chart
+
+    async function renderClientSideChart() {
+      const chartLoadingDiv = document.getElementById('chart-loading');
+      chartLoadingDiv?.classList.remove('hidden');
+
+      // Inputs from the page
+      const objectName = "{{ object_name }}";
+      const day   = document.getElementById('day-select').value;
+      const month = document.getElementById('month-select').value;
+      const year  = document.getElementById('year-select').value;
+
+      const plotLat = "{{ graph_lat_param | default('', True) }}";
+      const plotLon = "{{ graph_lon_param | default('', True) }}";
+      const plotTz  = "{{ graph_tz_name_param | default('', True) }}";
+
+      const apiUrl =
+        `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}` +
+        `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
+
+      try {
+        // --- fetch data
+        const resp = await fetch(apiUrl);
+        if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
+        const data = await resp.json();
+
+        // --- build times + annotations
+        const labels = data.times;
+        const annotations = {};
+
+        const baseDate = new Date(data.date);
+        const nextDate = new Date(baseDate);
+        nextDate.setDate(baseDate.getDate() + 1);
+
+        // helper
+        function getDateTime(baseD, hhmm) {
+          if (!hhmm || !hhmm.includes(':')) return null;
+          const [h, m] = hhmm.split(':').map(Number);
+          return new Date(baseD.getFullYear(), baseD.getMonth(), baseD.getDate(), h, m);
+        }
+
+        // sun events
+        const sunsetTime  = getDateTime(baseDate, data.sun_events.current.sunset);
+        const duskTime    = getDateTime(baseDate, data.sun_events.current.astronomical_dusk);
+        const dawnTime    = getDateTime(nextDate, data.sun_events.next.astronomical_dawn);
+        const sunriseTime = getDateTime(nextDate, data.sun_events.next.sunrise);
+
+        if (sunsetTime) {
+          annotations.sunsetLine = {
+            type: 'line',
+            xMin: sunsetTime.toISOString(), xMax: sunsetTime.toISOString(),
+            borderColor: 'black', borderWidth: 1,
+            label: { display: true, content: 'Sunset', position: 'start', rotation: 90,  font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
+          };
+        }
+        if (duskTime) {
+          annotations.duskLine = {
+            type: 'line',
+            xMin: duskTime.toISOString(), xMax: duskTime.toISOString(),
+            borderColor: 'black', borderWidth: 1,
+            label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
+          };
+        }
+        if (dawnTime) {
+          annotations.dawnLine = {
+            type: 'line',
+            xMin: dawnTime.toISOString(), xMax: dawnTime.toISOString(),
+            borderColor: 'black', borderWidth: 1,
+            label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
+          };
+        }
+        if (sunriseTime) {
+          annotations.sunriseLine = {
+            type: 'line',
+            xMin: sunriseTime.toISOString(), xMax: sunriseTime.toISOString(),
+            borderColor: 'black', borderWidth: 1,
+            label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
+          };
+        }
+
+        // optional transit line (if present)
+        if (data.transit_time && data.transit_time !== "N/A") {
+          const transitBaseDate = new Date(labels[0]);
+          const t = getDateTime(transitBaseDate, data.transit_time);
+          if (t && t < new Date(labels[0])) t.setDate(t.getDate() + 1);
+          if (t) {
+            annotations.transitLine = {
+              type: 'line',
+              xMin: t.toISOString(), xMax: t.toISOString(),
+              borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6],
+              clip: false,
+              label: { display: true, content: data.transit_time, position: 'start', rotation: 90, font: { size: 10, weight: 'bold' }, color: 'crimson', backgroundColor: 'rgba(255,255,255,0.7)'}
+            };
+          }
+        }
+
+        // night-shade background as a plugin (so we don’t touch options.beforeDraw)
+        const nightShade = {
+          id: 'nightShade',
+          beforeDraw(chart) {
+            const { ctx, chartArea, scales } = chart;
+            if (!chartArea) return;
+            ctx.save();
+            ctx.fillStyle = 'rgba(211, 211, 211, 1)';
+
+            // left: start → dusk
+            if (duskTime) {
+              const duskPx = scales.x.getPixelForValue(duskTime.valueOf());
+              ctx.fillRect(chartArea.left, chartArea.top, duskPx - chartArea.left, chartArea.height);
+            } else {
+              ctx.fillRect(chartArea.left, chartArea.top, chartArea.width / 2, chartArea.height);
+            }
+
+            // right: dawn → end
+            if (dawnTime) {
+              const dawnPx = scales.x.getPixelForValue(dawnTime.valueOf());
+              ctx.fillRect(dawnPx, chartArea.top, chartArea.right - dawnPx, chartArea.height);
+            } else {
+              ctx.fillRect(chartArea.left + chartArea.width / 2, chartArea.top, chartArea.width / 2, chartArea.height);
+            }
+            ctx.restore();
+          }
+        };
+
+        // create / replace chart
+        const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
+        if (window.altitudeChart) window.altitudeChart.destroy();
+
+        window.altitudeChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 3, pointRadius: 0, tension: 0.1 },
+              { label: 'Moon Altitude',            data: data.moon_alt,   borderColor: 'gold',     yAxisID: 'yAltitude', borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
+              { label: 'Horizon',                  data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
+              { label: '{{ object_name }} Azimuth',data: data.object_az,  borderColor: 'cyan',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 2.5, pointRadius: 0, tension: 0.1 },
+              { label: 'Moon Azimuth',             data: data.moon_az,    borderColor: 'gold',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 2.5, pointRadius: 0, tension: 0.1 }
+            ]
+          },
+          plugins: [nightShade],
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
+            plugins: {
+              annotation: { annotations },
+              legend: { position: 'top' },
+              title: {
+                display: true,
+                text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`,
+                align: 'start',
+                font: { size: 16 }
+              }
+            },
+            scales: {
+              x: {
+                type: 'time',
+                time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+                title: { display: true, text: `Time (Local - {{ header_location_name }})` },
+                grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2,2] }
+              },
+              yAltitude: {
+                position: 'left', min: -90, max: 90,
+                title: { display: true, text: 'Altitude (°)' },
+                grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2,2] }
+              },
+              yAzimuth: {
+                position: 'right', min: 0, max: 360,
+                title: { display: true, text: 'Azimuth (°)' },
+                grid: { drawOnChartArea: false }
+              }
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error('Could not render chart:', err);
+        const canvas = document.getElementById('altitudeChartCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'red';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error: Could not load chart data.', canvas.width / 2, canvas.height / 2);
+      } finally {
+        chartLoadingDiv?.classList.add('hidden');
+      }
+    }
+
+    async function renderMonthlyYearlyChart(view) {
+      const chartLoadingDiv = document.getElementById('chart-loading');
+      chartLoadingDiv?.classList.remove('hidden');
+
+      const objectName = "{{ object_name }}";
+      const selMonth = document.getElementById('month-select').value;
+      const year     = document.getElementById('year-select').value;
+      const plotLat  = "{{ graph_lat_param | default('', True) }}";
+      const plotLon  = "{{ graph_lon_param | default('', True) }}";
+      const plotTz   = "{{ graph_tz_name_param | default('', True) }}";
+
+      let titleText, objAlt = [], moonAlt = [], horizon = [];
+
+      try {
+        if (view === 'year') {
+          titleText = `Yearly Altitude at Local Midnight for {{ alt_name }} - ${year}`;
+
+          const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
+          const urls = months.map(m =>
+            `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`
+          );
+
+          const responses = await Promise.all(urls.map(u => fetch(u)));
+          const bad = responses.find(r => !r.ok);
+          if (bad) throw new Error(`HTTP ${bad.status} for ${bad.url}`);
+
+          const monthly = await Promise.all(responses.map(r => r.json()));
+
+          monthly.forEach(block => {
+            block.dates.forEach((d, i) => {
+              const t = `${d}T00:00:00`;
+              objAlt.push({ x: t, y: block.object_alt[i] });
+              moonAlt.push({ x: t, y: block.moon_alt[i] });
+              horizon.push({ x: t, y: 0 });
+            });
+          });
+
+        } else {
+          titleText = `Monthly Altitude at Local Midnight for {{ alt_name }} - ${year}-${selMonth}`;
+
+          const apiUrl =
+            `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}` +
+            `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
+
+          const resp = await fetch(apiUrl);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const data = await resp.json();
+
+          data.dates.forEach((d, i) => {
+            const t = `${d}T00:00:00`;
+            objAlt.push({ x: t, y: data.object_alt[i] });
+            moonAlt.push({ x: t, y: data.moon_alt[i] });
+            horizon.push({ x: t, y: 0 });
+          });
+        }
+
+        const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
+        if (window.altitudeChart) window.altitudeChart.destroy();
+
+        window.altitudeChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            datasets: [
+              { label: '{{ object_name }} Altitude', data: objAlt, borderColor: '#36A2EB', borderWidth: 3, pointRadius: 0, tension: 0.2 },
+              { label: 'Moon Altitude',              data: moonAlt, borderColor: 'gold',   borderWidth: 2.5, pointRadius: 0, tension: 0.0 },
+              { label: 'Horizon',                    data: horizon, borderColor: 'black',  borderWidth: 2, pointRadius: 0 }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  unit: (view === 'year') ? 'month' : 'day',
+                  displayFormats: (view === 'year') ? { month: 'MMM' } : { day: 'dd' }
+                },
+                title: { display: true, text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}` }
+              },
+              y: {
+                min: -90, max: 90,
+                title: { display: true, text: 'Altitude (°)' }
+              }
+            },
+            plugins: {
+              legend: { position: 'top' },
+              title:  { display: true, text: titleText, align: 'start', font: { size: 16 } }
+            }
+          }
+        });
+
+      } catch (err) {
+        console.error(`Could not render ${view} chart:`, err);
+        const canvas = document.getElementById('altitudeChartCanvas');
+        if (canvas) {
+          const c = canvas.getContext('2d');
+          c.clearRect(0, 0, canvas.width, canvas.height);
+          c.font = "16px Arial"; c.fillStyle = "red"; c.textAlign = "center";
+          c.fillText(`Error loading ${view} chart data.`, canvas.width / 2, canvas.height / 2);
+        }
+      } finally {
+        chartLoadingDiv?.classList.add('hidden');
+      }
+    }
 
     // NEW: base image layer handle + FOV center
     let baseSurvey = null;
@@ -1647,7 +2059,29 @@
         // optional toast
       });
     }
+    function changeView(view) {
+        // First, update the header text for the selected date
+        const day = document.getElementById('day-select').value;
+        const month = document.getElementById('month-select').value;
+        const year = document.getElementById('year-select').value;
+        const objectName = "{{ object_name }}";
 
+        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
+                document.getElementById("phase-display").innerText = data.phase + "%";
+                document.getElementById("dusk-display").innerText = data.astronomical_dusk;
+                document.getElementById("dawn-display").innerText = data.astronomical_dawn;
+            });
+
+        // Now, call the correct function to render the selected chart view
+        if (view === 'day') {
+            renderClientSideChart();
+        } else {
+            renderMonthlyYearlyChart(view);
+        }
+    }
     function useReadoutAsFovCenter() {
       const raStr  = document.getElementById('ra-readout').value;
       const decStr = document.getElementById('dec-readout').value;
@@ -1789,57 +2223,6 @@
         })
         .catch(error => console.error('Error setting location:', error));
     }
-
-    function refreshChart() {
-        changeView('day');
-    }
-
-    function changeView(view) {
-        const objectName = "{{ object_name }}";
-        const day = document.getElementById('day-select').value;
-        const month = document.getElementById('month-select').value;
-        const year = document.getElementById('year-select').value;
-        const timestamp = Date.now();
-        let baseUrl = "";
-
-        if (view === "day") {
-            baseUrl = `/plot_day/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`;
-        } else if (view === "month") {
-            baseUrl = `/plot_monthly_altitude/${encodeURIComponent(objectName)}?year=${year}&month=${month}`;
-        } else if (view === "year") {
-            baseUrl = `/plot_yearly_altitude/${encodeURIComponent(objectName)}?year=${year}`;
-        } else {
-            return;
-        }
-
-        let locationQueryParams = "";
-        const plotLat = "{{ graph_lat_param | default('', True) }}";
-        const plotLon = "{{ graph_lon_param | default('', True) }}";
-        const plotTz = "{{ graph_tz_name_param | default('', True) }}";
-        const plotLocName = "{{ graph_location_name_param | default('', True) }}";
-
-        if (plotLat) locationQueryParams += `&plot_lat=${encodeURIComponent(plotLat)}`;
-        if (plotLon) locationQueryParams += `&plot_lon=${encodeURIComponent(plotLon)}`;
-        if (plotTz) locationQueryParams += `&plot_tz=${encodeURIComponent(plotTz)}`;
-        if (plotLocName) locationQueryParams += `&plot_loc_name=${encodeURIComponent(plotLocName)}`;
-
-        const finalUrl = baseUrl + locationQueryParams + `&t=${timestamp}`;
-        document.getElementById('chart-loading').style.display = 'block';
-        document.getElementById('chart-img').style.opacity = '0.3';
-        document.getElementById('chart-img').src = finalUrl;
-        document.getElementById('chart-link').href = finalUrl;
-
-        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
-                document.getElementById("phase-display").innerText = data.phase + "%";
-                document.getElementById("dusk-display").innerText = data.astronomical_dusk;
-                document.getElementById("dawn-display").innerText = data.astronomical_dawn;
-            })
-            .catch(error => console.error("Error updating header info:", error));
-    }
-
     function saveProject() {
         const newProject = document.getElementById('project-field').value;
         const objectName = "{{ object_name }}";
@@ -1862,19 +2245,18 @@
             container.style.display = 'none';
         }
     }
-
-    function loadImagingOpportunities() {
-        const objectName = "{{ object_name }}";
+        function loadImagingOpportunities() {
         document.getElementById("opportunities-section").style.display = "block";
         const tbody = document.getElementById("opportunities-body");
         tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`;
+        const objectName = "{{ object_name }}";
 
         fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === "success") {
                     if (data.results.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="9">No good dates found.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`;
                         return;
                     }
                     let htmlRows = "";
@@ -1905,15 +2287,18 @@
         document.getElementById('year-select').value = year;
         document.getElementById('month-select').value = month;
         document.getElementById('day-select').value = day;
-        changeView('day');
-        const rows = document.getElementById("opportunities-body").querySelectorAll("tr");
-        rows.forEach(row => {
-            row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr);
-        });
+        changeView('day'); // This will re-render the chart for the new date
+        // Highlight the selected row after a short delay to ensure the table has re-rendered if needed
+        setTimeout(() => {
+            const rows = document.getElementById("opportunities-body").querySelectorAll("tr");
+            rows.forEach(row => {
+                row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr);
+            });
+        }, 100);
     }
-
-    function openInStellarium() {
+        function openInStellarium() {
         document.getElementById('stellarium-status').textContent = "Sending object to Stellarium...";
+        document.getElementById('stellarium-status').style.color = "#666"; // Reset color
         const objectName = "{{ object_name }}";
         fetch("/proxy_focus", {
             method: "POST",
@@ -1921,289 +2306,72 @@
             body: new URLSearchParams({ target: objectName, mode: "center" })
         })
         .then(async response => {
-            let data = await response.json().catch(() => ({ message: "Invalid response from server." }));
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = { message: "Could not parse server response." };
+            }
+
             if (response.ok && data.status === "success") {
                 document.getElementById('stellarium-status').textContent = "Stellarium view updated!";
                 document.getElementById('stellarium-status').style.color = "#83b4c5";
             } else {
-                document.getElementById('stellarium-status').innerHTML = `<p style="color:red;">Error:<br>${data.message || "Unknown error"}</p>`;
+                document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`;
             }
         });
     }
-
-    // --- Initial setup on page load ---
-    document.getElementById('chart-img').onload = function() {
-        document.getElementById('chart-loading').style.display = 'none';
-        document.getElementById('chart-img').style.opacity = '1';
-    };
-    refreshChart();
-    const dateEl = document.getElementById("date-display");
-    if (dateEl && dateEl.innerText.includes("-")) {
-        dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
-    }
-    const dayInput = document.getElementById("day-select");
-    const monthSelect = document.getElementById("month-select");
-    const yearInput = document.getElementById("year-select");
-    function updateDayLimit() {
-        const year = parseInt(yearInput.value);
-        const month = parseInt(monthSelect.value);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        if (parseInt(dayInput.value) > daysInMonth) {
-            dayInput.value = daysInMonth;
+    window.addEventListener('load', () => {
+        // As you correctly diagnosed, we must register the plugin before using it.
+        // This line runs after the library file has been loaded.
+        if (window['chartjs-plugin-annotation']) {
+          Chart.register(window['chartjs-plugin-annotation']);
         }
-        dayInput.max = daysInMonth;
-    }
-    monthSelect.addEventListener("change", updateDayLimit);
-    yearInput.addEventListener("change", updateDayLimit);
-    updateDayLimit();
 
-    // Event listener for closing modal by clicking outside
-    const framingModal = document.getElementById('framing-modal');
-    window.addEventListener('click', function(event) {
-        if (event.target == framingModal) {
-            closeFramingAssistant();
-        }
-    });
-    function copyFramingUrl() {
-      if (!aladin) return;
-      const framingRigSelect = document.getElementById('framing-rig-select');
-      const rotation = parseFloat(document.getElementById('framing-rotation').value) || 0;
+        // Now, the initial chart render will work.
+        changeView('day');
 
-    // Center in decimal degrees (prefer the readout → then explicit fovCenter → then view center)
-    const center = (() => {
-      const raStr  = document.getElementById('ra-readout')?.value;
-      const decStr = document.getElementById('dec-readout')?.value;
-      const fromReadout = (raStr && decStr && typeof parseRaDec === 'function') ? parseRaDec(raStr, decStr) : null;
-      if (fromReadout) return { ra: fromReadout.ra, dec: fromReadout.dec };
-      if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) return { ra: fovCenter.ra, dec: fovCenter.dec };
-      const rc = aladin.getRaDec();
-      return { ra: rc[0], dec: rc[1] };
-    })();
-
-      // Survey ID (HiPS name). Try to pull from the select; fall back to current base layer.
-      const surveySel = document.getElementById('survey-select');
-      const surveyId = surveySel ? surveySel.value : (aladin.getBaseImageLayer()?.hips?.id || '');
-
-      const params = new URLSearchParams({
-        rig: framingRigSelect.value || '',
-        ra:  center.ra.toFixed(6),
-        dec: center.dec.toFixed(6),
-        rot: (rotation % 360).toFixed(1),
-        survey: surveyId
-      });
-
-      const url = `${location.origin}${location.pathname}?${params.toString()}`;
-      navigator.clipboard.writeText(url);
-    }
-      // Auto-open the Framing Assistant when a URL contains rig + (ra or dec)
-      window.addEventListener('load', () => {
+        // The rest of your setup logic remains the same.
         const q = new URLSearchParams(location.search);
         if (q.has('rig') && (q.has('ra') || q.has('dec'))) {
-          // Slight defer so the modal is visible before Aladin builds
-          setTimeout(() => openFramingAssistant(), 0);
+            setTimeout(() => openFramingAssistant(), 0);
         }
-      });
-
-    function insertFramingIntoProject() {
-      if (!aladin) return;
-
-      // Gather framing
-      const rigSel   = document.getElementById('framing-rig-select');
-      const rigId    = rigSel?.value || '';
-      const rigName  = rigSel?.options[rigSel.selectedIndex]?.text || rigId || 'unknown rig';
-
-      const rot      = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-      const survey   = document.getElementById('survey-select')?.selectedOptions?.[0]?.text
-                     || document.getElementById('survey-select')?.value || '';
-
-      // Ensure the readout reflects the latest center before reading it
-      updateReadoutFromCenter?.();
-
-      // ---- NEW center derivation ----
-      let center = null;
-
-      const raStr  = document.getElementById('ra-readout')?.value;
-      const decStr = document.getElementById('dec-readout')?.value;
-      if (raStr && decStr && typeof parseRaDec === 'function') {
-        const parsed = parseRaDec(raStr, decStr); // { ra, dec } in degrees
-        if (parsed && Number.isFinite(parsed.ra) && Number.isFinite(parsed.dec)) {
-          center = parsed;
+        const dateEl = document.getElementById("date-display");
+        if (dateEl && dateEl.innerText.includes("-")) {
+            dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
         }
-      }
-
-      if (!center && fovCenter) {
-        center = { ra: fovCenter.ra, dec: fovCenter.dec };
-      }
-      if (!center) {
-        const rc = aladin.getRaDec();
-        center = { ra: rc[0], dec: rc[1] };
-      }
-      // ---- /NEW ----
-
-      const raHms  = (typeof formatRA === 'function')  ? formatRA(center.ra)  : center.ra.toFixed(6);
-      const decDms = (typeof formatDec === 'function') ? formatDec(center.dec) : center.dec.toFixed(6);
-
-      const opt     = rigSel?.options[rigSel.selectedIndex];
-      const fovW    = opt ? parseFloat(opt.dataset.fovw) : NaN;
-      const fovH    = opt ? parseFloat(opt.dataset.fovh) : NaN;
-      const fovTxt  = (isFinite(fovW) && isFinite(fovH)) ? `${Math.round(fovW)}′×${Math.round(fovH)}′` : '';
-
-      // Build a shareable URL
-      let url = '';
-      try {
-        const params = new URLSearchParams({
-          rig: rigId,
-          ra: center.ra.toFixed(6),
-          dec: center.dec.toFixed(6),
-          rot: (rot % 360).toFixed(1),
-          survey: document.getElementById('survey-select')?.value || ''
+        const dayInput = document.getElementById("day-select");
+        const monthSelect = document.getElementById("month-select");
+        const yearInput = document.getElementById("year-select");
+        function updateDayLimit() {
+            const year = parseInt(yearInput.value);
+            const month = parseInt(monthSelect.value);
+            const daysInMonth = new Date(year, month, 0).getDate();
+            if (parseInt(dayInput.value) > daysInMonth) {
+                dayInput.value = daysInMonth;
+            }
+            dayInput.max = daysInMonth;
+        }
+        monthSelect.addEventListener("change", updateDayLimit);
+        yearInput.addEventListener("change", updateDayLimit);
+        updateDayLimit();
+        const framingModal = document.getElementById('framing-modal');
+        window.addEventListener('click', function(event) {
+            if (event.target == framingModal) {
+                closeFramingAssistant();
+            }
         });
-        url = `${location.origin}${location.pathname}?${params.toString()}`;
-      } catch (e) {}
-
-      const ts = new Date().toLocaleString();
-      const entry =
-    `[Framing | ${ts}]
-    Rig: ${rigName}${fovTxt ? ` (${fovTxt})` : ''}
-    Center: RA ${raHms}  Dec ${decDms}  (deg: ${center.ra.toFixed(6)}, ${center.dec.toFixed(6)})
-    Rotation: ${Math.round(rot)}°
-    Survey: ${survey}
-    ${url ? `URL: ${url}\n` : ''}`;
-
-      const projectField = document.getElementById('project-field');
-
-      if (projectField) {
-        const sep = projectField.value && !projectField.value.endsWith('\n') ? '\n\n' : '';
-        projectField.value = (projectField.value || '') + sep + entry + '\n';
-        projectField.focus();
-        if (projectField.setSelectionRange) {
-          const len = projectField.value.length;
-          projectField.setSelectionRange(len, len);
-        }
-        if (url) setProjectQuickLink(url);
-      } else {
-        navigator.clipboard.writeText(entry);
-        alert('No “Project” field found on this page.\n\nThe framing entry has been copied to your clipboard. Paste it where you want to keep it.');
-      }
-    }
-
-    function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-
-    function setProjectQuickLink(url) {
-      const box = document.getElementById('project-quick-link');
-      if (!box) return;
-      if (!url) { box.innerHTML = ''; return; }
-
-      // Create the button and bind a proper click handler (no inline onclick)
-      const jsArg = String(url);               // keep original string
-      box.innerHTML = `<button id="open-framing-from-notes" class="inline-button">Open framing</button>`;
-      const btn = document.getElementById('open-framing-from-notes');
-      btn.addEventListener('click', () => {
-        try {
-          // Prefer the URL-restoring flow; fall back to just opening the modal
-          if (typeof window.openFramingAssistantFromUrl === 'function') {
-            window.openFramingAssistantFromUrl(jsArg);
-          } else {
-            openFramingAssistant();
-          }
-        } catch (e) {
-          console.error('Quick-link click failed:', e);
-          openFramingAssistant(); // at least open the modal
-        }
-      });
-    }
-    window.openFramingAssistantFromUrl = function(url) {
-      try {
-        // De-HTMLify just in case
-        const clean = String(url || '').replace(/&amp;/g, '&');
-
-        // Parse relative OR absolute URL safely
-        const q = new URL(clean, location.href).searchParams;
-
-        // Merge params into current URL (no reload)
-        const newParams = new URLSearchParams(location.search);
-        ['rig','ra','dec','rot','survey'].forEach(k => {
-          if (q.has(k)) newParams.set(k, q.get(k));
+        window.addEventListener('resize', () => {
+            if (document.getElementById('framing-modal').style.display === 'block') {
+                if (aladin) updateFramingChart(false);
+            }
         });
-        history.replaceState(null, '', location.pathname + '?' + newParams.toString());
-
-        // Open the modal — your existing restore-on-open code will apply everything
-        openFramingAssistant();
-      } catch (e) {
-        console.error('openFramingAssistantFromUrl failed:', e);
-        alert('Sorry—opening the saved framing failed. Check the console for details.');
-      }
-    };
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const ta = document.getElementById('project-field');
-      if (!ta) return;
-      // Try to find the last URL in the existing notes and show it as a quick link
-      const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g);
-      if (m && m.length) setProjectQuickLink(m[m.length - 1]);
-    });
-    function safeOpenFramingFromUrl(url) {
-      try {
-        if (typeof window.openFramingAssistantFromUrl === 'function') {
-          window.openFramingAssistantFromUrl(url);
-        } else {
-          console.warn('openFramingAssistantFromUrl missing; falling back');
-          openFramingAssistant();
+        const ta = document.getElementById('project-field');
+        if (ta) {
+            const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g);
+            if (m && m.length) setProjectQuickLink(m[m.length - 1]);
         }
-      } catch (e) {
-        console.error('safeOpenFramingFromUrl error:', e);
-        openFramingAssistant(); // still open the modal even if URL parsing failed
-      }
-    }
-    function toggleFramingFullscreen() {
-      const box = document.getElementById('framing-modal-content');
-      box.classList.toggle('fullscreen');
-      // resize Aladin after toggling fullscreen
-      setTimeout(() => {
-        if (aladin && document.getElementById('aladin-lite-div')) {
-          updateFramingChart(false);
-        }
-      }, 100);
-    }
-    function toggleFramingFullscreen(btn){
-      const box=document.getElementById('framing-modal-content');
-      box.classList.toggle('fullscreen');
-      btn.textContent = box.classList.contains('fullscreen') ? '↙' : '⤢';
-      setTimeout(()=>{ if (aladin) updateFramingChart(false); },50);
-    }
-    window.addEventListener('resize', () => {
-      if (document.getElementById('framing-modal').style.display === 'block') {
-        if (aladin) updateFramingChart(false);
-      }
     });
-    // Ensure the current Aladin zoom is large enough to display the entire rig FOV (+margin)
-    function ensureFovFitsRig(margin = 1.35) {
-      if (!aladin) return;
-      const sel = document.getElementById('framing-rig-select');
-      if (!sel || sel.selectedIndex < 0) return;
-
-      const opt = sel.options[sel.selectedIndex];
-      const wArcmin = parseFloat(opt.dataset.fovw);
-      const hArcmin = parseFloat(opt.dataset.fovh);
-      if (!isFinite(wArcmin) || !isFinite(hArcmin)) return;
-
-      // Required horizontal FOV in degrees (largest dimension) + a small margin
-      const need = (Math.max(wArcmin, hArcmin) / 60) * margin;
-
-      // Current horizontal FOV from Aladin
-      let curr = null;
-      try {
-        const gf = aladin.getFov && aladin.getFov();     // often returns [fovX, fovY]
-        curr = Array.isArray(gf) ? Math.max(gf[0], gf[1]) : gf;
-      } catch (e) {}
-
-      // Only zoom out if needed; don't interfere with a user who zoomed out further
-      if (!curr || curr < need * 0.98) {
-        aladin.setFov(need);
-      }
-    }
 </script>
 
 {% endblock %}
-</body>
-</html>
