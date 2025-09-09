@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.2.D1"
+APP_VERSION = "3.2.D2"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -89,6 +89,8 @@ cache_worker_status = {}
 monthly_top_targets_cache = {}
 config_cache = {}
 config_mtime = {}
+journal_cache = {}
+journal_mtime = {}
 LATEST_VERSION_INFO = {}
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
@@ -225,31 +227,35 @@ class User(UserMixin):
         self.username = username
 
 def load_journal(username):
-    """Loads journal data for the given username from a YAML file."""
+    """Loads journal data from cache or file, checking for modifications."""
     if SINGLE_USER_MODE:
         filename = "journal_default.yaml"
     else:
         filename = f"journal_{username}.yaml"
     filepath = os.path.join(os.path.dirname(__file__), filename)
 
+    # Caching logic
+    last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+    if filepath in journal_cache and last_modified <= journal_mtime.get(filepath, 0):
+        return journal_cache[filepath]
+
+    # Read from file if not in cache or if modified
     if not os.path.exists(filepath):
-        print(f"ⓘ Journal file '{filename}' not found. Returning empty journal.")
-        return {"sessions": []}  # Return structure with empty sessions list
+        return {"sessions": []}
 
     try:
-        with open(filepath, "r", encoding="utf-8") as file: # Added encoding
-            data = yaml.safe_load(file)
-            if data is None: # Handles empty YAML file
-                print(f"ⓘ Journal file '{filename}' is empty. Returning empty journal.")
-                return {"sessions": []}
-            # Ensure 'sessions' key exists and is a list
+        with open(filepath, "r", encoding="utf-8") as file:
+            data = yaml.safe_load(file) or {"sessions": []}
             if "sessions" not in data or not isinstance(data["sessions"], list):
-                print(f"⚠️ Journal file '{filename}' is missing 'sessions' list or it's malformed. Initializing.")
                 data["sessions"] = []
+
+            # Update cache
+            journal_cache[filepath] = data
+            journal_mtime[filepath] = last_modified
             return data
     except Exception as e:
         print(f"❌ ERROR: Failed to load journal '{filename}': {e}")
-        return {"sessions": []} # Return default structure on error
+        return {"sessions": []}
 
 def save_journal(username, journal_data):
     """Saves journal data for the given username to a YAML file."""
@@ -3399,10 +3405,13 @@ def graph_dashboard(object_name):
         journal_data = load_journal(username_for_journal)
         all_user_sessions = journal_data.get('sessions', [])
 
-        # --- Add calculated_integration_time_minutes to EACH session ---
-        for session_for_calc in all_user_sessions:
+        # --- OPTIMIZATION: Filter for the relevant sessions FIRST ---
+        object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
 
-            # ----- START: New Total Integration Time Calculation Logic (for graph_dashboard) -----
+        # --- Now, calculate integration time ONLY for the sessions we need ---
+        for session_for_calc in object_specific_sessions:
+
+            # ----- START: Total Integration Time Calculation Logic -----
             total_integration_seconds = 0
             has_any_integration_data = False
 
@@ -3441,9 +3450,8 @@ def graph_dashboard(object_name):
                 session_for_calc['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
             else:
                 session_for_calc['calculated_integration_time_minutes'] = 'N/A'
-            # ----- END: New Total Integration Time Calculation Logic -----
+            # ----- END: Total Integration Time Calculation Logic -----
 
-        object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
         object_specific_sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
 
         if requested_session_id:
