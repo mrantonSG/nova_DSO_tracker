@@ -4,6 +4,8 @@ import os
 import yaml
 import uuid
 
+rig_cache = {}
+rig_mtime = {}
 
 def get_rig_config_path(username, single_user_mode):
     """
@@ -22,25 +24,35 @@ def get_rig_config_path(username, single_user_mode):
 
 
 def load_rig_config(username, single_user_mode):
-    """Loads the rig configuration for a given user."""
+    """Loads rig config from cache or file, checking for modifications."""
     filepath = get_rig_config_path(username, single_user_mode)
 
+    # Caching logic
+    last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
+    if filepath in rig_cache and last_modified <= rig_mtime.get(filepath, 0):
+        return rig_cache[filepath]
+
+    # Read from file if not in cache or if modified
     if not os.path.exists(filepath):
-        # If no file exists, return a default empty structure
-        return {"components": {"telescopes": [], "cameras": [], "reducers_extenders": []}, "rigs": []}
+        return {'components': {'telescopes': [], 'cameras': [], 'reducers_extenders': []}, 'rigs': []}
 
     try:
-        with open(filepath, "r", encoding="utf-8") as file:
-            data = yaml.safe_load(file)
-            # Ensure the file is not empty and has the basic structure
-            if data is None or "components" not in data or "rigs" not in data:
-                return {"components": {"telescopes": [], "cameras": [], "reducers_extenders": []}, "rigs": []}
-            return data
-    except Exception as e:
-        print(f"❌ ERROR: Failed to load rig config '{filepath}': {e}")
-        # Return default structure on error
-        return {"components": {"telescopes": [], "cameras": [], "reducers_extenders": []}, "rigs": []}
+        with open(filepath, 'r') as f:
+            data = yaml.safe_load(f) or {}
 
+        # Ensure default structure if file is empty or malformed
+        if 'components' not in data:
+            data['components'] = {'telescopes': [], 'cameras': [], 'reducers_extenders': []}
+        if 'rigs' not in data:
+            data['rigs'] = []
+
+        # Update cache
+        rig_cache[filepath] = data
+        rig_mtime[filepath] = last_modified
+        return data
+    except Exception as e:
+        print(f"❌ ERROR loading rig config '{filepath}': {e}")
+        return {'components': {'telescopes': [], 'cameras': [], 'reducers_extenders': []}, 'rigs': []}
 
 def save_rig_config(username, rig_data, single_user_mode):
     """Saves the rig configuration for a given user."""
