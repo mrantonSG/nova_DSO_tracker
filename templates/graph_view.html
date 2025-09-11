@@ -1787,6 +1787,42 @@
     let lockToObject = false;
     let objectCoords = null; // {ra, dec} resolved once per open
 
+    function toggleFramingFullscreen(btn) {
+          const modalContent = document.getElementById('framing-modal-content');
+          if (!modalContent) return;
+
+          modalContent.classList.toggle('fullscreen');
+          // Update button icon/label to reflect the new state
+          const isFullscreen = modalContent.classList.contains('fullscreen');
+          if (btn) {
+            btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; // Shrink / Expand arrows
+            btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen';
+          }
+        }
+
+        function setProjectQuickLink(url) {
+            const container = document.getElementById('project-quick-link');
+            if (!container) return;
+
+            // Clear any existing button
+            container.innerHTML = '';
+
+            if (url) {
+                const btn = document.createElement('button');
+                btn.className = 'inline-button';
+                btn.style.fontSize = '13px';
+                btn.style.padding = '6px 12px';
+                btn.textContent = 'Re-open Last Saved Framing';
+                btn.onclick = () => {
+                    // Set the URL in the address bar without reloading the page
+                    history.pushState(null, '', url);
+                    // Open the modal, which will now read the new URL parameters
+                    openFramingAssistant();
+                };
+                container.appendChild(btn);
+            }
+        }
+
     // --- Aladin Lite Functions ---
     function openFramingAssistant() {
       const framingModal = document.getElementById('framing-modal');
@@ -2333,54 +2369,58 @@
         });
     }
 
-      function insertFramingIntoProject() {
-        try {
-          const ta = document.getElementById('project-field');
-          if (!ta) { alert('Project notes box not found.'); return; }
+    function insertFramingIntoProject() {
+            try {
+              const ta = document.getElementById('project-field');
+              if (!ta) { alert('Project notes box not found.'); return; }
 
-          // Collect current framing settings
-          const sel   = document.getElementById('framing-rig-select');
-          const rigId = sel?.value || '';
-          const rigName = (sel && sel.selectedIndex >= 0)
-            ? sel.options[sel.selectedIndex].textContent.trim()
-            : 'rig?';
+              // Collect current framing settings
+              const sel   = document.getElementById('framing-rig-select');
+              const rigId = sel?.value || '';
+              const rigName = (sel && sel.selectedIndex >= 0)
+                ? sel.options[sel.selectedIndex].textContent.trim()
+                : 'rig?';
 
-          const rotInput = document.getElementById('framing-rotation');
-          const rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0;
+              const rotInput = document.getElementById('framing-rotation');
+              const rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0;
 
-          const survSel = document.getElementById('survey-select');
-          const survey  = survSel?.value || '';
+              const survSel = document.getElementById('survey-select');
+              const survey  = survSel?.value || '';
 
-          // Use fovCenter if set, otherwise fall back to objectCoords
-          const center = (window.fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec))
-            ? { ra: fovCenter.ra, dec: fovCenter.dec }
-            : (window.objectCoords ? { ra: objectCoords.ra, dec: objectCoords.dec } : null);
+              // CORRECTED: Use the local fovCenter and objectCoords variables, not window.*
+              const center = (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec))
+                ? { ra: fovCenter.ra, dec: fovCenter.dec }
+                : (objectCoords ? { ra: objectCoords.ra, dec: objectCoords.dec } : null);
 
-          // Build a shareable URL with current framing state
-          const qs = new URLSearchParams();
-          if (rigId) qs.set('rig', rigId);
-          if (center) { qs.set('ra', center.ra.toFixed(6)); qs.set('dec', center.dec.toFixed(6)); }
-          qs.set('rot', String(rotDeg));
-          if (survey) qs.set('survey', survey);
-          const url = `${location.origin}${location.pathname}?${qs.toString()}`;
+              // Build a shareable URL with current framing state
+              const qs = new URLSearchParams();
+              if (rigId) qs.set('rig', rigId);
+              if (center) { qs.set('ra', center.ra.toFixed(6)); qs.set('dec', center.dec.toFixed(6)); }
+              qs.set('rot', String(rotDeg));
+              if (survey) qs.set('survey', survey);
+              const url = `${location.origin}${location.pathname}?${qs.toString()}`;
 
-          // Build a readable note
-          const centerTxt = center
-            ? `RA ${center.ra.toFixed(3)}°, Dec ${center.dec.toFixed(3)}°`
-            : 'center = object';
-          const note =
-            `\n[Framing] ${rigName}, rot ${rotDeg}°, ${centerTxt}, survey ${survey || 'default'}\n${url}\n`;
+              // Build a readable note
+              const centerTxt = center
+                ? `RA ${formatRA(center.ra)}, Dec ${formatDec(center.dec)}`
+                : 'center = object';
+              const note =
+                `\n[Framing] ${rigName}, rot ${rotDeg}°, ${centerTxt}, survey ${survey || 'default'}\n${url}\n`;
 
-          // Append into the Project notes
-          if (ta.value && !ta.value.endsWith('\n')) ta.value += '\n';
-          ta.value += note;
-          ta.dispatchEvent(new Event('input', { bubbles: true }));
-          ta.scrollTop = ta.scrollHeight;  // scroll to the inserted text
-        } catch (e) {
-          console.error('insertFramingIntoProject failed', e);
-          alert('Could not insert framing into Project. See console for details.');
-        }
-      }
+              // Append into the Project notes
+              if (ta.value && !ta.value.endsWith('\n')) ta.value += '\n';
+              ta.value += note;
+              ta.dispatchEvent(new Event('input', { bubbles: true }));
+              ta.scrollTop = ta.scrollHeight;
+
+              // Also, re-run the function that creates the quick-link button
+              setProjectQuickLink(url);
+
+            } catch (e) {
+              console.error('insertFramingIntoProject failed', e);
+              alert('Could not insert framing into Project. See console for details.');
+            }
+          }
 
     function toggleSimbad() {
         var container = document.getElementById('simbadContainer');
