@@ -361,7 +361,27 @@
     .sampling-good { color: #2ecc71; }            /* Green */
     .sampling-slightly-undersampled { color: #f39c12; } /* Orange */
     .sampling-undersampled { color: #e74c3c; }      /* Red */
-
+    .form-group {
+      margin-top: 1em;
+      margin-bottom: 1em;
+    }
+    .form-group {
+        display: grid;
+        grid-template-columns: 155px auto;
+        align-items: center;
+        grid-row-gap: 5px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .form-group small {
+        grid-column-start: 2;
+    }
+    .form-group select.form-control {
+        justify-self: start;
+    }
+    #sampling_interval {
+      font-size: 15px;
+    }
   </style>
 {% endblock %}
 </head>
@@ -460,6 +480,22 @@
                          value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
                 </div>
               </div>
+              <hr>
+              <div class="form-group">
+                <label for="sampling_interval">Calculation Precision:</label>
+                <select id="sampling_interval" name="sampling_interval" class="form-control">
+                  {% set current_interval = config.get('sampling_interval_minutes', 15) %}
+                  <option value="10" {% if current_interval == 10 %}selected{% endif %}>High (10 min samples)</option>
+                  <option value="15" {% if current_interval == 15 %}selected{% endif %}>Default (15 min samples)</option>
+                  <option value="20" {% if current_interval == 20 %}selected{% endif %}>Balanced (20 min samples)</option>
+                  <option value="30" {% if current_interval == 30 %}selected{% endif %}>Fast (30 min samples)</option>
+                  <option value="60" {% if current_interval == 60 %}selected{% endif %}>Fastest (60 min samples)</option>
+                </select>
+                <small class="form-text text-muted">
+                  Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
+                </small>
+              </div>
+              <hr>
                <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
           </form>
         </div>
