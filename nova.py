@@ -540,9 +540,10 @@ def warm_main_cache(username, location_name, user_config):
             lat = float(user_config["locations"][location_name]["lat"])
             lon = float(user_config["locations"][location_name]["lon"])
             tz_name = user_config["locations"][location_name]["timezone"]
-            alt_threshold = user_config.get("altitude_threshold", 20)
+            altitude_threshold = user_config.get("altitude_threshold", 20)
+            sampling_interval = user_config.get('sampling_interval_minutes', 15)
 
-            times_local, times_utc = get_common_time_arrays(tz_name, local_date)
+            times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
             location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
             sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
             altaz_frame = AltAz(obstime=times_utc, location=location)
@@ -550,7 +551,7 @@ def warm_main_cache(username, location_name, user_config):
             azimuths = sky_coord.transform_to(altaz_frame).az.deg
             transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
             obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-                ra, dec, lat, lon, local_date, tz_name, alt_threshold
+                ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval
             )
             fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
@@ -2682,153 +2683,96 @@ def confirm_object():
     return jsonify({"status": "success"})
 
 
-@app.route('/data')
-def get_data():
+@app.route('/api/get_object_list')
+def get_object_list():
+    """
+    A new, very fast endpoint that just returns the list of object names.
+    """
+    # g.objects is already loaded by the @app.before_request
+    return jsonify({"objects": g.objects})
+
+@app.route('/api/get_object_data/<path:object_name>')
+def get_object_data(object_name):
+    """
+    A new endpoint that does the heavy calculation for only ONE object.
+    This contains the logic from your old /data endpoint.
+    """
     local_tz = pytz.timezone(g.tz_name)
     current_datetime_local = datetime.now(local_tz)
 
-    # --- NEW, MORE ACCURATE OBSERVING DATE LOGIC ---
-    # 1. Get today's and yesterday's dates
+    # Use the more accurate observing date logic
     today_str = current_datetime_local.strftime('%Y-%m-%d')
-    yesterday_obj = current_datetime_local - timedelta(days=1)
-    yesterday_str = yesterday_obj.strftime('%Y-%m-%d')
-
-    # 2. Get today's astronomical dawn time
-    sun_events_today = calculate_sun_events_cached(today_str, g.tz_name, g.lat, g.lon)
-    dawn_today_str = sun_events_today.get("astronomical_dawn")
-
-    observing_date_str = today_str  # Assume today is the observing date by default
-
+    dawn_today_str = calculate_sun_events_cached(today_str, g.tz_name, g.lat, g.lon).get("astronomical_dawn")
+    local_date = today_str
     if dawn_today_str:
         try:
-            # Create a datetime object for today's dawn
-            dawn_today_time = datetime.strptime(dawn_today_str, "%H:%M").time()
-            dawn_today_dt = local_tz.localize(datetime.combine(current_datetime_local.date(), dawn_today_time))
-
-            # 3. If the current time is BEFORE today's dawn, we are still in YESTERDAY's observing night
+            dawn_today_dt = local_tz.localize(datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
             if current_datetime_local < dawn_today_dt:
-                observing_date_str = yesterday_str
-        except (ValueError, TypeError) as e:
-            print(f"Warning: Could not parse dawn time '{dawn_today_str}'. Defaulting to today's date. Error: {e}")
-            # Fallback to today_str if dawn time is invalid
-
-    local_date = observing_date_str
-    # --- END OF NEW LOGIC ---
+                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+        except (ValueError, TypeError):
+            pass
 
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    object_data_list = []
+    sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+    obj_details = get_ra_dec(object_name)
 
-    for obj_name_from_config in g.objects:
-        obj_details = get_ra_dec(obj_name_from_config)
+    if not obj_details or obj_details.get("RA (hours)") is None:
+        return jsonify({"error": "Object data not found"}), 404
 
-        if not obj_details or obj_details.get("RA (hours)") is None:
-            # Handle error case for objects without coordinates
-            object_data_list.append({
-                'Object': obj_name_from_config, 'Common Name': obj_details.get("Common Name", "Error: RA/DEC missing"),
-                'Altitude Current': "N/A", 'Azimuth Current': "N/A", 'Trend': "N/A", 'Altitude 11PM': "N/A",
-                'Azimuth 11PM': "N/A", 'Transit Time': "N/A", 'Observable Duration (min)': "N/A",
-                'Max Altitude (°)': "N/A", 'Angular Separation (°)': "N/A",
-                'Project': obj_details.get('Project', "none"),
-                'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-                'Constellation': obj_details.get('Constellation', 'N/A'),
-                'Type': obj_details.get('Type', 'N/A'), 'Magnitude': obj_details.get('Magnitude', 'N/A'),
-                'Size': obj_details.get('Size', 'N/A'), 'SB': obj_details.get('SB', 'N/A'),
-            })
-            continue
+    ra = obj_details["RA (hours)"]
+    dec = obj_details["DEC (degrees)"]
+    cache_key = f"{object_name.lower()}_{local_date}_{g.selected_location}"
 
-        ra = obj_details["RA (hours)"]
-        dec = obj_details["DEC (degrees)"]
-
-        cache_key = f"{obj_name_from_config.lower()}_{local_date}_{g.selected_location}"
-
-        if cache_key not in nightly_curves_cache:
-            #print(f"[CACHE MISS] Calculating full night data for {obj_name_from_config} on {local_date}")
-            times_local, times_utc = get_common_time_arrays(g.tz_name, local_date)
-            location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-            sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-            altaz_frame = AltAz(obstime=times_utc, location=location)
-            altitudes = sky_coord.transform_to(altaz_frame).alt.deg
-            azimuths = sky_coord.transform_to(altaz_frame).az.deg
-            transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
-            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-                ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold
-            )
-            fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
-            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
-
-            nightly_curves_cache[cache_key] = {
-                "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
-                "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
-                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
-            }
-
-        cached_night_data = nightly_curves_cache[cache_key]
-        altitudes_cached = cached_night_data["altitudes"]
-        azimuths_cached = cached_night_data["azimuths"]
-        times_local_cached = cached_night_data["times_local"]
-        now_utc = datetime.now(pytz.utc)
-
-        time_diffs = [abs((t - now_utc).total_seconds()) for t in times_local_cached]
-        current_index = np.argmin(time_diffs)
-        current_alt = altitudes_cached[current_index]
-        current_az = azimuths_cached[current_index]
-
-        one_minute_later = now_utc + timedelta(minutes=1)
-        future_time_diffs = [abs((t - one_minute_later).total_seconds()) for t in times_local_cached]
-        next_index = np.argmin(future_time_diffs)
-
-        if next_index <= current_index and next_index + 1 < len(altitudes_cached): next_index += 1
-        next_alt = altitudes_cached[next_index]
-
-        if abs(next_alt - current_alt) < 0.01:
-            trend = '–'
-        elif next_alt > current_alt:
-            trend = '↑'
-        else:
-            trend = '↓'
-
-        current_hour_str = current_datetime_local.strftime('%Y-%m-%d_%H')
-        moon_key = f"{obj_name_from_config.lower()}_{current_hour_str}_{g.selected_location}"
-
-        # This part has been simplified in the provided `nova.py` file, so we adopt that.
-        # It's better to calculate this once per object rather than using an hourly cache.
-        current_time_utc_str = datetime.now(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S')
+    if cache_key not in nightly_curves_cache:
+        times_local, times_utc = get_common_time_arrays(g.tz_name, local_date, sampling_interval)
         location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-        time_obj = Time(current_time_utc_str, format='isot', scale='utc')
-        moon_coord = get_body('moon', time_obj, location=location)
-        obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-        frame = AltAz(obstime=time_obj, location=location)
-        moon_altaz = moon_coord.transform_to(frame)
-        obj_altaz = obj_coord_sky.transform_to(frame)
-        angular_sep = obj_altaz.separation(moon_altaz).deg
+        sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        altaz_frame = AltAz(obstime=times_utc, location=location)
+        altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+        azimuths = sky_coord.transform_to(altaz_frame).az.deg
+        transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
+        obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+            ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold, sampling_interval
+        )
+        fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
+        alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
+        nightly_curves_cache[cache_key] = {
+            "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
+            "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+            "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+            "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
+        }
 
-        object_data_list.append({
-            'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
-            'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}",
-            'Trend': trend, 'Altitude 11PM': cached_night_data['alt_11pm'],
-            'Azimuth 11PM': cached_night_data['az_11pm'], 'Transit Time': cached_night_data['transit_time'],
-            'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
-            'Max Altitude (°)': cached_night_data['max_altitude'],
-            'Angular Separation (°)': round(angular_sep) if angular_sep is not None else "N/A",
-            'Project': obj_details.get('Project', "none"), 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-            'Constellation': obj_details.get('Constellation', 'N/A'), 'Type': obj_details.get('Type', 'N/A'),
-            'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'),
-            'SB': obj_details.get('SB', 'N/A'),
-        })
+    cached_night_data = nightly_curves_cache[cache_key]
+    now_utc = datetime.now(pytz.utc)
+    time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
+    current_index = np.argmin(time_diffs)
+    current_alt = cached_night_data["altitudes"][current_index]
+    current_az = cached_night_data["azimuths"][current_index]
 
-    sorted_objects = sorted(
-        object_data_list,
-        key=lambda x: float(x['Altitude Current']) if x.get('Altitude Current') != "N/A" else -91,
-        reverse=True
-    )
-    return jsonify({
-        "date": local_date,
-        "time": current_datetime_local.strftime('%H:%M:%S'),
-        "phase": round(ephem.Moon(current_datetime_local).phase, 0),
-        "altitude_threshold": altitude_threshold,
-        "objects": sorted_objects
-    })
+    next_alt = cached_night_data["altitudes"][min(current_index + 1, len(cached_night_data["altitudes"]) - 1)]
+    trend = '–'
+    if abs(next_alt - current_alt) > 0.01:
+        trend = '↑' if next_alt > current_alt else '↓'
+
+    time_obj = Time(datetime.now(pytz.utc))
+    location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+    moon_coord = get_body('moon', time_obj, location)
+    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+    frame = AltAz(obstime=time_obj, location=location)
+    angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+
+    single_object_data = {
+        'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
+        'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}", 'Trend': trend,
+        'Altitude 11PM': cached_night_data['alt_11pm'], 'Azimuth 11PM': cached_night_data['az_11pm'],
+        'Transit Time': cached_night_data['transit_time'], 'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
+        'Max Altitude (°)': cached_night_data['max_altitude'], 'Angular Separation (°)': round(angular_sep),
+        'Project': obj_details.get('Project', "none"), 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+        'Constellation': obj_details.get('Constellation', 'N/A'), 'Type': obj_details.get('Type', 'N/A'),
+        'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'), 'SB': obj_details.get('SB', 'N/A'),
+    }
+    return jsonify(single_object_data)
 
 @app.route('/sun_events')
 def sun_events():
@@ -2962,6 +2906,8 @@ def config_form():
 
                 g.user_config[
                     'default_location'] = new_default_location if new_default_location else "Singapore"  # Default from original
+
+                g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
 
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:

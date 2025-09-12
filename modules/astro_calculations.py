@@ -270,43 +270,30 @@ def calculate_altitude_curve(ra, dec, lat, lon, local_date, tz_name):
     return times_local, altitudes
 
 
-def get_common_time_arrays(tz_name, local_date):
+def get_common_time_arrays(tz_name, local_date, sampling_interval_minutes=15):
     """
-    Generate two arrays of times for a given local date and time zone.
-
-    The function starts at local noon on the provided date and creates a list
-    of local datetime objects sampled every 10 minutes over a 24-hour period.
-    It also returns an equivalent Astropy Time object array with these times
-    converted to UTC.
-
-    Parameters:
-      tz_name (str): A valid time zone identifier (e.g., 'Asia/Singapore').
-      local_date (str): A date string in the format 'YYYY-MM-DD'.
-
-    Returns:
-      times_local (list of datetime.datetime): A list of local time samples.
-      times_utc (astropy.time.Time): An Astropy Time object containing the UTC times.
+    Generate two arrays of times for a given local date and time zone,
+    using a configurable sampling interval.
     """
-
-    # Create the local timezone object.
     local_tz = pytz.timezone(tz_name)
-    # Parse the input date.
     base_date = datetime.strptime(local_date, '%Y-%m-%d')
-    # Start at local noon on the given date.
     start_time = local_tz.localize(datetime.combine(base_date, datetime.min.time()).replace(hour=12))
-    # Generate a list of local datetime samples every 10 minutes for 24 hours.
-    num_samples = 24 * 6  # 6 samples per hour * 24 hours
-    times_local = [start_time + timedelta(minutes=10 * i) for i in range(num_samples)]
-    # Convert local times to UTC and build an Astropy Time object.
+
+    # Calculate number of samples based on the interval
+    samples_per_hour = 60 / sampling_interval_minutes
+    num_samples = int(25 * samples_per_hour)
+    times_local = [start_time + timedelta(minutes=sampling_interval_minutes * i) for i in range(num_samples)]
+
     times_utc = Time([t.astimezone(pytz.utc).strftime('%Y-%m-%dT%H:%M:%S') for t in times_local],
                      format='isot', scale='utc')
 
     return times_local, times_utc
 
 
-def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name, altitude_threshold):
+def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval_minutes=15):
     """
-    Calculates observable duration, max altitude, and the start and end times of that window.
+    Calculates observable duration, max altitude, and start/end times
+    using a configurable sampling interval.
     """
     local_tz = pytz.timezone(tz_name)
     date_obj = datetime.strptime(local_date, "%Y-%m-%d")
@@ -326,7 +313,7 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     if dawn_dt <= dusk_dt:
         dawn_dt += timedelta(days=1)
 
-    sample_interval = timedelta(minutes=10)
+    sample_interval = timedelta(minutes=sampling_interval_minutes)
     times = []
     current = dusk_dt
     while current <= dawn_dt:
@@ -344,20 +331,14 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     altaz = sky_coord.transform_to(frame)
     altitudes = altaz.alt.deg
 
-    # --- NEW LOGIC TO FIND START AND END TIMES ---
     mask = np.array(altitudes) > altitude_threshold
     observable_indices = np.where(mask)[0]
-
-    observable_from = None
-    observable_to = None
+    observable_from, observable_to = (None, None)
     if observable_indices.size > 0:
-        start_index = observable_indices[0]
-        end_index = observable_indices[-1]
-        observable_from = times[start_index]
-        observable_to = times[end_index]
-    # --- END NEW LOGIC ---
+        observable_from = times[observable_indices[0]]
+        observable_to = times[observable_indices[-1]]
 
-    observable_minutes = int(np.sum(mask) * 10)
+    observable_minutes = int(np.sum(mask) * sampling_interval_minutes)
     max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
 
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
