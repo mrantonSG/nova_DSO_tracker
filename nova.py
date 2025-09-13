@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.2.D2"
+APP_VERSION = "3.2.RC2"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -92,6 +92,7 @@ config_mtime = {}
 journal_cache = {}
 journal_mtime = {}
 LATEST_VERSION_INFO = {}
+rig_data_cache = {}
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
@@ -271,6 +272,69 @@ def save_journal(username, journal_data):
         print(f"💾 Journal saved to '{filename}' successfully.")
     except Exception as e:
         print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
+
+
+
+def migrate_journal_data():
+    """
+    Runs once on startup to find and update old journal entries that are missing
+    the pre-calculated integration time.
+    """
+    print("[MIGRATION] Checking for old journal entries to update...")
+    journal_files = glob.glob('journal_*.yaml') + glob.glob('journal_default.yaml')
+
+    for journal_file in journal_files:
+        try:
+            with open(journal_file, 'r', encoding='utf-8') as f:
+                journal_data = yaml.safe_load(f)
+
+            if not journal_data or 'sessions' not in journal_data:
+                continue
+
+            made_changes = False
+            for session in journal_data['sessions']:
+                # Check if the key is missing from the session
+                if 'calculated_integration_time_minutes' not in session:
+                    made_changes = True  # Mark that we need to save this file
+                    total_integration_seconds = 0
+                    has_any_integration_data = False
+
+                    try:
+                        num_subs = int(str(session.get('number_of_subs_light', 0)))
+                        exp_time = int(str(session.get('exposure_time_per_sub_sec', 0)))
+                        if num_subs > 0 and exp_time > 0:
+                            total_integration_seconds += (num_subs * exp_time)
+                            has_any_integration_data = True
+                    except (ValueError, TypeError):
+                        pass
+
+                    mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+                    for filt in mono_filters:
+                        try:
+                            subs_val = int(str(session.get(f'filter_{filt}_subs', 0)))
+                            exp_val = int(str(session.get(f'filter_{filt}_exposure_sec', 0)))
+                            if subs_val > 0 and exp_val > 0:
+                                total_integration_seconds += (subs_val * exp_val)
+                                has_any_integration_data = True
+                        except (ValueError, TypeError):
+                            pass
+
+                    if has_any_integration_data:
+                        session['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
+                    else:
+                        session['calculated_integration_time_minutes'] = 'N/A'
+
+            if made_changes:
+                print(f"    -> Found and updated entries in {journal_file}. Saving changes.")
+                # We can't know the username from the filename alone in multi-user mode,
+                # but we can save the file directly. This is safe.
+                with open(journal_file, 'w', encoding='utf-8') as f:
+                    yaml.dump(journal_data, f, sort_keys=False, allow_unicode=True, indent=2)
+
+        except Exception as e:
+            print(f"    -> ERROR: Could not process {journal_file}: {e}")
+    print("[MIGRATION] Check complete.")
+
 
 def generate_session_id():
     """Generates a unique session ID."""
@@ -693,6 +757,7 @@ def add_component():
             flash(f"Component '{component_name}' added successfully.", "success")
 
         rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+        rig_data_cache.clear()
 
     except (ValueError, TypeError) as e:
         flash(f"Invalid data provided. Please ensure all numbers are valid. Error: {e}", "error")
@@ -740,6 +805,7 @@ def update_component():
             component_to_update['factor'] = float(request.form.get('factor'))
 
         rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+        rig_data_cache.clear()
 
         # Create a user-friendly name for the flash message
         display_type = component_type_plural.replace('_', ' ').replace('reducers', 'reducer').rstrip('s').title()
@@ -792,6 +858,7 @@ def add_rig():
             flash(f"Rig '{rig_name}' created successfully.", "success")
 
         rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+        rig_data_cache.clear()
 
     except Exception as e:
         flash(f"An unexpected error occurred while creating/updating the rig: {e}", "error")
@@ -829,6 +896,7 @@ def delete_component():
 
         if len(rig_data['components'][component_type]) < original_len:
             rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+            rig_data_cache.clear()
             flash("Component deleted successfully.", "success")
         else:
             flash("Component not found for deletion.", "error")
@@ -856,6 +924,7 @@ def delete_rig():
 
         if len(rig_data['rigs']) < original_len:
             rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+            rig_data_cache.clear()
             flash("Rig deleted successfully.", "success")
         else:
             flash("Rig not found for deletion.", "error")
@@ -1013,7 +1082,33 @@ def journal_add():
                 final_session_entry["session_id"] = new_session_data["session_id"]
             if "session_date" not in final_session_entry or not final_session_entry["session_date"]:
                 final_session_entry["session_date"] = datetime.now().strftime('%Y-%m-%d')
+            total_integration_seconds = 0
+            has_any_integration_data = False
 
+            try:
+                num_subs = int(str(final_session_entry.get('number_of_subs_light', 0)))
+                exp_time = int(str(final_session_entry.get('exposure_time_per_sub_sec', 0)))
+                if num_subs > 0 and exp_time > 0:
+                    total_integration_seconds += (num_subs * exp_time)
+                    has_any_integration_data = True
+            except (ValueError, TypeError):
+                pass
+
+            mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+            for filt in mono_filters:
+                try:
+                    subs_val = int(str(final_session_entry.get(f'filter_{filt}_subs', 0)))
+                    exp_val = int(str(final_session_entry.get(f'filter_{filt}_exposure_sec', 0)))
+                    if subs_val > 0 and exp_val > 0:
+                        total_integration_seconds += (subs_val * exp_val)
+                        has_any_integration_data = True
+                except (ValueError, TypeError):
+                    pass
+
+            if has_any_integration_data:
+                final_session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
+            else:
+                final_session_entry['calculated_integration_time_minutes'] = 'N/A'
             journal_data['sessions'].append(final_session_entry)
             save_journal(username, journal_data)
             flash("New journal entry added successfully!", "success")
@@ -1165,7 +1260,33 @@ def journal_edit(session_id):
 
             final_updated_entry = {k: v for k, v in updated_session_data.items() if v is not None and v != ""}
             final_updated_entry['session_id'] = session_id  # Ensure session_id is always present
+            total_integration_seconds = 0
+            has_any_integration_data = False
 
+            try:
+                num_subs = int(str(final_updated_entry.get('number_of_subs_light', 0)))
+                exp_time = int(str(final_updated_entry.get('exposure_time_per_sub_sec', 0)))
+                if num_subs > 0 and exp_time > 0:
+                    total_integration_seconds += (num_subs * exp_time)
+                    has_any_integration_data = True
+            except (ValueError, TypeError):
+                pass
+
+            mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+            for filt in mono_filters:
+                try:
+                    subs_val = int(str(final_updated_entry.get(f'filter_{filt}_subs', 0)))
+                    exp_val = int(str(final_updated_entry.get(f'filter_{filt}_exposure_sec', 0)))
+                    if subs_val > 0 and exp_val > 0:
+                        total_integration_seconds += (subs_val * exp_val)
+                        has_any_integration_data = True
+                except (ValueError, TypeError):
+                    pass
+
+            if has_any_integration_data:
+                final_updated_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
+            else:
+                final_updated_entry['calculated_integration_time_minutes'] = 'N/A'
             sessions[session_index] = final_updated_entry
             journal_data['sessions'] = sessions
             save_journal(username, journal_data)
@@ -2087,7 +2208,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
 
     # Create secondary axis for azimuth.
     ax2 = ax.twinx()
-    ax2.plot(times_local_naive, azimuths, '--', linewidth=1.5, color='tab:cyan', label=f'{object_name} Azimuth')
+    ax2.plot(times_local_naive, azimuths, '--', linewidth=1.5, color='tab:darkcyan', label=f'{object_name} Azimuth')
     ax2.set_ylabel('Azimuth (°)', color='k')
     ax2.tick_params(axis='y', labelcolor='k')
     ax2.set_ylim(0, 360)
@@ -2095,7 +2216,7 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     ax2.spines['right'].set_linewidth(1.5)
 
     # Add Moon azimuth.
-    ax2.plot(times_local_naive, moon_azimuths, '--', linewidth=1.5, color='gold', label='Moon Azimuth')
+    ax2.plot(times_local_naive, moon_azimuths, '--', linewidth=1.5, color='darkorange', label='Moon Azimuth')
 
     # Set x-axis limits.
     plot_start = times_local_naive[0]
@@ -2816,58 +2937,14 @@ def index():
         obj.get("Object"): obj.get("Name", obj.get("Object"))  # Fallback to Object ID if Name is missing
         for obj in objects_from_config if obj.get("Object")  # Ensure obj has an "Object" key
     }
-
-    for session_entry in sessions:  # Renamed to avoid conflict with flask.session
-        # Ensure target_object_id exists and is a string before lookup
+    for session_entry in sessions:
         target_id = session_entry.get('target_object_id')
-        if isinstance(target_id, str):
-            session_entry['target_common_name'] = object_names_lookup.get(target_id, target_id)
+        if target_id:
+            # Look up the common name, default to 'N/A' if not found
+            common_name = object_names_lookup.get(target_id, 'N/A')
+            session_entry['target_common_name'] = common_name
         else:
-            session_entry['target_common_name'] = "N/A"  # Or some other placeholder if ID is missing/invalid
-
-        # ----- START: New Total Integration Time Calculation Logic -----
-        total_integration_seconds = 0
-        has_any_integration_data = False  # Flag to see if any exposure data was found
-
-        # 1. Add time from general/OSC fields (if they exist and are valid)
-        try:
-            num_subs_general_str = session_entry.get('number_of_subs_light')
-            exp_time_general_str = session_entry.get('exposure_time_per_sub_sec')
-
-            if num_subs_general_str is not None and exp_time_general_str is not None:
-                num_subs_general = int(str(num_subs_general_str))  # Ensure conversion from potential string
-                exp_time_general = int(str(exp_time_general_str))  # Ensure conversion
-                if num_subs_general > 0 and exp_time_general > 0:  # Only count if valid positive values
-                    total_integration_seconds += (num_subs_general * exp_time_general)
-                    has_any_integration_data = True
-        except (ValueError, TypeError):
-            # If general fields are invalid or missing, just skip them
-            pass
-
-        # 2. Add time from monochrome filter fields
-        mono_filters_keys = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-        for filt_key in mono_filters_keys:
-            try:
-                subs_val_str = session_entry.get(f'filter_{filt_key}_subs')
-                exp_val_str = session_entry.get(f'filter_{filt_key}_exposure_sec')
-
-                if subs_val_str is not None and exp_val_str is not None:
-                    subs_val = int(str(subs_val_str))  # Ensure conversion
-                    exp_val = int(str(exp_val_str))  # Ensure conversion
-                    if subs_val > 0 and exp_val > 0:  # Only count if valid positive values
-                        total_integration_seconds += (subs_val * exp_val)
-                        has_any_integration_data = True
-            except (ValueError, TypeError):
-                # If fields for a specific filter are invalid or missing, skip that filter
-                pass
-
-        # 3. Convert total seconds to minutes or set to 'N/A'
-        if has_any_integration_data:
-            # Round to the nearest whole minute, or use 1 decimal if you prefer more precision
-            session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
-        else:
-            session_entry['calculated_integration_time_minutes'] = 'N/A'
-        # ----- END: New Total Integration Time Calculation Logic -----
+            session_entry['target_common_name'] = 'N/A'
 
     # Sort sessions by date descending by default for the journal tab initial view
     try:
@@ -3355,49 +3432,6 @@ def graph_dashboard(object_name):
         object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
 
         # --- Now, calculate integration time ONLY for the sessions we need ---
-        for session_for_calc in object_specific_sessions:
-
-            # ----- START: Total Integration Time Calculation Logic -----
-            total_integration_seconds = 0
-            has_any_integration_data = False
-
-            # 1. Add time from general/OSC fields
-            try:
-                num_subs_general_str = session_for_calc.get('number_of_subs_light')
-                exp_time_general_str = session_for_calc.get('exposure_time_per_sub_sec')
-
-                if num_subs_general_str is not None and exp_time_general_str is not None:
-                    num_subs_general = int(str(num_subs_general_str))
-                    exp_time_general = int(str(exp_time_general_str))
-                    if num_subs_general > 0 and exp_time_general > 0:
-                        total_integration_seconds += (num_subs_general * exp_time_general)
-                        has_any_integration_data = True
-            except (ValueError, TypeError):
-                pass
-
-            # 2. Add time from monochrome filter fields
-            mono_filters_keys = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-            for filt_key in mono_filters_keys:
-                try:
-                    subs_val_str = session_for_calc.get(f'filter_{filt_key}_subs')
-                    exp_val_str = session_for_calc.get(f'filter_{filt_key}_exposure_sec')
-
-                    if subs_val_str is not None and exp_val_str is not None:
-                        subs_val = int(str(subs_val_str))
-                        exp_val = int(str(exp_val_str))
-                        if subs_val > 0 and exp_val > 0:
-                            total_integration_seconds += (subs_val * exp_val)
-                            has_any_integration_data = True
-                except (ValueError, TypeError):
-                    pass
-
-            # 3. Convert total seconds to minutes or set to 'N/A'
-            if has_any_integration_data:
-                session_for_calc['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
-            else:
-                session_for_calc['calculated_integration_time_minutes'] = 'N/A'
-            # ----- END: Total Integration Time Calculation Logic -----
-
         object_specific_sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
 
         if requested_session_id:
@@ -3456,15 +3490,21 @@ def graph_dashboard(object_name):
         moon_phase_for_effective_date = "N/A"
 
     sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat, effective_lon)
-    rigs_with_fov = []
-    rig_data = load_rig_config(username_for_journal, SINGLE_USER_MODE)
-    if rig_data and rig_data.get('rigs'):
-        all_components = rig_data.get('components', {})
-        for rig in rig_data.get('rigs', []):
-            # Recalculate derived data like FOV for each rig
-            calculated_data = calculate_rig_data(rig, all_components)
-            rig.update(calculated_data)
-            rigs_with_fov.append(rig)
+    if username_for_journal not in rig_data_cache:
+        print(f"[CACHE] Rig data for user '{username_for_journal}' not in cache. Calculating now.")
+        calculated_rigs = []
+        rig_data = load_rig_config(username_for_journal, SINGLE_USER_MODE)
+        if rig_data and rig_data.get('rigs'):
+            all_components = rig_data.get('components', {})
+            for rig in rig_data.get('rigs', []):
+                calculated_data = calculate_rig_data(rig, all_components)
+                rig.update(calculated_data)
+                calculated_rigs.append(rig)
+        rig_data_cache[username_for_journal] = calculated_rigs
+    else:
+        print(f"[CACHE] Loading rig data for user '{username_for_journal}' from cache.")
+
+    rigs_with_fov = rig_data_cache[username_for_journal]
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
         flash(f"Details for '{object_name}' could not be found.", "error")
@@ -3936,6 +3976,7 @@ def get_yearly_plot_data(object_name):
         "moon_alt": moon_altitudes
     })
 
+
 @app.route('/api/get_plot_data/<path:object_name>')
 def get_plot_data(object_name):
     """
@@ -3949,7 +3990,6 @@ def get_plot_data(object_name):
     ra = data['RA (hours)']
     dec = data['DEC (degrees)']
 
-    # Use the same logic as your plot_day endpoint to determine date and location
     plot_lat_str = request.args.get('plot_lat', g.lat)
     plot_lon_str = request.args.get('plot_lon', g.lon)
     plot_tz_name = request.args.get('plot_tz', g.tz_name)
@@ -3968,19 +4008,14 @@ def get_plot_data(object_name):
     local_date = f"{year}-{month:02d}-{day:02d}"
 
     # --- 2. Perform all necessary astronomical calculations ---
-    # Time arrays
     times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date)
-
-    # Object altitude and azimuth
     location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
     altaz_frame = AltAz(obstime=times_utc, location=location)
     altitudes = sky_coord.transform_to(altaz_frame).alt.deg
     azimuths = sky_coord.transform_to(altaz_frame).az.deg
 
-    # Moon altitude and azimuth
-    moon_altitudes = []
-    moon_azimuths = []
+    moon_altitudes, moon_azimuths = [], []
     for t_utc in times_utc:
         frame = AltAz(obstime=t_utc, location=location)
         moon_coord = get_body('moon', t_utc, location)
@@ -3988,25 +4023,34 @@ def get_plot_data(object_name):
         moon_altitudes.append(moon_altaz.alt.deg)
         moon_azimuths.append(moon_altaz.az.deg)
 
-    # Sun events for vertical lines and shading
     sun_events_curr = calculate_sun_events_cached(local_date, plot_tz_name, lat, lon)
     next_date_obj = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
     next_date_str = next_date_obj.strftime('%Y-%m-%d')
     sun_events_next = calculate_sun_events_cached(next_date_str, plot_tz_name, lat, lon)
-
-    # Meridian transit time
     transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
 
-    # --- 3. Package data into a JSON-serializable dictionary ---
-    # Convert datetime objects to ISO 8601 strings for JSON
-    times_iso = [t.isoformat() for t in times_local]
+    # --- 3. Package data for JSON, FORCING the 24-hour range ---
+
+    # Define the exact start and end times for the 24-hour window
+    start_time = times_local[0]
+    end_time = start_time + timedelta(hours=24)
+
+    # Create the final time labels array, bookended by the exact start and end times
+    final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
+
+    # Create the final data arrays, adding 'None' at the start and end.
+    # 'None' becomes 'null' in JSON, which tells the chart to create a gap, not draw a line.
+    final_object_alt = [None] + list(altitudes) + [None]
+    final_object_az = [None] + list(azimuths) + [None]
+    final_moon_alt = [None] + moon_altitudes + [None]
+    final_moon_az = [None] + moon_azimuths + [None]
 
     plot_data = {
-        "times": times_iso,
-        "object_alt": list(altitudes),
-        "object_az": list(azimuths),
-        "moon_alt": moon_altitudes,
-        "moon_az": moon_azimuths,
+        "times": final_times_iso,
+        "object_alt": final_object_alt,
+        "object_az": final_object_az,
+        "moon_alt": final_moon_alt,
+        "moon_az": final_moon_az,
         "sun_events": {
             "current": sun_events_curr,
             "next": sun_events_next,
@@ -4023,7 +4067,9 @@ def get_plot_data(object_name):
 # Main Entry Point
 # =============================================================================
 if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-    trigger_startup_cache_workers()
+    migrate_journal_data()
+    trigger_startup_cache_workers() # This runs second
+
 if __name__ == '__main__':
     # Start the background thread to check for updates
     update_thread = threading.Thread(target=check_for_updates)

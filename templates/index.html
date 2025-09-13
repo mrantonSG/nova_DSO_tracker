@@ -329,6 +329,7 @@
     // ========================================================================
     let activeTab = localStorage.getItem('activeTab') || 'position';
     let outlookDataLoaded = false;
+    let isUpdatingLocation = false;
 
     let allOutlookOpportunities = []; // To store the full list of results
     let currentOutlookSort = { columnKey: 'date', ascending: true }; // Default sort
@@ -455,6 +456,8 @@
         if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
         if (journalTableWrapper) journalTableWrapper.style.display = 'none';
         if (outlookWrapper) outlookWrapper.style.display = 'none';
+
+        if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
 
         if (activeTab === 'position' || activeTab === 'properties') {
             if (dsoTableWrapper) dsoTableWrapper.style.display = 'block';
@@ -793,21 +796,18 @@
     }
 
     function setLocation() {
+        isUpdatingLocation = true; // <-- Set flag to true
         const selectedLocation = document.getElementById('location-select').value;
         outlookDataLoaded = false;
-        const dsoTableBody = document.getElementById('data-body');
-        if (dsoTableBody) dsoTableBody.innerHTML = '';
-        const journalTableBody = document.getElementById('journal-data-body');
-        if (journalTableBody) journalTableBody.innerHTML = '';
-        const loadingDiv = document.getElementById("table-loading");
 
+        document.getElementById('data-body').innerHTML = '';
+        document.getElementById('journal-data-body').innerHTML = '';
+        document.getElementById('outlook-body').innerHTML = '';
+
+        const loadingDiv = document.getElementById('table-loading');
         if (loadingDiv) {
-            if (activeTab !== 'journal') {
-                loadingDiv.innerHTML = "Updating location...";
-                loadingDiv.style.display = "block";
-            } else {
-                loadingDiv.style.display = "none";
-            }
+            loadingDiv.innerHTML = "Updating location...";
+            loadingDiv.style.display = "block";
         }
 
         fetch('/set_location', {
@@ -827,18 +827,19 @@
                 }
             } else {
                 console.error("❌ Location update failed:", data);
-                if (loadingDiv && activeTab !== 'journal') {
+                if (loadingDiv) {
                     loadingDiv.textContent = "❌ Error updating location.";
-                    loadingDiv.style.display = "block";
                 }
             }
         })
         .catch(error => {
             console.error('❌ Error setting location:', error);
-            if (loadingDiv && activeTab !== 'journal') {
+            if (loadingDiv) {
                 loadingDiv.textContent = "❌ Error setting location.";
-                loadingDiv.style.display = "block";
             }
+        })
+        .finally(() => {
+            isUpdatingLocation = false; // <-- Set flag to false when done
         });
     }
 
@@ -1163,7 +1164,11 @@
         const tableBody = document.getElementById('outlook-body');
         const loadingDiv = document.getElementById("table-loading");
         if (!tableBody) return;
-        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Fetching...</td></tr>`;
+
+        if (!isUpdatingLocation) { // <-- Checks the flag
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Fetching...</td></tr>`;
+        }
+
         fetch('/get_outlook_data')
             .then(response => response.json())
             .then(data => {
@@ -1315,10 +1320,6 @@
         </table>
     </div>
 
-    <div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
-      Loading...
-    </div>
-
     <div class="table-wrapper" id="journal-table-wrapper" style="display:none;">
         <table id="journal-data-table" data-sort-order="desc">
             <thead>
@@ -1369,6 +1370,9 @@
             <tbody id="outlook-body">
                 </tbody>
         </table>
+    </div>
+    <div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
+      Loading...
     </div>
 </div> {# End of list-section #}
 
