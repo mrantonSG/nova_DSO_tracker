@@ -36,19 +36,19 @@
       margin-bottom: 10px;
       margin-bottom: 20px;
     }
-    /* Day/Month/Year controls */
+    #chart-section {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px; /* This now reliably controls the space between the chart and buttons */
+    }
+
     .date-controls {
-      display: flex;         /* For internal layout of Day, Month, Year inputs/buttons */
-      align-items: center;   /* Vertically aligns items within this line */
-      gap: 10px;             /* Spacing between items like Day, Month, Year, buttons */
-
-      margin-top: 10px;      /* Space from the graph image above - adjust as needed */
-      margin-bottom: 30px;   /* Space after this controls block - adjust as needed */
-
-      /* --- Key change for positioning: --- */
-      margin-left: 120px;      /* STARTING VALUE. Increase this (e.g., 20px, 50px, 100px)
-                                 to push the entire line from the left edge of the chart-section. */
-
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;   /* add this */
+      margin-bottom: 10px;  /* reduce this */
     }
 
     .date-controls label, .date-controls input, .date-controls select {
@@ -160,7 +160,7 @@
 
     .secondary-info-line-main { /* Replaces .secondary-info-line if you used my latest HTML */
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 20px;
       align-items: center;
       /* width: 100%; /* Not strictly needed if .info-details-column grows and this is a child */
@@ -755,17 +755,11 @@
     .chart-container,
     .canvas-wrapper,
     #chart-container,
-    #chart-section {
-      margin-left: 0 !important;      /* undo margin: 0 auto */
-      margin-right: auto !important;  /* left-align inside wide area */
-      text-align: left !important;    /* undo text-align:center if present */
-      justify-content: flex-start !important; /* undo flex center if present */
-      padding-left: 24px;             /* match header/button left padding */
-    }
+
     /* Reserve space so the chart never jumps */
     #chart-area {
       position: relative;
-      min-height: 480px; /* adjust if your charts are taller/shorter */
+
     }
 
     #altitudeChartCanvas {
@@ -874,33 +868,36 @@
       {# ---- END: Column 2 ---- #}
 
     </div>
-  <div id="chart-section">
+    <div id="chart-section">
 
-    <div id="chart-wrapper">
-      <div id="chart-area">
-        <canvas id="altitudeChartCanvas"></canvas>
-        <div id="chart-loading" class="loading-overlay">Loading chart...</div>
+      <div id="chart-wrapper">
+        <div id="chart-area">
+          <canvas id="altitudeChartCanvas"></canvas>
+          <div id="chart-loading" class="loading-overlay">Loading chart...</div>
+        </div>
       </div>
+
+      <div class="date-controls">
+        <label for="day-select">Day:</label>
+        <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;" />
+
+        <label for="month-select">Month:</label>
+        <select id="month-select">
+          {% for m in range(1, 13) %}
+            <option value="{{ m }}" {% if m == selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="year-select">Year:</label>
+        <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;" />
+
+        <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
+        <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
+        <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
+      </div>
+
     </div>
-    <div class="date-controls">
-      <label for="day-select">Day:</label>
-      <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;" />
 
-      <label for="month-select">Month:</label>
-      <select id="month-select">
-        {% for m in range(1, 13) %}
-          <option value="{{ m }}" {% if m == selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
-        {% endfor %}
-      </select>
-
-      <label for="year-select">Year:</label>
-      <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;" />
-
-      <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
-      <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
-      <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
-    </div>
-  </div>
   {# End of chart-section #}
 
 
@@ -1344,7 +1341,7 @@
         <label>Dec</label>
         <input id="dec-readout" type="text" style="width:160px;" readonly>
         <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
-        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="useReadoutAsFovCenter()">Use current RA/Dec</button>
+<!--        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="useReadoutAsFovCenter()">Use current RA/Dec</button>-->
       </div>
 
       <div style="display:flex; align-items:center; gap:6px;">
@@ -1451,21 +1448,35 @@
 
 
         // Base day and “next” day in the *plot timezone*
-        const baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });   // YYYY-MM-DD at 00:00 in plotTz
+        // Base day and “next” day in the *plot timezone*
+        const baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });
         const nextDt = baseDt.plus({ days: 1 });
 
-        // helper: HH:MM on a Luxon date in plotTz → ms
-        function wallTimeMs(dt, hhmm) {
-          if (!hhmm || !hhmm.includes(':')) return null;
-          const [h, m] = hhmm.split(':').map(Number);
-          return dt.set({ hour: h, minute: m, second: 0, millisecond: 0 }).toMillis();
+        // Helper to parse HH:MM and combine with a given date object
+        function wallTimeMs(baseDateTime, timeStr) {
+            if (!timeStr || !timeStr.includes(':')) return null;
+            const [h, m] = timeStr.split(':').map(Number);
+            return baseDateTime.set({ hour: h, minute: m, second: 0, millisecond: 0 }).toMillis();
         }
 
-        // sun events (all are numbers = epoch ms)
-        const sunsetTime  = wallTimeMs(baseDt, data.sun_events.current.sunset);
-        const duskTime    = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
+        // --- NEW, CORRECTED LOGIC ---
+        // Get the sunset time for the base date as a reference point.
+        const sunsetTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.sunset);
+
+        // Determine the correct date for dusk.
+        let duskTime;
+        const duskTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
+        if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) {
+            // If dusk time is before sunset time, it belongs to the next calendar day.
+            duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
+        } else {
+            duskTime = duskTimeCurrent;
+        }
+
+        // Dawn and sunrise always belong to the next calendar day.
         const dawnTime    = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
         const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
+        const sunsetTime  = sunsetTimeCurrent; // Assign for annotation
 
         // Use Luxon to compute midnight at the plotting location’s timezone, then work in ms
         const firstMs = labels[0];
@@ -1559,30 +1570,40 @@
 
         // night-shade background as a plugin (so we don’t touch options.beforeDraw)
         const nightShade = {
-          id: 'nightShade',
-          beforeDraw(chart) {
-            const { ctx, chartArea, scales } = chart;
-            if (!chartArea) return;
-            ctx.save();
-            ctx.fillStyle = 'rgba(211, 211, 211, 1)';
+            id: 'nightShade',
+            beforeDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea) return; // Exit if chart area isn't ready
 
-            // left: start → dusk
-            if (duskTime) {
-              const duskPx = scales.x.getPixelForValue(duskTime);
-              ctx.fillRect(chartArea.left, chartArea.top, duskPx - chartArea.left, chartArea.height);
-            } else {
-              ctx.fillRect(chartArea.left, chartArea.top, chartArea.width / 2, chartArea.height);
-            }
+                // Get the pixel coordinates for the start and end of the chart's x-axis
+                const left = scales.x.getPixelForValue(scales.x.min);
+                const right = scales.x.getPixelForValue(scales.x.max);
 
-            // right: dawn → end
-            if (dawnTime) {
-              const dawnPx = scales.x.getPixelForValue(dawnTime);
-              ctx.fillRect(dawnPx, chartArea.top, chartArea.right - dawnPx, chartArea.height);
-            } else {
-              ctx.fillRect(chartArea.left + chartArea.width / 2, chartArea.top, chartArea.width / 2, chartArea.height);
+                // --- This section uses the correct dusk and dawn times ---
+                const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
+                const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(211, 211, 211, 1)'; // The light gray for "daytime"
+
+                // --- NEW LOGIC ---
+                // If dusk is after dawn (i.e., the entire night is within the 24hr window)
+                if (duskPx < dawnPx) {
+                    // Shade from the start of the chart to dusk
+                    if (duskPx > left) {
+                        ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
+                    }
+                    // Shade from dawn to the end of the chart
+                    if (dawnPx < right) {
+                        ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
+                    }
+                } else {
+                    // This handles cases where there is no astronomical night (polar summer)
+                    // or the shading wraps around. We just shade the whole thing gray.
+                    ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
+                }
+                ctx.restore();
             }
-            ctx.restore();
-          }
         };
 
         // create / replace chart
@@ -1595,14 +1616,17 @@
             labels,
             datasets: [
               { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-              { label: 'Moon Altitude',            data: data.moon_alt,   borderColor: 'gold',     yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+              { label: 'Moon Altitude',            data: data.moon_alt,   borderColor: '#FFC107',     yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
               { label: 'Horizon',                  data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
-              { label: '{{ object_name }} Azimuth',data: data.object_az,  borderColor: 'cyan',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
-              { label: 'Moon Azimuth',             data: data.moon_az,    borderColor: 'gold',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
+              { label: '{{ object_name }} Azimuth',data: data.object_az,  borderColor: '#36A2EB',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+              { label: 'Moon Azimuth',             data: data.moon_az,    borderColor: '#FFC107',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
             ]
           },
           plugins: [nightShade],
           options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
             adapters: { date: { zone: plotTz } },
             responsive: true,
             maintainAspectRatio: true,
