@@ -13,7 +13,7 @@
         color: #333;
     }
 
-    /* Tab Styles */
+
     .tab-container {
         display: flex;
         margin-bottom: 15px;
@@ -38,18 +38,18 @@
         position: relative;
         top: 1px;
     }
-    /* End Tab Styles */
+
 
     table {
         width: 100%;
         border-collapse: collapse;
         border: 1px solid #ddd;
-        table-layout: fixed; /* MODIFIED: Enforces column widths for stable formatting */
+        table-layout: fixed;
         word-wrap: break-word;
     }
     th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
 
-    /* --- Column Widths (DSO Table) --- */
+
     th[data-column-key="Object"],
     td[data-column-key="Object"] {
         width: 120px;
@@ -61,7 +61,7 @@
         min-width: 150px;
         text-align: left;
     }
-    /* ... (keep your other specific column width styles for #data-table) ... */
+
      th[data-column-key="Altitude Current"], td[data-column-key="Altitude Current"],
     th[data-column-key="Azimuth Current"], td[data-column-key="Azimuth Current"],
     th[data-column-key="Altitude 11PM"], td[data-column-key="Altitude 11PM"],
@@ -92,7 +92,7 @@
         min-width: 100px;
         text-align: center;
     }
-    /* --- End Column Widths --- */
+
 
 
     #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
@@ -102,7 +102,7 @@
 
     #data-table > thead > tr:not(.filter-row) > th,
     #journal-data-table > thead > tr:not(.filter-row) > th,
-    #outlook-table > thead > tr:not(.filter-row) > th { /* Apply to all three tables */
+    #outlook-table > thead > tr:not(.filter-row) > th {
         background-color: #f2f2f2;
         font-weight: normal;
         cursor: pointer;
@@ -119,14 +119,14 @@
       line-height: 1.3;
       display: block;
     }
-    #data-body td, #journal-data-body td, #outlook-body td { /* Apply to both tables */
+    #data-body td, #journal-data-body td, #outlook-body td {
         line-height: 1.4;
     }
 
 
     .highlight { background-color: #83b4c5; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
-    #graph-section { display: none; text-align: left; margin-left: 0px; } /* If used on this page */
+    #graph-section { display: none; text-align: left; margin-left: 0px; }
     #back-button {
       margin-top: 0px;
       padding: 10px 20px;
@@ -214,21 +214,21 @@
         gap: 10px 20px;
         align-items: center;
     }
-    .table-wrapper { overflow-x: auto; margin-bottom: 20px; } /* Added margin-bottom */
+    .table-wrapper { overflow-x: auto; margin-bottom: 20px; }
     .table-wrapper::-webkit-scrollbar { height: 8px; }
     .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
     .table-wrapper::-webkit-scrollbar-thumb:hover { background: #888; }
 
     th .sort-indicator { font-size: 0.8em; margin-left: 5px; display: inline-block; }
 
-    /* --- Journal Table Specific Styles --- */
+
     #journal-data-table th,
     #journal-data-table td {
         text-align: center;
-        vertical-align: middle; /* Align content vertically in the middle of cells */
+        vertical-align: middle;
     }
 
-    /* Left alignment for specific Journal table columns (Headers & Data cells) */
+
     #journal-data-table th[data-journal-column-key="target_object_id"],
     #journal-data-table td[data-journal-column-key="target_object_id"],
     #journal-data-table th[data-journal-column-key="target_common_name"],
@@ -241,7 +241,7 @@
         text-align: left;
     }
 
-    /* Column Widths for Journal Table */
+
     #journal-data-table th[data-journal-column-key="target_object_id"],
     #journal-data-table td[data-journal-column-key="target_object_id"] { width: 120px; min-width: 120px; }
     #journal-data-table th[data-journal-column-key="target_common_name"],
@@ -284,7 +284,7 @@
         text-align: center;
     }
 
-    /* --- Outlook Table Specific Styles --- */
+
     #outlook-table th[data-outlook-column-key="object_name"],
     #outlook-table td[data-outlook-column-key="object_name"],
     #outlook-table th[data-outlook-column-key="common_name"],
@@ -312,7 +312,7 @@
         font-weight: normal;
     }
 
-    /* --- Flash Message Styles --- */
+
     .message { color: #155724; font-weight: bold; }
     .error { color: #dc3545; font-weight: bold; }
     #tab-message-container {
@@ -732,12 +732,12 @@
             if (!cellElement) { showRow = false; break; }
             let cellText = (cellElement.dataset.rawValue || cellElement.innerText).trim().toLowerCase();
             if (filterValue === "n/a" || filterValue === "na") { if (cellText !== "n/a") { showRow = false; break; } continue; }
-            if (config.dataKey === 'Type') { /* ... your type filter ... */
+            if (config.dataKey === 'Type') {
                 const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
                 if (filterTypes.length > 0) { let typeMatch = false; for (const typeTerm of filterTypes) { if (cellText === typeTerm || cellText.includes(typeTerm)) { typeMatch = true; break; } } if (!typeMatch) { showRow = false; break; } }
             } else {
                 const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
-                if (config && numericFilterKeys.includes(config.dataKey)) { /* ... your numeric filter ... */
+                if (config && numericFilterKeys.includes(config.dataKey)) {
                     if (cellText === "n/a") { showRow = false; break; } const cellNumber = parseFloat(cellText.replace(/[^0-9\.\-]/g, ""));
                     if (isNaN(cellNumber)) { if (cellText.indexOf(filterValue) === -1) {showRow = false; break;} continue; }
                     const conditions = filterValue.split(" ").filter(cond => cond !== ""); let conditionMetOverall = true;

@@ -4,21 +4,21 @@
 
 {% block head_extra %}
 <style>
-    /* NEW: Added body font-family for consistency if not in base.html */
+
     body {
-        font-family: 'Roboto', sans-serif; /* Matches index.html */
-        padding: 20px; /* Matches index.html */
+        font-family: 'Roboto', sans-serif;
+        padding: 20px;
         margin: 0;
-        background-color: #ffffff; /* Matches index.html */
-        color: #333; /* Matches index.html */
+        background-color: #ffffff;
+        color: #333;
     }
-    /* MODIFIED: .form-container margin for left alignment */
+
     .form-container {
-        max-width: 800px; /* Retain max-width */
-        margin-top: 0px;    /* Will be spaced by h2 below header */
+        max-width: 800px;
+        margin-top: 0px;
         margin-bottom: 30px;
-        margin-left: 0;      /* Align to left (respecting body padding) */
-        margin-right: auto;  /* Allows max-width to take effect if screen is wider */
+        margin-left: 0;
+        margin-right: auto;
         padding: 20px;
         background-color: #f9f9f9;
         border: 1px solid #ddd;
@@ -27,10 +27,10 @@
     .form-group { margin-bottom: 15px; }
     .form-group label {
       display: block;
-      margin-bottom: 5px; /* Or 3px as you have in graph_view.html */
-      font-weight: normal; /* CHANGED from bold */
-      font-size: 14px; /* Or 0.85em as in graph_view.html */
-      /* color: #495057; */ /* Consider making color consistent too */
+      margin-bottom: 5px;
+      font-weight: normal;
+      font-size: 14px;
+
     }
     .form-group input[type="text"],
     .form-group input[type="number"],
@@ -67,8 +67,8 @@
         border-bottom: 1px solid #eee;
         padding-bottom: 5px;
     }
-    .form-row { display: flex; gap: 20px; flex-wrap: wrap; } /* Added flex-wrap */
-    .form-row .form-group { flex: 1; min-width: 200px;} /* Added min-width for better wrapping */
+    .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 200px;}
 </style>
 {% endblock %}
 

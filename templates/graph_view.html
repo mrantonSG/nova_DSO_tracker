@@ -4,297 +4,271 @@
 
 {% block head_extra %}
 
-  <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
-  <style>
-    /* Basic styles, merged from index and additional styling */
+<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+<style>
     body {
-      padding: 20px;
-      margin: 0;
+        padding: 20px;
+        margin: 0;
     }
 
     #back-button {
-      margin-top: 0;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #83b4c5;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+        margin-top: 0;
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #83b4c5;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
     }
+
     #back-button:hover {
-      background-color: #6795a4 !important;
+        background-color: #6795a4 !important;
     }
-    /* Chart container */
-    #chart-section {
-      margin-top: 20px;
-    }
+
     #chart-section img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 5px;
-      margin-bottom: 10px;
-      margin-bottom: 20px;
+        max-width: 100%;
+        height: auto;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        margin-bottom: 20px;
     }
+
     #chart-section {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px; /* This now reliably controls the space between the chart and buttons */
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
     }
 
     .date-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;   /* add this */
-      margin-bottom: 10px;  /* reduce this */
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        margin-bottom: 10px;
     }
 
     .date-controls label, .date-controls input, .date-controls select {
-      font-size: 14px;
-      padding: 4px;
-    }
-    /* View-switching buttons */
-    .view-buttons {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-    }
-    .view-button {
-      background-color: #83b4c5;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      padding: 8px 16px;
-      font-size: 14px;
-    }
-    .view-button:hover {
-      background-color: #6795a4;
-    }
-    /* Project field and buttons area */
-    .button-container {
-      margin-top: 0px;
-    }
-    #project-field {
-      width: 100%;
-      max-width: 970px;
-      height: 150px;
-      box-sizing: border-box;
-      font-size: 15px;
-    }
-    .inline-button {
-      background-color: #83b4c5;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-right: 10px;
-    }
-    .inline-button:hover {
-      background-color: #6795a4;
-    }
-    .button-container {
-      padding: 10px;
-      margin-left: 50px;
+        font-size: 14px;
+        padding: 4px;
     }
 
-    /* Styles for the new two-column top information area */
+    .view-buttons {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .view-button {
+        background-color: #83b4c5;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+
+    .view-button:hover {
+        background-color: #6795a4;
+    }
+
+    #project-field {
+        width: 100%;
+        max-width: 970px;
+        height: 150px;
+        box-sizing: border-box;
+        font-size: 15px;
+    }
+
+    .inline-button {
+        background-color: #83b4c5;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-right: 10px;
+    }
+
+    .button-container {
+        padding: 10px;
+        margin-left: 50px;
+    }
+
     .top-info-grid {
-      display: flex;
-      /* align-items: flex-start; */ /* Remove this or comment out */
-      align-items: stretch;      /* ADD THIS: Makes both columns equal height */
-      margin-bottom: 40px;     /* Or your preferred space before the graph */
+        display: flex;
+        align-items: stretch;
+        margin-bottom: 40px;
     }
 
     .info-button-column {
-      flex-shrink: 0;
-      padding-right: 15px;
-      margin-right: 15px;
-      border-right: 1px solid #ccc; /* This border will now span the full stretched height */
+        flex-shrink: 0;
+        padding-right: 15px;
+        margin-right: 15px;
+        border-right: 1px solid #ccc;
 
-      /* Optional: Add these to keep the button at the top of its stretched column */
-      display: flex;
-      flex-direction: column; /* Though only one item, good practice */
-      align-items: flex-start; /* Aligns button to the top */
-      /* justify-content: flex-start; /* Ensures button is at the start if column is flex */
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
     }
 
     .info-details-column {
-      display: flex;
-      flex-direction: column;
-      flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
     }
 
-    /* Styles for .object-title-block-main, .object-common-name, .object-id-name,
-       .secondary-info-line-main and its children (p, small, span)
-       remain the same as in the previous correct version. */
-    /* ... (keep those other styles) ... */
-
-    .primary-info-line .inline-button { /* This rule was from a previous structure, check if still needed or if .info-button-column .inline-button is more appropriate */
-      margin-right: 15px;
-      flex-shrink: 0;
+    .primary-info-line .inline-button {
+        margin-right: 15px;
+        flex-shrink: 0;
     }
 
-    /* If .primary-info-line and .object-title-block classes are no longer used in the HTML for this section,
-       their specific CSS rules can be removed to avoid confusion.
-       The new structure uses .object-title-block-main. */
-
-    .object-title-block-main { /* Replaces .object-title-block if you used my latest HTML */
-      margin-bottom: 10px;
+    .object-title-block-main {
+        margin-bottom: 10px;
     }
+
     .object-common-name {
-      font-size: 1.4em;
-      font-weight: bold;
-      color: #333;
-    }
-    .object-id-name {
-      font-size: 1.2em;
-      font-weight: bold;
-      color: #555;
-      margin-left: 4px;
+        font-size: 1.4em;
+        font-weight: bold;
+        color: #333;
     }
 
-    .secondary-info-line-main { /* Replaces .secondary-info-line if you used my latest HTML */
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 20px;
-      align-items: center;
-      /* width: 100%; /* Not strictly needed if .info-details-column grows and this is a child */
+    .secondary-info-line-main {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 20px;
+        align-items: center;
     }
-    .secondary-info-line-main p {
-      margin: 0;
-      font-size: 16px;
-    }
+
     .secondary-info-line-main small {
-      font-size: 12px;
-      color: #666;
-    }
-    .secondary-info-line-main span {
-      font-weight: bold;
-      font-size: 16px;
-      color: #000;
+        font-size: 12px;
+        color: #666;
     }
 
-    /* Styles for the p, small, span inside .secondary-info-line-main */
-    /* These can be adapted from your previous .secondary-info-line p/small/span rules */
     .secondary-info-line-main p {
-      margin: 0;
-      font-size: 16px;
-    }
-    .secondary-info-line-main small {
-      font-size: 12px;
-      color: #666;
-    }
-    .secondary-info-line-main span {
-      font-weight: bold;
-      font-size: 16px;
-      color: #000;
+        margin: 0;
+        font-size: 16px;
     }
 
-    /* Your existing .inline-button style for "Back to Tracker" can remain */
-    .inline-button {
-      background-color: #83b4c5;
-      /* ... other .inline-button styles ... */
+    .secondary-info-line-main span {
+        font-weight: bold;
+        font-size: 16px;
+        color: #000;
     }
 
     .object-title-block {
-      flex-grow: 1;
-    }
-
-    .object-common-name {
-      font-size: 1.4em;
-      font-weight: bold;
-      color: #333;
+        flex-grow: 1;
     }
 
     .object-id-name {
-      font-size: 1.2em;
-      font-weight: bold;
-      color: #555;
-      margin-left: 4px;
-    }
-
-    .inline-button {
-      margin-top: 0px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #83b4c5;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #555;
+        margin-left: 4px;
     }
 
     .inline-button:hover {
-      background-color: #6795a4 !important;
+        background-color: #6795a4 !important;
     }
-    /* NEW STYLES for Journal Sections on graph_view.html */
-    .content-section { /* Common class for distinct sections */
-        margin-top: 25px; /* Space above the section */
+
+    .content-section {
+        margin-top: 25px;
         padding: 20px;
-        background-color: #f8f9fa; /* Light background for the section box */
+        background-color: #f8f9fa;
         border: 1px solid #dee2e6;
         border-radius: 6px;
-        margin-bottom: 25px; /* Space below the section */
+        margin-bottom: 25px;
     }
-    .content-section h3 { /* Titles for Journal, Project Notes */
+
+    .content-section h3 {
         margin-top: 0;
-        color: #343a40;   /* Darker grey for heading */
+        color: #343a40;
         border-bottom: 1px solid #ced4da;
         padding-bottom: 10px;
-        font-size: 1.2em; /* Slightly larger section titles */
+        font-size: 1.2em;
         font-weight: 600;
     }
+
     .sessions-history-list {
         list-style-type: none;
         padding-left: 0;
-        max-height: 250px; /* Scrollable if many sessions */
+        max-height: 250px;
         overflow-y: auto;
-        border: 1px solid #ced4da; /* Border around the list */
+        border: 1px solid #ced4da;
         border-radius: 4px;
-        background-color: #fff; /* White background for the list itself */
+        background-color: #fff;
         margin-top: 10px;
     }
+
     .sessions-history-list li {
-        padding: 7px 10px; /* Slightly adjusted padding */
+        padding: 7px 10px;
         border-bottom: 1px dotted #e0e0e0;
-        font-size: 0.85em; /* Slightly smaller font for list items */
+        font-size: 0.85em;
     }
-    .sessions-history-list li:last-child { border-bottom: none; }
-    .sessions-history-list li a { text-decoration: none; color: #0056b3; }
-    .sessions-history-list li a:hover { text-decoration: underline; }
-    .sessions-history-list li.current-session-item { /* Highlight for current session in list */
+
+    .sessions-history-list li:last-child {
+        border-bottom: none;
+    }
+
+    .sessions-history-list li a {
+        text-decoration: none;
+        color: #0056b3;
+    }
+
+    .sessions-history-list li a:hover {
+        text-decoration: underline;
+    }
+
+    .sessions-history-list li.current-session-item {
         background-color: #cfe2ff;
         border-left: 3px solid #0056b3;
-        padding-left: 7px; /* Adjust if border changes padding */
+        padding-left: 7px;
     }
-    .sessions-history-list li.current-session-item a { font-weight:bold; }
+
+    .sessions-history-list li.current-session-item a {
+        font-weight: bold;
+    }
 
     .selected-session-details {
         margin-top: 15px;
         padding: 15px;
-        background-color: #ffffff; /* White background for details box */
+        background-color: #ffffff;
         border: 1px solid #bac8d3;
         border-radius: 4px;
         max-width: 770px;
     }
-    .selected-session-details h4 { margin-top: 0; color: #2c3e50; font-size: 1.05em; font-weight: 600; }
-    .selected-session-details p, .selected-session-details div { margin-bottom: 6px; font-size: 0.9em; line-height: 1.5; }
-    .selected-session-details strong { color: #1c2833; }
+
+    .selected-session-details h4 {
+        margin-top: 0;
+        color: #2c3e50;
+        font-size: 1.05em;
+        font-weight: 600;
+    }
+
+    .selected-session-details p, .selected-session-details div {
+        margin-bottom: 6px;
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+
+    .selected-session-details strong {
+        color: #1c2833;
+    }
+
     .action-button-group {
-        display: flex;         /* Makes this a flex container */
-        align-items: center;   /* Vertically aligns flex items (buttons) to the center */
-        /* gap: 8px; */       /* Optional: Replaces margin-right on buttons for spacing */
+        display: flex;
+        align-items: center;
+
         margin-top: 10px;
         margin-bottom: 10px;
     }
+
     .action-button-group .inline-button {
-        margin-right: 8px;    /* Keep if not using 'gap' on the parent */
-        /* If using 'gap' on .action-button-group, you might remove margin-right here */
+        margin-right: 8px;
+
         margin-bottom: 5px;
         font-size: 13px;
         padding: 6px 12px;
@@ -304,137 +278,172 @@
         vertical-align: middle;
         line-height: 1.2;
     }
-    hr.detail-separator { border: 0; height: 1px; background: #e0e0e0; margin: 10px 0; } /* For separating groups of details */
+
+    hr.detail-separator {
+        border: 0;
+        height: 1px;
+        background: #e0e0e0;
+        margin: 10px 0;
+    }
 
     #opportunities-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      font-size: 14px;
-      margin-left: 20px;
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 14px;
+        margin-left: 20px;
     }
 
     #opportunities-table th, #opportunities-table td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      text-align: left;
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+        text-align: left;
     }
 
     #opportunities-table th {
-      background-color: #83b4c5;
-      color: white;
-      font-weight: normal;
+        background-color: #83b4c5;
+        color: white;
+        font-weight: normal;
     }
 
     #opportunities-table tr:nth-child(even) {
-      background-color: #f2f2f2;
+        background-color: #f2f2f2;
     }
 
     #opportunities-table tr:hover {
-      background-color: #e1f0f5;
+        background-color: #e1f0f5;
     }
 
     #opportunities-section {
-      margin-top: 40px;
+        margin-top: 40px;
     }
 
     .opportunities-heading {
-      font-size: 16px;
-      font-weight: normal;
-      color: #333;
-      margin-bottom: 10px;
-      margin-left: 20px;
-    }
-    #opportunities-table th,
-    #opportunities-table td {
-      text-align: center !important;
-      vertical-align: middle !important;
-    }
-    .highlight {
-      background-color: #d6ecff !important; /* Light blue */
-    }
-    code {
-      background-color: #f5f5f5;
-      padding: 2px 4px;
-      border-radius: 4px;
-      font-family: monospace;
-    }
-    .preserve-newlines {
-        white-space: pre-wrap;
-        margin-top: 4px; /* Optional: for spacing below the label */
-        padding-left: 10px; /* Optional: for indentation */
-        border-left: 2px solid #eee; /* Optional: visual cue */
+        font-size: 16px;
+        font-weight: normal;
+        color: #333;
+        margin-bottom: 10px;
+        margin-left: 20px;
     }
 
-      /* Styles for Session History Table on graph_view.html */
+    #opportunities-table th,
+    #opportunities-table td {
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+
+    .highlight {
+        background-color: #d6ecff !important;
+    }
+
+    code {
+        background-color: #f5f5f5;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .preserve-newlines {
+        white-space: pre-wrap;
+        margin-top: 4px;
+        padding-left: 10px;
+        border-left: 2px solid #eee;
+    }
+
+
     .session-history-table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 10px;
-        font-size: 0.85em; /* Slightly smaller font */
+        font-size: 0.85em;
     }
+
     .session-history-table th, .session-history-table td {
         border: 1px solid #dde;
         padding: 6px 8px;
         text-align: left;
         vertical-align: middle;
     }
+
     .session-history-table th {
-        background-color: #e9ecef; /* Lighter header */
+        background-color: #e9ecef;
         font-weight: 600;
     }
+
     .session-history-table tr.clickable-session-row:hover {
-        background-color: #e6f7ff; /* Light blue hover */
+        background-color: #e6f7ff;
         cursor: pointer;
     }
+
     .session-history-table tr.current-session-item {
-        background-color: #cfe2ff !important; /* Ensure this highlight is visible */
+        background-color: #cfe2ff !important;
         font-weight: bold;
     }
-    .session-history-table td.col-date, .session-history-table th.col-date { width: 120px; }
-    .session-history-table td.col-location, .session-history-table th.col-location { width: 150px; }
-    .session-history-table td.col-setup, .session-history-table th.col-setup { width: auto; } /* Takes remaining */
-    .session-history-table td.col-integ, .session-history-table th.col-integ { width: 100px; text-align: center; }
-    .session-history-table td.col-rating, .session-history-table th.col-rating { width: 100px; text-align: center; }
 
-    .selected-session-details .form-data-value { /* Now specificity is (0,2,0) - two classes */
-        padding: 8px 10px;    /* Increased padding slightly for much larger font */
+    .session-history-table td.col-date, .session-history-table th.col-date {
+        width: 120px;
+    }
+
+    .session-history-table td.col-location, .session-history-table th.col-location {
+        width: 150px;
+    }
+
+    .session-history-table td.col-setup, .session-history-table th.col-setup {
+        width: auto;
+    }
+
+    .session-history-table td.col-integ, .session-history-table th.col-integ {
+        width: 100px;
+        text-align: center;
+    }
+
+    .session-history-table td.col-rating, .session-history-table th.col-rating {
+        width: 100px;
+        text-align: center;
+    }
+
+    .selected-session-details .form-data-value {
+        padding: 8px 10px;
         background-color: #e9ecef;
         border: 1px solid #ced4da;
         border-radius: 4px;
-        min-height: 25px;    /* Increased min-height for larger font */
+        min-height: 25px;
         word-wrap: break-word;
-        font-size: 1.1em;  /* Let's try 1.1em first. 2em will be VERY large. Adjust from here. */
-        line-height: 1.5;    /* May need adjustment based on final font size */
+        font-size: 1.1em;
+        line-height: 1.5;
     }
 
-    /* You can still have a separate rule for the preserve-newlines variant if needed for other properties */
+
     .selected-session-details div.form-data-value.preserve-newlines {
         min-height: 80px;
         background-color: #fff;
         border: 1px dashed #ced4da;
-        /* font-size will be inherited from the rule above if not overridden here */
+
     }
-    div.form-data-value.preserve-newlines { /* For textareas */
-        min-height: 80px; /* Give more space for multi-line notes */
-        background-color: #fff; /* White background might be better for readability for notes */
-        border: 1px dashed #ced4da; /* Dashed border to indicate it's display text */
+
+    div.form-data-value.preserve-newlines {
+        min-height: 80px;
+        background-color: #fff;
+        border: 1px dashed #ced4da;
     }
+
     .form-group label {
         display: block;
         margin-bottom: 3px;
         font-weight: normal;
         font-size: 1em;
         color: #495057;
-        width: 320px; /* Suggested width - adjust as needed */
-        /* Optional: If a single word in a label is too long and you want it to break */
-        /* overflow-wrap: break-word; */
+        width: 320px;
+
+
     }
+
     .form-group {
-        margin-bottom: 10px; /* Reduced margin */
+        margin-bottom: 10px;
     }
-    .form-section-title { /* Already defined, ensure it's styled as you like */
-        font-size: 1.1em; /* Adjusted from previous */
+
+    .form-section-title {
+        font-size: 1.1em;
         font-weight: bold;
         color: #333;
         margin-top: 20px;
@@ -442,414 +451,352 @@
         border-bottom: 1px solid #eee;
         padding-bottom: 5px;
     }
-    .form-row { display: flex; gap: 20px; flex-wrap: wrap; } /* Allow wrapping for form rows */
-    .form-row .form-group { flex: 1; min-width: 200px; } /* Min width before wrapping */
 
-    /* --- NEW CSS for the Framing Table --- */
+    .form-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+
     .framing-table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 15px;
     }
+
     .framing-table th, .framing-table td {
         border: 1px solid #eee;
         padding: 10px;
         text-align: left;
         font-size: 14px;
     }
+
     .framing-table th {
         background-color: #f9f9f9;
         font-weight: 600;
     }
 
-    .framing-controls { color: black; } /* Make control text readable */
-
-    /* --- CSS for the Framing Modal --- */
     .modal {
-        display: none; position: fixed; z-index: 1000;
-        left: 0; top: 0; width: 100%; height: 100%;
-        overflow: auto; background-color: rgba(0,0,0,0.6);
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.6);
     }
 
-    .modal-close {
-        color: #aaa;
-        position: absolute;
-        top: 5px;
-        right: 20px;
-        font-size: 35px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-    .modal-close:hover { color: black; }
     .framing-controls {
-        margin-bottom: 15px; display: flex; gap: 20px; align-items: center; color: black;
+        margin-bottom: 15px;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        color: black;
     }
-    .framing-controls select, .framing-controls button { font-size: 14px; padding: 5px; }
 
-    /* Hide Aladin’s floating mouse-position readout to avoid redundancy */
+    .framing-controls select, .framing-controls button {
+        font-size: 14px;
+        padding: 5px;
+    }
+
+
     #aladin-lite-div .aladin-location,
     #aladin-lite-div .aladin-mouse-position {
-      display: none !important;
+        display: none !important;
     }
 
-     /* Header bar at the top of the modal */
+
     .modal-header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 56px 6px 16px; /* right padding leaves space for the × button */
-      border-bottom: 1px solid #83b4c5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 56px 6px 16px;
+        border-bottom: 1px solid #83b4c5;
     }
 
-    /* Nova brand style (matches your site typography) */
     .brand-strong {
-      font-weight: 800;
-      letter-spacing: 0.2px;
-      font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+        font-size: 20px;
     }
+
     .brand-light {
-      font-weight: 400;
-      margin-left: 6px;
-      color: #555;
-      font-size: 20px;
+        font-weight: 400;
+        margin-left: 6px;
+        color: #555;
+        font-size: 20px;
     }
 
-    /* Little pill on the right for the FOV text */
     .fov-chip {
-      font-size: 13px;
-      color: #444;
-      background: #f3f5f7;
-      border: 1px solid #e2e6ea;
-      border-radius: 999px;
-      padding: 4px 10px;
-      white-space: nowrap;
+        font-size: 13px;
+        color: #444;
+        background: #f3f5f7;
+        border: 1px solid #e2e6ea;
+        border-radius: 999px;
+        padding: 4px 10px;
+        white-space: nowrap;
+        margin-right: 48px;
     }
 
-    /* Make sure the close button sits above and doesn’t overlap content */
     .modal .close {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      z-index: 3;         /* above header text */
-      line-height: 1;
-      font-size: 22px;
-      color: #999;
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        z-index: 3;
+        line-height: 1;
+        font-size: 22px;
+        color: #999;
     }
-    .modal .close:hover { color: #666; }
 
-    /* Overlay – fill screen, unchanged */
+    .modal .close:hover {
+        color: #666;
+    }
+
     #framing-modal {
-      position: fixed;
-      inset: 0;
-      display: none;              /* set to block when open */
-      background: rgba(0,0,0,0.6);
-      z-index: 1000;
+        position: fixed;
+        inset: 0;
+        display: none;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
     }
 
-    /* Modal content: fluid width/height with sane caps */
+
     #framing-modal-content {
-      /* Center the box */
-      position: relative;
-      margin: 4vh auto 6vh auto;
-
-      /* Width scales with screen: min 320px, ideal 70vw, max 1200px */
-      width: clamp(320px, 70vw, 1200px);
-
-      /* Height scales with screen: min 400px, ideal 78vh, max 900px */
-      height: clamp(400px, 78vh, 900px);
-
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
-      overflow: hidden;           /* keep internals tidy */
-
-      /* Make internals layout nicely */
-      display: flex;
-      flex-direction: column;
+        position: relative;
+        margin: 4vh auto 6vh auto;
+        width: clamp(320px, 70vw, 1200px);
+        height: clamp(400px, 78vh, 900px);
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 
-    /* Header / toolbar area at the top of the modal */
     #framing-header,
     #framing-toolbar {
-      padding: 10px 16px;
+        padding: 10px 16px;
     }
 
-    /* Put your controls (rig select, rotation, survey, buttons) in a wrapping row */
     #framing-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px 14px;
-      align-items: center;
-      border-top: 1px solid #e9eef2;
-      border-bottom: 1px solid #e9eef2;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        align-items: center;
+        border-top: 1px solid #e9eef2;
+        border-bottom: 1px solid #e9eef2;
     }
 
-    /* The main content area (holds the Aladin canvas) should grow and scroll as needed */
+
     #framing-body {
-      flex: 1 1 auto;             /* <-- key: take all remaining height */
-      min-height: 240px;          /* safety on tiny screens */
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;           /* canvas should not overflow the box */
-      padding: 10px 16px 14px 16px;
+        flex: 1 1 auto;
+        min-height: 240px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 10px 16px 14px 16px;
     }
 
-    /* Aladin container fills the body */
     #aladin-lite-div {
-      flex: 1 1 auto;
-      min-height: 200px;
-      border-radius: 6px;
-      overflow: hidden;
+        flex: 1 1 auto;
+        min-height: 200px;
+        border-radius: 6px;
+        overflow: hidden;
     }
 
-    /* Chip / readout strip can wrap on small widths */
     .framing-readout {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 12px;
-      align-items: center;
-      margin: 8px 0 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        align-items: center;
+        margin: 8px 0 10px;
     }
 
-    /* Smaller screens: expand to near full-screen and tighten paddings */
     @media (max-width: 1280px) {
-      #framing-modal-content {
-        width: 96vw;
-        height: 92vh;
-        margin: 2vh auto;
-      }
-      #framing-toolbar, #framing-body {
-        padding-left: 12px;
-        padding-right: 12px;
-      }
-      /* Optional: reduce control spacing */
-      #framing-toolbar { gap: 8px 10px; }
+        #framing-modal-content {
+            width: 96vw;
+            height: 92vh;
+            margin: 2vh auto;
+        }
+
+        #framing-toolbar, #framing-body {
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        #framing-toolbar {
+            gap: 8px 10px;
+        }
     }
 
-    /* Very small screens: stack controls more aggressively */
     @media (max-width: 900px) {
-      .framing-readout { gap: 6px 10px; }
-      /* If you have long labels, make them inline and shorter */
-      .inline-label { white-space: nowrap; font-size: 0.95rem; }
+        .framing-readout {
+            gap: 6px 10px;
+        }
+
+        .inline-label {
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
     }
-    /* Fullscreen modifier */
-    #framing-modal-content.fullscreen {
-      width: 98vw !important;
-      height: 96vh !important;
-      margin: 2vh auto !important;
-    }
-    /* Header / toolbar area at the top of the modal */
-    #framing-header,
-    #framing-toolbar,
+
     .framing-controls {
-      padding-left: 16px;
-      padding-right: 16px;
+        padding-left: 16px;
+        padding-right: 16px;
     }
-    /* Fullscreen mode */
+
     #framing-modal-content.fullscreen {
-      width: 98vw !important;
-      height: 96vh !important;
-      margin: 2vh auto !important;
-    }
-
-    /* Fullscreen toggle button (⤢) */
-    .fullscreen-btn {
-      float: right;
-      border: none;
-      background: transparent;
-      font-size: 1.3rem;
-      cursor: pointer;
-      margin-right: 10px;
-    }
-    .fullscreen-btn:hover {
-      color: #0077aa;
-    }
-    .modal-controls {
-      position: absolute;
-      top: 8px;
-      right: 12px;
-      display: flex;
-      gap: 6px;
-      align-items: center;
+        width: 98vw !important;
+        height: 96vh !important;
+        margin: 2vh auto !important;
     }
 
     .fullscreen-btn {
-      border: none;
-      background: transparent;
-      font-size: 1.2rem;
-      cursor: pointer;
-      line-height: 1;
-      color: #444;
+        float: right;
+        border: none;
+        background: transparent;
+        font-size: 1.3rem;
+        cursor: pointer;
+        margin-right: 10px;
     }
+
     .fullscreen-btn:hover {
-      color: #0077aa;
+        color: #0077aa;
     }
 
     .close {
-      font-size: 1.4rem;
-      cursor: pointer;
-      color: #666;
+        font-size: 1.4rem;
+        cursor: pointer;
+        color: #666;
     }
+
     .close:hover {
-      color: #d00;
-    }
-    /* Top-right controls bar */
-    .modal-controls{
-      position:absolute;
-      top:8px;
-      right:12px;
-      z-index:2;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      pointer-events:auto;
+        color: #d00;
     }
 
-    /* Ensure old .close rules don't fight us */
-    .modal-controls .close,
-    .modal-controls .close-btn{
-      position:static !important;
-      float:none !important;
+    .modal-controls {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        z-index: 2;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        pointer-events: auto;
     }
 
-    /* Uniform icon buttons with real hit-area (no overlap) */
     .fullscreen-btn,
-    .close-btn{
-      width:28px;
-      height:28px;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      font-size:18px;          /* icon size */
-      line-height:1;
-      border:0;
-      border-radius:6px;
-      background:transparent;
-      color:#444;
-      cursor:pointer;
+    .close-btn {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #444;
+        cursor: pointer;
     }
-    .fullscreen-btn:hover{ color:#0a7db8; }
-    .close-btn:hover{ color:#d22; }
 
-    /* If your FOV chip is also absolutely positioned near the right edge,
-       keep it from colliding with the controls */
-    .fov-chip{
-      margin-right:48px; /* gives space for the two buttons */
+    .close-btn:hover {
+        color: #d22;
     }
+
     #chart-container {
-      position: relative;
-      width: 100%;
-      max-width: 1000px; /* Or your preferred max width */
-      margin: auto;
-      height: 55vh; /* Adjust height as needed */
+        position: relative;
+        width: 100%;
+        max-width: 1000px;
+        margin: auto;
+        height: 55vh;
     }
 
-      /* Align the day/month/year chart with the left edge (like the Back button) */
-    #altitudeChartCanvas {            /* the canvas itself */
-      display: block;                 /* avoid inline baseline quirks */
-      margin-left: 0;                 /* ensure no auto-centering */
+    #altitudeChartCanvas {
+        display: block;
+        margin-left: 0;
     }
 
-    /* If a parent was centering via margin:auto or flex, override it */
     .chart-container,
     .canvas-wrapper,
     #chart-container,
-
-    /* Reserve space so the chart never jumps */
     #chart-area {
-      position: relative;
+        position: relative;
 
     }
 
     #altitudeChartCanvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* Overlay message */
-    .loading-overlay {
-      position: absolute;
-      inset: 0; /* top/right/bottom/left = 0 */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.6); /* light veil */
-      backdrop-filter: blur(2px);
-      font: 600 18px/1.2 system-ui, sans-serif;
-      color: #334;
-      z-index: 2;
-
-      /* fade animation */
-      opacity: 1;
-      visibility: visible;
-      transition: opacity 200ms ease, visibility 200ms ease;
+        display: block;
+        width: 100%;
+        height: 100%;
     }
 
     .loading-overlay.hidden {
-      opacity: 0;
-      visibility: hidden;
+        opacity: 0;
+        visibility: hidden;
     }
 
-    /* 1) Width control (percentage of screen) */
     #chart-wrapper {
-      width: 80%;          /* ← change this to any % you like */
-      max-width: 1100px;   /* optional cap so it never gets too wide */
-      margin-left: 0;      /* align left with your Back button */
-      /* If you ever want it centered, use: margin: 0 auto; */
+        width: 80%;
+        max-width: 1100px;
+        margin-left: 0;
     }
 
-    /* 2) Keep the overlay behavior we added earlier */
     #chart-area {
-      position: relative;
-      /* no fixed height here — Chart.js will set canvas height from aspectRatio */
+        position: relative;
     }
 
-    /* 3) Make the canvas fill the wrapper width; height is auto from aspectRatio */
     #altitudeChartCanvas {
-      display: block;
-      width: 100% !important;
-      height: auto !important;
+        display: block;
+        width: 100% !important;
+        height: auto !important;
     }
 
-    /* 4) Loading overlay (unchanged) */
     .loading-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,0.6);
-      backdrop-filter: blur(2px);
-      font: 600 18px/1.2 system-ui, sans-serif;
-      color: #334;
-      z-index: 2;
-      opacity: 1;
-      visibility: visible;
-      transition: opacity 200ms ease, visibility 200ms ease;
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(2px);
+        font: 600 18px/1.2 system-ui, sans-serif;
+        color: #334;
+        z-index: 2;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 200ms ease, visibility 200ms ease;
     }
-    .loading-overlay.hidden {
-      opacity: 0;
-      visibility: hidden;
-    }
-  </style>
+
+</style>
 
 {% endblock %}
 </head>
 <body>
 {% block body %}
 
-    <div class="top-info-grid"> {# Renamed for clarity, this will be our main flex row for the two columns #}
+<div class="top-info-grid"> {# Renamed for clarity, this will be our main flex row for the two columns #}
 
-      {# ---- Column 1: Back to Tracker Button ---- #}
-      <div class="info-button-column">
-        <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker</button>
-      </div>
-      {# ---- END: Column 1 ---- #}
+    {# ---- Column 1: Back to Tracker Button ---- #}
+    <div class="info-button-column">
+        <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker
+        </button>
+    </div>
+    {# ---- END: Column 1 ---- #}
 
-      {# ---- Column 2: Object Details and Secondary Info ---- #}
-      <div class="info-details-column">
+    {# ---- Column 2: Object Details and Secondary Info ---- #}
+    <div class="info-details-column">
         {# Object Name/ID Display #}
         <div class="object-title-block-main">
             <span class="object-common-name">{{ alt_name | default(object_name, True) }}</span>
@@ -858,509 +805,568 @@
 
         {# Secondary Info Line: Location, Date, Moon, etc. #}
         <div class="secondary-info-line-main">
-          <p><small>Location:</small> <span id="location-display">{{ header_location_name }}</span></p>
-          <p><small>Date (Graph):</small> <span id="date-display">{{ header_date_display }}</span></p>
-          <p><small>Moon (for date):</small> <span id="phase-display">{{ header_moon_phase }}%</span></p>
-          <p><small>Astro Dusk:</small> <span id="dusk-display">{{ header_astro_dusk }}</span></p>
-          <p><small>Astro Dawn:</small> <span id="dawn-display">{{ header_astro_dawn }}</span></p>
+            <p><small>Location:</small> <span id="location-display">{{ header_location_name }}</span></p>
+            <p><small>Date (Graph):</small> <span id="date-display">{{ header_date_display }}</span></p>
+            <p><small>Moon (for date):</small> <span id="phase-display">{{ header_moon_phase }}%</span></p>
+            <p><small>Astro Dusk:</small> <span id="dusk-display">{{ header_astro_dusk }}</span></p>
+            <p><small>Astro Dawn:</small> <span id="dawn-display">{{ header_astro_dawn }}</span></p>
         </div>
-      </div>
-      {# ---- END: Column 2 ---- #}
-
     </div>
-    <div id="chart-section">
+    {# ---- END: Column 2 ---- #}
 
-      <div id="chart-wrapper">
+</div>
+<div id="chart-section">
+    <div style="width: 80%; max-width: 1100px; margin-left: 0;">
         <div id="chart-area">
-          <canvas id="altitudeChartCanvas"></canvas>
-          <div id="chart-loading" class="loading-overlay">Loading chart...</div>
+            <canvas id="altitudeChartCanvas"></canvas>
+            <div id="chart-loading" class="loading-overlay">Loading chart...</div>
         </div>
-      </div>
 
-      <div class="date-controls">
-        <label for="day-select">Day:</label>
-        <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;" />
+        <div class="date-controls" style="margin-top: 20px; padding-left: 20px; box-sizing: border-box;">
+            <label for="day-select">Day:</label>
+            <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;"/>
 
-        <label for="month-select">Month:</label>
-        <select id="month-select">
-          {% for m in range(1, 13) %}
-            <option value="{{ m }}" {% if m == selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
-          {% endfor %}
-        </select>
+            <label for="month-select">Month:</label>
+            <select id="month-select">
+                {% for m in range(1, 13) %}
+                <option value="{{ m }}" {% if m== selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
+                {% endfor %}
+            </select>
 
-        <label for="year-select">Year:</label>
-        <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;" />
+            <label for="year-select">Year:</label>
+            <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;"/>
 
-        <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
-        <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
-        <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
-      </div>
-
+            <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
+            <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
+            <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
+        </div>
     </div>
+</div>
 
-  {# End of chart-section #}
+{# End of chart-section #}
 
 
-  <div class="content-section journal-section-for-object">
+<div class="content-section journal-section-for-object">
     <h3>Imaging Journal for {{ alt_name | default(object_name, True) }}</h3>
     <div class="action-button-group">
         {% if is_guest %}
-            <a href="#" onclick="alert('Please log in to add a journal session.'); return false;" class="inline-button">Add New Session</a>
+        <a href="#" onclick="alert('Please log in to add a journal session.'); return false;" class="inline-button">Add
+            New Session</a>
         {% else %}
-            <a href="{{ url_for('journal_add_for_target', object_name=object_name) }}" class="inline-button">Add New Session</a>
+        <a href="{{ url_for('journal_add_for_target', object_name=object_name) }}" class="inline-button">Add New
+            Session</a>
         {% endif %}
     </div>
 
     {% if object_specific_sessions %}
-            <h4>Session History:</h4>
-            <div class="table-wrapper" style="max-height: 280px; overflow-y: auto; margin-bottom:15px;"> {# Make it scrollable #}
-                <table class="session-history-table">
-                    <thead>
-                        <tr>
-                            <th class="col-date">Date</th>
-                            <th class="col-location">Location</th>
-                            <th class="col-setup">Telescope Setup</th>
-                            <th class="col-integ">Integ. Time</th>
-                            <th class="col-rating">Rating</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for session_item in object_specific_sessions %}
-                            <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}"
-                                onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}'">
-                                <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}</td>
-                                <td class="col-location">{{ session_item.location_name | default("N/A") }}</td>
-                                <td class="col-setup">{{ session_item.telescope_setup_notes | default("N/A") | truncate(50, True) }}</td>
-                                <td class="col-integ">
-                                    {% set integ_min = session_item.get('calculated_integration_time_minutes') %}
-                                    {{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min
-                                </td>
-                                <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and session_item.session_rating_subjective is not none %} ★{% endif %}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            {% if selected_session_data %}
-                <div class="selected-session-details"> {# Keep this outer wrapper #}
-                    <h4>Details for Session: {{ selected_session_data.session_date | date_eu }}
-                        {% if selected_session_data.session_id %}<small>(ID: {{ selected_session_data.session_id[:8] }}...)</small>{% endif %}
-                    </h4>
-                    <div class="action-button-group">
-                        {% if is_guest %}
-                            <a href="#" onclick="alert('Please log in to edit journal sessions.'); return false;" class="inline-button" style="background-color:#ffc107; color:black;">Edit This Session</a>
-                        {% else %}
-                            <a href="{{ url_for('journal_edit', session_id=selected_session_data.session_id) }}" class="inline-button" style="background-color:#ffc107; color:black;">Edit This Session</a>
-                        {% endif %}
-                        {% if is_guest %}
-                            <button type="button" class="inline-button" style="background-color:#dc3545;" onclick="alert('Please log in to delete journal sessions.');">Delete This Session</button>
-                        {% else %}
-                            <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this journal entry? This action cannot be undone.');">
-                                <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
-                            </form>
-                        {% endif %}
-                    </div>
-
-                    {# --- Mimicking journal_form.html structure --- #}
-                    <div class="form-section-title" style="margin-top:20px;">Core Info</div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Session Date:</label>
-                            <p class="form-data-value">{{ selected_session_data.session_date | date_eu | default('N/A') }}</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Target Object:</label>
-                            <p class="form-data-value">{{ selected_session_data.target_object_id | default('N/A') }}</p>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Location:</label>
-                        <p class="form-data-value">{{ selected_session_data.location_name | default('N/A') }}</p>
-                    </div>
-
-                    <div class="form-section-title">Sky Conditions (Observed)</div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Seeing (FWHM, arcsec):</label>
-                            <p class="form-data-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}{% if selected_session_data.seeing_observed_fwhm and selected_session_data.seeing_observed_fwhm not in ['N/A', None] %}"{% endif %}</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Transparency Scale:</label>
-                            <p class="form-data-value">{{ selected_session_data.transparency_observed_scale | default('N/A') }}</p>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                         <div class="form-group">
-                            <label>SQM Reading:</label>
-                            <p class="form-data-value">{{ selected_session_data.sky_sqm_observed | default('N/A') }}</p>
-                        </div>
-                         <div class="form-group"> </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Weather Notes:</label>
-                        <div class="form-data-value preserve-newlines">{{ selected_session_data.weather_notes | default('N/A') }}</div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Moon Illumination (Session):</label>
-                            <p class="form-data-value">{{ selected_session_data.moon_illumination_session | default('N/A') }}{% if selected_session_data.moon_illumination_session not in ['N/A', None] %}%{% endif %}</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Moon Angular Separation (Session):</label>
-                            <p class="form-data-value">{{ selected_session_data.moon_angular_separation_session | default('N/A') }}{% if selected_session_data.moon_angular_separation_session not in ['N/A', None] %}°{% endif %}</p>
-                        </div>
-                    </div>
-                    <div class="form-section-title">Equipment & Guiding</div>
-                     <div class="form-group">
-                        <label>Telescope Setup Notes:</label>
-                        <p class="form-data-value">{{ selected_session_data.telescope_setup_notes | default('N/A') }}</p>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Filter Used:</label>
-                            <p class="form-data-value">{{ selected_session_data.filter_used_session | default('N/A') }}</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Guiding RMS (avg, arcsec):</label>
-                            <p class="form-data-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}{% if selected_session_data.guiding_rms_avg_arcsec and selected_session_data.guiding_rms_avg_arcsec not in ['N/A', None] %}"{% endif %}</p>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Guiding Equipment (Scope, Camera, Software):</label>
-                        <p class="form-data-value">{{ selected_session_data.guiding_equipment | default('N/A') }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Dither Settings:</label>
-                        <p class="form-data-value">{{ selected_session_data.dither_details | default('N/A') }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Acquisition Software:</label>
-                        <p class="form-data-value">{{ selected_session_data.acquisition_software | default('N/A') }}</p>
-                    </div>
-                <div class="form-section-title">Acquisition Details</div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Sub Exposure (seconds):</label>
-                            <p class="form-data-value">{{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Number of Light Subs:</label>
-                            <p class="form-data-value">{{ selected_session_data.number_of_subs_light | default('N/A') }}</p>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Gain:</label>
-                            <p class="form-data-value">{{ selected_session_data.gain_setting | default('N/A') }}</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Offset:</label>
-                            <p class="form-data-value">{{ selected_session_data.offset_setting | default('N/A') }}</p>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Binning:</label>
-                            <p class="form-data-value">{{ selected_session_data.binning_session | default('N/A') }}</p>
-                        </div>
-                        <div class="form-group">
-                             <label>Total Integration:</label>
-                            <p class="form-data-value">
-                                {% set integ_min_detail = selected_session_data.get('calculated_integration_time_minutes') %}
-                                {{ integ_min_detail | round(0) if integ_min_detail is number and integ_min_detail != 'N/A' else 'N/A' }} min
-                            </p>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Camera Temp Setpoint (°C):</label>
-                            <p class="form-data-value">{{ selected_session_data.camera_temp_setpoint_c | default('N/A') }}°C</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Camera Temp Actual Avg (°C):</label>
-                            <p class="form-data-value">{{ selected_session_data.camera_temp_actual_avg_c | default('N/A') }}°C</p>
-                        </div>
-                    </div>
-
-                    <div class="form-section-title">Monochrome Filter Exposures</div>
-
-                    {% set filters_display = [
-                        ('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'),
-                        ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')
-                    ] %}
-
-                    {% for filt_key, filt_name in filters_display %}
-                        {% set subs_val = selected_session_data.get('filter_' + filt_key + '_subs') %}
-                        {% set exp_val = selected_session_data.get('filter_' + filt_key + '_exposure_sec') %}
-
-                        {# Only display the row if there's data for either subs or exposure for that filter #}
-                        {% if (subs_val is not none and subs_val|string|trim != '') or
-                              (exp_val is not none and exp_val|string|trim != '') %}
-                            {# The rest of the div.form-row and its content remains the same as before #}
-                            <div class="form-row" style="margin-bottom: 8px;">
-                                <div class="form-group" style="flex: 0 0 200px; display: flex; align-items: center;">
-                                    <label style="margin-bottom: 0;">{{ filt_name }} ({{ filt_key }}) Filter:</label>
-                                </div>
-                                <div class="form-group">
-                                    <label># Subs:</label>
-                                    <p class="form-data-value">{{ subs_val | default('N/A') }}</p>
-                                </div>
-                                <div class="form-group">
-                                    <label>Exp (sec/sub):</label>
-                                    <p class="form-data-value">{{ exp_val | default('N/A') }}</p>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-
-                    <div class="form-section-title">Calibration Strategy</div>
-                    <div class="form-group">
-                        <label>Darks:</label>
-                        <p class="form-data-value">{{ selected_session_data.darks_strategy | default('N/A') }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Flats:</label>
-                        <p class="form-data-value">{{ selected_session_data.flats_strategy | default('N/A') }}</p>
-                    </div>
-                    <div class="form-group">
-                        <label>Bias / Dark Flats:</label>
-                        <p class="form-data-value">{{ selected_session_data.bias_darkflats_strategy | default('N/A') }}</p>
-                    </div>
-
-                    <div class="form-section-title">Outcome & Reflections</div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Session Rating (1-5 ★):</label>
-                            <p class="form-data-value">{{ selected_session_data.session_rating_subjective | default('N/A') }}{% if selected_session_data.session_rating_subjective and selected_session_data.session_rating_subjective not in ['N/A', None] %} ★{% endif %}</p>
-                        </div>
-
-                    </div>
-
-                    <div class="form-group">
-                        <label>General Notes, Problems, Learnings:</label>
-                        <div class="form-data-value preserve-newlines">{{ selected_session_data.general_notes_problems_learnings | default('N/A') }}</div>
-                    </div>
-                </div>
-            {% elif object_specific_sessions %}
-                <p style="margin-top:15px; color:#555;"><em>Select a session from the history above to view its full details.</em></p>
-            {% endif %}
-    {% else %}
-        <p style="margin-top:15px; color:#777;">No journal entries found for {{ alt_name | default(object_name, True) }}.</p>
-    {% endif %}
-  </div>
-  {# End of Journal Section #}
-
-    {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
-    <div class="content-section">
-        <h3>Framing With Your Rigs</h3>
-        <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
-        <table class="framing-table">
+    <h4>Session History:</h4>
+    <div class="table-wrapper" style="max-height: 280px; overflow-y: auto; margin-bottom:15px;"> {# Make it scrollable
+        #}
+        <table class="session-history-table">
             <thead>
-                <tr>
-                    <th>Rig Name</th>
-                    <th>Rig FOV</th>
-                    <th>Object Size</th>
-                    <th>Fit Assessment</th>
-                </tr>
+            <tr>
+                <th class="col-date">Date</th>
+                <th class="col-location">Location</th>
+                <th class="col-setup">Telescope Setup</th>
+                <th class="col-integ">Integ. Time</th>
+                <th class="col-rating">Rating</th>
+            </tr>
             </thead>
             <tbody>
-                {% set object_size = object_main_details.Size | float %}
-                {% for rig in available_rigs %}
-                    {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
-                        {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
-                        {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
-
-                        {# --- NEW, MORE DETAILED LOGIC --- #}
-                        {% if object_size > fov_max %}
-                            {% set fit_text = "Mosaic Required" %}
-                            {% set fit_color = "#e74c3c" %} {# Red #}
-
-                        {% elif object_size > fov_min %}
-                            {% set fit_text = "Fits with Rotation" %}
-                            {% set fit_color = "#f39c12" %} {# Orange #}
-
-                        {% else %}
-                            {# The object fits easily, so now we assess how well #}
-                            {% set fit_ratio = (object_size / fov_min) * 100 %}
-
-                            {% if fit_ratio < 5 %}
-                                {# NEW CATEGORY for very small objects #}
-                                {% set fit_text = "Small Target" %}
-                                {% set fit_color = "#9b59b6" %} {# Purple #}
-                            {% elif fit_ratio < 20 %}
-                                {% set fit_text = "Wide Field" %}
-                                {% set fit_color = "#3498db" %} {# Blue #}
-                            {% else %}
-                                {% set fit_text = "Good Fit" %}
-                                {% set fit_color = "#2ecc71" %} {# Green #}
-                            {% endif %}
-                        {% endif %}
-
-                        <tr>
-                            <td><strong>{{ rig.rig_name }}</strong></td>
-                            <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
-                            <td>{{ object_size }}'</td>
-                            <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
-                        </tr>
-                    {% endif %}
-                {% endfor %}
+            {% for session_item in object_specific_sessions %}
+            <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}"
+                onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}'">
+                <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}</td>
+                <td class="col-location">{{ session_item.location_name | default("N/A") }}</td>
+                <td class="col-setup">{{ session_item.telescope_setup_notes | default("N/A") | truncate(50, True) }}
+                </td>
+                <td class="col-integ">
+                    {% set integ_min = session_item.get('calculated_integration_time_minutes') %}
+                    {{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min
+                </td>
+                <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if
+                    session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and
+                    session_item.session_rating_subjective is not none %} ★{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
+
+    {% if selected_session_data %}
+    <div class="selected-session-details"> {# Keep this outer wrapper #}
+        <h4>Details for Session: {{ selected_session_data.session_date | date_eu }}
+            {% if selected_session_data.session_id %}<small>(ID: {{ selected_session_data.session_id[:8] }}...)</small>{%
+            endif %}
+        </h4>
+        <div class="action-button-group">
+            {% if is_guest %}
+            <a href="#" onclick="alert('Please log in to edit journal sessions.'); return false;" class="inline-button"
+               style="background-color:#ffc107; color:black;">Edit This Session</a>
+            {% else %}
+            <a href="{{ url_for('journal_edit', session_id=selected_session_data.session_id) }}" class="inline-button"
+               style="background-color:#ffc107; color:black;">Edit This Session</a>
+            {% endif %}
+            {% if is_guest %}
+            <button type="button" class="inline-button" style="background-color:#dc3545;"
+                    onclick="alert('Please log in to delete journal sessions.');">Delete This Session
+            </button>
+            {% else %}
+            <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST"
+                  style="display:inline;"
+                  onsubmit="return confirm('Are you sure you want to delete this journal entry? This action cannot be undone.');">
+                <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+        {# --- Mimicking journal_form.html structure --- #}
+        <div class="form-section-title" style="margin-top:20px;">Core Info</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Session Date:</label>
+                <p class="form-data-value">{{ selected_session_data.session_date | date_eu | default('N/A') }}</p>
+            </div>
+            <div class="form-group">
+                <label>Target Object:</label>
+                <p class="form-data-value">{{ selected_session_data.target_object_id | default('N/A') }}</p>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Location:</label>
+            <p class="form-data-value">{{ selected_session_data.location_name | default('N/A') }}</p>
+        </div>
+
+        <div class="form-section-title">Sky Conditions (Observed)</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Seeing (FWHM, arcsec):</label>
+                <p class="form-data-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}{% if
+                    selected_session_data.seeing_observed_fwhm and selected_session_data.seeing_observed_fwhm not in
+                    ['N/A', None] %}"{% endif %}</p>
+            </div>
+            <div class="form-group">
+                <label>Transparency Scale:</label>
+                <p class="form-data-value">{{ selected_session_data.transparency_observed_scale | default('N/A') }}</p>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>SQM Reading:</label>
+                <p class="form-data-value">{{ selected_session_data.sky_sqm_observed | default('N/A') }}</p>
+            </div>
+            <div class="form-group"></div>
+        </div>
+        <div class="form-group">
+            <label>Weather Notes:</label>
+            <div class="form-data-value preserve-newlines">{{ selected_session_data.weather_notes | default('N/A') }}
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Moon Illumination (Session):</label>
+                <p class="form-data-value">{{ selected_session_data.moon_illumination_session | default('N/A') }}{% if
+                    selected_session_data.moon_illumination_session not in ['N/A', None] %}%{% endif %}</p>
+            </div>
+            <div class="form-group">
+                <label>Moon Angular Separation (Session):</label>
+                <p class="form-data-value">{{ selected_session_data.moon_angular_separation_session | default('N/A')
+                    }}{% if selected_session_data.moon_angular_separation_session not in ['N/A', None] %}°{% endif
+                    %}</p>
+            </div>
+        </div>
+        <div class="form-section-title">Equipment & Guiding</div>
+        <div class="form-group">
+            <label>Telescope Setup Notes:</label>
+            <p class="form-data-value">{{ selected_session_data.telescope_setup_notes | default('N/A') }}</p>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Filter Used:</label>
+                <p class="form-data-value">{{ selected_session_data.filter_used_session | default('N/A') }}</p>
+            </div>
+            <div class="form-group">
+                <label>Guiding RMS (avg, arcsec):</label>
+                <p class="form-data-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}{% if
+                    selected_session_data.guiding_rms_avg_arcsec and selected_session_data.guiding_rms_avg_arcsec not in
+                    ['N/A', None] %}"{% endif %}</p>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Guiding Equipment (Scope, Camera, Software):</label>
+            <p class="form-data-value">{{ selected_session_data.guiding_equipment | default('N/A') }}</p>
+        </div>
+        <div class="form-group">
+            <label>Dither Settings:</label>
+            <p class="form-data-value">{{ selected_session_data.dither_details | default('N/A') }}</p>
+        </div>
+        <div class="form-group">
+            <label>Acquisition Software:</label>
+            <p class="form-data-value">{{ selected_session_data.acquisition_software | default('N/A') }}</p>
+        </div>
+        <div class="form-section-title">Acquisition Details</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Sub Exposure (seconds):</label>
+                <p class="form-data-value">{{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s</p>
+            </div>
+            <div class="form-group">
+                <label>Number of Light Subs:</label>
+                <p class="form-data-value">{{ selected_session_data.number_of_subs_light | default('N/A') }}</p>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Gain:</label>
+                <p class="form-data-value">{{ selected_session_data.gain_setting | default('N/A') }}</p>
+            </div>
+            <div class="form-group">
+                <label>Offset:</label>
+                <p class="form-data-value">{{ selected_session_data.offset_setting | default('N/A') }}</p>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Binning:</label>
+                <p class="form-data-value">{{ selected_session_data.binning_session | default('N/A') }}</p>
+            </div>
+            <div class="form-group">
+                <label>Total Integration:</label>
+                <p class="form-data-value">
+                    {% set integ_min_detail = selected_session_data.get('calculated_integration_time_minutes') %}
+                    {{ integ_min_detail | round(0) if integ_min_detail is number and integ_min_detail != 'N/A' else
+                    'N/A' }} min
+                </p>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Camera Temp Setpoint (°C):</label>
+                <p class="form-data-value">{{ selected_session_data.camera_temp_setpoint_c | default('N/A') }}°C</p>
+            </div>
+            <div class="form-group">
+                <label>Camera Temp Actual Avg (°C):</label>
+                <p class="form-data-value">{{ selected_session_data.camera_temp_actual_avg_c | default('N/A') }}°C</p>
+            </div>
+        </div>
+
+        <div class="form-section-title">Monochrome Filter Exposures</div>
+
+        {% set filters_display = [
+        ('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'),
+        ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')
+        ] %}
+
+        {% for filt_key, filt_name in filters_display %}
+        {% set subs_val = selected_session_data.get('filter_' + filt_key + '_subs') %}
+        {% set exp_val = selected_session_data.get('filter_' + filt_key + '_exposure_sec') %}
+
+        {# Only display the row if there's data for either subs or exposure for that filter #}
+        {% if (subs_val is not none and subs_val|string|trim != '') or
+        (exp_val is not none and exp_val|string|trim != '') %}
+        {# The rest of the div.form-row and its content remains the same as before #}
+        <div class="form-row" style="margin-bottom: 8px;">
+            <div class="form-group" style="flex: 0 0 200px; display: flex; align-items: center;">
+                <label style="margin-bottom: 0;">{{ filt_name }} ({{ filt_key }}) Filter:</label>
+            </div>
+            <div class="form-group">
+                <label># Subs:</label>
+                <p class="form-data-value">{{ subs_val | default('N/A') }}</p>
+            </div>
+            <div class="form-group">
+                <label>Exp (sec/sub):</label>
+                <p class="form-data-value">{{ exp_val | default('N/A') }}</p>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="form-section-title">Calibration Strategy</div>
+        <div class="form-group">
+            <label>Darks:</label>
+            <p class="form-data-value">{{ selected_session_data.darks_strategy | default('N/A') }}</p>
+        </div>
+        <div class="form-group">
+            <label>Flats:</label>
+            <p class="form-data-value">{{ selected_session_data.flats_strategy | default('N/A') }}</p>
+        </div>
+        <div class="form-group">
+            <label>Bias / Dark Flats:</label>
+            <p class="form-data-value">{{ selected_session_data.bias_darkflats_strategy | default('N/A') }}</p>
+        </div>
+
+        <div class="form-section-title">Outcome & Reflections</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Session Rating (1-5 ★):</label>
+                <p class="form-data-value">{{ selected_session_data.session_rating_subjective | default('N/A') }}{% if
+                    selected_session_data.session_rating_subjective and selected_session_data.session_rating_subjective
+                    not in ['N/A', None] %} ★{% endif %}</p>
+            </div>
+
+        </div>
+
+        <div class="form-group">
+            <label>General Notes, Problems, Learnings:</label>
+            <div class="form-data-value preserve-newlines">{{ selected_session_data.general_notes_problems_learnings |
+                default('N/A') }}
+            </div>
+        </div>
+    </div>
+    {% elif object_specific_sessions %}
+    <p style="margin-top:15px; color:#555;"><em>Select a session from the history above to view its full details.</em>
+    </p>
     {% endif %}
+    {% else %}
+    <p style="margin-top:15px; color:#777;">No journal entries found for {{ alt_name | default(object_name, True)
+        }}.</p>
+    {% endif %}
+</div>
+{# End of Journal Section #}
 
-  {# This was your 'button-container' div previously, now wrapped and styled #}
-  <div class="content-section project-notes-section">
-       <h3>Project Notes</h3>
-       <textarea id="project-field" name="project_notes_from_config" title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
-       <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
-       <div class="button-group"> {# Your existing group of buttons for this object #}
-           <button class="inline-button" onclick="saveProject()">Save Project Notes</button> {# If you make project-field editable #}
-           <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
-           <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
-           <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
-           <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
-       </div>
-       <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
-  </div>
-  {# End of Project Notes Section #}
-
-
-  <div id="simbadContainer" style="display:none; margin-top:20px;">
-    <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
-  </div>
-
-  <div id="opportunities-section" style="display: none; max-width: 800px; margin-top: 30px;">
-    <div class="opportunities-heading">Imaging Opportunities:<br><small>Note: The star rating does not differentiate whether the moon is above or below the horizon.</small></div>
-    <table id="opportunities-table" class="opportunity-table center-text">
-      <thead>
+{% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
+<div class="content-section">
+    <h3>Framing With Your Rigs</h3>
+    <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension
+        and may not reflect framing of specific features.</em></p>
+    <table class="framing-table">
+        <thead>
         <tr>
-          <th>Date</th>
-          <th>From</th> <th>To</th> <th>Obs Duration (min)</th>
-          <th>Max Alt (°)</th>
-          <th>Moon Illum (%)</th>
-          <th>Ang Sep (°)</th>
-          <th>Rating</th>
-          <th>Add to Cal</th> </tr>
+            <th>Rig Name</th>
+            <th>Rig FOV</th>
+            <th>Object Size</th>
+            <th>Fit Assessment</th>
         </tr>
-      </thead>
-      <tbody id="opportunities-body">
-        {# Populated by loadImagingOpportunities() #}
-      </tbody>
+        </thead>
+        <tbody>
+        {% set object_size = object_main_details.Size | float %}
+        {% for rig in available_rigs %}
+        {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
+        {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
+        {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
+
+        {# --- NEW, MORE DETAILED LOGIC --- #}
+        {% if object_size > fov_max %}
+        {% set fit_text = "Mosaic Required" %}
+        {% set fit_color = "#e74c3c" %} {# Red #}
+
+        {% elif object_size > fov_min %}
+        {% set fit_text = "Fits with Rotation" %}
+        {% set fit_color = "#f39c12" %} {# Orange #}
+
+        {% else %}
+        {# The object fits easily, so now we assess how well #}
+        {% set fit_ratio = (object_size / fov_min) * 100 %}
+
+        {% if fit_ratio < 5 %}
+        {# NEW CATEGORY for very small objects #}
+        {% set fit_text = "Small Target" %}
+        {% set fit_color = "#9b59b6" %} {# Purple #}
+        {% elif fit_ratio < 20 %}
+        {% set fit_text = "Wide Field" %}
+        {% set fit_color = "#3498db" %} {# Blue #}
+        {% else %}
+        {% set fit_text = "Good Fit" %}
+        {% set fit_color = "#2ecc71" %} {# Green #}
+        {% endif %}
+        {% endif %}
+
+        <tr>
+            <td><strong>{{ rig.rig_name }}</strong></td>
+            <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
+            <td>{{ object_size }}'</td>
+            <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+        </tbody>
     </table>
-  </div>
-    <div id="framing-modal" class="modal">
-        <div id="framing-modal-content">
+</div>
+{% endif %}
+
+{# This was your 'button-container' div previously, now wrapped and styled #}
+<div class="content-section project-notes-section">
+    <h3>Project Notes</h3>
+    <textarea id="project-field" name="project_notes_from_config"
+              title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
+    <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+    <div class="button-group"> {# Your existing group of buttons for this object #}
+        <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
+        {# If you make project-field editable #}
+        <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
+        <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
+        <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
+        <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
+    </div>
+    <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+</div>
+{# End of Project Notes Section #}
+
+
+<div id="simbadContainer" style="display:none; margin-top:20px;">
+    <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
+</div>
+
+<div id="opportunities-section" style="display: none; max-width: 800px; margin-top: 30px;">
+    <div class="opportunities-heading">Imaging Opportunities:<br><small>Note: The star rating does not differentiate
+        whether the moon is above or below the horizon.</small></div>
+    <table id="opportunities-table" class="opportunity-table center-text">
+        <thead>
+        <tr>
+            <th>Date</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Obs Duration (min)</th>
+            <th>Max Alt (°)</th>
+            <th>Moon Illum (%)</th>
+            <th>Ang Sep (°)</th>
+            <th>Rating</th>
+            <th>Add to Cal</th>
+        </tr>
+        </tr>
+        </thead>
+        <tbody id="opportunities-body">
+        {# Populated by loadImagingOpportunities() #}
+        </tbody>
+    </table>
+</div>
+<div id="framing-modal" class="modal">
+    <div id="framing-modal-content">
         <div class="modal-controls">
-          <button type="button" class="fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen" onclick="toggleFramingFullscreen(this)">⤢</button>
-          <button type="button" class="close-btn" aria-label="Close" title="Close" onclick="closeFramingAssistant()">×</button>
+            <button type="button" class="fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen"
+                    onclick="toggleFramingFullscreen(this)">⤢
+            </button>
+            <button type="button" class="close-btn" aria-label="Close" title="Close" onclick="closeFramingAssistant()">
+                ×
+            </button>
         </div>
 
         <!-- Modal header (inside the white panel) -->
         <div class="modal-header-bar">
-          <div class="brand">
-            <span class="brand-strong">Nova</span>
-            <span class="brand-light">DSO Tracker</span>
-          </div>
-          <span id="fov-vs-object" class="fov-chip"></span>
+            <div class="brand">
+                <span class="brand-strong">Nova</span>
+                <span class="brand-light">DSO Tracker</span>
+            </div>
+            <span id="fov-vs-object" class="fov-chip"></span>
         </div>
 
-          <!-- QoL utility bar -->
-    <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
-      <label style="display:flex;align-items:center;gap:6px;">
-        <input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)">
-        Lock FOV to object
-      </label>
+        <!-- QoL utility bar -->
+        <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
+            <label style="display:flex;align-items:center;gap:6px;">
+                <input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)">
+                Lock FOV to object
+            </label>
 
-      <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
-      <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
-      <button type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="insertFramingIntoProject()">Insert into Project</button>
-    </div>
-    <div class="framing-controls">
-      <div>
-        <label for="framing-rig-select">Select Rig:</label>
-        <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();">
-          {% if available_rigs %}
-            {% for rig in available_rigs %}
-              <option value="{{ rig.rig_id }}"
-                      data-fovw="{{ rig.fov_w_arcmin }}"
-                      data-fovh="{{ rig.fov_h_arcmin }}">
-                {{ rig.rig_name }}
-              </option>
-            {% endfor %}
-          {% else %}
-            <option value="">No rigs configured</option>
-          {% endif %}
-        </select>
-      </div>
-
-      <div>
-        <label for="framing-rotation">Rotation:</label>
-        <input type="range" id="framing-rotation" min="0" max="360" value="0" step="1"
-               oninput="window.updateFramingChart(false)" onchange="window.updateFramingChart(false)">
-        <span id="rotation-value">0°</span>
-      </div>
-
-      <div>
-        <label for="survey-select">Survey:</label>
-        <select id="survey-select" onchange="setSurvey(this.value)">
-          <option value="P/DSS2/color">DSS2 (color)</option>
-          <option value="P/allWISE/color">AllWISE (color)</option>
-          <option value="P/2MASS/color">2MASS (color)</option>
-          <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
-          <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
-          <option value="CDS/P/SHASSA">SHASSA Hα</option>
-          <option value="P/SDSS9/color">SDSS9 (color)</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Image tuning + RA/Dec utility bar -->
-    <div class="framing-controls" style="flex-wrap: wrap;">
-      <div>
-        <label>Brightness</label>
-        <input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()">
-      </div>
-      <div>
-        <label>Contrast</label>
-        <input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()">
-      </div>
-      <div>
-        <label>Gamma</label>
-        <input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" oninput="updateImageAdjustments()">
-      </div>
-      <div>
-        <label>Saturation</label>
-        <input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()">
-      </div>
-
-      <div style="display:flex; align-items:center; gap:6px;">
-        <label>RA</label>
-        <input id="ra-readout" type="text" style="width:160px;" readonly>
-        <label>Dec</label>
-        <input id="dec-readout" type="text" style="width:160px;" readonly>
-        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
-<!--        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="useReadoutAsFovCenter()">Use current RA/Dec</button>-->
-      </div>
-
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:12px;color:#555;">Tip: Click on the sky to move the FOV center.</span>
-        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="resetFovCenterToObject()">Recenter to object</button>
-        <div style="display:flex; align-items:center; gap:4px;">
-          <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">↑</button>
-          <div>
-            <button class="inline-button" style="padding:4px 8px;" title="Nudge Left" onclick="nudgeFov(-1, 0)">←</button>
-            <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" onclick="nudgeFov(+1, 0)">→</button>
-          </div>
-          <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">↓</button>
-          <span style="font-size:12px;color:#555;">(1′ steps)</span>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°
+            </button>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy
+                framing URL
+            </button>
+            <button type="button" class="inline-button" style="padding:6px 10px;font-size:13px;"
+                    onclick="insertFramingIntoProject()">Insert into Project
+            </button>
         </div>
-      </div>
-    </div>
+        <div class="framing-controls">
+            <div>
+                <label for="framing-rig-select">Select Rig:</label>
+                <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();">
+                    {% if available_rigs %}
+                    {% for rig in available_rigs %}
+                    <option value="{{ rig.rig_id }}"
+                            data-fovw="{{ rig.fov_w_arcmin }}"
+                            data-fovh="{{ rig.fov_h_arcmin }}">
+                        {{ rig.rig_name }}
+                    </option>
+                    {% endfor %}
+                    {% else %}
+                    <option value="">No rigs configured</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <div>
+                <label for="framing-rotation">Rotation:</label>
+                <input type="range" id="framing-rotation" min="0" max="360" value="0" step="1"
+                       oninput="window.updateFramingChart(false)" onchange="window.updateFramingChart(false)">
+                <span id="rotation-value">0°</span>
+            </div>
+
+            <div>
+                <label for="survey-select">Survey:</label>
+                <select id="survey-select" onchange="setSurvey(this.value)">
+                    <option value="P/DSS2/color">DSS2 (color)</option>
+                    <option value="P/allWISE/color">AllWISE (color)</option>
+                    <option value="P/2MASS/color">2MASS (color)</option>
+                    <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
+                    <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
+                    <option value="CDS/P/SHASSA">SHASSA Hα</option>
+                    <option value="P/SDSS9/color">SDSS9 (color)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Image tuning + RA/Dec utility bar -->
+        <div class="framing-controls" style="flex-wrap: wrap;">
+            <div>
+                <label>Brightness</label>
+                <input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0"
+                       oninput="updateImageAdjustments()">
+            </div>
+            <div>
+                <label>Contrast</label>
+                <input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0"
+                       oninput="updateImageAdjustments()">
+            </div>
+            <div>
+                <label>Gamma</label>
+                <input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1"
+                       oninput="updateImageAdjustments()">
+            </div>
+            <div>
+                <label>Saturation</label>
+                <input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0"
+                       oninput="updateImageAdjustments()">
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px;">
+                <label>RA</label>
+                <input id="ra-readout" type="text" style="width:160px;" readonly>
+                <label>Dec</label>
+                <input id="dec-readout" type="text" style="width:160px;" readonly>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy
+                </button>
+                <!--        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="useReadoutAsFovCenter()">Use current RA/Dec</button>-->
+            </div>
+
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:12px;color:#555;">Tip: Click on the sky to move the FOV center.</span>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;"
+                        onclick="resetFovCenterToObject()">Recenter to object
+                </button>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">
+                        ↑
+                    </button>
+                    <div>
+                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Left"
+                                onclick="nudgeFov(-1, 0)">←
+                        </button>
+                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Right"
+                                onclick="nudgeFov(+1, 0)">→
+                        </button>
+                    </div>
+                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">
+                        ↓
+                    </button>
+                    <span style="font-size:12px;color:#555;">(1′ steps)</span>
+                </div>
+            </div>
+        </div>
         <div id="aladin-lite-div"></div>
-      </div>
     </div>
+</div>
 
 <script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
@@ -1369,13 +1375,13 @@
 
 <script>
 
-      const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
-      Chart.defaults.adapters = Chart.defaults.adapters || {};
-      Chart.defaults.adapters.date = {
+    const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
+    Chart.defaults.adapters = Chart.defaults.adapters || {};
+    Chart.defaults.adapters.date = {
         ...(Chart.defaults.adapters.date || {}),
         zone: plotTz
-      };
-      console.log('Adapter:', Chart._adapters?._date?.id, 'Zone:', Chart.defaults.adapters.date.zone);
+    };
+    console.log('Adapter:', Chart._adapters?._date?.id, 'Zone:', Chart.defaults.adapters.date.zone);
 
     const OBJECT_SIZE_ARCMIN = null;
     // --- Aladin Lite Variables ---
@@ -1386,421 +1392,511 @@
 
     // Function to parse a HH:MM time string and combine it with a date object
     function getDateTimeMs(baseDateISO, timeStr) {
-      if (!timeStr || !timeStr.includes(':')) return null;
-      const [hour, minute] = timeStr.split(':').map(Number);
-      const base = luxon.DateTime.fromISO(baseDateISO, { zone: plotTz }).startOf('day');
-      return base.set({ hour, minute, second: 0, millisecond: 0 }).toMillis();
+        if (!timeStr || !timeStr.includes(':')) return null;
+        const [hour, minute] = timeStr.split(':').map(Number);
+        const base = luxon.DateTime.fromISO(baseDateISO, {zone: plotTz}).startOf('day');
+        return base.set({hour, minute, second: 0, millisecond: 0}).toMillis();
     }
 
     // The main function to fetch data and render the chart
 
     async function renderClientSideChart() {
-      const chartLoadingDiv = document.getElementById('chart-loading');
-      chartLoadingDiv?.classList.remove('hidden');
+        const chartLoadingDiv = document.getElementById('chart-loading');
+        chartLoadingDiv?.classList.remove('hidden');
 
-      // Inputs from the page
-      const objectName = "{{ object_name }}";
-      const day   = document.getElementById('day-select').value;
-      const month = document.getElementById('month-select').value;
-      const year  = document.getElementById('year-select').value;
+        // Inputs from the page
+        const objectName = "{{ object_name }}";
+        const day = document.getElementById('day-select').value;
+        const month = document.getElementById('month-select').value;
+        const year = document.getElementById('year-select').value;
 
-      const plotLat = "{{ graph_lat_param | default('', True) }}";
-      const plotLon = "{{ graph_lon_param | default('', True) }}";
-      const plotTz  = "{{ graph_tz_name_param | default('', True) }}";
+        const plotLat = "{{ graph_lat_param | default('', True) }}";
+        const plotLon = "{{ graph_lon_param | default('', True) }}";
+        const plotTz = "{{ graph_tz_name_param | default('', True) }}";
 
-      const apiUrl =
-        `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}` +
-        `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
+        const apiUrl =
+            `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}` +
+            `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
 
-      try {
-        // --- fetch data
-        const resp = await fetch(apiUrl);
-        if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
-        const data = await resp.json();
+        try {
+            // --- fetch data
+            const resp = await fetch(apiUrl);
+            if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
+            const data = await resp.json();
 
-        // --- build times + annotations
-        // Robust “to milliseconds” parser for mixed inputs
-        function toMs(val) {
-          // Numeric? treat < 1e12 as seconds; otherwise milliseconds
-          if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
+            // --- build times + annotations
+            // Robust “to milliseconds” parser for mixed inputs
+            function toMs(val) {
+                // Numeric? treat < 1e12 as seconds; otherwise milliseconds
+                if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
 
-          if (typeof val === 'string') {
-            // Does the string already carry a timezone/offset? (…Z or ±HH:MM)
-            const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
+                if (typeof val === 'string') {
+                    // Does the string already carry a timezone/offset? (…Z or ±HH:MM)
+                    const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
 
-            if (hasOffset) {
-              // Respect the embedded offset, then show in plotTz
-              return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
-            } else {
-              // “Naive” wall time → interpret directly in plotTz
-              return luxon.DateTime.fromISO(val, { zone: plotTz }).toMillis();
-            }
-          }
-          return null;
-        }
-
-        const labels = data.times.map(toMs);
-        const annotations = {};
-
-        const baseDate = new Date(data.date);
-        const nextDate = new Date(baseDate);
-        nextDate.setDate(baseDate.getDate() + 1);
-
-
-        // Base day and “next” day in the *plot timezone*
-        // Base day and “next” day in the *plot timezone*
-        const baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });
-        const nextDt = baseDt.plus({ days: 1 });
-
-        // Helper to parse HH:MM and combine with a given date object
-        function wallTimeMs(baseDateTime, timeStr) {
-            if (!timeStr || !timeStr.includes(':')) return null;
-            const [h, m] = timeStr.split(':').map(Number);
-            return baseDateTime.set({ hour: h, minute: m, second: 0, millisecond: 0 }).toMillis();
-        }
-
-        // --- NEW, CORRECTED LOGIC ---
-        // Get the sunset time for the base date as a reference point.
-        const sunsetTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.sunset);
-
-        // Determine the correct date for dusk.
-        let duskTime;
-        const duskTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
-        if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) {
-            // If dusk time is before sunset time, it belongs to the next calendar day.
-            duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
-        } else {
-            duskTime = duskTimeCurrent;
-        }
-
-        // Dawn and sunrise always belong to the next calendar day.
-        const dawnTime    = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
-        const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
-        const sunsetTime  = sunsetTimeCurrent; // Assign for annotation
-
-        // Use Luxon to compute midnight at the plotting location’s timezone, then work in ms
-        const firstMs = labels[0];
-        const lastMs  = labels[labels.length - 1];
-        const originalWindowMs = lastMs - firstMs;
-
-        const midnightMs = luxon.DateTime
-          .fromISO(data.date, { zone: plotTz })
-          .plus({ days: 1 })       // midnight that splits the night (00:00 of "next" date)
-          .startOf('day')
-          .toMillis();
-
-        const currentCenterMs = (firstMs + lastMs) / 2;
-        const delta = midnightMs - currentCenterMs;
-
-        const xMinCentered = firstMs + delta;
-        const xMaxCentered = xMinCentered + originalWindowMs;
-
-        if (sunsetTime) {
-          annotations.sunsetLine = {
-            type: 'line',
-            xMin: sunsetTime,  xMax: sunsetTime,
-            borderColor: 'black', borderWidth: 1,
-            label: { display: true, content: 'Sunset', position: 'start', rotation: 90,  font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
-          };
-        }
-        if (duskTime) {
-          annotations.duskLine = {
-            type: 'line',
-            xMin: duskTime,    xMax: duskTime,
-            borderColor: 'black', borderWidth: 1,
-            label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
-          };
-        }
-        if (dawnTime) {
-          annotations.dawnLine = {
-            type: 'line',
-            xMin: dawnTime,    xMax: dawnTime,
-            borderColor: 'black', borderWidth: 1,
-            label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
-          };
-        }
-        if (sunriseTime) {
-          annotations.sunriseLine = {
-            type: 'line',
-            xMin: sunriseTime, xMax: sunriseTime,
-            borderColor: 'black', borderWidth: 1,
-            label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: { size: 10, weight: '400' }, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)',borderColor: 'rgba(0,0,0,0.15)',borderWidth: 1 }
-          };
-        }
-
-        if (data.transit_time && data.transit_time !== "N/A") {
-          // We already have baseDt/nextDt in plotTz, and duskTime/dawnTime as epoch ms
-          // Example: baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });
-          const parts = (data.transit_time || '').split(':');
-          const th = Number(parts[0] || 0);
-          const tm = Number(parts[1] || 0);
-
-          // Two candidates: same wall time on the base day, and on the next day
-          const t0 = baseDt.set({ hour: th, minute: tm, second: 0, millisecond: 0 }).toMillis();     // evening candidate
-          const t1 = baseDt.plus({ days: 1 }).set({ hour: th, minute: tm, second: 0, millisecond: 0 }).toMillis(); // after-midnight candidate
-
-          // Night window [astronomical dusk .. astronomical dawn]
-          const nightStart = duskTime;   // ms (same night, typically before midnight)
-          const nightEnd   = dawnTime;   // ms (next morning, after midnight)
-
-          // Choose the candidate that lands inside the night window; if neither, pick the closer to midnight
-          const inWindow = (t) => t >= nightStart && t <= nightEnd;
-          const transitMs = inWindow(t0)
-            ? t0
-            : inWindow(t1)
-              ? t1
-              : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
-
-          annotations.transitLine = {
-            type: 'line',
-            xMin: transitMs, xMax: transitMs,
-            borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6],
-            clip: false,
-            label: {
-              display: true,
-              content: data.transit_time,    // e.g., "23:03"
-              position: 'start',
-              rotation: 90,
-              font: { size: 10, weight: 'bold' },
-              color: 'crimson',
-              backgroundColor: 'rgba(255,255,255,0.7)'
-            }
-          };
-        }
-
-        // night-shade background as a plugin (so we don’t touch options.beforeDraw)
-        const nightShade = {
-            id: 'nightShade',
-            beforeDraw(chart) {
-                const { ctx, chartArea, scales } = chart;
-                if (!chartArea) return; // Exit if chart area isn't ready
-
-                // Get the pixel coordinates for the start and end of the chart's x-axis
-                const left = scales.x.getPixelForValue(scales.x.min);
-                const right = scales.x.getPixelForValue(scales.x.max);
-
-                // --- This section uses the correct dusk and dawn times ---
-                const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
-                const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
-
-                ctx.save();
-                ctx.fillStyle = 'rgba(211, 211, 211, 1)'; // The light gray for "daytime"
-
-                // --- NEW LOGIC ---
-                // If dusk is after dawn (i.e., the entire night is within the 24hr window)
-                if (duskPx < dawnPx) {
-                    // Shade from the start of the chart to dusk
-                    if (duskPx > left) {
-                        ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
+                    if (hasOffset) {
+                        // Respect the embedded offset, then show in plotTz
+                        return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
+                    } else {
+                        // “Naive” wall time → interpret directly in plotTz
+                        return luxon.DateTime.fromISO(val, {zone: plotTz}).toMillis();
                     }
-                    // Shade from dawn to the end of the chart
-                    if (dawnPx < right) {
-                        ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
-                    }
-                } else {
-                    // This handles cases where there is no astronomical night (polar summer)
-                    // or the shading wraps around. We just shade the whole thing gray.
-                    ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
                 }
-                ctx.restore();
+                return null;
             }
-        };
 
-        // create / replace chart
-        const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
-        if (window.altitudeChart) window.altitudeChart.destroy();
+            const labels = data.times.map(toMs);
+            const annotations = {};
 
-        window.altitudeChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [
-              { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-              { label: 'Moon Altitude',            data: data.moon_alt,   borderColor: '#FFC107',     yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-              { label: 'Horizon',                  data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
-              { label: '{{ object_name }} Azimuth',data: data.object_az,  borderColor: '#36A2EB',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
-              { label: 'Moon Azimuth',             data: data.moon_az,    borderColor: '#FFC107',     yAxisID: 'yAzimuth',  borderDash: [5,5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
-            ]
-          },
-          plugins: [nightShade],
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2,
-            adapters: { date: { zone: plotTz } },
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2,
-            plugins: {
-              annotation: { annotations },
-              legend: { position: 'top' },
-              title: {
-                display: false,
-                text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`,
-                align: 'start',
-                font: { size: 16 }
-              }
-            },
-            scales: {
-                x: {
-                  type: 'time',
-                  adapters: {
-                      date: {
-                          zone: plotTz
-                      }
-                  },
-                  parsing: false,                           // we pass epoch ms already
-                  time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+            const baseDate = new Date(data.date);
+            const nextDate = new Date(baseDate);
+            nextDate.setDate(baseDate.getDate() + 1);
 
-                  // keep midnight centered using your computed window
-                  min: xMinCentered,
-                  max: xMaxCentered,
-                  bounds: 'ticks',
+            const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
+            const nextDt = baseDt.plus({days: 1});
 
-                  // let the adapter format in the plot timezone (no custom callback here)
-                  ticks: { source: 'auto' },
+            // Helper to parse HH:MM and combine with a given date object
+            function wallTimeMs(baseDateTime, timeStr) {
+                if (!timeStr || !timeStr.includes(':')) return null;
+                const [h, m] = timeStr.split(':').map(Number);
+                return baseDateTime.set({hour: h, minute: m, second: 0, millisecond: 0}).toMillis();
+            }
 
-                  grid:  { color: 'rgba(128,128,128,0.5)', borderDash: [2, 2] },
-                  title: { display: true, text: `Time (Local - {{ header_location_name }})` }
+            // Get the sunset time for the base date as a reference point.
+            const sunsetTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.sunset);
+
+            // Determine the correct date for dusk.
+            let duskTime;
+            const duskTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
+            if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) {
+                // If dusk time is before sunset time, it belongs to the next calendar day.
+                duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
+            } else {
+                duskTime = duskTimeCurrent;
+            }
+
+            // Dawn and sunrise always belong to the next calendar day.
+            const dawnTime = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
+            const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
+            const sunsetTime = sunsetTimeCurrent; // Assign for annotation
+
+            // Use Luxon to compute midnight at the plotting location’s timezone, then work in ms
+            const firstMs = labels[0];
+            const lastMs = labels[labels.length - 1];
+            const originalWindowMs = lastMs - firstMs;
+
+            const midnightMs = luxon.DateTime
+                .fromISO(data.date, {zone: plotTz})
+                .plus({days: 1})       // midnight that splits the night (00:00 of "next" date)
+                .startOf('day')
+                .toMillis();
+
+            const currentCenterMs = (firstMs + lastMs) / 2;
+            const delta = midnightMs - currentCenterMs;
+
+            const xMinCentered = firstMs + delta;
+            const xMaxCentered = xMinCentered + originalWindowMs;
+
+            if (sunsetTime) {
+                annotations.sunsetLine = {
+                    type: 'line',
+                    xMin: sunsetTime, xMax: sunsetTime,
+                    borderColor: 'black', borderWidth: 1,
+                    label: {
+                        display: true,
+                        content: 'Sunset',
+                        position: 'start',
+                        rotation: 90,
+                        font: {size: 10, weight: '400'},
+                        color: '#222',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
+                        borderColor: 'rgba(0,0,0,0.15)',
+                        borderWidth: 1
+                    }
+                };
+            }
+            if (duskTime) {
+                annotations.duskLine = {
+                    type: 'line',
+                    xMin: duskTime, xMax: duskTime,
+                    borderColor: 'black', borderWidth: 1,
+                    label: {
+                        display: true,
+                        content: 'Astronomical dusk',
+                        position: 'start',
+                        rotation: 90,
+                        font: {size: 10, weight: '400'},
+                        color: '#222',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
+                        borderColor: 'rgba(0,0,0,0.15)',
+                        borderWidth: 1
+                    }
+                };
+            }
+            if (dawnTime) {
+                annotations.dawnLine = {
+                    type: 'line',
+                    xMin: dawnTime, xMax: dawnTime,
+                    borderColor: 'black', borderWidth: 1,
+                    label: {
+                        display: true,
+                        content: 'Astronomical dawn',
+                        position: 'start',
+                        rotation: 90,
+                        font: {size: 10, weight: '400'},
+                        color: '#222',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
+                        borderColor: 'rgba(0,0,0,0.15)',
+                        borderWidth: 1
+                    }
+                };
+            }
+            if (sunriseTime) {
+                annotations.sunriseLine = {
+                    type: 'line',
+                    xMin: sunriseTime, xMax: sunriseTime,
+                    borderColor: 'black', borderWidth: 1,
+                    label: {
+                        display: true,
+                        content: 'Sunrise',
+                        position: 'start',
+                        rotation: 90,
+                        font: {size: 10, weight: '400'},
+                        color: '#222',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
+                        borderColor: 'rgba(0,0,0,0.15)',
+                        borderWidth: 1
+                    }
+                };
+            }
+
+            if (data.transit_time && data.transit_time !== "N/A") {
+                // We already have baseDt/nextDt in plotTz, and duskTime/dawnTime as epoch ms
+                // Example: baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });
+                const parts = (data.transit_time || '').split(':');
+                const th = Number(parts[0] || 0);
+                const tm = Number(parts[1] || 0);
+
+                // Two candidates: same wall time on the base day, and on the next day
+                const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();     // evening candidate
+                const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis(); // after-midnight candidate
+
+                // Night window [astronomical dusk .. astronomical dawn]
+                const nightStart = duskTime;   // ms (same night, typically before midnight)
+                const nightEnd = dawnTime;   // ms (next morning, after midnight)
+
+                // Choose the candidate that lands inside the night window; if neither, pick the closer to midnight
+                const inWindow = (t) => t >= nightStart && t <= nightEnd;
+                const transitMs = inWindow(t0)
+                    ? t0
+                    : inWindow(t1)
+                        ? t1
+                        : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
+
+                annotations.transitLine = {
+                    type: 'line',
+                    xMin: transitMs, xMax: transitMs,
+                    borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6],
+                    clip: false,
+                    label: {
+                        display: true,
+                        content: data.transit_time,    // e.g., "23:03"
+                        position: 'start',
+                        rotation: 90,
+                        font: {size: 10, weight: 'bold'},
+                        color: 'crimson',
+                        backgroundColor: 'rgba(255,255,255,0.7)'
+                    }
+                };
+            }
+
+            // night-shade background as a plugin (so we don’t touch options.beforeDraw)
+            const nightShade = {
+                id: 'nightShade',
+                beforeDraw(chart) {
+                    const {ctx, chartArea, scales} = chart;
+                    if (!chartArea) return; // Exit if chart area isn't ready
+
+                    // Get the pixel coordinates for the start and end of the chart's x-axis
+                    const left = scales.x.getPixelForValue(scales.x.min);
+                    const right = scales.x.getPixelForValue(scales.x.max);
+
+                    // --- This section uses the correct dusk and dawn times ---
+                    const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
+                    const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
+
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(211, 211, 211, 1)'; // The light gray for "daytime"
+
+                    // If dusk is after dawn (i.e., the entire night is within the 24hr window)
+                    if (duskPx < dawnPx) {
+                        // Shade from the start of the chart to dusk
+                        if (duskPx > left) {
+                            ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
+                        }
+                        // Shade from dawn to the end of the chart
+                        if (dawnPx < right) {
+                            ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
+                        }
+                    } else {
+                        ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
+                    }
+                    ctx.restore();
+                }
+            };
+
+            // create / replace chart
+            const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
+            if (window.altitudeChart) window.altitudeChart.destroy();
+
+            window.altitudeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: '{{ object_name }} Altitude',
+                            data: data.object_alt,
+                            borderColor: '#36A2EB',
+                            yAxisID: 'yAltitude',
+                            borderWidth: 4,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Moon Altitude',
+                            data: data.moon_alt,
+                            borderColor: '#FFC107',
+                            yAxisID: 'yAltitude',
+                            borderWidth: 4,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Horizon',
+                            data: Array(labels.length).fill(0),
+                            borderColor: 'black',
+                            yAxisID: 'yAltitude',
+                            borderWidth: 2,
+                            pointRadius: 0
+                        },
+                        {
+                            label: '{{ object_name }} Azimuth',
+                            data: data.object_az,
+                            borderColor: '#36A2EB',
+                            yAxisID: 'yAzimuth',
+                            borderDash: [5, 5],
+                            borderWidth: 3.5,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Moon Azimuth',
+                            data: data.moon_az,
+                            borderColor: '#FFC107',
+                            yAxisID: 'yAzimuth',
+                            borderDash: [5, 5],
+                            borderWidth: 3.5,
+                            pointRadius: 0,
+                            tension: 0.1
+                        }
+                    ]
                 },
+                plugins: [nightShade],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    adapters: {date: {zone: plotTz}},
+                    plugins: {
+                        annotation: {annotations},
+                        legend: {position: 'top'},
+                        title: {
+                            display: false,
+                            text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`,
+                            align: 'start',
+                            font: {size: 16}
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            adapters: {
+                                date: {
+                                    zone: plotTz
+                                }
+                            },
+                            parsing: false,                           // we pass epoch ms already
+                            time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}},
 
-              yAltitude: {
-                position: 'left',
-                min: -90, max: 90,
-                title: { display: true, text: 'Altitude (°)' },
-                grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2, 2] }
-              },
+                            // keep midnight centered using your computed window
+                            min: xMinCentered,
+                            max: xMaxCentered,
+                            bounds: 'ticks',
 
-              yAzimuth: {
-                position: 'right',
-                min: 0, max: 360,
-                title: { display: true, text: 'Azimuth (°)' },
-                grid: { drawOnChartArea: false }
-              }
-            }
-          }
-        });
+                            // let the adapter format in the plot timezone (no custom callback here)
+                            ticks: {source: 'auto'},
 
-      } catch (err) {
-        console.error('Could not render chart:', err);
-        const canvas = document.getElementById('altitudeChartCanvas');
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'red';
-        ctx.textAlign = 'center';
-        ctx.fillText('Error: Could not load chart data.', canvas.width / 2, canvas.height / 2);
-      } finally {
-        chartLoadingDiv?.classList.add('hidden');
-      }
+                            grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]},
+                            title: {display: true, text: `Time (Local - {{ header_location_name }})`}
+                        },
+
+                        yAltitude: {
+                            position: 'left',
+                            min: -90, max: 90,
+                            title: {display: true, text: 'Altitude (°)'},
+                            grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}
+                        },
+
+                        yAzimuth: {
+                            position: 'right',
+                            min: 0, max: 360,
+                            title: {display: true, text: 'Azimuth (°)'},
+                            grid: {drawOnChartArea: false}
+                        }
+                    }
+                }
+            });
+
+        } catch (err) {
+            console.error('Could not render chart:', err);
+            const canvas = document.getElementById('altitudeChartCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'red';
+            ctx.textAlign = 'center';
+            ctx.fillText('Error: Could not load chart data.', canvas.width / 2, canvas.height / 2);
+        } finally {
+            chartLoadingDiv?.classList.add('hidden');
+        }
     }
 
     async function renderMonthlyYearlyChart(view) {
-      const chartLoadingDiv = document.getElementById('chart-loading');
-      chartLoadingDiv?.classList.remove('hidden');
+        const chartLoadingDiv = document.getElementById('chart-loading');
+        chartLoadingDiv?.classList.remove('hidden');
 
-      const objectName = "{{ object_name }}";
-      const selMonth = document.getElementById('month-select').value;
-      const year     = document.getElementById('year-select').value;
-      const plotLat  = "{{ graph_lat_param | default('', True) }}";
-      const plotLon  = "{{ graph_lon_param | default('', True) }}";
-      const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
+        const objectName = "{{ object_name }}";
+        const selMonth = document.getElementById('month-select').value;
+        const year = document.getElementById('year-select').value;
+        const plotLat = "{{ graph_lat_param | default('', True) }}";
+        const plotLon = "{{ graph_lon_param | default('', True) }}";
+        const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
 
-      let titleText, objAlt = [], moonAlt = [], horizon = [];
+        let titleText, objAlt = [], moonAlt = [], horizon = [];
 
-      try {
-        if (view === 'year') {
-          titleText = `Yearly Altitude at Local Midnight for {{ alt_name }} - ${year}`;
+        try {
+            if (view === 'year') {
+                titleText = `Yearly Altitude at Local Midnight for {{ alt_name }} - ${year}`;
 
-          const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
-          const urls = months.map(m =>
-            `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`
-          );
+                const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
+                const urls = months.map(m =>
+                    `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`
+                );
 
-          const responses = await Promise.all(urls.map(u => fetch(u)));
-          const bad = responses.find(r => !r.ok);
-          if (bad) throw new Error(`HTTP ${bad.status} for ${bad.url}`);
+                const responses = await Promise.all(urls.map(u => fetch(u)));
+                const bad = responses.find(r => !r.ok);
+                if (bad) throw new Error(`HTTP ${bad.status} for ${bad.url}`);
 
-          const monthly = await Promise.all(responses.map(r => r.json()));
+                const monthly = await Promise.all(responses.map(r => r.json()));
 
-          monthly.forEach(block => {
-            block.dates.forEach((d, i) => {
-              const t = `${d}T00:00:00`;
-              objAlt.push({ x: t, y: block.object_alt[i] });
-              moonAlt.push({ x: t, y: block.moon_alt[i] });
-              horizon.push({ x: t, y: 0 });
-            });
-          });
+                monthly.forEach(block => {
+                    block.dates.forEach((d, i) => {
+                        const t = `${d}T00:00:00`;
+                        objAlt.push({x: t, y: block.object_alt[i]});
+                        moonAlt.push({x: t, y: block.moon_alt[i]});
+                        horizon.push({x: t, y: 0});
+                    });
+                });
 
-        } else {
-          titleText = `Monthly Altitude at Local Midnight for {{ alt_name }} - ${year}-${selMonth}`;
+            } else {
+                titleText = `Monthly Altitude at Local Midnight for {{ alt_name }} - ${year}-${selMonth}`;
 
-          const apiUrl =
-            `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}` +
-            `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
+                const apiUrl =
+                    `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}` +
+                    `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
 
-          const resp = await fetch(apiUrl);
-          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-          const data = await resp.json();
+                const resp = await fetch(apiUrl);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
 
-          data.dates.forEach((d, i) => {
-            const t = `${d}T00:00:00`;
-            objAlt.push({ x: t, y: data.object_alt[i] });
-            moonAlt.push({ x: t, y: data.moon_alt[i] });
-            horizon.push({ x: t, y: 0 });
-          });
-        }
-
-        const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
-        if (window.altitudeChart) window.altitudeChart.destroy();
-
-        window.altitudeChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            datasets: [
-              { label: '{{ object_name }} Altitude', data: objAlt, borderColor: '#36A2EB', borderWidth: 3, pointRadius: 0, tension: 0.2 },
-              { label: 'Moon Altitude',              data: moonAlt, borderColor: 'gold',   borderWidth: 2.5, pointRadius: 0, tension: 0.0 },
-              { label: 'Horizon',                    data: horizon, borderColor: 'black',  borderWidth: 2, pointRadius: 0 }
-            ]
-          },
-          options: {
-            adapters: { date: { zone: plotTz } },
-            responsive: true,
-            maintainAspectRatio: true,
-            aspectRatio: 2,
-            scales: {
-              x: {
-                type: 'time',
-                time: {
-                  unit: (view === 'year') ? 'month' : 'day',
-                  displayFormats: (view === 'year') ? { month: 'MMM' } : { day: 'dd' }
-                },
-                title: { display: true, text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}` }
-              },
-              y: {
-                min: -90, max: 90,
-                title: { display: true, text: 'Altitude (°)' }
-              }
-            },
-            plugins: {
-              legend: { position: 'top' },
-              title:  { display: false, text: titleText, align: 'start', font: { size: 16 } }
+                data.dates.forEach((d, i) => {
+                    const t = `${d}T00:00:00`;
+                    objAlt.push({x: t, y: data.object_alt[i]});
+                    moonAlt.push({x: t, y: data.moon_alt[i]});
+                    horizon.push({x: t, y: 0});
+                });
             }
-          }
-        });
 
-      } catch (err) {
-        console.error(`Could not render ${view} chart:`, err);
-        const canvas = document.getElementById('altitudeChartCanvas');
-        if (canvas) {
-          const c = canvas.getContext('2d');
-          c.clearRect(0, 0, canvas.width, canvas.height);
-          c.font = "16px Arial"; c.fillStyle = "red"; c.textAlign = "center";
-          c.fillText(`Error loading ${view} chart data.`, canvas.width / 2, canvas.height / 2);
+            const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
+            if (window.altitudeChart) window.altitudeChart.destroy();
+
+            window.altitudeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        {
+                            label: '{{ object_name }} Altitude',
+                            data: objAlt,
+                            borderColor: '#36A2EB',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Moon Altitude',
+                            data: moonAlt,
+                            borderColor: 'gold',
+                            borderWidth: 2.5,
+                            pointRadius: 0,
+                            tension: 0.0
+                        },
+                        {label: 'Horizon', data: horizon, borderColor: 'black', borderWidth: 2, pointRadius: 0}
+                    ]
+                },
+                options: {
+                    adapters: {date: {zone: plotTz}},
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: (view === 'year') ? 'month' : 'day',
+                                displayFormats: (view === 'year') ? {month: 'MMM'} : {day: 'dd'}
+                            },
+                            title: {
+                                display: true,
+                                text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}`
+                            }
+                        },
+                        y: {
+                            min: -90, max: 90,
+                            title: {display: true, text: 'Altitude (°)'}
+                        }
+                    },
+                    plugins: {
+                        legend: {position: 'top'},
+                        title: {display: false, text: titleText, align: 'start', font: {size: 16}}
+                    }
+                }
+            });
+
+        } catch (err) {
+            console.error(`Could not render ${view} chart:`, err);
+            const canvas = document.getElementById('altitudeChartCanvas');
+            if (canvas) {
+                const c = canvas.getContext('2d');
+                c.clearRect(0, 0, canvas.width, canvas.height);
+                c.font = "16px Arial";
+                c.fillStyle = "red";
+                c.textAlign = "center";
+                c.fillText(`Error loading ${view} chart data.`, canvas.width / 2, canvas.height / 2);
+            }
+        } finally {
+            chartLoadingDiv?.classList.add('hidden');
         }
-      } finally {
-        chartLoadingDiv?.classList.add('hidden');
-      }
     }
 
     // NEW: base image layer handle + FOV center
@@ -1812,411 +1908,419 @@
     let objectCoords = null; // {ra, dec} resolved once per open
 
     function toggleFramingFullscreen(btn) {
-          const modalContent = document.getElementById('framing-modal-content');
-          if (!modalContent) return;
+        const modalContent = document.getElementById('framing-modal-content');
+        if (!modalContent) return;
 
-          modalContent.classList.toggle('fullscreen');
-          // Update button icon/label to reflect the new state
-          const isFullscreen = modalContent.classList.contains('fullscreen');
-          if (btn) {
+        modalContent.classList.toggle('fullscreen');
+        // Update button icon/label to reflect the new state
+        const isFullscreen = modalContent.classList.contains('fullscreen');
+        if (btn) {
             btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; // Shrink / Expand arrows
             btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen';
-          }
         }
+    }
 
-        function setProjectQuickLink(url) {
-            const container = document.getElementById('project-quick-link');
-            if (!container) return;
+    function setProjectQuickLink(url) {
+        const container = document.getElementById('project-quick-link');
+        if (!container) return;
 
-            // Clear any existing button
-            container.innerHTML = '';
+        // Clear any existing button
+        container.innerHTML = '';
 
-            if (url) {
-                const btn = document.createElement('button');
-                btn.className = 'inline-button';
-                btn.style.fontSize = '13px';
-                btn.style.padding = '6px 12px';
-                btn.textContent = 'Re-open Last Saved Framing';
-                btn.onclick = () => {
-                    // Set the URL in the address bar without reloading the page
-                    history.pushState(null, '', url);
-                    // Open the modal, which will now read the new URL parameters
-                    openFramingAssistant();
-                };
-                container.appendChild(btn);
-            }
+        if (url) {
+            const btn = document.createElement('button');
+            btn.className = 'inline-button';
+            btn.style.fontSize = '13px';
+            btn.style.padding = '6px 12px';
+            btn.textContent = 'Re-open Last Saved Framing';
+            btn.onclick = () => {
+                // Set the URL in the address bar without reloading the page
+                history.pushState(null, '', url);
+                // Open the modal, which will now read the new URL parameters
+                openFramingAssistant();
+            };
+            container.appendChild(btn);
         }
+    }
 
     // --- Aladin Lite Functions ---
     function openFramingAssistant() {
-      const framingModal = document.getElementById('framing-modal');
-      const framingRigSelect = document.getElementById('framing-rig-select');
+        const framingModal = document.getElementById('framing-modal');
+        const framingRigSelect = document.getElementById('framing-rig-select');
 
-      if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
-        alert("Please configure at least one rig on the Configuration page first.");
-        return;
-      }
-
-      // Show the modal
-      framingModal.style.display = 'block';
-
-      // Initialize Aladin once
-      if (!aladin) {
-        aladin = A.aladin('#aladin-lite-div', {
-          survey: "P/DSS2/color",
-          fov: 1.5,
-          cooFrame: 'ICRS',
-          showFullscreenControl: false,
-          showGotoControl: false
-        });
-
-        baseSurvey = aladin.getBaseImageLayer();
-
-        // Overlay for the FOV polygon
-        fovLayer = A.graphicOverlay({ color: '#83b4c5', lineWidth: 3 });
-        aladin.addOverlay(fovLayer);
-
-        const canvas = document.getElementById('aladin-lite-div');
-          // --- Watch for canvas size changes so FOV frame always stays visible ---
-        if (window.ResizeObserver && canvas) {
-          let roTimer = null;
-          const ro = new ResizeObserver(() => {
-            clearTimeout(roTimer);
-            roTimer = setTimeout(() => {
-              const sel = document.getElementById('framing-rig-select');
-              if (sel && sel.selectedIndex >= 0) {
-                const opt = sel.options[sel.selectedIndex];
-                applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
-              }
-              updateFramingChart(false);
-            }, 80);
-          });
-          ro.observe(canvas);
-        }
-        // Click → set FOV center to cursor
-        canvas.addEventListener('click', (ev) => {
-          if (lockToObject) return;
-          const rect = canvas.getBoundingClientRect();
-          const x = ev.clientX - rect.left;
-          const y = ev.clientY - rect.top;
-          const sky = aladin.pix2world(x, y);
-          if (!sky) return;
-          fovCenter = { ra: sky[0], dec: sky[1] };
-          updateFramingChart(false);
-          updateReadoutFromCenter();
-        });
-
-        // Keyboard nudges (1′)
-        window.addEventListener('keydown', (e) => {
-          const k = e.key.toLowerCase();
-          if (['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)) {
-            e.preventDefault();
-            if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
-            if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
-            if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
-            if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
-          }
-        });
-      }
-
-      // -------- Restore from URL (rig/center/rotation/survey) --------
-      let haveCenter = false;
-      let haveRot = false;
-      let haveRigRestored = false;
-
-      try {
-        const q   = new URLSearchParams(location.search);
-        const rig = q.get('rig');
-        const ra  = parseFloat(q.get('ra'));
-        const dec = parseFloat(q.get('dec'));
-        const rot = parseFloat(q.get('rot'));
-        const surv= q.get('survey');
-
-        // Rig
-        if (rig) {
-          const sel = document.getElementById('framing-rig-select');
-          if (sel) {
-            const idx = Array.from(sel.options).findIndex(o => o.value === rig);
-            if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; }
-          }
+        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
+            alert("Please configure at least one rig on the Configuration page first.");
+            return;
         }
 
-        // Rotation
-        if (!Number.isNaN(rot)) {
-          const rotInput = document.getElementById('framing-rotation');
-          if (rotInput) rotInput.value = rot;
-          const rotSpan = document.getElementById('rotation-value');
-          if (rotSpan) rotSpan.textContent = `${Math.round(rot)}°`;
-          haveRot = true;
+        // Show the modal
+        framingModal.style.display = 'block';
+
+        // Initialize Aladin once
+        if (!aladin) {
+            aladin = A.aladin('#aladin-lite-div', {
+                survey: "P/DSS2/color",
+                fov: 1.5,
+                cooFrame: 'ICRS',
+                showFullscreenControl: false,
+                showGotoControl: false
+            });
+
+            baseSurvey = aladin.getBaseImageLayer();
+
+            // Overlay for the FOV polygon
+            fovLayer = A.graphicOverlay({color: '#83b4c5', lineWidth: 3});
+            aladin.addOverlay(fovLayer);
+
+            const canvas = document.getElementById('aladin-lite-div');
+            // --- Watch for canvas size changes so FOV frame always stays visible ---
+            if (window.ResizeObserver && canvas) {
+                let roTimer = null;
+                const ro = new ResizeObserver(() => {
+                    clearTimeout(roTimer);
+                    roTimer = setTimeout(() => {
+                        const sel = document.getElementById('framing-rig-select');
+                        if (sel && sel.selectedIndex >= 0) {
+                            const opt = sel.options[sel.selectedIndex];
+                            applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
+                        }
+                        updateFramingChart(false);
+                    }, 80);
+                });
+                ro.observe(canvas);
+            }
+            // Click → set FOV center to cursor
+            canvas.addEventListener('click', (ev) => {
+                if (lockToObject) return;
+                const rect = canvas.getBoundingClientRect();
+                const x = ev.clientX - rect.left;
+                const y = ev.clientY - rect.top;
+                const sky = aladin.pix2world(x, y);
+                if (!sky) return;
+                fovCenter = {ra: sky[0], dec: sky[1]};
+                updateFramingChart(false);
+                updateReadoutFromCenter();
+            });
+
+            // Keyboard nudges (1′)
+            window.addEventListener('keydown', (e) => {
+                const k = e.key.toLowerCase();
+                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
+                    e.preventDefault();
+                    if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
+                    if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
+                    if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
+                    if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
+                }
+            });
         }
 
-        // Survey
-        if (surv) {
-          if (typeof setSurvey === 'function') setSurvey(surv);
-          else {
-            const s = document.getElementById('survey-select');
-            if (s) s.value = surv;
-          }
+        // -------- Restore from URL (rig/center/rotation/survey) --------
+        let haveCenter = false;
+        let haveRot = false;
+        let haveRigRestored = false;
+
+        try {
+            const q = new URLSearchParams(location.search);
+            const rig = q.get('rig');
+            const ra = parseFloat(q.get('ra'));
+            const dec = parseFloat(q.get('dec'));
+            const rot = parseFloat(q.get('rot'));
+            const surv = q.get('survey');
+
+            // Rig
+            if (rig) {
+                const sel = document.getElementById('framing-rig-select');
+                if (sel) {
+                    const idx = Array.from(sel.options).findIndex(o => o.value === rig);
+                    if (idx >= 0) {
+                        sel.selectedIndex = idx;
+                        haveRigRestored = true;
+                    }
+                }
+            }
+
+            // Rotation
+            if (!Number.isNaN(rot)) {
+                const rotInput = document.getElementById('framing-rotation');
+                if (rotInput) rotInput.value = rot;
+                const rotSpan = document.getElementById('rotation-value');
+                if (rotSpan) rotSpan.textContent = `${Math.round(rot)}°`;
+                haveRot = true;
+            }
+
+            // Survey
+            if (surv) {
+                if (typeof setSurvey === 'function') setSurvey(surv);
+                else {
+                    const s = document.getElementById('survey-select');
+                    if (s) s.value = surv;
+                }
+            }
+
+            // Saved frame center
+            if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
+                fovCenter = {ra, dec};       // IMPORTANT: assign the real variable, not window.*
+                haveCenter = true;
+            } else {
+                fovCenter = null;
+            }
+        } catch (e) {
+            // ignore; keep current defaults
         }
 
-        // Saved frame center
-        if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
-          fovCenter = { ra, dec };       // IMPORTANT: assign the real variable, not window.*
-          haveCenter = true;
-        } else {
-          fovCenter = null;
+        // Defaults if not provided
+        if (!haveRot) {
+            const rotInput = document.getElementById('framing-rotation');
+            if (rotInput) rotInput.value = 0;
+            const rotSpan = document.getElementById('rotation-value');
+            if (rotSpan) rotSpan.textContent = `0°`;
         }
-      } catch (e) {
-        // ignore; keep current defaults
-      }
-
-      // Defaults if not provided
-      if (!haveRot) {
-        const rotInput = document.getElementById('framing-rotation');
-        if (rotInput) rotInput.value = 0;
-        const rotSpan = document.getElementById('rotation-value');
-        if (rotSpan) rotSpan.textContent = `0°`;
-      }
-      if (!haveRigRestored) {
-        // Do NOT force index 0 if a rig is already selected; leave as-is
-      }
-
-      // If there is a saved center: unlock and center Aladin there BEFORE first draw
-      if (haveCenter) {
-        const lockBox = document.getElementById('lock-to-object');
-        if (lockBox) lockBox.checked = false;
-        lockToObject = false;
-        if (aladin && typeof aladin.gotoRaDec === 'function') {
-          aladin.gotoRaDec(fovCenter.ra, fovCenter.dec);
+        if (!haveRigRestored) {
+            // Do NOT force index 0 if a rig is already selected; leave as-is
         }
+
+        // If there is a saved center: unlock and center Aladin there BEFORE first draw
         if (haveCenter) {
-          const sel = document.getElementById('framing-rig-select');
-          if (sel && sel.selectedIndex >= 0) {
-            const opt = sel.options[sel.selectedIndex];
-            applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
-          }
+            const lockBox = document.getElementById('lock-to-object');
+            if (lockBox) lockBox.checked = false;
+            lockToObject = false;
+            if (aladin && typeof aladin.gotoRaDec === 'function') {
+                aladin.gotoRaDec(fovCenter.ra, fovCenter.dec);
+            }
+            if (haveCenter) {
+                const sel = document.getElementById('framing-rig-select');
+                if (sel && sel.selectedIndex >= 0) {
+                    const opt = sel.options[sel.selectedIndex];
+                    applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
+                }
+            }
         }
-      }
 
-      // First draw: if haveCenter, don't recenter to object
-      updateFramingChart(haveCenter ? false : true);
-      updateFovVsObjectLabel?.();
-      updateReadoutFromCenter?.();
+        // First draw: if haveCenter, don't recenter to object
+        updateFramingChart(haveCenter ? false : true);
+        updateFovVsObjectLabel?.();
+        updateReadoutFromCenter?.();
     }
 
     function closeFramingAssistant() {
         const framingModal = document.getElementById('framing-modal');
         framingModal.style.display = 'none';
     }
+
     function flipFraming90() {
-      const slider = document.getElementById('framing-rotation');
-      let v = parseFloat(slider.value) || 0;
-      v = (v + 90) % 360;
-      slider.value = v;
-      document.getElementById('rotation-value').textContent = `${Math.round(v)}°`;
-      updateFramingChart(false);
-      updateReadoutFromCenter();
+        const slider = document.getElementById('framing-rotation');
+        let v = parseFloat(slider.value) || 0;
+        v = (v + 90) % 360;
+        slider.value = v;
+        document.getElementById('rotation-value').textContent = `${Math.round(v)}°`;
+        updateFramingChart(false);
+        updateReadoutFromCenter();
     }
 
     // Always zoom so the current rig's FOV just fits in view.
     // fovW_arcmin and fovH_arcmin are arcminutes.
     function applyRigFovZoom(fovW_arcmin, fovH_arcmin, rotationDeg = 0, margin = 1.06) {
-      if (!aladin) return;
-      const host = document.getElementById('aladin-lite-div');
-      if (!host) return;
+        if (!aladin) return;
+        const host = document.getElementById('aladin-lite-div');
+        if (!host) return;
 
-      const wpx = host.clientWidth, hpx = host.clientHeight;
-      if (!(wpx > 0 && hpx > 0)) return;
-      const aspect = wpx / hpx;               // width / height in pixels
+        const wpx = host.clientWidth, hpx = host.clientHeight;
+        if (!(wpx > 0 && hpx > 0)) return;
+        const aspect = wpx / hpx;               // width / height in pixels
 
-      const wDeg = parseFloat(fovW_arcmin) / 60;
-      const hDeg = parseFloat(fovH_arcmin) / 60;
-      if (!(isFinite(wDeg) && isFinite(hDeg) && wDeg > 0 && hDeg > 0)) return;
+        const wDeg = parseFloat(fovW_arcmin) / 60;
+        const hDeg = parseFloat(fovH_arcmin) / 60;
+        if (!(isFinite(wDeg) && isFinite(hDeg) && wDeg > 0 && hDeg > 0)) return;
 
-      // Account for rotation: bounding box of a rotated rectangle
-      const th = (parseFloat(rotationDeg) || 0) * Math.PI / 180;
-      const needWidthDeg  = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th));
-      const needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
+        // Account for rotation: bounding box of a rotated rectangle
+        const th = (parseFloat(rotationDeg) || 0) * Math.PI / 180;
+        const needWidthDeg = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th));
+        const needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
 
-      // setFov() controls the *width* in degrees. Ensure BOTH axes fit:
-      const requiredWidthDeg = Math.max(needWidthDeg * margin, needHeightDeg * margin * aspect);
-      aladin.setFov(requiredWidthDeg);
+        // setFov() controls the *width* in degrees. Ensure BOTH axes fit:
+        const requiredWidthDeg = Math.max(needWidthDeg * margin, needHeightDeg * margin * aspect);
+        aladin.setFov(requiredWidthDeg);
     }
-    window.updateFramingChart = function(recenter = true) {
-      if (!aladin) return;
 
-      const objectName = "{{ object_name }}";
-      const framingRigSelect = document.getElementById('framing-rig-select');
-      const rotationSlider = document.getElementById('framing-rotation');
-      const rotationValueSpan = document.getElementById('rotation-value');
-      const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
-      if (!selectedOption) return;
+    window.updateFramingChart = function (recenter = true) {
+        if (!aladin) return;
 
-      const fovWidthArcmin  = parseFloat(selectedOption.dataset.fovw);
-      const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
+        const objectName = "{{ object_name }}";
+        const framingRigSelect = document.getElementById('framing-rig-select');
+        const rotationSlider = document.getElementById('framing-rotation');
+        const rotationValueSpan = document.getElementById('rotation-value');
+        const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
+        if (!selectedOption) return;
 
-      const _rot = parseFloat(rotationSlider.value);
-      const rotation = Number.isFinite(_rot) ? _rot : 0;
-      if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
+        const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw);
+        const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
 
-      // ✅ Always zoom based on the CURRENT rig and rotation
-      applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+        const _rot = parseFloat(rotationSlider.value);
+        const rotation = Number.isFinite(_rot) ? _rot : 0;
+        if (rotationValueSpan) rotationValueSpan.textContent = `${Math.round(rotation)}°`;
 
-      if (recenter) {
-        aladin.gotoObject(objectName, {
-          success: () => {
-            // ✅ Zoom again after gotoObject so frame fits perfectly
-            applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+        // ✅ Always zoom based on the CURRENT rig and rotation
+        applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
 
+        if (recenter) {
+            aladin.gotoObject(objectName, {
+                success: () => {
+                    // ✅ Zoom again after gotoObject so frame fits perfectly
+                    applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+
+                    const rc = aladin.getRaDec();
+                    objectCoords = {ra: rc[0], dec: rc[1]};
+                    fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]};
+                    drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+                    updateReadoutFromCenter?.();
+                },
+                error: () => {
+                    const rc = aladin.getRaDec();
+                    fovCenter = {ra: rc[0], dec: rc[1]};
+                    drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+                    updateReadoutFromCenter?.();
+                }
+            });
+            return;
+        }
+
+        // No recenter: reuse existing center
+        if (!fovCenter) {
             const rc = aladin.getRaDec();
-            objectCoords = { ra: rc[0], dec: rc[1] };
-            fovCenter = lockToObject ? { ...objectCoords } : { ra: rc[0], dec: rc[1] };
-            drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-            updateReadoutFromCenter?.();
-          },
-          error: () => {
-            const rc = aladin.getRaDec();
-            fovCenter = { ra: rc[0], dec: rc[1] };
-            drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-            updateReadoutFromCenter?.();
-          }
-        });
-        return;
-      }
-
-      // No recenter: reuse existing center
-      if (!fovCenter) {
-        const rc = aladin.getRaDec();
-        fovCenter = { ra: rc[0], dec: rc[1] };
-      }
-      drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+            fovCenter = {ra: rc[0], dec: rc[1]};
+        }
+        drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
     };
 
     function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
-      if (!aladin || !fovLayer || !center) return;
+        if (!aladin || !fovLayer || !center) return;
 
-      fovLayer.removeAll();
+        fovLayer.removeAll();
 
-      // Half-sizes in DEGREES
-      const halfW = (fovWidthArcmin  / 60) / 2;
-      const halfH = (fovHeightArcmin / 60) / 2;
+        // Half-sizes in DEGREES
+        const halfW = (fovWidthArcmin / 60) / 2;
+        const halfH = (fovHeightArcmin / 60) / 2;
 
-      // Rotation in radians
-      const ang = rotationDeg * Math.PI / 180;
+        // Rotation in radians
+        const ang = rotationDeg * Math.PI / 180;
 
-      // Center (radians)
-      const ra0  = center.ra  * Math.PI / 180;
-      const dec0 = center.dec * Math.PI / 180;
+        // Center (radians)
+        const ra0 = center.ra * Math.PI / 180;
+        const dec0 = center.dec * Math.PI / 180;
 
-      // Unit vector at center
-      const cX = Math.cos(dec0) * Math.cos(ra0);
-      const cY = Math.cos(dec0) * Math.sin(ra0);
-      const cZ = Math.sin(dec0);
+        // Unit vector at center
+        const cX = Math.cos(dec0) * Math.cos(ra0);
+        const cY = Math.cos(dec0) * Math.sin(ra0);
+        const cZ = Math.sin(dec0);
 
-      // Local basis at center: East & North unit vectors
-      // East: d/dRA at fixed Dec -> (-sinRA, cosRA, 0)
-      const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
-      // North: d/dDec at fixed RA -> (-sinDec*cosRA, -sinDec*sinRA, cosDec)
-      const nX = -Math.sin(dec0)*Math.cos(ra0);
-      const nY = -Math.sin(dec0)*Math.sin(ra0);
-      const nZ =  Math.cos(dec0);
+        // Local basis at center: East & North unit vectors
+        // East: d/dRA at fixed Dec -> (-sinRA, cosRA, 0)
+        const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
+        // North: d/dDec at fixed RA -> (-sinDec*cosRA, -sinDec*sinRA, cosDec)
+        const nX = -Math.sin(dec0) * Math.cos(ra0);
+        const nY = -Math.sin(dec0) * Math.sin(ra0);
+        const nZ = Math.cos(dec0);
 
-      // Rotate a point (x,y) in the local tangent plane by 'ang'
-      function rot2d(x, y) {
-        return [ x*Math.cos(ang) - y*Math.sin(ang),
-                 x*Math.sin(ang) + y*Math.cos(ang) ];
-      }
-
-      // Corners before spherical mapping (deg in the local plane)
-      const raw = [
-        [-halfW, -halfH],
-        [ halfW, -halfH],
-        [ halfW,  halfH],
-        [-halfW,  halfH],
-      ].map(([x,y]) => rot2d(x,y));
-
-      // Map each (x_deg, y_deg) to the sphere and return [ra_deg, dec_deg]
-      function planeToSky(x_deg, y_deg) {
-        const dx = x_deg * Math.PI/180;  // angular distance east (radians)
-        const dy = y_deg * Math.PI/180;  // angular distance north (radians)
-        const r  = Math.hypot(dx, dy);
-
-        if (r < 1e-12) {
-          // exactly the center
-          return [center.ra, center.dec];
+        // Rotate a point (x,y) in the local tangent plane by 'ang'
+        function rot2d(x, y) {
+            return [x * Math.cos(ang) - y * Math.sin(ang),
+                x * Math.sin(ang) + y * Math.cos(ang)];
         }
 
-        // Direction unit vector in 3D: (dx * East + dy * North) / r
-        const dirX = (dx*eX + dy*nX) / r;
-        const dirY = (dx*eY + dy*nY) / r;
-        const dirZ = (dx*eZ + dy*nZ) / r;
+        // Corners before spherical mapping (deg in the local plane)
+        const raw = [
+            [-halfW, -halfH],
+            [halfW, -halfH],
+            [halfW, halfH],
+            [-halfW, halfH],
+        ].map(([x, y]) => rot2d(x, y));
 
-        // Great-circle step: new = center*cos(r) + dir*sin(r)
-        const s = Math.sin(r), c = Math.cos(r);
-        const pX = c*cX + s*dirX;
-        const pY = c*cY + s*dirY;
-        const pZ = c*cZ + s*dirZ;
+        // Map each (x_deg, y_deg) to the sphere and return [ra_deg, dec_deg]
+        function planeToSky(x_deg, y_deg) {
+            const dx = x_deg * Math.PI / 180;  // angular distance east (radians)
+            const dy = y_deg * Math.PI / 180;  // angular distance north (radians)
+            const r = Math.hypot(dx, dy);
 
-        // Back to RA/Dec
-        let ra  = Math.atan2(pY, pX);
-        if (ra < 0) ra += 2*Math.PI;
-        const dec = Math.asin(pZ);
-        return [ ra*180/Math.PI, dec*180/Math.PI ];
-      }
+            if (r < 1e-12) {
+                // exactly the center
+                return [center.ra, center.dec];
+            }
 
-      // Build polygon
-      const polyCoords = raw.map(([x,y]) => planeToSky(x, y));
-      polyCoords.push(polyCoords[0]); // close
+            // Direction unit vector in 3D: (dx * East + dy * North) / r
+            const dirX = (dx * eX + dy * nX) / r;
+            const dirY = (dx * eY + dy * nY) / r;
+            const dirZ = (dx * eZ + dy * nZ) / r;
 
-      // Draw (teal, thicker line)
-      const fovPolygon   = A.polygon(polyCoords, { color: '#83b4c5', lineWidth: 3 });
-      const fovFootprint = A.footprint(fovPolygon);
-      fovLayer.add(fovFootprint);
+            // Great-circle step: new = center*cos(r) + dir*sin(r)
+            const s = Math.sin(r), c = Math.cos(r);
+            const pX = c * cX + s * dirX;
+            const pY = c * cY + s * dirY;
+            const pZ = c * cZ + s * dirZ;
 
-      updateReadoutFromCenter?.();
+            // Back to RA/Dec
+            let ra = Math.atan2(pY, pX);
+            if (ra < 0) ra += 2 * Math.PI;
+            const dec = Math.asin(pZ);
+            return [ra * 180 / Math.PI, dec * 180 / Math.PI];
+        }
+
+        // Build polygon
+        const polyCoords = raw.map(([x, y]) => planeToSky(x, y));
+        polyCoords.push(polyCoords[0]); // close
+
+        // Draw (teal, thicker line)
+        const fovPolygon = A.polygon(polyCoords, {color: '#83b4c5', lineWidth: 3});
+        const fovFootprint = A.footprint(fovPolygon);
+        fovLayer.add(fovFootprint);
+
+        updateReadoutFromCenter?.();
     }
 
     function setSurvey(hipsId) {
-      if (!aladin) return;
-      const newLayer = aladin.newImageSurvey(hipsId);
-      aladin.setBaseImageLayer(newLayer);
-      baseSurvey = aladin.getBaseImageLayer();
-      // reapply current image adjustments to the new layer
-      updateImageAdjustments();
+        if (!aladin) return;
+        const newLayer = aladin.newImageSurvey(hipsId);
+        aladin.setBaseImageLayer(newLayer);
+        baseSurvey = aladin.getBaseImageLayer();
+        // reapply current image adjustments to the new layer
+        updateImageAdjustments();
     }
-    function updateImageAdjustments() {
-      if (!baseSurvey) return;
-      const b = parseFloat(document.getElementById('img-bright').value);
-      const c = parseFloat(document.getElementById('img-contrast').value);
-      const g = parseFloat(document.getElementById('img-gamma').value);
-      const s = parseFloat(document.getElementById('img-sat').value);
 
-      // API: setBrightness(-1..1), setContrast(-1..1), setGamma(0.1..10), setSaturation(-1..1)
-      baseSurvey.setBrightness(b);
-      baseSurvey.setContrast(c);
-      baseSurvey.setGamma(g);
-      baseSurvey.setSaturation(s);
+    function updateImageAdjustments() {
+        if (!baseSurvey) return;
+        const b = parseFloat(document.getElementById('img-bright').value);
+        const c = parseFloat(document.getElementById('img-contrast').value);
+        const g = parseFloat(document.getElementById('img-gamma').value);
+        const s = parseFloat(document.getElementById('img-sat').value);
+
+        // API: setBrightness(-1..1), setContrast(-1..1), setGamma(0.1..10), setSaturation(-1..1)
+        baseSurvey.setBrightness(b);
+        baseSurvey.setContrast(c);
+        baseSurvey.setGamma(g);
+        baseSurvey.setSaturation(s);
     }
+
     function updateReadout(raDeg, decDeg) {
-      document.getElementById('ra-readout').value  = formatRA(raDeg);
-      document.getElementById('dec-readout').value = formatDec(decDeg);
+        document.getElementById('ra-readout').value = formatRA(raDeg);
+        document.getElementById('dec-readout').value = formatDec(decDeg);
     }
 
     function updateReadoutFromCenter() {
-      // If center not set yet, fall back to current view center
-      const c = fovCenter || (() => {
-        const rc = aladin.getRaDec();
-        return { ra: rc[0], dec: rc[1] };
-      })();
-      updateReadout(c.ra, c.dec);
+        // If center not set yet, fall back to current view center
+        const c = fovCenter || (() => {
+            const rc = aladin.getRaDec();
+            return {ra: rc[0], dec: rc[1]};
+        })();
+        updateReadout(c.ra, c.dec);
     }
 
     function copyRaDec() {
-      const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`;
-      navigator.clipboard.writeText(text).then(()=> {
-        // optional toast
-      });
+        const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`;
+        navigator.clipboard.writeText(text).then(() => {
+            // optional toast
+        });
     }
+
     function changeView(view) {
         // First, update the header text for the selected date
         const day = document.getElementById('day-select').value;
@@ -2240,115 +2344,134 @@
             renderMonthlyYearlyChart(view);
         }
     }
+
     function useReadoutAsFovCenter() {
-      const raStr  = document.getElementById('ra-readout').value;
-      const decStr = document.getElementById('dec-readout').value;
-      const sky = parseRaDec(raStr, decStr);
-      if (!sky) return;
-      fovCenter = { ra: sky.ra, dec: sky.dec };
-      updateFramingChart(false);
-      updateReadoutFromCenter();
+        const raStr = document.getElementById('ra-readout').value;
+        const decStr = document.getElementById('dec-readout').value;
+        const sky = parseRaDec(raStr, decStr);
+        if (!sky) return;
+        fovCenter = {ra: sky.ra, dec: sky.dec};
+        updateFramingChart(false);
+        updateReadoutFromCenter();
     }
 
     function resetFovCenterToObject() {
-      fovCenter = null; // will fall back to view center after gotoObject
-      updateFramingChart(true);
-      updateFovVsObjectLabel();
+        fovCenter = null; // will fall back to view center after gotoObject
+        updateFramingChart(true);
+        updateFovVsObjectLabel();
     }
 
     // 1 arcmin nudges; dx positive → RA+, dy positive → Dec+
     function nudgeFov(dxArcmin, dyArcmin) {
-      if (lockToObject && objectCoords) {
-        fovCenter = { ra: objectCoords.ra, dec: objectCoords.dec };
+        if (lockToObject && objectCoords) {
+            fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec};
+            updateFramingChart(false);
+            updateReadoutFromCenter();
+            return;
+        }
+        if (!fovCenter) {
+            const rc = aladin.getRaDec();
+            fovCenter = {ra: rc[0], dec: rc[1]};
+        }
+        fovCenter.ra += dxArcmin / 60.0;
+        fovCenter.dec += dyArcmin / 60.0;
         updateFramingChart(false);
         updateReadoutFromCenter();
-        return;
-      }
-      if (!fovCenter) {
-        const rc = aladin.getRaDec();
-        fovCenter = { ra: rc[0], dec: rc[1] };
-      }
-      fovCenter.ra  += dxArcmin / 60.0;
-      fovCenter.dec += dyArcmin / 60.0;
-      updateFramingChart(false);
-      updateReadoutFromCenter();
     }
+
     function applyLockToObject(locked) {
-      lockToObject = !!locked;
+        lockToObject = !!locked;
 
-      // When enabling, snap overlay center to the object immediately
-      if (lockToObject) {
-        // Prefer precise object coords if we have them; else view center is fine right after goto
-        const c = objectCoords || (() => {
-          const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] };
-        })();
-        fovCenter = { ra: c.ra, dec: c.dec };
-        updateFramingChart(false);
-        updateReadoutFromCenter();
-      }
+        // When enabling, snap overlay center to the object immediately
+        if (lockToObject) {
+            // Prefer precise object coords if we have them; else view center is fine right after goto
+            const c = objectCoords || (() => {
+                const rc = aladin.getRaDec();
+                return {ra: rc[0], dec: rc[1]};
+            })();
+            fovCenter = {ra: c.ra, dec: c.dec};
+            updateFramingChart(false);
+            updateReadoutFromCenter();
+        }
     }
+
     function updateFovVsObjectLabel() {
-      const el = document.getElementById('fov-vs-object');
-      if (!el) return;
+        const el = document.getElementById('fov-vs-object');
+        if (!el) return;
 
-      const sel = document.getElementById('framing-rig-select');
-      if (!sel || sel.selectedIndex < 0) { el.textContent = ''; return; }
+        const sel = document.getElementById('framing-rig-select');
+        if (!sel || sel.selectedIndex < 0) {
+            el.textContent = '';
+            return;
+        }
 
-      const opt = sel.options[sel.selectedIndex];
-      const fovW = parseFloat(opt.dataset.fovw); // arcmin
-      const fovH = parseFloat(opt.dataset.fovh); // arcmin
-      if (!isFinite(fovW) || !isFinite(fovH)) { el.textContent = ''; return; }
+        const opt = sel.options[sel.selectedIndex];
+        const fovW = parseFloat(opt.dataset.fovw); // arcmin
+        const fovH = parseFloat(opt.dataset.fovh); // arcmin
+        if (!isFinite(fovW) || !isFinite(fovH)) {
+            el.textContent = '';
+            return;
+        }
 
-      let text = `FOV (Rig): ${Math.round(fovW)}′ × ${Math.round(fovH)}′`;
+        let text = `FOV (Rig): ${Math.round(fovW)}′ × ${Math.round(fovH)}′`;
 
-      if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) {
-        const minSide = Math.min(fovW, fovH);
-        const fitAcross = minSide / OBJECT_SIZE_ARCMIN;
-        // e.g., "Object ~ 20′ → fits ~3.1× across the short side"
-        text += ` • Object ~ ${Math.round(OBJECT_SIZE_ARCMIN)}′ → ${fitAcross >= 1 ? 'fits' : 'spans'} ${fitAcross.toFixed(1)}× ${fitAcross >= 1 ? 'across' : 'of'} short side`;
-      }
+        if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) {
+            const minSide = Math.min(fovW, fovH);
+            const fitAcross = minSide / OBJECT_SIZE_ARCMIN;
+            // e.g., "Object ~ 20′ → fits ~3.1× across the short side"
+            text += ` • Object ~ ${Math.round(OBJECT_SIZE_ARCMIN)}′ → ${fitAcross >= 1 ? 'fits' : 'spans'} ${fitAcross.toFixed(1)}× ${fitAcross >= 1 ? 'across' : 'of'} short side`;
+        }
 
-      el.textContent = text;
+        el.textContent = text;
     }
+
     // If user tries to move center while locked, ignore and re-snap.
 
     // Optionally, keep the VIEW panned onto the object whenever user drags while locked.
     // Simple heuristic: on mouseup, jump back to object.
-    (function recenterViewWhenLocked(){
-      const canvas = document.getElementById('aladin-lite-div');
-      if (!canvas) return;
-      canvas.addEventListener('mouseup', () => {
-        if (lockToObject && objectCoords) {
-          aladin.gotoObject([objectCoords.ra, objectCoords.dec]);
-        }
-      });
+    (function recenterViewWhenLocked() {
+        const canvas = document.getElementById('aladin-lite-div');
+        if (!canvas) return;
+        canvas.addEventListener('mouseup', () => {
+            if (lockToObject && objectCoords) {
+                aladin.gotoObject([objectCoords.ra, objectCoords.dec]);
+            }
+        });
     })();
+
     // Formatting helpers
-    function pad(n, w=2){return n.toString().padStart(w,'0');}
-    function formatRA(raDeg){
-      const totalSec = raDeg/15*3600;
-      const h = Math.floor(totalSec/3600);
-      const m = Math.floor((totalSec%3600)/60);
-      const s = (totalSec%60).toFixed(2);
-      return `${pad(h)}:${pad(m)}:${pad(s,5)}`;
+    function pad(n, w = 2) {
+        return n.toString().padStart(w, '0');
     }
-    function formatDec(decDeg){
-      const sign = decDeg>=0 ? '+' : '-';
-      const abs = Math.abs(decDeg);
-      const d = Math.floor(abs);
-      const m = Math.floor((abs-d)*60);
-      const s = ((abs-d)*60 - m)*60;
-      return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4,'0')}`;
+
+    function formatRA(raDeg) {
+        const totalSec = raDeg / 15 * 3600;
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = (totalSec % 60).toFixed(2);
+        return `${pad(h)}:${pad(m)}:${pad(s, 5)}`;
     }
-    function parseRaDec(raHMS, decDMS){
-      try{
-        const [h,m,s]=raHMS.split(':').map(parseFloat);
-        const ra = (h + m/60 + s/3600) * 15.0;
-        const sign = decDMS.trim()[0]==='-' ? -1 : 1;
-        const [d,dm,ds]=decDMS.replace('+','').replace('-','').split(':').map(parseFloat);
-        const dec = sign*(d + dm/60 + ds/3600);
-        return {ra,dec};
-      }catch(e){ return null; }
+
+    function formatDec(decDeg) {
+        const sign = decDeg >= 0 ? '+' : '-';
+        const abs = Math.abs(decDeg);
+        const d = Math.floor(abs);
+        const m = Math.floor((abs - d) * 60);
+        const s = ((abs - d) * 60 - m) * 60;
+        return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4, '0')}`;
+    }
+
+    function parseRaDec(raHMS, decDMS) {
+        try {
+            const [h, m, s] = raHMS.split(':').map(parseFloat);
+            const ra = (h + m / 60 + s / 3600) * 15.0;
+            const sign = decDMS.trim()[0] === '-' ? -1 : 1;
+            const [d, dm, ds] = decDMS.replace('+', '').replace('-', '').split(':').map(parseFloat);
+            const dec = sign * (d + dm / 60 + ds / 3600);
+            return {ra, dec};
+        } catch (e) {
+            return null;
+        }
     }
 
     // --- Your Original Page Functions ---
@@ -2368,83 +2491,90 @@
         const selectedLocation = document.getElementById('location-select').value;
         fetch('/set_location', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ location: selectedLocation })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({location: selectedLocation})
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                refreshChart();
-            } else {
-                console.error("Location update failed:", data);
-            }
-        })
-        .catch(error => console.error('Error setting location:', error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    refreshChart();
+                } else {
+                    console.error("Location update failed:", data);
+                }
+            })
+            .catch(error => console.error('Error setting location:', error));
     }
+
     function saveProject() {
         const newProject = document.getElementById('project-field').value;
         const objectName = "{{ object_name }}";
         fetch('/update_project', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ object: objectName, project: newProject })
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({object: objectName, project: newProject})
         }).then(res => res.json()).then(data => {
             alert(data.status === "success" ? "Project updated successfully!" : data.error);
         });
     }
 
     function insertFramingIntoProject() {
-            try {
-              const ta = document.getElementById('project-field');
-              if (!ta) { alert('Project notes box not found.'); return; }
+        try {
+            const ta = document.getElementById('project-field');
+            if (!ta) {
+                alert('Project notes box not found.');
+                return;
+            }
 
-              // Collect current framing settings
-              const sel   = document.getElementById('framing-rig-select');
-              const rigId = sel?.value || '';
-              const rigName = (sel && sel.selectedIndex >= 0)
+            // Collect current framing settings
+            const sel = document.getElementById('framing-rig-select');
+            const rigId = sel?.value || '';
+            const rigName = (sel && sel.selectedIndex >= 0)
                 ? sel.options[sel.selectedIndex].textContent.trim()
                 : 'rig?';
 
-              const rotInput = document.getElementById('framing-rotation');
-              const rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0;
+            const rotInput = document.getElementById('framing-rotation');
+            const rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0;
 
-              const survSel = document.getElementById('survey-select');
-              const survey  = survSel?.value || '';
+            const survSel = document.getElementById('survey-select');
+            const survey = survSel?.value || '';
 
-              // CORRECTED: Use the local fovCenter and objectCoords variables, not window.*
-              const center = (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec))
-                ? { ra: fovCenter.ra, dec: fovCenter.dec }
-                : (objectCoords ? { ra: objectCoords.ra, dec: objectCoords.dec } : null);
+            // CORRECTED: Use the local fovCenter and objectCoords variables, not window.*
+            const center = (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec))
+                ? {ra: fovCenter.ra, dec: fovCenter.dec}
+                : (objectCoords ? {ra: objectCoords.ra, dec: objectCoords.dec} : null);
 
-              // Build a shareable URL with current framing state
-              const qs = new URLSearchParams();
-              if (rigId) qs.set('rig', rigId);
-              if (center) { qs.set('ra', center.ra.toFixed(6)); qs.set('dec', center.dec.toFixed(6)); }
-              qs.set('rot', String(rotDeg));
-              if (survey) qs.set('survey', survey);
-              const url = `${location.origin}${location.pathname}?${qs.toString()}`;
+            // Build a shareable URL with current framing state
+            const qs = new URLSearchParams();
+            if (rigId) qs.set('rig', rigId);
+            if (center) {
+                qs.set('ra', center.ra.toFixed(6));
+                qs.set('dec', center.dec.toFixed(6));
+            }
+            qs.set('rot', String(rotDeg));
+            if (survey) qs.set('survey', survey);
+            const url = `${location.origin}${location.pathname}?${qs.toString()}`;
 
-              // Build a readable note
-              const centerTxt = center
+            // Build a readable note
+            const centerTxt = center
                 ? `RA ${formatRA(center.ra)}, Dec ${formatDec(center.dec)}`
                 : 'center = object';
-              const note =
+            const note =
                 `\n[Framing] ${rigName}, rot ${rotDeg}°, ${centerTxt}, survey ${survey || 'default'}\n${url}\n`;
 
-              // Append into the Project notes
-              if (ta.value && !ta.value.endsWith('\n')) ta.value += '\n';
-              ta.value += note;
-              ta.dispatchEvent(new Event('input', { bubbles: true }));
-              ta.scrollTop = ta.scrollHeight;
+            // Append into the Project notes
+            if (ta.value && !ta.value.endsWith('\n')) ta.value += '\n';
+            ta.value += note;
+            ta.dispatchEvent(new Event('input', {bubbles: true}));
+            ta.scrollTop = ta.scrollHeight;
 
-              // Also, re-run the function that creates the quick-link button
-              setProjectQuickLink(url);
+            // Also, re-run the function that creates the quick-link button
+            setProjectQuickLink(url);
 
-            } catch (e) {
-              console.error('insertFramingIntoProject failed', e);
-              alert('Could not insert framing into Project. See console for details.');
-            }
-          }
+        } catch (e) {
+            console.error('insertFramingIntoProject failed', e);
+            alert('Could not insert framing into Project. See console for details.');
+        }
+    }
 
     function toggleSimbad() {
         var container = document.getElementById('simbadContainer');
@@ -2456,7 +2586,8 @@
             container.style.display = 'none';
         }
     }
-        function loadImagingOpportunities() {
+
+    function loadImagingOpportunities() {
         document.getElementById("opportunities-section").style.display = "block";
         const tbody = document.getElementById("opportunities-body");
         tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`;
@@ -2482,9 +2613,9 @@
                         const ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`;
                         const filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`;
                         htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
-                            <td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td>
-                            <td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td>
-                            <td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`;
+                        <td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td>
+                        <td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td>
+                        <td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`;
                     });
                     tbody.innerHTML = htmlRows;
                 } else {
@@ -2507,36 +2638,38 @@
             });
         }, 100);
     }
-        function openInStellarium() {
+
+    function openInStellarium() {
         document.getElementById('stellarium-status').textContent = "Sending object to Stellarium...";
         document.getElementById('stellarium-status').style.color = "#666"; // Reset color
         const objectName = "{{ object_name }}";
         fetch("/proxy_focus", {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ target: objectName, mode: "center" })
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: new URLSearchParams({target: objectName, mode: "center"})
         })
-        .then(async response => {
-            let data;
-            try {
-                data = await response.json();
-            } catch (e) {
-                data = { message: "Could not parse server response." };
-            }
+            .then(async response => {
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    data = {message: "Could not parse server response."};
+                }
 
-            if (response.ok && data.status === "success") {
-                document.getElementById('stellarium-status').textContent = "Stellarium view updated!";
-                document.getElementById('stellarium-status').style.color = "#83b4c5";
-            } else {
-                document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`;
-            }
-        });
+                if (response.ok && data.status === "success") {
+                    document.getElementById('stellarium-status').textContent = "Stellarium view updated!";
+                    document.getElementById('stellarium-status').style.color = "#83b4c5";
+                } else {
+                    document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`;
+                }
+            });
     }
+
     window.addEventListener('load', () => {
         // As you correctly diagnosed, we must register the plugin before using it.
         // This line runs after the library file has been loaded.
         if (window['chartjs-plugin-annotation']) {
-          Chart.register(window['chartjs-plugin-annotation']);
+            Chart.register(window['chartjs-plugin-annotation']);
         }
 
         // Now, the initial chart render will work.
@@ -2554,6 +2687,7 @@
         const dayInput = document.getElementById("day-select");
         const monthSelect = document.getElementById("month-select");
         const yearInput = document.getElementById("year-select");
+
         function updateDayLimit() {
             const year = parseInt(yearInput.value);
             const month = parseInt(monthSelect.value);
@@ -2563,11 +2697,12 @@
             }
             dayInput.max = daysInMonth;
         }
+
         monthSelect.addEventListener("change", updateDayLimit);
         yearInput.addEventListener("change", updateDayLimit);
         updateDayLimit();
         const framingModal = document.getElementById('framing-modal');
-        window.addEventListener('click', function(event) {
+        window.addEventListener('click', function (event) {
             if (event.target == framingModal) {
                 closeFramingAssistant();
             }
