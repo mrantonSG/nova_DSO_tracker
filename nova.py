@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.2.RC2"
+APP_VERSION = "3.2.RC3"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -2803,7 +2803,6 @@ def confirm_object():
     save_user_config(current_user.username, config_data)
     return jsonify({"status": "success"})
 
-
 @app.route('/api/get_object_list')
 def get_object_list():
     """
@@ -2894,15 +2893,6 @@ def get_object_data(object_name):
         'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'), 'SB': obj_details.get('SB', 'N/A'),
     }
     return jsonify(single_object_data)
-
-@app.route('/sun_events')
-def sun_events():
-    local_date = datetime.now(pytz.timezone(g.tz_name)).strftime('%Y-%m-%d')
-    events = calculate_sun_events_cached(local_date,g.tz_name, g.lat, g.lon)
-    events["date"] = local_date
-    return jsonify(events)
-
-
 @app.route('/')
 def index():
     # Determine username for loading appropriate journal and config
@@ -2958,6 +2948,31 @@ def index():
                            # For example, if your base.html or index.html uses 'is_guest':
                            # is_guest = g.is_guest if hasattr(g, 'is_guest') else (not current_user.is_authenticated and not SINGLE_USER_MODE)
                            )
+
+
+@app.route('/sun_events')
+def sun_events():
+    local_tz = pytz.timezone(g.tz_name)
+    now_local = datetime.now(local_tz)
+    local_date = now_local.strftime('%Y-%m-%d')
+
+    # Calculate sun events
+    events = calculate_sun_events_cached(local_date, g.tz_name, g.lat, g.lon)
+
+    # Calculate moon phase
+    moon = ephem.Moon()
+    observer = ephem.Observer()
+    observer.lat = str(g.lat)
+    observer.lon = str(g.lon)
+    observer.date = now_local.astimezone(pytz.utc)
+    moon.compute(observer)
+
+    # Add all data to the response
+    events["date"] = local_date
+    events["time"] = now_local.strftime('%H:%M')
+    events["phase"] = round(moon.phase, 1)
+
+    return jsonify(events)
 
 
 @app.route('/config_form', methods=['GET', 'POST'])
