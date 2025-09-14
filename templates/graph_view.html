@@ -2361,7 +2361,6 @@
         updateFovVsObjectLabel();
     }
 
-    // 1 arcmin nudges; dx positive → RA+, dy positive → Dec+
     function nudgeFov(dxArcmin, dyArcmin) {
         if (lockToObject && objectCoords) {
             fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec};
@@ -2373,8 +2372,19 @@
             const rc = aladin.getRaDec();
             fovCenter = {ra: rc[0], dec: rc[1]};
         }
-        fovCenter.ra += dxArcmin / 60.0;
+
+        // Convert current declination to radians for the Math.cos function
+        const decRad = fovCenter.dec * (Math.PI / 180);
+
+        // Correct the RA nudge by the cosine of the declination
+        // This accounts for the projection of the celestial sphere onto your flat screen
+        if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) { // Avoid division by zero near the pole
+            fovCenter.ra -= (dxArcmin / 60.0) / Math.cos(decRad);
+        }
+
+        // The declination nudge is simpler and doesn't need correction
         fovCenter.dec += dyArcmin / 60.0;
+
         updateFramingChart(false);
         updateReadoutFromCenter();
     }
