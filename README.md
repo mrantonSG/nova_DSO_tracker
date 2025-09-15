@@ -99,11 +99,11 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 You can not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 The daily graph also displays a vertical dashed line indicating the meridian transit, which is the point of highest altitude and a crucial time for equatorial mount users to plan for a "meridian flip."
 
-![Screenshot_29_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_29_graphic.png)
+![Screenshot_29_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_graphic.png)
 
-![Screenshot_28_month.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_month.png)
+![Screenshot_28_month.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_month.png)
 
-![Screenshot_28_year.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_year.png)
+![Screenshot_28_year.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_year.png)
 
 If you click on the button "Find Imaging Opportunities", you will get a list of dates and times when imaging the selected object is possible.
 From here you can also add the information to your calendar.
@@ -119,7 +119,7 @@ You can edit the selection criteria for the opportunity search in the configurat
 
 The "Show Framing" button opens a powerful framing assistant.
 
-![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_31_framing.png)
+![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_framing.png)
 
 ### Imaging Journal
 Nova DSO Tracker also offers the additional possibility to take notes to imaging sessions.
