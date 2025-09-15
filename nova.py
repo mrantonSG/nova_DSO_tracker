@@ -357,7 +357,7 @@ def check_for_updates():
         response.raise_for_status()  # Raise an exception for bad status codes
 
         data = response.json()
-        latest_version = data.get("tag_name", "").lstrip('v')  # Get version and remove leading 'v'
+        latest_version = data.get("tag_name", "").lower().lstrip('v') # Get version and remove leading 'v'
         current_version = APP_VERSION
 
         if latest_version and latest_version != current_version:
