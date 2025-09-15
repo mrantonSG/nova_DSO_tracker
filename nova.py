@@ -77,7 +77,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "3.3.D1"
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -273,7 +273,30 @@ def save_journal(username, journal_data):
     except Exception as e:
         print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
 
+def sort_rigs_list(rigs_list, sort_key='name-asc'):
+    """Sorts a list of rig dictionaries based on a given key."""
+    key, direction = sort_key.split('-')
 
+    def get_sort_value(rig):
+        # This maps the sort key from the frontend to the data key in the rig dictionary
+        if key == 'name':
+            return (rig.get('rig_name') or '').lower()
+        if key == 'fl':
+            return rig.get('effective_focal_length')
+        if key == 'fr':
+            return rig.get('f_ratio')
+        if key == 'scale':
+            return rig.get('image_scale')
+        if key == 'fovw':
+            return rig.get('fov_w_arcmin')
+        # Add a fallback for 'recent' or any other key
+        return rig.get('rig_id') # A stable fallback sort
+
+    # Use a lambda with a try-except to handle non-numeric or missing values gracefully
+    # This makes the sorting robust against incomplete rig data.
+    rigs_list.sort(key=lambda r: get_sort_value(r) if get_sort_value(r) is not None else float('inf'),
+                   reverse=(direction == 'desc'))
+    return rigs_list
 
 def migrate_journal_data():
     """
@@ -663,6 +686,43 @@ def warm_main_cache(username, location_name, user_config):
         print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
         traceback.print_exc()
 
+def sort_rigs(rigs, sort_key: str):
+    key, _, direction = sort_key.partition('-')
+    reverse = (direction == 'desc')
+
+    def to_num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    def getter(r):
+        if key == 'name':
+            return (r.get('rig_name') or '').lower()
+        if key == 'fl':
+            return to_num(r.get('effective_focal_length'))
+        if key == 'fr':
+            return to_num(r.get('f_ratio'))
+        if key == 'scale':
+            return to_num(r.get('image_scale'))
+        if key == 'fovw':
+            return to_num(r.get('fov_w_arcmin'))
+        if key == 'recent':
+            ts = r.get('updated_at') or r.get('created_at') or ''
+            try:
+                return datetime.fromisoformat(ts.replace('Z','+00:00'))
+            except Exception:
+                return r.get('rig_id') or ''
+        # default to name
+        return (r.get('rig_name') or '').lower()
+
+    # sort with None-safe behavior (None => bottom)
+    def none_safe(x):
+        v = getter(x)
+        return (v is None, v)
+
+    return sorted(rigs, key=none_safe, reverse=reverse)
+
 
 @app.route('/get_outlook_data')
 def get_outlook_data():
@@ -934,17 +994,124 @@ def delete_rig():
 
     return redirect(url_for('config_form'))
 
+@app.route('/set_rig_sort_preference', methods=['POST'])
+@login_required
+def set_rig_sort_preference():
+    """Save the user's rig sort preference (e.g., 'name-asc') into their config YAML."""
+    try:
+        data = request.get_json(force=True) or {}
+        sort_value = data.get('sort', 'name-asc')
+
+        username = "default" if SINGLE_USER_MODE else current_user.username
+
+        # Load existing config
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
+
+        # Ensure ui_preferences section exists
+        if 'ui_preferences' not in rig_data:
+            rig_data['ui_preferences'] = {}
+
+        # Save the new sort order
+        rig_data['ui_preferences']['sort_order'] = sort_value
+
+        # Persist the updated config
+        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+
+        return jsonify({"status": "ok", "sort_order": sort_value})
+    except Exception as e:
+        print(f"[set_rig_sort_preference] Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get_rig_data')
 @login_required
 def get_rig_data():
+    """Return components + rigs with calculated fields, sorted per the user's saved preference.
+       Also includes `sort_preference` so the frontend can sync its dropdown/state."""
     username = "default" if SINGLE_USER_MODE else current_user.username
-    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
 
-    # Calculate data for each rig before sending
-    for rig in rig_data.get('rigs', []):
-        calculated_data = rig_config.calculate_rig_data(rig, rig_data.get('components', {}))
-        rig.update(calculated_data) # Add the calculated data into the rig's dictionary
+    # Load full rig config (components, rigs, ui_preferences, etc.)
+    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
+
+    # Ensure expected keys exist
+    rig_data.setdefault('components', {
+        'telescopes': [],
+        'cameras': [],
+        'reducers_extenders': []
+    })
+    rig_data.setdefault('rigs', [])
+    rig_data.setdefault('ui_preferences', {})
+
+    # Calculate derived fields for each rig (image scale, f/ratio, FOV, etc.)
+    try:
+        components = rig_data.get('components', {})
+        for rig in rig_data['rigs']:
+            try:
+                calc = rig_config.calculate_rig_data(rig, components)
+                if isinstance(calc, dict):
+                    rig.update(calc)
+            except Exception as e:
+                # Non-fatal: keep going for other rigs
+                print(f"[get_rig_data] Warning: could not calculate fields for rig '{rig.get('rig_name','?')}': {e}")
+    except Exception as e:
+        print(f"[get_rig_data] Warning during rig calculations: {e}")
+
+    # Resolve the user's saved sort preference (default to name-asc)
+    sort_preference = rig_data.get('ui_preferences', {}).get('sort_order') or 'name-asc'
+
+    # Sort rigs using your helper if present; otherwise use a safe local fallback
+    def _fallback_sort(rigs, sort_key: str):
+        key, _, direction = sort_key.partition('-')
+        reverse = (direction == 'desc')
+
+        def to_num(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        def getter(r):
+            if key == 'name':
+                return (r.get('rig_name') or '').lower()
+            if key == 'fl':
+                return to_num(r.get('effective_focal_length'))
+            if key == 'fr':
+                return to_num(r.get('f_ratio'))
+            if key == 'scale':
+                return to_num(r.get('image_scale'))
+            if key == 'fovw':
+                return to_num(r.get('fov_w_arcmin'))
+            if key == 'recent':
+                ts = r.get('updated_at') or r.get('created_at') or ''
+                try:
+                    # ISO 8601 with optional Z
+                    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                except Exception:
+                    # fall back to id so sort is at least stable
+                    return r.get('rig_id') or ''
+            # default by name
+            return (r.get('rig_name') or '').lower()
+
+        # None-safe key: Nones sink to bottom
+        def none_safe(x):
+            v = getter(x)
+            return (v is None, v)
+
+        return sorted(rigs, key=none_safe, reverse=reverse)
+
+    try:
+        # Prefer your existing helper if it exists
+        sorted_rigs = sort_rigs_list(rig_data['rigs'], sort_preference)  # type: ignore[name-defined]
+    except NameError:
+        # Fallback if sort_rigs_list isn't available in this context
+        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
+    except Exception as e:
+        print(f"[get_rig_data] Warning: sort helper failed ({e}); using fallback.")
+        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
+
+    rig_data['rigs'] = sorted_rigs
+
+    # Expose the effective preference explicitly so the frontend can sync its UI
+    rig_data['sort_preference'] = sort_preference
 
     return jsonify(rig_data)
 
@@ -976,7 +1143,6 @@ def journal_list_view():
         sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
     except Exception as e:
         print(f"Warning: Could not sort journal sessions by date: {e}")
-
 
     return render_template('journal_list.html',
                            journal_sessions=sessions,
@@ -1171,7 +1337,62 @@ def journal_add():
     cancel_url_for_add = url_for('index')
     if preselected_target_id:
         cancel_url_for_add = url_for('graph_dashboard', object_name=preselected_target_id)
+    # --- Apply per-user rig sort preference for the journal form ---
+    try:
+        username_effective = "default" if SINGLE_USER_MODE else current_user.username
+        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
+        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
 
+        def _to_num(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        _key, _, _direction = _sort_pref.partition('-')
+        _reverse = (_direction == 'desc')
+
+        def _getattr_or_dict(x, attr, key):
+            if isinstance(x, dict):
+                return x.get(key)
+            return getattr(x, attr, None)
+
+        def _get(r):
+            if _key == 'name':
+                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+                return str(v).lower()
+            if _key == 'fl':
+                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
+            if _key == 'fr':
+                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
+            if _key == 'scale':
+                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
+            if _key == 'fovw':
+                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
+            if _key == 'recent':
+                ts = (
+                        _getattr_or_dict(r, 'updated_at', 'updated_at')
+                        or _getattr_or_dict(r, 'created_at', 'created_at')
+                        or ''
+                )
+                try:
+                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
+                except Exception:
+                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
+            # default: name
+            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+            return str(v).lower()
+
+        def _none_safe(x):
+            v = _get(x)
+            return (v is None, v)
+
+        # IMPORTANT: this variable name must match what you pass to the template
+        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
+
+    except Exception as _e:
+        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
+    # --- end rig sort preference ---
     return render_template('journal_form.html',
                            form_title="Add New Imaging Session",
                            form_action_url=url_for('journal_add'),
@@ -1337,7 +1558,62 @@ def journal_edit(session_id):
         cancel_url_for_edit = url_for('graph_dashboard', object_name=target_object_id_for_cancel, session_id=session_id)
     elif session_id:
         cancel_url_for_edit = url_for('journal_list_view')
+    # --- Apply per-user rig sort preference for the journal form ---
+    try:
+        username_effective = "default" if SINGLE_USER_MODE else current_user.username
+        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
+        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
 
+        def _to_num(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        _key, _, _direction = _sort_pref.partition('-')
+        _reverse = (_direction == 'desc')
+
+        def _getattr_or_dict(x, attr, key):
+            if isinstance(x, dict):
+                return x.get(key)
+            return getattr(x, attr, None)
+
+        def _get(r):
+            if _key == 'name':
+                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+                return str(v).lower()
+            if _key == 'fl':
+                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
+            if _key == 'fr':
+                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
+            if _key == 'scale':
+                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
+            if _key == 'fovw':
+                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
+            if _key == 'recent':
+                ts = (
+                        _getattr_or_dict(r, 'updated_at', 'updated_at')
+                        or _getattr_or_dict(r, 'created_at', 'created_at')
+                        or ''
+                )
+                try:
+                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
+                except Exception:
+                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
+            # default: name
+            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+            return str(v).lower()
+
+        def _none_safe(x):
+            v = _get(x)
+            return (v is None, v)
+
+        # IMPORTANT: this variable name must match what you pass to the template
+        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
+
+    except Exception as _e:
+        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
+    # --- end rig sort preference ---
     return render_template('journal_form.html',
                            form_title=f"Edit Imaging Session",
                            form_action_url=url_for('journal_edit', session_id=session_id),
@@ -1494,7 +1770,7 @@ def load_user_config(username):
     # Caching logic
     if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
             filepath, 0):
-        print(f"[LOAD CONFIG] Loading from cache: {filename}")
+        # print(f"[LOAD CONFIG] Loading from cache: {filename}")
         return config_cache[filepath]
 
     if not os.path.exists(filepath):
@@ -3401,13 +3677,14 @@ def plot_altitude(object_name):
             return jsonify({'error': 'Plot not found'}), 404
     return jsonify({"error": "Object not found"}), 404
 
+
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
     # --- Initialize effective context with global defaults/URL args ---
     effective_location_name = g.selected_location if hasattr(g,
                                                              'selected_location') and g.selected_location else "Unknown"
-    effective_lat = g.lat if hasattr(g, 'lat') else 0.0 # Ensure float for calcs
-    effective_lon = g.lon if hasattr(g, 'lon') else 0.0 # Ensure float for calcs
+    effective_lat = g.lat if hasattr(g, 'lat') else 0.0  # Ensure float for calcs
+    effective_lon = g.lon if hasattr(g, 'lon') else 0.0  # Ensure float for calcs
     effective_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
 
     now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
@@ -3418,14 +3695,20 @@ def graph_dashboard(object_name):
 
     # Override with URL args if present
     if request.args.get('day'):
-        try: effective_day = int(request.args.get('day'))
-        except ValueError: pass
+        try:
+            effective_day = int(request.args.get('day'))
+        except ValueError:
+            pass
     if request.args.get('month'):
-        try: effective_month = int(request.args.get('month'))
-        except ValueError: pass
+        try:
+            effective_month = int(request.args.get('month'))
+        except ValueError:
+            pass
     if request.args.get('year'):
-        try: effective_year = int(request.args.get('year'))
-        except ValueError: pass
+        try:
+            effective_year = int(request.args.get('year'))
+        except ValueError:
+            pass
 
     # --- Journal Data Logic ---
     if SINGLE_USER_MODE:
@@ -3433,7 +3716,7 @@ def graph_dashboard(object_name):
     elif current_user.is_authenticated:
         username_for_journal = current_user.username
     else:
-        username_for_journal = "guest_user" # Or handle as per your guest policy
+        username_for_journal = "guest_user"  # Or handle as per your guest policy
 
     object_specific_sessions = []
     selected_session_data = None
@@ -3443,17 +3726,13 @@ def graph_dashboard(object_name):
         journal_data = load_journal(username_for_journal)
         all_user_sessions = journal_data.get('sessions', [])
 
-        # --- OPTIMIZATION: Filter for the relevant sessions FIRST ---
         object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
-
-        # --- Now, calculate integration time ONLY for the sessions we need ---
         object_specific_sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
 
         if requested_session_id:
             selected_session_data = next(
                 (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
             if selected_session_data:
-                # 1. Override Effective Date with Session Date
                 session_date_str = selected_session_data.get('session_date')
                 if session_date_str:
                     try:
@@ -3464,7 +3743,6 @@ def graph_dashboard(object_name):
                     except ValueError:
                         flash(f"Invalid date in session. Using current/URL date.", "warning")
 
-                # 2. Override Effective Location with Session Location
                 session_loc_name = selected_session_data.get('location_name')
                 if session_loc_name:
                     all_locations_config = g.user_config.get("locations", {})
@@ -3474,11 +3752,10 @@ def graph_dashboard(object_name):
                         effective_lon = session_loc_details.get('lon', effective_lon)
                         effective_tz_name = session_loc_details.get('timezone', effective_tz_name)
                         effective_location_name = session_loc_name
-                        # Update now_at_effective_location if tz changed
                         now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
                     else:
                         flash(f"Location '{session_loc_name}' from session not in config. Using default.", "warning")
-            elif requested_session_id: # session_id was in URL but no matching session found
+            elif requested_session_id:
                 flash(f"Requested session ID '{requested_session_id}' not found for this object.", "info")
 
     # --- Finalize effective date string and dependent calculations ---
@@ -3504,60 +3781,64 @@ def graph_dashboard(object_name):
         print(f"Error calculating moon phase for {effective_date_str} at {effective_location_name}: {e}")
         moon_phase_for_effective_date = "N/A"
 
-    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat, effective_lon)
-    if username_for_journal not in rig_data_cache:
-        print(f"[CACHE] Rig data for user '{username_for_journal}' not in cache. Calculating now.")
-        calculated_rigs = []
-        rig_data = load_rig_config(username_for_journal, SINGLE_USER_MODE)
-        if rig_data and rig_data.get('rigs'):
-            all_components = rig_data.get('components', {})
-            for rig in rig_data.get('rigs', []):
-                calculated_data = calculate_rig_data(rig, all_components)
-                rig.update(calculated_data)
-                calculated_rigs.append(rig)
-        rig_data_cache[username_for_journal] = calculated_rigs
-    else:
-        print(f"[CACHE] Loading rig data for user '{username_for_journal}' from cache.")
+    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat,
+                                                                effective_lon)
 
-    rigs_with_fov = rig_data_cache[username_for_journal]
+    # <<< THIS ENTIRE BLOCK for loading and sorting rigs is the final, corrected version >>>
+    # Step 1: Load the full rig config to get both rigs and preferences
+    username_for_rigs = "default" if SINGLE_USER_MODE else (
+        current_user.username if current_user.is_authenticated else "guest_user")
+    full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
+
+    # Step 2: Get the raw list of rigs and the sort preference from the config data
+    unsorted_rigs = full_rig_config.get('rigs', [])
+    sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
+
+    # Step 3: Calculate data for each rig
+    rigs_with_calculated_data = []
+    if unsorted_rigs:
+        all_components = full_rig_config.get('components', {})
+        for rig in unsorted_rigs:
+            calculated_data = calculate_rig_data(rig, all_components)
+            rig.update(calculated_data)
+            rigs_with_calculated_data.append(rig)
+
+    # Step 4: Sort the final list
+    rigs_with_fov = sort_rigs_list(rigs_with_calculated_data, sort_preference)
+    # <<< END OF REPLACEMENT BLOCK >>>
+
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
         flash(f"Details for '{object_name}' could not be found.", "error")
         return redirect(url_for('index'))
 
-    # --- DEBUG PRINT STATEMENTS ---
-    if selected_session_data:
-        print("DEBUG: graph_dashboard - selected_session_data going to template:")
-        print(json.dumps(selected_session_data, indent=2))
-        print(f"DEBUG: Calculated Integ. Time: {selected_session_data.get('calculated_integration_time_minutes')}, Type: {type(selected_session_data.get('calculated_integration_time_minutes'))}")
-        print(f"DEBUG: Raw Subs: {selected_session_data.get('number_of_subs_light')}, Type: {type(selected_session_data.get('number_of_subs_light'))}")
-        print(f"DEBUG: Raw Exp Time: {selected_session_data.get('exposure_time_per_sub_sec')}, Type: {type(selected_session_data.get('exposure_time_per_sub_sec'))}")
-    # --- END OF DEBUG PRINT STATEMENTS ---
+    # DEBUG statements have been removed for clarity in the final version
 
     return render_template('graph_view.html',
-                               object_name=object_name,
-                               alt_name=object_main_details.get("Common Name", object_name),
-                               object_main_details=object_main_details,  # ADDED THIS
-                               available_rigs=rigs_with_fov,             # ADDED THIS
-                               selected_day=effective_day,
-                               selected_month=effective_month,
-                               selected_year=effective_year,
-                               selected_date_for_display=effective_date_str,
-                               header_location_name=effective_location_name,
-                               header_date_display=effective_date_str,
-                               header_moon_phase=moon_phase_for_effective_date,
-                               header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
-                               header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                               project_notes_from_config=object_main_details.get("Project", "N/A"),
-                               timestamp=datetime.now(effective_local_tz).timestamp(),
-                               object_specific_sessions=object_specific_sessions,
-                               selected_session_data=selected_session_data,
-                               current_session_id=requested_session_id if selected_session_data else None,
-                               graph_location_name_param=effective_location_name,
-                               graph_lat_param=effective_lat,
-                               graph_lon_param=effective_lon,
-                               graph_tz_name_param=effective_tz_name
-                               )
+                           object_name=object_name,
+                           alt_name=object_main_details.get("Common Name", object_name),
+                           object_main_details=object_main_details,
+                           available_rigs=rigs_with_fov,
+                           selected_day=effective_day,
+                           selected_month=effective_month,
+                           selected_year=effective_year,
+                           selected_date_for_display=effective_date_str,
+                           header_location_name=effective_location_name,
+                           header_date_display=effective_date_str,
+                           header_moon_phase=moon_phase_for_effective_date,
+                           header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                           header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                           project_notes_from_config=object_main_details.get("Project", "N/A"),
+                           timestamp=datetime.now(effective_local_tz).timestamp(),
+                           object_specific_sessions=object_specific_sessions,
+                           selected_session_data=selected_session_data,
+                           current_session_id=requested_session_id if selected_session_data else None,
+                           graph_location_name_param=effective_location_name,
+                           graph_lat_param=effective_lat,
+                           graph_lon_param=effective_lon,
+                           graph_tz_name_param=effective_tz_name
+                           )
+
 @app.route('/plot_day/<path:object_name>')
 def plot_day(object_name):
     # --- Determine Date for the plot from request.args ---
