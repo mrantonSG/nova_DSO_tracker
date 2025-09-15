@@ -14,7 +14,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 3.1 - Quick Guide
+# Nova DSO Altitude Tracker 3.2 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
