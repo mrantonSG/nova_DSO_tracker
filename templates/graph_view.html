@@ -790,8 +790,7 @@
 
     {# ---- Column 1: Back to Tracker Button ---- #}
     <div class="info-button-column">
-        <button class="inline-button" onclick="window.top.location.href='{{ url_for('index') }}'">Back to Tracker
-        </button>
+        <button class="inline-button" onclick='window.top.location.href="{{ url_for("index") }}"'>Back to Tracker</button>
     </div>
     {# ---- END: Column 1 ---- #}
 
@@ -875,7 +874,7 @@
             <tbody>
             {% for session_item in object_specific_sessions %}
             <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}"
-                onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}'">
+                onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}"'>
                 <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}</td>
                 <td class="col-location">{{ session_item.location_name | default("N/A") }}</td>
                 <td class="col-setup">{{ session_item.telescope_setup_notes | default("N/A") | truncate(50, True) }}
@@ -1264,8 +1263,8 @@
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy
                 framing URL
             </button>
-            <button type="button" class="inline-button" style="padding:6px 10px;font-size:13px;"
-                    onclick="insertFramingIntoProject()">Insert into Project
+            <button id="insert-into-project" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;"
+                    onclick="insertFramingIntoProject()">Insert into Project</button>
             </button>
         </div>
         <div class="framing-controls">
@@ -1305,6 +1304,18 @@
                     <option value="CDS/P/SHASSA">SHASSA Hα</option>
                     <option value="P/SDSS9/color">SDSS9 (color)</option>
                 </select>
+                <span style="margin-left:18px;">Blend with:</span>
+                    <select id="blend-survey-select" style="margin-left:6px;">
+                        <option value="P/DSS2/color" selected>DSS2 (color)</option>
+                        <option value="P/DSS2/red">DSS2 (red)</option>
+                        <option value="P/DSS2/blue">DSS2 (blue)</option>
+                        <option value="P/2MASS/color">2MASS (color)</option>
+                        <option value="P/allWISE/color">WISE (color)</option>
+                        <option value="P/SDSS9/color">SDSS (color)</option>
+                        <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
+                    </select>
+                    <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0"
+                           title="Blend opacity" style="width:130px; vertical-align:middle; margin-left:8px;">
             </div>
         </div>
 
@@ -1902,6 +1913,7 @@
 
     // NEW: base image layer handle + FOV center
     let baseSurvey = null;
+    let blendLayer = null;         // secondary survey layer for alpha blending
     let fovCenter = null; // { ra: number, dec: number }
 
     // --- QoL state ---
@@ -1935,10 +1947,17 @@
             btn.style.padding = '6px 12px';
             btn.textContent = 'Re-open Last Saved Framing';
             btn.onclick = () => {
-                // Set the URL in the address bar without reloading the page
+              // Merge current framing params (including blend) with provided base url
+              try {
+                const u = new URL(url, location.origin);
+                const qNow = new URLSearchParams(buildFramingQuery().slice(1));
+                qNow.forEach((v, k) => u.searchParams.set(k, v));
+                history.pushState(null, '', u.pathname + '?' + u.searchParams.toString());
+              } catch (e) {
                 history.pushState(null, '', url);
-                // Open the modal, which will now read the new URL parameters
-                openFramingAssistant();
+              }
+              // Open the modal, which will now read the new URL parameters
+              openFramingAssistant();
             };
             container.appendChild(btn);
         }
@@ -1980,9 +1999,10 @@
                 span = document.createElement('span');
                 span.id = 'rotation-value';
                 span.style.marginLeft = '8px';
-                span.style.fontWeight = '600';
+                span.style.fontWeight = 'normal';
                 span.style.fontSize = '15px';
                 slider.insertAdjacentElement('afterend', span);
+                try { span.style.fontWeight = 'normal'; } catch(_) {}
             }
         })();
 
@@ -2047,7 +2067,78 @@
             window.__novaSlowZoomInstalled = true;
         })();
             baseSurvey = aladin.getBaseImageLayer();
+            // ---------- Blending helpers (Aladin Lite v3) ----------
+            let __blendSurveyId = null;
 
+            function ensureBlendLayer() {
+              if (!aladin) return null;
+              const sel = document.getElementById('blend-survey-select');
+              if (!sel) return null;
+              const surveyId = sel.value;
+
+              // Reuse if already set to same
+              const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
+              if (existing && __blendSurveyId === surveyId) return existing;
+
+              try {
+                const hpx = (aladin.newImageSurvey)
+                  ? aladin.newImageSurvey(surveyId)
+                  : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
+
+                if (hpx) {
+                  aladin.setOverlayImageLayer(hpx, 'blend');
+                  __blendSurveyId = surveyId;
+                  return aladin.getOverlayImageLayer('blend');
+                }
+              } catch (e) {
+                console.warn('[nova] Could not create/set overlay image survey:', e);
+              }
+              return null;
+            }
+
+            function setBlendOpacity(a) {
+              const v = Math.max(0, Math.min(1, Number(a) || 0));
+              if (!aladin) return;
+              const layer = ensureBlendLayer();
+
+              // Try layer method first
+              if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) {
+                (layer.setOpacity || layer.setAlpha).call(layer, v);
+                return;
+              }
+              // Fallback: survey object (some builds expose setOpacity there)
+              try {
+                const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
+                survey?.setOpacity?.(v);
+              } catch(e) {}
+            }
+
+
+            // Wire blending UI
+            (function wireBlendAndConstellationUI(){
+                const blendSel = document.getElementById('blend-survey-select');
+                const blendOp  = document.getElementById('blend-opacity');
+
+                if (blendSel) {
+                    blendSel.addEventListener('change', () => {
+                        ensureBlendLayer();
+                        const v = Number(blendOp?.value || 0);
+                        setBlendOpacity(v);
+                        updateFramingChart(false);
+                    });
+                }
+                if (blendOp) {
+                    const sync = (e) => {
+                        setBlendOpacity(e.target.value);
+                        updateFramingChart(false);
+                    };
+                    blendOp.addEventListener('input', sync);
+                    blendOp.addEventListener('change', sync);
+                }
+
+                // Initialize (blend hidden)
+                try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {}
+            })();
             // Keep screen-space FOV rectangle visible and sized while zooming
             if (aladin.on) {
                 aladin.on('zoomChanged', () => {
@@ -2057,6 +2148,19 @@
                     if (sel && sel.selectedIndex >= 0) {
                         const opt = sel.options[sel.selectedIndex];
                         updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot);
+                    }
+                });
+            }
+            // Re‑apply blend layer after base survey changes (some builds clear overlays)
+            if (aladin.on) {
+                aladin.on('baseLayerChanged', () => {
+                    try {
+                        const bop = document.getElementById('blend-opacity');
+                        // Recreate overlay for the selected blend survey and restore opacity
+                        ensureBlendLayer();
+                        if (bop) setBlendOpacity(bop.value);
+                    } catch (e) {
+                        console.warn('[nova] Could not reapply blend after base change:', e);
                     }
                 });
             }
@@ -2174,8 +2278,51 @@
                 // Initialize display immediately
                 handler();
             })();
-        }
 
+            // Wire: Insert into Project should carry blend settings as well
+            (function wireInsertIntoProject(){
+              const btn = document.getElementById('insert-into-project');
+              if (!btn) return;
+              try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {}
+              btn.__novaInsertHandler = (ev) => {
+                try {
+                  // Update the URL (no reload) so backend reads all params, including blend*
+                  const q = buildFramingQuery();
+                  const href = location.pathname + q;
+                  history.replaceState(null, '', href);
+                  // Let any existing handler proceed (we just made sure the URL is up-to-date)
+                } catch(e) {
+                  console.warn('[nova] Insert-to-project wiring error:', e);
+                }
+              };
+              btn.addEventListener('click', btn.__novaInsertHandler);
+            })();
+
+        }
+        // Helper: build current framing query (used by Insert to Project & quick links)
+        function buildFramingQuery() {
+          const sel = document.getElementById('framing-rig-select');
+          const rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '';
+          const rotInput = document.getElementById('framing-rotation');
+          const rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0;
+          const sSel = document.getElementById('survey-select');
+          const survey = sSel ? sSel.value : '';
+          const bSel = document.getElementById('blend-survey-select');
+          const bOp  = document.getElementById('blend-opacity');
+          const blend = bSel ? bSel.value : '';
+          const blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0;
+          const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
+
+          const qp = new URLSearchParams();
+          if (rig) qp.set('rig', rig);
+          if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
+          if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
+          qp.set('rot', String(Math.round(rot)));
+          if (survey) qp.set('survey', survey);
+          if (blend) qp.set('blend', blend);
+          qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
+          return '?' + qp.toString();
+        }
         // -------- Restore from URL (rig/center/rotation/survey) --------
         let haveCenter = false;
         let haveRot = false;
@@ -2188,6 +2335,8 @@
             const dec = parseFloat(q.get('dec'));
             const rot = parseFloat(q.get('rot'));
             const surv = q.get('survey');
+            const blend = q.get('blend');
+            const blendOp = parseFloat(q.get('blend_op'));
 
             // Rig
             if (rig) {
@@ -2219,6 +2368,27 @@
                 }
             }
 
+            // Blend survey & opacity
+            try {
+              const bsel = document.getElementById('blend-survey-select');
+              const bop  = document.getElementById('blend-opacity');
+              if (blend && bsel) {
+                bsel.value = blend;
+                if (typeof ensureBlendLayer === 'function') ensureBlendLayer();
+              }
+              if (!Number.isNaN(blendOp) && bop) {
+                bop.value = String(Math.max(0, Math.min(1, blendOp)));
+                if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value);
+              }
+            } catch (e) {}
+
+            // Finalize: ensure blend overlay + opacity actually applied
+            try {
+              const bop2 = document.getElementById('blend-opacity');
+              ensureBlendLayer();
+              if (bop2) setBlendOpacity(bop2.value);
+            } catch (e) {}
+
             // Saved frame center
             if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
                 fovCenter = {ra, dec};       // IMPORTANT: assign the real variable, not window.*
@@ -2229,6 +2399,12 @@
         } catch (e) {
             // ignore; keep current defaults
         }
+        // Finalize: ensure blend shows what URL/controls say (covers late base survey init)
+        try {
+            const bop = document.getElementById('blend-opacity');
+            ensureBlendLayer();
+            if (bop) setBlendOpacity(bop.value);
+        } catch (e) {}
 
         // Defaults if not provided
         if (!haveRot) {
@@ -2832,7 +3008,7 @@ window.updateFramingChart = function (recenter = true) {
                 return;
             }
 
-            // Collect current framing settings
+            // Collect current framing settings (canonical, single source of truth)
             const sel = document.getElementById('framing-rig-select');
             const rigId = sel?.value || '';
             const rigName = (sel && sel.selectedIndex >= 0)
@@ -2845,44 +3021,83 @@ window.updateFramingChart = function (recenter = true) {
             const survSel = document.getElementById('survey-select');
             const survey = survSel?.value || '';
 
-            // Use getFrameCenterRaDec() for robust center retrieval
+            // Blend survey & opacity (ensure these are persisted)
+            const blendSel = document.getElementById('blend-survey-select');
+            const blendSurvey = blendSel?.value || '';
+            const blendOpEl = document.getElementById('blend-opacity');
+            const blendOp = Math.max(0, Math.min(1, parseFloat(blendOpEl?.value ?? '0') || 0));
+
+            // Robust center retrieval
             const center = getFrameCenterRaDec();
             const raDeg  = center.ra;
             const decDeg = center.dec;
 
-            // Optional: sync visible readout so UI matches what we insert
+            // Sync visible readout so UI matches what we insert
             updateReadout(raDeg, decDeg);
 
-            // Build a shareable URL with current framing state
+            // Build a shareable URL with ALL framing state
             const qs = new URLSearchParams();
             if (rigId) qs.set('rig', rigId);
-            if (center) {
-                qs.set('ra', raDeg.toFixed(6));
-                qs.set('dec', decDeg.toFixed(6));
-            }
+            if (Number.isFinite(raDeg)) qs.set('ra', raDeg.toFixed(6));
+            if (Number.isFinite(decDeg)) qs.set('dec', decDeg.toFixed(6));
             qs.set('rot', String(rotDeg));
             if (survey) qs.set('survey', survey);
+            if (blendSurvey) qs.set('blend', blendSurvey);
+            qs.set('blend_op', String(blendOp));
             const url = `${location.origin}${location.pathname}?${qs.toString()}`;
 
-            // Build a readable note
-            const centerTxt = center
-                ? `RA ${formatRA(raDeg)}, Dec ${formatDec(decDeg)}`
-                : 'center = object';
-            const note =
-                `\n[Framing] ${rigName}, rot ${rotDeg}°, ${centerTxt}, survey ${survey || 'default'}\n${url}\n`;
+            // Human‑readable single line (we will keep exactly ONE per object)
+            const objectName = "{{ object_name }}"; // already in template context
+            const centerTxt = `RA ${formatRA(raDeg)}, Dec ${formatDec(decDeg)}`;
+            const line = `[Framing:${objectName}] ${rigName}, rot ${rotDeg}\u00B0, ${centerTxt}, survey ${survey || 'default'}${blendSurvey ? ` + blend ${blendSurvey} @ ${blendOp}` : ''}`;
 
-            // Append into the Project notes
-            if (ta.value && !ta.value.endsWith('\n')) ta.value += '\n';
-            ta.value += note;
-            ta.dispatchEvent(new Event('input', {bubbles: true}));
+            // === DEDUP STRATEGY ===
+            // We maintain at most one framing block for this object: a title line + the URL on the next line.
+            // Remove any previous block for the same object, then insert the new one at the end.
+            const lines = ta.value.split(/\r?\n/);
+            const out = [];
+            for (let i = 0; i < lines.length; i++) {
+                const L = lines[i];
+                // Match the start of a previous block for this object
+                if (/^\[Framing:/.test(L)) {
+                    // Is it for this object?
+                    if (L.startsWith(`[Framing:${objectName}]`)) {
+                        // Skip this line and, if the next line looks like a URL, skip it too
+                        const maybeUrl = lines[i + 1] || '';
+                        if (/^https?:\/\//i.test(maybeUrl)) i++; // skip URL line
+                        continue; // drop old block
+                    }
+                }
+                out.push(L);
+            }
+
+            // Ensure trailing newline before appending
+            if (out.length && out[out.length - 1] !== '') out.push('');
+            out.push(line);
+            out.push(url);
+
+            ta.value = out.join('\n');
+            ta.dispatchEvent(new Event('input', { bubbles: true }));
             ta.scrollTop = ta.scrollHeight;
 
-            // Also, re-run the function that creates the quick-link button
+            // Update the quick link button to this latest canonical URL
             setProjectQuickLink(url);
 
         } catch (e) {
             console.error('insertFramingIntoProject failed', e);
             alert('Could not insert framing into Project. See console for details.');
+        }
+    }
+
+    function copyFramingUrl() {
+        try {
+            // buildFramingQuery() already includes RA, Dec, rotation, survey, blend, etc.
+            const q = buildFramingQuery();
+            const url = location.origin + location.pathname + q;
+            navigator.clipboard.writeText(url);
+            console.log("[Framing] Copied URL:", url);
+        } catch (e) {
+            console.warn("[Framing] copyFramingUrl failed:", e);
         }
     }
 
