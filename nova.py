@@ -79,9 +79,13 @@ from modules.rig_config import save_rig_config, load_rig_config
 
 APP_VERSION = "3.3.D1"
 
+INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
+ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
+load_dotenv(dotenv_path=ENV_FILE)
+
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
-load_dotenv()
+# load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
 nightly_curves_cache = {}
@@ -93,11 +97,12 @@ journal_cache = {}
 journal_mtime = {}
 LATEST_VERSION_INFO = {}
 rig_data_cache = {}
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
-ENV_FILE = ".env"
+
+# CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
+
+
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 
-INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
 CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
@@ -668,7 +673,8 @@ def warm_main_cache(username, location_name, user_config):
 
         # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
         # print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
-        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{location_name.lower().replace(' ', '_')}.json")
+        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+
 
         needs_update = False
         if not os.path.exists(cache_filename):
@@ -1775,60 +1781,52 @@ def load_user_config(username):
     """
     global config_cache, config_mtime
     if SINGLE_USER_MODE:
-        filename = "instance/configs/config_default.yaml"
+        # FIX: This should be just the filename, not the partial path.
+        filename = "config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
+
+    # This line now correctly builds the full path for both single and multi-user modes.
     filepath = os.path.join(CONFIG_DIR, filename)
 
-    # Caching logic
+    # --- The rest of the function remains the same ---
     if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
             filepath, 0):
-        # print(f"[LOAD CONFIG] Loading from cache: {filename}")
         return config_cache[filepath]
 
     if not os.path.exists(filepath):
-        print(f"⚠️ Config file '{filename}' not found. Using default.")
+        print(f"⚠️ Config file '{filename}' not found in '{CONFIG_DIR}'. Using default empty config.")
         return {}
 
-    # --- AUTOMATIC REPAIR LOGIC ---
     try:
-        # First, try to load with the safe loader.
         with open(filepath, "r", encoding='utf-8') as file:
             config_data = yaml.safe_load(file) or {}
         print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
-        # print(f"DEBUG: Loaded locations keys: {list(config_data.get('locations', {}).keys())}")
 
     except ConstructorError as e:
-        # If safe_load fails due to an unknown tag, attempt repair.
         if 'numpy' in str(e):
             print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
             try:
-                # 1. Create a backup of the corrupted file
-                backup_dir = os.path.join(os.path.dirname(filepath), "backups")
+                backup_dir = os.path.join(INSTANCE_PATH, "backups")  # Corrected backup path
                 os.makedirs(backup_dir, exist_ok=True)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_path = os.path.join(backup_dir, f"{filename}_corrupted_backup_{timestamp}.yaml")
+                backup_path = os.path.join(backup_dir,
+                                           f"{os.path.basename(filename)}_corrupted_backup_{timestamp}.yaml")
                 shutil.copy(filepath, backup_path)
                 print(f"    -> Backed up corrupted file to '{backup_path}'")
 
-                # 2. Re-read with UnsafeLoader to load the NumPy object into memory
                 with open(filepath, "r", encoding='utf-8') as file:
-                    # --- THIS IS THE KEY CHANGE ---
                     corrupted_data = yaml.load(file, Loader=yaml.UnsafeLoader)
 
-                # 3. Clean the data in memory using our recursive function
                 cleaned_data = recursively_clean_numpy_types(corrupted_data)
                 print("    -> Successfully cleaned data in memory.")
 
-                # 4. Overwrite the original file with the clean data
                 save_user_config(username, cleaned_data)
                 print(f"    -> Repaired and saved clean data to '{filename}'.")
-
                 config_data = cleaned_data
 
             except Exception as repair_e:
                 print(f"❌ [CONFIG REPAIR] Automatic repair failed: {repair_e}")
-                print("    -> The application might not function correctly. Please check the backed up file.")
                 return {}
         else:
             print(f"❌ ERROR: Unrecoverable YAML error in '{filename}': {e}")
@@ -1838,7 +1836,6 @@ def load_user_config(username):
         print(f"❌ ERROR: A critical error occurred while loading config '{filename}': {e}")
         return {}
 
-    # Update cache
     config_cache[filepath] = config_data
     config_mtime[filepath] = os.path.getmtime(filepath)
     return config_data
