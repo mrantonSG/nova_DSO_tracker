@@ -1,7 +1,7 @@
 /scratches/
 /.env
-/config_anton.yaml
-/journal_anton.yaml
-/rig_config_anton.yaml
+/instance/configs/config_anton.yaml
+/instance/configs/journal_anton.yaml
+/instance/configs/rig_config_anton.yaml
 /venv/
 /instance/

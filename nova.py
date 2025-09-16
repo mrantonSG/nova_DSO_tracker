@@ -97,9 +97,15 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 
+INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
+CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
+CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
+BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+# Create directories if they don't exist
 os.makedirs(CACHE_DIR, exist_ok=True)
+os.makedirs(CONFIG_DIR, exist_ok=True)
+os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # --- Stellarium API URL Configuration ---
 # Default URL for running directly on the host
@@ -237,7 +243,7 @@ def load_journal(username):
         filename = "journal_default.yaml"
     else:
         filename = f"journal_{username}.yaml"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
     # Caching logic
     last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
@@ -268,7 +274,7 @@ def save_journal(username, journal_data):
         filename = "journal_default.yaml"
     else:
         filename = f"journal_{username}.yaml"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
     try:
         with open(filepath, "w", encoding="utf-8") as file: # Added encoding
@@ -308,7 +314,9 @@ def migrate_journal_data():
     the pre-calculated integration time.
     """
     print("[MIGRATION] Checking for old journal entries to update...")
-    journal_files = glob.glob('journal_*.yaml') + glob.glob('journal_default.yaml')
+    search_path = os.path.join(CONFIG_DIR, 'journal_*.yaml')
+    default_path = os.path.join(CONFIG_DIR, 'journal_default.yaml')
+    journal_files = glob.glob(search_path) + glob.glob(default_path)
 
     for journal_file in journal_files:
         try:
@@ -660,7 +668,6 @@ def warm_main_cache(username, location_name, user_config):
 
         # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
         # print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
-        # We re-use the same logic from the old startup function to check if an update is needed
         cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{location_name.lower().replace(' ', '_')}.json")
 
         needs_update = False
@@ -1768,10 +1775,10 @@ def load_user_config(username):
     """
     global config_cache, config_mtime
     if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
+        filename = "instance/configs/config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
     # Caching logic
     if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
@@ -1838,10 +1845,11 @@ def load_user_config(username):
 
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
+        filename = "instance/configs/config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
-    with open(filename, "w") as file:
+    filepath = os.path.join(CONFIG_DIR, filename)
+    with open(filepath, "w") as file:
         yaml.dump(config_data, file)
 
 def get_imaging_criteria():
@@ -2013,17 +2021,21 @@ def inject_version():
     return dict(version=APP_VERSION)
 
 @app.route('/download_config')
+@login_required # This was missing, it's good practice to add it
 def download_config():
     if SINGLE_USER_MODE:
         filename = "config_default.yaml"
     else:
         filename = f"config_{current_user.username}.yaml"
 
-    filepath = os.path.join(os.getcwd(), filename)
+    # FIX: Use the CONFIG_DIR variable for a reliable path
+    filepath = os.path.join(CONFIG_DIR, filename)
+
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
     else:
-        return "Configuration file not found.", 404
+        flash("Configuration file not found.", "error")
+        return redirect(url_for('config_form'))
 
 @app.route('/download_journal')
 @login_required # Or your custom logic for SINGLE_USER_MODE
@@ -2042,7 +2054,7 @@ def download_journal():
     # Assuming your journal YAML files are in the same directory as app.py (instance path or app root)
     # If they are in a subdirectory e.g. 'user_data/', adjust the path.
     # For consistency with how load_journal/save_journal build paths:
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
 
     if os.path.exists(filepath):
@@ -2081,9 +2093,8 @@ def validate_journal_data(journal_data):
         # Add more checks per session if desired (e.g., session_date format)
     return True, "Journal data seems structurally valid."
 
-
 @app.route('/import_journal', methods=['POST'])
-@login_required  # Or your custom logic
+@login_required
 def import_journal():
     if 'file' not in request.files:
         flash("No file selected for journal import.", "error")
@@ -2099,16 +2110,14 @@ def import_journal():
             contents = file.read().decode('utf-8')
             new_journal_data = yaml.safe_load(contents)
 
-            if new_journal_data is None:  # Handle completely empty YAML file
+            if new_journal_data is None:
                 new_journal_data = {"sessions": []}
 
-            # Basic validation for the journal structure
             is_valid, message = validate_journal_data(new_journal_data)
             if not is_valid:
                 flash(f"Invalid journal file structure: {message}", "error")
                 return redirect(url_for('config_form'))
 
-            # Determine the correct journal filename for this user
             if SINGLE_USER_MODE:
                 username = "default"
                 journal_filename = "journal_default.yaml"
@@ -2119,24 +2128,19 @@ def import_journal():
                 username = current_user.username
                 journal_filename = f"journal_{username}.yaml"
 
-            journal_filepath = os.path.join(os.path.dirname(__file__), journal_filename)
+            journal_filepath = os.path.join(CONFIG_DIR, journal_filename)
 
-            # Backup current journal file if it exists
             if os.path.exists(journal_filepath):
-                backup_dir = os.path.join(os.path.dirname(journal_filepath), "backups")
-                os.makedirs(backup_dir, exist_ok=True)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 backup_filename = f"{journal_filename}_backup_{timestamp}.yaml"
-                backup_path = os.path.join(backup_dir, backup_filename)
+                backup_path = os.path.join(BACKUP_DIR, backup_filename)
                 try:
                     shutil.copy(journal_filepath, backup_path)
                     print(f"[IMPORT JOURNAL] Backed up current journal to {backup_path}")
                 except Exception as backup_e:
                     print(f"Warning: Could not back up existing journal: {backup_e}")
 
-            # Save new journal data (overwrite existing)
-            save_journal(username, new_journal_data)  # Use your existing save_journal function
-
+            save_journal(username, new_journal_data)
             flash("Journal imported successfully! Your old journal (if any) has been backed up.", "success")
             return redirect(url_for('config_form'))
 
@@ -2154,10 +2158,10 @@ def import_journal():
 
 
 @app.route('/import_config', methods=['POST'])
+@login_required
 def import_config():
     try:
         if 'file' not in request.files:
-            # Correctly use flash and redirect for user feedback
             flash("No file selected for import.", "error")
             return redirect(url_for('config_form'))
 
@@ -2175,47 +2179,39 @@ def import_config():
             flash(error_message, "error")
             return redirect(url_for('config_form'))
 
-        # ====================================================================
-        # FIXED LOGIC: Explicitly check SINGLE_USER_MODE
-        # ====================================================================
         if SINGLE_USER_MODE:
             username_for_backup = "default"
             config_filename = "config_default.yaml"
         else:
-            # Ensure there is an authenticated user in multi-user mode
             if not current_user.is_authenticated:
                 flash("You must be logged in to import a configuration.", "error")
                 return redirect(url_for('login'))
             username_for_backup = current_user.username
             config_filename = f"config_{username_for_backup}.yaml"
 
-        config_path = os.path.join(os.path.dirname(__file__), config_filename)
-        # ====================================================================
+        config_path = os.path.join(CONFIG_DIR, config_filename)
 
-        # Backup current config if it exists
         if os.path.exists(config_path):
-            backup_dir = os.path.join(os.path.dirname(config_path), "backups")
-            os.makedirs(backup_dir, exist_ok=True)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            # Use the determined username for the backup file name
-            backup_path = os.path.join(backup_dir, f"{username_for_backup}_backup_{timestamp}.yaml")
+            backup_filename = f"{username_for_backup}_backup_{timestamp}.yaml"
+            backup_path = os.path.join(BACKUP_DIR, backup_filename)
             shutil.copy(config_path, backup_path)
             print(f"[IMPORT] Backed up current config to {backup_path}")
 
-        # Save new config if valid
         with open(config_path, 'w') as f:
             yaml.dump(new_config, f, default_flow_style=False)
 
         print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
         flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
-        print("[CONFIG] Config imported. Checking for new locations needing an Outlook cache.")
+
         user_config_for_thread = new_config.copy()
         for loc_name in user_config_for_thread.get('locations', {}).keys():
-            # Use the new filename format for the check
             cache_filename = f"outlook_cache_{username_for_backup}_{loc_name.lower().replace(' ', '_')}.json"
-            if not os.path.exists(cache_filename):
+            cache_filepath = os.path.join(CACHE_DIR, cache_filename)
+            if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
-                thread = threading.Thread(target=update_outlook_cache, args=(username_for_backup, loc_name, user_config_for_thread))
+                thread = threading.Thread(target=update_outlook_cache,
+                                          args=(username_for_backup, loc_name, user_config_for_thread))
                 thread.start()
 
         return redirect(url_for('config_form'))
