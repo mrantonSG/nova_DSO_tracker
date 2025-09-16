@@ -97,6 +97,10 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 ENV_FILE = ".env"
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 
+
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+
 # --- Stellarium API URL Configuration ---
 # Default URL for running directly on the host
 DEFAULT_STELLARIUM_HOST_URL = "http://localhost:8090"
@@ -485,7 +489,8 @@ def update_outlook_cache(username, location_name, user_config):
 
         # print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
         cache_worker_status[status_key] = "running"
-        cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
+        cache_filename = os.path.join(CACHE_DIR,
+                                      f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
         try:
             g.user_config = user_config
@@ -656,7 +661,8 @@ def warm_main_cache(username, location_name, user_config):
         # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
         # print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
         # We re-use the same logic from the old startup function to check if an update is needed
-        cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{location_name.lower().replace(' ', '_')}.json")
+
         needs_update = False
         if not os.path.exists(cache_filename):
             needs_update = True
@@ -741,7 +747,7 @@ def get_outlook_data():
         return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
     location_name = g.selected_location
-    cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
+    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
     if os.path.exists(cache_filename):
         try:
@@ -901,7 +907,7 @@ def add_rig():
             "reducer_extender_id": reducer_extender_id if reducer_extender_id else None
         }
 
-        if rig_id: # This is an UPDATE
+        if rig_id:  # This is an UPDATE
             found = False
             for i, rig in enumerate(rig_data['rigs']):
                 if rig.get('rig_id') == rig_id:
@@ -912,7 +918,7 @@ def add_rig():
                 flash(f"Rig '{rig_name}' updated successfully.", "success")
             else:
                 flash(f"Error: Rig with ID {rig_id} not found for update.", "error")
-        else: # This is an ADD
+        else:  # This is an ADD
             rig_details["rig_id"] = uuid.uuid4().hex
             rig_data['rigs'].append(rig_details)
             flash(f"Rig '{rig_name}' created successfully.", "success")
