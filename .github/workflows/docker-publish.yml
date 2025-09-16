@@ -26,23 +26,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # This is the step to modify
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: mrantonsg/nova-dso-tracker
-          # This 'tags' block tells the workflow how to tag manual runs
           tags: |
-            type=schedule
-            type=ref,event=branch
-            type=ref,event=pr
+            # Create semver tags like v1.2.3, v1.2, and v1 when a release is published
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            # This line is key: it tags pushes to the main branch as 'latest'
-            type=sha,prefix=,suffix=,event=branch,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
+            
+            # This rule creates the 'latest' tag ONLY when the workflow runs on
+            # your main or master branch (either from a release or a manual run).
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
