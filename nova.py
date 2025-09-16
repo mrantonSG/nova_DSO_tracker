@@ -4365,6 +4365,11 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     migrate_journal_data()
     trigger_startup_cache_workers() # This runs second
 
+import logging
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 if __name__ == '__main__':
     # Start the background thread to check for updates
     update_thread = threading.Thread(target=check_for_updates)

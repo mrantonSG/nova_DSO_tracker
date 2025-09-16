@@ -41,5 +41,6 @@ EXPOSE 5001
 # Define the command to run your app using Gunicorn
 # Assumes your Flask app instance is named 'app' in 'nova.py'
 # Runs Gunicorn listening on all interfaces inside the container on port 5001
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--threads", "4", "nova:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--threads", "4", "--log-level", "error", "nova:app"]
+
 
