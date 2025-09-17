@@ -818,45 +818,84 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
         print(f"[TELEMETRY] send_telemetry_async called (force={force}, enabled={enabled_flag})")
 
         if not enabled_flag:
-            print("[TELEMETRY] Telemetry disabled; skipping send.")
+            # print("[TELEMETRY] Telemetry disabled; skipping send.")
             TELEMETRY_DEBUG_STATE['last_error'] = "disabled"
             return
 
         endpoint = os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
         TELEMETRY_DEBUG_STATE['endpoint'] = endpoint
         if not endpoint:
-            print("[TELEMETRY] No NOVA_TELEMETRY_ENDPOINT configured; skipping.")
+            # print("[TELEMETRY] No NOVA_TELEMETRY_ENDPOINT configured; skipping.")
             TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
             return
 
         state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
         if (not force) and (not telemetry_should_send(state_dir)):
-            print("[TELEMETRY] Throttled (within 24h); skipping.")
+            # print("[TELEMETRY] Throttled (within 24h); skipping.")
             TELEMETRY_DEBUG_STATE['last_error'] = "throttled"
             return
 
         payload = build_telemetry_payload(user_config, browser_user_agent)
         def _worker():
             try:
-                print("[TELEMETRY] Sending to:", endpoint)
+                # print("[TELEMETRY] Sending to:", endpoint)
                 resp = requests.post(endpoint, json=payload, timeout=5)
                 TELEMETRY_DEBUG_STATE['last_result'] = f"HTTP {getattr(resp, 'status_code', 'unknown')}"
                 TELEMETRY_DEBUG_STATE['last_error'] = None
                 TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
-                print("[TELEMETRY] OK:", TELEMETRY_DEBUG_STATE['last_result'])
+                # print("[TELEMETRY] OK:", TELEMETRY_DEBUG_STATE['last_result'])
             except Exception as e:
                 TELEMETRY_DEBUG_STATE['last_result'] = None
                 TELEMETRY_DEBUG_STATE['last_error'] = str(e)
                 TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
-                print("[TELEMETRY] ERROR:", e)
+                # print("[TELEMETRY] ERROR:", e)
             finally:
                 telemetry_mark_sent(state_dir)
         TELEMETRY_DEBUG_STATE['last_payload'] = payload
         threading.Thread(target=_worker, daemon=True).start()
     except Exception as e:
-        print("[TELEMETRY] Outer exception:", e)
+        # print("[TELEMETRY] Outer exception:", e)
         TELEMETRY_DEBUG_STATE['last_error'] = str(e)
-# --- end telemetry helpers ---
+
+# --- Telemetry startup + daily scheduler ---
+def _start_telemetry_scheduler_once():
+    """On first request after (re)start: send telemetry once, then schedule daily pings."""
+    if _telemetry_startup_once.is_set():
+        return
+    _telemetry_startup_once.set()
+    try:
+        username = "default" if SINGLE_USER_MODE else "default"
+        try:
+            cfg = load_user_config(username)
+        except Exception:
+            cfg = {}
+        # Send immediately on restart (explicitly allowed)
+        # print("[TELEMETRY] Startup ping: sending now (force=True)")
+        send_telemetry_async(cfg, browser_user_agent='', force=True)
+
+        # Background daily scheduler (respects 24h guard)
+        def _daily_loop():
+            while True:
+                try:
+                    time.sleep(24 * 60 * 60)
+                    try:
+                        daily_cfg = load_user_config(username)
+                    except Exception:
+                        daily_cfg = cfg or {}
+                    # print("[TELEMETRY] Daily ping: attempting send (force=False)")
+                    send_telemetry_async(daily_cfg, browser_user_agent='', force=False)
+                except Exception:
+                    # Keep the loop alive even if something odd happens
+                    pass
+
+        threading.Thread(target=_daily_loop, daemon=True).start()
+    except Exception as e:
+        print(f"[TELEMETRY] Scheduler init error: {e}")
+# Kick it off on the first incoming request (Flask 3 replacement for before_first_request)
+@app.before_request
+def _telemetry_bootstrap_hook():
+    _start_telemetry_scheduler_once()
+# --- end telemetry startup + daily scheduler ---
 
 
 # --- Telemetry diagnostics route ---
