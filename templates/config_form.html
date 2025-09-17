@@ -379,6 +379,7 @@
     .form-group select.form-control {
         justify-self: start;
     }
+    #telemetry_enabled { transform: scale(1.2); transform-origin: center left; }
     #sampling_interval {
       font-size: 15px;
     }
@@ -451,6 +452,20 @@
                 <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
               </div>
               <hr>
+              <!-- Telemetry toggle row inserted here -->
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="telemetry_enabled">Anonymous Telemetry:</label>
+                  <input type="checkbox" name="telemetry_enabled" id="telemetry_enabled"
+                         {% if config.get('telemetry', {}).get('enabled', True) %}checked{% endif %}>
+                </div>
+                <small class="form-text text-muted">
+                  Shares a daily, anonymous heartbeat (instance ID, app &amp; Python versions, OS, Docker, mode, browser) to help improve Nova. No personal data. You can opt out anytime.
+                </small>
+              </div>
+              <div class="inline-fields">
+                <button type="button" id="test-telemetry" class="action-button">Send Test Telemetry Now</button>
+              </div>
               <div class="inline-fields">
                 <div>
                   <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
@@ -1111,6 +1126,41 @@ function fetchRigsData() {
 
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Anonymous telemetry client ping (once per 24h in this browser) ---
+        try {
+          const TELEMETRY_KEY = 'novaTelemetryPingAt';
+          const lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10);
+          const now = Date.now();
+          const DAY_MS = 24*60*60*1000;
+          const telemetryEnabled = {{ 'true' if config.get('telemetry', {}).get('enabled', True) else 'false' }};
+          if (telemetryEnabled && (!Number.isFinite(lastPing) || (now - lastPing) > DAY_MS)) {
+            fetch('/telemetry/ping', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ browser_user_agent: navigator.userAgent || '', force: true })
+            }).then(() => {
+              localStorage.setItem(TELEMETRY_KEY, String(now));
+            }).catch(() => {/* ignore errors */});
+          }
+        } catch (e) { /* ignore */ }
+        // --- Telemetry test button logic ---
+        const testTelemetryBtn = document.getElementById('test-telemetry');
+        if (testTelemetryBtn) {
+          testTelemetryBtn.addEventListener('click', () => {
+            fetch('/telemetry/ping', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ browser_user_agent: navigator.userAgent || '', force: true })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+              alert("Telemetry test sent.\nStatus: " + (data.status || 'unknown'));
+            })
+            .catch(err => {
+              alert("Telemetry test failed: " + err.message);
+            });
+          });
+        }
         // --- Tab Management ---
         const tabs = document.querySelectorAll('.tab-button');
         const contentPanels = {

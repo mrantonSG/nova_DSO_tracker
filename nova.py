@@ -41,6 +41,8 @@ import sys
 import time
 from modules.config_validation import validate_config
 import uuid
+from pathlib import Path
+import platform
 
 import matplotlib
 matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
@@ -68,6 +70,7 @@ from modules.astro_calculations import (
     calculate_observable_duration_vectorized
 )
 
+
 from modules import nova_data_fetcher
 from modules import rig_config
 from modules.rig_config import calculate_rig_data, get_rig_config_path
@@ -78,6 +81,17 @@ from modules.rig_config import save_rig_config, load_rig_config
 # =============================================================================
 
 APP_VERSION = "3.3.D1"
+
+# One-time init flag for startup telemetry in Flask >= 3
+_telemetry_startup_once = threading.Event()
+
+TELEMETRY_DEBUG_STATE = {
+    'endpoint': None,
+    'last_payload': None,
+    'last_result': None,
+    'last_error': None,
+    'last_ts': None
+}
 
 INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
@@ -742,6 +756,130 @@ def sort_rigs(rigs, sort_key: str):
 
     return sorted(rigs, key=none_safe, reverse=reverse)
 
+
+# --- Anonymous telemetry helpers ---
+def is_docker_env():
+    try:
+        if os.path.exists('/.dockerenv'):
+            return True
+        with open('/proc/1/cgroup', 'rt') as f:
+            s = f.read()
+            return 'docker' in s or 'kubepods' in s
+    except Exception:
+        return False
+
+def ensure_instance_id(user_config):
+    """Ensure telemetry.instance_id and telemetry.enabled defaults exist; returns (instance_id, enabled)."""
+    tcfg = user_config.setdefault('telemetry', {})
+    if not tcfg.get('instance_id'):
+        tcfg['instance_id'] = secrets.token_hex(16)
+    if 'enabled' not in tcfg:
+        tcfg['enabled'] = True
+    return tcfg['instance_id'], tcfg['enabled']
+
+def telemetry_should_send(state_dir: Path) -> bool:
+    try:
+        state_dir.mkdir(parents=True, exist_ok=True)
+        stamp = state_dir / 'telemetry_last.json'
+        if not stamp.exists():
+            return True
+        data = json.loads(stamp.read_text())
+        last = float(data.get('ts', 0))
+        return (time.time() - last) > 24*60*60
+    except Exception:
+        return False
+
+def telemetry_mark_sent(state_dir: Path):
+    try:
+        state_dir.mkdir(parents=True, exist_ok=True)
+        (state_dir / 'telemetry_last.json').write_text(json.dumps({'ts': time.time()}))
+    except Exception:
+        pass
+
+def build_telemetry_payload(user_config, browser_user_agent: str = ''):
+    instance_id, enabled = ensure_instance_id(user_config)
+    mode = 'multi' if os.environ.get('NOVA_MULTIUSER', '').lower() in ('1','true','yes') else 'single'
+    return {
+        'instance_id': instance_id,
+        'app_version': APP_VERSION,
+        'os': platform.platform(),
+        'python_version': platform.python_version(),
+        'is_docker': bool(is_docker_env()),
+        'mode': mode,
+        'browser_user_agent': browser_user_agent or '',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):
+    """Non-blocking send; obeys enable flag and once-per-24h rule."""
+    try:
+        tcfg = user_config.get('telemetry', {})
+        enabled_flag = tcfg.get('enabled', True)
+        print(f"[TELEMETRY] send_telemetry_async called (force={force}, enabled={enabled_flag})")
+
+        if not enabled_flag:
+            print("[TELEMETRY] Telemetry disabled; skipping send.")
+            TELEMETRY_DEBUG_STATE['last_error'] = "disabled"
+            return
+
+        endpoint = os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
+        TELEMETRY_DEBUG_STATE['endpoint'] = endpoint
+        if not endpoint:
+            print("[TELEMETRY] No NOVA_TELEMETRY_ENDPOINT configured; skipping.")
+            TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
+            return
+
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        if (not force) and (not telemetry_should_send(state_dir)):
+            print("[TELEMETRY] Throttled (within 24h); skipping.")
+            TELEMETRY_DEBUG_STATE['last_error'] = "throttled"
+            return
+
+        payload = build_telemetry_payload(user_config, browser_user_agent)
+        def _worker():
+            try:
+                print("[TELEMETRY] Sending to:", endpoint)
+                resp = requests.post(endpoint, json=payload, timeout=5)
+                TELEMETRY_DEBUG_STATE['last_result'] = f"HTTP {getattr(resp, 'status_code', 'unknown')}"
+                TELEMETRY_DEBUG_STATE['last_error'] = None
+                TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
+                print("[TELEMETRY] OK:", TELEMETRY_DEBUG_STATE['last_result'])
+            except Exception as e:
+                TELEMETRY_DEBUG_STATE['last_result'] = None
+                TELEMETRY_DEBUG_STATE['last_error'] = str(e)
+                TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
+                print("[TELEMETRY] ERROR:", e)
+            finally:
+                telemetry_mark_sent(state_dir)
+        TELEMETRY_DEBUG_STATE['last_payload'] = payload
+        threading.Thread(target=_worker, daemon=True).start()
+    except Exception as e:
+        print("[TELEMETRY] Outer exception:", e)
+        TELEMETRY_DEBUG_STATE['last_error'] = str(e)
+# --- end telemetry helpers ---
+
+
+# --- Telemetry diagnostics route ---
+@app.route('/telemetry/debug', methods=['GET'])
+def telemetry_debug():
+    # Report current telemetry config and last attempt
+    try:
+        username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+    except Exception:
+        username = "default"
+    try:
+        cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+    except Exception:
+        cfg = {}
+    enabled = bool(cfg.get('telemetry', {}).get('enabled', True))
+    return jsonify({
+        'enabled': enabled,
+        'endpoint': TELEMETRY_DEBUG_STATE.get('endpoint'),
+        'last_payload': TELEMETRY_DEBUG_STATE.get('last_payload'),
+        'last_result': TELEMETRY_DEBUG_STATE.get('last_result'),
+        'last_error': TELEMETRY_DEBUG_STATE.get('last_error'),
+        'last_ts': TELEMETRY_DEBUG_STATE.get('last_ts')
+    })
 
 @app.route('/get_outlook_data')
 def get_outlook_data():
@@ -1957,6 +2095,37 @@ def load_config_for_request():
     }
     g.objects = [ obj.get("Object") for obj in g.objects_list ]
 
+
+@app.before_request
+def ensure_telemetry_defaults():
+    try:
+        if hasattr(g, 'user_config') and isinstance(g.user_config, dict):
+            tcfg = g.user_config.get('telemetry', {})
+            need_save = False
+            if not tcfg.get('instance_id'):
+                ensure_instance_id(g.user_config)
+                need_save = True
+            if 'enabled' not in tcfg:
+                g.user_config['telemetry']['enabled'] = True
+                need_save = True
+            if need_save:
+                username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+                save_user_config(username, g.user_config)
+    except Exception:
+        pass
+
+
+@app.before_request
+def telemetry_startup_ping_once():
+    # Emulate old before_first_request semantics with a thread-safe guard
+    if not _telemetry_startup_once.is_set():
+        _telemetry_startup_once.set()
+        try:
+            username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+            cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+            send_telemetry_async(cfg, browser_user_agent='')
+        except Exception:
+            pass
 
 @app.route('/fetch_all_details', methods=['POST'])
 @login_required
@@ -3250,6 +3419,21 @@ def sun_events():
     return jsonify(events)
 
 
+@app.route('/telemetry/ping', methods=['POST'])
+def telemetry_ping():
+    body = request.get_json(silent=True) or {}
+    browser = body.get('browser_user_agent', '')
+    force = bool(body.get('force', False))
+    # (optional: print so you see the click arrive)
+    print(f"[TELEMETRY] /telemetry/ping received (force={force})")
+
+    username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+    cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+
+    send_telemetry_async(cfg, browser_user_agent=browser, force=force)
+    return jsonify({'status': 'ok'})
+
+
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
@@ -3275,6 +3459,12 @@ def config_form():
                     'default_location'] = new_default_location if new_default_location else "Singapore"  # Default from original
 
                 g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
+                # Telemetry checkbox (default True if missing)
+                telemetry_enabled = bool(request.form.get('telemetry_enabled'))
+                tcfg = g.user_config.setdefault('telemetry', {})
+                tcfg['enabled'] = telemetry_enabled
+                if not tcfg.get('instance_id'):
+                    tcfg['instance_id'] = secrets.token_hex(16)
 
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:
