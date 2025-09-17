@@ -1917,8 +1917,17 @@
     let fovCenter = null; // { ra: number, dec: number }
 
     // --- QoL state ---
-    let lockToObject = false;
-    let objectCoords = null; // {ra, dec} resolved once per open
+let lockToObject = false;
+let objectCoords = null; // {ra, dec} resolved once per open
+
+// --- Angle helpers (UI uses signed ±180, URLs persist 0..359) ---
+function to360(deg) {
+    return ((deg % 360) + 360) % 360;
+}
+function toSigned180(deg) {
+    const d = to360(deg);
+    return d > 180 ? d - 360 : d;
+}
 
     function toggleFramingFullscreen(btn) {
         const modalContent = document.getElementById('framing-modal-content');
@@ -1980,6 +1989,12 @@
             const slider = document.getElementById('framing-rotation');
             if (!slider) return;
 
+            // Ensure slider has centered range ±180° for bi‑directional rotation
+            slider.setAttribute('min', '-180');
+            slider.setAttribute('max', '180');
+            slider.setAttribute('step', '1');
+            if (!slider.hasAttribute('value')) slider.setAttribute('value', '0');
+
             // Remove any stray literal '0°' text nodes or extra whitespace after the slider
             let n = slider.nextSibling;
             while (n && n.nodeType === Node.TEXT_NODE) {
@@ -2004,6 +2019,17 @@
                 slider.insertAdjacentElement('afterend', span);
                 try { span.style.fontWeight = 'normal'; } catch(_) {}
             }
+            // Make the readout clickable to reset to 0°
+            try {
+                span.style.cursor = 'pointer';
+                span.title = 'Tap to reset rotation to 0°';
+                span.addEventListener('click', () => {
+                    const slider = document.getElementById('framing-rotation');
+                    if (!slider) return;
+                    slider.value = '0';
+                    slider.dispatchEvent(new Event('input', { bubbles: true }));
+                }, { once: false });
+            } catch (e) {}
         })();
 
         // Initialize Aladin once
@@ -2263,6 +2289,13 @@
                 if (!rotInput) return;
 
                 const handler = () => {
+                    // Snap-to-zero "detent" so 0° is always reachable on touch sliders
+                    // Threshold of 1° feels natural; adjust if needed.
+                    const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0;
+                    const snapped = (Math.abs(raw) <= 1) ? 0 : raw;
+                    if (snapped !== raw) {
+                        rotInput.value = String(snapped);
+                    }
                     // Recompute everything (including label) in one place
                     updateFramingChart(false);
                 };
@@ -2317,7 +2350,7 @@
           if (rig) qp.set('rig', rig);
           if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
           if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
-          qp.set('rot', String(Math.round(rot)));
+          qp.set('rot', String(Math.round(to360(rot))));
           if (survey) qp.set('survey', survey);
           if (blend) qp.set('blend', blend);
           qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
@@ -2350,12 +2383,13 @@
                 }
             }
 
-            // Rotation
+            // Rotation (persisted as 0..359; UI uses signed −180..+180)
             if (!Number.isNaN(rot)) {
                 const rotInput = document.getElementById('framing-rotation');
-                if (rotInput) rotInput.value = rot;
+                const signed = toSigned180(rot);
+                if (rotInput) rotInput.value = signed;
                 const rotSpan = document.getElementById('rotation-value');
-                if (rotSpan) rotSpan.textContent = `${Math.round(rot)}°`;
+                if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`;
                 haveRot = true;
             }
 
@@ -2453,7 +2487,7 @@
     function flipFraming90() {
         const slider = document.getElementById('framing-rotation');
         let v = parseFloat(slider.value) || 0;
-        v = (v + 90) % 360;
+        v = toSigned180(v + 90);
         slider.value = v;
         // Let the live handler update the label and overlay
         slider.dispatchEvent(new Event('input', { bubbles: true }));
@@ -2511,7 +2545,7 @@ window.updateFramingChart = function (recenter = true) {
     (function updateRotationBadge(){
         const el = document.getElementById('rotation-value');
         const sliderEl = document.getElementById('framing-rotation');
-        const txt = `${Math.round(rotation)}°`;
+        const txt = `${Math.round(toSigned180(rotation))}°`;
         if (el) el.textContent = txt;
         if (sliderEl) sliderEl.title = `Rotation: ${txt}`; // helpful hover fallback
     })();
