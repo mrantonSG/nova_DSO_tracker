@@ -811,7 +811,7 @@ def telemetry_mark_sent(state_dir: Path):
 
 def build_telemetry_payload(user_config, browser_user_agent: str = ''):
     instance_id, enabled = ensure_instance_id(user_config)
-    mode = 'multi' if os.environ.get('NOVA_MULTIUSER', '').lower() in ('1','true','yes') else 'single'
+    mode = 'single' if SINGLE_USER_MODE else 'multi'
     return {
         'instance_id': instance_id,
         'app_version': APP_VERSION,
