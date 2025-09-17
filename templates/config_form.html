@@ -452,20 +452,6 @@
                 <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
               </div>
               <hr>
-              <!-- Telemetry toggle row inserted here -->
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="telemetry_enabled">Anonymous Telemetry:</label>
-                  <input type="checkbox" name="telemetry_enabled" id="telemetry_enabled"
-                         {% if config.get('telemetry', {}).get('enabled', True) %}checked{% endif %}>
-                </div>
-                <small class="form-text text-muted">
-                  Shares a daily, anonymous heartbeat (instance ID, app &amp; Python versions, OS, Docker, mode, browser) to help improve Nova. No personal data. You can opt out anytime.
-                </small>
-              </div>
-              <div class="inline-fields">
-                <button type="button" id="test-telemetry" class="action-button">Send Test Telemetry Now</button>
-              </div>
               <div class="inline-fields">
                 <div>
                   <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
@@ -508,6 +494,17 @@
                 </select>
                 <small class="form-text text-muted">
                   Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
+                </small>
+              </div>
+              <hr>
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="telemetry_enabled">Anonymous Telemetry:</label>
+                  <input type="checkbox" name="telemetry_enabled" id="telemetry_enabled"
+                         {% if config.get('telemetry', {}).get('enabled', True) %}checked{% endif %}>
+                </div>
+                <small class="form-text text-muted">
+                  Shares an anonymous heartbeat (instance ID, app &amp; Python versions, OS, Docker, mode, browser) to help improve Nova. No personal data. You can opt out anytime. But you really help my development efforts if you allow it.
                 </small>
               </div>
               <hr>
