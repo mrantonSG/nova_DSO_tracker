@@ -80,7 +80,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.3.R2"
+APP_VERSION = "3.3.R3"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -2156,24 +2156,43 @@ def load_config_for_request():
     }
     g.objects = [ obj.get("Object") for obj in g.objects_list ]
 
-
 @app.before_request
 def ensure_telemetry_defaults():
+    """
+    Ensure telemetry defaults safely, without ever overwriting unrelated config
+    and without persisting instance_id into YAML.
+    """
     try:
-        if hasattr(g, 'user_config') and isinstance(g.user_config, dict):
-            tcfg = g.user_config.get('telemetry', {})
-            need_save = False
-            if not tcfg.get('instance_id'):
-                ensure_instance_id(g.user_config)
-                need_save = True
-            if 'enabled' not in tcfg:
-                g.user_config['telemetry']['enabled'] = True
-                need_save = True
-            if need_save:
-                username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
-                save_user_config(username, g.user_config)
-    except Exception:
-        pass
+        # Proceed only if a valid user config dict is already loaded into g
+        if not (hasattr(g, 'user_config') and isinstance(g.user_config, dict)):
+            return
+
+        changed = False
+        telemetry_config = g.user_config.setdefault('telemetry', {})
+
+        # Default for 'enabled'
+        if 'enabled' not in telemetry_config:
+            telemetry_config['enabled'] = True
+            changed = True
+
+        # Never persist instance_id in YAML; use .env at send-time
+        if 'instance_id' in telemetry_config:
+            telemetry_config.pop('instance_id', None)
+            # no need to mark changed; we remove a field we don't store
+
+        # Save only if we actually added the enabled default
+        if changed:
+            username = "default" if SINGLE_USER_MODE else (
+                current_user.username if getattr(current_user, 'is_authenticated', False) else "guest_user"
+            )
+            print("[CONFIG] Telemetry defaults were missing. Updating config file (enabled).")
+            save_user_config(username, g.user_config)
+
+        # Optionally expose the env-based ID in-memory if other code wants it
+        g.telemetry_instance_id = os.environ.get('INSTANCE_ID') or secrets.token_hex(16)
+
+    except Exception as e:
+        print(f"❌ ERROR in ensure_telemetry_defaults: {e}")
 
 
 @app.before_request
