@@ -93,6 +93,9 @@ TELEMETRY_DEBUG_STATE = {
     'last_ts': None
 }
 
+# Flag to indicate if this is the first run and .env was just created
+FIRST_RUN_ENV_CREATED = False
+
 INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
 load_dotenv(dotenv_path=ENV_FILE)
@@ -170,13 +173,22 @@ if not os.path.exists(ENV_FILE):
 
     with open(ENV_FILE, "w") as f:
         f.write(f"SECRET_KEY={secret_key}\n")
-        f.write("NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec")
+        f.write(
+            "NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec\n")
+        instance_id = secrets.token_hex(16)
+        f.write(f"INSTANCE_ID={instance_id}\n")
         f.write(f"USERS={default_user}\n")  # Add default user
         f.write(f"USER_{default_user.upper()}_ID={default_user}\n")
         f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
         f.write(f"USER_{default_user.upper()}_PASSWORD={default_password}\n")
 
-    print(f"Created .env file with a new SECRET_KEY and default user")
+    # After creating the .env, reload it into the current process and set the first-run flag
+    try:
+        load_dotenv(dotenv_path=ENV_FILE, override=True)
+        print("[ENV INIT] .env created and reloaded into current process")
+    except Exception as _e:
+        print(f"[ENV INIT] Warning: could not reload .env into process: {_e}")
+    FIRST_RUN_ENV_CREATED = True
 
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
@@ -770,13 +782,13 @@ def is_docker_env():
         return False
 
 def ensure_instance_id(user_config):
-    """Ensure telemetry.instance_id and telemetry.enabled defaults exist; returns (instance_id, enabled)."""
+    """Return (instance_id, enabled) without mutating YAML; ID comes from .env."""
     tcfg = user_config.setdefault('telemetry', {})
-    if not tcfg.get('instance_id'):
-        tcfg['instance_id'] = secrets.token_hex(16)
-    if 'enabled' not in tcfg:
-        tcfg['enabled'] = True
-    return tcfg['instance_id'], tcfg['enabled']
+    enabled = tcfg.get('enabled', True)
+    env_id = os.environ.get('INSTANCE_ID')
+    if not env_id:
+        env_id = secrets.token_hex(16)
+    return env_id, enabled
 
 def telemetry_should_send(state_dir: Path) -> bool:
     try:
@@ -897,6 +909,15 @@ def _start_telemetry_scheduler_once():
 def _telemetry_bootstrap_hook():
     _start_telemetry_scheduler_once()
 # --- end telemetry startup + daily scheduler ---
+
+# If this is a fresh first run (we just created .env), trigger telemetry scheduler shortly after startup
+if FIRST_RUN_ENV_CREATED:
+    def _telemetry_first_run_timer():
+        try:
+            _start_telemetry_scheduler_once()
+        except Exception as _e:
+            print(f"[TELEMETRY] first-run timer init failed: {_e}")
+    threading.Timer(1.0, _telemetry_first_run_timer).start()
 
 
 # --- Telemetry diagnostics route ---
@@ -3379,11 +3400,6 @@ def get_object_data(object_name):
     return jsonify(single_object_data)
 @app.route('/')
 def index():
-    # Determine username for loading appropriate journal and config
-    # This logic should align with how you manage users throughout your app.
-    # Your @app.before_request already handles setting up g.user_config, g.locations etc.
-    # We just need to ensure we get the correct 'username' for the journal.
-
     if SINGLE_USER_MODE:
         username = "default"
         # g.is_guest is likely set to False by your before_request that logs in a dummy user
@@ -3503,8 +3519,7 @@ def config_form():
                 telemetry_enabled = bool(request.form.get('telemetry_enabled'))
                 tcfg = g.user_config.setdefault('telemetry', {})
                 tcfg['enabled'] = telemetry_enabled
-                if not tcfg.get('instance_id'):
-                    tcfg['instance_id'] = secrets.token_hex(16)
+                tcfg.pop('instance_id', None)
 
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:
