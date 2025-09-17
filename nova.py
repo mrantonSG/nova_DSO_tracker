@@ -80,7 +80,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.3.D1"
+APP_VERSION = "3.3.R1"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
