@@ -80,7 +80,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.3.R1"
+APP_VERSION = "3.3.R2"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -170,6 +170,7 @@ if not os.path.exists(ENV_FILE):
 
     with open(ENV_FILE, "w") as f:
         f.write(f"SECRET_KEY={secret_key}\n")
+        f.write("NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec")
         f.write(f"USERS={default_user}\n")  # Add default user
         f.write(f"USER_{default_user.upper()}_ID={default_user}\n")
         f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
