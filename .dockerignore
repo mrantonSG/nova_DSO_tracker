@@ -1,23 +1,24 @@
 # .dockerignore
 
-# Ignore the instance folder with user-specific data and secrets
+# Ignore the user-specific instance folder. The container will create its own.
 instance/
 
-# Ignore Python virtual environment and cache
+# Ignore Python virtual environment and cache files.
 venv/
 __pycache__/
 *.pyc
+*.pyo
 
-# Ignore Git and GitHub specific files
+# Ignore Git and GitHub specific files.
 .git/
 .github/
 .gitignore
 
-# Ignore project documentation
+# Ignore IDE-specific folders.
+.idea/
+.vscode/
+
+# Ignore documentation files (optional, but good for image size).
+# Note: We are NOT ignoring the LICENSE file.
 README.md
-LICENSE
 *.md
-# This ensures a clean container starts with the necessary defaults.
-!instance/configs/config_default.yaml
-!instance/configs/journal_default.yaml
-!instance/configs/rig_config_default.yaml
