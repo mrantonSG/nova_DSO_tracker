@@ -80,7 +80,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.3.R3"
+APP_VERSION = "3.3.0"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -890,7 +890,7 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
     try:
         tcfg = user_config.get('telemetry', {})
         enabled_flag = tcfg.get('enabled', True)
-        print(f"[TELEMETRY] send_telemetry_async called (force={force}, enabled={enabled_flag})")
+        # print(f"[TELEMETRY] send_telemetry_async called (force={force}, enabled={enabled_flag})")
 
         if not enabled_flag:
             # print("[TELEMETRY] Telemetry disabled; skipping send.")
