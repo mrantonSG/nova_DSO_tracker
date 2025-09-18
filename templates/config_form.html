@@ -379,6 +379,7 @@
     .form-group select.form-control {
         justify-self: start;
     }
+    #telemetry_enabled { transform: scale(1.2); transform-origin: center left; }
     #sampling_interval {
       font-size: 15px;
     }
@@ -493,6 +494,17 @@
                 </select>
                 <small class="form-text text-muted">
                   Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
+                </small>
+              </div>
+              <hr>
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="telemetry_enabled">Anonymous Telemetry:</label>
+                  <input type="checkbox" name="telemetry_enabled" id="telemetry_enabled"
+                         {% if config.get('telemetry', {}).get('enabled', True) %}checked{% endif %}>
+                </div>
+                <small class="form-text text-muted">
+                  Nova sends a small anonymous heartbeat (app version, system type, and counts of your data entries like objects, rigs, locations, and journals). No personal details are ever collected, and you can opt out anytime. Allowing it really helps me improve Nova.
                 </small>
               </div>
               <hr>
@@ -762,6 +774,23 @@
                     <option value="4.0-6.0">Poor Seeing (> 4.0" FWHM)</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label for="rig-sort">Sort rigs by:</label>
+                <select id="rig-sort">
+                    <option value="name-asc" selected>Name (A→Z)</option>
+                    <option value="name-desc">Name (Z→A)</option>
+                    <option value="fl-asc">Effective Focal Length (low→high)</option>
+                    <option value="fl-desc">Effective Focal Length (high→low)</option>
+                    <option value="fr-asc">f/ratio (low→high)</option>
+                    <option value="fr-desc">f/ratio (high→low)</option>
+                    <option value="scale-asc">Image Scale (low→high)</option>
+                    <option value="scale-desc">Image Scale (high→low)</option>
+                    <option value="fovw-asc">FOV Width (low→high)</option>
+                    <option value="fovw-desc">FOV Width (high→low)</option>
+                    <option value="recent-desc">Recently Added (newest first)</option>
+                    <option value="recent-asc">Recently Added (oldest first)</option>
+                </select>
+            </div>
             <h3>Existing Rigs (<span id="rig-count">0</span>)</h3>
             <ul id="existing-rigs-list"></ul>
         </div>
@@ -774,6 +803,7 @@
     // --- Global variables ---
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
+    let rigSort = localStorage.getItem('rigSort') || 'name-asc';
 
     // --- Rigs Tab Functions ---
 
@@ -843,17 +873,69 @@
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function fetchRigsData() {
-        if (rigsDataLoaded) return;
-        fetch('/get_rig_data')
-            .then(response => response.json())
-            .then(data => {
-                rigsData = data; // Store data globally
-                renderRigsUI();
-                rigsDataLoaded = true;
-            })
-            .catch(error => console.error("Error fetching rigs data:", error));
+    function safeNum(v, fallback = null) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
     }
+
+    function compareBy(a, b, getter, dir = 'asc') {
+        const av = getter(a), bv = getter(b);
+        // put null/undefined at the end regardless of sort direction
+        const aNull = (av === null || av === undefined);
+        const bNull = (bv === null || bv === undefined);
+        if (aNull && bNull) return 0;
+        if (aNull) return 1;
+        if (bNull) return -1;
+
+        if (av < bv) return dir === 'asc' ? -1 : 1;
+        if (av > bv) return dir === 'asc' ? 1 : -1;
+        return 0;
+    }
+
+    function sortRigs(rigs, sortValue) {
+        const [key, dir] = sortValue.split('-'); // e.g. 'name-asc'
+        const getterMap = {
+            name: (r) => (r.rig_name || '').toLowerCase(),
+            fl:   (r) => safeNum(r.effective_focal_length, null),
+            fr:   (r) => safeNum(r.f_ratio, null),
+            scale:(r) => safeNum(r.image_scale, null),
+            fovw: (r) => safeNum(r.fov_w_arcmin, null),
+            recent: (r) => {
+                // try to sort by a timestamp if present, else by rig_id string
+                // assuming backend might provide `created_at` (ISO) or `updated_at`
+                const ts = r.created_at || r.updated_at || '';
+                const tnum = Date.parse(ts);
+                if (Number.isFinite(tnum)) return tnum;
+                // fall back to a stable string key
+                return (r.rig_id || '').toString();
+            }
+        };
+        const getter = getterMap[key] || getterMap.name;
+        const rigsCopy = rigs.slice(); // do not mutate original
+        rigsCopy.sort((a, b) => compareBy(a, b, getter, dir));
+        return rigsCopy;
+    }
+
+function fetchRigsData() {
+  if (rigsDataLoaded) return;
+  fetch('/get_rig_data')
+    .then(response => response.json())
+    .then(data => {
+      rigsData = data;
+
+      // use server-provided preference if present
+      if (data.sort_preference && typeof data.sort_preference === 'string') {
+        rigSort = data.sort_preference;
+        localStorage.setItem('rigSort', rigSort);
+        const sortSelectEl = document.getElementById('rig-sort');
+        if (sortSelectEl) sortSelectEl.value = rigSort;
+      }
+
+      renderRigsUI();
+      rigsDataLoaded = true;
+    })
+    .catch(error => console.error("Error fetching rigs data:", error));
+}
 
     function renderRigsUI() {
         const data = rigsData; // Use global data
@@ -861,6 +943,13 @@
 
         const { telescopes, cameras, reducers_extenders } = data.components;
         const { rigs } = data;
+        // Determine selected sort (from UI if present, else from stored default)
+        const sortSelectEl = document.getElementById('rig-sort');
+        const currentSort = sortSelectEl ? (sortSelectEl.value || rigSort) : rigSort;
+        if (sortSelectEl && sortSelectEl.value !== currentSort) {
+            sortSelectEl.value = currentSort;
+        }
+        const rigsSorted = sortRigs(rigs, currentSort);
 
         document.getElementById('telescope-list').innerHTML = telescopes.map(t => `
             <li>
@@ -909,7 +998,7 @@
         if(redSelect) redSelect.innerHTML = '<option value="">-- None --</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
 
         const rigList = document.getElementById('existing-rigs-list');
-        rigList.innerHTML = rigs.map(rig => {
+        rigList.innerHTML = rigsSorted.map(rig => {
             const tele = telescopes.find(t => t.id === rig.telescope_id);
             const cam = cameras.find(c => c.id === rig.camera_id);
             const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
@@ -1034,6 +1123,41 @@
 
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Anonymous telemetry client ping (once per 24h in this browser) ---
+        try {
+          const TELEMETRY_KEY = 'novaTelemetryPingAt';
+          const lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10);
+          const now = Date.now();
+          const DAY_MS = 24*60*60*1000;
+          const telemetryEnabled = {{ 'true' if config.get('telemetry', {}).get('enabled', True) else 'false' }};
+          if (telemetryEnabled && (!Number.isFinite(lastPing) || (now - lastPing) > DAY_MS)) {
+            fetch('/telemetry/ping', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ browser_user_agent: navigator.userAgent || '', force: true })
+            }).then(() => {
+              localStorage.setItem(TELEMETRY_KEY, String(now));
+            }).catch(() => {/* ignore errors */});
+          }
+        } catch (e) { /* ignore */ }
+        // --- Telemetry test button logic ---
+        const testTelemetryBtn = document.getElementById('test-telemetry');
+        if (testTelemetryBtn) {
+          testTelemetryBtn.addEventListener('click', () => {
+            fetch('/telemetry/ping', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ browser_user_agent: navigator.userAgent || '', force: true })
+            })
+            .then(resp => resp.json())
+            .then(data => {
+              alert("Telemetry test sent.\nStatus: " + (data.status || 'unknown'));
+            })
+            .catch(err => {
+              alert("Telemetry test failed: " + err.message);
+            });
+          });
+        }
         // --- Tab Management ---
         const tabs = document.querySelectorAll('.tab-button');
         const contentPanels = {
@@ -1071,6 +1195,28 @@
             });
         });
         updateTabDisplay(); // Initial call
+
+      const rigSortEl = document.getElementById('rig-sort');
+      if (rigSortEl && rigSortEl.value !== rigSort) {
+        rigSortEl.value = rigSort;
+      }
+
+      if (rigSortEl) {
+        rigSortEl.addEventListener('change', () => {
+          rigSort = rigSortEl.value;
+          localStorage.setItem('rigSort', rigSort);
+          fetch('/set_rig_sort_preference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sort: rigSort })
+          }).catch(err => console.error("Could not save sort preference:", err));
+
+          if (rigsDataLoaded) {
+            renderRigsUI();
+            updateSamplingInfo();
+          }
+        });
+      }
 
         // --- Message Fader ---
         setTimeout(() => {

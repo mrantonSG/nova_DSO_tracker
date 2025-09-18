@@ -41,16 +41,18 @@ import sys
 import time
 from modules.config_validation import validate_config
 import uuid
+from pathlib import Path
+import platform
 
 import matplotlib
 matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
+from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session, get_flashed_messages
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, has_request_context
 
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation
@@ -68,6 +70,7 @@ from modules.astro_calculations import (
     calculate_observable_duration_vectorized
 )
 
+
 from modules import nova_data_fetcher
 from modules import rig_config
 from modules.rig_config import calculate_rig_data, get_rig_config_path
@@ -77,11 +80,29 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.2.0"
+APP_VERSION = "3.3.0"
+
+# One-time init flag for startup telemetry in Flask >= 3
+_telemetry_startup_once = threading.Event()
+
+TELEMETRY_DEBUG_STATE = {
+    'endpoint': None,
+    'last_payload': None,
+    'last_result': None,
+    'last_error': None,
+    'last_ts': None
+}
+
+# Flag to indicate if this is the first run and .env was just created
+FIRST_RUN_ENV_CREATED = False
+
+INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
+ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
+load_dotenv(dotenv_path=ENV_FILE)
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
-load_dotenv()
+# load_dotenv()
 static_cache = {}
 moon_separation_cache = {}
 nightly_curves_cache = {}
@@ -93,9 +114,20 @@ journal_cache = {}
 journal_mtime = {}
 LATEST_VERSION_INFO = {}
 rig_data_cache = {}
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
-ENV_FILE = ".env"
+
+# CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
+
+
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
+
+CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
+CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
+BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
+
+# Create directories if they don't exist
+os.makedirs(CACHE_DIR, exist_ok=True)
+os.makedirs(CONFIG_DIR, exist_ok=True)
+os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # --- Stellarium API URL Configuration ---
 # Default URL for running directly on the host
@@ -141,12 +173,22 @@ if not os.path.exists(ENV_FILE):
 
     with open(ENV_FILE, "w") as f:
         f.write(f"SECRET_KEY={secret_key}\n")
+        f.write(
+            "NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec\n")
+        instance_id = secrets.token_hex(16)
+        f.write(f"INSTANCE_ID={instance_id}\n")
         f.write(f"USERS={default_user}\n")  # Add default user
         f.write(f"USER_{default_user.upper()}_ID={default_user}\n")
         f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
         f.write(f"USER_{default_user.upper()}_PASSWORD={default_password}\n")
 
-    print(f"Created .env file with a new SECRET_KEY and default user")
+    # After creating the .env, reload it into the current process and set the first-run flag
+    try:
+        load_dotenv(dotenv_path=ENV_FILE, override=True)
+        print("[ENV INIT] .env created and reloaded into current process")
+    except Exception as _e:
+        print(f"[ENV INIT] Warning: could not reload .env into process: {_e}")
+    FIRST_RUN_ENV_CREATED = True
 
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
@@ -233,7 +275,7 @@ def load_journal(username):
         filename = "journal_default.yaml"
     else:
         filename = f"journal_{username}.yaml"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
     # Caching logic
     last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
@@ -264,7 +306,7 @@ def save_journal(username, journal_data):
         filename = "journal_default.yaml"
     else:
         filename = f"journal_{username}.yaml"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
     try:
         with open(filepath, "w", encoding="utf-8") as file: # Added encoding
@@ -273,7 +315,30 @@ def save_journal(username, journal_data):
     except Exception as e:
         print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
 
+def sort_rigs_list(rigs_list, sort_key='name-asc'):
+    """Sorts a list of rig dictionaries based on a given key."""
+    key, direction = sort_key.split('-')
 
+    def get_sort_value(rig):
+        # This maps the sort key from the frontend to the data key in the rig dictionary
+        if key == 'name':
+            return (rig.get('rig_name') or '').lower()
+        if key == 'fl':
+            return rig.get('effective_focal_length')
+        if key == 'fr':
+            return rig.get('f_ratio')
+        if key == 'scale':
+            return rig.get('image_scale')
+        if key == 'fovw':
+            return rig.get('fov_w_arcmin')
+        # Add a fallback for 'recent' or any other key
+        return rig.get('rig_id') # A stable fallback sort
+
+    # Use a lambda with a try-except to handle non-numeric or missing values gracefully
+    # This makes the sorting robust against incomplete rig data.
+    rigs_list.sort(key=lambda r: get_sort_value(r) if get_sort_value(r) is not None else float('inf'),
+                   reverse=(direction == 'desc'))
+    return rigs_list
 
 def migrate_journal_data():
     """
@@ -281,7 +346,9 @@ def migrate_journal_data():
     the pre-calculated integration time.
     """
     print("[MIGRATION] Checking for old journal entries to update...")
-    journal_files = glob.glob('journal_*.yaml') + glob.glob('journal_default.yaml')
+    search_path = os.path.join(CONFIG_DIR, 'journal_*.yaml')
+    default_path = os.path.join(CONFIG_DIR, 'journal_default.yaml')
+    journal_files = glob.glob(search_path) + glob.glob(default_path)
 
     for journal_file in journal_files:
         try:
@@ -462,7 +529,8 @@ def update_outlook_cache(username, location_name, user_config):
 
         # print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
         cache_worker_status[status_key] = "running"
-        cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
+        cache_filename = os.path.join(CACHE_DIR,
+                                      f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
         try:
             g.user_config = user_config
@@ -632,8 +700,9 @@ def warm_main_cache(username, location_name, user_config):
 
         # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
         # print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
-        # We re-use the same logic from the old startup function to check if an update is needed
-        cache_filename = f"outlook_cache_{location_name.lower().replace(' ', '_')}.json"
+        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+
+
         needs_update = False
         if not os.path.exists(cache_filename):
             needs_update = True
@@ -663,6 +732,332 @@ def warm_main_cache(username, location_name, user_config):
         print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
         traceback.print_exc()
 
+def sort_rigs(rigs, sort_key: str):
+    key, _, direction = sort_key.partition('-')
+    reverse = (direction == 'desc')
+
+    def to_num(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    def getter(r):
+        if key == 'name':
+            return (r.get('rig_name') or '').lower()
+        if key == 'fl':
+            return to_num(r.get('effective_focal_length'))
+        if key == 'fr':
+            return to_num(r.get('f_ratio'))
+        if key == 'scale':
+            return to_num(r.get('image_scale'))
+        if key == 'fovw':
+            return to_num(r.get('fov_w_arcmin'))
+        if key == 'recent':
+            ts = r.get('updated_at') or r.get('created_at') or ''
+            try:
+                return datetime.fromisoformat(ts.replace('Z','+00:00'))
+            except Exception:
+                return r.get('rig_id') or ''
+        # default to name
+        return (r.get('rig_name') or '').lower()
+
+    # sort with None-safe behavior (None => bottom)
+    def none_safe(x):
+        v = getter(x)
+        return (v is None, v)
+
+    return sorted(rigs, key=none_safe, reverse=reverse)
+
+
+# --- Anonymous telemetry helpers ---
+def is_docker_env():
+    try:
+        if os.path.exists('/.dockerenv'):
+            return True
+        with open('/proc/1/cgroup', 'rt') as f:
+            s = f.read()
+            return 'docker' in s or 'kubepods' in s
+    except Exception:
+        return False
+
+def ensure_instance_id(user_config):
+    """Return (instance_id, enabled) without mutating YAML; ID comes from .env."""
+    tcfg = user_config.setdefault('telemetry', {})
+    enabled = tcfg.get('enabled', True)
+    env_id = os.environ.get('INSTANCE_ID')
+    if not env_id:
+        env_id = secrets.token_hex(16)
+    return env_id, enabled
+
+def telemetry_should_send(state_dir: Path) -> bool:
+    try:
+        state_dir.mkdir(parents=True, exist_ok=True)
+        stamp = state_dir / 'telemetry_last.json'
+        if not stamp.exists():
+            return True
+        data = json.loads(stamp.read_text())
+        last = float(data.get('ts', 0))
+        return (time.time() - last) > 24*60*60
+    except Exception:
+        return False
+
+def telemetry_mark_sent(state_dir: Path):
+    try:
+        state_dir.mkdir(parents=True, exist_ok=True)
+        (state_dir / 'telemetry_last.json').write_text(json.dumps({'ts': time.time()}))
+    except Exception:
+        pass
+
+def build_telemetry_payload(user_config, browser_user_agent: str = ''):
+    # --- Add anonymized counts (numbers only, never contents) ---
+    cfg = user_config or {}
+    def _len_any(x):
+        if isinstance(x, dict):
+            return len(x)
+        if isinstance(x, list):
+            return len(x)
+        # support sets/tuples just in case
+        try:
+            return len(x)
+        except Exception:
+            return 0
+
+    def pick_first(*candidates):
+        for c in candidates:
+            if c is not None and c != {} and c != []:
+                return c
+        return None
+
+    objects_count = _len_any(cfg.get("objects"))
+
+    # Rigs: prefer canonical rig file used by the UI; fall back to possible in-config locations
+    try:
+        username_eff = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "default"
+        )
+        rd = rig_config.load_rig_config(username_eff, SINGLE_USER_MODE) or {}
+        rigs_count = _len_any(rd.get("rigs"))
+    except Exception:
+        # Fallbacks if rig config couldn't be loaded
+        rigs_container = pick_first(
+            cfg.get("rigs"),
+            cfg.get("rig_list"),
+            cfg.get("available_rigs"),
+            (cfg.get("equipment") or {}).get("rigs"),
+            (cfg.get("user") or {}).get("rigs"),
+        )
+        rigs_count = _len_any(rigs_container)
+
+    # Locations: use container variants resolved above
+    locations_container = pick_first(
+        cfg.get("locations"),
+        cfg.get("sites"),
+        (cfg.get("user") or {}).get("locations"),
+        (cfg.get("observing") or {}).get("locations"),
+    )
+    locations_count = _len_any(locations_container)
+    # Journals: load via canonical loader (journal lives in nova.py), fallback to config keys if needed
+    try:
+        username_eff = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "default"
+        )
+        jd = load_journal(username_eff) or {}
+        sessions = jd.get("sessions") or []
+        journals_count = _len_any(sessions)
+    except Exception:
+        # Fallback for older in-config layouts
+        journals_count = _len_any(cfg.get("journals")) or _len_any(cfg.get("journal_entries"))
+    instance_id, enabled = ensure_instance_id(user_config)
+    mode = 'single' if SINGLE_USER_MODE else 'multi'
+    return {
+        'instance_id': instance_id,
+        'app_version': APP_VERSION,
+        'os': platform.platform(),
+        'python_version': platform.python_version(),
+        'is_docker': bool(is_docker_env()),
+        'mode': mode,
+        'browser_user_agent': browser_user_agent or '',
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        "objects_count": objects_count,
+        "rigs_count": rigs_count,
+        "locations_count": locations_count,
+        "journals_count": journals_count,
+    }
+
+def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):
+    """Non-blocking send; obeys enable flag and once-per-24h rule."""
+    try:
+        tcfg = user_config.get('telemetry', {})
+        enabled_flag = tcfg.get('enabled', True)
+        # print(f"[TELEMETRY] send_telemetry_async called (force={force}, enabled={enabled_flag})")
+
+        if not enabled_flag:
+            # print("[TELEMETRY] Telemetry disabled; skipping send.")
+            TELEMETRY_DEBUG_STATE['last_error'] = "disabled"
+            return
+
+        endpoint = os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
+        TELEMETRY_DEBUG_STATE['endpoint'] = endpoint
+        if not endpoint:
+            # print("[TELEMETRY] No NOVA_TELEMETRY_ENDPOINT configured; skipping.")
+            TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
+            return
+
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        if (not force) and (not telemetry_should_send(state_dir)):
+            # print("[TELEMETRY] Throttled (within 24h); skipping.")
+            TELEMETRY_DEBUG_STATE['last_error'] = "throttled"
+            return
+
+        # --- NEW: Resolve UA if not explicitly passed ---
+        try:
+            if not browser_user_agent:
+                if has_request_context():
+                    browser_user_agent = request.headers.get("User-Agent", "") or ""
+                if not browser_user_agent:
+                    # Fallback to cached UA captured on a real HTML request
+                    browser_user_agent = current_app.config.get("_LAST_UA", "") or ""
+        except Exception:
+            # Never fail because of UA resolution
+            pass
+
+        payload = build_telemetry_payload(user_config, browser_user_agent)
+
+        def _worker():
+            try:
+                # print("[TELEMETRY] Sending to:", endpoint)
+                resp = requests.post(endpoint, json=payload, timeout=5)
+                TELEMETRY_DEBUG_STATE['last_result'] = f"HTTP {getattr(resp, 'status_code', 'unknown')}"
+                TELEMETRY_DEBUG_STATE['last_error'] = None
+                TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
+                # print("[TELEMETRY] OK:", TELEMETRY_DEBUG_STATE['last_result'])
+            except Exception as e:
+                TELEMETRY_DEBUG_STATE['last_result'] = None
+                TELEMETRY_DEBUG_STATE['last_error'] = str(e)
+                TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
+                # print("[TELEMETRY] ERROR:", e)
+            finally:
+                telemetry_mark_sent(state_dir)
+
+        TELEMETRY_DEBUG_STATE['last_payload'] = payload
+        threading.Thread(target=_worker, daemon=True).start()
+    except Exception as e:
+        # print("[TELEMETRY] Outer exception:", e)
+        TELEMETRY_DEBUG_STATE['last_error'] = str(e)
+
+# --- Telemetry startup + daily scheduler ---
+def _start_telemetry_scheduler_once():
+    """On first request after (re)start: send telemetry once, then schedule daily pings."""
+    if _telemetry_startup_once.is_set():
+        return
+    _telemetry_startup_once.set()
+    try:
+        username = "default" if SINGLE_USER_MODE else "default"
+        try:
+            cfg = load_user_config(username)
+        except Exception:
+            cfg = {}
+        # Send immediately on restart (explicitly allowed)
+        # print("[TELEMETRY] Startup ping: sending now (force=True)")
+        send_telemetry_async(cfg, browser_user_agent='', force=True)
+
+        # Background daily scheduler (respects 24h guard)
+        def _daily_loop():
+            while True:
+                try:
+                    time.sleep(24 * 60 * 60)
+                    try:
+                        daily_cfg = load_user_config(username)
+                    except Exception:
+                        daily_cfg = cfg or {}
+                    # print("[TELEMETRY] Daily ping: attempting send (force=False)")
+                    send_telemetry_async(daily_cfg, browser_user_agent='', force=False)
+                except Exception:
+                    # Keep the loop alive even if something odd happens
+                    pass
+
+        threading.Thread(target=_daily_loop, daemon=True).start()
+    except Exception as e:
+        print(f"[TELEMETRY] Scheduler init error: {e}")
+# Kick it off on the first incoming request (Flask 3 replacement for before_first_request)
+@app.before_request
+def _telemetry_bootstrap_hook():
+    # Ensure the once-per-process startup scheduler is kicked off
+    _start_telemetry_scheduler_once()
+
+    # Compute routing flags once
+    try:
+        is_get = request.method == "GET"
+        accepts_html = "text/html" in (request.headers.get("Accept", "") or "")
+        is_static = request.path.startswith("/static/")
+        is_telemetry = request.path.startswith("/telemetry/")
+    except Exception:
+        # If anything odd happens, just don't do telemetry here
+        return
+
+    # 1) Always cache last seen UA on real HTML navigations
+    if is_get and accepts_html and not is_static and not is_telemetry:
+        try:
+            current_app.config["_LAST_UA"] = request.headers.get("User-Agent", "") or ""
+        except Exception:
+            pass
+
+    # 2) Only once per process, trigger a normal (throttled) send that includes UA
+    try:
+        if not current_app.config.get("_UA_BOOTSTRAP_SENT", False):
+            if is_get and accepts_html and not is_static and not is_telemetry:
+                ua = current_app.config.get("_LAST_UA", "")  # use the cached UA
+
+                # Resolve a username to load config for telemetry enabled flag, etc.
+                if SINGLE_USER_MODE:
+                    username = "default"
+                else:
+                    username = current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
+
+                try:
+                    cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+                except Exception:
+                    cfg = {}
+
+                send_telemetry_async(cfg, browser_user_agent=ua, force=False)
+
+                current_app.config["_UA_BOOTSTRAP_SENT"] = True
+    except Exception:
+        # Never let telemetry issues affect page handling
+        pass
+
+# If this is a fresh first run (we just created .env), trigger telemetry scheduler shortly after startup
+if FIRST_RUN_ENV_CREATED:
+    def _telemetry_first_run_timer():
+        try:
+            _start_telemetry_scheduler_once()
+        except Exception as _e:
+            print(f"[TELEMETRY] first-run timer init failed: {_e}")
+    threading.Timer(1.0, _telemetry_first_run_timer).start()
+
+
+# --- Telemetry diagnostics route ---
+@app.route('/telemetry/debug', methods=['GET'])
+def telemetry_debug():
+    # Report current telemetry config and last attempt
+    try:
+        username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+    except Exception:
+        username = "default"
+    try:
+        cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+    except Exception:
+        cfg = {}
+    enabled = bool(cfg.get('telemetry', {}).get('enabled', True))
+    return jsonify({
+        'enabled': enabled,
+        'endpoint': TELEMETRY_DEBUG_STATE.get('endpoint'),
+        'last_payload': TELEMETRY_DEBUG_STATE.get('last_payload'),
+        'last_result': TELEMETRY_DEBUG_STATE.get('last_result'),
+        'last_error': TELEMETRY_DEBUG_STATE.get('last_error'),
+        'last_ts': TELEMETRY_DEBUG_STATE.get('last_ts')
+    })
 
 @app.route('/get_outlook_data')
 def get_outlook_data():
@@ -681,7 +1076,7 @@ def get_outlook_data():
         return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
     location_name = g.selected_location
-    cache_filename = f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json"
+    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
     if os.path.exists(cache_filename):
         try:
@@ -841,7 +1236,7 @@ def add_rig():
             "reducer_extender_id": reducer_extender_id if reducer_extender_id else None
         }
 
-        if rig_id: # This is an UPDATE
+        if rig_id:  # This is an UPDATE
             found = False
             for i, rig in enumerate(rig_data['rigs']):
                 if rig.get('rig_id') == rig_id:
@@ -852,7 +1247,7 @@ def add_rig():
                 flash(f"Rig '{rig_name}' updated successfully.", "success")
             else:
                 flash(f"Error: Rig with ID {rig_id} not found for update.", "error")
-        else: # This is an ADD
+        else:  # This is an ADD
             rig_details["rig_id"] = uuid.uuid4().hex
             rig_data['rigs'].append(rig_details)
             flash(f"Rig '{rig_name}' created successfully.", "success")
@@ -934,17 +1329,124 @@ def delete_rig():
 
     return redirect(url_for('config_form'))
 
+@app.route('/set_rig_sort_preference', methods=['POST'])
+@login_required
+def set_rig_sort_preference():
+    """Save the user's rig sort preference (e.g., 'name-asc') into their config YAML."""
+    try:
+        data = request.get_json(force=True) or {}
+        sort_value = data.get('sort', 'name-asc')
+
+        username = "default" if SINGLE_USER_MODE else current_user.username
+
+        # Load existing config
+        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
+
+        # Ensure ui_preferences section exists
+        if 'ui_preferences' not in rig_data:
+            rig_data['ui_preferences'] = {}
+
+        # Save the new sort order
+        rig_data['ui_preferences']['sort_order'] = sort_value
+
+        # Persist the updated config
+        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
+
+        return jsonify({"status": "ok", "sort_order": sort_value})
+    except Exception as e:
+        print(f"[set_rig_sort_preference] Error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/get_rig_data')
 @login_required
 def get_rig_data():
+    """Return components + rigs with calculated fields, sorted per the user's saved preference.
+       Also includes `sort_preference` so the frontend can sync its dropdown/state."""
     username = "default" if SINGLE_USER_MODE else current_user.username
-    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
 
-    # Calculate data for each rig before sending
-    for rig in rig_data.get('rigs', []):
-        calculated_data = rig_config.calculate_rig_data(rig, rig_data.get('components', {}))
-        rig.update(calculated_data) # Add the calculated data into the rig's dictionary
+    # Load full rig config (components, rigs, ui_preferences, etc.)
+    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
+
+    # Ensure expected keys exist
+    rig_data.setdefault('components', {
+        'telescopes': [],
+        'cameras': [],
+        'reducers_extenders': []
+    })
+    rig_data.setdefault('rigs', [])
+    rig_data.setdefault('ui_preferences', {})
+
+    # Calculate derived fields for each rig (image scale, f/ratio, FOV, etc.)
+    try:
+        components = rig_data.get('components', {})
+        for rig in rig_data['rigs']:
+            try:
+                calc = rig_config.calculate_rig_data(rig, components)
+                if isinstance(calc, dict):
+                    rig.update(calc)
+            except Exception as e:
+                # Non-fatal: keep going for other rigs
+                print(f"[get_rig_data] Warning: could not calculate fields for rig '{rig.get('rig_name','?')}': {e}")
+    except Exception as e:
+        print(f"[get_rig_data] Warning during rig calculations: {e}")
+
+    # Resolve the user's saved sort preference (default to name-asc)
+    sort_preference = rig_data.get('ui_preferences', {}).get('sort_order') or 'name-asc'
+
+    # Sort rigs using your helper if present; otherwise use a safe local fallback
+    def _fallback_sort(rigs, sort_key: str):
+        key, _, direction = sort_key.partition('-')
+        reverse = (direction == 'desc')
+
+        def to_num(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        def getter(r):
+            if key == 'name':
+                return (r.get('rig_name') or '').lower()
+            if key == 'fl':
+                return to_num(r.get('effective_focal_length'))
+            if key == 'fr':
+                return to_num(r.get('f_ratio'))
+            if key == 'scale':
+                return to_num(r.get('image_scale'))
+            if key == 'fovw':
+                return to_num(r.get('fov_w_arcmin'))
+            if key == 'recent':
+                ts = r.get('updated_at') or r.get('created_at') or ''
+                try:
+                    # ISO 8601 with optional Z
+                    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                except Exception:
+                    # fall back to id so sort is at least stable
+                    return r.get('rig_id') or ''
+            # default by name
+            return (r.get('rig_name') or '').lower()
+
+        # None-safe key: Nones sink to bottom
+        def none_safe(x):
+            v = getter(x)
+            return (v is None, v)
+
+        return sorted(rigs, key=none_safe, reverse=reverse)
+
+    try:
+        # Prefer your existing helper if it exists
+        sorted_rigs = sort_rigs_list(rig_data['rigs'], sort_preference)  # type: ignore[name-defined]
+    except NameError:
+        # Fallback if sort_rigs_list isn't available in this context
+        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
+    except Exception as e:
+        print(f"[get_rig_data] Warning: sort helper failed ({e}); using fallback.")
+        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
+
+    rig_data['rigs'] = sorted_rigs
+
+    # Expose the effective preference explicitly so the frontend can sync its UI
+    rig_data['sort_preference'] = sort_preference
 
     return jsonify(rig_data)
 
@@ -976,7 +1478,6 @@ def journal_list_view():
         sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
     except Exception as e:
         print(f"Warning: Could not sort journal sessions by date: {e}")
-
 
     return render_template('journal_list.html',
                            journal_sessions=sessions,
@@ -1171,7 +1672,62 @@ def journal_add():
     cancel_url_for_add = url_for('index')
     if preselected_target_id:
         cancel_url_for_add = url_for('graph_dashboard', object_name=preselected_target_id)
+    # --- Apply per-user rig sort preference for the journal form ---
+    try:
+        username_effective = "default" if SINGLE_USER_MODE else current_user.username
+        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
+        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
 
+        def _to_num(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        _key, _, _direction = _sort_pref.partition('-')
+        _reverse = (_direction == 'desc')
+
+        def _getattr_or_dict(x, attr, key):
+            if isinstance(x, dict):
+                return x.get(key)
+            return getattr(x, attr, None)
+
+        def _get(r):
+            if _key == 'name':
+                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+                return str(v).lower()
+            if _key == 'fl':
+                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
+            if _key == 'fr':
+                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
+            if _key == 'scale':
+                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
+            if _key == 'fovw':
+                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
+            if _key == 'recent':
+                ts = (
+                        _getattr_or_dict(r, 'updated_at', 'updated_at')
+                        or _getattr_or_dict(r, 'created_at', 'created_at')
+                        or ''
+                )
+                try:
+                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
+                except Exception:
+                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
+            # default: name
+            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+            return str(v).lower()
+
+        def _none_safe(x):
+            v = _get(x)
+            return (v is None, v)
+
+        # IMPORTANT: this variable name must match what you pass to the template
+        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
+
+    except Exception as _e:
+        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
+    # --- end rig sort preference ---
     return render_template('journal_form.html',
                            form_title="Add New Imaging Session",
                            form_action_url=url_for('journal_add'),
@@ -1337,7 +1893,62 @@ def journal_edit(session_id):
         cancel_url_for_edit = url_for('graph_dashboard', object_name=target_object_id_for_cancel, session_id=session_id)
     elif session_id:
         cancel_url_for_edit = url_for('journal_list_view')
+    # --- Apply per-user rig sort preference for the journal form ---
+    try:
+        username_effective = "default" if SINGLE_USER_MODE else current_user.username
+        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
+        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
 
+        def _to_num(v):
+            try:
+                return float(v)
+            except (TypeError, ValueError):
+                return None
+
+        _key, _, _direction = _sort_pref.partition('-')
+        _reverse = (_direction == 'desc')
+
+        def _getattr_or_dict(x, attr, key):
+            if isinstance(x, dict):
+                return x.get(key)
+            return getattr(x, attr, None)
+
+        def _get(r):
+            if _key == 'name':
+                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+                return str(v).lower()
+            if _key == 'fl':
+                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
+            if _key == 'fr':
+                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
+            if _key == 'scale':
+                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
+            if _key == 'fovw':
+                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
+            if _key == 'recent':
+                ts = (
+                        _getattr_or_dict(r, 'updated_at', 'updated_at')
+                        or _getattr_or_dict(r, 'created_at', 'created_at')
+                        or ''
+                )
+                try:
+                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
+                except Exception:
+                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
+            # default: name
+            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+            return str(v).lower()
+
+        def _none_safe(x):
+            v = _get(x)
+            return (v is None, v)
+
+        # IMPORTANT: this variable name must match what you pass to the template
+        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
+
+    except Exception as _e:
+        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
+    # --- end rig sort preference ---
     return render_template('journal_form.html',
                            form_title=f"Edit Imaging Session",
                            form_action_url=url_for('journal_edit', session_id=session_id),
@@ -1486,60 +2097,52 @@ def load_user_config(username):
     """
     global config_cache, config_mtime
     if SINGLE_USER_MODE:
+        # FIX: This should be just the filename, not the partial path.
         filename = "config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
-    filepath = os.path.join(os.path.dirname(__file__), filename)
 
-    # Caching logic
+    # This line now correctly builds the full path for both single and multi-user modes.
+    filepath = os.path.join(CONFIG_DIR, filename)
+
+    # --- The rest of the function remains the same ---
     if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
             filepath, 0):
-        print(f"[LOAD CONFIG] Loading from cache: {filename}")
         return config_cache[filepath]
 
     if not os.path.exists(filepath):
-        print(f"⚠️ Config file '{filename}' not found. Using default.")
+        print(f"⚠️ Config file '{filename}' not found in '{CONFIG_DIR}'. Using default empty config.")
         return {}
 
-    # --- AUTOMATIC REPAIR LOGIC ---
     try:
-        # First, try to load with the safe loader.
         with open(filepath, "r", encoding='utf-8') as file:
             config_data = yaml.safe_load(file) or {}
         print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
-        # print(f"DEBUG: Loaded locations keys: {list(config_data.get('locations', {}).keys())}")
 
     except ConstructorError as e:
-        # If safe_load fails due to an unknown tag, attempt repair.
         if 'numpy' in str(e):
             print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
             try:
-                # 1. Create a backup of the corrupted file
-                backup_dir = os.path.join(os.path.dirname(filepath), "backups")
+                backup_dir = os.path.join(INSTANCE_PATH, "backups")  # Corrected backup path
                 os.makedirs(backup_dir, exist_ok=True)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_path = os.path.join(backup_dir, f"{filename}_corrupted_backup_{timestamp}.yaml")
+                backup_path = os.path.join(backup_dir,
+                                           f"{os.path.basename(filename)}_corrupted_backup_{timestamp}.yaml")
                 shutil.copy(filepath, backup_path)
                 print(f"    -> Backed up corrupted file to '{backup_path}'")
 
-                # 2. Re-read with UnsafeLoader to load the NumPy object into memory
                 with open(filepath, "r", encoding='utf-8') as file:
-                    # --- THIS IS THE KEY CHANGE ---
                     corrupted_data = yaml.load(file, Loader=yaml.UnsafeLoader)
 
-                # 3. Clean the data in memory using our recursive function
                 cleaned_data = recursively_clean_numpy_types(corrupted_data)
                 print("    -> Successfully cleaned data in memory.")
 
-                # 4. Overwrite the original file with the clean data
                 save_user_config(username, cleaned_data)
                 print(f"    -> Repaired and saved clean data to '{filename}'.")
-
                 config_data = cleaned_data
 
             except Exception as repair_e:
                 print(f"❌ [CONFIG REPAIR] Automatic repair failed: {repair_e}")
-                print("    -> The application might not function correctly. Please check the backed up file.")
                 return {}
         else:
             print(f"❌ ERROR: Unrecoverable YAML error in '{filename}': {e}")
@@ -1549,17 +2152,21 @@ def load_user_config(username):
         print(f"❌ ERROR: A critical error occurred while loading config '{filename}': {e}")
         return {}
 
-    # Update cache
     config_cache[filepath] = config_data
     config_mtime[filepath] = os.path.getmtime(filepath)
     return config_data
 
+
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
+        # Corrected: Only the filename is needed here.
         filename = "config_default.yaml"
     else:
+        # This part was already correct.
         filename = f"config_{username}.yaml"
-    with open(filename, "w") as file:
+
+    filepath = os.path.join(CONFIG_DIR, filename)
+    with open(filepath, "w") as file:
         yaml.dump(config_data, file)
 
 def get_imaging_criteria():
@@ -1670,6 +2277,56 @@ def load_config_for_request():
     }
     g.objects = [ obj.get("Object") for obj in g.objects_list ]
 
+@app.before_request
+def ensure_telemetry_defaults():
+    """
+    Ensure telemetry defaults safely, without ever overwriting unrelated config
+    and without persisting instance_id into YAML.
+    """
+    try:
+        # Proceed only if a valid user config dict is already loaded into g
+        if not (hasattr(g, 'user_config') and isinstance(g.user_config, dict)):
+            return
+
+        changed = False
+        telemetry_config = g.user_config.setdefault('telemetry', {})
+
+        # Default for 'enabled'
+        if 'enabled' not in telemetry_config:
+            telemetry_config['enabled'] = True
+            changed = True
+
+        # Never persist instance_id in YAML; use .env at send-time
+        if 'instance_id' in telemetry_config:
+            telemetry_config.pop('instance_id', None)
+            # no need to mark changed; we remove a field we don't store
+
+        # Save only if we actually added the enabled default
+        if changed:
+            username = "default" if SINGLE_USER_MODE else (
+                current_user.username if getattr(current_user, 'is_authenticated', False) else "guest_user"
+            )
+            print("[CONFIG] Telemetry defaults were missing. Updating config file (enabled).")
+            save_user_config(username, g.user_config)
+
+        # Optionally expose the env-based ID in-memory if other code wants it
+        g.telemetry_instance_id = os.environ.get('INSTANCE_ID') or secrets.token_hex(16)
+
+    except Exception as e:
+        print(f"❌ ERROR in ensure_telemetry_defaults: {e}")
+
+
+@app.before_request
+def telemetry_startup_ping_once():
+    # Emulate old before_first_request semantics with a thread-safe guard
+    if not _telemetry_startup_once.is_set():
+        _telemetry_startup_once.set()
+        try:
+            username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+            cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+            send_telemetry_async(cfg, browser_user_agent='')
+        except Exception:
+            pass
 
 @app.route('/fetch_all_details', methods=['POST'])
 @login_required
@@ -1731,17 +2388,21 @@ def inject_version():
     return dict(version=APP_VERSION)
 
 @app.route('/download_config')
+@login_required # This was missing, it's good practice to add it
 def download_config():
     if SINGLE_USER_MODE:
         filename = "config_default.yaml"
     else:
         filename = f"config_{current_user.username}.yaml"
 
-    filepath = os.path.join(os.getcwd(), filename)
+    # FIX: Use the CONFIG_DIR variable for a reliable path
+    filepath = os.path.join(CONFIG_DIR, filename)
+
     if os.path.exists(filepath):
         return send_file(filepath, as_attachment=True)
     else:
-        return "Configuration file not found.", 404
+        flash("Configuration file not found.", "error")
+        return redirect(url_for('config_form'))
 
 @app.route('/download_journal')
 @login_required # Or your custom logic for SINGLE_USER_MODE
@@ -1760,7 +2421,7 @@ def download_journal():
     # Assuming your journal YAML files are in the same directory as app.py (instance path or app root)
     # If they are in a subdirectory e.g. 'user_data/', adjust the path.
     # For consistency with how load_journal/save_journal build paths:
-    filepath = os.path.join(os.path.dirname(__file__), filename)
+    filepath = os.path.join(CONFIG_DIR, filename)
 
 
     if os.path.exists(filepath):
@@ -1799,9 +2460,8 @@ def validate_journal_data(journal_data):
         # Add more checks per session if desired (e.g., session_date format)
     return True, "Journal data seems structurally valid."
 
-
 @app.route('/import_journal', methods=['POST'])
-@login_required  # Or your custom logic
+@login_required
 def import_journal():
     if 'file' not in request.files:
         flash("No file selected for journal import.", "error")
@@ -1817,16 +2477,14 @@ def import_journal():
             contents = file.read().decode('utf-8')
             new_journal_data = yaml.safe_load(contents)
 
-            if new_journal_data is None:  # Handle completely empty YAML file
+            if new_journal_data is None:
                 new_journal_data = {"sessions": []}
 
-            # Basic validation for the journal structure
             is_valid, message = validate_journal_data(new_journal_data)
             if not is_valid:
                 flash(f"Invalid journal file structure: {message}", "error")
                 return redirect(url_for('config_form'))
 
-            # Determine the correct journal filename for this user
             if SINGLE_USER_MODE:
                 username = "default"
                 journal_filename = "journal_default.yaml"
@@ -1837,24 +2495,19 @@ def import_journal():
                 username = current_user.username
                 journal_filename = f"journal_{username}.yaml"
 
-            journal_filepath = os.path.join(os.path.dirname(__file__), journal_filename)
+            journal_filepath = os.path.join(CONFIG_DIR, journal_filename)
 
-            # Backup current journal file if it exists
             if os.path.exists(journal_filepath):
-                backup_dir = os.path.join(os.path.dirname(journal_filepath), "backups")
-                os.makedirs(backup_dir, exist_ok=True)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 backup_filename = f"{journal_filename}_backup_{timestamp}.yaml"
-                backup_path = os.path.join(backup_dir, backup_filename)
+                backup_path = os.path.join(BACKUP_DIR, backup_filename)
                 try:
                     shutil.copy(journal_filepath, backup_path)
                     print(f"[IMPORT JOURNAL] Backed up current journal to {backup_path}")
                 except Exception as backup_e:
                     print(f"Warning: Could not back up existing journal: {backup_e}")
 
-            # Save new journal data (overwrite existing)
-            save_journal(username, new_journal_data)  # Use your existing save_journal function
-
+            save_journal(username, new_journal_data)
             flash("Journal imported successfully! Your old journal (if any) has been backed up.", "success")
             return redirect(url_for('config_form'))
 
@@ -1872,10 +2525,10 @@ def import_journal():
 
 
 @app.route('/import_config', methods=['POST'])
+@login_required
 def import_config():
     try:
         if 'file' not in request.files:
-            # Correctly use flash and redirect for user feedback
             flash("No file selected for import.", "error")
             return redirect(url_for('config_form'))
 
@@ -1893,47 +2546,39 @@ def import_config():
             flash(error_message, "error")
             return redirect(url_for('config_form'))
 
-        # ====================================================================
-        # FIXED LOGIC: Explicitly check SINGLE_USER_MODE
-        # ====================================================================
         if SINGLE_USER_MODE:
             username_for_backup = "default"
             config_filename = "config_default.yaml"
         else:
-            # Ensure there is an authenticated user in multi-user mode
             if not current_user.is_authenticated:
                 flash("You must be logged in to import a configuration.", "error")
                 return redirect(url_for('login'))
             username_for_backup = current_user.username
             config_filename = f"config_{username_for_backup}.yaml"
 
-        config_path = os.path.join(os.path.dirname(__file__), config_filename)
-        # ====================================================================
+        config_path = os.path.join(CONFIG_DIR, config_filename)
 
-        # Backup current config if it exists
         if os.path.exists(config_path):
-            backup_dir = os.path.join(os.path.dirname(config_path), "backups")
-            os.makedirs(backup_dir, exist_ok=True)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            # Use the determined username for the backup file name
-            backup_path = os.path.join(backup_dir, f"{username_for_backup}_backup_{timestamp}.yaml")
+            backup_filename = f"{username_for_backup}_backup_{timestamp}.yaml"
+            backup_path = os.path.join(BACKUP_DIR, backup_filename)
             shutil.copy(config_path, backup_path)
             print(f"[IMPORT] Backed up current config to {backup_path}")
 
-        # Save new config if valid
         with open(config_path, 'w') as f:
             yaml.dump(new_config, f, default_flow_style=False)
 
         print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
         flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
-        print("[CONFIG] Config imported. Checking for new locations needing an Outlook cache.")
+
         user_config_for_thread = new_config.copy()
         for loc_name in user_config_for_thread.get('locations', {}).keys():
-            # Use the new filename format for the check
             cache_filename = f"outlook_cache_{username_for_backup}_{loc_name.lower().replace(' ', '_')}.json"
-            if not os.path.exists(cache_filename):
+            cache_filepath = os.path.join(CACHE_DIR, cache_filename)
+            if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
-                thread = threading.Thread(target=update_outlook_cache, args=(username_for_backup, loc_name, user_config_for_thread))
+                thread = threading.Thread(target=update_outlook_cache,
+                                          args=(username_for_backup, loc_name, user_config_for_thread))
                 thread.start()
 
         return redirect(url_for('config_form'))
@@ -2895,11 +3540,6 @@ def get_object_data(object_name):
     return jsonify(single_object_data)
 @app.route('/')
 def index():
-    # Determine username for loading appropriate journal and config
-    # This logic should align with how you manage users throughout your app.
-    # Your @app.before_request already handles setting up g.user_config, g.locations etc.
-    # We just need to ensure we get the correct 'username' for the journal.
-
     if SINGLE_USER_MODE:
         username = "default"
         # g.is_guest is likely set to False by your before_request that logs in a dummy user
@@ -2975,6 +3615,49 @@ def sun_events():
     return jsonify(events)
 
 
+@app.route("/telemetry/ping", methods=["POST"])
+def telemetry_ping():
+    # Respect opt-out as usual
+    try:
+        username = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
+        )
+    except Exception:
+        username = "default"
+
+    try:
+        cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+    except Exception:
+        cfg = {}
+
+    tcfg = (cfg.get("telemetry") or {})
+    if not tcfg.get("enabled", True):
+        return jsonify({"status": "disabled"}), 200
+
+    # Parse client-provided UA (optional) and also store the request header UA as fallback
+    payload = request.get_json(silent=True) or {}
+    ua_client = payload.get("browser_user_agent") or ""
+    ua_header = request.headers.get("User-Agent", "") or ""
+    ua_final = ua_client or ua_header
+
+    # Cache UA for scheduled sends (so daily pings outside a request still include it)
+    try:
+        current_app.config["_LAST_UA"] = ua_final
+    except Exception:
+        pass
+
+    # DO NOT force a send here; avoid doubling the startup/daily sends.
+    # Only trigger a send if the 24h gate says it's okay right now.
+    try:
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        if telemetry_should_send(state_dir):
+            send_telemetry_async(cfg, browser_user_agent=ua_final, force=False)
+        # else: silently skip; scheduler or next allowed window will send
+    except Exception:
+        pass
+
+    return jsonify({"status": "ok"}), 200
+
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
@@ -3000,6 +3683,11 @@ def config_form():
                     'default_location'] = new_default_location if new_default_location else "Singapore"  # Default from original
 
                 g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
+                # Telemetry checkbox (default True if missing)
+                telemetry_enabled = bool(request.form.get('telemetry_enabled'))
+                tcfg = g.user_config.setdefault('telemetry', {})
+                tcfg['enabled'] = telemetry_enabled
+                tcfg.pop('instance_id', None)
 
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:
@@ -3401,13 +4089,14 @@ def plot_altitude(object_name):
             return jsonify({'error': 'Plot not found'}), 404
     return jsonify({"error": "Object not found"}), 404
 
+
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
     # --- Initialize effective context with global defaults/URL args ---
     effective_location_name = g.selected_location if hasattr(g,
                                                              'selected_location') and g.selected_location else "Unknown"
-    effective_lat = g.lat if hasattr(g, 'lat') else 0.0 # Ensure float for calcs
-    effective_lon = g.lon if hasattr(g, 'lon') else 0.0 # Ensure float for calcs
+    effective_lat = g.lat if hasattr(g, 'lat') else 0.0  # Ensure float for calcs
+    effective_lon = g.lon if hasattr(g, 'lon') else 0.0  # Ensure float for calcs
     effective_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
 
     now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
@@ -3418,14 +4107,20 @@ def graph_dashboard(object_name):
 
     # Override with URL args if present
     if request.args.get('day'):
-        try: effective_day = int(request.args.get('day'))
-        except ValueError: pass
+        try:
+            effective_day = int(request.args.get('day'))
+        except ValueError:
+            pass
     if request.args.get('month'):
-        try: effective_month = int(request.args.get('month'))
-        except ValueError: pass
+        try:
+            effective_month = int(request.args.get('month'))
+        except ValueError:
+            pass
     if request.args.get('year'):
-        try: effective_year = int(request.args.get('year'))
-        except ValueError: pass
+        try:
+            effective_year = int(request.args.get('year'))
+        except ValueError:
+            pass
 
     # --- Journal Data Logic ---
     if SINGLE_USER_MODE:
@@ -3433,7 +4128,7 @@ def graph_dashboard(object_name):
     elif current_user.is_authenticated:
         username_for_journal = current_user.username
     else:
-        username_for_journal = "guest_user" # Or handle as per your guest policy
+        username_for_journal = "guest_user"  # Or handle as per your guest policy
 
     object_specific_sessions = []
     selected_session_data = None
@@ -3443,17 +4138,13 @@ def graph_dashboard(object_name):
         journal_data = load_journal(username_for_journal)
         all_user_sessions = journal_data.get('sessions', [])
 
-        # --- OPTIMIZATION: Filter for the relevant sessions FIRST ---
         object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
-
-        # --- Now, calculate integration time ONLY for the sessions we need ---
         object_specific_sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
 
         if requested_session_id:
             selected_session_data = next(
                 (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
             if selected_session_data:
-                # 1. Override Effective Date with Session Date
                 session_date_str = selected_session_data.get('session_date')
                 if session_date_str:
                     try:
@@ -3464,7 +4155,6 @@ def graph_dashboard(object_name):
                     except ValueError:
                         flash(f"Invalid date in session. Using current/URL date.", "warning")
 
-                # 2. Override Effective Location with Session Location
                 session_loc_name = selected_session_data.get('location_name')
                 if session_loc_name:
                     all_locations_config = g.user_config.get("locations", {})
@@ -3474,11 +4164,10 @@ def graph_dashboard(object_name):
                         effective_lon = session_loc_details.get('lon', effective_lon)
                         effective_tz_name = session_loc_details.get('timezone', effective_tz_name)
                         effective_location_name = session_loc_name
-                        # Update now_at_effective_location if tz changed
                         now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
                     else:
                         flash(f"Location '{session_loc_name}' from session not in config. Using default.", "warning")
-            elif requested_session_id: # session_id was in URL but no matching session found
+            elif requested_session_id:
                 flash(f"Requested session ID '{requested_session_id}' not found for this object.", "info")
 
     # --- Finalize effective date string and dependent calculations ---
@@ -3504,60 +4193,64 @@ def graph_dashboard(object_name):
         print(f"Error calculating moon phase for {effective_date_str} at {effective_location_name}: {e}")
         moon_phase_for_effective_date = "N/A"
 
-    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat, effective_lon)
-    if username_for_journal not in rig_data_cache:
-        print(f"[CACHE] Rig data for user '{username_for_journal}' not in cache. Calculating now.")
-        calculated_rigs = []
-        rig_data = load_rig_config(username_for_journal, SINGLE_USER_MODE)
-        if rig_data and rig_data.get('rigs'):
-            all_components = rig_data.get('components', {})
-            for rig in rig_data.get('rigs', []):
-                calculated_data = calculate_rig_data(rig, all_components)
-                rig.update(calculated_data)
-                calculated_rigs.append(rig)
-        rig_data_cache[username_for_journal] = calculated_rigs
-    else:
-        print(f"[CACHE] Loading rig data for user '{username_for_journal}' from cache.")
+    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat,
+                                                                effective_lon)
 
-    rigs_with_fov = rig_data_cache[username_for_journal]
+    # <<< THIS ENTIRE BLOCK for loading and sorting rigs is the final, corrected version >>>
+    # Step 1: Load the full rig config to get both rigs and preferences
+    username_for_rigs = "default" if SINGLE_USER_MODE else (
+        current_user.username if current_user.is_authenticated else "guest_user")
+    full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
+
+    # Step 2: Get the raw list of rigs and the sort preference from the config data
+    unsorted_rigs = full_rig_config.get('rigs', [])
+    sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
+
+    # Step 3: Calculate data for each rig
+    rigs_with_calculated_data = []
+    if unsorted_rigs:
+        all_components = full_rig_config.get('components', {})
+        for rig in unsorted_rigs:
+            calculated_data = calculate_rig_data(rig, all_components)
+            rig.update(calculated_data)
+            rigs_with_calculated_data.append(rig)
+
+    # Step 4: Sort the final list
+    rigs_with_fov = sort_rigs_list(rigs_with_calculated_data, sort_preference)
+    # <<< END OF REPLACEMENT BLOCK >>>
+
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
         flash(f"Details for '{object_name}' could not be found.", "error")
         return redirect(url_for('index'))
 
-    # --- DEBUG PRINT STATEMENTS ---
-    if selected_session_data:
-        print("DEBUG: graph_dashboard - selected_session_data going to template:")
-        print(json.dumps(selected_session_data, indent=2))
-        print(f"DEBUG: Calculated Integ. Time: {selected_session_data.get('calculated_integration_time_minutes')}, Type: {type(selected_session_data.get('calculated_integration_time_minutes'))}")
-        print(f"DEBUG: Raw Subs: {selected_session_data.get('number_of_subs_light')}, Type: {type(selected_session_data.get('number_of_subs_light'))}")
-        print(f"DEBUG: Raw Exp Time: {selected_session_data.get('exposure_time_per_sub_sec')}, Type: {type(selected_session_data.get('exposure_time_per_sub_sec'))}")
-    # --- END OF DEBUG PRINT STATEMENTS ---
+    # DEBUG statements have been removed for clarity in the final version
 
     return render_template('graph_view.html',
-                               object_name=object_name,
-                               alt_name=object_main_details.get("Common Name", object_name),
-                               object_main_details=object_main_details,  # ADDED THIS
-                               available_rigs=rigs_with_fov,             # ADDED THIS
-                               selected_day=effective_day,
-                               selected_month=effective_month,
-                               selected_year=effective_year,
-                               selected_date_for_display=effective_date_str,
-                               header_location_name=effective_location_name,
-                               header_date_display=effective_date_str,
-                               header_moon_phase=moon_phase_for_effective_date,
-                               header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
-                               header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                               project_notes_from_config=object_main_details.get("Project", "N/A"),
-                               timestamp=datetime.now(effective_local_tz).timestamp(),
-                               object_specific_sessions=object_specific_sessions,
-                               selected_session_data=selected_session_data,
-                               current_session_id=requested_session_id if selected_session_data else None,
-                               graph_location_name_param=effective_location_name,
-                               graph_lat_param=effective_lat,
-                               graph_lon_param=effective_lon,
-                               graph_tz_name_param=effective_tz_name
-                               )
+                           object_name=object_name,
+                           alt_name=object_main_details.get("Common Name", object_name),
+                           object_main_details=object_main_details,
+                           available_rigs=rigs_with_fov,
+                           selected_day=effective_day,
+                           selected_month=effective_month,
+                           selected_year=effective_year,
+                           selected_date_for_display=effective_date_str,
+                           header_location_name=effective_location_name,
+                           header_date_display=effective_date_str,
+                           header_moon_phase=moon_phase_for_effective_date,
+                           header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                           header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                           project_notes_from_config=object_main_details.get("Project", "N/A"),
+                           timestamp=datetime.now(effective_local_tz).timestamp(),
+                           object_specific_sessions=object_specific_sessions,
+                           selected_session_data=selected_session_data,
+                           current_session_id=requested_session_id if selected_session_data else None,
+                           graph_location_name_param=effective_location_name,
+                           graph_lat_param=effective_lat,
+                           graph_lon_param=effective_lon,
+                           graph_tz_name_param=effective_tz_name
+                           )
+
 @app.route('/plot_day/<path:object_name>')
 def plot_day(object_name):
     # --- Determine Date for the plot from request.args ---
@@ -4084,6 +4777,11 @@ def get_plot_data(object_name):
 if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     migrate_journal_data()
     trigger_startup_cache_workers() # This runs second
+
+import logging
+
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
