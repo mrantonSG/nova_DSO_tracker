@@ -2039,11 +2039,15 @@ def load_user_config(username):
     config_mtime[filepath] = os.path.getmtime(filepath)
     return config_data
 
+
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
-        filename = "instance/configs/config_default.yaml"
+        # Corrected: Only the filename is needed here.
+        filename = "config_default.yaml"
     else:
+        # This part was already correct.
         filename = f"config_{username}.yaml"
+
     filepath = os.path.join(CONFIG_DIR, filename)
     with open(filepath, "w") as file:
         yaml.dump(config_data, file)
