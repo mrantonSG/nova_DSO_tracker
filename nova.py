@@ -49,7 +49,7 @@ matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
+from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session, get_flashed_messages
 from flask import Flask, send_from_directory, has_request_context
@@ -810,6 +810,64 @@ def telemetry_mark_sent(state_dir: Path):
         pass
 
 def build_telemetry_payload(user_config, browser_user_agent: str = ''):
+    # --- Add anonymized counts (numbers only, never contents) ---
+    cfg = user_config or {}
+    def _len_any(x):
+        if isinstance(x, dict):
+            return len(x)
+        if isinstance(x, list):
+            return len(x)
+        # support sets/tuples just in case
+        try:
+            return len(x)
+        except Exception:
+            return 0
+
+    def pick_first(*candidates):
+        for c in candidates:
+            if c is not None and c != {} and c != []:
+                return c
+        return None
+
+    objects_count = _len_any(cfg.get("objects"))
+
+    # Rigs: prefer canonical rig file used by the UI; fall back to possible in-config locations
+    try:
+        username_eff = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "default"
+        )
+        rd = rig_config.load_rig_config(username_eff, SINGLE_USER_MODE) or {}
+        rigs_count = _len_any(rd.get("rigs"))
+    except Exception:
+        # Fallbacks if rig config couldn't be loaded
+        rigs_container = pick_first(
+            cfg.get("rigs"),
+            cfg.get("rig_list"),
+            cfg.get("available_rigs"),
+            (cfg.get("equipment") or {}).get("rigs"),
+            (cfg.get("user") or {}).get("rigs"),
+        )
+        rigs_count = _len_any(rigs_container)
+
+    # Locations: use container variants resolved above
+    locations_container = pick_first(
+        cfg.get("locations"),
+        cfg.get("sites"),
+        (cfg.get("user") or {}).get("locations"),
+        (cfg.get("observing") or {}).get("locations"),
+    )
+    locations_count = _len_any(locations_container)
+    # Journals: load via canonical loader (journal lives in nova.py), fallback to config keys if needed
+    try:
+        username_eff = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "default"
+        )
+        jd = load_journal(username_eff) or {}
+        sessions = jd.get("sessions") or []
+        journals_count = _len_any(sessions)
+    except Exception:
+        # Fallback for older in-config layouts
+        journals_count = _len_any(cfg.get("journals")) or _len_any(cfg.get("journal_entries"))
     instance_id, enabled = ensure_instance_id(user_config)
     mode = 'single' if SINGLE_USER_MODE else 'multi'
     return {
@@ -820,7 +878,11 @@ def build_telemetry_payload(user_config, browser_user_agent: str = ''):
         'is_docker': bool(is_docker_env()),
         'mode': mode,
         'browser_user_agent': browser_user_agent or '',
-        'timestamp': datetime.now(timezone.utc).isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        "objects_count": objects_count,
+        "rigs_count": rigs_count,
+        "locations_count": locations_count,
+        "journals_count": journals_count,
     }
 
 def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool = False):
@@ -3553,20 +3615,48 @@ def sun_events():
     return jsonify(events)
 
 
-@app.route('/telemetry/ping', methods=['POST'])
+@app.route("/telemetry/ping", methods=["POST"])
 def telemetry_ping():
-    body = request.get_json(silent=True) or {}
-    browser = body.get('browser_user_agent', '')
-    force = bool(body.get('force', False))
-    # (optional: print so you see the click arrive)
-    print(f"[TELEMETRY] /telemetry/ping received (force={force})")
+    # Respect opt-out as usual
+    try:
+        username = "default" if SINGLE_USER_MODE else (
+            current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
+        )
+    except Exception:
+        username = "default"
 
-    username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
-    cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+    try:
+        cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+    except Exception:
+        cfg = {}
 
-    send_telemetry_async(cfg, browser_user_agent=browser, force=force)
-    return jsonify({'status': 'ok'})
+    tcfg = (cfg.get("telemetry") or {})
+    if not tcfg.get("enabled", True):
+        return jsonify({"status": "disabled"}), 200
 
+    # Parse client-provided UA (optional) and also store the request header UA as fallback
+    payload = request.get_json(silent=True) or {}
+    ua_client = payload.get("browser_user_agent") or ""
+    ua_header = request.headers.get("User-Agent", "") or ""
+    ua_final = ua_client or ua_header
+
+    # Cache UA for scheduled sends (so daily pings outside a request still include it)
+    try:
+        current_app.config["_LAST_UA"] = ua_final
+    except Exception:
+        pass
+
+    # DO NOT force a send here; avoid doubling the startup/daily sends.
+    # Only trigger a send if the 24h gate says it's okay right now.
+    try:
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        if telemetry_should_send(state_dir):
+            send_telemetry_async(cfg, browser_user_agent=ua_final, force=False)
+        # else: silently skip; scheduler or next allowed window will send
+    except Exception:
+        pass
+
+    return jsonify({"status": "ok"}), 200
 
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
