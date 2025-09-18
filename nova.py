@@ -52,7 +52,7 @@ import matplotlib.dates as mdates
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session, get_flashed_messages
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, has_request_context
 
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation
@@ -848,7 +848,20 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
             TELEMETRY_DEBUG_STATE['last_error'] = "throttled"
             return
 
+        # --- NEW: Resolve UA if not explicitly passed ---
+        try:
+            if not browser_user_agent:
+                if has_request_context():
+                    browser_user_agent = request.headers.get("User-Agent", "") or ""
+                if not browser_user_agent:
+                    # Fallback to cached UA captured on a real HTML request
+                    browser_user_agent = current_app.config.get("_LAST_UA", "") or ""
+        except Exception:
+            # Never fail because of UA resolution
+            pass
+
         payload = build_telemetry_payload(user_config, browser_user_agent)
+
         def _worker():
             try:
                 # print("[TELEMETRY] Sending to:", endpoint)
@@ -864,6 +877,7 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
                 # print("[TELEMETRY] ERROR:", e)
             finally:
                 telemetry_mark_sent(state_dir)
+
         TELEMETRY_DEBUG_STATE['last_payload'] = payload
         threading.Thread(target=_worker, daemon=True).start()
     except Exception as e:
@@ -907,8 +921,49 @@ def _start_telemetry_scheduler_once():
 # Kick it off on the first incoming request (Flask 3 replacement for before_first_request)
 @app.before_request
 def _telemetry_bootstrap_hook():
+    # Ensure the once-per-process startup scheduler is kicked off
     _start_telemetry_scheduler_once()
-# --- end telemetry startup + daily scheduler ---
+
+    # Compute routing flags once
+    try:
+        is_get = request.method == "GET"
+        accepts_html = "text/html" in (request.headers.get("Accept", "") or "")
+        is_static = request.path.startswith("/static/")
+        is_telemetry = request.path.startswith("/telemetry/")
+    except Exception:
+        # If anything odd happens, just don't do telemetry here
+        return
+
+    # 1) Always cache last seen UA on real HTML navigations
+    if is_get and accepts_html and not is_static and not is_telemetry:
+        try:
+            current_app.config["_LAST_UA"] = request.headers.get("User-Agent", "") or ""
+        except Exception:
+            pass
+
+    # 2) Only once per process, trigger a normal (throttled) send that includes UA
+    try:
+        if not current_app.config.get("_UA_BOOTSTRAP_SENT", False):
+            if is_get and accepts_html and not is_static and not is_telemetry:
+                ua = current_app.config.get("_LAST_UA", "")  # use the cached UA
+
+                # Resolve a username to load config for telemetry enabled flag, etc.
+                if SINGLE_USER_MODE:
+                    username = "default"
+                else:
+                    username = current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
+
+                try:
+                    cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+                except Exception:
+                    cfg = {}
+
+                send_telemetry_async(cfg, browser_user_agent=ua, force=False)
+
+                current_app.config["_UA_BOOTSTRAP_SENT"] = True
+    except Exception:
+        # Never let telemetry issues affect page handling
+        pass
 
 # If this is a fresh first run (we just created .env), trigger telemetry scheduler shortly after startup
 if FIRST_RUN_ENV_CREATED:
