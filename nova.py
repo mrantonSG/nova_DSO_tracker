@@ -124,10 +124,56 @@ CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
 
-# Create directories if they don't exist
-os.makedirs(CACHE_DIR, exist_ok=True)
-os.makedirs(CONFIG_DIR, exist_ok=True)
-os.makedirs(BACKUP_DIR, exist_ok=True)
+
+def initialize_instance_directory():
+    """
+    Checks if the instance directory and default configs exist.
+    If not, it creates them from the templates. This makes the app
+    work correctly on first run after a fresh git clone.
+    """
+    # Directory where your master template files are stored
+    template_dir = os.path.join(os.path.dirname(__file__), "config_templates")
+
+    # The user-specific config directory
+    config_dir = os.path.join(INSTANCE_PATH, "configs")
+
+    # Only run this if the user's config directory doesn't exist
+    if not os.path.exists(config_dir):
+        print("First run detected. Initializing instance directory...")
+        try:
+            # Create all necessary directories
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            os.makedirs(BACKUP_DIR, exist_ok=True)
+
+            # List of (template_filename, final_filename) pairs
+            files_to_create = [
+                ('config_default.yaml', 'config_default.yaml'),
+                ('journal_default.yaml', 'journal_default.yaml'),
+                ('rigs_default.yaml', 'rigs_default.yaml'),
+                ('config_guest_user.yaml', 'config_guest_user.yaml'),
+                # Add a journal for the guest user too
+                ('journal_default.yaml', 'journal_guest_user.yaml'),
+            ]
+
+            for template_name, final_name in files_to_create:
+                src_path = os.path.join(template_dir, template_name)
+                dest_path = os.path.join(config_dir, final_name)
+
+                if os.path.exists(src_path):
+                    shutil.copy(src_path, dest_path)
+                    print(f"   -> Created '{final_name}' from template.")
+                else:
+                    print(f"   -> WARNING: Template file '{template_name}' not found. Cannot create '{final_name}'.")
+
+            print("✅ Initialization complete.")
+        except Exception as e:
+            print(f"❌ FATAL ERROR during first-run initialization: {e}")
+            # You might want the app to exit if this fails
+            # import sys
+            # sys.exit(1)
+
+initialize_instance_directory()
 
 # --- Stellarium API URL Configuration ---
 # Default URL for running directly on the host
