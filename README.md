@@ -14,7 +14,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
 
-# Nova DSO Altitude Tracker 3.2 - Quick Guide
+# Nova DSO Altitude Tracker 3.3 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -134,6 +134,15 @@ Here you can find all your imaging sessions. If you want to see the detail, clic
 You can add new sessions by clicking the "add new session" button - and filling up the form:
 
 ![Screenshot_28_addform.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_addform.png)
+
+
+### Anonymous Telemetry for Better Development
+Version 3.3 introduces an optional and anonymous telemetry system to help me understand how the app is used and where to focus development efforts.
+
+* **What it is for**: It sends a small, anonymous "heartbeat" to help me understand things like which operating systems are most common and if it runs under Docker.
+* **What it collects**: It only sends **anonymous aggregate data**, such as your app version, OS type (e.g., Windows, Linux), and the *counts* of your objects, rigs, and locations. (to understand if we run in a bottleneck)
+* **What it DOES NOT collect**: It **NEVER** sends any personal data, including the names of your objects, your location coordinates, your project notes, or any other sensitive information.
+* **It is Opt-Out**: You can disable this feature at any time on the **Configuration -> General** page.
 
 # Nova Astronomical Tracker Setup Guide
 
