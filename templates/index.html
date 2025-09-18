@@ -41,10 +41,11 @@
 
 
     table {
-        width: 100%;
+        width: max-content;       /* allow natural column widths */
+        min-width: 100%;          /* but never smaller than the viewport */
         border-collapse: collapse;
         border: 1px solid #ddd;
-        table-layout: fixed;
+        table-layout: fixed;      /* honor explicit widths and prevent reflow jitter */
         word-wrap: break-word;
     }
     th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
@@ -58,8 +59,11 @@
     }
     th[data-column-key="Common Name"],
     td[data-column-key="Common Name"] {
-        min-width: 150px;
+        min-width: 220px;         /* enforce a floor */
         text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
      th[data-column-key="Altitude Current"], td[data-column-key="Altitude Current"],
@@ -591,6 +595,10 @@
 
                     // --- FIX #2: Display plain text instead of a link for the 'Object' column ---
                     td.textContent = displayValue;
+                    if (columnKey === 'Common Name') {
+                        // Preserve full value on hover for mobile/desktop
+                        td.setAttribute('title', (rawValue === null || rawValue === undefined) ? '' : String(rawValue));
+                    }
 
                     // --- FIX #3: This will now use your original BLUE highlight color ---
                     if ((config.dataKey === 'Altitude Current' || config.dataKey === 'Altitude 11PM') && parseFloat(rawValue) >= altitudeThreshold) {
@@ -1334,7 +1342,7 @@
                 </tr>
                 <tr class="filter-row" id="journal-filter-row">
                     <th data-journal-column-key="target_object_id"><input type="text" placeholder="Object ID"/></th>
-                    <th data-journal-column-key="target_common_name"><input type="text" placeholder="Common Name"/></th>
+                    <th data-journal-column-key="target_common_name"><input type="text" placeholder="Search Common Name"/></th>
                     <th data-journal-column-key="session_date"><input type="text" placeholder="DD.MM.YYYY"/></th> {# Changed placeholder #}
                     <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
                     <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
@@ -1360,7 +1368,7 @@
                 </tr>
                 <tr class="filter-row" id="outlook-filter-row">
                     <th data-outlook-column-key="object_name"><input type="text" placeholder="Search Object"/></th>
-                    <th data-outlook-column-key="common_name"><input type="text" placeholder="Search Name"/></th>
+                    <th data-outlook-column-key="common_name"><input type="text" placeholder="Search Common Name"/></th>
                     <th data-outlook-column-key="date"><input type="text" placeholder="Search Date"/></th>
                     <th data-outlook-column-key="max_alt"><input type="text" placeholder="e.g. >60"/></th>
                     <th data-outlook-column-key="obs_dur"><input type="text" placeholder="e.g. >300"/></th>
