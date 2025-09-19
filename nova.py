@@ -364,12 +364,22 @@ def load_journal(username):
         filename = f"journal_{username}.yaml"
     filepath = os.path.join(CONFIG_DIR, filename)
 
-    # Caching logic
+    # --- NEW: Create journal from template if it doesn't exist ---
+    if not SINGLE_USER_MODE and not os.path.exists(filepath):
+        print(f"-> Journal for user '{username}' not found. Creating from default template.")
+        try:
+            default_template_path = os.path.join(CONFIG_DIR, 'journal_default.yaml')
+            shutil.copy(default_template_path, filepath)
+            print(f"   -> Successfully created {filename}.")
+        except Exception as e:
+            print(f"   -> ❌ ERROR: Could not create journal for '{username}': {e}")
+            return {"sessions": []}
+
+    # --- Caching and loading logic continues below ---
     last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
     if filepath in journal_cache and last_modified <= journal_mtime.get(filepath, 0):
         return journal_cache[filepath]
 
-    # Read from file if not in cache or if modified
     if not os.path.exists(filepath):
         return {"sessions": []}
 
@@ -379,7 +389,6 @@ def load_journal(username):
             if "sessions" not in data or not isinstance(data["sessions"], list):
                 data["sessions"] = []
 
-            # Update cache
             journal_cache[filepath] = data
             journal_mtime[filepath] = last_modified
             return data
@@ -2170,20 +2179,32 @@ def trigger_update():
 
 def load_user_config(username):
     """
-    Loads user configuration from a YAML file. If the file contains unsafe
-    NumPy tags, it will automatically repair the file and continue.
+    Loads user configuration from a YAML file.
+    - Uses caching for performance.
+    - If a user's config is not found in multi-user mode, it creates one
+      by copying the default template.
+    - If the file contains unsafe NumPy tags, it will automatically repair it.
     """
     global config_cache, config_mtime
     if SINGLE_USER_MODE:
-        # FIX: This should be just the filename, not the partial path.
         filename = "config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
 
-    # This line now correctly builds the full path for both single and multi-user modes.
     filepath = os.path.join(CONFIG_DIR, filename)
 
-    # --- The rest of the function remains the same ---
+    # --- NEW: Create config from template if it doesn't exist for a multi-user ---
+    if not SINGLE_USER_MODE and not os.path.exists(filepath):
+        print(f"-> Config for user '{username}' not found. Creating from default template.")
+        try:
+            default_template_path = os.path.join(CONFIG_DIR, 'config_default.yaml')
+            shutil.copy(default_template_path, filepath)
+            print(f"   -> Successfully created {filename}.")
+        except Exception as e:
+            print(f"   -> ❌ ERROR: Could not create config for '{username}': {e}")
+            return {}  # Return empty on failure to prevent a crash
+
+    # --- Caching and loading logic continues below ---
     if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
             filepath, 0):
         return config_cache[filepath]
@@ -2201,7 +2222,7 @@ def load_user_config(username):
         if 'numpy' in str(e):
             print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
             try:
-                backup_dir = os.path.join(INSTANCE_PATH, "backups")  # Corrected backup path
+                backup_dir = os.path.join(INSTANCE_PATH, "backups")
                 os.makedirs(backup_dir, exist_ok=True)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 backup_path = os.path.join(backup_dir,
@@ -2233,7 +2254,6 @@ def load_user_config(username):
     config_cache[filepath] = config_data
     config_mtime[filepath] = os.path.getmtime(filepath)
     return config_data
-
 
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
@@ -4864,6 +4884,30 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+if not SINGLE_USER_MODE:
+    @app.cli.command("init-db")
+    def init_db_command():
+        """Creates database tables and the first admin user."""
+        # Create the tables based on your db.Model classes
+        db.create_all()
+        print("✅ Initialized the database tables.")
+
+        # Check if a user already exists to prevent running this twice
+        if db.session.scalar(db.select(User).limit(1)):
+            print("-> Database already contains users. Skipping admin creation.")
+            return
+
+        # If no users exist, prompt to create the first one
+        print("--- Create First Admin User ---")
+        username = input("Enter username for admin: ")
+        password = getpass.getpass("Enter password for admin: ")
+
+        # Create the user object and save it to the database
+        admin_user = User(username=username)
+        admin_user.set_password(password)
+        db.session.add(admin_user)
+        db.session.commit()
+        print(f"✅ Admin user '{username}' created successfully!")
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
