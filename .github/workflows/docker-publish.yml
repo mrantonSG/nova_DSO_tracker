@@ -34,7 +34,6 @@ jobs:
           tags: |
             # Create semver tags like v1.2.3, v1.2, and v1 when a release is published
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             
             # This rule creates the 'latest' tag ONLY when the workflow runs on
             # your main or master branch (either from a release or a manual run).
