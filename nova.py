@@ -101,6 +101,8 @@ TELEMETRY_DEBUG_STATE = {
 FIRST_RUN_ENV_CREATED = False
 
 INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
+# Directory where master template files live (used across the module)
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
 load_dotenv(dotenv_path=ENV_FILE)
 
@@ -135,8 +137,7 @@ def initialize_instance_directory():
     If not, it creates them from the templates. This makes the app
     work correctly on first run after a fresh git clone.
     """
-    # Directory where your master template files are stored
-    template_dir = os.path.join(os.path.dirname(__file__), "config_templates")
+    # Use the module-level TEMPLATE_DIR
 
     # The user-specific config directory
     config_dir = os.path.join(INSTANCE_PATH, "configs")
@@ -161,7 +162,7 @@ def initialize_instance_directory():
             ]
 
             for template_name, final_name in files_to_create:
-                src_path = os.path.join(template_dir, template_name)
+                src_path = os.path.join(TEMPLATE_DIR, template_name)
                 dest_path = os.path.join(config_dir, final_name)
 
                 if os.path.exists(src_path):
@@ -368,7 +369,7 @@ def load_journal(username):
     if not SINGLE_USER_MODE and not os.path.exists(filepath):
         print(f"-> Journal for user '{username}' not found. Creating from default template.")
         try:
-            default_template_path = os.path.join(CONFIG_DIR, 'journal_default.yaml')
+            default_template_path = os.path.join(TEMPLATE_DIR, 'journal_default.yaml')
             shutil.copy(default_template_path, filepath)
             print(f"   -> Successfully created {filename}.")
         except Exception as e:
@@ -2197,7 +2198,7 @@ def load_user_config(username):
     if not SINGLE_USER_MODE and not os.path.exists(filepath):
         print(f"-> Config for user '{username}' not found. Creating from default template.")
         try:
-            default_template_path = os.path.join(CONFIG_DIR, 'config_default.yaml')
+            default_template_path = os.path.join(TEMPLATE_DIR, 'config_default.yaml')
             shutil.copy(default_template_path, filepath)
             print(f"   -> Successfully created {filename}.")
         except Exception as e:
