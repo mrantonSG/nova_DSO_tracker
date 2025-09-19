@@ -4910,6 +4910,46 @@ if not SINGLE_USER_MODE:
         db.session.commit()
         print(f"✅ Admin user '{username}' created successfully!")
 
+@app.route('/api/internal/provision_user', methods=['POST'])
+def provision_user():
+    # 1. Get data and verify the secret key
+    data = request.get_json()
+    provided_key = request.headers.get('X-Api-Key')
+    expected_key = os.environ.get('PROVISIONING_API_KEY')
+
+    if not expected_key or provided_key != expected_key:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"status": "error", "message": "Username and password required"}), 400
+
+    with app.app_context():
+        # 2. Check if user already exists in the database
+        if db.session.scalar(db.select(User).where(User.username == username)):
+            return jsonify({"status": "error", "message": "User already exists"}), 409
+
+        # 3. Create the new user in the database
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        print(f"✅ User '{username}' provisioned in database via API.")
+
+        # 4. Create the user's personal config and journal files from templates
+        try:
+            load_user_config(username) # This will auto-create the config file
+            load_journal(username)     # This will auto-create the journal file
+            # You can add load_rig_config(username) here too if needed
+            print(f"✅ YAML files for user '{username}' created successfully.")
+        except Exception as e:
+            print(f"❌ ERROR: Could not create YAML files for '{username}': {e}")
+            # The user is in the DB, but files failed. They can be created on first login.
+
+    return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
+
 if __name__ == '__main__':
     # Start the background thread to check for updates
     update_thread = threading.Thread(target=check_for_updates)
