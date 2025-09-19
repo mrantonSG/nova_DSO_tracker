@@ -61,6 +61,7 @@ import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
+import getpass
 
 from modules.astro_calculations import (
     calculate_transit_time,
@@ -245,10 +246,37 @@ SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fal
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-db_path = os.path.join(INSTANCE_PATH, 'users.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+# --- Conditional User and Database Setup ---
+if not SINGLE_USER_MODE:
+    # --- MULTI-USER MODE ---
+    from flask_sqlalchemy import SQLAlchemy
+    from werkzeug.security import generate_password_hash, check_password_hash
+
+    # Configure and initialize the database
+    db_path = os.path.join(INSTANCE_PATH, 'users.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db = SQLAlchemy(app)
+
+    # Database-backed User model
+    class User(UserMixin, db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        username = db.Column(db.String(80), unique=True, nullable=False)
+        password_hash = db.Column(db.String(256), nullable=False)
+
+        def set_password(self, password):
+            self.password_hash = generate_password_hash(password)
+
+        def check_password(self, password):
+            return check_password_hash(self.password_hash, password)
+
+else:
+    # --- SINGLE-USER MODE ---
+    # Use the original, simple in-memory User class
+    class User(UserMixin):
+        def __init__(self, user_id, username):
+            self.id = user_id
+            self.username = username
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -300,19 +328,6 @@ def python_format_date_eu(value_iso_str):
 
 app.jinja_env.filters['date_eu'] = python_format_date_eu
 
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-
-    def set_password(self, password):
-        """Creates a hashed password."""
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        """Checks a password against the hash."""
-        return check_password_hash(self.password_hash, password)
 
 def load_journal(username):
     """Loads journal data from cache or file, checking for modifications."""
@@ -2072,8 +2087,14 @@ def journal_add_for_target(object_name):
 
 @login_manager.user_loader
 def load_user(user_id):
-    # This function now queries the User table in the database.
-    return db.session.get(User, int(user_id))
+    if SINGLE_USER_MODE:
+        # In single-user mode, the user is always 'default'
+        if user_id == 'default':
+            return User(user_id="default", username="default")
+        return None
+    else:
+        # In multi-user mode, query the database
+        return db.session.get(User, int(user_id))
 
 # simbad sometimes needs Ids with a / between numbers. this creates a conflict with the app.
 def sanitize_object_name(object_name):
@@ -2223,26 +2244,24 @@ def get_imaging_criteria():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-
-        # Find the user in the database by their username.
-        user = db.session.scalar(db.select(User).where(User.username == username))
-
-        # Check if the user exists AND if the password is correct using the new method.
-        if user and user.check_password(password):
-            login_user(user)
-            flash("Logged in successfully!", "success")
-            return redirect(url_for('index'))
-        else:
-            flash("Invalid username or password.", "error")
-
-    return render_template('login.html')
-
+    if SINGLE_USER_MODE:
+        # In single-user mode, the login page is not needed, just redirect.
+        return redirect(url_for('index'))
+    else:
+        # --- MULTI-USER MODE LOGIC ---
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            user = db.session.scalar(db.select(User).where(User.username == username))
+            if user and user.check_password(password):
+                login_user(user)
+                flash("Logged in successfully!", "success")
+                return redirect(url_for('index'))
+            else:
+                flash("Invalid username or password.", "error")
+        return render_template('login.html')
 
 @app.route('/proxy_focus', methods=['POST'])
-# @login_required # You had this commented out in your original code, add it if needed
 def proxy_focus():
     payload = request.form
     try:
@@ -4824,11 +4843,32 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-@app.cli.command("init-db")
-def init_db_command():
-    """Creates the database tables."""
-    db.create_all()
-    print("✅ Initialized the database.")
+
+if not SINGLE_USER_MODE:
+    import getpass
+    @app.cli.command("init-db")
+    def init_db_command():
+        """Creates the database tables and prompts for the first admin user."""
+        db.create_all()
+        print("✅ Initialized the database.")
+
+        # Check if any users already exist
+        if db.session.scalar(db.select(User).limit(1)):
+            print("-> Database already contains users. Skipping admin creation.")
+            return
+
+        # If no users exist, prompt to create the first one
+        print("--- Create First Admin User ---")
+        username = input("Enter username for admin: ")
+        password = getpass.getpass("Enter password for admin: ")
+
+        admin_user = User(username=username)
+        admin_user.set_password(password)
+        db.session.add(admin_user)
+        db.session.commit()
+        print(f"✅ Admin user '{username}' created successfully!")
+
+
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
