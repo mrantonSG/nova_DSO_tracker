@@ -59,6 +59,9 @@ from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_co
 from astropy.time import Time
 import astropy.units as u
 
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from modules.astro_calculations import (
     calculate_transit_time,
     get_utc_time_for_local_11pm,
@@ -80,7 +83,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.3.0"
+APP_VERSION = "3.4.D1"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -242,15 +245,15 @@ SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fal
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
+db_path = os.path.join(INSTANCE_PATH, 'users.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = None
-
-# Load user credentials dynamically from .env
-usernames = config("USERS", default="").split(",")
-
-users = {}
 
 def convert_to_native_python(val):
     """Converts a NumPy data type to a native Python type if necessary."""
@@ -297,23 +300,19 @@ def python_format_date_eu(value_iso_str):
 
 app.jinja_env.filters['date_eu'] = python_format_date_eu
 
-for username in usernames:
-    username = username.strip()
-    if username:
-        user_id = config(f"USER_{username.upper()}_ID", default=username)
-        user_username = config(f"USER_{username.upper()}_USERNAME", default=username)
-        user_password = config(f"USER_{username.upper()}_PASSWORD", default="changeme")
 
-        users[username] = {
-            "id": user_id,
-            "username": user_username,
-            "password": user_password,
-        }
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
 
-class User(UserMixin):
-    def __init__(self, user_id, username):
-        self.id = user_id
-        self.username = username
+    def set_password(self, password):
+        """Creates a hashed password."""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        """Checks a password against the hash."""
+        return check_password_hash(self.password_hash, password)
 
 def load_journal(username):
     """Loads journal data from cache or file, checking for modifications."""
@@ -506,63 +505,60 @@ def trigger_outlook_update_for_user(username):
 
 def trigger_startup_cache_workers():
     """
-    REVISED FOR RELIABILITY: Processes all locations sequentially with a delay
-    to prevent overwhelming resource-constrained systems like a Raspberry Pi.
+    REVISED FOR DATABASE: Gets users from the DB to warm caches.
     """
     print("[STARTUP] Checking all caches for freshness...")
 
-    if SINGLE_USER_MODE:
-        usernames_to_check = ["default"]
-    else:
-        usernames_to_check = list(users.keys())
+    # We need an application context to talk to the database
+    with app.app_context():
+        if SINGLE_USER_MODE:
+            usernames_to_check = ["default"]
+        else:
+            # Query the User table to get all registered usernames
+            try:
+                all_db_users = db.session.execute(db.select(User)).scalars().all()
+                usernames_to_check = [user.username for user in all_db_users]
+            except Exception as e:
+                print(f"⚠️ [STARTUP] Could not query users from database, may need initialization. Error: {e}")
+                usernames_to_check = [] # Continue with no users if DB isn't ready
 
-    # A single list to hold all tasks (username, location, config)
-    all_tasks = []
+        # The rest of this function remains the same
+        all_tasks = []
+        for username in set(usernames_to_check):
+            try:
+                print(f"--- Preparing tasks for user: {username} ---")
+                config = load_user_config(username)
+                if not config:
+                    print(f"    -> No config found for user '{username}', skipping.")
+                    continue
 
-    for username in set(usernames_to_check):
-        try:
-            print(f"--- Preparing tasks for user: {username} ---")
-            config = load_user_config(username)
-            if not config:
-                print(f"    -> No config found for user '{username}', skipping.")
-                continue
+                locations = config.get("locations", {})
+                default_location = config.get("default_location")
 
-            locations = config.get("locations", {})
-            default_location = config.get("default_location")
+                if default_location and default_location in locations:
+                    all_tasks.insert(0, (username, default_location, config.copy()))
 
-            # Add the default location to the front of the list to be processed first
-            if default_location and default_location in locations:
-                all_tasks.insert(0, (username, default_location, config.copy()))
+                for loc_name in locations.keys():
+                    if loc_name != default_location:
+                        all_tasks.append((username, loc_name, config.copy()))
 
-            # Add all other locations to the list
-            for loc_name in locations.keys():
-                if loc_name != default_location:
-                    all_tasks.append((username, loc_name, config.copy()))
+            except Exception as e:
+                print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
 
-        except Exception as e:
-            print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
+        def run_tasks_sequentially(tasks):
+            if not tasks:
+                print("[STARTUP] All cache workers have completed.")
+                return
 
-    # Now, execute all tasks one by one with a delay between them
-    def run_tasks_sequentially(tasks):
-        if not tasks:
-            print("[STARTUP] All cache workers have completed.")
-            return
+            username, loc_name, cfg = tasks.pop(0)
+            print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
+            worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg))
+            worker_thread.start()
+            threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
 
-        # Get the next task from the list
-        username, loc_name, cfg = tasks.pop(0)
-
-        print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
-        worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg))
-        worker_thread.start()
-
-        # Schedule the next task to run after a 15-second delay
-        threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
-
-    print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
-    if all_tasks:
-        # Kick off the sequential process
-        run_tasks_sequentially(all_tasks)
-
+        print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
+        if all_tasks:
+            run_tasks_sequentially(all_tasks)
 
 def update_outlook_cache(username, location_name, user_config):
     """
@@ -2076,10 +2072,8 @@ def journal_add_for_target(object_name):
 
 @login_manager.user_loader
 def load_user(user_id):
-    for user in users.values():
-        if user["id"] == user_id:
-            return User(user["id"], user["username"])
-    return None
+    # This function now queries the User table in the database.
+    return db.session.get(User, int(user_id))
 
 # simbad sometimes needs Ids with a / between numbers. this creates a conflict with the app.
 def sanitize_object_name(object_name):
@@ -2225,18 +2219,19 @@ def get_imaging_criteria():
     }
     user_criteria = g.user_config.get("imaging_criteria", {})
     return {**default_criteria, **user_criteria}
+# In nova.py
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        get_flashed_messages(with_categories=True)  # clear old messages
-
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user_record = users.get(username)
-        if user_record and user_record['password'] == password:
-            user = User(user_record['id'], user_record['username'])
+
+        # Find the user in the database by their username.
+        user = db.session.scalar(db.select(User).where(User.username == username))
+
+        # Check if the user exists AND if the password is correct using the new method.
+        if user and user.check_password(password):
             login_user(user)
             flash("Logged in successfully!", "success")
             return redirect(url_for('index'))
@@ -4828,6 +4823,12 @@ import logging
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
+@app.cli.command("init-db")
+def init_db_command():
+    """Creates the database tables."""
+    db.create_all()
+    print("✅ Initialized the database.")
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
