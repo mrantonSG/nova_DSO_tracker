@@ -227,10 +227,6 @@ if not os.path.exists(ENV_FILE):
             "NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec\n")
         instance_id = secrets.token_hex(16)
         f.write(f"INSTANCE_ID={instance_id}\n")
-        f.write(f"USERS={default_user}\n")  # Add default user
-        f.write(f"USER_{default_user.upper()}_ID={default_user}\n")
-        f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
-        f.write(f"USER_{default_user.upper()}_PASSWORD={default_password}\n")
 
     # After creating the .env, reload it into the current process and set the first-run flag
     try:
@@ -3790,7 +3786,11 @@ def config_form():
 
                         print(f"[CONFIG] New location '{new_location_name}' added. Triggering Outlook cache update.")
                         user_config_for_thread = g.user_config.copy()
-                        thread = threading.Thread(target=update_outlook_cache, args=(new_location_name, user_config_for_thread))
+                        # Determine the correct username for the thread
+                        username_for_thread = "default" if SINGLE_USER_MODE else current_user.username
+                        # Create the thread with the correct 3 arguments
+                        thread = threading.Thread(target=update_outlook_cache,
+                                                  args=(username_for_thread, new_location_name, user_config_for_thread))
                         thread.start()
                     except ValueError as ve:
                         error = f"Invalid input for new location: {ve}"
