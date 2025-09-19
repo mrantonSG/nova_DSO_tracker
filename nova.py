@@ -998,7 +998,7 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
             TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
             return
 
-        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', CACHE_DIR))
         if (not force) and (not telemetry_should_send(state_dir)):
             # print("[TELEMETRY] Throttled (within 24h); skipping.")
             TELEMETRY_DEBUG_STATE['last_error'] = "throttled"
