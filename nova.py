@@ -242,19 +242,17 @@ SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fal
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-# --- Conditional User and Database Setup ---
-if not SINGLE_USER_MODE:
-    # --- MULTI-USER MODE ---
-    from flask_sqlalchemy import SQLAlchemy
-    from werkzeug.security import generate_password_hash, check_password_hash
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-    # Configure and initialize the database
+if not SINGLE_USER_MODE:
+    # --- MULTI-USER MODE SETUP ---
     db_path = os.path.join(INSTANCE_PATH, 'users.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     db = SQLAlchemy(app)
 
-    # Database-backed User model
     class User(UserMixin, db.Model):
         id = db.Column(db.Integer, primary_key=True)
         username = db.Column(db.String(80), unique=True, nullable=False)
@@ -265,19 +263,52 @@ if not SINGLE_USER_MODE:
 
         def check_password(self, password):
             return check_password_hash(self.password_hash, password)
-
 else:
-    # --- SINGLE-USER MODE ---
-    # Use the original, simple in-memory User class
+    # --- SINGLE-USER MODE SETUP ---
     class User(UserMixin):
         def __init__(self, user_id, username):
             self.id = user_id
             self.username = username
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-login_manager.login_message = None
+# --- SINGLE, UNIFIED USER LOADER ---
+# This one function now correctly handles both modes, and guards against stale session IDs.
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    Unified loader:
+    - SINGLE_USER_MODE: expect the sentinel 'default'
+    - Multi-user: only accept integer IDs; any other value is considered stale and ignored
+    """
+    if SINGLE_USER_MODE:
+        return User(user_id="default", username="default") if user_id == "default" else None
+
+    # Multi-user path: guard against stale 'default' / non-integer IDs in session cookies
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        return None
+    return db.session.get(User, uid)
+
+
+# --- Guard against stale _user_id left in session when switching from single-user to multi-user mode ---
+@app.before_request
+def _fix_mode_switch_sessions():
+    """
+    If we are in multi-user mode but the session carries a non-integer _user_id
+    (e.g., leftover 'default' from single-user mode), drop it so Flask-Login
+    treats the request as anonymous instead of exploding in the user_loader.
+    """
+    if not SINGLE_USER_MODE:
+        try:
+            uid = session.get('_user_id')
+            if uid is not None and not str(uid).isdigit():
+                # purge stale login state
+                session.pop('_user_id', None)
+                session.pop('_fresh', None)
+        except Exception:
+            # never block a request due to cleanup logic
+            pass
+
 
 def convert_to_native_python(val):
     """Converts a NumPy data type to a native Python type if necessary."""
@@ -2081,16 +2112,6 @@ def journal_add_for_target(object_name):
     # Redirect to the main add form, passing the object_name as a query parameter
     return redirect(url_for('journal_add', target=object_name))
 
-@login_manager.user_loader
-def load_user(user_id):
-    if SINGLE_USER_MODE:
-        # In single-user mode, the user is always 'default'
-        if user_id == 'default':
-            return User(user_id="default", username="default")
-        return None
-    else:
-        # In multi-user mode, query the database
-        return db.session.get(User, int(user_id))
 
 # simbad sometimes needs Ids with a / between numbers. this creates a conflict with the app.
 def sanitize_object_name(object_name):
@@ -4842,32 +4863,6 @@ import logging
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
-
-
-if not SINGLE_USER_MODE:
-    import getpass
-    @app.cli.command("init-db")
-    def init_db_command():
-        """Creates the database tables and prompts for the first admin user."""
-        db.create_all()
-        print("✅ Initialized the database.")
-
-        # Check if any users already exist
-        if db.session.scalar(db.select(User).limit(1)):
-            print("-> Database already contains users. Skipping admin creation.")
-            return
-
-        # If no users exist, prompt to create the first one
-        print("--- Create First Admin User ---")
-        username = input("Enter username for admin: ")
-        password = getpass.getpass("Enter password for admin: ")
-
-        admin_user = User(username=username)
-        admin_user.set_password(password)
-        db.session.add(admin_user)
-        db.session.commit()
-        print(f"✅ Admin user '{username}' created successfully!")
-
 
 
 if __name__ == '__main__':
