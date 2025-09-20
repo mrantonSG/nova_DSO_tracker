@@ -259,11 +259,19 @@ if not SINGLE_USER_MODE:
         username = db.Column(db.String(80), unique=True, nullable=False)
         password_hash = db.Column(db.String(256), nullable=False)
 
+        # NEW: user is active by default
+        active = db.Column(db.Boolean, nullable=False, default=True)
+
         def set_password(self, password):
             self.password_hash = generate_password_hash(password)
 
         def check_password(self, password):
             return check_password_hash(self.password_hash, password)
+
+        @property
+        def is_active(self):
+            # Flask-Login uses this to decide if the user can authenticate
+            return bool(self.active)
 else:
     # --- SINGLE-USER MODE SETUP ---
     class User(UserMixin):
@@ -4949,6 +4957,82 @@ def provision_user():
             # The user is in the DB, but files failed. They can be created on first login.
 
     return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
+
+def disable_user(username: str) -> bool:
+    """
+    Mark a user as inactive/disabled without deleting them.
+    Returns True if the user was found and disabled, False otherwise.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = False
+            db.session.commit()
+            print(f"✅ Disabled user '{username}'.")
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to disable user '{username}': {e}")
+            return False
+
+def enable_user(username: str) -> bool:
+    """
+    Re-enable a previously disabled user.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = True
+            db.session.commit()
+            print(f"✅ Enabled user '{username}'.")
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to enable user '{username}': {e}")
+            return False
+
+def delete_user(username: str) -> bool:
+    """
+    Hard-delete a user record. Optionally remove that user's on-disk files if you add that logic.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            db.session.delete(user)
+            db.session.commit()
+            print(f"✅ Deleted user '{username}' from DB.")
+            # If you also want to remove YAML/journal/config files, call your remover here.
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to delete user '{username}': {e}")
+            return False
+
+@app.route('/api/internal/deprovision_user', methods=['POST'])
+def deprovision_user():
+    api_key = request.headers.get('X-Api-Key')
+    if api_key != os.environ.get('PROVISIONING_API_KEY'):
+        return jsonify({"status":"error","message":"unauthorized"}), 401
+
+    data = request.get_json(force=True) or {}
+    username = data.get('username')
+    action = (data.get('action') or 'disable').lower()  # 'disable' or 'delete'
+
+    if not username:
+        return jsonify({"status":"error","message":"missing username"}), 400
+
+    if action == 'delete':
+        ok = delete_user(username)
+        return (jsonify({"status": "success", "message": "deleted"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
+    else:
+        ok = disable_user(username)
+        return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
