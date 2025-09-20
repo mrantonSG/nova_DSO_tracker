@@ -106,6 +106,43 @@ TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
 load_dotenv(dotenv_path=ENV_FILE)
 
+# --- Ensure existing .env files get upgraded with required keys (no overwrite) ---
+def _ensure_env_defaults(env_path: str = ENV_FILE):
+    try:
+        os.makedirs(os.path.dirname(env_path), exist_ok=True)
+        if not os.path.exists(env_path):
+            return  # fresh creation is handled below
+        # Read existing lines
+        with open(env_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        needs_write = False
+        def _has_key(k: str) -> bool:
+            # match beginning-of-line KEY=... (simple, robust)
+            return any(line.strip().startswith(k + "=") for line in content.splitlines())
+
+        additions = []
+        if not _has_key("INSTANCE_ID"):
+            additions.append(f"INSTANCE_ID={secrets.token_hex(16)}")
+        if not _has_key("NOVA_TELEMETRY_ENDPOINT"):
+            additions.append("NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec")
+
+        if additions:
+            with open(env_path, "a", encoding="utf-8") as f:
+                for line in additions:
+                    f.write("\n" + line)
+            needs_write = True
+
+        # Also reflect into the current process so subsequent code sees values immediately
+        if needs_write:
+            for line in additions:
+                try:
+                    k, v = line.split("=", 1)
+                    os.environ[k] = v
+                except Exception:
+                    pass
+    except Exception as _e:
+        print(f"[ENV UPGRADE] Warning: could not ensure .env defaults: {_e}")
+
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
 # load_dotenv()
@@ -236,6 +273,9 @@ if not os.path.exists(ENV_FILE):
     except Exception as _e:
         print(f"[ENV INIT] Warning: could not reload .env into process: {_e}")
     FIRST_RUN_ENV_CREATED = True
+
+# Upgrade existing .env files that may be missing new keys (from older installs)
+_ensure_env_defaults(ENV_FILE)
 
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
@@ -999,10 +1039,11 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
             TELEMETRY_DEBUG_STATE['last_error'] = "disabled"
             return
 
-        endpoint = os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
+        # Prefer env var, else fallback to user_config's telemetry.endpoint
+        endpoint = (os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
+                    or (tcfg.get('endpoint', '') if isinstance(tcfg, dict) else ''))
         TELEMETRY_DEBUG_STATE['endpoint'] = endpoint
         if not endpoint:
-            # print("[TELEMETRY] No NOVA_TELEMETRY_ENDPOINT configured; skipping.")
             TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
             return
 
