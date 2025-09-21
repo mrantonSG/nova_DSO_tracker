@@ -59,6 +59,10 @@ from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_co
 from astropy.time import Time
 import astropy.units as u
 
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+import getpass
+
 from modules.astro_calculations import (
     calculate_transit_time,
     get_utc_time_for_local_11pm,
@@ -80,7 +84,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.3.0"
+APP_VERSION = "3.4.0"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -97,8 +101,47 @@ TELEMETRY_DEBUG_STATE = {
 FIRST_RUN_ENV_CREATED = False
 
 INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
+# Directory where master template files live (used across the module)
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
 load_dotenv(dotenv_path=ENV_FILE)
+
+# --- Ensure existing .env files get upgraded with required keys (no overwrite) ---
+def _ensure_env_defaults(env_path: str = ENV_FILE):
+    try:
+        os.makedirs(os.path.dirname(env_path), exist_ok=True)
+        if not os.path.exists(env_path):
+            return  # fresh creation is handled below
+        # Read existing lines
+        with open(env_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        needs_write = False
+        def _has_key(k: str) -> bool:
+            # match beginning-of-line KEY=... (simple, robust)
+            return any(line.strip().startswith(k + "=") for line in content.splitlines())
+
+        additions = []
+        if not _has_key("INSTANCE_ID"):
+            additions.append(f"INSTANCE_ID={secrets.token_hex(16)}")
+        if not _has_key("NOVA_TELEMETRY_ENDPOINT"):
+            additions.append("NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec")
+
+        if additions:
+            with open(env_path, "a", encoding="utf-8") as f:
+                for line in additions:
+                    f.write("\n" + line)
+            needs_write = True
+
+        # Also reflect into the current process so subsequent code sees values immediately
+        if needs_write:
+            for line in additions:
+                try:
+                    k, v = line.split("=", 1)
+                    os.environ[k] = v
+                except Exception:
+                    pass
+    except Exception as _e:
+        print(f"[ENV UPGRADE] Warning: could not ensure .env defaults: {_e}")
 
 SINGLE_USER_MODE = config('SINGLE_USER_MODE',  default='True') == 'True'
 
@@ -131,8 +174,7 @@ def initialize_instance_directory():
     If not, it creates them from the templates. This makes the app
     work correctly on first run after a fresh git clone.
     """
-    # Directory where your master template files are stored
-    template_dir = os.path.join(os.path.dirname(__file__), "config_templates")
+    # Use the module-level TEMPLATE_DIR
 
     # The user-specific config directory
     config_dir = os.path.join(INSTANCE_PATH, "configs")
@@ -157,7 +199,7 @@ def initialize_instance_directory():
             ]
 
             for template_name, final_name in files_to_create:
-                src_path = os.path.join(template_dir, template_name)
+                src_path = os.path.join(TEMPLATE_DIR, template_name)
                 dest_path = os.path.join(config_dir, final_name)
 
                 if os.path.exists(src_path):
@@ -223,10 +265,6 @@ if not os.path.exists(ENV_FILE):
             "NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec\n")
         instance_id = secrets.token_hex(16)
         f.write(f"INSTANCE_ID={instance_id}\n")
-        f.write(f"USERS={default_user}\n")  # Add default user
-        f.write(f"USER_{default_user.upper()}_ID={default_user}\n")
-        f.write(f"USER_{default_user.upper()}_USERNAME={default_user}\n")
-        f.write(f"USER_{default_user.upper()}_PASSWORD={default_password}\n")
 
     # After creating the .env, reload it into the current process and set the first-run flag
     try:
@@ -235,6 +273,9 @@ if not os.path.exists(ENV_FILE):
     except Exception as _e:
         print(f"[ENV INIT] Warning: could not reload .env into process: {_e}")
     FIRST_RUN_ENV_CREATED = True
+
+# Upgrade existing .env files that may be missing new keys (from older installs)
+_ensure_env_defaults(ENV_FILE)
 
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
@@ -245,12 +286,78 @@ app.secret_key = SECRET_KEY
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-login_manager.login_message = None
 
-# Load user credentials dynamically from .env
-usernames = config("USERS", default="").split(",")
+if not SINGLE_USER_MODE:
+    # --- MULTI-USER MODE SETUP ---
+    db_path = os.path.join(INSTANCE_PATH, 'users.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db = SQLAlchemy(app)
 
-users = {}
+    class User(UserMixin, db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        username = db.Column(db.String(80), unique=True, nullable=False)
+        password_hash = db.Column(db.String(256), nullable=False)
+
+        # NEW: user is active by default
+        active = db.Column(db.Boolean, nullable=False, default=True)
+
+        def set_password(self, password):
+            self.password_hash = generate_password_hash(password)
+
+        def check_password(self, password):
+            return check_password_hash(self.password_hash, password)
+
+        @property
+        def is_active(self):
+            # Flask-Login uses this to decide if the user can authenticate
+            return bool(self.active)
+else:
+    # --- SINGLE-USER MODE SETUP ---
+    class User(UserMixin):
+        def __init__(self, user_id, username):
+            self.id = user_id
+            self.username = username
+
+# --- SINGLE, UNIFIED USER LOADER ---
+# This one function now correctly handles both modes, and guards against stale session IDs.
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    Unified loader:
+    - SINGLE_USER_MODE: expect the sentinel 'default'
+    - Multi-user: only accept integer IDs; any other value is considered stale and ignored
+    """
+    if SINGLE_USER_MODE:
+        return User(user_id="default", username="default") if user_id == "default" else None
+
+    # Multi-user path: guard against stale 'default' / non-integer IDs in session cookies
+    try:
+        uid = int(user_id)
+    except (TypeError, ValueError):
+        return None
+    return db.session.get(User, uid)
+
+
+# --- Guard against stale _user_id left in session when switching from single-user to multi-user mode ---
+@app.before_request
+def _fix_mode_switch_sessions():
+    """
+    If we are in multi-user mode but the session carries a non-integer _user_id
+    (e.g., leftover 'default' from single-user mode), drop it so Flask-Login
+    treats the request as anonymous instead of exploding in the user_loader.
+    """
+    if not SINGLE_USER_MODE:
+        try:
+            uid = session.get('_user_id')
+            if uid is not None and not str(uid).isdigit():
+                # purge stale login state
+                session.pop('_user_id', None)
+                session.pop('_fresh', None)
+        except Exception:
+            # never block a request due to cleanup logic
+            pass
+
 
 def convert_to_native_python(val):
     """Converts a NumPy data type to a native Python type if necessary."""
@@ -297,23 +404,6 @@ def python_format_date_eu(value_iso_str):
 
 app.jinja_env.filters['date_eu'] = python_format_date_eu
 
-for username in usernames:
-    username = username.strip()
-    if username:
-        user_id = config(f"USER_{username.upper()}_ID", default=username)
-        user_username = config(f"USER_{username.upper()}_USERNAME", default=username)
-        user_password = config(f"USER_{username.upper()}_PASSWORD", default="changeme")
-
-        users[username] = {
-            "id": user_id,
-            "username": user_username,
-            "password": user_password,
-        }
-
-class User(UserMixin):
-    def __init__(self, user_id, username):
-        self.id = user_id
-        self.username = username
 
 def load_journal(username):
     """Loads journal data from cache or file, checking for modifications."""
@@ -323,12 +413,22 @@ def load_journal(username):
         filename = f"journal_{username}.yaml"
     filepath = os.path.join(CONFIG_DIR, filename)
 
-    # Caching logic
+    # --- NEW: Create journal from template if it doesn't exist ---
+    if not SINGLE_USER_MODE and not os.path.exists(filepath):
+        print(f"-> Journal for user '{username}' not found. Creating from default template.")
+        try:
+            default_template_path = os.path.join(TEMPLATE_DIR, 'journal_default.yaml')
+            shutil.copy(default_template_path, filepath)
+            print(f"   -> Successfully created {filename}.")
+        except Exception as e:
+            print(f"   -> ❌ ERROR: Could not create journal for '{username}': {e}")
+            return {"sessions": []}
+
+    # --- Caching and loading logic continues below ---
     last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
     if filepath in journal_cache and last_modified <= journal_mtime.get(filepath, 0):
         return journal_cache[filepath]
 
-    # Read from file if not in cache or if modified
     if not os.path.exists(filepath):
         return {"sessions": []}
 
@@ -338,7 +438,6 @@ def load_journal(username):
             if "sessions" not in data or not isinstance(data["sessions"], list):
                 data["sessions"] = []
 
-            # Update cache
             journal_cache[filepath] = data
             journal_mtime[filepath] = last_modified
             return data
@@ -506,63 +605,60 @@ def trigger_outlook_update_for_user(username):
 
 def trigger_startup_cache_workers():
     """
-    REVISED FOR RELIABILITY: Processes all locations sequentially with a delay
-    to prevent overwhelming resource-constrained systems like a Raspberry Pi.
+    REVISED FOR DATABASE: Gets users from the DB to warm caches.
     """
     print("[STARTUP] Checking all caches for freshness...")
 
-    if SINGLE_USER_MODE:
-        usernames_to_check = ["default"]
-    else:
-        usernames_to_check = list(users.keys())
+    # We need an application context to talk to the database
+    with app.app_context():
+        if SINGLE_USER_MODE:
+            usernames_to_check = ["default"]
+        else:
+            # Query the User table to get all registered usernames
+            try:
+                all_db_users = db.session.execute(db.select(User)).scalars().all()
+                usernames_to_check = [user.username for user in all_db_users]
+            except Exception as e:
+                print(f"⚠️ [STARTUP] Could not query users from database, may need initialization. Error: {e}")
+                usernames_to_check = [] # Continue with no users if DB isn't ready
 
-    # A single list to hold all tasks (username, location, config)
-    all_tasks = []
+        # The rest of this function remains the same
+        all_tasks = []
+        for username in set(usernames_to_check):
+            try:
+                print(f"--- Preparing tasks for user: {username} ---")
+                config = load_user_config(username)
+                if not config:
+                    print(f"    -> No config found for user '{username}', skipping.")
+                    continue
 
-    for username in set(usernames_to_check):
-        try:
-            print(f"--- Preparing tasks for user: {username} ---")
-            config = load_user_config(username)
-            if not config:
-                print(f"    -> No config found for user '{username}', skipping.")
-                continue
+                locations = config.get("locations", {})
+                default_location = config.get("default_location")
 
-            locations = config.get("locations", {})
-            default_location = config.get("default_location")
+                if default_location and default_location in locations:
+                    all_tasks.insert(0, (username, default_location, config.copy()))
 
-            # Add the default location to the front of the list to be processed first
-            if default_location and default_location in locations:
-                all_tasks.insert(0, (username, default_location, config.copy()))
+                for loc_name in locations.keys():
+                    if loc_name != default_location:
+                        all_tasks.append((username, loc_name, config.copy()))
 
-            # Add all other locations to the list
-            for loc_name in locations.keys():
-                if loc_name != default_location:
-                    all_tasks.append((username, loc_name, config.copy()))
+            except Exception as e:
+                print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
 
-        except Exception as e:
-            print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
+        def run_tasks_sequentially(tasks):
+            if not tasks:
+                print("[STARTUP] All cache workers have completed.")
+                return
 
-    # Now, execute all tasks one by one with a delay between them
-    def run_tasks_sequentially(tasks):
-        if not tasks:
-            print("[STARTUP] All cache workers have completed.")
-            return
+            username, loc_name, cfg = tasks.pop(0)
+            print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
+            worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg))
+            worker_thread.start()
+            threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
 
-        # Get the next task from the list
-        username, loc_name, cfg = tasks.pop(0)
-
-        print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
-        worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg))
-        worker_thread.start()
-
-        # Schedule the next task to run after a 15-second delay
-        threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
-
-    print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
-    if all_tasks:
-        # Kick off the sequential process
-        run_tasks_sequentially(all_tasks)
-
+        print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
+        if all_tasks:
+            run_tasks_sequentially(all_tasks)
 
 def update_outlook_cache(username, location_name, user_config):
     """
@@ -943,14 +1039,15 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
             TELEMETRY_DEBUG_STATE['last_error'] = "disabled"
             return
 
-        endpoint = os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
+        # Prefer env var, else fallback to user_config's telemetry.endpoint
+        endpoint = (os.environ.get('NOVA_TELEMETRY_ENDPOINT', '').strip()
+                    or (tcfg.get('endpoint', '') if isinstance(tcfg, dict) else ''))
         TELEMETRY_DEBUG_STATE['endpoint'] = endpoint
         if not endpoint:
-            # print("[TELEMETRY] No NOVA_TELEMETRY_ENDPOINT configured; skipping.")
             TELEMETRY_DEBUG_STATE['last_error'] = "no-endpoint"
             return
 
-        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', CACHE_DIR))
         if (not force) and (not telemetry_should_send(state_dir)):
             # print("[TELEMETRY] Throttled (within 24h); skipping.")
             TELEMETRY_DEBUG_STATE['last_error'] = "throttled"
@@ -2074,12 +2171,6 @@ def journal_add_for_target(object_name):
     # Redirect to the main add form, passing the object_name as a query parameter
     return redirect(url_for('journal_add', target=object_name))
 
-@login_manager.user_loader
-def load_user(user_id):
-    for user in users.values():
-        if user["id"] == user_id:
-            return User(user["id"], user["username"])
-    return None
 
 # simbad sometimes needs Ids with a / between numbers. this creates a conflict with the app.
 def sanitize_object_name(object_name):
@@ -2138,20 +2229,32 @@ def trigger_update():
 
 def load_user_config(username):
     """
-    Loads user configuration from a YAML file. If the file contains unsafe
-    NumPy tags, it will automatically repair the file and continue.
+    Loads user configuration from a YAML file.
+    - Uses caching for performance.
+    - If a user's config is not found in multi-user mode, it creates one
+      by copying the default template.
+    - If the file contains unsafe NumPy tags, it will automatically repair it.
     """
     global config_cache, config_mtime
     if SINGLE_USER_MODE:
-        # FIX: This should be just the filename, not the partial path.
         filename = "config_default.yaml"
     else:
         filename = f"config_{username}.yaml"
 
-    # This line now correctly builds the full path for both single and multi-user modes.
     filepath = os.path.join(CONFIG_DIR, filename)
 
-    # --- The rest of the function remains the same ---
+    # --- NEW: Create config from template if it doesn't exist for a multi-user ---
+    if not SINGLE_USER_MODE and not os.path.exists(filepath):
+        print(f"-> Config for user '{username}' not found. Creating from default template.")
+        try:
+            default_template_path = os.path.join(TEMPLATE_DIR, 'config_default.yaml')
+            shutil.copy(default_template_path, filepath)
+            print(f"   -> Successfully created {filename}.")
+        except Exception as e:
+            print(f"   -> ❌ ERROR: Could not create config for '{username}': {e}")
+            return {}  # Return empty on failure to prevent a crash
+
+    # --- Caching and loading logic continues below ---
     if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
             filepath, 0):
         return config_cache[filepath]
@@ -2169,7 +2272,7 @@ def load_user_config(username):
         if 'numpy' in str(e):
             print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
             try:
-                backup_dir = os.path.join(INSTANCE_PATH, "backups")  # Corrected backup path
+                backup_dir = os.path.join(INSTANCE_PATH, "backups")
                 os.makedirs(backup_dir, exist_ok=True)
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 backup_path = os.path.join(backup_dir,
@@ -2202,7 +2305,6 @@ def load_user_config(username):
     config_mtime[filepath] = os.path.getmtime(filepath)
     return config_data
 
-
 def save_user_config(username, config_data):
     if SINGLE_USER_MODE:
         # Corrected: Only the filename is needed here.
@@ -2225,29 +2327,28 @@ def get_imaging_criteria():
     }
     user_criteria = g.user_config.get("imaging_criteria", {})
     return {**default_criteria, **user_criteria}
+# In nova.py
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'GET':
-        get_flashed_messages(with_categories=True)  # clear old messages
-
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        user_record = users.get(username)
-        if user_record and user_record['password'] == password:
-            user = User(user_record['id'], user_record['username'])
-            login_user(user)
-            flash("Logged in successfully!", "success")
-            return redirect(url_for('index'))
-        else:
-            flash("Invalid username or password.", "error")
-
-    return render_template('login.html')
-
+    if SINGLE_USER_MODE:
+        # In single-user mode, the login page is not needed, just redirect.
+        return redirect(url_for('index'))
+    else:
+        # --- MULTI-USER MODE LOGIC ---
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            user = db.session.scalar(db.select(User).where(User.username == username))
+            if user and user.check_password(password):
+                login_user(user)
+                flash("Logged in successfully!", "success")
+                return redirect(url_for('index'))
+            else:
+                flash("Invalid username or password.", "error")
+        return render_template('login.html')
 
 @app.route('/proxy_focus', methods=['POST'])
-# @login_required # You had this commented out in your original code, add it if needed
 def proxy_focus():
     payload = request.form
     try:
@@ -3776,7 +3877,11 @@ def config_form():
 
                         print(f"[CONFIG] New location '{new_location_name}' added. Triggering Outlook cache update.")
                         user_config_for_thread = g.user_config.copy()
-                        thread = threading.Thread(target=update_outlook_cache, args=(new_location_name, user_config_for_thread))
+                        # Determine the correct username for the thread
+                        username_for_thread = "default" if SINGLE_USER_MODE else current_user.username
+                        # Create the thread with the correct 3 arguments
+                        thread = threading.Thread(target=update_outlook_cache,
+                                                  args=(username_for_thread, new_location_name, user_config_for_thread))
                         thread.start()
                     except ValueError as ve:
                         error = f"Invalid input for new location: {ve}"
@@ -4828,6 +4933,147 @@ import logging
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
+if not SINGLE_USER_MODE:
+    @app.cli.command("init-db")
+    def init_db_command():
+        """Creates database tables and the first admin user."""
+        # Create the tables based on your db.Model classes
+        db.create_all()
+        print("✅ Initialized the database tables.")
+
+        # Check if a user already exists to prevent running this twice
+        if db.session.scalar(db.select(User).limit(1)):
+            print("-> Database already contains users. Skipping admin creation.")
+            return
+
+        # If no users exist, prompt to create the first one
+        print("--- Create First Admin User ---")
+        username = input("Enter username for admin: ")
+        password = getpass.getpass("Enter password for admin: ")
+
+        # Create the user object and save it to the database
+        admin_user = User(username=username)
+        admin_user.set_password(password)
+        db.session.add(admin_user)
+        db.session.commit()
+        print(f"✅ Admin user '{username}' created successfully!")
+
+@app.route('/api/internal/provision_user', methods=['POST'])
+def provision_user():
+    # 1. Get data and verify the secret key
+    data = request.get_json()
+    provided_key = request.headers.get('X-Api-Key')
+    expected_key = os.environ.get('PROVISIONING_API_KEY')
+
+    if not expected_key or provided_key != expected_key:
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
+        return jsonify({"status": "error", "message": "Username and password required"}), 400
+
+    with app.app_context():
+        # 2. Check if user already exists in the database
+        if db.session.scalar(db.select(User).where(User.username == username)):
+            return jsonify({"status": "error", "message": "User already exists"}), 409
+
+        # 3. Create the new user in the database
+        new_user = User(username=username)
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        print(f"✅ User '{username}' provisioned in database via API.")
+
+        # 4. Create the user's personal config and journal files from templates
+        try:
+            load_user_config(username) # This will auto-create the config file
+            load_journal(username)     # This will auto-create the journal file
+            # You can add load_rig_config(username) here too if needed
+            print(f"✅ YAML files for user '{username}' created successfully.")
+        except Exception as e:
+            print(f"❌ ERROR: Could not create YAML files for '{username}': {e}")
+            # The user is in the DB, but files failed. They can be created on first login.
+
+    return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
+
+def disable_user(username: str) -> bool:
+    """
+    Mark a user as inactive/disabled without deleting them.
+    Returns True if the user was found and disabled, False otherwise.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = False
+            db.session.commit()
+            print(f"✅ Disabled user '{username}'.")
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to disable user '{username}': {e}")
+            return False
+
+def enable_user(username: str) -> bool:
+    """
+    Re-enable a previously disabled user.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            user.active = True
+            db.session.commit()
+            print(f"✅ Enabled user '{username}'.")
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to enable user '{username}': {e}")
+            return False
+
+def delete_user(username: str) -> bool:
+    """
+    Hard-delete a user record. Optionally remove that user's on-disk files if you add that logic.
+    """
+    with app.app_context():
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            return False
+        try:
+            db.session.delete(user)
+            db.session.commit()
+            print(f"✅ Deleted user '{username}' from DB.")
+            # If you also want to remove YAML/journal/config files, call your remover here.
+            return True
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Failed to delete user '{username}': {e}")
+            return False
+
+@app.route('/api/internal/deprovision_user', methods=['POST'])
+def deprovision_user():
+    api_key = request.headers.get('X-Api-Key')
+    if api_key != os.environ.get('PROVISIONING_API_KEY'):
+        return jsonify({"status":"error","message":"unauthorized"}), 401
+
+    data = request.get_json(force=True) or {}
+    username = data.get('username')
+    action = (data.get('action') or 'disable').lower()  # 'disable' or 'delete'
+
+    if not username:
+        return jsonify({"status":"error","message":"missing username"}), 400
+
+    if action == 'delete':
+        ok = delete_user(username)
+        return (jsonify({"status": "success", "message": "deleted"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
+    else:
+        ok = disable_user(username)
+        return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
