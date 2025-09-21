@@ -1,35 +1,46 @@
-# Use an official Python runtime as a parent image
+# ---- Base ----
 FROM python:3.11-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Prevent .pyc, force unbuffered logs
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
 
-# Set the working directory in the container
+# Workdir
 WORKDIR /app
 
-#
-# --- THIS IS THE UPDATED SECTION ---
-#
-# Install system dependencies. `build-essential` and `python3-dev` are crucial
-# for compiling Python packages from source on different CPU architectures.
+# ---- System deps (build + minimal runtime) ----
+# If you add scientific libs later (numpy/scipy/astropy), keep build-essential.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+    # add any image/font libs here if needed later:
+    # libjpeg62-turbo libpng16-16 libfreetype6
+ && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip and setuptools first for better layer caching
-RUN pip install --no-cache-dir --upgrade pip setuptools
-
-# Copy and install Python requirements
+# ---- Python deps (cache-friendly) ----
+# (This layer only invalidates when requirements.txt changes)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --upgrade pip setuptools wheel \
+ && pip install -r requirements.txt
 
-# Copy the rest of the application code into the container
+# ---- App code ----
 COPY . .
 
-# Make port 5001 available to the world outside this container
+# ---- Runtime config ----
 EXPOSE 5001
 
-# Define the command to run your app using Gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--threads", "4", "--log-level", "error", "nova:app"]
+# Optional: make Gunicorn a tad more resilient in containers
+# - gthread works well for Flask + light I/O
+# - --timeout 30 avoids premature kills on cold starts
+# - --worker-tmp-dir /dev/shm avoids tmpfs issues on some hosts
+CMD ["gunicorn",
+     "-w", "2",
+     "-k", "gthread",
+     "--threads", "4",
+     "--timeout", "30",
+     "--worker-tmp-dir", "/dev/shm",
+     "--log-level", "info",
+     "-b", "0.0.0.0:5001",
+     "nova:app"]
