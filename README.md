@@ -318,3 +318,28 @@ Free for personal, educational, and non-commercial use only. Commercial use requ
 See [LICENSE](LICENSE) for full details.
 
 clear skies!
+
+
+
+?????????????
+## First-Time Setup
+
+After cloning the repository and installing the Python dependencies:
+
+1.  **Initialize the Database & Create Admin User**
+    
+    Run the following command in your terminal. You will be prompted to create your first admin account.
+    
+    ```bash
+    flask --app nova init-db
+    ```
+
+2.  **Run the Application**
+    
+    Start the application using Gunicorn:
+    
+    ```bash
+    gunicorn --workers 4 --bind 0.0.0.0:5001 nova:app
+    ```
+    
+    You can now open your browser to `http://localhost:5001` and log in with the credentials you just created.
