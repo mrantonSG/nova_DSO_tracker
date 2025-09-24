@@ -47,6 +47,7 @@ py2app==0.28.8
 pyerfa==2.0.1.5
 pyinstaller==6.12.0
 pyinstaller-hooks-contrib==2025.1
+PyJWT==2.10.1
 pyparsing==3.2.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
