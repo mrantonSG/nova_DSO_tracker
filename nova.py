@@ -60,8 +60,11 @@ from astropy.time import Time
 import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
+import jwt
 
 from modules.astro_calculations import (
     calculate_transit_time,
@@ -84,7 +87,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.4.0"
+APP_VERSION = "3.5.D1"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -312,6 +315,23 @@ if not SINGLE_USER_MODE:
         def is_active(self):
             # Flask-Login uses this to decide if the user can authenticate
             return bool(self.active)
+
+    # Ensure DB tables exist on first run / after switching modes
+    def ensure_db_initialized():
+        with app.app_context():
+            try:
+                # Probe the user table; if it fails, create all tables
+                db.session.execute(text("SELECT 1 FROM user LIMIT 1"))
+            except Exception:
+                try:
+                    print("[MIGRATION] User table missing. Creating all tables...")
+                    db.create_all()
+                    print("✅ [MIGRATION] Database initialized.")
+                except Exception as e:
+                    print(f"❌ [MIGRATION] Failed to initialize DB: {e}")
+
+    # Run the DB initialization once at startup
+    ensure_db_initialized()
 else:
     # --- SINGLE-USER MODE SETUP ---
     class User(UserMixin):
@@ -2347,6 +2367,52 @@ def login():
             else:
                 flash("Invalid username or password.", "error")
         return render_template('login.html')
+
+@app.route('/sso/login')
+def sso_login():
+    # First, check if the app is in single-user mode. SSO is not applicable here.
+    if SINGLE_USER_MODE:
+        flash("Single Sign-On is not applicable in single-user mode.", "error")
+        return redirect(url_for('index'))
+
+    # Get the token from the URL (e.g., ?token=...)
+    token = request.args.get('token')
+    if not token:
+        flash("SSO Error: No token provided.", "error")
+        return redirect(url_for('login'))
+
+    # Get the shared secret key from the .env file
+    secret_key = os.environ.get('JWT_SECRET_KEY')
+    if not secret_key:
+        flash("SSO Error: SSO is not configured on the server.", "error")
+        return redirect(url_for('login'))
+
+    try:
+        # Decode the token. This automatically verifies the signature and expiration.
+        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+        username = payload.get('username')
+
+        if not username:
+            raise jwt.InvalidTokenError("Token is missing username.")
+
+        # Find the user in the Nova database
+        user = db.session.scalar(db.select(User).where(User.username == username))
+
+        if user and user.is_active:
+            login_user(user)  # Log the user in using Flask-Login
+            flash(f"Welcome back, {user.username}!", "success")
+            return redirect(url_for('index'))
+        else:
+            flash(f"SSO Error: User '{username}' not found or is disabled in Nova.", "error")
+            return redirect(url_for('login'))
+
+    except jwt.ExpiredSignatureError:
+        flash("SSO Error: The login link has expired. Please try again from WordPress.", "error")
+        return redirect(url_for('login'))
+    except jwt.InvalidTokenError:
+        flash("SSO Error: Invalid login token.", "error")
+        return redirect(url_for('login'))
+
 
 @app.route('/proxy_focus', methods=['POST'])
 def proxy_focus():
