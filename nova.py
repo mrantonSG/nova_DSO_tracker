@@ -5027,7 +5027,6 @@ if not SINGLE_USER_MODE:
 
 @app.route('/api/internal/provision_user', methods=['POST'])
 def provision_user():
-    # 1. Get data and verify the secret key
     data = request.get_json()
     provided_key = request.headers.get('X-Api-Key')
     expected_key = os.environ.get('PROVISIONING_API_KEY')
@@ -5037,33 +5036,32 @@ def provision_user():
 
     username = data.get('username')
     password = data.get('password')
-
     if not username or not password:
         return jsonify({"status": "error", "message": "Username and password required"}), 400
 
     with app.app_context():
-        # 2. Check if user already exists in the database
-        if db.session.scalar(db.select(User).where(User.username == username)):
-            return jsonify({"status": "error", "message": "User already exists"}), 409
+        # Check if the user already exists
+        existing_user = db.session.scalar(db.select(User).where(User.username == username))
 
-        # 3. Create the new user in the database
-        new_user = User(username=username)
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-        print(f"✅ User '{username}' provisioned in database via API.")
-
-        # 4. Create the user's personal config and journal files from templates
-        try:
-            load_user_config(username) # This will auto-create the config file
-            load_journal(username)     # This will auto-create the journal file
-            # You can add load_rig_config(username) here too if needed
-            print(f"✅ YAML files for user '{username}' created successfully.")
-        except Exception as e:
-            print(f"❌ ERROR: Could not create YAML files for '{username}': {e}")
-            # The user is in the DB, but files failed. They can be created on first login.
-
-    return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
+        if existing_user:
+            # If the user exists, UPDATE their password
+            existing_user.set_password(password)
+            db.session.commit()
+            print(f"✅ Password updated for user '{username}' via API.")
+            return jsonify({"status": "success", "message": f"User {username} password updated"}), 200
+        else:
+            # If the user does not exist, CREATE them
+            new_user = User(username=username)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+            print(f"✅ User '{username}' provisioned in database via API.")
+            try:
+                load_user_config(username)
+                load_journal(username)
+            except Exception as e:
+                print(f"❌ ERROR: Could not create YAML files for '{username}': {e}")
+            return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
 
 def disable_user(username: str) -> bool:
     """
