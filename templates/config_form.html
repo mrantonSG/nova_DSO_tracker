@@ -563,6 +563,32 @@
                       <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
                     </div>
                   </div>
+                    <div class="inline-fields" style="margin-top: 5px;">
+                        {# This outer div now correctly contains the label and textarea #}
+                        <div style="align-items: flex-start;">
+                            <label class="long-label" for="horizon_mask_{{ loc_key }}">Horizon Mask:</label>
+                            <textarea name="horizon_mask_{{ loc_key }}"
+                                      id="horizon_mask_{{ loc_key }}"
+                                      rows="3"
+                                      style="width: 500px; font-family: monospace; font-size: 13px;"
+                                      placeholder="Optional. e.g., - [0, 35] - [90, 15] - [180, 40]">{%- set hm = (loc_val.horizon_mask if (loc_val.horizon_mask is defined) else None) -%}
+{%- if hm -%}
+  {%- if hm is string -%}
+{{ hm }}
+  {%- else -%}
+{{ hm | toyaml }}
+  {%- endif -%}
+{%- endif -%}</textarea>
+                        </div>
+                    </div>
+                    <div class="inline-fields" style="margin-top: 2px;">
+                        {# This new div is just for the helper text, to align it properly #}
+                        <div style="margin-left: 80px;">
+                            <small style="max-width: 500px; color: #666; display: inline-block;">
+                                Optional list of `[azimuth, altitude]` pairs. Use `[az, 0]` to revert to the baseline.
+                            </small>
+                        </div>
+                    </div>
                 </div>
               {% endfor %}
               <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>

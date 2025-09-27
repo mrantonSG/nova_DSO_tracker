@@ -290,10 +290,11 @@ def get_common_time_arrays(tz_name, local_date, sampling_interval_minutes=15):
     return times_local, times_utc
 
 
-def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval_minutes=15):
+def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_name, altitude_threshold,
+                                             sampling_interval_minutes=15, horizon_mask=None):
     """
-    Calculates observable duration, max altitude, and start/end times
-    using a configurable sampling interval.
+    Calculates observable duration, max altitude, and start/end times,
+    now with support for a custom horizon mask.
     """
     local_tz = pytz.timezone(tz_name)
     date_obj = datetime.strptime(local_date, "%Y-%m-%d")
@@ -330,8 +331,28 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     frame = AltAz(obstime=times_utc, location=location_obj)
     altaz = sky_coord.transform_to(frame)
     altitudes = altaz.alt.deg
+    azimuths = altaz.az.deg
 
-    mask = np.array(altitudes) > altitude_threshold
+    # --- NEW HORIZON MASK LOGIC ---
+    if horizon_mask and len(horizon_mask) > 1:
+        # Sort mask by azimuth just in case it's not already
+        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+
+        # If any altitude in the mask is 0, replace it with the baseline threshold
+        for point in sorted_mask:
+            if point[1] == 0:
+                point[1] = altitude_threshold
+
+        # Calculate the true minimum altitude for each point in time using the mask
+        min_altitudes = np.array([interpolate_horizon(az, sorted_mask) for az in azimuths])
+    else:
+        # If no mask, the minimum altitude is the same for all azimuths
+        min_altitudes = np.full_like(altitudes, altitude_threshold)
+
+    # An object is observable if its altitude is above the calculated minimum for its azimuth
+    mask = altitudes >= min_altitudes
+    # --- END OF NEW LOGIC ---
+
     observable_indices = np.where(mask)[0]
     observable_from, observable_to = (None, None)
     if observable_indices.size > 0:
@@ -339,6 +360,52 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
         observable_to = times[observable_indices[-1]]
 
     observable_minutes = int(np.sum(mask) * sampling_interval_minutes)
-    max_altitude = float(np.max(altitudes)) if len(altitudes) > 0 else 0
+
+    # Calculate max altitude only during the observable (unobstructed) period
+    max_altitude = float(np.max(altitudes[mask])) if observable_indices.size > 0 else 0
 
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
+
+def interpolate_horizon(azimuth, horizon_mask):
+    """
+    Calculates the horizon altitude at a specific azimuth by linearly interpolating
+    between points in a horizon mask.
+
+    Args:
+        azimuth (float): The azimuth (0-360 degrees) to calculate the horizon for.
+        horizon_mask (list): A list of [az, alt] pairs, sorted by azimuth.
+
+    Returns:
+        float: The interpolated horizon altitude in degrees.
+    """
+    if not horizon_mask:
+        return 0  # Should not happen if called correctly, but safe
+
+    # Ensure the mask wraps around 360 degrees for proper interpolation
+    # Add a point for 360 degrees that is the same as 0 degrees
+    if horizon_mask[0][0] != 0:
+        horizon_mask.insert(0, [0, horizon_mask[-1][1]])
+    if horizon_mask[-1][0] < 360:
+        horizon_mask.append([360, horizon_mask[0][1]])
+
+    # Find the two points the azimuth falls between
+    p1, p2 = None, None
+    for i in range(len(horizon_mask) - 1):
+        if horizon_mask[i][0] <= azimuth <= horizon_mask[i+1][0]:
+            p1 = horizon_mask[i]
+            p2 = horizon_mask[i+1]
+            break
+
+    if not p1 or not p2:
+        return horizon_mask[0][1] # Fallback
+
+    az1, alt1 = p1
+    az2, alt2 = p2
+
+    # If the azimuth points are the same, no interpolation needed
+    if az1 == az2:
+        return alt1
+
+    # Linear interpolation formula
+    interpolated_altitude = alt1 + (alt2 - alt1) * ((azimuth - az1) / (az2 - az1))
+    return interpolated_altitude
