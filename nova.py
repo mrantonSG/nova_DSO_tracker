@@ -87,7 +87,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.5.0"
+APP_VERSION = "3.5.D2"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -283,7 +283,17 @@ _ensure_env_defaults(ENV_FILE)
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
 
+def to_yaml_filter(data, indent=2):
+    """Jinja2 filter to convert a Python object to a YAML string for form display."""
+    if data is None:
+        return ''
+    try:
+        # Dumps to a string, now correctly using the indent argument
+        return yaml.dump(data, default_flow_style=None, indent=indent, sort_keys=False).strip()
+    except Exception:
+        return ''
 app = Flask(__name__)
+app.jinja_env.filters['toyaml'] = to_yaml_filter
 app.secret_key = SECRET_KEY
 
 login_manager = LoginManager()
@@ -735,9 +745,18 @@ def update_outlook_cache(username, location_name, user_config):
                     # --- NEW: Loop through dates and collect ALL good nights ---
                     for d in dates_to_check:
                         date_str = d.strftime('%Y-%m-%d')
-                        obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(ra, dec, lat, lon,
-                                                                                                    date_str, tz_name,
-                                                                                                    altitude_threshold)
+                        # Respect per-azimuth horizon mask (houses/trees etc.)
+                        try:
+                            horizon_mask = (g.locations.get(location_name, {}).get("horizon_mask")
+                                            if isinstance(g.locations, dict) else None)
+                        except Exception:
+                            horizon_mask = None
+                        obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(
+                            ra, dec, lat, lon,
+                            date_str, tz_name,
+                            altitude_threshold, user_config.get('sampling_interval_minutes', 15),
+                            horizon_mask=horizon_mask
+                        )
 
                         if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
                                 criteria["min_observable_minutes"]:
@@ -844,8 +863,16 @@ def warm_main_cache(username, location_name, user_config):
             altitudes = sky_coord.transform_to(altaz_frame).alt.deg
             azimuths = sky_coord.transform_to(altaz_frame).az.deg
             transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+            # Apply horizon mask from location (if any)
+            try:
+                horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
+            except Exception:
+                horizon_mask = None
             obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-                ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval
+                ra, dec, lat, lon,
+                local_date, tz_name,
+                altitude_threshold, sampling_interval,
+                horizon_mask=horizon_mask
             )
             fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
@@ -1143,7 +1170,17 @@ def _start_telemetry_scheduler_once():
         threading.Thread(target=_daily_loop, daemon=True).start()
     except Exception as e:
         print(f"[TELEMETRY] Scheduler init error: {e}")
-# Kick it off on the first incoming request (Flask 3 replacement for before_first_request)
+
+def to_yaml_filter(data):
+    """Jinja2 filter to convert a Python object to a YAML string for form display."""
+    if data is None:
+        return ''
+    try:
+        # Dumps to a string, flow style makes it look like "- [0, 35]"
+        return yaml.dump(data, default_flow_style=None, indent=2, sort_keys=False).strip()
+    except Exception:
+        return ''
+
 @app.before_request
 def _telemetry_bootstrap_hook():
     # Ensure the once-per-process startup scheduler is kicked off
@@ -3669,6 +3706,7 @@ def get_object_list():
     # g.objects is already loaded by the @app.before_request
     return jsonify({"objects": g.objects})
 
+
 @app.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):
     """
@@ -3678,17 +3716,22 @@ def get_object_data(object_name):
     local_tz = pytz.timezone(g.tz_name)
     current_datetime_local = datetime.now(local_tz)
 
-    # Use the more accurate observing date logic
     today_str = current_datetime_local.strftime('%Y-%m-%d')
     dawn_today_str = calculate_sun_events_cached(today_str, g.tz_name, g.lat, g.lon).get("astronomical_dawn")
     local_date = today_str
     if dawn_today_str:
         try:
-            dawn_today_dt = local_tz.localize(datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
+            dawn_today_dt = local_tz.localize(
+                datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
             if current_datetime_local < dawn_today_dt:
                 local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
         except (ValueError, TypeError):
             pass
+
+    # --- NEW: Load horizon mask for the current location ---
+    current_location_config = g.locations.get(g.selected_location, {})
+    horizon_mask = current_location_config.get("horizon_mask")
+    # --- END NEW ---
 
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
     sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
@@ -3701,6 +3744,11 @@ def get_object_data(object_name):
     dec = obj_details["DEC (degrees)"]
     cache_key = f"{object_name.lower()}_{local_date}_{g.selected_location}"
 
+    # We will force a recalculation for now to test the new logic.
+    # Later, we can make the cache smarter.
+    # if cache_key in nightly_curves_cache:
+    #    del nightly_curves_cache[cache_key]
+
     if cache_key not in nightly_curves_cache:
         times_local, times_utc = get_common_time_arrays(g.tz_name, local_date, sampling_interval)
         location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
@@ -3709,9 +3757,14 @@ def get_object_data(object_name):
         altitudes = sky_coord.transform_to(altaz_frame).alt.deg
         azimuths = sky_coord.transform_to(altaz_frame).az.deg
         transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
+
+        # --- MODIFIED: Pass the horizon_mask to the calculation function ---
         obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-            ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold, sampling_interval
+            ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold, sampling_interval,
+            horizon_mask=horizon_mask
         )
+        # --- END MODIFIED ---
+
         fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
         alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
         nightly_curves_cache[cache_key] = {
@@ -3744,11 +3797,13 @@ def get_object_data(object_name):
         'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
         'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}", 'Trend': trend,
         'Altitude 11PM': cached_night_data['alt_11pm'], 'Azimuth 11PM': cached_night_data['az_11pm'],
-        'Transit Time': cached_night_data['transit_time'], 'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
+        'Transit Time': cached_night_data['transit_time'],
+        'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
         'Max Altitude (°)': cached_night_data['max_altitude'], 'Angular Separation (°)': round(angular_sep),
         'Project': obj_details.get('Project', "none"), 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
         'Constellation': obj_details.get('Constellation', 'N/A'), 'Type': obj_details.get('Type', 'N/A'),
-        'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'), 'SB': obj_details.get('SB', 'N/A'),
+        'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'),
+        'SB': obj_details.get('SB', 'N/A'),
     }
     return jsonify(single_object_data)
 @app.route('/')
@@ -3959,7 +4014,7 @@ def config_form():
                     if request.form.get(f"delete_loc_{loc_key}") == "on":
                         changed_in_locations = True
                         continue  # Skip deletion
-
+                    new_horizon_mask_str = request.form.get(f"horizon_mask_{loc_key}")
                     current_loc_dict = loc_data.copy()
                     new_lat = request.form.get(f"lat_{loc_key}", loc_data.get("lat"))
                     new_lon = request.form.get(f"lon_{loc_key}", loc_data.get("lon"))
@@ -3970,6 +4025,19 @@ def config_form():
                         "lon": float(new_lon) if new_lon is not None else None,
                         "timezone": new_timezone
                     }
+                    if new_horizon_mask_str and new_horizon_mask_str.strip():
+                        try:
+                            # Parse the YAML string from the textarea into a Python list
+                            mask_data = yaml.safe_load(new_horizon_mask_str)
+                            if isinstance(mask_data, list):
+                                potential_new_data['horizon_mask'] = mask_data
+                            else:
+                                # Handle case where user enters non-list text
+                                print(f"Warning: Invalid horizon mask format for {loc_key}. Ignoring.")
+                        except yaml.YAMLError as e:
+                            print(f"Warning: Could not parse horizon mask YAML for {loc_key}: {e}")
+
+
                     updated_locations[loc_key] = potential_new_data
                     if loc_data != potential_new_data:  # Compare dicts
                         changed_in_locations = True
