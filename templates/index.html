@@ -97,7 +97,10 @@
         text-align: center;
     }
 
-
+    td.highlight.obstructed {
+        background-color: #ffeeba !important; /* A light yellow/orange */
+        color: #856404; /* A darker text color for readability */
+    }
 
     #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
     #data-table td:not([data-column-key="Object"]):not([data-column-key="Common Name"]) {
@@ -604,6 +607,7 @@
                 row.id = `row-${sanitizedId}`;
                 row.className = 'clickable-row';
 
+
                 if (objectData['Common Name'] && objectData['Common Name'].toLowerCase().startsWith("error:")) {
                     row.style.backgroundColor = "#f8d7da";
                 } else if (objectData.Project && objectData.Project.toLowerCase() !== "none" && objectData.Project.trim() !== "") {
@@ -623,7 +627,6 @@
                     const td = document.createElement('td');
                     td.dataset.columnKey = columnKey;
 
-                    // --- FIX #1: Force correct text alignment ---
                     if (columnKey === 'Object' || columnKey === 'Common Name') {
                         td.style.textAlign = 'left';
                     } else {
@@ -632,18 +635,28 @@
 
                     const rawValue = objectData[config.dataKey];
                     let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '') ? 'N/A' : (config.format ? config.format(rawValue) : rawValue);
-
-                    // --- FIX #2: Display plain text instead of a link for the 'Object' column ---
                     td.textContent = displayValue;
                     if (columnKey === 'Common Name') {
-                        // Preserve full value on hover for mobile/desktop
                         td.setAttribute('title', (rawValue === null || rawValue === undefined) ? '' : String(rawValue));
                     }
 
-                    // --- FIX #3: This will now use your original BLUE highlight color ---
-                    if ((config.dataKey === 'Altitude Current' || config.dataKey === 'Altitude 11PM') && parseFloat(rawValue) >= altitudeThreshold) {
+                    // --- NEW HIGHLIGHTING AND OBSTRUCTION LOGIC ---
+                    const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
+
+                    if (config.dataKey === 'Altitude Current' && isAboveThreshold) {
                         td.classList.add('highlight');
+                        if (objectData.is_obstructed_now) {
+                            td.classList.add('obstructed');
+                        }
                     }
+
+                    if (config.dataKey === 'Altitude 11PM' && isAboveThreshold) {
+                        td.classList.add('highlight');
+                        if (objectData.is_obstructed_at_11pm) {
+                            td.classList.add('obstructed');
+                        }
+                    }
+                    // --- END NEW LOGIC ---
 
                     const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
                     if (numericSortKeys.includes(config.dataKey) && (typeof rawValue === 'number' || (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))))) {
