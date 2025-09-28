@@ -375,7 +375,7 @@ def interpolate_horizon(azimuth, horizon_mask, default_altitude):
     if not horizon_mask:
         return default_altitude
 
-    # Create a complete 0-360 degree profile for interpolation
+    # Build a complete 0-360 degree profile for interpolation
     profile = [[0, default_altitude]]
     sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
 
@@ -407,7 +407,9 @@ def interpolate_horizon(azimuth, horizon_mask, default_altitude):
     az1, alt1 = p1
     az2, alt2 = p2
 
-    if az1 == az2:
+    # If the azimuth points are identical or extremely close, return the first altitude
+    # This prevents division-by-zero errors with very steep curves.
+    if abs(az2 - az1) < 1e-9:
         return alt1
 
     # Standard linear interpolation formula

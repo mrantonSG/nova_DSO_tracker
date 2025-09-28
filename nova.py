@@ -4985,11 +4985,17 @@ def get_plot_data(object_name):
     """
     # --- 1) Resolve object RA/DEC ---
     data = get_ra_dec(object_name)
-    if not data or data.get('RA (hours)') is None or data.get('DEC (degrees)') is None:
+    if not data:
         return jsonify({"error": "Object data not found or invalid."}), 404
 
-    ra = float(data['RA (hours)'])
-    dec = float(data['DEC (degrees)'])
+    ra = data.get('RA (hours)')
+    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))  # tolerate both keys
+
+    if ra is None or dec is None:
+        return jsonify({"error": "RA/DEC missing for object."}), 404
+
+    ra = float(ra)
+    dec = float(dec)
 
     # --- 2) Read params with SAFE fallbacks (treat blank as missing) ---
     plot_lat_str  = (request.args.get('plot_lat', '') or '').strip()
@@ -5016,7 +5022,7 @@ def get_plot_data(object_name):
     local_date = f"{year:04d}-{month:02d}-{day:02d}"
 
     # --- 3) Build time grid and object/Moon series ---
-    times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date)
+    times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date, sampling_interval_minutes=5)
 
     location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     altaz_frame = AltAz(obstime=times_utc, location=location)
@@ -5025,6 +5031,7 @@ def get_plot_data(object_name):
     altaz_obj = sky_coord.transform_to(altaz_frame)
     altitudes = altaz_obj.alt.deg
     azimuths  = (altaz_obj.az.deg + 360.0) % 360.0  # normalize to [0,360)
+
 
     # Horizon mask (per-location)
     location_config   = g.user_config.get("locations", {}).get(plot_loc_name, {}) if isinstance(g.user_config, dict) else {}
