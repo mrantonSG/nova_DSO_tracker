@@ -74,7 +74,8 @@ from modules.astro_calculations import (
     ra_dec_to_alt_az,
     get_common_time_arrays,
     calculate_sun_events_cached,
-    calculate_observable_duration_vectorized
+    calculate_observable_duration_vectorized,
+    interpolate_horizon
 )
 
 
@@ -4969,7 +4970,6 @@ def get_yearly_plot_data(object_name):
         "moon_alt": moon_altitudes
     })
 
-
 @app.route('/api/get_plot_data/<path:object_name>')
 def get_plot_data(object_name):
     """
@@ -4983,6 +4983,7 @@ def get_plot_data(object_name):
     ra = data['RA (hours)']
     dec = data['DEC (degrees)']
 
+    # These correctly default to the globally selected location's settings
     plot_lat_str = request.args.get('plot_lat', g.lat)
     plot_lon_str = request.args.get('plot_lon', g.lon)
     plot_tz_name = request.args.get('plot_tz', g.tz_name)
@@ -5008,6 +5009,23 @@ def get_plot_data(object_name):
     altitudes = sky_coord.transform_to(altaz_frame).alt.deg
     azimuths = sky_coord.transform_to(altaz_frame).az.deg
 
+    # ✨ --- NEW: CALCULATE THE HORIZON MASK ALTITUDE FOR EACH TIMESTAMP --- ✨
+    horizon_mask_altitudes = []
+    # Get the horizon mask from the globally selected location in the user's config
+    location_config = g.user_config.get("locations", {}).get(g.selected_location, {})
+    horizon_mask = location_config.get("horizon_mask")
+
+    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
+        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+        for az in azimuths:
+            horizon_alt = interpolate_horizon(az, sorted_mask)
+            horizon_mask_altitudes.append(horizon_alt)
+    else:
+        # If no mask, the horizon is flat at the default altitude threshold
+        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
+    # ✨ --- END OF NEW LOGIC --- ✨
+
     moon_altitudes, moon_azimuths = [], []
     for t_utc in times_utc:
         frame = AltAz(obstime=t_utc, location=location)
@@ -5023,20 +5041,16 @@ def get_plot_data(object_name):
     transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
 
     # --- 3. Package data for JSON, FORCING the 24-hour range ---
-
-    # Define the exact start and end times for the 24-hour window
     start_time = times_local[0]
     end_time = start_time + timedelta(hours=24)
-
-    # Create the final time labels array, bookended by the exact start and end times
     final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
 
-    # Create the final data arrays, adding 'None' at the start and end.
-    # 'None' becomes 'null' in JSON, which tells the chart to create a gap, not draw a line.
+    # Pad all data arrays with None to match the time array for gapped rendering
     final_object_alt = [None] + list(altitudes) + [None]
     final_object_az = [None] + list(azimuths) + [None]
     final_moon_alt = [None] + moon_altitudes + [None]
     final_moon_az = [None] + moon_azimuths + [None]
+    final_horizon_mask_alt = [None] + horizon_mask_altitudes + [None] # Pad the new array
 
     plot_data = {
         "times": final_times_iso,
@@ -5044,6 +5058,7 @@ def get_plot_data(object_name):
         "object_az": final_object_az,
         "moon_alt": final_moon_alt,
         "moon_az": final_moon_az,
+        "horizon_mask_alt": final_horizon_mask_alt, # <-- ADD THE NEW DATA HERE
         "sun_events": {
             "current": sun_events_curr,
             "next": sun_events_next,
@@ -5054,7 +5069,6 @@ def get_plot_data(object_name):
     }
 
     return jsonify(plot_data)
-
 
 # =============================================================================
 # Main Entry Point
