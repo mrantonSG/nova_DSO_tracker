@@ -8,13 +8,16 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - Integration with Stellarium for live sky visualization
 - Customizable imaging opportunity alerts
 - Imaging Journal
+- Horizon Masking
+- Aladin based Framing Assistant 
 
 ## Technologies Used
 - Python (Flask, AstroPy, Ephem)
 - Raspberry Pi compatible
 - API integrations (SIMBAD, Stellarium)
+- SSO for Multi User installations
 
-# Nova DSO Altitude Tracker 3.4 - Quick Guide
+# Nova DSO Altitude Tracker 3.5 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -30,7 +33,7 @@ Includes a comprehensive Imaging Journal to log your imaging sessions.
 Powerful, interactive framing assistant
 
 ### Main Interface
-When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. New in Version 2 is the column with the angular separation of the object to the moon.
+When opening Nova, you'll see a list of DSOs sorted by their current altitude (descending order). Objects with project notes are highlighted. You'll also see the date, local time at your selected location, and current Moon illumination. Altitudes above a definable threshold are highlighted in green. If you define a Horizon Mask and there is an obstruction, the field will be colored yellow. Under "Observable" you can find the time in minutes an object is above the altitude threshold (default 20°) and between astronomical dusk and dawn. You can also see the angular separation of the object to the moon.
 
 The main view is organized into three tabs: "Position", "Properties", and "Journal".
 The first "Position" contains all fields you are used to from the previous versions.
@@ -40,7 +43,7 @@ The second tab, "Properties", contains object-specific physical data such as the
 The third tab, "Outlook" shows the upcoming imaging opportunities for your highlighted objects.
 
 The fourth tab, "Journal" lets you take notes to your imaging sessions.
-![Screenshot_28_index.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_index.png)
+![Screenshot_35_index.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_35_index.png)
 
 
 ### Sorting and Searching
@@ -69,6 +72,11 @@ All you settings and objects are stored in a single .yaml file which you can fin
 - **Highlighting Objects:** Entering text in the "Notes" field (project in the yaml file) highlights the corresponding object in the main interface. The main purpose is to mark objects you plan to image. In the project field you can put all necessary information, such as the rig you plan to use.
 
 The configuration, including all locations objects and settings, can be downloaded as well as uploaded. When uploading the configuration file it doesnt matter how it is named, it will be automatically renamed to match the user ID (in MUM) or the default name (in SUM)
+
+There is an optional field in locations, where you can define a horizon mask. So if you have certain obstructions at your imaging sites you can configure them there. All calculations will then be based on obstruction free view. 
+
+![Screenshot_35_HM.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_35_HM.png)
+
 
 Under the tab "Rigs" you can configure your equipment, configure rigs and calculate the sampling. The rigs configured here can later be selected in the journal.
 
@@ -99,7 +107,7 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 You can not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 The daily graph also displays a vertical dashed line indicating the meridian transit, which is the point of highest altitude and a crucial time for equatorial mount users to plan for a "meridian flip."
 
-![Screenshot_29_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_graphic.png)
+![Screenshot_35_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_35_graphic.png)
 
 ![Screenshot_28_month.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_month.png)
 
