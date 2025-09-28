@@ -344,7 +344,7 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
                 point[1] = altitude_threshold
 
         # Calculate the true minimum altitude for each point in time using the mask
-        min_altitudes = np.array([interpolate_horizon(az, sorted_mask) for az in azimuths])
+        min_altitudes = np.array([interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]) # <-- FIXED LINE
     else:
         # If no mask, the minimum altitude is the same for all azimuths
         min_altitudes = np.full_like(altitudes, altitude_threshold)
@@ -366,46 +366,49 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
 
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
 
-def interpolate_horizon(azimuth, horizon_mask):
+def interpolate_horizon(azimuth, horizon_mask, default_altitude):
     """
     Calculates the horizon altitude at a specific azimuth by linearly interpolating
-    between points in a horizon mask.
-
-    Args:
-        azimuth (float): The azimuth (0-360 degrees) to calculate the horizon for.
-        horizon_mask (list): A list of [az, alt] pairs, sorted by azimuth.
-
-    Returns:
-        float: The interpolated horizon altitude in degrees.
+    between points in a horizon mask, using a default altitude for uncovered areas
+    and creating vertical "walls" for obstructions.
     """
     if not horizon_mask:
-        return 0  # Should not happen if called correctly, but safe
+        return default_altitude
 
-    # Ensure the mask wraps around 360 degrees for proper interpolation
-    # Add a point for 360 degrees that is the same as 0 degrees
-    if horizon_mask[0][0] != 0:
-        horizon_mask.insert(0, [0, horizon_mask[-1][1]])
-    if horizon_mask[-1][0] < 360:
-        horizon_mask.append([360, horizon_mask[0][1]])
+    # Create a complete 0-360 degree profile for interpolation
+    profile = [[0, default_altitude]]
+    sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
 
-    # Find the two points the azimuth falls between
+    # If the user has a mask, add points to create the "walls"
+    if sorted_mask:
+        # Add a point on the ground just before the first obstruction begins
+        profile.append([sorted_mask[0][0] - 0.001, default_altitude])
+
+        # Add all the points from the user's mask
+        profile.extend(sorted_mask)
+
+        # Add a point on the ground just after the last obstruction ends
+        profile.append([sorted_mask[-1][0] + 0.001, default_altitude])
+
+    # Add the final point to complete the 360-degree profile
+    profile.append([360, default_altitude])
+
+    # Find the two points in our complete profile that the azimuth falls between
     p1, p2 = None, None
-    for i in range(len(horizon_mask) - 1):
-        if horizon_mask[i][0] <= azimuth <= horizon_mask[i+1][0]:
-            p1 = horizon_mask[i]
-            p2 = horizon_mask[i+1]
+    for i in range(len(profile) - 1):
+        if profile[i][0] <= azimuth <= profile[i+1][0]:
+            p1 = profile[i]
+            p2 = profile[i+1]
             break
 
-    if not p1 or not p2:
-        return horizon_mask[0][1] # Fallback
+    if not p1:
+        return default_altitude # Fallback
 
     az1, alt1 = p1
     az2, alt2 = p2
 
-    # If the azimuth points are the same, no interpolation needed
     if az1 == az2:
         return alt1
 
-    # Linear interpolation formula
-    interpolated_altitude = alt1 + (alt2 - alt1) * ((azimuth - az1) / (az2 - az1))
-    return interpolated_altitude
+    # Standard linear interpolation formula
+    return alt1 + (alt2 - alt1) * ((azimuth - az1) / (az2 - az1))

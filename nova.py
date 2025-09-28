@@ -3042,7 +3042,8 @@ def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz
     azimuths = altaz.az.deg
 
     # Calculate Moon altitude and azimuth.
-    moon_altitudes, moon_azimuths = [], []
+    moon_altitudes = []
+    moon_azimuths = []
     for t_utc in times_utc:
         frame = AltAz(obstime=t_utc, location=location)
         moon_coord = get_body('moon', t_utc, location=location)
@@ -4974,100 +4975,102 @@ def get_yearly_plot_data(object_name):
 def get_plot_data(object_name):
     """
     API endpoint to provide all necessary data for client-side chart rendering.
+    Returns:
+      {
+        times: [ISO strings incl. sentinel first/last],
+        object_alt, object_az, moon_alt, moon_az, horizon_mask_alt: same length as times,
+        sun_events: { current:{sunset,astronomical_dusk,...}, next:{astronomical_dawn,sunrise,...} },
+        transit_time, date, timezone
+      }
     """
-    # --- 1. Get object and date/location parameters ---
+    # --- 1) Resolve object RA/DEC ---
     data = get_ra_dec(object_name)
-    if not data or data.get('RA (hours)') is None:
+    if not data or data.get('RA (hours)') is None or data.get('DEC (degrees)') is None:
         return jsonify({"error": "Object data not found or invalid."}), 404
 
-    ra = data['RA (hours)']
-    dec = data['DEC (degrees)']
+    ra = float(data['RA (hours)'])
+    dec = float(data['DEC (degrees)'])
 
-    # These correctly default to the globally selected location's settings
-    plot_lat_str = request.args.get('plot_lat', g.lat)
-    plot_lon_str = request.args.get('plot_lon', g.lon)
-    plot_tz_name = request.args.get('plot_tz', g.tz_name)
+    # --- 2) Read params with SAFE fallbacks (treat blank as missing) ---
+    plot_lat_str  = (request.args.get('plot_lat', '') or '').strip()
+    plot_lon_str  = (request.args.get('plot_lon', '') or '').strip()
+    plot_tz_name  = (request.args.get('plot_tz', '') or '').strip()
+    plot_loc_name = (request.args.get('plot_loc_name', '') or '').strip()
 
+    # Fallbacks from g / config if blanks were passed
     try:
-        lat = float(plot_lat_str)
-        lon = float(plot_lon_str)
+        lat = float(plot_lat_str) if plot_lat_str else float(getattr(g, "lat", 0.0))
+        lon = float(plot_lon_str) if plot_lon_str else float(getattr(g, "lon", 0.0))
+        if not plot_tz_name:
+            plot_tz_name = getattr(g, "tz_name", "UTC")
+        if not plot_loc_name:
+            plot_loc_name = getattr(g, "location_name", None) or g.user_config.get("default_location", "")
         local_tz = pytz.timezone(plot_tz_name)
-    except (ValueError, pytz.UnknownTimeZoneError):
+    except Exception:
         return jsonify({"error": "Invalid location or timezone data."}), 400
 
     now_local = datetime.now(local_tz)
-    day = int(request.args.get('day', now_local.day))
+    day   = int(request.args.get('day',   now_local.day))
     month = int(request.args.get('month', now_local.month))
-    year = int(request.args.get('year', now_local.year))
-    local_date = f"{year}-{month:02d}-{day:02d}"
+    year  = int(request.args.get('year',  now_local.year))
+    local_date = f"{year:04d}-{month:02d}-{day:02d}"
 
-    # --- 2. Perform all necessary astronomical calculations ---
+    # --- 3) Build time grid and object/Moon series ---
     times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date)
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-    altitudes = sky_coord.transform_to(altaz_frame).alt.deg
-    azimuths = sky_coord.transform_to(altaz_frame).az.deg
 
-    # ✨ --- NEW: CALCULATE THE HORIZON MASK ALTITUDE FOR EACH TIMESTAMP --- ✨
-    horizon_mask_altitudes = []
-    # Get the horizon mask from the globally selected location in the user's config
-    location_config = g.user_config.get("locations", {}).get(g.selected_location, {})
-    horizon_mask = location_config.get("horizon_mask")
+    location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    altaz_frame = AltAz(obstime=times_utc, location=location)
+
+    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+    altaz_obj = sky_coord.transform_to(altaz_frame)
+    altitudes = altaz_obj.alt.deg
+    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0  # normalize to [0,360)
+
+    # Horizon mask (per-location)
+    location_config   = g.user_config.get("locations", {}).get(plot_loc_name, {}) if isinstance(g.user_config, dict) else {}
+    horizon_mask      = location_config.get("horizon_mask")
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
 
     if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
         sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-        for az in azimuths:
-            horizon_alt = interpolate_horizon(az, sorted_mask)
-            horizon_mask_altitudes.append(horizon_alt)
+        horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
     else:
-        # If no mask, the horizon is flat at the default altitude threshold
-        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        # No custom mask => flat threshold
         horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
-    # ✨ --- END OF NEW LOGIC --- ✨
 
-    moon_altitudes, moon_azimuths = [], []
-    for t_utc in times_utc:
-        frame = AltAz(obstime=t_utc, location=location)
-        moon_coord = get_body('moon', t_utc, location)
-        moon_altaz = moon_coord.transform_to(frame)
+    # Moon series (vector-safe path is fine, but loop is explicit & robust)
+    moon_altitudes = []
+    moon_azimuths = []
+    for t in times_utc:
+        t_ast = Time(t)
+        moon_icrs = get_body('moon', t_ast, location=location)
+        moon_altaz = moon_icrs.transform_to(AltAz(obstime=t_ast, location=location))
         moon_altitudes.append(moon_altaz.alt.deg)
-        moon_azimuths.append(moon_altaz.az.deg)
+        moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
 
+    # Sun events and transit
     sun_events_curr = calculate_sun_events_cached(local_date, plot_tz_name, lat, lon)
-    next_date_obj = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
-    next_date_str = next_date_obj.strftime('%Y-%m-%d')
+    next_date_str   = (datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
     sun_events_next = calculate_sun_events_cached(next_date_str, plot_tz_name, lat, lon)
     transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
 
-    # --- 3. Package data for JSON, FORCING the 24-hour range ---
+    # --- 4) Force exactly 24h window: prepend/append sentinels ---
     start_time = times_local[0]
-    end_time = start_time + timedelta(hours=24)
+    end_time   = start_time + timedelta(hours=24)
     final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
-
-    # Pad all data arrays with None to match the time array for gapped rendering
-    final_object_alt = [None] + list(altitudes) + [None]
-    final_object_az = [None] + list(azimuths) + [None]
-    final_moon_alt = [None] + moon_altitudes + [None]
-    final_moon_az = [None] + moon_azimuths + [None]
-    final_horizon_mask_alt = [None] + horizon_mask_altitudes + [None] # Pad the new array
 
     plot_data = {
         "times": final_times_iso,
-        "object_alt": final_object_alt,
-        "object_az": final_object_az,
-        "moon_alt": final_moon_alt,
-        "moon_az": final_moon_az,
-        "horizon_mask_alt": final_horizon_mask_alt, # <-- ADD THE NEW DATA HERE
-        "sun_events": {
-            "current": sun_events_curr,
-            "next": sun_events_next,
-        },
+        "object_alt": [None] + list(altitudes) + [None],
+        "object_az":  [None] + list(azimuths)  + [None],
+        "moon_alt":   [None] + moon_altitudes  + [None],
+        "moon_az":    [None] + moon_azimuths   + [None],
+        "horizon_mask_alt": [None] + horizon_mask_altitudes + [None],
+        "sun_events": {"current": sun_events_curr, "next": sun_events_next},
         "transit_time": transit_time_str,
         "date": local_date,
         "timezone": plot_tz_name
     }
-
     return jsonify(plot_data)
 
 # =============================================================================
