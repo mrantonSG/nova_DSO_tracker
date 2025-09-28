@@ -1417,8 +1417,6 @@
         return base.set({hour, minute, second: 0, millisecond: 0}).toMillis();
     }
 
-    // The main function to fetch data and render the chart
-
     async function renderClientSideChart() {
         const chartLoadingDiv = document.getElementById('chart-loading');
         chartLoadingDiv?.classList.remove('hidden');
@@ -1432,10 +1430,16 @@
         const plotLat = "{{ graph_lat_param | default('', True) }}";
         const plotLon = "{{ graph_lon_param | default('', True) }}";
         const plotTz = "{{ graph_tz_name_param | default('', True) }}";
+        const plotLocName = "{{ graph_location_name_param | default('', True) }}";
 
+        // ✨ THIS IS THE CORRECTED API URL DEFINITION ✨
         const apiUrl =
             `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}` +
-            `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
+            `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}` +
+            `&plot_loc_name=${encodeURIComponent(plotLocName)}`;
+
+        // DEBUGGING LINE: This will print the exact URL to your browser's console.
+        console.log("Fetching Chart Data from API URL:", apiUrl);
 
         try {
             // --- fetch data
@@ -1443,21 +1447,18 @@
             if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
             const data = await resp.json();
 
+            // ... the rest of your function from this point on is correct ...
+            // ... so the code below is just the remainder of the function ...
+
             // --- build times + annotations
             // Robust “to milliseconds” parser for mixed inputs
             function toMs(val) {
-                // Numeric? treat < 1e12 as seconds; otherwise milliseconds
                 if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
-
                 if (typeof val === 'string') {
-                    // Does the string already carry a timezone/offset? (…Z or ±HH:MM)
                     const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
-
                     if (hasOffset) {
-                        // Respect the embedded offset, then show in plotTz
                         return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
                     } else {
-                        // “Naive” wall time → interpret directly in plotTz
                         return luxon.DateTime.fromISO(val, {zone: plotTz}).toMillis();
                     }
                 }
@@ -1466,197 +1467,90 @@
 
             const labels = data.times.map(toMs);
             const annotations = {};
-
-            const baseDate = new Date(data.date);
-            const nextDate = new Date(baseDate);
-            nextDate.setDate(baseDate.getDate() + 1);
-
             const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
             const nextDt = baseDt.plus({days: 1});
 
-            // Helper to parse HH:MM and combine with a given date object
             function wallTimeMs(baseDateTime, timeStr) {
                 if (!timeStr || !timeStr.includes(':')) return null;
                 const [h, m] = timeStr.split(':').map(Number);
                 return baseDateTime.set({hour: h, minute: m, second: 0, millisecond: 0}).toMillis();
             }
 
-            // Get the sunset time for the base date as a reference point.
             const sunsetTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.sunset);
-
-            // Determine the correct date for dusk.
             let duskTime;
             const duskTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
             if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) {
-                // If dusk time is before sunset time, it belongs to the next calendar day.
                 duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
             } else {
                 duskTime = duskTimeCurrent;
             }
-
-            // Dawn and sunrise always belong to the next calendar day.
             const dawnTime = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
             const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
-            const sunsetTime = sunsetTimeCurrent; // Assign for annotation
-
-            // Use Luxon to compute midnight at the plotting location’s timezone, then work in ms
+            const sunsetTime = sunsetTimeCurrent;
             const firstMs = labels[0];
             const lastMs = labels[labels.length - 1];
             const originalWindowMs = lastMs - firstMs;
-
-            const midnightMs = luxon.DateTime
-                .fromISO(data.date, {zone: plotTz})
-                .plus({days: 1})       // midnight that splits the night (00:00 of "next" date)
-                .startOf('day')
-                .toMillis();
-
+            const midnightMs = luxon.DateTime.fromISO(data.date, {zone: plotTz}).plus({days: 1}).startOf('day').toMillis();
             const currentCenterMs = (firstMs + lastMs) / 2;
             const delta = midnightMs - currentCenterMs;
-
             const xMinCentered = firstMs + delta;
             const xMaxCentered = xMinCentered + originalWindowMs;
 
             if (sunsetTime) {
                 annotations.sunsetLine = {
-                    type: 'line',
-                    xMin: sunsetTime, xMax: sunsetTime,
-                    borderColor: 'black', borderWidth: 1,
-                    label: {
-                        display: true,
-                        content: 'Sunset',
-                        position: 'start',
-                        rotation: 90,
-                        font: {size: 10, weight: '400'},
-                        color: '#222',
-                        backgroundColor: 'rgba(255,255,255,0.92)',
-                        borderColor: 'rgba(0,0,0,0.15)',
-                        borderWidth: 1
-                    }
+                    type: 'line', xMin: sunsetTime, xMax: sunsetTime, borderColor: 'black', borderWidth: 1,
+                    label: { display: true, content: 'Sunset', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
                 };
             }
             if (duskTime) {
                 annotations.duskLine = {
-                    type: 'line',
-                    xMin: duskTime, xMax: duskTime,
-                    borderColor: 'black', borderWidth: 1,
-                    label: {
-                        display: true,
-                        content: 'Astronomical dusk',
-                        position: 'start',
-                        rotation: 90,
-                        font: {size: 10, weight: '400'},
-                        color: '#222',
-                        backgroundColor: 'rgba(255,255,255,0.92)',
-                        borderColor: 'rgba(0,0,0,0.15)',
-                        borderWidth: 1
-                    }
+                    type: 'line', xMin: duskTime, xMax: duskTime, borderColor: 'black', borderWidth: 1,
+                    label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
                 };
             }
             if (dawnTime) {
                 annotations.dawnLine = {
-                    type: 'line',
-                    xMin: dawnTime, xMax: dawnTime,
-                    borderColor: 'black', borderWidth: 1,
-                    label: {
-                        display: true,
-                        content: 'Astronomical dawn',
-                        position: 'start',
-                        rotation: 90,
-                        font: {size: 10, weight: '400'},
-                        color: '#222',
-                        backgroundColor: 'rgba(255,255,255,0.92)',
-                        borderColor: 'rgba(0,0,0,0.15)',
-                        borderWidth: 1
-                    }
+                    type: 'line', xMin: dawnTime, xMax: dawnTime, borderColor: 'black', borderWidth: 1,
+                    label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
                 };
             }
             if (sunriseTime) {
                 annotations.sunriseLine = {
-                    type: 'line',
-                    xMin: sunriseTime, xMax: sunriseTime,
-                    borderColor: 'black', borderWidth: 1,
-                    label: {
-                        display: true,
-                        content: 'Sunrise',
-                        position: 'start',
-                        rotation: 90,
-                        font: {size: 10, weight: '400'},
-                        color: '#222',
-                        backgroundColor: 'rgba(255,255,255,0.92)',
-                        borderColor: 'rgba(0,0,0,0.15)',
-                        borderWidth: 1
-                    }
+                    type: 'line', xMin: sunriseTime, xMax: sunriseTime, borderColor: 'black', borderWidth: 1,
+                    label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
                 };
             }
 
             if (data.transit_time && data.transit_time !== "N/A") {
-                // We already have baseDt/nextDt in plotTz, and duskTime/dawnTime as epoch ms
-                // Example: baseDt = luxon.DateTime.fromISO(data.date, { zone: plotTz });
                 const parts = (data.transit_time || '').split(':');
                 const th = Number(parts[0] || 0);
                 const tm = Number(parts[1] || 0);
-
-                // Two candidates: same wall time on the base day, and on the next day
-                const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();     // evening candidate
-                const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis(); // after-midnight candidate
-
-                // Night window [astronomical dusk .. astronomical dawn]
-                const nightStart = duskTime;   // ms (same night, typically before midnight)
-                const nightEnd = dawnTime;   // ms (next morning, after midnight)
-
-                // Choose the candidate that lands inside the night window; if neither, pick the closer to midnight
+                const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+                const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+                const nightStart = duskTime;
+                const nightEnd = dawnTime;
                 const inWindow = (t) => t >= nightStart && t <= nightEnd;
-                const transitMs = inWindow(t0)
-                    ? t0
-                    : inWindow(t1)
-                        ? t1
-                        : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
-
+                const transitMs = inWindow(t0) ? t0 : inWindow(t1) ? t1 : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
                 annotations.transitLine = {
-                    type: 'line',
-                    xMin: transitMs, xMax: transitMs,
-                    borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6],
-                    clip: false,
-                    label: {
-                        display: true,
-                        content: data.transit_time,    // e.g., "23:03"
-                        position: 'start',
-                        rotation: 90,
-                        font: {size: 10, weight: 'bold'},
-                        color: 'crimson',
-                        backgroundColor: 'rgba(255,255,255,0.7)'
-                    }
+                    type: 'line', xMin: transitMs, xMax: transitMs, borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6], clip: false,
+                    label: { display: true, content: data.transit_time, position: 'start', rotation: 90, font: {size: 10, weight: 'bold'}, color: 'crimson', backgroundColor: 'rgba(255,255,255,0.7)' }
                 };
             }
 
-            // night-shade background as a plugin (so we don’t touch options.beforeDraw)
             const nightShade = {
                 id: 'nightShade',
                 beforeDraw(chart) {
                     const {ctx, chartArea, scales} = chart;
-                    if (!chartArea) return; // Exit if chart area isn't ready
-
-                    // Get the pixel coordinates for the start and end of the chart's x-axis
+                    if (!chartArea) return;
                     const left = scales.x.getPixelForValue(scales.x.min);
                     const right = scales.x.getPixelForValue(scales.x.max);
-
-                    // --- This section uses the correct dusk and dawn times ---
                     const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
                     const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
-
                     ctx.save();
-                    ctx.fillStyle = 'rgba(211, 211, 211, 1)'; // The light gray for "daytime"
-
-                    // If dusk is after dawn (i.e., the entire night is within the 24hr window)
+                    ctx.fillStyle = 'rgba(211, 211, 211, 1)';
                     if (duskPx < dawnPx) {
-                        // Shade from the start of the chart to dusk
-                        if (duskPx > left) {
-                            ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
-                        }
-                        // Shade from dawn to the end of the chart
-                        if (dawnPx < right) {
-                            ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
-                        }
+                        if (duskPx > left) { ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height); }
+                        if (dawnPx < right) { ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height); }
                     } else {
                         ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
                     }
@@ -1664,7 +1558,6 @@
                 }
             };
 
-            // create / replace chart
             const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
             if (window.altitudeChart) window.altitudeChart.destroy();
 
@@ -1673,110 +1566,25 @@
                 data: {
                     labels,
                     datasets: [
-                        {
-                            label: '{{ object_name }} Altitude',
-                            data: data.object_alt,
-                            borderColor: '#36A2EB',
-                            yAxisID: 'yAltitude',
-                            borderWidth: 4,
-                            pointRadius: 0,
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Moon Altitude',
-                            data: data.moon_alt,
-                            borderColor: '#FFC107',
-                            yAxisID: 'yAltitude',
-                            borderWidth: 4,
-                            pointRadius: 0,
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Horizon',
-                            data: Array(labels.length).fill(0),
-                            borderColor: 'black',
-                            yAxisID: 'yAltitude',
-                            borderWidth: 2,
-                            pointRadius: 0
-                        },
-                        {
-                            label: '{{ object_name }} Azimuth',
-                            data: data.object_az,
-                            borderColor: '#36A2EB',
-                            yAxisID: 'yAzimuth',
-                            borderDash: [5, 5],
-                            borderWidth: 3.5,
-                            pointRadius: 0,
-                            tension: 0.1
-                        },
-                        {
-                            label: 'Moon Azimuth',
-                            data: data.moon_az,
-                            borderColor: '#FFC107',
-                            yAxisID: 'yAzimuth',
-                            borderDash: [5, 5],
-                            borderWidth: 3.5,
-                            pointRadius: 0,
-                            tension: 0.1
-                        }
+                        { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+                        { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+                        { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
+                        { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
+                        { label: '{{ object_name }} Azimuth', data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+                        { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
                     ]
                 },
                 plugins: [nightShade],
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2,
-                    adapters: {date: {zone: plotTz}},
-                    plugins: {
-                        annotation: {annotations},
-                        legend: {position: 'top'},
-                        title: {
-                            display: false,
-                            text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`,
-                            align: 'start',
-                            font: {size: 16}
-                        }
-                    },
+                    responsive: true, maintainAspectRatio: true, aspectRatio: 2, adapters: {date: {zone: plotTz}},
+                    plugins: { annotation: {annotations}, legend: {position: 'top'}, title: { display: false, text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`, align: 'start', font: {size: 16} } },
                     scales: {
-                        x: {
-                            type: 'time',
-                            adapters: {
-                                date: {
-                                    zone: plotTz
-                                }
-                            },
-                            parsing: false,                           // we pass epoch ms already
-                            time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}},
-
-                            // keep midnight centered using your computed window
-                            min: xMinCentered,
-                            max: xMaxCentered,
-                            bounds: 'ticks',
-
-                            // let the adapter format in the plot timezone (no custom callback here)
-                            ticks: {source: 'auto'},
-
-                            grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]},
-                            title: {display: true, text: `Time (Local - {{ header_location_name }})`}
-                        },
-
-                        yAltitude: {
-                            position: 'left',
-                            min: -90, max: 90,
-                            title: {display: true, text: 'Altitude (°)'},
-                            grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}
-                        },
-
-                        yAzimuth: {
-                            position: 'right',
-                            min: 0, max: 360,
-                            title: {display: true, text: 'Azimuth (°)'},
-                            grid: {drawOnChartArea: false}
-                        }
+                        x: { type: 'time', adapters: { date: { zone: plotTz }}, parsing: false, time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}}, min: xMinCentered, max: xMaxCentered, bounds: 'ticks', ticks: {source: 'auto'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}, title: {display: true, text: `Time (Local - {{ header_location_name }})`} },
+                        yAltitude: { position: 'left', min: -90, max: 90, title: {display: true, text: 'Altitude (°)'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]} },
+                        yAzimuth: { position: 'right', min: 0, max: 360, title: {display: true, text: 'Azimuth (°)'}, grid: {drawOnChartArea: false} }
                     }
                 }
             });
-
         } catch (err) {
             console.error('Could not render chart:', err);
             const canvas = document.getElementById('altitudeChartCanvas');
