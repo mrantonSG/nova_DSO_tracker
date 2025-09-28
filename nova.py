@@ -290,7 +290,7 @@ def to_yaml_filter(data, indent=2):
         return ''
     try:
         # Dumps to a string, now correctly using the indent argument
-        return yaml.dump(data, default_flow_style=None, indent=indent, sort_keys=False).strip()
+        return yaml.dump(data, default_flow_style=True, indent=indent, sort_keys=False).strip()
     except Exception:
         return ''
 app = Flask(__name__)
