@@ -3740,7 +3740,24 @@ def get_object_data(object_name):
     obj_details = get_ra_dec(object_name)
 
     if not obj_details or obj_details.get("RA (hours)") is None:
-        return jsonify({"error": "Object data not found"}), 404
+        # If the lookup fails, get the specific error message.
+        error_message = (obj_details.get("Common Name") if obj_details else "Object data not found in config.")
+
+        # Create a full payload with error information.
+        error_payload = {
+            'Object': object_name,
+            'Common Name': f"Error: {error_message}",
+            'Altitude Current': "N/A", 'Azimuth Current': "N/A", 'Trend': "–",
+            'Altitude 11PM': "N/A", 'Azimuth 11PM': "N/A",
+            'Transit Time': "N/A",
+            'Observable Duration (min)': "N/A",
+            'Max Altitude (°)': "N/A",
+            'Angular Separation (°)': "N/A",
+            'Project': "N/A",
+            'Time': datetime.now(pytz.timezone(g.tz_name)).strftime('%Y-%m-%d %H:%M:%S'),
+            'error': True  # Add a specific flag for frontend styling if needed
+        }
+        return jsonify(error_payload)
 
     ra = obj_details["RA (hours)"]
     dec = obj_details["DEC (degrees)"]
