@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
 import astropy.units as u
-
+import copy
 
 def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
     """
@@ -336,7 +336,7 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     # --- NEW HORIZON MASK LOGIC ---
     if horizon_mask and len(horizon_mask) > 1:
         # Sort mask by azimuth just in case it's not already
-        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+        sorted_mask = sorted(copy.deepcopy(horizon_mask), key=lambda p: p[0])
 
         # If any altitude in the mask is 0, replace it with the baseline threshold
         for point in sorted_mask:
@@ -367,17 +367,22 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
 
 def interpolate_horizon(azimuth, horizon_mask, default_altitude):
-    """
-    Calculates the horizon altitude at a specific azimuth by linearly interpolating
-    between points in a horizon mask, using a default altitude for uncovered areas
-    and creating vertical "walls" for obstructions.
-    """
     if not horizon_mask:
         return default_altitude
 
+    # Create a deep copy to avoid modifying the original config data
+    mask_copy = copy.deepcopy(horizon_mask)
+
+    # Check for the special '0' value and replace it with the baseline
+    for point in mask_copy:
+        if point[1] == 0:
+            point[1] = default_altitude
+
+    # Sort the processed mask
+    sorted_mask = sorted(mask_copy, key=lambda p: p[0])
+
     # Build a complete 0-360 degree profile for interpolation
     profile = [[0, default_altitude]]
-    sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
 
     # If the user has a mask, add points to create the "walls"
     if sorted_mask:

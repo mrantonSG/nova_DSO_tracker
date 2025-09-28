@@ -2516,15 +2516,36 @@ def load_config_for_request():
         g.user_config = load_user_config("guest_user")
         g.is_guest = True
 
+    # --- START OF NEW VALIDATION LOGIC ---
     g.locations = g.user_config.get("locations", {})
-    g.selected_location = g.user_config.get("default_location", "")
-    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    loc_cfg = g.locations.get(g.selected_location, {})
-    g.lat = loc_cfg.get("lat")
-    g.lon = loc_cfg.get("lon")
-    g.tz_name = loc_cfg.get("timezone", "UTC")
+    default_loc_name = g.user_config.get("default_location")
+    validated_location = default_loc_name
 
-    # restore these three globals so loops and lookups work:
+    if not default_loc_name or default_loc_name not in g.locations:
+        if g.locations:
+            first_loc_name = next(iter(g.locations))
+            validated_location = first_loc_name
+            print(f"⚠️ WARNING: Default location '{default_loc_name}' not found. "
+                  f"Falling back to first available: '{validated_location}'.")
+        else:
+            validated_location = None
+            print(f"⚠️ WARNING: No locations are defined in the configuration.")
+
+    g.selected_location = validated_location
+    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
+
+    if g.selected_location:
+        loc_cfg = g.locations.get(g.selected_location, {})
+        g.lat = loc_cfg.get("lat")
+        g.lon = loc_cfg.get("lon")
+        g.tz_name = loc_cfg.get("timezone", "UTC")
+    else:
+        # No valid location, set safe defaults to prevent crashes
+        g.lat = None
+        g.lon = None
+        g.tz_name = "UTC"
+    # --- END OF NEW VALIDATION LOGIC ---
+
     g.objects_list = g.user_config.get("objects", [])
     g.alternative_names = {
         obj.get("Object").lower(): obj.get("Name")
@@ -4153,18 +4174,23 @@ def config_form():
                     message = "Objects updated."
 
             # Centralized save if any 'updated' flag was set to True in any block
-            if updated and not error:  # Check for error before saving, or decide how to handle partial saves
+            if updated and not error:
+                # Save the configuration first
                 save_user_config(current_user.username, g.user_config)
                 trigger_outlook_update_for_user(current_user.username)
-                if message:  # If a specific message was set
-                    message += " Configuration saved."
-                else:  # If no specific message, just say config saved
-                    message = "Configuration saved."
-                # Clear the in-memory persistent cache.
-                # Optionally remove the cache file so that it's rebuilt.
-            elif updated and error:
-                message = (
-                              message if message else "") + f" Configuration partially updated but errors occurred: {error}. Please review."
+
+                # Create and flash a success message
+                success_message = message if message else "Configuration"
+                flash(f"{success_message} updated successfully.", "success")
+
+                # Redirect to the same page to show the fresh data
+                return redirect(url_for('config_form'))
+
+            elif error:  # If any error occurred during the process
+                # Flash the error message
+                flash(error, "error")
+                # Do not redirect. The function will continue and re-render the page
+                # to show the error message.
 
         except Exception as exception_value:
             # Ensure error is set if an unexpected exception occurs
