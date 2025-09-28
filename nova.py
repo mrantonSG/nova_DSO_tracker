@@ -877,13 +877,21 @@ def warm_main_cache(username, location_name, user_config):
             )
             fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+            is_obstructed_at_11pm = False
+            if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
+                sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+
+                if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                    is_obstructed_at_11pm = True
 
             nightly_curves_cache[cache_key] = {
                 "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths,
                 "transit_time": transit_time,
                 "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
                 "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
+                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
+                "is_obstructed_at_11pm": is_obstructed_at_11pm
             }
 
         # print(f"[CACHE WARMER] Main data cache warming complete for '{location_name}'.")
@@ -3786,11 +3794,19 @@ def get_object_data(object_name):
 
         fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
         alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
+        is_obstructed_at_11pm = False  # <-- THIS LINE WAS MISSING
+        if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
+            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+
+            if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                is_obstructed_at_11pm = True
         nightly_curves_cache[cache_key] = {
             "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
             "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
             "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-            "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}"
+            "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
+            "is_obstructed_at_11pm": is_obstructed_at_11pm
         }
 
     cached_night_data = nightly_curves_cache[cache_key]
@@ -3805,13 +3821,23 @@ def get_object_data(object_name):
     if abs(next_alt - current_alt) > 0.01:
         trend = '↑' if next_alt > current_alt else '↓'
 
+    is_obstructed_now = False
+    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
+        # We have a mask, let's check the current position against it
+        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+        required_altitude = interpolate_horizon(current_az, sorted_mask, altitude_threshold)
+
+        # If the object is above the simple threshold but below the mask's required altitude
+        if current_alt >= altitude_threshold and current_alt < required_altitude:
+            is_obstructed_now = True
+
     time_obj = Time(datetime.now(pytz.utc))
     location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
     moon_coord = get_body('moon', time_obj, location)
     obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
     frame = AltAz(obstime=time_obj, location=location)
     angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
-
+    is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
     single_object_data = {
         'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
         'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}", 'Trend': trend,
@@ -3823,6 +3849,8 @@ def get_object_data(object_name):
         'Constellation': obj_details.get('Constellation', 'N/A'), 'Type': obj_details.get('Type', 'N/A'),
         'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'),
         'SB': obj_details.get('SB', 'N/A'),
+        'is_obstructed_now': is_obstructed_now,
+        'is_obstructed_at_11pm': is_obstructed_at_11pm
     }
     return jsonify(single_object_data)
 @app.route('/')
