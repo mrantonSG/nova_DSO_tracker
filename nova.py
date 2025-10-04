@@ -28,7 +28,7 @@ import numpy as np
 from yaml.constructor import ConstructorError
 import threading
 import glob
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import traceback
 import uuid
 
@@ -88,7 +88,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.5.0"
+APP_VERSION = "3.6.D1"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -161,6 +161,7 @@ journal_cache = {}
 journal_mtime = {}
 LATEST_VERSION_INFO = {}
 rig_data_cache = {}
+weather_cache = {}
 
 # CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 
@@ -577,6 +578,34 @@ def migrate_journal_data():
         except Exception as e:
             print(f"    -> ERROR: Could not process {journal_file}: {e}")
     print("[MIGRATION] Check complete.")
+
+
+def get_astro_weather(lat, lon):
+    """
+    Fetches astronomical weather forecast from 7Timer! and caches it.
+    """
+    cache_key = f"{lat}_{lon}"
+    # Cache for 3 hours to avoid spamming the API
+    if cache_key in weather_cache and datetime.now() < weather_cache[cache_key]['expires']:
+        return weather_cache[cache_key]['data']
+
+    try:
+        url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
+        response = requests.get(url, timeout=15)
+        response.raise_for_status()  # Raise an exception for bad status codes
+
+        weather_data = response.json()
+
+        # Cache the successful response
+        weather_cache[cache_key] = {
+            'data': weather_data,
+            'expires': datetime.now() + timedelta(hours=3)
+        }
+
+        return weather_data
+    except requests.exceptions.RequestException as e:
+        print(f"ERROR: Could not fetch weather data from 7Timer!: {e}")
+        return None
 
 
 def generate_session_id():
@@ -5092,6 +5121,37 @@ def get_plot_data(object_name):
     year  = int(request.args.get('year',  now_local.year))
     local_date = f"{year:04d}-{month:02d}-{day:02d}"
 
+    # 1. Fetch the weather forecast for the location
+    weather_data = get_astro_weather(lat, lon)
+    weather_forecast_series = []
+
+    # 2. Process the data if the fetch was successful
+    if weather_data and 'dataseries' in weather_data:
+        try:
+            # The 'init' time is a string like "2025100400" (YYYYMMDDHH)
+            init_str = weather_data['init']
+            init_time = datetime(
+                year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
+                hour=int(init_str[8:10]), tzinfo=timezone.utc
+            )
+
+            for block in weather_data['dataseries']:
+                timepoint_hours = block['timepoint']
+                start_time = init_time + timedelta(hours=timepoint_hours)
+                end_time = start_time + timedelta(hours=3)  # 7Timer! uses 3-hour blocks
+
+                weather_forecast_series.append({
+                    "start": start_time.isoformat(),
+                    "end": end_time.isoformat(),
+                    "cloudcover": block['cloudcover'],
+                    "seeing": block['seeing'],
+                    "transparency": block['transparency']
+                })
+        except Exception as e:
+            print(f"Error processing 7Timer! data: {e}")
+
+
+
     # --- 3) Build time grid and object/Moon series ---
     times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date, sampling_interval_minutes=5)
 
@@ -5147,7 +5207,8 @@ def get_plot_data(object_name):
         "sun_events": {"current": sun_events_curr, "next": sun_events_next},
         "transit_time": transit_time_str,
         "date": local_date,
-        "timezone": plot_tz_name
+        "timezone": plot_tz_name,
+        "weather_forecast": weather_forecast_series
     }
     return jsonify(plot_data)
 
