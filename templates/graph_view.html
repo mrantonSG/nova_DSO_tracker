@@ -1431,8 +1431,6 @@
         const plotLon = "{{ graph_lon_param | default('', True) }}";
         const plotTz = "{{ graph_tz_name_param | default('', True) }}";
         const plotLocName = "{{ graph_location_name_param | default('', True) }}";
-
-        // ✨ THIS IS THE CORRECTED API URL DEFINITION ✨
         const apiUrl =
             `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}` +
             `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}` +
@@ -1446,9 +1444,6 @@
             const resp = await fetch(apiUrl);
             if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
             const data = await resp.json();
-
-            // ... the rest of your function from this point on is correct ...
-            // ... so the code below is just the remainder of the function ...
 
             // --- build times + annotations
             // Robust “to milliseconds” parser for mixed inputs
@@ -1469,6 +1464,71 @@
             const annotations = {};
             const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
             const nextDt = baseDt.plus({days: 1});
+
+            // =================================================================
+            // === NEW WEATHER VISUALIZATION CODE START ===
+            // =================================================================
+
+            // Helper objects to map weather codes to colors and labels
+            const cloudInfo = {
+                1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.0)'}, 2: {label: 'Clear', color: 'rgba(135, 206, 250, 0.05)'},
+                3: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.1)'}, 4: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.15)'},
+                5: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.2)'}, 6: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.25)'},
+                7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.3)'}, 8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.35)'},
+                9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.4)'}
+            };
+
+            const seeingInfo = {
+                1: {label: 'Seeing: Exc.', color: 'rgba(0, 255, 127, 0.15)'}, 2: {label: 'Seeing: Good', color: 'rgba(0, 255, 127, 0.2)'},
+                3: {label: 'Seeing: Good', color: 'rgba(173, 255, 47, 0.2)'}, 4: {label: 'Seeing: Avg.', color: 'rgba(255, 255, 0, 0.2)'},
+                5: {label: 'Seeing: Avg.', color: 'rgba(255, 215, 0, 0.2)'}, 6: {label: 'Seeing: Poor', color: 'rgba(255, 165, 0, 0.2)'},
+                7: {label: 'Seeing: Poor', color: 'rgba(255, 69, 0, 0.2)'}, 8: {label: 'Seeing: Bad', color: 'rgba(255, 0, 0, 0.2)'}
+            };
+
+            // Check if weather data is available and add it to the annotations object
+            if (data.weather_forecast && data.weather_forecast.length > 0) {
+                data.weather_forecast.forEach((block, index) => {
+                    // Cloud Cover Band (at the very top of the chart)
+                    annotations[`cloud_block_${index}`] = {
+                        type: 'box',
+                        xMin: block.start,
+                        xMax: block.end,
+                        yMin: 80, yMax: 90, // Positioned in the top 10 degrees of the altitude scale
+                        backgroundColor: cloudInfo[block.cloudcover]?.color || 'rgba(0,0,0,0.1)',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        label: {
+                            display: true,
+                            content: cloudInfo[block.cloudcover]?.label || 'Cloudy',
+                            position: 'center',
+                            font: { size: 10 },
+                            color: '#444'
+                        }
+                    };
+
+                    // Seeing Band (just below the cloud band)
+                    annotations[`seeing_block_${index}`] = {
+                        type: 'box',
+                        xMin: block.start,
+                        xMax: block.end,
+                        yMin: 70, yMax: 80, // Positioned in the 70-80 degree range
+                        backgroundColor: seeingInfo[block.seeing]?.color || 'rgba(0,0,0,0.1)',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        label: {
+                            display: true,
+                            content: seeingInfo[block.seeing]?.label || 'Seeing: N/A',
+                            position: 'center',
+                            font: { size: 10 },
+                            color: '#444'
+                        }
+                    };
+                });
+            }
+
+            // =================================================================
+            // === NEW WEATHER VISUALIZATION CODE END ===
+            // =================================================================
 
             function wallTimeMs(baseDateTime, timeStr) {
                 if (!timeStr || !timeStr.includes(':')) return null;
