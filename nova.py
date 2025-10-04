@@ -580,32 +580,66 @@ def migrate_journal_data():
     print("[MIGRATION] Check complete.")
 
 
-def get_astro_weather(lat, lon):
+def get_hybrid_weather_forecast(lat, lon):
     """
-    Fetches astronomical weather forecast from 7Timer! and caches it.
+    DEFINITIVE v2: Fetches and merges forecasts with robust, simple logic.
+    Prioritizes the 8-day 'meteo' forecast as the base and enhances it with 'astro' data if available.
     """
-    cache_key = f"{lat}_{lon}"
-    # Cache for 3 hours to avoid spamming the API
+    cache_key = f"hybrid_{lat}_{lon}"
     if cache_key in weather_cache and datetime.now() < weather_cache[cache_key]['expires']:
         return weather_cache[cache_key]['data']
 
+    # Step 1: Fetch the base 8-day forecast ('meteo'). This is the foundation.
+    meteo_data = None
     try:
-        url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
-        response = requests.get(url, timeout=15)
-        response.raise_for_status()  # Raise an exception for bad status codes
+        meteo_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=meteo&output=json&unit=metric"
+        response = requests.get(meteo_url, timeout=10)
+        if response.ok:
+            meteo_data = response.json()
+            print("DEBUG: Successfully fetched 8-day 'meteo' forecast.")
+        else:
+            print(f"WARNING: 'meteo' API call failed with status {response.status_code}")
+    except Exception as e:
+        print(f"ERROR: Could not fetch 'meteo' weather data: {e}")
 
-        weather_data = response.json()
-
-        # Cache the successful response
-        weather_cache[cache_key] = {
-            'data': weather_data,
-            'expires': datetime.now() + timedelta(hours=3)
-        }
-
-        return weather_data
-    except requests.exceptions.RequestException as e:
-        print(f"ERROR: Could not fetch weather data from 7Timer!: {e}")
+    # If the base 8-day forecast fails, we cannot proceed. Return nothing.
+    if not meteo_data or 'dataseries' not in meteo_data:
+        print("DEBUG: Base 'meteo' forecast failed. Returning no weather data.")
         return None
+
+    # Step 2: Create a dictionary from the base forecast for easy updates.
+    forecasts_by_timepoint = {block['timepoint']: block for block in meteo_data['dataseries']}
+
+    # Step 3: Try to fetch the detailed 3-day 'astro' forecast to enhance the base. This is optional.
+    try:
+        astro_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
+        response = requests.get(astro_url, timeout=10)
+        if response.ok:
+            astro_data = response.json()
+            print("DEBUG: Successfully fetched 3-day 'astro' forecast for enhancement.")
+            # If successful, merge the detailed data into our base forecast
+            for astro_block in astro_data.get('dataseries', []):
+                timepoint = astro_block.get('timepoint')
+                if timepoint is not None and timepoint in forecasts_by_timepoint:
+                    forecasts_by_timepoint[timepoint].update(astro_block)
+        else:
+             print(f"WARNING: 'astro' API call failed. Proceeding with cloud data only.")
+    except Exception as e:
+        print(f"WARNING: Could not fetch 'astro' data for enhancement: {e}. Proceeding with cloud data only.")
+
+    # Step 4: Reconstruct the final dataseries and prepare the final data object.
+    final_dataseries = list(forecasts_by_timepoint.values())
+    final_weather_data = {
+        'init': meteo_data['init'],
+        'dataseries': final_dataseries
+    }
+
+    # Step 5: Cache the result and return it.
+    weather_cache[cache_key] = {
+        'data': final_weather_data,
+        'expires': datetime.now() + timedelta(hours=3)
+    }
+    return final_weather_data
 
 
 def generate_session_id():
@@ -5122,33 +5156,39 @@ def get_plot_data(object_name):
     local_date = f"{year:04d}-{month:02d}-{day:02d}"
 
     # 1. Fetch the weather forecast for the location
-    weather_data = get_astro_weather(lat, lon)
+    weather_data = get_hybrid_weather_forecast(lat, lon)
     weather_forecast_series = []
 
     # 2. Process the data if the fetch was successful
-    if weather_data and 'dataseries' in weather_data:
+    if weather_data and isinstance(weather_data.get('dataseries'), list):
         try:
-            # The 'init' time is a string like "2025100400" (YYYYMMDDHH)
-            init_str = weather_data['init']
+            # The 'init' time is a string like "YYYYMMDDHH" (e.g., "2025100400")
+            init_str = weather_data.get('init', '')
             init_time = datetime(
                 year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
                 hour=int(init_str[8:10]), tzinfo=timezone.utc
             )
 
             for block in weather_data['dataseries']:
-                timepoint_hours = block['timepoint']
-                start_time = init_time + timedelta(hours=timepoint_hours)
+                # Use .get to avoid KeyError for fields not present in the 'meteo' product
+                timepoint_hours = block.get('timepoint')
+                if timepoint_hours is None:
+                    # Skip malformed entries
+                    continue
+
+                start_time = init_time + timedelta(hours=int(timepoint_hours))
                 end_time = start_time + timedelta(hours=3)  # 7Timer! uses 3-hour blocks
 
                 weather_forecast_series.append({
                     "start": start_time.isoformat(),
                     "end": end_time.isoformat(),
-                    "cloudcover": block['cloudcover'],
-                    "seeing": block['seeing'],
-                    "transparency": block['transparency']
+                    "cloudcover": block.get("cloudcover"),       # present in astro & meteo
+                    "seeing": block.get("seeing"),               # present only in astro (first ~72h)
+                    "transparency": block.get("transparency"),   # present only in astro (first ~72h)
                 })
         except Exception as e:
-            print(f"Error processing 7Timer! data: {e}")
+            # Keep a single concise log; avoid spamming runtime when optional fields are missing
+            print(f"Error processing 7Timer! data (tolerated): {e}")
 
 
 
