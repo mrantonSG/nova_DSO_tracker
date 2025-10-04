@@ -1507,22 +1507,24 @@
                     };
 
                     // Seeing Band (just below the cloud band)
-                    annotations[`seeing_block_${index}`] = {
-                        type: 'box',
-                        xMin: block.start,
-                        xMax: block.end,
-                        yMin: 70, yMax: 80, // Positioned in the 70-80 degree range
-                        backgroundColor: seeingInfo[block.seeing]?.color || 'rgba(0,0,0,0.1)',
-                        borderColor: 'transparent',
-                        borderWidth: 0,
-                        label: {
-                            display: true,
-                            content: seeingInfo[block.seeing]?.label || 'Seeing: N/A',
-                            position: 'center',
-                            font: { size: 10 },
-                            color: '#444'
-                        }
-                    };
+                    if (block.seeing) {
+                        annotations[`seeing_block_${index}`] = {
+                            type: 'box',
+                            xMin: block.start,
+                            xMax: block.end,
+                            yMin: 70, yMax: 80, // Positioned in the 70-80 degree range
+                            backgroundColor: seeingInfo[block.seeing]?.color || 'rgba(0,0,0,0.1)',
+                            borderColor: 'transparent',
+                            borderWidth: 0,
+                            label: {
+                                display: true,
+                                content: seeingInfo[block.seeing]?.label || 'Seeing: N/A',
+                                position: 'center',
+                                font: {size: 10},
+                                color: '#444'
+                            }
+                        };
+                    }
                 });
             }
 
