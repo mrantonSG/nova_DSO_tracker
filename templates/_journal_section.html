@@ -5,7 +5,7 @@
     .session-detail-column { flex: 1 1 auto; max-height: 750px; overflow-y: auto; padding-right: 15px; }
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
     .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: #555; border-bottom: 2px solid transparent; font-size: 15px; }
-    .detail-tab-button.active { color: #0056b3; border-bottom-color: #0056b3; font-weight: 600; }
+    .detail-tab-button.active { color: #83b4c5; border-bottom-color: #83b4c5; font-weight: 600; }
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; }
     .edit-mode { display: none; }
@@ -74,13 +74,43 @@
                 <div class="view-mode">
                 {% if selected_session_data %}
                     <div id="summary-tab" class="detail-tab-content active">
-                        <div class="summary-box"><div class="stat"><span class="stat-value">{% set integ_min = selected_session_data.get('calculated_integration_time_minutes') %}{{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }}</span><span class="stat-label">MINUTES</span></div><div class="stat"><span class="stat-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}"</span><span class="stat-label">SEEING (FWHM)</span></div><div class="stat"><span class="stat-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}"</span><span class="stat-label">GUIDING (RMS)</span></div><div class="stat"><span class="stat-value">{{ selected_session_data.session_rating_subjective | default('N/A') }} ★</span><span class="stat-label">RATING</span></div></div>
+                        <div class="summary-box">
+                            <div class="stat">
+                                <span class="stat-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}{% if selected_session_data.seeing_observed_fwhm %}"{% endif %}</span>
+                                <span class="stat-label">SEEING (FWHM)</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}{% if selected_session_data.guiding_rms_avg_arcsec %}"{% endif %}</span>
+                                <span class="stat-label">GUIDING (RMS)</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">{{ selected_session_data.sky_sqm_observed | default('N/A') }}</span>
+                                <span class="stat-label">SKY QUALITY (SQM)</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">
+                                    {% set mono_filters = [('L'), ('R'), ('G'), ('B'), ('Ha'), ('OIII'), ('SII')] %}
+                                    {% set has_mono_data = namespace(found=false) %}
+                                    {% for filt_key in mono_filters %}
+                                        {% if selected_session_data.get('filter_' ~ filt_key ~ '_subs') or selected_session_data.get('filter_' ~ filt_key ~ '_exposure_sec') %}
+                                            {% set has_mono_data.found = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if has_mono_data.found %}
+                                        Multiple
+                                    {% else %}
+                                        {{ selected_session_data.number_of_subs_light | default('N/A') }}x{{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s
+                                    {% endif %}
+                                </span>
+                                <span class="stat-label">EXPOSURES</span>
+                            </div>
+                        </div>
+                        {# --- MODIFICATION START --- #}
                         <dl class="detail-grid">
-                            <dt>Location:</dt><dd>{{ selected_session_data.location_name | default('N/A') }}</dd>
-                            <dt>SQM:</dt><dd>{{ selected_session_data.sky_sqm_observed | default('N/A') }}</dd>
                             <dt>Filter:</dt><dd>{{ selected_session_data.filter_used_session | default('N/A') }}</dd>
-                            <dt>Subs:</dt><dd>{% set mono_filters = [('L'), ('R'), ('G'), ('B'), ('Ha'), ('OIII'), ('SII')] %}{% set has_mono_data = namespace(found=false) %}{% for filt_key in mono_filters %}{% if selected_session_data.get('filter_' ~ filt_key ~ '_subs') or selected_session_data.get('filter_' ~ filt_key ~ '_exposure_sec') %}{% set has_mono_data.found = true %}{% endif %}{% endfor %}{% if has_mono_data.found %}Multiple (Mono){% else %}{{ selected_session_data.number_of_subs_light | default('N/A') }} x {{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s{% endif %}</dd>
+                            <dt>Telescope Setup:</dt><dd>{{ selected_session_data.telescope_setup_notes | default('N/A') }}</dd>
                         </dl>
+                        {# --- MODIFICATION END --- #}
                     </div>
                 {% else %}
                      <div style="text-align:center; padding-top: 50px; color: #6c757d;"><p>← Select a session from the history to view its details, or add a new one.</p></div>
