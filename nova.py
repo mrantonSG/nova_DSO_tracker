@@ -4510,6 +4510,11 @@ def plot_altitude(object_name):
             return jsonify({'error': 'Plot not found'}), 404
     return jsonify({"error": "Object not found"}), 404
 
+def get_object_list_from_config():
+    """Helper function to get the list of objects from the current user's config."""
+    if hasattr(g, 'user_config') and g.user_config and "objects" in g.user_config:
+        return g.user_config.get("objects", [])
+    return []
 
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
@@ -4617,17 +4622,11 @@ def graph_dashboard(object_name):
     sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat,
                                                                 effective_lon)
 
-    # <<< THIS ENTIRE BLOCK for loading and sorting rigs is the final, corrected version >>>
-    # Step 1: Load the full rig config to get both rigs and preferences
     username_for_rigs = "default" if SINGLE_USER_MODE else (
         current_user.username if current_user.is_authenticated else "guest_user")
     full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
-
-    # Step 2: Get the raw list of rigs and the sort preference from the config data
     unsorted_rigs = full_rig_config.get('rigs', [])
     sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
-
-    # Step 3: Calculate data for each rig
     rigs_with_calculated_data = []
     if unsorted_rigs:
         all_components = full_rig_config.get('components', {})
@@ -4635,17 +4634,12 @@ def graph_dashboard(object_name):
             calculated_data = calculate_rig_data(rig, all_components)
             rig.update(calculated_data)
             rigs_with_calculated_data.append(rig)
-
-    # Step 4: Sort the final list
     rigs_with_fov = sort_rigs_list(rigs_with_calculated_data, sort_preference)
-    # <<< END OF REPLACEMENT BLOCK >>>
 
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
         flash(f"Details for '{object_name}' could not be found.", "error")
         return redirect(url_for('index'))
-
-    # DEBUG statements have been removed for clarity in the final version
 
     return render_template('graph_view.html',
                            object_name=object_name,
@@ -4669,9 +4663,13 @@ def graph_dashboard(object_name):
                            graph_location_name_param=effective_location_name,
                            graph_lat_param=effective_lat,
                            graph_lon_param=effective_lon,
-                           graph_tz_name_param=effective_tz_name
+                           graph_tz_name_param=effective_tz_name,
+                           # --- THIS IS THE CORRECTED PART ---
+                           available_objects=get_object_list_from_config(),
+                           available_locations=g.locations,
+                           default_location=g.user_config.get('default_location'),
+                           today_date=datetime.now().strftime('%Y-%m-%d')
                            )
-
 @app.route('/plot_day/<path:object_name>')
 def plot_day(object_name):
     # --- Determine Date for the plot from request.args ---
