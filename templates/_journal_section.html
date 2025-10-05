@@ -33,16 +33,8 @@
     .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75em; }
     .history-header .inline-button { font-size: 13px; padding: 6px 12px; margin-right: 0; }
 
-    /* --- NEW styles for the detail header --- */
-    .detail-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1em;
-    }
-    .detail-header .action-button-group {
-        margin: 0;
-    }
+    .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
+    .detail-header .action-button-group { margin: 0; }
 </style>
 
 {% if object_specific_sessions or True %}
@@ -110,8 +102,24 @@
                             <dt>Location:</dt><dd>{{ selected_session_data.location_name | default('N/A') }}</dd>
                             <dt>SQM:</dt><dd>{{ selected_session_data.sky_sqm_observed | default('N/A') }}</dd>
                             <dt>Filter:</dt><dd>{{ selected_session_data.filter_used_session | default('N/A') }}</dd>
-                            <dt>Subs:</dt><dd>{{ selected_session_data.number_of_subs_light | default('N/A') }} x {{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s</dd>
-                        </dl>
+
+                            <dt>Subs:</dt>
+                            <dd>
+                                {% set mono_filters = [('L'), ('R'), ('G'), ('B'), ('Ha'), ('OIII'), ('SII')] %}
+                                {% set has_mono_data = namespace(found=false) %}
+                                {% for filt_key in mono_filters %}
+                                    {% if selected_session_data.get('filter_' ~ filt_key ~ '_subs') or selected_session_data.get('filter_' ~ filt_key ~ '_exposure_sec') %}
+                                        {% set has_mono_data.found = true %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if has_mono_data.found %}
+                                    Multiple (Mono)
+                                {% else %}
+                                    {{ selected_session_data.number_of_subs_light | default('N/A') }} x {{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s
+                                {% endif %}
+                            </dd>
+                            </dl>
                     </div>
                 {% else %}
                      <div style="text-align:center; padding-top: 50px; color: #6c757d;"><p>← Select a session from the history to view its details, or add a new one.</p></div>
@@ -184,7 +192,7 @@
         document.querySelector(`.detail-tab-button[data-tab="${tabName}"]`).classList.add('active');
     }
 
-    function setFormMode(mode) { // mode can be 'view', 'edit', or 'add'
+    function setFormMode(mode) {
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
         const title = document.getElementById('detail-title');
@@ -203,7 +211,7 @@
                 form.elements.session_id.value = '';
                 form.elements.session_date.value = '{{ today_date }}';
                 form.elements.location_name.value = '{{ default_location }}';
-            } else { // 'edit'
+            } else {
                 title.textContent = 'Editing Session: {{ selected_session_data.session_date | date_eu if selected_session_data }}';
                 submitBtn.textContent = 'Save Changes';
                 form.action = '{{ url_for("journal_edit", session_id=(selected_session_data.session_id if selected_session_data)) }}';
@@ -211,7 +219,7 @@
                 form.elements.location_name.value = '{{ selected_session_data.location_name if selected_session_data }}';
             }
             showDetailTab('sky');
-        } else { // 'view'
+        } else {
             title.textContent = '{% if selected_session_data %}Details for Session: {{ selected_session_data.session_date | date_eu }}{% endif %}';
             showDetailTab('summary');
         }
