@@ -76,7 +76,9 @@
             </div>
 
             <form id="journal-detail-form" method="POST" action="">
+                <input type="hidden" name="target_object_id" value="{{ object_name }}">
                 <input type="hidden" name="session_id" value="{{ selected_session_data.session_id if selected_session_data else '' }}">
+
                 <div class="action-button-group edit-mode">
                     <button id="form-submit-button" type="submit" class="inline-button" style="background-color:#28a745;"></button>
                     <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="cancelForm()">Cancel</button>
@@ -102,7 +104,6 @@
                             <dt>Location:</dt><dd>{{ selected_session_data.location_name | default('N/A') }}</dd>
                             <dt>SQM:</dt><dd>{{ selected_session_data.sky_sqm_observed | default('N/A') }}</dd>
                             <dt>Filter:</dt><dd>{{ selected_session_data.filter_used_session | default('N/A') }}</dd>
-
                             <dt>Subs:</dt>
                             <dd>
                                 {% set mono_filters = [('L'), ('R'), ('G'), ('B'), ('Ha'), ('OIII'), ('SII')] %}
@@ -119,7 +120,7 @@
                                     {{ selected_session_data.number_of_subs_light | default('N/A') }} x {{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s
                                 {% endif %}
                             </dd>
-                            </dl>
+                        </dl>
                     </div>
                 {% else %}
                      <div style="text-align:center; padding-top: 50px; color: #6c757d;"><p>← Select a session from the history to view its details, or add a new one.</p></div>
@@ -165,8 +166,8 @@
                         {% for filt_key, filt_name in mono_filters %}
                         <div class="form-row">
                             <div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div>
-                            <div class="form-group"><label># Subs:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" value="{{ entry['filter_' ~ filt_key ~ '_subs'] if entry['filter_' ~ filt_key ~ '_subs'] is not none else '' }}" placeholder="Count"></div>
-                            <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" value="{{ entry['filter_' ~ filt_key ~ '_exposure_sec'] if entry['filter_' ~ filt_key ~ '_exposure_sec'] is not none else '' }}" placeholder="Seconds"></div>
+                            <div class="form-group"><label># Subs:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" value="{{ entry['filter_' ~ filt_key ~ '_subs'] if entry and entry['filter_' ~ filt_key ~ '_subs'] is not none else '' }}" placeholder="Count"></div>
+                            <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" value="{{ entry['filter_' ~ filt_key ~ '_exposure_sec'] if entry and entry['filter_' ~ filt_key ~ '_exposure_sec'] is not none else '' }}" placeholder="Seconds"></div>
                         </div>
                         {% endfor %}
                     </div>
@@ -211,7 +212,7 @@
                 form.elements.session_id.value = '';
                 form.elements.session_date.value = '{{ today_date }}';
                 form.elements.location_name.value = '{{ default_location }}';
-            } else {
+            } else { // 'edit'
                 title.textContent = 'Editing Session: {{ selected_session_data.session_date | date_eu if selected_session_data }}';
                 submitBtn.textContent = 'Save Changes';
                 form.action = '{{ url_for("journal_edit", session_id=(selected_session_data.session_id if selected_session_data)) }}';
@@ -219,7 +220,7 @@
                 form.elements.location_name.value = '{{ selected_session_data.location_name if selected_session_data }}';
             }
             showDetailTab('sky');
-        } else {
+        } else { // 'view'
             title.textContent = '{% if selected_session_data %}Details for Session: {{ selected_session_data.session_date | date_eu }}{% endif %}';
             showDetailTab('summary');
         }
