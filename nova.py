@@ -2294,10 +2294,16 @@ def journal_delete(session_id):
         # If the session was not found at all, redirecting to journal_list_view or index is appropriate.
         return redirect(url_for('journal_list_view'))
 
-@app.route('/journal/add_for_target/<path:object_name>')
+
+@app.route('/journal/add_for_target/<path:object_name>', methods=['GET', 'POST'])
 @login_required
 def journal_add_for_target(object_name):
-    # Redirect to the main add form, passing the object_name as a query parameter
+    if request.method == 'POST':
+        # If the form is submitted, redirect the POST request to the main journal_add function
+        # which already contains all the logic to process the form data.
+        return redirect(url_for('journal_add'), code=307)
+
+    # For GET requests, the original behavior is maintained.
     return redirect(url_for('journal_add', target=object_name))
 
 
