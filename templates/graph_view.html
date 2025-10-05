@@ -779,30 +779,26 @@
         transition: opacity 200ms ease, visibility 200ms ease;
     }
 
+    /* Styles for the new tab navigation */
+    .tab-container { display: flex; margin-bottom: 25px; border-bottom: 2px solid #ccc; }
+    .tab-button { padding: 10px 20px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; background-color: #e9e9e9; margin-right: 5px; border-radius: 5px 5px 0 0; font-size: 16px; }
+    .tab-button.active { background-color: #fff; border-color: #ccc; border-bottom: 2px solid #fff; position: relative; top: 1px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 </style>
-
 {% endblock %}
-</head>
-<body>
+
 {% block body %}
 
-<div class="top-info-grid"> {# Renamed for clarity, this will be our main flex row for the two columns #}
-
-    {# ---- Column 1: Back to Tracker Button ---- #}
+<div class="top-info-grid">
     <div class="info-button-column">
         <button class="inline-button" onclick='window.top.location.href="{{ url_for("index") }}"'>Back to Tracker</button>
     </div>
-    {# ---- END: Column 1 ---- #}
-
-    {# ---- Column 2: Object Details and Secondary Info ---- #}
     <div class="info-details-column">
-        {# Object Name/ID Display #}
         <div class="object-title-block-main">
             <span class="object-common-name">{{ alt_name | default(object_name, True) }}</span>
             <span class="object-id-name">({{ object_name }})</span>
         </div>
-
-        {# Secondary Info Line: Location, Date, Moon, etc. #}
         <div class="secondary-info-line-main">
             <p><small>Location:</small> <span id="location-display">{{ header_location_name }}</span></p>
             <p><small>Date (Graph):</small> <span id="date-display">{{ header_date_display }}</span></p>
@@ -811,398 +807,99 @@
             <p><small>Astro Dawn:</small> <span id="dawn-display">{{ header_astro_dawn }}</span></p>
         </div>
     </div>
-    {# ---- END: Column 2 ---- #}
-
 </div>
-<div id="chart-section">
-    <div style="width: 80%; max-width: 1100px; margin-left: 0;">
-        <div id="chart-area">
-            <canvas id="altitudeChartCanvas"></canvas>
-            <div id="chart-loading" class="loading-overlay">Loading chart...</div>
-        </div>
 
-        <div class="date-controls" style="margin-top: 20px; padding-left: 20px; box-sizing: border-box;">
-            <label for="day-select">Day:</label>
-            <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;"/>
+<div class="tab-container">
+    <button class="tab-button active" data-tab="chart" onclick="showTab('chart')">Altitude Chart</button>
+    <button class="tab-button" data-tab="journal" onclick="showTab('journal')">Imaging Journal</button>
+    <button class="tab-button" data-tab="framing" onclick="showTab('framing')">Framing & Notes</button>
+</div>
 
-            <label for="month-select">Month:</label>
-            <select id="month-select">
-                {% for m in range(1, 13) %}
-                <option value="{{ m }}" {% if m== selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
-                {% endfor %}
-            </select>
-
-            <label for="year-select">Year:</label>
-            <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;"/>
-
-            <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
-            <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
-            <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
+<div id="chart-tab" class="tab-content active">
+    <div id="chart-section">
+        <div style="width: 80%; max-width: 1100px; margin-left: 0;">
+            <div id="chart-area">
+                <canvas id="altitudeChartCanvas"></canvas>
+                <div id="chart-loading" class="loading-overlay">Loading chart...</div>
+            </div>
+            <div class="date-controls" style="margin-top: 20px; padding-left: 20px; box-sizing: border-box;">
+                <label for="day-select">Day:</label>
+                <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;"/>
+                <label for="month-select">Month:</label>
+                <select id="month-select">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m== selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
+                    {% endfor %}
+                </select>
+                <label for="year-select">Year:</label>
+                <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;"/>
+                <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
+                <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
+                <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
+            </div>
         </div>
     </div>
 </div>
 
-{# End of chart-section #}
-
-
-<div class="content-section journal-section-for-object">
-    <h3>Imaging Journal for {{ alt_name | default(object_name, True) }}</h3>
-    <div class="action-button-group">
-        {% if is_guest %}
-        <a href="#" onclick="alert('Please log in to add a journal session.'); return false;" class="inline-button">Add
-            New Session</a>
-        {% else %}
-        <a href="{{ url_for('journal_add_for_target', object_name=object_name) }}" class="inline-button">Add New
-            Session</a>
-        {% endif %}
+<div id="journal-tab" class="tab-content">
+    <div class="content-section">
+        {% include '_journal_section.html' %}
     </div>
+</div>
 
-    {% if object_specific_sessions %}
-    <h4>Session History:</h4>
-    <div class="table-wrapper" style="max-height: 280px; overflow-y: auto; margin-bottom:15px;"> {# Make it scrollable
-        #}
-        <table class="session-history-table">
+<div id="framing-tab" class="tab-content">
+    {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
+    <div class="content-section">
+        <h3>Framing With Your Rigs</h3>
+        <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
+        <table class="framing-table">
             <thead>
             <tr>
-                <th class="col-date">Date</th>
-                <th class="col-location">Location</th>
-                <th class="col-setup">Telescope Setup</th>
-                <th class="col-integ">Integ. Time</th>
-                <th class="col-rating">Rating</th>
+                <th>Rig Name</th>
+                <th>Rig FOV</th>
+                <th>Object Size</th>
+                <th>Fit Assessment</th>
             </tr>
             </thead>
             <tbody>
-            {% for session_item in object_specific_sessions %}
-            <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}"
-                onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}"'>
-                <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}</td>
-                <td class="col-location">{{ session_item.location_name | default("N/A") }}</td>
-                <td class="col-setup">{{ session_item.telescope_setup_notes | default("N/A") | truncate(50, True) }}
-                </td>
-                <td class="col-integ">
-                    {% set integ_min = session_item.get('calculated_integration_time_minutes') %}
-                    {{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min
-                </td>
-                <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if
-                    session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and
-                    session_item.session_rating_subjective is not none %} ★{% endif %}
-                </td>
+            {% set object_size = object_main_details.Size | float %}
+            {% for rig in available_rigs %}
+            {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
+            {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
+            {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
+            {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "#e74c3c" %}
+            {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "#f39c12" %}
+            {% else %}{% set fit_ratio = (object_size / fov_min) * 100 %}
+            {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "#9b59b6" %}
+            {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "#3498db" %}
+            {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "#2ecc71" %}{% endif %}{% endif %}
+            <tr>
+                <td><strong>{{ rig.rig_name }}</strong></td>
+                <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
+                <td>{{ object_size }}'</td>
+                <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
             </tr>
-            {% endfor %}
+            {% endif %}{% endfor %}
             </tbody>
         </table>
     </div>
-
-    {% if selected_session_data %}
-    <div class="selected-session-details"> {# Keep this outer wrapper #}
-        <h4>Details for Session: {{ selected_session_data.session_date | date_eu }}
-            {% if selected_session_data.session_id %}<small>(ID: {{ selected_session_data.session_id[:8] }}...)</small>{%
-            endif %}
-        </h4>
-        <div class="action-button-group">
-            {% if is_guest %}
-            <a href="#" onclick="alert('Please log in to edit journal sessions.'); return false;" class="inline-button"
-               style="background-color:#ffc107; color:black;">Edit This Session</a>
-            {% else %}
-            <a href="{{ url_for('journal_edit', session_id=selected_session_data.session_id) }}" class="inline-button"
-               style="background-color:#ffc107; color:black;">Edit This Session</a>
-            {% endif %}
-            {% if is_guest %}
-            <button type="button" class="inline-button" style="background-color:#dc3545;"
-                    onclick="alert('Please log in to delete journal sessions.');">Delete This Session
-            </button>
-            {% else %}
-            <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST"
-                  style="display:inline;"
-                  onsubmit="return confirm('Are you sure you want to delete this journal entry? This action cannot be undone.');">
-                <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session
-                </button>
-            </form>
-            {% endif %}
-        </div>
-
-        {# --- Mimicking journal_form.html structure --- #}
-        <div class="form-section-title" style="margin-top:20px;">Core Info</div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Session Date:</label>
-                <p class="form-data-value">{{ selected_session_data.session_date | date_eu | default('N/A') }}</p>
-            </div>
-            <div class="form-group">
-                <label>Target Object:</label>
-                <p class="form-data-value">{{ selected_session_data.target_object_id | default('N/A') }}</p>
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Location:</label>
-            <p class="form-data-value">{{ selected_session_data.location_name | default('N/A') }}</p>
-        </div>
-
-        <div class="form-section-title">Sky Conditions (Observed)</div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Seeing (FWHM, arcsec):</label>
-                <p class="form-data-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}{% if
-                    selected_session_data.seeing_observed_fwhm and selected_session_data.seeing_observed_fwhm not in
-                    ['N/A', None] %}"{% endif %}</p>
-            </div>
-            <div class="form-group">
-                <label>Transparency Scale:</label>
-                <p class="form-data-value">{{ selected_session_data.transparency_observed_scale | default('N/A') }}</p>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>SQM Reading:</label>
-                <p class="form-data-value">{{ selected_session_data.sky_sqm_observed | default('N/A') }}</p>
-            </div>
-            <div class="form-group"></div>
-        </div>
-        <div class="form-group">
-            <label>Weather Notes:</label>
-            <div class="form-data-value preserve-newlines">{{ selected_session_data.weather_notes | default('N/A') }}
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Moon Illumination (Session):</label>
-                <p class="form-data-value">{{ selected_session_data.moon_illumination_session | default('N/A') }}{% if
-                    selected_session_data.moon_illumination_session not in ['N/A', None] %}%{% endif %}</p>
-            </div>
-            <div class="form-group">
-                <label>Moon Angular Separation (Session):</label>
-                <p class="form-data-value">{{ selected_session_data.moon_angular_separation_session | default('N/A')
-                    }}{% if selected_session_data.moon_angular_separation_session not in ['N/A', None] %}°{% endif
-                    %}</p>
-            </div>
-        </div>
-        <div class="form-section-title">Equipment & Guiding</div>
-        <div class="form-group">
-            <label>Telescope Setup Notes:</label>
-            <p class="form-data-value">{{ selected_session_data.telescope_setup_notes | default('N/A') }}</p>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Filter Used:</label>
-                <p class="form-data-value">{{ selected_session_data.filter_used_session | default('N/A') }}</p>
-            </div>
-            <div class="form-group">
-                <label>Guiding RMS (avg, arcsec):</label>
-                <p class="form-data-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}{% if
-                    selected_session_data.guiding_rms_avg_arcsec and selected_session_data.guiding_rms_avg_arcsec not in
-                    ['N/A', None] %}"{% endif %}</p>
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Guiding Equipment (Scope, Camera, Software):</label>
-            <p class="form-data-value">{{ selected_session_data.guiding_equipment | default('N/A') }}</p>
-        </div>
-        <div class="form-group">
-            <label>Dither Settings:</label>
-            <p class="form-data-value">{{ selected_session_data.dither_details | default('N/A') }}</p>
-        </div>
-        <div class="form-group">
-            <label>Acquisition Software:</label>
-            <p class="form-data-value">{{ selected_session_data.acquisition_software | default('N/A') }}</p>
-        </div>
-        <div class="form-section-title">Acquisition Details</div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Sub Exposure (seconds):</label>
-                <p class="form-data-value">{{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s</p>
-            </div>
-            <div class="form-group">
-                <label>Number of Light Subs:</label>
-                <p class="form-data-value">{{ selected_session_data.number_of_subs_light | default('N/A') }}</p>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Gain:</label>
-                <p class="form-data-value">{{ selected_session_data.gain_setting | default('N/A') }}</p>
-            </div>
-            <div class="form-group">
-                <label>Offset:</label>
-                <p class="form-data-value">{{ selected_session_data.offset_setting | default('N/A') }}</p>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Binning:</label>
-                <p class="form-data-value">{{ selected_session_data.binning_session | default('N/A') }}</p>
-            </div>
-            <div class="form-group">
-                <label>Total Integration:</label>
-                <p class="form-data-value">
-                    {% set integ_min_detail = selected_session_data.get('calculated_integration_time_minutes') %}
-                    {{ integ_min_detail | round(0) if integ_min_detail is number and integ_min_detail != 'N/A' else
-                    'N/A' }} min
-                </p>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Camera Temp Setpoint (°C):</label>
-                <p class="form-data-value">{{ selected_session_data.camera_temp_setpoint_c | default('N/A') }}°C</p>
-            </div>
-            <div class="form-group">
-                <label>Camera Temp Actual Avg (°C):</label>
-                <p class="form-data-value">{{ selected_session_data.camera_temp_actual_avg_c | default('N/A') }}°C</p>
-            </div>
-        </div>
-
-        <div class="form-section-title">Monochrome Filter Exposures</div>
-
-        {% set filters_display = [
-        ('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'),
-        ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')
-        ] %}
-
-        {% for filt_key, filt_name in filters_display %}
-        {% set subs_val = selected_session_data.get('filter_' + filt_key + '_subs') %}
-        {% set exp_val = selected_session_data.get('filter_' + filt_key + '_exposure_sec') %}
-
-        {# Only display the row if there's data for either subs or exposure for that filter #}
-        {% if (subs_val is not none and subs_val|string|trim != '') or
-        (exp_val is not none and exp_val|string|trim != '') %}
-        {# The rest of the div.form-row and its content remains the same as before #}
-        <div class="form-row" style="margin-bottom: 8px;">
-            <div class="form-group" style="flex: 0 0 200px; display: flex; align-items: center;">
-                <label style="margin-bottom: 0;">{{ filt_name }} ({{ filt_key }}) Filter:</label>
-            </div>
-            <div class="form-group">
-                <label># Subs:</label>
-                <p class="form-data-value">{{ subs_val | default('N/A') }}</p>
-            </div>
-            <div class="form-group">
-                <label>Exp (sec/sub):</label>
-                <p class="form-data-value">{{ exp_val | default('N/A') }}</p>
-            </div>
-        </div>
-        {% endif %}
-        {% endfor %}
-
-        <div class="form-section-title">Calibration Strategy</div>
-        <div class="form-group">
-            <label>Darks:</label>
-            <p class="form-data-value">{{ selected_session_data.darks_strategy | default('N/A') }}</p>
-        </div>
-        <div class="form-group">
-            <label>Flats:</label>
-            <p class="form-data-value">{{ selected_session_data.flats_strategy | default('N/A') }}</p>
-        </div>
-        <div class="form-group">
-            <label>Bias / Dark Flats:</label>
-            <p class="form-data-value">{{ selected_session_data.bias_darkflats_strategy | default('N/A') }}</p>
-        </div>
-
-        <div class="form-section-title">Outcome & Reflections</div>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Session Rating (1-5 ★):</label>
-                <p class="form-data-value">{{ selected_session_data.session_rating_subjective | default('N/A') }}{% if
-                    selected_session_data.session_rating_subjective and selected_session_data.session_rating_subjective
-                    not in ['N/A', None] %} ★{% endif %}</p>
-            </div>
-
-        </div>
-
-        <div class="form-group">
-            <label>General Notes, Problems, Learnings:</label>
-            <div class="form-data-value preserve-newlines">{{ selected_session_data.general_notes_problems_learnings |
-                default('N/A') }}
-            </div>
-        </div>
-    </div>
-    {% elif object_specific_sessions %}
-    <p style="margin-top:15px; color:#555;"><em>Select a session from the history above to view its full details.</em>
-    </p>
     {% endif %}
-    {% else %}
-    <p style="margin-top:15px; color:#777;">No journal entries found for {{ alt_name | default(object_name, True)
-        }}.</p>
-    {% endif %}
-</div>
-{# End of Journal Section #}
 
-{% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
-<div class="content-section">
-    <h3>Framing With Your Rigs</h3>
-    <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension
-        and may not reflect framing of specific features.</em></p>
-    <table class="framing-table">
-        <thead>
-        <tr>
-            <th>Rig Name</th>
-            <th>Rig FOV</th>
-            <th>Object Size</th>
-            <th>Fit Assessment</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% set object_size = object_main_details.Size | float %}
-        {% for rig in available_rigs %}
-        {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
-        {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
-        {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
-
-        {# --- NEW, MORE DETAILED LOGIC --- #}
-        {% if object_size > fov_max %}
-        {% set fit_text = "Mosaic Required" %}
-        {% set fit_color = "#e74c3c" %} {# Red #}
-
-        {% elif object_size > fov_min %}
-        {% set fit_text = "Fits with Rotation" %}
-        {% set fit_color = "#f39c12" %} {# Orange #}
-
-        {% else %}
-        {# The object fits easily, so now we assess how well #}
-        {% set fit_ratio = (object_size / fov_min) * 100 %}
-
-        {% if fit_ratio < 5 %}
-        {# NEW CATEGORY for very small objects #}
-        {% set fit_text = "Small Target" %}
-        {% set fit_color = "#9b59b6" %} {# Purple #}
-        {% elif fit_ratio < 20 %}
-        {% set fit_text = "Wide Field" %}
-        {% set fit_color = "#3498db" %} {# Blue #}
-        {% else %}
-        {% set fit_text = "Good Fit" %}
-        {% set fit_color = "#2ecc71" %} {# Green #}
-        {% endif %}
-        {% endif %}
-
-        <tr>
-            <td><strong>{{ rig.rig_name }}</strong></td>
-            <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
-            <td>{{ object_size }}'</td>
-            <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
-        </tr>
-        {% endif %}
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
-
-{# This was your 'button-container' div previously, now wrapped and styled #}
-<div class="content-section project-notes-section">
-    <h3>Project Notes</h3>
-    <textarea id="project-field" name="project_notes_from_config"
-              title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
-    <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
-    <div class="button-group"> {# Your existing group of buttons for this object #}
-        <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
-        {# If you make project-field editable #}
-        <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
-        <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
-        <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
-        <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
+    <div class="content-section project-notes-section">
+        <h3>Project Notes</h3>
+        <textarea id="project-field" name="project_notes_from_config"
+                  title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
+        <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+        <div class="button-group">
+            <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
+            <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
+            <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
+            <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
+            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
+        </div>
+        <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
     </div>
-    <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
 </div>
-{# End of Project Notes Section #}
-
 
 <div id="simbadContainer" style="display:none; margin-top:20px;">
     <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
@@ -1214,171 +911,80 @@
     <table id="opportunities-table" class="opportunity-table center-text">
         <thead>
         <tr>
-            <th>Date</th>
-            <th>From</th>
-            <th>To</th>
-            <th>Obs Duration (min)</th>
-            <th>Max Alt (°)</th>
-            <th>Moon Illum (%)</th>
-            <th>Ang Sep (°)</th>
-            <th>Rating</th>
-            <th>Add to Cal</th>
-        </tr>
+            <th>Date</th><th>From</th><th>To</th><th>Obs Duration (min)</th><th>Max Alt (°)</th>
+            <th>Moon Illum (%)</th><th>Ang Sep (°)</th><th>Rating</th><th>Add to Cal</th>
         </tr>
         </thead>
-        <tbody id="opportunities-body">
-        {# Populated by loadImagingOpportunities() #}
-        </tbody>
+        <tbody id="opportunities-body"></tbody>
     </table>
 </div>
+
 <div id="framing-modal" class="modal">
     <div id="framing-modal-content">
         <div class="modal-controls">
-            <button type="button" class="fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen"
-                    onclick="toggleFramingFullscreen(this)">⤢
-            </button>
-            <button type="button" class="close-btn" aria-label="Close" title="Close" onclick="closeFramingAssistant()">
-                ×
-            </button>
+            <button type="button" class="fullscreen-btn" aria-label="Toggle fullscreen" title="Fullscreen" onclick="toggleFramingFullscreen(this)">⤢</button>
+            <button type="button" class="close-btn" aria-label="Close" title="Close" onclick="closeFramingAssistant()">×</button>
         </div>
-
-        <!-- Modal header (inside the white panel) -->
         <div class="modal-header-bar">
-            <div class="brand">
-                <span class="brand-strong">Nova</span>
-                <span class="brand-light">DSO Tracker</span>
-            </div>
+            <div class="brand"><span class="brand-strong">Nova</span><span class="brand-light">DSO Tracker</span></div>
             <span id="fov-vs-object" class="fov-chip"></span>
         </div>
-
-        <!-- QoL utility bar -->
         <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
-            <label style="display:flex;align-items:center;gap:6px;">
-                <input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)">
-                Lock FOV
-            </label>
-
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°
-            </button>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy
-                framing URL
-            </button>
-            <button id="insert-into-project" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;"
-                    onclick="insertFramingIntoProject()">Insert into Project</button>
-            </button>
+            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)" checked> Lock FOV</label>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
+            <button id="insert-into-project" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="insertFramingIntoProject()">Insert into Project</button>
         </div>
         <div class="framing-controls">
             <div>
                 <label for="framing-rig-select">Select Rig:</label>
                 <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();">
-                    {% if available_rigs %}
-                    {% for rig in available_rigs %}
-                    <option value="{{ rig.rig_id }}"
-                            data-fovw="{{ rig.fov_w_arcmin }}"
-                            data-fovh="{{ rig.fov_h_arcmin }}">
-                        {{ rig.rig_name }}
-                    </option>
-                    {% endfor %}
-                    {% else %}
-                    <option value="">No rigs configured</option>
-                    {% endif %}
+                    {% if available_rigs %}{% for rig in available_rigs %}
+                    <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
+                    {% endfor %}{% else %}<option value="">No rigs configured</option>{% endif %}
                 </select>
             </div>
-
             <div>
               <label for="framing-rotation">Rotation:</label>
-              <input
-                type="range"
-                id="framing-rotation"
-                min="-90"
-                max="90"
-                value="0"
-                step="0.5"
-                oninput="onRotationInput(this.value)"
-                onchange="onRotationInput(this.value)"
-              />
+              <input type="range" id="framing-rotation" min="-90" max="90" value="0" step="0.5" oninput="onRotationInput(this.value)" onchange="onRotationInput(this.value)"/>
               <span id="rotation-value">0°</span>
             </div>
-
             <div>
                 <label for="survey-select">Survey:</label>
                 <select id="survey-select" onchange="setSurvey(this.value)">
-                    <option value="P/DSS2/color">DSS2 (color)</option>
-                    <option value="P/allWISE/color">AllWISE (color)</option>
-                    <option value="P/2MASS/color">2MASS (color)</option>
-                    <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
-                    <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
-                    <option value="CDS/P/SHASSA">SHASSA Hα</option>
-                    <option value="P/SDSS9/color">SDSS9 (color)</option>
+                    <option value="P/DSS2/color">DSS2 (color)</option><option value="P/allWISE/color">AllWISE (color)</option><option value="P/2MASS/color">2MASS (color)</option>
+                    <option value="P/GALEXGR6/AIS/color">GALEX (color)</option><option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
+                    <option value="CDS/P/SHASSA">SHASSA Hα</option><option value="P/SDSS9/color">SDSS9 (color)</option>
                 </select>
                 <span style="margin-left:18px;">Blend with:</span>
-                    <select id="blend-survey-select" style="margin-left:6px;">
-                        <option value="P/DSS2/color" selected>DSS2 (color)</option>
-                        <option value="P/DSS2/red">DSS2 (red)</option>
-                        <option value="P/DSS2/blue">DSS2 (blue)</option>
-                        <option value="P/2MASS/color">2MASS (color)</option>
-                        <option value="P/allWISE/color">WISE (color)</option>
-                        <option value="P/SDSS9/color">SDSS (color)</option>
-                        <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
-                    </select>
-                    <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0"
-                           title="Blend opacity" style="width:130px; vertical-align:middle; margin-left:8px;">
+                <select id="blend-survey-select" style="margin-left:6px;">
+                    <option value="P/DSS2/color" selected>DSS2 (color)</option><option value="P/DSS2/red">DSS2 (red)</option><option value="P/DSS2/blue">DSS2 (blue)</option>
+                    <option value="P/2MASS/color">2MASS (color)</option><option value="P/allWISE/color">WISE (color)</option><option value="P/SDSS9/color">SDSS (color)</option>
+                    <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
+                </select>
+                <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="Blend opacity" style="width:130px; vertical-align:middle; margin-left:8px;">
             </div>
         </div>
-
-        <!-- Image tuning + RA/Dec utility bar -->
         <div class="framing-controls" style="flex-wrap: wrap;">
-            <div>
-                <label>Brightness</label>
-                <input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0"
-                       oninput="updateImageAdjustments()">
-            </div>
-            <div>
-                <label>Contrast</label>
-                <input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0"
-                       oninput="updateImageAdjustments()">
-            </div>
-            <div>
-                <label>Gamma</label>
-                <input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1"
-                       oninput="updateImageAdjustments()">
-            </div>
-            <div>
-                <label>Saturation</label>
-                <input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0"
-                       oninput="updateImageAdjustments()">
-            </div>
-
+            <div><label>Brightness</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
+            <div><label>Contrast</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
+            <div><label>Gamma</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" oninput="updateImageAdjustments()"></div>
+            <div><label>Saturation</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <label>RA</label>
-                <input id="ra-readout" type="text" style="width:160px;" readonly>
-                <label>Dec</label>
-                <input id="dec-readout" type="text" style="width:160px;" readonly>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy
-                </button>
-                <!--        <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="useReadoutAsFovCenter()">Use current RA/Dec</button>-->
+                <label>RA</label><input id="ra-readout" type="text" style="width:160px;" readonly>
+                <label>Dec</label><input id="dec-readout" type="text" style="width:160px;" readonly>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
             </div>
-
             <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:12px;color:#555;">Tip: Click on the sky to move the FOV center.</span>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;"
-                        onclick="resetFovCenterToObject()">Recenter to object
-                </button>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="resetFovCenterToObject()">Recenter to object</button>
                 <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">
-                        ↑
-                    </button>
+                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">↑</button>
                     <div>
-                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Left"
-                                onclick="nudgeFov(-1, 0)">←
-                        </button>
-                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Right"
-                                onclick="nudgeFov(+1, 0)">→
-                        </button>
+                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Left" onclick="nudgeFov(-1, 0)">←</button>
+                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" onclick="nudgeFov(+1, 0)">→</button>
                     </div>
-                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">
-                        ↓
-                    </button>
+                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">↓</button>
                     <span style="font-size:12px;color:#555;">(1′ steps)</span>
                 </div>
             </div>
@@ -1391,8 +997,15 @@
 <script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
-
 <script>
+    // --- NEW: Tab Management Function ---
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+        document.getElementById(tabName + '-tab').classList.add('active');
+        document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
+        localStorage.setItem('activeGraphTab', tabName);
+    }
 
     const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
     Chart.defaults.adapters = Chart.defaults.adapters || {};
@@ -1403,13 +1016,10 @@
     console.log('Adapter:', Chart._adapters?._date?.id, 'Zone:', Chart.defaults.adapters.date.zone);
 
     const OBJECT_SIZE_ARCMIN = null;
-    // --- Aladin Lite Variables ---
     let aladin = null;
     let fovLayer = null;
-    // --- NEW CLIENT-SIDE CHARTING LOGIC ---
-    let altitudeChart = null; // Global variable to hold the chart instance
+    let altitudeChart = null;
 
-    // Function to parse a HH:MM time string and combine it with a date object
     function getDateTimeMs(baseDateISO, timeStr) {
         if (!timeStr || !timeStr.includes(':')) return null;
         const [hour, minute] = timeStr.split(':').map(Number);
@@ -1420,445 +1030,153 @@
     async function renderClientSideChart() {
         const chartLoadingDiv = document.getElementById('chart-loading');
         chartLoadingDiv?.classList.remove('hidden');
-
-        // Inputs from the page
         const objectName = "{{ object_name }}";
         const day = document.getElementById('day-select').value;
         const month = document.getElementById('month-select').value;
         const year = document.getElementById('year-select').value;
-
         const plotLat = "{{ graph_lat_param | default('', True) }}";
         const plotLon = "{{ graph_lon_param | default('', True) }}";
         const plotTz = "{{ graph_tz_name_param | default('', True) }}";
         const plotLocName = "{{ graph_location_name_param | default('', True) }}";
-        const apiUrl =
-            `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}` +
-            `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}` +
-            `&plot_loc_name=${encodeURIComponent(plotLocName)}`;
-
-        // DEBUGGING LINE: This will print the exact URL to your browser's console.
+        const apiUrl = `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}&plot_loc_name=${encodeURIComponent(plotLocName)}`;
         console.log("Fetching Chart Data from API URL:", apiUrl);
 
         try {
-            // --- fetch data
             const resp = await fetch(apiUrl);
             if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
             const data = await resp.json();
-
-            // --- build times + annotations
-            // Robust “to milliseconds” parser for mixed inputs
             function toMs(val) {
                 if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
                 if (typeof val === 'string') {
                     const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
-                    if (hasOffset) {
-                        return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
-                    } else {
-                        return luxon.DateTime.fromISO(val, {zone: plotTz}).toMillis();
-                    }
+                    if (hasOffset) return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
+                    else return luxon.DateTime.fromISO(val, {zone: plotTz}).toMillis();
                 }
                 return null;
             }
-
             const labels = data.times.map(toMs);
             const annotations = {};
             const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
             const nextDt = baseDt.plus({days: 1});
-
-            // =================================================================
-            // === NEW WEATHER VISUALIZATION CODE START ===
-            // =================================================================
-
-            // Helper objects to map weather codes to colors and labels
-            const cloudInfo = {
-                1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.0)'}, 2: {label: 'Clear', color: 'rgba(135, 206, 250, 0.05)'},
-                3: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.1)'}, 4: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.15)'},
-                5: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.2)'}, 6: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.25)'},
-                7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.3)'}, 8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.35)'},
-                9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.4)'}
-            };
-
-            const seeingInfo = {
-                1: {label: 'Seeing: Exc.', color: 'rgba(0, 255, 127, 0.15)'}, 2: {label: 'Seeing: Good', color: 'rgba(0, 255, 127, 0.2)'},
-                3: {label: 'Seeing: Good', color: 'rgba(173, 255, 47, 0.2)'}, 4: {label: 'Seeing: Avg.', color: 'rgba(255, 255, 0, 0.2)'},
-                5: {label: 'Seeing: Avg.', color: 'rgba(255, 215, 0, 0.2)'}, 6: {label: 'Seeing: Poor', color: 'rgba(255, 165, 0, 0.2)'},
-                7: {label: 'Seeing: Poor', color: 'rgba(255, 69, 0, 0.2)'}, 8: {label: 'Seeing: Bad', color: 'rgba(255, 0, 0, 0.2)'}
-            };
-
-            // Check if weather data is available and add it to the annotations object
+            const cloudInfo = { 1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.0)'}, 2: {label: 'Clear', color: 'rgba(135, 206, 250, 0.05)'}, 3: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.1)'}, 4: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.15)'}, 5: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.2)'}, 6: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.25)'}, 7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.3)'}, 8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.35)'}, 9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.4)'} };
+            const seeingInfo = { 1: {label: 'Seeing: Exc.', color: 'rgba(0, 255, 127, 0.15)'}, 2: {label: 'Seeing: Good', color: 'rgba(0, 255, 127, 0.2)'}, 3: {label: 'Seeing: Good', color: 'rgba(173, 255, 47, 0.2)'}, 4: {label: 'Seeing: Avg.', color: 'rgba(255, 255, 0, 0.2)'}, 5: {label: 'Seeing: Avg.', color: 'rgba(255, 215, 0, 0.2)'}, 6: {label: 'Seeing: Poor', color: 'rgba(255, 165, 0, 0.2)'}, 7: {label: 'Seeing: Poor', color: 'rgba(255, 69, 0, 0.2)'}, 8: {label: 'Seeing: Bad', color: 'rgba(255, 0, 0, 0.2)'} };
             if (data.weather_forecast && data.weather_forecast.length > 0) {
                 data.weather_forecast.forEach((block, index) => {
-                    // Cloud Cover Band (at the very top of the chart)
-                    annotations[`cloud_block_${index}`] = {
-                        type: 'box',
-                        xMin: block.start,
-                        xMax: block.end,
-                        yMin: 80, yMax: 90, // Positioned in the top 10 degrees of the altitude scale
-                        backgroundColor: cloudInfo[block.cloudcover]?.color || 'rgba(0,0,0,0.1)',
-                        borderColor: 'transparent',
-                        borderWidth: 0,
-                        label: {
-                            display: true,
-                            content: cloudInfo[block.cloudcover]?.label || 'Cloudy',
-                            position: 'center',
-                            font: { size: 10 },
-                            color: '#444'
-                        }
-                    };
-
-                    // Seeing Band (just below the cloud band)
-                    if (block.seeing) {
-                        annotations[`seeing_block_${index}`] = {
-                            type: 'box',
-                            xMin: block.start,
-                            xMax: block.end,
-                            yMin: 70, yMax: 80, // Positioned in the 70-80 degree range
-                            backgroundColor: seeingInfo[block.seeing]?.color || 'rgba(0,0,0,0.1)',
-                            borderColor: 'transparent',
-                            borderWidth: 0,
-                            label: {
-                                display: true,
-                                content: seeingInfo[block.seeing]?.label || 'Seeing: N/A',
-                                position: 'center',
-                                font: {size: 10},
-                                color: '#444'
-                            }
-                        };
-                    }
+                    annotations[`cloud_block_${index}`] = { type: 'box', xMin: block.start, xMax: block.end, yMin: 80, yMax: 90, backgroundColor: cloudInfo[block.cloudcover]?.color || 'rgba(0,0,0,0.1)', borderColor: 'transparent', borderWidth: 0, label: { display: true, content: cloudInfo[block.cloudcover]?.label || 'Cloudy', position: 'center', font: { size: 10 }, color: '#444' } };
+                    if (block.seeing) annotations[`seeing_block_${index}`] = { type: 'box', xMin: block.start, xMax: block.end, yMin: 70, yMax: 80, backgroundColor: seeingInfo[block.seeing]?.color || 'rgba(0,0,0,0.1)', borderColor: 'transparent', borderWidth: 0, label: { display: true, content: seeingInfo[block.seeing]?.label || 'Seeing: N/A', position: 'center', font: {size: 10}, color: '#444' } };
                 });
             }
-
-            // =================================================================
-            // === NEW WEATHER VISUALIZATION CODE END ===
-            // =================================================================
-
             function wallTimeMs(baseDateTime, timeStr) {
                 if (!timeStr || !timeStr.includes(':')) return null;
                 const [h, m] = timeStr.split(':').map(Number);
                 return baseDateTime.set({hour: h, minute: m, second: 0, millisecond: 0}).toMillis();
             }
-
             const sunsetTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.sunset);
             let duskTime;
             const duskTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
-            if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) {
-                duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
-            } else {
-                duskTime = duskTimeCurrent;
-            }
+            if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
+            else duskTime = duskTimeCurrent;
             const dawnTime = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
             const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
             const sunsetTime = sunsetTimeCurrent;
-            const firstMs = labels[0];
-            const lastMs = labels[labels.length - 1];
-            const originalWindowMs = lastMs - firstMs;
-            const midnightMs = luxon.DateTime.fromISO(data.date, {zone: plotTz}).plus({days: 1}).startOf('day').toMillis();
-            const currentCenterMs = (firstMs + lastMs) / 2;
-            const delta = midnightMs - currentCenterMs;
-            const xMinCentered = firstMs + delta;
-            const xMaxCentered = xMinCentered + originalWindowMs;
-
-            if (sunsetTime) {
-                annotations.sunsetLine = {
-                    type: 'line', xMin: sunsetTime, xMax: sunsetTime, borderColor: 'black', borderWidth: 1,
-                    label: { display: true, content: 'Sunset', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
-                };
-            }
-            if (duskTime) {
-                annotations.duskLine = {
-                    type: 'line', xMin: duskTime, xMax: duskTime, borderColor: 'black', borderWidth: 1,
-                    label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
-                };
-            }
-            if (dawnTime) {
-                annotations.dawnLine = {
-                    type: 'line', xMin: dawnTime, xMax: dawnTime, borderColor: 'black', borderWidth: 1,
-                    label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
-                };
-            }
-            if (sunriseTime) {
-                annotations.sunriseLine = {
-                    type: 'line', xMin: sunriseTime, xMax: sunriseTime, borderColor: 'black', borderWidth: 1,
-                    label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 }
-                };
-            }
-
+            const firstMs = labels[0], lastMs = labels[labels.length - 1], originalWindowMs = lastMs - firstMs, midnightMs = luxon.DateTime.fromISO(data.date, {zone: plotTz}).plus({days: 1}).startOf('day').toMillis();
+            const currentCenterMs = (firstMs + lastMs) / 2, delta = midnightMs - currentCenterMs, xMinCentered = firstMs + delta, xMaxCentered = xMinCentered + originalWindowMs;
+            if (sunsetTime) annotations.sunsetLine = { type: 'line', xMin: sunsetTime, xMax: sunsetTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Sunset', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
+            if (duskTime) annotations.duskLine = { type: 'line', xMin: duskTime, xMax: duskTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
+            if (dawnTime) annotations.dawnLine = { type: 'line', xMin: dawnTime, xMax: dawnTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
+            if (sunriseTime) annotations.sunriseLine = { type: 'line', xMin: sunriseTime, xMax: sunriseTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
             if (data.transit_time && data.transit_time !== "N/A") {
-                const parts = (data.transit_time || '').split(':');
-                const th = Number(parts[0] || 0);
-                const tm = Number(parts[1] || 0);
-                const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
-                const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
-                const nightStart = duskTime;
-                const nightEnd = dawnTime;
-                const inWindow = (t) => t >= nightStart && t <= nightEnd;
+                const parts = (data.transit_time || '').split(':'), th = Number(parts[0] || 0), tm = Number(parts[1] || 0);
+                const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis(), t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+                const nightStart = duskTime, nightEnd = dawnTime, inWindow = (t) => t >= nightStart && t <= nightEnd;
                 const transitMs = inWindow(t0) ? t0 : inWindow(t1) ? t1 : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
-                annotations.transitLine = {
-                    type: 'line', xMin: transitMs, xMax: transitMs, borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6], clip: false,
-                    label: { display: true, content: data.transit_time, position: 'start', rotation: 90, font: {size: 10, weight: 'bold'}, color: 'crimson', backgroundColor: 'rgba(255,255,255,0.7)' }
-                };
+                annotations.transitLine = { type: 'line', xMin: transitMs, xMax: transitMs, borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6], clip: false, label: { display: true, content: data.transit_time, position: 'start', rotation: 90, font: {size: 10, weight: 'bold'}, color: 'crimson', backgroundColor: 'rgba(255,255,255,0.7)' } };
             }
-
-            const nightShade = {
-                id: 'nightShade',
-                beforeDraw(chart) {
-                    const {ctx, chartArea, scales} = chart;
-                    if (!chartArea) return;
-                    const left = scales.x.getPixelForValue(scales.x.min);
-                    const right = scales.x.getPixelForValue(scales.x.max);
-                    const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
-                    const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
-                    ctx.save();
-                    ctx.fillStyle = 'rgba(211, 211, 211, 1)';
-                    if (duskPx < dawnPx) {
-                        if (duskPx > left) { ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height); }
-                        if (dawnPx < right) { ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height); }
-                    } else {
-                        ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
-                    }
-                    ctx.restore();
-                }
-            };
-
+            const nightShade = { id: 'nightShade', beforeDraw(chart) { const {ctx, chartArea, scales} = chart; if (!chartArea) return; const left = scales.x.getPixelForValue(scales.x.min), right = scales.x.getPixelForValue(scales.x.max); const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right, dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left; ctx.save(); ctx.fillStyle = 'rgba(211, 211, 211, 1)'; if (duskPx < dawnPx) { if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height); if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height); } else ctx.fillRect(left, chartArea.top, right - left, chartArea.height); ctx.restore(); } };
             const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
             if (window.altitudeChart) window.altitudeChart.destroy();
-
-            window.altitudeChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-                        { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-                        { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
-                        { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
-                        { label: '{{ object_name }} Azimuth', data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
-                        { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
-                    ]
-                },
-                plugins: [nightShade],
-                options: {
-                    responsive: true, maintainAspectRatio: true, aspectRatio: 2, adapters: {date: {zone: plotTz}},
-                    plugins: { annotation: {annotations}, legend: {position: 'top'}, title: { display: false, text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`, align: 'start', font: {size: 16} } },
-                    scales: {
-                        x: { type: 'time', adapters: { date: { zone: plotTz }}, parsing: false, time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}}, min: xMinCentered, max: xMaxCentered, bounds: 'ticks', ticks: {source: 'auto'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}, title: {display: true, text: `Time (Local - {{ header_location_name }})`} },
-                        yAltitude: { position: 'left', min: -90, max: 90, title: {display: true, text: 'Altitude (°)'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]} },
-                        yAzimuth: { position: 'right', min: 0, max: 360, title: {display: true, text: 'Azimuth (°)'}, grid: {drawOnChartArea: false} }
-                    }
-                }
-            });
+            window.altitudeChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [ { label: '{{ object_name }} Altitude', data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 }, { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 }, { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' }, { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 }, { label: '{{ object_name }} Azimuth', data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }, { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 } ] }, plugins: [nightShade], options: { responsive: true, maintainAspectRatio: true, aspectRatio: 2, adapters: {date: {zone: plotTz}}, plugins: { annotation: {annotations}, legend: {position: 'top'}, title: { display: false, text: `Altitude and Azimuth for {{ alt_name }} on ${data.date}`, align: 'start', font: {size: 16} } }, scales: { x: { type: 'time', adapters: { date: { zone: plotTz }}, parsing: false, time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}}, min: xMinCentered, max: xMaxCentered, bounds: 'ticks', ticks: {source: 'auto'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}, title: {display: true, text: `Time (Local - {{ header_location_name }})`} }, yAltitude: { position: 'left', min: -90, max: 90, title: {display: true, text: 'Altitude (°)'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]} }, yAzimuth: { position: 'right', min: 0, max: 360, title: {display: true, text: 'Azimuth (°)'}, grid: {drawOnChartArea: false} } } } });
         } catch (err) {
             console.error('Could not render chart:', err);
-            const canvas = document.getElementById('altitudeChartCanvas');
-            const ctx = canvas.getContext('2d');
+            const canvas = document.getElementById('altitudeChartCanvas'), ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '16px Arial';
-            ctx.fillStyle = 'red';
-            ctx.textAlign = 'center';
-            ctx.fillText('Error: Could not load chart data.', canvas.width / 2, canvas.height / 2);
-        } finally {
-            chartLoadingDiv?.classList.add('hidden');
-        }
+            ctx.font = '16px Arial'; ctx.fillStyle = 'red'; ctx.textAlign = 'center'; ctx.fillText('Error: Could not load chart data.', canvas.width / 2, canvas.height / 2);
+        } finally { chartLoadingDiv?.classList.add('hidden'); }
     }
 
     async function renderMonthlyYearlyChart(view) {
         const chartLoadingDiv = document.getElementById('chart-loading');
         chartLoadingDiv?.classList.remove('hidden');
-
-        const objectName = "{{ object_name }}";
-        const selMonth = document.getElementById('month-select').value;
-        const year = document.getElementById('year-select').value;
-        const plotLat = "{{ graph_lat_param | default('', True) }}";
-        const plotLon = "{{ graph_lon_param | default('', True) }}";
-        const plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
-
+        const objectName = "{{ object_name }}", selMonth = document.getElementById('month-select').value, year = document.getElementById('year-select').value, plotLat = "{{ graph_lat_param | default('', True) }}", plotLon = "{{ graph_lon_param | default('', True) }}", plotTz = "{{ graph_tz_name_param | default('UTC', true) }}";
         let titleText, objAlt = [], moonAlt = [], horizon = [];
-
         try {
             if (view === 'year') {
                 titleText = `Yearly Altitude at Local Midnight for {{ alt_name }} - ${year}`;
-
                 const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
-                const urls = months.map(m =>
-                    `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`
-                );
-
+                const urls = months.map(m => `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${m}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`);
                 const responses = await Promise.all(urls.map(u => fetch(u)));
                 const bad = responses.find(r => !r.ok);
                 if (bad) throw new Error(`HTTP ${bad.status} for ${bad.url}`);
-
                 const monthly = await Promise.all(responses.map(r => r.json()));
-
-                monthly.forEach(block => {
-                    block.dates.forEach((d, i) => {
-                        const t = `${d}T00:00:00`;
-                        objAlt.push({x: t, y: block.object_alt[i]});
-                        moonAlt.push({x: t, y: block.moon_alt[i]});
-                        horizon.push({x: t, y: 0});
-                    });
-                });
-
+                monthly.forEach(block => { block.dates.forEach((d, i) => { const t = `${d}T00:00:00`; objAlt.push({x: t, y: block.object_alt[i]}); moonAlt.push({x: t, y: block.moon_alt[i]}); horizon.push({x: t, y: 0}); }); });
             } else {
                 titleText = `Monthly Altitude at Local Midnight for {{ alt_name }} - ${year}-${selMonth}`;
-
-                const apiUrl =
-                    `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}` +
-                    `&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
-
+                const apiUrl = `/api/get_monthly_plot_data/${encodeURIComponent(objectName)}?year=${year}&month=${selMonth}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}`;
                 const resp = await fetch(apiUrl);
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const data = await resp.json();
-
-                data.dates.forEach((d, i) => {
-                    const t = `${d}T00:00:00`;
-                    objAlt.push({x: t, y: data.object_alt[i]});
-                    moonAlt.push({x: t, y: data.moon_alt[i]});
-                    horizon.push({x: t, y: 0});
-                });
+                data.dates.forEach((d, i) => { const t = `${d}T00:00:00`; objAlt.push({x: t, y: data.object_alt[i]}); moonAlt.push({x: t, y: data.moon_alt[i]}); horizon.push({x: t, y: 0}); });
             }
-
             const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
             if (window.altitudeChart) window.altitudeChart.destroy();
-
-            window.altitudeChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: [
-                        {
-                            label: '{{ object_name }} Altitude',
-                            data: objAlt,
-                            borderColor: '#36A2EB',
-                            borderWidth: 3,
-                            pointRadius: 0,
-                            tension: 0.2
-                        },
-                        {
-                            label: 'Moon Altitude',
-                            data: moonAlt,
-                            borderColor: 'gold',
-                            borderWidth: 2.5,
-                            pointRadius: 0,
-                            tension: 0.0
-                        },
-                        {label: 'Horizon', data: horizon, borderColor: 'black', borderWidth: 2, pointRadius: 0}
-                    ]
-                },
-                options: {
-                    adapters: {date: {zone: plotTz}},
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: (view === 'year') ? 'month' : 'day',
-                                displayFormats: (view === 'year') ? {month: 'MMM'} : {day: 'dd'}
-                            },
-                            title: {
-                                display: true,
-                                text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}`
-                            }
-                        },
-                        y: {
-                            min: -90, max: 90,
-                            title: {display: true, text: 'Altitude (°)'}
-                        }
-                    },
-                    plugins: {
-                        legend: {position: 'top'},
-                        title: {display: false, text: titleText, align: 'start', font: {size: 16}}
-                    }
-                }
-            });
-
+            window.altitudeChart = new Chart(ctx, { type: 'line', data: { datasets: [ { label: '{{ object_name }} Altitude', data: objAlt, borderColor: '#36A2EB', borderWidth: 3, pointRadius: 0, tension: 0.2 }, { label: 'Moon Altitude', data: moonAlt, borderColor: 'gold', borderWidth: 2.5, pointRadius: 0, tension: 0.0 }, {label: 'Horizon', data: horizon, borderColor: 'black', borderWidth: 2, pointRadius: 0} ] }, options: { adapters: {date: {zone: plotTz}}, responsive: true, maintainAspectRatio: true, aspectRatio: 2, scales: { x: { type: 'time', time: { unit: (view === 'year') ? 'month' : 'day', displayFormats: (view === 'year') ? {month: 'MMM'} : {day: 'dd'} }, title: { display: true, text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}` } }, y: { min: -90, max: 90, title: {display: true, text: 'Altitude (°)'} } }, plugins: { legend: {position: 'top'}, title: {display: false, text: titleText, align: 'start', font: {size: 16}} } } });
         } catch (err) {
             console.error(`Could not render ${view} chart:`, err);
             const canvas = document.getElementById('altitudeChartCanvas');
-            if (canvas) {
-                const c = canvas.getContext('2d');
-                c.clearRect(0, 0, canvas.width, canvas.height);
-                c.font = "16px Arial";
-                c.fillStyle = "red";
-                c.textAlign = "center";
-                c.fillText(`Error loading ${view} chart data.`, canvas.width / 2, canvas.height / 2);
-            }
-        } finally {
-            chartLoadingDiv?.classList.add('hidden');
-        }
+            if (canvas) { const c = canvas.getContext('2d'); c.clearRect(0, 0, canvas.width, canvas.height); c.font = "16px Arial"; c.fillStyle = "red"; c.textAlign = "center"; c.fillText(`Error loading ${view} chart data.`, canvas.width / 2, canvas.height / 2); }
+        } finally { chartLoadingDiv?.classList.add('hidden'); }
     }
 
-    // NEW: base image layer handle + FOV center
     let baseSurvey = null;
-    let blendLayer = null;         // secondary survey layer for alpha blending
-    let fovCenter = null; // { ra: number, dec: number }
-
-    // --- QoL state ---
-let lockToObject = false;
-let objectCoords = null; // {ra, dec} resolved once per open
-
-// --- Angle helpers (UI uses signed ±180, URLs persist 0..359) ---
-function to360(deg) {
-    return ((deg % 360) + 360) % 360;
-}
-function toSigned180(deg) {
-    const d = to360(deg);
-    return d > 180 ? d - 360 : d;
-}
-// --- Smooth rotation updates (throttled with requestAnimationFrame) ---
-let __pendingRotation = null;
-let __rafRotation = null;
-
-function scheduleRotationUpdate(deg) {
-  __pendingRotation = Number(deg);
-  if (__rafRotation) return;
-  __rafRotation = requestAnimationFrame(() => {
-    const val = __pendingRotation;
-    __pendingRotation = null;
-    __rafRotation = null;
-
-    const rotation = Math.max(-90, Math.min(90, Number(val) || 0));
-
-    if (typeof lockToObject !== 'undefined' && lockToObject) {
-      const sel = document.getElementById('framing-rig-select');
-      if (sel && sel.selectedIndex >= 0) {
-        const opt = sel.options[sel.selectedIndex];
-        updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rotation);
-      }
+    let blendLayer = null;
+    let fovCenter = null;
+    let lockToObject = false;
+    let objectCoords = null;
+    function to360(deg) { return ((deg % 360) + 360) % 360; }
+    function toSigned180(deg) { const d = to360(deg); return d > 180 ? d - 360 : d; }
+    let __pendingRotation = null;
+    let __rafRotation = null;
+    function scheduleRotationUpdate(deg) {
+        __pendingRotation = Number(deg);
+        if (__rafRotation) return;
+        __rafRotation = requestAnimationFrame(() => {
+            const val = __pendingRotation;
+            __pendingRotation = null; __rafRotation = null;
+            const rotation = Math.max(-90, Math.min(90, Number(val) || 0));
+            if (typeof lockToObject !== 'undefined' && lockToObject) {
+                const sel = document.getElementById('framing-rig-select');
+                if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rotation); }
+            }
+            if (typeof window.updateFramingChart === 'function') window.updateFramingChart(false);
+        });
     }
-    if (typeof window.updateFramingChart === 'function') {
-      window.updateFramingChart(false);
+    function onRotationInput(val) {
+        const v = Math.max(-90, Math.min(90, Number(val) || 0));
+        const span = document.getElementById('rotation-value');
+        if (span) span.textContent = v.toFixed(1).replace(/\.0$/, '') + '°';
+        scheduleRotationUpdate(v);
     }
-  });
-}
-
-function onRotationInput(val) {
-  const v = Math.max(-90, Math.min(90, Number(val) || 0));
-  const span = document.getElementById('rotation-value');
-  if (span) span.textContent = v.toFixed(1).replace(/\.0$/, '') + '°';
-  scheduleRotationUpdate(v);
-}
-
     function toggleFramingFullscreen(btn) {
         const modalContent = document.getElementById('framing-modal-content');
         if (!modalContent) return;
-
         modalContent.classList.toggle('fullscreen');
-        // Update button icon/label to reflect the new state
         const isFullscreen = modalContent.classList.contains('fullscreen');
-        if (btn) {
-            btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; // Shrink / Expand arrows
-            btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen';
-        }
+        if (btn) { btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'; }
     }
-
     function setProjectQuickLink(url) {
         const container = document.getElementById('project-quick-link');
         if (!container) return;
-
-        // Clear any existing button
         container.innerHTML = '';
-
         if (url) {
             const btn = document.createElement('button');
             btn.className = 'inline-button';
@@ -1866,1335 +1184,229 @@ function onRotationInput(val) {
             btn.style.padding = '6px 12px';
             btn.textContent = 'Re-open Last Saved Framing';
             btn.onclick = () => {
-              // Merge current framing params (including blend) with provided base url
-              try {
-                const u = new URL(url, location.origin);
-                const qNow = new URLSearchParams(buildFramingQuery().slice(1));
-                qNow.forEach((v, k) => u.searchParams.set(k, v));
-                history.pushState(null, '', u.pathname + '?' + u.searchParams.toString());
-              } catch (e) {
-                history.pushState(null, '', url);
-              }
-              // Open the modal, which will now read the new URL parameters
-              openFramingAssistant();
+                try {
+                    const u = new URL(url, location.origin);
+                    const qNow = new URLSearchParams(buildFramingQuery().slice(1));
+                    qNow.forEach((v, k) => u.searchParams.set(k, v));
+                    history.pushState(null, '', u.pathname + '?' + u.searchParams.toString());
+                } catch (e) { history.pushState(null, '', url); }
+                openFramingAssistant();
             };
             container.appendChild(btn);
         }
     }
-
-    // --- Aladin Lite Functions ---
     function openFramingAssistant() {
         const framingModal = document.getElementById('framing-modal');
         const framingRigSelect = document.getElementById('framing-rig-select');
-
-        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
-            alert("Please configure at least one rig on the Configuration page first.");
-            return;
-        }
-
-        // Show the modal
+        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") { alert("Please configure at least one rig on the Configuration page first."); return; }
         framingModal.style.display = 'block';
-        // Ensure a visible rotation readout element exists
-        (function ensureRotationReadout(){
-            const slider = document.getElementById('framing-rotation');
-            if (!slider) return;
-
-            // Ensure slider has centered range ±180° for bi‑directional rotation
-            slider.setAttribute('min', '-90');
-            slider.setAttribute('max', '90');
-            slider.setAttribute('step', '0.5');
-            if (!slider.hasAttribute('value')) slider.setAttribute('value', '0');
-
-            // Remove any stray literal '0°' text nodes or extra whitespace after the slider
-            let n = slider.nextSibling;
-            while (n && n.nodeType === Node.TEXT_NODE) {
-                const t = n.textContent.trim();
-                const next = n.nextSibling;
-                if (t === '' || t === '0°') n.parentNode.removeChild(n); else break;
-                n = next;
-            }
-
-            // Ensure there is exactly one readout span
-            const existingSpans = Array.from(document.querySelectorAll('#rotation-value'));
-            let span = existingSpans[0];
-            // Remove any duplicates beyond the first
-            if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove());
-
-            if (!span) {
-                span = document.createElement('span');
-                span.id = 'rotation-value';
-                span.style.marginLeft = '8px';
-                span.style.fontWeight = 'normal';
-                span.style.fontSize = '15px';
-                slider.insertAdjacentElement('afterend', span);
-                try { span.style.fontWeight = 'normal'; } catch(_) {}
-            }
-            // Make the readout clickable to reset to 0°
-            try {
-                span.style.cursor = 'pointer';
-                span.title = 'Tap to reset rotation to 0°';
-                span.addEventListener('click', () => {
-                    const slider = document.getElementById('framing-rotation');
-                    if (!slider) return;
-                    slider.value = '0';
-                    slider.dispatchEvent(new Event('input', { bubbles: true }));
-                }, { once: false });
-            } catch (e) {}
-        })();
-
-        // Initialize Aladin once
+        (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '-90'); slider.setAttribute('max', '90'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
         if (!aladin) {
-            aladin = A.aladin('#aladin-lite-div', {
-                survey: "P/DSS2/color",
-                fov: 1.5,
-                cooFrame: 'ICRS',
-                showFullscreenControl: false,
-                showGotoControl: false
-            });
-        // --- Custom wheel zoom: slower & smooth
-        (function installSlowWheelZoom(){
-            if (window.__novaSlowZoomInstalled) return; // avoid double-install
-            const host = document.getElementById('aladin-lite-div');
-            if (!host) return;
-
-            // Help browsers avoid scroll chaining (Firefox/Chromium)
-            try { host.style.overscrollBehavior = 'contain'; } catch(e) {}
-
-            function onWheel(ev) {
-                // Let system pinch-zoom (Ctrl/⌘) pass through
-                if (ev.ctrlKey) return;
-                // We handle zoom ourselves
-                ev.preventDefault();
-                ev.stopPropagation();
-
-                if (!aladin) return;
-
-                // Normalize delta across devices/browsers
-                // deltaMode: 0=pixels, 1=lines (~16 px), 2=pages (~400 px heuristic)
-                const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1;
-                let dy = (ev.deltaY || 0) * unit;
-
-                // Tame aggressive trackpads further
-                dy = Math.max(-80, Math.min(80, dy));
-
-                // Read current FOV width (deg) robustly
-                const g = aladin.getFov();
-                const current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1);
-
-                // Smaller coef => slower zoom. 0.00045 is gentle; tweak to taste.
-                const scale = Math.exp(dy * 0.00075);
-                const minFov = 0.01, maxFov = 180;
-                const next = Math.min(maxFov, Math.max(minFov, current * scale));
-                if (Number.isFinite(next)) aladin.setFov(next);
-            }
-
-            // Capture-phase so we intercept before Aladin's internal handler
-            host.addEventListener('wheel', onWheel, { passive: false, capture: true });
-
-            // Also bind directly to the internal canvas (in case it stops propagation)
-            const tryBindCanvas = () => {
-                const cv = host.querySelector('canvas');
-                if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true });
-            };
-            // Try now and again after a tick (canvas may appear after init)
-            tryBindCanvas();
-            setTimeout(tryBindCanvas, 50);
-
-            window.__novaSlowZoomInstalled = true;
-        })();
+            aladin = A.aladin('#aladin-lite-div', { survey: "P/DSS2/color", fov: 1.5, cooFrame: 'ICRS', showFullscreenControl: false, showGotoControl: false });
+            (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
-            // ---------- Blending helpers (Aladin Lite v3) ----------
             let __blendSurveyId = null;
-
-            function ensureBlendLayer() {
-              if (!aladin) return null;
-              const sel = document.getElementById('blend-survey-select');
-              if (!sel) return null;
-              const surveyId = sel.value;
-
-              // Reuse if already set to same
-              const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
-              if (existing && __blendSurveyId === surveyId) return existing;
-
-              try {
-                const hpx = (aladin.newImageSurvey)
-                  ? aladin.newImageSurvey(surveyId)
-                  : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
-
-                if (hpx) {
-                  aladin.setOverlayImageLayer(hpx, 'blend');
-                  __blendSurveyId = surveyId;
-                  return aladin.getOverlayImageLayer('blend');
-                }
-              } catch (e) {
-                console.warn('[nova] Could not create/set overlay image survey:', e);
-              }
-              return null;
-            }
-
-            function setBlendOpacity(a) {
-              const v = Math.max(0, Math.min(1, Number(a) || 0));
-              if (!aladin) return;
-              const layer = ensureBlendLayer();
-
-              // Try layer method first
-              if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) {
-                (layer.setOpacity || layer.setAlpha).call(layer, v);
-                return;
-              }
-              // Fallback: survey object (some builds expose setOpacity there)
-              try {
-                const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
-                survey?.setOpacity?.(v);
-              } catch(e) {}
-            }
-
-
-            // Wire blending UI
-            (function wireBlendAndConstellationUI(){
-                const blendSel = document.getElementById('blend-survey-select');
-                const blendOp  = document.getElementById('blend-opacity');
-
-                if (blendSel) {
-                    blendSel.addEventListener('change', () => {
-                        ensureBlendLayer();
-                        const v = Number(blendOp?.value || 0);
-                        setBlendOpacity(v);
-                        updateFramingChart(false);
-                    });
-                }
-                if (blendOp) {
-                    const sync = (e) => {
-                        setBlendOpacity(e.target.value);
-                        updateFramingChart(false);
-                    };
-                    blendOp.addEventListener('input', sync);
-                    blendOp.addEventListener('change', sync);
-                }
-
-                // Initialize (blend hidden)
-                try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {}
-            })();
-            // Keep screen-space FOV rectangle visible and sized while zooming
-            if (aladin.on) {
-                aladin.on('zoomChanged', () => {
-                    if (!lockToObject) return;
-                    const sel = document.getElementById('framing-rig-select');
-                    const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-                    if (sel && sel.selectedIndex >= 0) {
-                        const opt = sel.options[sel.selectedIndex];
-                        updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot);
-                    }
-                });
-            }
-            // Re‑apply blend layer after base survey changes (some builds clear overlays)
-            if (aladin.on) {
-                aladin.on('baseLayerChanged', () => {
-                    try {
-                        const bop = document.getElementById('blend-opacity');
-                        // Recreate overlay for the selected blend survey and restore opacity
-                        ensureBlendLayer();
-                        if (bop) setBlendOpacity(bop.value);
-                    } catch (e) {
-                        console.warn('[nova] Could not reapply blend after base change:', e);
-                    }
-                });
-            }
-
-            // Overlay for the FOV polygon
+            function ensureBlendLayer() { if (!aladin) return null; const sel = document.getElementById('blend-survey-select'); if (!sel) return null; const surveyId = sel.value; const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); if (existing && __blendSurveyId === surveyId) return existing; try { const hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(surveyId) : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' }); if (hpx) { aladin.setOverlayImageLayer(hpx, 'blend'); __blendSurveyId = surveyId; return aladin.getOverlayImageLayer('blend'); } } catch (e) { console.warn('[nova] Could not create/set overlay image survey:', e); } return null; }
+            function setBlendOpacity(a) { const v = Math.max(0, Math.min(1, Number(a) || 0)); if (!aladin) return; const layer = ensureBlendLayer(); if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) { (layer.setOpacity || layer.setAlpha).call(layer, v); return; } try { const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); survey?.setOpacity?.(v); } catch(e) {} }
+            (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
+            if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
+            if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
             fovLayer = A.graphicOverlay({color: '#83b4c5', lineWidth: 3});
             aladin.addOverlay(fovLayer);
-
             const canvas = document.getElementById('aladin-lite-div');
-            // --- Watch for canvas size changes so FOV frame always stays visible ---
-            if (window.ResizeObserver && canvas) {
-                let roTimer = null;
-                const ro = new ResizeObserver(() => {
-                    clearTimeout(roTimer);
-                    roTimer = setTimeout(() => {
-                        const sel = document.getElementById('framing-rig-select');
-                        if (sel && sel.selectedIndex >= 0) {
-                            const opt = sel.options[sel.selectedIndex];
-                            applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
-                        }
-                        updateFramingChart(false);
-                        if (lockToObject) {
-                            const sel = document.getElementById('framing-rig-select');
-                            const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-                            if (sel && sel.selectedIndex >= 0) {
-                                const opt = sel.options[sel.selectedIndex];
-                                updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot);
-                            }
-                        }
-                                            }, 80);
-                });
-                ro.observe(canvas);
-            }
-            // Prepare a screen-space overlay for "Lock FOV"
-            (function ensureScreenOverlay(){
-                const host = document.getElementById('aladin-lite-div');
-                if (!host) return;
-                // Ensure we can absolutely-position a child over the canvas
-                if (!host.style.position) host.style.position = 'relative';
-
-                if (!document.getElementById('screen-fov-overlay')) {
-                    const ov = document.createElement('div');
-                    ov.id = 'screen-fov-overlay';
-                    ov.style.position = 'absolute';
-                    ov.style.inset = '0';
-                    ov.style.pointerEvents = 'none';
-                    ov.style.zIndex = '5';
-
-                    const rect = document.createElement('div');
-                    rect.id = 'screen-fov-rect';
-                    rect.style.position = 'absolute';
-                    rect.style.border = '3px solid #83b4c5';
-                    rect.style.boxSizing = 'border-box';
-                    rect.style.left = '50%';
-                    rect.style.top = '50%';
-                    rect.style.transformOrigin = 'center center';
-                    rect.style.display = 'none';  // only visible when locked
-                    ov.appendChild(rect);
-
-                    host.appendChild(ov);
-                }
-            })();
-            // Shift+Click → set FOV center to cursor (plain click does nothing)
-            canvas.addEventListener('click', (ev) => {
-                if (!ev.shiftKey) return;      // <— NEW requirement
-                if (lockToObject) return;      // respect lock
-                const rect = canvas.getBoundingClientRect();
-                const x = ev.clientX - rect.left;
-                const y = ev.clientY - rect.top;
-                const sky = aladin.pix2world(x, y);
-                if (!sky) return;
-                fovCenter = {ra: sky[0], dec: sky[1]};
-                updateFramingChart(false);
-                if (lockToObject) {
-                    const sel = document.getElementById('framing-rig-select');
-                    const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-                    if (sel && sel.selectedIndex >= 0) {
-                        const opt = sel.options[sel.selectedIndex];
-                        updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot);
-                    }
-                }
-                updateReadoutFromCenter();
-            });
-
-            // Keyboard nudges (1′)
-            window.addEventListener('keydown', (e) => {
-                const k = e.key.toLowerCase();
-                if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
-                    e.preventDefault();
-                    if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
-                    if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
-                    if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
-                    if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
-                }
-            });
-
-            // Keep rotation value live and update overlay without refit (attach every open)
-            (function wireRotationLiveUpdate(){
-                const rotInput = document.getElementById('framing-rotation');
-                if (!rotInput) return;
-
-                const handler = () => {
-                    // Snap-to-zero "detent" so 0° is always reachable on touch sliders
-                    // Threshold of 1° feels natural; adjust if needed.
-                    const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0;
-                    const snapped = (Math.abs(raw) <= 1) ? 0 : raw;
-                    if (snapped !== raw) {
-                        rotInput.value = String(snapped);
-                    }
-                    // Recompute everything (including label) in one place
-                    updateFramingChart(false);
-                };
-
-                // Remove previous handler if any to avoid duplicates
-                try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {}
-                try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {}
-                rotInput.__novaRotHandler = handler;
-                rotInput.addEventListener('input', handler);
-                rotInput.addEventListener('change', handler);
-                // Normalize the slider's attribute so programmatic changes reflect
-                try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {}
-                // Initialize display immediately
-                handler();
-            })();
-
-            // Wire: Insert into Project should carry blend settings as well
-            (function wireInsertIntoProject(){
-              const btn = document.getElementById('insert-into-project');
-              if (!btn) return;
-              try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {}
-              btn.__novaInsertHandler = (ev) => {
-                try {
-                  // Update the URL (no reload) so backend reads all params, including blend*
-                  const q = buildFramingQuery();
-                  const href = location.pathname + q;
-                  history.replaceState(null, '', href);
-                  // Let any existing handler proceed (we just made sure the URL is up-to-date)
-                } catch(e) {
-                  console.warn('[nova] Insert-to-project wiring error:', e);
-                }
-              };
-              btn.addEventListener('click', btn.__novaInsertHandler);
-            })();
-
+            if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } }, 80); }); ro.observe(canvas); }
+            (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = '3px solid #83b4c5'; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
+            canvas.addEventListener('click', (ev) => { if (!ev.shiftKey) return; if (lockToObject) return; const rect = canvas.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top; const sky = aladin.pix2world(x, y); if (!sky) return; fovCenter = {ra: sky[0], dec: sky[1]}; updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } updateReadoutFromCenter(); });
+            window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) { e.preventDefault(); if (k === 'arrowup' || k === 'w') nudgeFov(0, +1); if (k === 'arrowdown' || k === 's') nudgeFov(0, -1); if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0); if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0); } });
+            (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
+            (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
         }
-        // Helper: build current framing query (used by Insert to Project & quick links)
-        function buildFramingQuery() {
-          const sel = document.getElementById('framing-rig-select');
-          const rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '';
-          const rotInput = document.getElementById('framing-rotation');
-          const rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0;
-          const sSel = document.getElementById('survey-select');
-          const survey = sSel ? sSel.value : '';
-          const bSel = document.getElementById('blend-survey-select');
-          const bOp  = document.getElementById('blend-opacity');
-          const blend = bSel ? bSel.value : '';
-          const blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0;
-          const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
-
-          const qp = new URLSearchParams();
-          if (rig) qp.set('rig', rig);
-          if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
-          if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
-          qp.set('rot', String(Math.round(to360(rot))));
-          if (survey) qp.set('survey', survey);
-          if (blend) qp.set('blend', blend);
-          qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
-          return '?' + qp.toString();
-        }
-        // -------- Restore from URL (rig/center/rotation/survey) --------
-        let haveCenter = false;
-        let haveRot = false;
-        let haveRigRestored = false;
-
+        function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN }); const qp = new URLSearchParams(); if (rig) qp.set('rig', rig); if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6)); if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6)); qp.set('rot', String(Math.round(to360(rot)))); if (survey) qp.set('survey', survey); if (blend) qp.set('blend', blend); qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op)))); return '?' + qp.toString(); }
+        let haveCenter = false, haveRot = false, haveRigRestored = false;
         try {
-            const q = new URLSearchParams(location.search);
-            const rig = q.get('rig');
-            const ra = parseFloat(q.get('ra'));
-            const dec = parseFloat(q.get('dec'));
-            const rot = parseFloat(q.get('rot'));
-            const surv = q.get('survey');
-            const blend = q.get('blend');
-            const blendOp = parseFloat(q.get('blend_op'));
-
-            // Rig
-            if (rig) {
-                const sel = document.getElementById('framing-rig-select');
-                if (sel) {
-                    const idx = Array.from(sel.options).findIndex(o => o.value === rig);
-                    if (idx >= 0) {
-                        sel.selectedIndex = idx;
-                        haveRigRestored = true;
-                    }
-                }
-            }
-
-            // Rotation (persisted as 0..359; UI uses signed −180..+180)
-            if (!Number.isNaN(rot)) {
-                const rotInput = document.getElementById('framing-rotation');
-                const signed = toSigned180(rot);
-                if (rotInput) rotInput.value = signed;
-                const rotSpan = document.getElementById('rotation-value');
-                if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`;
-                haveRot = true;
-            }
-
-            // Survey
-            if (surv) {
-                if (typeof setSurvey === 'function') setSurvey(surv);
-                else {
-                    const s = document.getElementById('survey-select');
-                    if (s) s.value = surv;
-                }
-            }
-
-            // Blend survey & opacity
-            try {
-              const bsel = document.getElementById('blend-survey-select');
-              const bop  = document.getElementById('blend-opacity');
-              if (blend && bsel) {
-                bsel.value = blend;
-                if (typeof ensureBlendLayer === 'function') ensureBlendLayer();
-              }
-              if (!Number.isNaN(blendOp) && bop) {
-                bop.value = String(Math.max(0, Math.min(1, blendOp)));
-                if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value);
-              }
-            } catch (e) {}
-
-            // Finalize: ensure blend overlay + opacity actually applied
-            try {
-              const bop2 = document.getElementById('blend-opacity');
-              ensureBlendLayer();
-              if (bop2) setBlendOpacity(bop2.value);
-            } catch (e) {}
-
-            // Saved frame center
-            if (!Number.isNaN(ra) && !Number.isNaN(dec)) {
-                fovCenter = {ra, dec};       // IMPORTANT: assign the real variable, not window.*
-                haveCenter = true;
-            } else {
-                fovCenter = null;
-            }
-        } catch (e) {
-            // ignore; keep current defaults
-        }
-        // Finalize: ensure blend shows what URL/controls say (covers late base survey init)
-        try {
-            const bop = document.getElementById('blend-opacity');
-            ensureBlendLayer();
-            if (bop) setBlendOpacity(bop.value);
+            const q = new URLSearchParams(location.search), rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec')), rot = parseFloat(q.get('rot')), surv = q.get('survey'), blend = q.get('blend'), blendOp = parseFloat(q.get('blend_op'));
+            if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
+            if (!Number.isNaN(rot)) { const rotInput = document.getElementById('framing-rotation'), signed = toSigned180(rot); if (rotInput) rotInput.value = signed; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`; haveRot = true; }
+            if (surv) { if (typeof setSurvey === 'function') setSurvey(surv); else { const s = document.getElementById('survey-select'); if (s) s.value = surv; } }
+            try { const bsel = document.getElementById('blend-survey-select'), bop = document.getElementById('blend-opacity'); if (blend && bsel) { bsel.value = blend; if (typeof ensureBlendLayer === 'function') ensureBlendLayer(); } if (!Number.isNaN(blendOp) && bop) { bop.value = String(Math.max(0, Math.min(1, blendOp))); if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value); } } catch (e) {}
+            try { const bop2 = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop2) setBlendOpacity(bop2.value); } catch (e) {}
+            if (!Number.isNaN(ra) && !Number.isNaN(dec)) { fovCenter = {ra, dec}; haveCenter = true; } else fovCenter = null;
         } catch (e) {}
-
-        // Defaults if not provided
-        if (!haveRot) {
-            const rotInput = document.getElementById('framing-rotation');
-            if (rotInput) rotInput.value = 0;
-            const rotSpan = document.getElementById('rotation-value');
-            if (rotSpan) rotSpan.textContent = `0°`;
-        }
-        if (!haveRigRestored) {
-            // Do NOT force index 0 if a rig is already selected; leave as-is
-        }
-
-        // If there is a saved center: unlock and center Aladin there BEFORE first draw
-        if (haveCenter) {
-            const lockBox = document.getElementById('lock-to-object');
-            if (lockBox) lockBox.checked = false;
-            lockToObject = false;
-            if (aladin && typeof aladin.gotoRaDec === 'function') {
-                aladin.gotoRaDec(fovCenter.ra, fovCenter.dec);
-            }
-            if (haveCenter) {
-                const sel = document.getElementById('framing-rig-select');
-                if (sel && sel.selectedIndex >= 0) {
-                    const opt = sel.options[sel.selectedIndex];
-                    applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh);
-                }
-            }
-        }
-
-        // First draw: if haveCenter, don't recenter to object
+        try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) {}
+        if (!haveRot) { const rotInput = document.getElementById('framing-rotation'); if (rotInput) rotInput.value = 0; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `0°`; }
+        if (haveCenter) { const lockBox = document.getElementById('lock-to-object'); if (lockBox) lockBox.checked = false; lockToObject = false; if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(fovCenter.ra, fovCenter.dec); if (haveCenter) { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } } }
         updateFramingChart(haveCenter ? false : true);
         updateFovVsObjectLabel?.();
         updateReadoutFromCenter?.();
-        // Ensure lock-to-object/Lock FOV default checked state is respected on load
-        if (!haveCenter) {
-            // If not restoring to a saved center, enable lock mode by default
-            applyLockToObject(true);
-        }
+        if (!haveCenter) applyLockToObject(true);
     }
-
-    function closeFramingAssistant() {
-        const framingModal = document.getElementById('framing-modal');
-        framingModal.style.display = 'none';
-    }
-
-    function flipFraming90() {
-      const slider = document.getElementById('framing-rotation');
-      let v = parseFloat(slider.value) || 0;
-      v = v + 90;
-      if (v > 90) v = -90; // wrap inside [-90, +90]
-      slider.value = v;
-      slider.dispatchEvent(new Event('input', { bubbles: true }));
-      updateFramingChart(false);
-      if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter();
-    }
-
-    // Always zoom so the current rig's FOV just fits in view.
-    // fovW_arcmin and fovH_arcmin are arcminutes.
+    function closeFramingAssistant() { document.getElementById('framing-modal').style.display = 'none'; }
+    function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; if (v > 90) v = -90; slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
     function applyRigFovZoom(fovW_arcmin, fovH_arcmin, rotationDeg = 0, margin = 1.06) {
-        if (!aladin) return;
-        const host = document.getElementById('aladin-lite-div');
-        if (!host) return;
-
-        const wpx = host.clientWidth, hpx = host.clientHeight;
-        if (!(wpx > 0 && hpx > 0)) return;
-        const aspect = wpx / hpx;               // width / height in pixels
-
-        const wDeg = parseFloat(fovW_arcmin) / 60;
-        const hDeg = parseFloat(fovH_arcmin) / 60;
-        if (!(isFinite(wDeg) && isFinite(hDeg) && wDeg > 0 && hDeg > 0)) return;
-
-        // Account for rotation: bounding box of a rotated rectangle
+        if (!aladin) return; const host = document.getElementById('aladin-lite-div'); if (!host) return;
+        const wpx = host.clientWidth, hpx = host.clientHeight; if (!(wpx > 0 && hpx > 0)) return; const aspect = wpx / hpx;
+        const wDeg = parseFloat(fovW_arcmin) / 60, hDeg = parseFloat(fovH_arcmin) / 60; if (!(isFinite(wDeg) && isFinite(hDeg) && wDeg > 0 && hDeg > 0)) return;
         const th = (parseFloat(rotationDeg) || 0) * Math.PI / 180;
-        const needWidthDeg = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th));
-        const needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
-
-        // setFov() controls the *width* in degrees. Ensure BOTH axes fit:
+        const needWidthDeg = Math.abs(wDeg * Math.cos(th)) + Math.abs(hDeg * Math.sin(th)), needHeightDeg = Math.abs(wDeg * Math.sin(th)) + Math.abs(hDeg * Math.cos(th));
         const requiredWidthDeg = Math.max(needWidthDeg * margin, needHeightDeg * margin * aspect);
         aladin.setFov(requiredWidthDeg);
-        // If FOV is locked, keep the screen overlay sized correctly
         if (lockToObject) updateScreenFovOverlay(fovW_arcmin, fovH_arcmin, rotationDeg);
     }
-
-window.updateFramingChart = function (recenter = true) {
-    if (!aladin) return;
-
-    const objectName = "{{ object_name }}";
-    const framingRigSelect = document.getElementById('framing-rig-select');
-    const rotationSlider = document.getElementById('framing-rotation');
-    const rotationValueSpan = document.getElementById('rotation-value');
-    const selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
-    if (!selectedOption) return;
-
-    const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw);
-    const fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
-
-    // Read rotation robustly from the range input
-    const vNum = (rotationSlider && typeof rotationSlider.valueAsNumber === 'number') ? rotationSlider.valueAsNumber : NaN;
-    const rotation = Number.isFinite(vNum)
-      ? vNum
-      : (Number.isFinite(parseFloat(rotationSlider.value)) ? parseFloat(rotationSlider.value) : 0);
-
-    // Update rotation label here so there is exactly one writer
-    (function updateRotationBadge(){
-        const el = document.getElementById('rotation-value');
-        const sliderEl = document.getElementById('framing-rotation');
-        const txt = `${Math.round(toSigned180(rotation))}°`;
-        if (el) el.textContent = txt;
-        if (sliderEl) sliderEl.title = `Rotation: ${txt}`; // helpful hover fallback
-    })();
-
-        // Only refit/zoom when we explicitly recenter; rotation alone should not change zoom
-        if (recenter) {
-            applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
-        }
-
+    window.updateFramingChart = function (recenter = true) {
+        if (!aladin) return;
+        const objectName = "{{ object_name }}", framingRigSelect = document.getElementById('framing-rig-select'), rotationSlider = document.getElementById('framing-rotation'), selectedOption = framingRigSelect.options[framingRigSelect.selectedIndex];
+        if (!selectedOption) return;
+        const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw), fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
+        const vNum = (rotationSlider && typeof rotationSlider.valueAsNumber === 'number') ? rotationSlider.valueAsNumber : NaN;
+        const rotation = Number.isFinite(vNum) ? vNum : (Number.isFinite(parseFloat(rotationSlider.value)) ? parseFloat(rotationSlider.value) : 0);
+        (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), txt = `${Math.round(toSigned180(rotation))}°`; if (el) el.textContent = txt; if (sliderEl) sliderEl.title = `Rotation: ${txt}`; })();
+        if (recenter) applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
         if (recenter) {
             aladin.gotoObject(objectName, {
-                success: () => {
-                    // ✅ Zoom again after gotoObject so frame fits perfectly
-                    applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
-
-                    const rc = aladin.getRaDec();
-                    objectCoords = {ra: rc[0], dec: rc[1]};
-                    fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]};
-                    if (lockToObject) {
-                        if (fovLayer) fovLayer.removeAll();
-                        updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
-                    } else {
-                        drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-                    }
-                    updateReadoutFromCenter?.();
-                },
-                error: () => {
-                    const rc = aladin.getRaDec();
-                    fovCenter = {ra: rc[0], dec: rc[1]};
-                    if (lockToObject) {
-                        if (fovLayer) fovLayer.removeAll();
-                        updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
-                    } else {
-                        drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-                    }
-                    updateReadoutFromCenter?.();
-                }
-            });
-            return;
+                success: () => { applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation); const rc = aladin.getRaDec(); objectCoords = {ra: rc[0], dec: rc[1]}; fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]}; if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); } else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter); updateReadoutFromCenter?.(); },
+                error: () => { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); } else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter); updateReadoutFromCenter?.(); }
+            }); return;
         }
-
-        // No recenter: reuse existing center
-        if (!fovCenter) {
-            const rc = aladin.getRaDec();
-            fovCenter = {ra: rc[0], dec: rc[1]};
-        }
-        if (lockToObject) {
-            if (fovLayer) fovLayer.removeAll();
-            updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
-        } else {
-            drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
-        }
+        if (!fovCenter) { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; }
+        if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
+        else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
     };
-
     function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
         if (!aladin || !fovLayer || !center) return;
-
         fovLayer.removeAll();
-
-        // Half-sizes in DEGREES
-        const halfW = (fovWidthArcmin / 60) / 2;
-        const halfH = (fovHeightArcmin / 60) / 2;
-
-        // Rotation in radians
-        const ang = rotationDeg * Math.PI / 180;
-
-        // Center (radians)
-        const ra0 = center.ra * Math.PI / 180;
-        const dec0 = center.dec * Math.PI / 180;
-
-        // Unit vector at center
-        const cX = Math.cos(dec0) * Math.cos(ra0);
-        const cY = Math.cos(dec0) * Math.sin(ra0);
-        const cZ = Math.sin(dec0);
-
-        // Local basis at center: East & North unit vectors
-        // East: d/dRA at fixed Dec -> (-sinRA, cosRA, 0)
+        const halfW = (fovWidthArcmin / 60) / 2, halfH = (fovHeightArcmin / 60) / 2, ang = rotationDeg * Math.PI / 180;
+        const ra0 = center.ra * Math.PI / 180, dec0 = center.dec * Math.PI / 180;
+        const cX = Math.cos(dec0) * Math.cos(ra0), cY = Math.cos(dec0) * Math.sin(ra0), cZ = Math.sin(dec0);
         const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
-        // North: d/dDec at fixed RA -> (-sinDec*cosRA, -sinDec*sinRA, cosDec)
-        const nX = -Math.sin(dec0) * Math.cos(ra0);
-        const nY = -Math.sin(dec0) * Math.sin(ra0);
-        const nZ = Math.cos(dec0);
-
-        // Rotate a point (x,y) in the local tangent plane by 'ang'
-        function rot2d(x, y) {
-            return [x * Math.cos(ang) - y * Math.sin(ang),
-                x * Math.sin(ang) + y * Math.cos(ang)];
-        }
-
-        // Corners before spherical mapping (deg in the local plane)
-        const raw = [
-            [-halfW, -halfH],
-            [halfW, -halfH],
-            [halfW, halfH],
-            [-halfW, halfH],
-        ].map(([x, y]) => rot2d(x, y));
-
-        // Map each (x_deg, y_deg) to the sphere and return [ra_deg, dec_deg]
+        const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
+        function rot2d(x, y) { return [x * Math.cos(ang) - y * Math.sin(ang), x * Math.sin(ang) + y * Math.cos(ang)]; }
+        const raw = [[-halfW, -halfH], [halfW, -halfH], [halfW, halfH], [-halfW, halfH]].map(([x, y]) => rot2d(x, y));
         function planeToSky(x_deg, y_deg) {
-            const dx = x_deg * Math.PI / 180;  // angular distance east (radians)
-            const dy = y_deg * Math.PI / 180;  // angular distance north (radians)
-            const r = Math.hypot(dx, dy);
-
-            if (r < 1e-12) {
-                // exactly the center
-                return [center.ra, center.dec];
-            }
-
-            // Direction unit vector in 3D: (dx * East + dy * North) / r
-            const dirX = (dx * eX + dy * nX) / r;
-            const dirY = (dx * eY + dy * nY) / r;
-            const dirZ = (dx * eZ + dy * nZ) / r;
-
-            // Great-circle step: new = center*cos(r) + dir*sin(r)
+            const dx = x_deg * Math.PI / 180, dy = y_deg * Math.PI / 180, r = Math.hypot(dx, dy);
+            if (r < 1e-12) return [center.ra, center.dec];
+            const dirX = (dx * eX + dy * nX) / r, dirY = (dx * eY + dy * nY) / r, dirZ = (dx * eZ + dy * nZ) / r;
             const s = Math.sin(r), c = Math.cos(r);
-            const pX = c * cX + s * dirX;
-            const pY = c * cY + s * dirY;
-            const pZ = c * cZ + s * dirZ;
-
-            // Back to RA/Dec
-            let ra = Math.atan2(pY, pX);
-            if (ra < 0) ra += 2 * Math.PI;
-            const dec = Math.asin(pZ);
+            const pX = c * cX + s * dirX, pY = c * cY + s * dirY, pZ = c * cZ + s * dirZ;
+            let ra = Math.atan2(pY, pX); if (ra < 0) ra += 2 * Math.PI; const dec = Math.asin(pZ);
             return [ra * 180 / Math.PI, dec * 180 / Math.PI];
         }
-
-        // Build polygon
         const polyCoords = raw.map(([x, y]) => planeToSky(x, y));
-        polyCoords.push(polyCoords[0]); // close
-
-        // Draw (teal, thicker line)
+        polyCoords.push(polyCoords[0]);
         const fovPolygon = A.polygon(polyCoords, {color: '#83b4c5', lineWidth: 3});
         const fovFootprint = A.footprint(fovPolygon);
         fovLayer.add(fovFootprint);
-
         updateReadoutFromCenter?.();
     }
-    // --- Screen-space FOV overlay helpers (for "Lock FOV") ---
-    let lockFovEnabled = false;
-    let lockRafId = null;
-
+    let lockFovEnabled = false, lockRafId = null;
     function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
-        const host = document.getElementById('aladin-lite-div');
-        const rectEl = document.getElementById('screen-fov-rect');
-        if (!host || !rectEl) return;
+            const host = document.getElementById('aladin-lite-div');
+            const rectEl = document.getElementById('screen-fov-rect');
+            if (!host || !rectEl) return;
 
-        const wpx = host.clientWidth || 1;
-        const hpx = host.clientHeight || 1;
+            const wpx = host.clientWidth || 1;
+            const hpx = host.clientHeight || 1;
 
-        // Aladin.getFov() returns width in degrees; height ~ width * (hpx/wpx)
-        const gf = aladin.getFov();
-        const viewWdeg = Array.isArray(gf) ? (gf[0] ?? 1) : (gf ?? 1);
-        const viewHdeg = viewWdeg * (hpx / wpx);
+            const gf = aladin.getFov();
+            const viewWdeg = Array.isArray(gf) ? (gf[0] ?? 1) : (gf ?? 1);
 
-        const fovWdeg = (parseFloat(fovWidthArcmin) || 0) / 60;
-        const fovHdeg = (parseFloat(fovHeightArcmin) || 0) / 60;
-        if (!(fovWdeg > 0 && fovHdeg > 0)) return;
+            // This is the corrected logic
+            const viewHdeg = viewWdeg * (hpx / wpx); // Calculate the view's height in degrees
+            const fovWdeg = (parseFloat(fovWidthArcmin) || 0) / 60;
+            const fovHdeg = (parseFloat(fovHeightArcmin) || 0) / 60;
+            if (!(fovWdeg > 0 && fovHdeg > 0)) return;
 
-        // Convert FOV to pixels for current view
-        const pxW = Math.max(2, (fovWdeg / viewWdeg) * wpx);
-        const pxH = Math.max(2, (fovHdeg / viewHdeg) * hpx);
+            const pxW = Math.max(2, (fovWdeg / viewWdeg) * wpx);
+            const pxH = Math.max(2, (fovHdeg / viewHdeg) * hpx); // <-- THIS LINE IS FIXED
 
-        rectEl.style.display = 'block';
-        rectEl.style.width = pxW + 'px';
-        rectEl.style.height = pxH + 'px';
-        rectEl.style.marginLeft = (-pxW / 2) + 'px';
-        rectEl.style.marginTop = (-pxH / 2) + 'px';
-        rectEl.style.transform = `translate(0,0) rotate(${rotationDeg || 0}deg)`;
-    }
-
-    function startLockOverlayLoop() {
-        if (lockRafId) return;
-        const tick = () => {
-            if (!lockToObject) { lockRafId = null; return; }
-            // Keep size in sync as the user pans/zooms
-            const sel = document.getElementById('framing-rig-select');
-            const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-            if (sel && sel.selectedIndex >= 0) {
-                const opt = sel.options[sel.selectedIndex];
-                updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot);
-            }
-            updateReadoutFromCenter();
-            lockRafId = requestAnimationFrame(tick);
-        };
-        lockRafId = requestAnimationFrame(tick);
-    }
-
-    function stopLockOverlayLoop() {
-        if (lockRafId) { cancelAnimationFrame(lockRafId); lockRafId = null; }
-    }
-    function setSurvey(hipsId) {
-        if (!aladin) return;
-        const newLayer = aladin.newImageSurvey(hipsId);
-        aladin.setBaseImageLayer(newLayer);
-        baseSurvey = aladin.getBaseImageLayer();
-        // reapply current image adjustments to the new layer
-        updateImageAdjustments();
-    }
-
-    function updateImageAdjustments() {
-        if (!baseSurvey) return;
-        const b = parseFloat(document.getElementById('img-bright').value);
-        const c = parseFloat(document.getElementById('img-contrast').value);
-        const g = parseFloat(document.getElementById('img-gamma').value);
-        const s = parseFloat(document.getElementById('img-sat').value);
-
-        // API: setBrightness(-1..1), setContrast(-1..1), setGamma(0.1..10), setSaturation(-1..1)
-        baseSurvey.setBrightness(b);
-        baseSurvey.setContrast(c);
-        baseSurvey.setGamma(g);
-        baseSurvey.setSaturation(s);
-    }
-
-    function updateReadout(raDeg, decDeg) {
-        document.getElementById('ra-readout').value = formatRA(raDeg);
-        document.getElementById('dec-readout').value = formatDec(decDeg);
-    }
-
-    // Always show the sky coordinates at the frame center
-    function updateReadoutFromCenter() {
-        let center;
-        if (lockToObject) {
-            // In locked mode, the frame is fixed at screen center, which is the view center
-            const rc = aladin.getRaDec();
-            center = { ra: rc[0], dec: rc[1] };
-        } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) {
-            center = fovCenter;
-        } else {
-            const rc = aladin.getRaDec();
-            center = { ra: rc[0], dec: rc[1] };
+            rectEl.style.display = 'block';
+            rectEl.style.width = pxW + 'px';
+            rectEl.style.height = pxH + 'px';
+            rectEl.style.marginLeft = (-pxW / 2) + 'px';
+            rectEl.style.marginTop = (-pxH / 2) + 'px';
+            rectEl.style.transform = `translate(0,0) rotate(${rotationDeg || 0}deg)`;
         }
-        updateReadout(center.ra, center.dec);
-    }
-
-    function copyRaDec() {
-        const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`;
-        navigator.clipboard.writeText(text).then(() => {
-            // optional toast
-        });
-    }
-
+    function startLockOverlayLoop() { if (lockRafId) return; const tick = () => { if (!lockToObject) { lockRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); lockRafId = requestAnimationFrame(tick); }; lockRafId = requestAnimationFrame(tick); }
+    function stopLockOverlayLoop() { if (lockRafId) { cancelAnimationFrame(lockRafId); lockRafId = null; } }
+    function setSurvey(hipsId) { if (!aladin) return; const newLayer = aladin.newImageSurvey(hipsId); aladin.setBaseImageLayer(newLayer); baseSurvey = aladin.getBaseImageLayer(); updateImageAdjustments(); }
+    function updateImageAdjustments() { if (!baseSurvey) return; const b = parseFloat(document.getElementById('img-bright').value), c = parseFloat(document.getElementById('img-contrast').value), g = parseFloat(document.getElementById('img-gamma').value), s = parseFloat(document.getElementById('img-sat').value); baseSurvey.setBrightness(b); baseSurvey.setContrast(c); baseSurvey.setGamma(g); baseSurvey.setSaturation(s); }
+    function updateReadout(raDeg, decDeg) { document.getElementById('ra-readout').value = formatRA(raDeg); document.getElementById('dec-readout').value = formatDec(decDeg); }
+    function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
+    function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
     function changeView(view) {
-        // First, update the header text for the selected date
-        const day = document.getElementById('day-select').value;
-        const month = document.getElementById('month-select').value;
-        const year = document.getElementById('year-select').value;
-        const objectName = "{{ object_name }}";
-
-        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date);
-                document.getElementById("phase-display").innerText = data.phase + "%";
-                document.getElementById("dusk-display").innerText = data.astronomical_dusk;
-                document.getElementById("dawn-display").innerText = data.astronomical_dawn;
-            });
-
-        // Now, call the correct function to render the selected chart view
-        if (view === 'day') {
-            renderClientSideChart();
-        } else {
-            renderMonthlyYearlyChart(view);
-        }
+        const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = "{{ object_name }}";
+        fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`).then(response => response.json()).then(data => { document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date); document.getElementById("phase-display").innerText = data.phase + "%"; document.getElementById("dusk-display").innerText = data.astronomical_dusk; document.getElementById("dawn-display").innerText = data.astronomical_dawn; });
+        if (view === 'day') renderClientSideChart();
+        else renderMonthlyYearlyChart(view);
     }
-
-    function useReadoutAsFovCenter() {
-        const raStr = document.getElementById('ra-readout').value;
-        const decStr = document.getElementById('dec-readout').value;
-        const sky = parseRaDec(raStr, decStr);
-        if (!sky) return;
-        fovCenter = {ra: sky.ra, dec: sky.dec};
-        updateFramingChart(false);
-        updateReadoutFromCenter();
-    }
-
-    function resetFovCenterToObject() {
-        fovCenter = null; // will fall back to view center after gotoObject
-        updateFramingChart(true);
-        updateFovVsObjectLabel();
-    }
-
+    function useReadoutAsFovCenter() { const raStr = document.getElementById('ra-readout').value, decStr = document.getElementById('dec-readout').value, sky = parseRaDec(raStr, decStr); if (!sky) return; fovCenter = {ra: sky.ra, dec: sky.dec}; updateFramingChart(false); updateReadoutFromCenter(); }
+    function resetFovCenterToObject() { fovCenter = null; updateFramingChart(true); updateFovVsObjectLabel(); }
     function nudgeFov(dxArcmin, dyArcmin) {
-        if (lockToObject && objectCoords) {
-            fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec};
-            updateFramingChart(false);
-            updateReadoutFromCenter();
-            return;
-        }
-        if (!fovCenter) {
-            const rc = aladin.getRaDec();
-            fovCenter = {ra: rc[0], dec: rc[1]};
-        }
-
-        // Convert current declination to radians for the Math.cos function
+        if (lockToObject && objectCoords) { fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec}; updateFramingChart(false); updateReadoutFromCenter(); return; }
+        if (!fovCenter) { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; }
         const decRad = fovCenter.dec * (Math.PI / 180);
-
-        // Correct the RA nudge by the cosine of the declination
-        // This accounts for the projection of the celestial sphere onto your flat screen
-        if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) { // Avoid division by zero near the pole
-            fovCenter.ra -= (dxArcmin / 60.0) / Math.cos(decRad);
-        }
-
-        // The declination nudge is simpler and doesn't need correction
+        if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) fovCenter.ra -= (dxArcmin / 60.0) / Math.cos(decRad);
         fovCenter.dec += dyArcmin / 60.0;
-
-        updateFramingChart(false);
-        updateReadoutFromCenter();
+        updateFramingChart(false); updateReadoutFromCenter();
     }
-
     function applyLockToObject(locked) {
         lockToObject = !!locked;
-
         const rectEl = document.getElementById('screen-fov-rect');
         if (lockToObject) {
-            // Snap overlay center to current object once
-            const c = objectCoords || (() => {
-                const rc = aladin.getRaDec();
-                return {ra: rc[0], dec: rc[1]};
-            })();
+            const c = objectCoords || (() => { const rc = aladin.getRaDec(); return {ra: rc[0], dec: rc[1]}; })();
             fovCenter = {ra: c.ra, dec: c.dec};
-
-            // Hide sky-anchored polygon while locked
             if (fovLayer) fovLayer.removeAll();
-
-            // Show screen-space rectangle and size it
             if (rectEl) rectEl.style.display = 'block';
-            const sel = document.getElementById('framing-rig-select');
-            const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-            if (sel && sel.selectedIndex >= 0) {
-                const opt = sel.options[sel.selectedIndex];
-                updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot);
-            }
-
-            startLockOverlayLoop();
-            updateReadoutFromCenter();
+            const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
+            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); }
+            startLockOverlayLoop(); updateReadoutFromCenter();
         } else {
-            // Restore normal sky overlay
             if (rectEl) rectEl.style.display = 'none';
             stopLockOverlayLoop();
-
-            // Redraw footprint with current rig/rotation at current center
-            const sel = document.getElementById('framing-rig-select');
-            const rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
-            const center = fovCenter || (() => {
-                const rc = aladin.getRaDec();
-                return {ra: rc[0], dec: rc[1]};
-            })();
-            if (sel && sel.selectedIndex >= 0) {
-                const opt = sel.options[sel.selectedIndex];
-                drawFovFootprint(parseFloat(opt.dataset.fovw), parseFloat(opt.dataset.fovh), rot, center);
-            }
+            const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0;
+            const center = fovCenter || (() => { const rc = aladin.getRaDec(); return {ra: rc[0], dec: rc[1]}; })();
+            if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; drawFovFootprint(parseFloat(opt.dataset.fovw), parseFloat(opt.dataset.fovh), rot, center); }
             updateReadoutFromCenter();
         }
     }
-
-    function updateFovVsObjectLabel() {
-        const el = document.getElementById('fov-vs-object');
-        if (!el) return;
-
-        const sel = document.getElementById('framing-rig-select');
-        if (!sel || sel.selectedIndex < 0) {
-            el.textContent = '';
-            return;
-        }
-
-        const opt = sel.options[sel.selectedIndex];
-        const fovW = parseFloat(opt.dataset.fovw); // arcmin
-        const fovH = parseFloat(opt.dataset.fovh); // arcmin
-        if (!isFinite(fovW) || !isFinite(fovH)) {
-            el.textContent = '';
-            return;
-        }
-
-        let text = `FOV (Rig): ${Math.round(fovW)}′ × ${Math.round(fovH)}′`;
-
-        if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) {
-            const minSide = Math.min(fovW, fovH);
-            const fitAcross = minSide / OBJECT_SIZE_ARCMIN;
-            // e.g., "Object ~ 20′ → fits ~3.1× across the short side"
-            text += ` • Object ~ ${Math.round(OBJECT_SIZE_ARCMIN)}′ → ${fitAcross >= 1 ? 'fits' : 'spans'} ${fitAcross.toFixed(1)}× ${fitAcross >= 1 ? 'across' : 'of'} short side`;
-        }
-
-        el.textContent = text;
-    }
-
-    // If user tries to move center while locked, ignore and re-snap.
-
-    // Optionally, keep the VIEW panned onto the object whenever user drags while locked.
-    // Simple heuristic: on mouseup, jump back to object.
-    (function recenterViewWhenLocked() {
-        const canvas = document.getElementById('aladin-lite-div');
-        if (!canvas) return;
-        canvas.addEventListener('mouseup', () => {
-            if (lockToObject && objectCoords) {
-                aladin.gotoObject([objectCoords.ra, objectCoords.dec]);
-            }
-        });
-    })();
-
-    // Formatting helpers
-    function pad(n, w = 2) {
-        return n.toString().padStart(w, '0');
-    }
-
-    function formatRA(raDeg) {
-        const totalSec = raDeg / 15 * 3600;
-        const h = Math.floor(totalSec / 3600);
-        const m = Math.floor((totalSec % 3600) / 60);
-        const s = (totalSec % 60).toFixed(2);
-        return `${pad(h)}:${pad(m)}:${pad(s, 5)}`;
-    }
-
-    function formatDec(decDeg) {
-        const sign = decDeg >= 0 ? '+' : '-';
-        const abs = Math.abs(decDeg);
-        const d = Math.floor(abs);
-        const m = Math.floor((abs - d) * 60);
-        const s = ((abs - d) * 60 - m) * 60;
-        return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4, '0')}`;
-    }
-
-    function getFrameCenterRaDec() {
-      if (lockToObject) {
-        // Screen-fixed frame: center is the current view center
-        const rc = aladin.getRaDec();
-        return { ra: rc[0], dec: rc[1] };
-      }
-      if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) return fovCenter;
-      const rc = aladin.getRaDec();
-      return { ra: rc[0], dec: rc[1] };
-    }
-
-    function parseRaDec(raHMS, decDMS) {
-        try {
-            const [h, m, s] = raHMS.split(':').map(parseFloat);
-            const ra = (h + m / 60 + s / 3600) * 15.0;
-            const sign = decDMS.trim()[0] === '-' ? -1 : 1;
-            const [d, dm, ds] = decDMS.replace('+', '').replace('-', '').split(':').map(parseFloat);
-            const dec = sign * (d + dm / 60 + ds / 3600);
-            return {ra, dec};
-        } catch (e) {
-            return null;
-        }
-    }
-
-    // --- Your Original Page Functions ---
-
-    function formatDateISOtoEuropean(iso_str) {
-        if (!iso_str || typeof iso_str !== 'string') return 'N/A';
-        const parts = iso_str.split("-");
-        if (parts.length !== 3) {
-            console.warn("formatDateISOtoEuropean received unexpected format:", iso_str);
-            return iso_str;
-        }
-        const [year, month, day] = parts;
-        return `${day}.${month}.${year}`;
-    }
-
-    function setLocation() {
-        const selectedLocation = document.getElementById('location-select').value;
-        fetch('/set_location', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({location: selectedLocation})
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    refreshChart();
-                } else {
-                    console.error("Location update failed:", data);
-                }
-            })
-            .catch(error => console.error('Error setting location:', error));
-    }
-
-    function saveProject() {
-        const newProject = document.getElementById('project-field').value;
-        const objectName = "{{ object_name }}";
-        fetch('/update_project', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({object: objectName, project: newProject})
-        }).then(res => res.json()).then(data => {
-            alert(data.status === "success" ? "Project updated successfully!" : data.error);
-        });
-    }
-
-    function insertFramingIntoProject() {
-        try {
-            const ta = document.getElementById('project-field');
-            if (!ta) {
-                alert('Project notes box not found.');
-                return;
-            }
-
-            // Collect current framing settings (canonical, single source of truth)
-            const sel = document.getElementById('framing-rig-select');
-            const rigId = sel?.value || '';
-            const rigName = (sel && sel.selectedIndex >= 0)
-                ? sel.options[sel.selectedIndex].textContent.trim()
-                : 'rig?';
-
-            const rotInput = document.getElementById('framing-rotation');
-            const rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0;
-
-            const survSel = document.getElementById('survey-select');
-            const survey = survSel?.value || '';
-
-            // Blend survey & opacity (ensure these are persisted)
-            const blendSel = document.getElementById('blend-survey-select');
-            const blendSurvey = blendSel?.value || '';
-            const blendOpEl = document.getElementById('blend-opacity');
-            const blendOp = Math.max(0, Math.min(1, parseFloat(blendOpEl?.value ?? '0') || 0));
-
-            // Robust center retrieval
-            const center = getFrameCenterRaDec();
-            const raDeg  = center.ra;
-            const decDeg = center.dec;
-
-            // Sync visible readout so UI matches what we insert
-            updateReadout(raDeg, decDeg);
-
-            // Build a shareable URL with ALL framing state
-            const qs = new URLSearchParams();
-            if (rigId) qs.set('rig', rigId);
-            if (Number.isFinite(raDeg)) qs.set('ra', raDeg.toFixed(6));
-            if (Number.isFinite(decDeg)) qs.set('dec', decDeg.toFixed(6));
-            qs.set('rot', String(rotDeg));
-            if (survey) qs.set('survey', survey);
-            if (blendSurvey) qs.set('blend', blendSurvey);
-            qs.set('blend_op', String(blendOp));
-            const url = `${location.origin}${location.pathname}?${qs.toString()}`;
-
-            // Human‑readable single line (we will keep exactly ONE per object)
-            const objectName = "{{ object_name }}"; // already in template context
-            const centerTxt = `RA ${formatRA(raDeg)}, Dec ${formatDec(decDeg)}`;
-            const line = `[Framing:${objectName}] ${rigName}, rot ${rotDeg}\u00B0, ${centerTxt}, survey ${survey || 'default'}${blendSurvey ? ` + blend ${blendSurvey} @ ${blendOp}` : ''}`;
-
-            // === DEDUP STRATEGY ===
-            // We maintain at most one framing block for this object: a title line + the URL on the next line.
-            // Remove any previous block for the same object, then insert the new one at the end.
-            const lines = ta.value.split(/\r?\n/);
-            const out = [];
-            for (let i = 0; i < lines.length; i++) {
-                const L = lines[i];
-                // Match the start of a previous block for this object
-                if (/^\[Framing:/.test(L)) {
-                    // Is it for this object?
-                    if (L.startsWith(`[Framing:${objectName}]`)) {
-                        // Skip this line and, if the next line looks like a URL, skip it too
-                        const maybeUrl = lines[i + 1] || '';
-                        if (/^https?:\/\//i.test(maybeUrl)) i++; // skip URL line
-                        continue; // drop old block
-                    }
-                }
-                out.push(L);
-            }
-
-            // Ensure trailing newline before appending
-            if (out.length && out[out.length - 1] !== '') out.push('');
-            out.push(line);
-            out.push(url);
-
-            ta.value = out.join('\n');
-            ta.dispatchEvent(new Event('input', { bubbles: true }));
-            ta.scrollTop = ta.scrollHeight;
-
-            // Update the quick link button to this latest canonical URL
-            setProjectQuickLink(url);
-
-        } catch (e) {
-            console.error('insertFramingIntoProject failed', e);
-            alert('Could not insert framing into Project. See console for details.');
-        }
-    }
-
-    function copyFramingUrl() {
-        try {
-            // buildFramingQuery() already includes RA, Dec, rotation, survey, blend, etc.
-            const q = buildFramingQuery();
-            const url = location.origin + location.pathname + q;
-            navigator.clipboard.writeText(url);
-            console.log("[Framing] Copied URL:", url);
-        } catch (e) {
-            console.warn("[Framing] copyFramingUrl failed:", e);
-        }
-    }
-
-    function toggleSimbad() {
-        var container = document.getElementById('simbadContainer');
-        const objectName = "{{ object_name }}";
-        if (container.style.display === 'none' || container.style.display === '') {
-            document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(objectName);
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
-    }
-
-    function loadImagingOpportunities() {
-        document.getElementById("opportunities-section").style.display = "block";
-        const tbody = document.getElementById("opportunities-body");
-        tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`;
-        const objectName = "{{ object_name }}";
-
-        fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === "success") {
-                    if (data.results.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`;
-                        return;
-                    }
-                    let htmlRows = "";
-                    const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`;
-                    const plotLat = "{{ graph_lat_param }}";
-                    const plotLon = "{{ graph_lon_param }}";
-
-
-                    data.results.forEach(r => {
-                        const isSelected = r.date === selectedDateStr;
-                        const formattedDate = formatDateISOtoEuropean(r.date);
-                        const ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`;
-                        const filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`;
-                        htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;">
-                        <td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td>
-                        <td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td>
-                        <td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`;
-                    });
-                    tbody.innerHTML = htmlRows;
-                } else {
-                    tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`;
-                }
-            });
-    }
-
-    function selectSuggestedDate(dateStr) {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        document.getElementById('year-select').value = year;
-        document.getElementById('month-select').value = month;
-        document.getElementById('day-select').value = day;
-        changeView('day'); // This will re-render the chart for the new date
-        // Highlight the selected row after a short delay to ensure the table has re-rendered if needed
-        setTimeout(() => {
-            const rows = document.getElementById("opportunities-body").querySelectorAll("tr");
-            rows.forEach(row => {
-                row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr);
-            });
-        }, 100);
-    }
-
-    function openInStellarium() {
-        document.getElementById('stellarium-status').textContent = "Sending object to Stellarium...";
-        document.getElementById('stellarium-status').style.color = "#666"; // Reset color
-        const objectName = "{{ object_name }}";
-        fetch("/proxy_focus", {
-            method: "POST",
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: new URLSearchParams({target: objectName, mode: "center"})
-        })
-            .then(async response => {
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    data = {message: "Could not parse server response."};
-                }
-
-                if (response.ok && data.status === "success") {
-                    document.getElementById('stellarium-status').textContent = "Stellarium view updated!";
-                    document.getElementById('stellarium-status').style.color = "#83b4c5";
-                } else {
-                    document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`;
-                }
-            });
-    }
+    function updateFovVsObjectLabel() { const el = document.getElementById('fov-vs-object'); if (!el) return; const sel = document.getElementById('framing-rig-select'); if (!sel || sel.selectedIndex < 0) { el.textContent = ''; return; } const opt = sel.options[sel.selectedIndex]; const fovW = parseFloat(opt.dataset.fovw), fovH = parseFloat(opt.dataset.fovh); if (!isFinite(fovW) || !isFinite(fovH)) { el.textContent = ''; return; } let text = `FOV (Rig): ${Math.round(fovW)}′ × ${Math.round(fovH)}′`; if (typeof OBJECT_SIZE_ARCMIN === 'number' && isFinite(OBJECT_SIZE_ARCMIN) && OBJECT_SIZE_ARCMIN > 0) { const minSide = Math.min(fovW, fovH), fitAcross = minSide / OBJECT_SIZE_ARCMIN; text += ` • Object ~ ${Math.round(OBJECT_SIZE_ARCMIN)}′ → ${fitAcross >= 1 ? 'fits' : 'spans'} ${fitAcross.toFixed(1)}× ${fitAcross >= 1 ? 'across' : 'of'} short side`; } el.textContent = text; }
+    (function recenterViewWhenLocked() { const canvas = document.getElementById('aladin-lite-div'); if (!canvas) return; canvas.addEventListener('mouseup', () => { if (lockToObject && objectCoords) aladin.gotoObject([objectCoords.ra, objectCoords.dec]); }); })();
+    function pad(n, w = 2) { return n.toString().padStart(w, '0'); }
+    function formatRA(raDeg) { const totalSec = raDeg / 15 * 3600, h = Math.floor(totalSec / 3600), m = Math.floor((totalSec % 3600) / 60), s = (totalSec % 60).toFixed(2); return `${pad(h)}:${pad(m)}:${pad(s, 5)}`; }
+    function formatDec(decDeg) { const sign = decDeg >= 0 ? '+' : '-', abs = Math.abs(decDeg), d = Math.floor(abs), m = Math.floor((abs - d) * 60), s = ((abs - d) * 60 - m) * 60; return `${sign}${pad(d)}:${pad(m)}:${s.toFixed(1).padStart(4, '0')}`; }
+    function getFrameCenterRaDec() { if (lockToObject) { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; } if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) return fovCenter; const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; }
+    function parseRaDec(raHMS, decDMS) { try { const [h, m, s] = raHMS.split(':').map(parseFloat), ra = (h + m / 60 + s / 3600) * 15.0, sign = decDMS.trim()[0] === '-' ? -1 : 1, [d, dm, ds] = decDMS.replace('+', '').replace('-', '').split(':').map(parseFloat), dec = sign * (d + dm / 60 + ds / 3600); return {ra, dec}; } catch (e) { return null; } }
+    function formatDateISOtoEuropean(iso_str) { if (!iso_str || typeof iso_str !== 'string') return 'N/A'; const parts = iso_str.split("-"); if (parts.length !== 3) { console.warn("formatDateISOtoEuropean received unexpected format:", iso_str); return iso_str; } const [year, month, day] = parts; return `${day}.${month}.${year}`; }
+    function setLocation() { const selectedLocation = document.getElementById('location-select').value; fetch('/set_location', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({location: selectedLocation}) }).then(response => response.json()).then(data => { if (data.status === 'success') refreshChart(); else console.error("Location update failed:", data); }).catch(error => console.error('Error setting location:', error)); }
+    function saveProject() { const newProject = document.getElementById('project-field').value, objectName = "{{ object_name }}"; fetch('/update_project', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({object: objectName, project: newProject}) }).then(res => res.json()).then(data => { alert(data.status === "success" ? "Project updated successfully!" : data.error); }); }
+    function insertFramingIntoProject() { try { const ta = document.getElementById('project-field'); if (!ta) { alert('Project notes box not found.'); return; } const sel = document.getElementById('framing-rig-select'), rigId = sel?.value || '', rigName = (sel && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex].textContent.trim() : 'rig?', rotInput = document.getElementById('framing-rotation'), rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0, survSel = document.getElementById('survey-select'), survey = survSel?.value || '', blendSel = document.getElementById('blend-survey-select'), blendSurvey = blendSel?.value || '', blendOpEl = document.getElementById('blend-opacity'), blendOp = Math.max(0, Math.min(1, parseFloat(blendOpEl?.value ?? '0') || 0)); const center = getFrameCenterRaDec(), raDeg = center.ra, decDeg = center.dec; updateReadout(raDeg, decDeg); const qs = new URLSearchParams(); if (rigId) qs.set('rig', rigId); if (Number.isFinite(raDeg)) qs.set('ra', raDeg.toFixed(6)); if (Number.isFinite(decDeg)) qs.set('dec', decDeg.toFixed(6)); qs.set('rot', String(rotDeg)); if (survey) qs.set('survey', survey); if (blendSurvey) qs.set('blend', blendSurvey); qs.set('blend_op', String(blendOp)); const url = `${location.origin}${location.pathname}?${qs.toString()}`; const objectName = "{{ object_name }}", centerTxt = `RA ${formatRA(raDeg)}, Dec ${formatDec(decDeg)}`, line = `[Framing:${objectName}] ${rigName}, rot ${rotDeg}\u00B0, ${centerTxt}, survey ${survey || 'default'}${blendSurvey ? ` + blend ${blendSurvey} @ ${blendOp}` : ''}`; const lines = ta.value.split(/\r?\n/), out = []; for (let i = 0; i < lines.length; i++) { const L = lines[i]; if (/^\[Framing:/.test(L)) { if (L.startsWith(`[Framing:${objectName}]`)) { const maybeUrl = lines[i + 1] || ''; if (/^https?:\/\//i.test(maybeUrl)) i++; continue; } } out.push(L); } if (out.length && out[out.length - 1] !== '') out.push(''); out.push(line); out.push(url); ta.value = out.join('\n'); ta.dispatchEvent(new Event('input', { bubbles: true })); ta.scrollTop = ta.scrollHeight; setProjectQuickLink(url); } catch (e) { console.error('insertFramingIntoProject failed', e); alert('Could not insert framing into Project. See console for details.'); } }
+    function copyFramingUrl() { try { const q = buildFramingQuery(), url = location.origin + location.pathname + q; navigator.clipboard.writeText(url); console.log("[Framing] Copied URL:", url); } catch (e) { console.warn("[Framing] copyFramingUrl failed:", e); } }
+    function toggleSimbad() { var container = document.getElementById('simbadContainer'); const objectName = "{{ object_name }}"; if (container.style.display === 'none' || container.style.display === '') { document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(objectName); container.style.display = 'block'; } else container.style.display = 'none'; }
+    function loadImagingOpportunities() { document.getElementById("opportunities-section").style.display = "block"; const tbody = document.getElementById("opportunities-body"); tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`; const objectName = "{{ object_name }}"; fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`).then(response => response.json()).then(data => { if (data.status === "success") { if (data.results.length === 0) { tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`; return; } let htmlRows = ""; const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`, plotLat = "{{ graph_lat_param }}", plotLon = "{{ graph_lon_param }}"; data.results.forEach(r => { const isSelected = r.date === selectedDateStr, formattedDate = formatDateISOtoEuropean(r.date), ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`, filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`; htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;"><td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td><td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td><td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`; }); tbody.innerHTML = htmlRows; } else tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`; }); }
+    function selectSuggestedDate(dateStr) { const [year, month, day] = dateStr.split('-').map(Number); document.getElementById('year-select').value = year; document.getElementById('month-select').value = month; document.getElementById('day-select').value = day; changeView('day'); setTimeout(() => { const rows = document.getElementById("opportunities-body").querySelectorAll("tr"); rows.forEach(row => { row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr); }); }, 100); }
+    function openInStellarium() { document.getElementById('stellarium-status').textContent = "Sending object to Stellarium..."; document.getElementById('stellarium-status').style.color = "#666"; const objectName = "{{ object_name }}"; fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) }).then(async response => { let data; try { data = await response.json(); } catch (e) { data = {message: "Could not parse server response."}; } if (response.ok && data.status === "success") { document.getElementById('stellarium-status').textContent = "Stellarium view updated!"; document.getElementById('stellarium-status').style.color = "#83b4c5"; } else document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`; }); }
 
     window.addEventListener('load', () => {
-        // As you correctly diagnosed, we must register the plugin before using it.
-        // This line runs after the library file has been loaded.
-        if (window['chartjs-plugin-annotation']) {
-            Chart.register(window['chartjs-plugin-annotation']);
-        }
-
-        // Now, the initial chart render will work.
+        if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
+        const savedTab = localStorage.getItem('activeGraphTab') || 'chart';
+        showTab(savedTab);
         changeView('day');
-
-        // The rest of your setup logic remains the same.
-        // Ensure the "Lock FOV" checkbox is checked by default in the DOM (if present)
         const lockBox = document.getElementById('lock-to-object');
         if (lockBox) lockBox.checked = true;
         const q = new URLSearchParams(location.search);
-        if (q.has('rig') && (q.has('ra') || q.has('dec'))) {
-            setTimeout(() => openFramingAssistant(), 0);
-        }
+        if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
         const dateEl = document.getElementById("date-display");
-        if (dateEl && dateEl.innerText.includes("-")) {
-            dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
-        }
-        const dayInput = document.getElementById("day-select");
-        const monthSelect = document.getElementById("month-select");
-        const yearInput = document.getElementById("year-select");
-
-        function updateDayLimit() {
-            const year = parseInt(yearInput.value);
-            const month = parseInt(monthSelect.value);
-            const daysInMonth = new Date(year, month, 0).getDate();
-            if (parseInt(dayInput.value) > daysInMonth) {
-                dayInput.value = daysInMonth;
-            }
-            dayInput.max = daysInMonth;
-        }
-
+        if (dateEl && dateEl.innerText.includes("-")) dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
+        const dayInput = document.getElementById("day-select"), monthSelect = document.getElementById("month-select"), yearInput = document.getElementById("year-select");
+        function updateDayLimit() { const year = parseInt(yearInput.value), month = parseInt(monthSelect.value), daysInMonth = new Date(year, month, 0).getDate(); if (parseInt(dayInput.value) > daysInMonth) dayInput.value = daysInMonth; dayInput.max = daysInMonth; }
         monthSelect.addEventListener("change", updateDayLimit);
         yearInput.addEventListener("change", updateDayLimit);
         updateDayLimit();
         const framingModal = document.getElementById('framing-modal');
-        window.addEventListener('click', function (event) {
-            if (event.target == framingModal) {
-                closeFramingAssistant();
-            }
-        });
-        window.addEventListener('resize', () => {
-            if (document.getElementById('framing-modal').style.display === 'block') {
-                if (aladin) updateFramingChart(false);
-            }
-        });
+        window.addEventListener('click', function (event) { if (event.target == framingModal) closeFramingAssistant(); });
+        window.addEventListener('resize', () => { if (document.getElementById('framing-modal').style.display === 'block') if (aladin) updateFramingChart(false); });
         const ta = document.getElementById('project-field');
-        if (ta) {
-            const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g);
-            if (m && m.length) setProjectQuickLink(m[m.length - 1]);
-        }
+        if (ta) { const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g); if (m && m.length) setProjectQuickLink(m[m.length - 1]); }
     });
-// Add "checked" attribute to the "Lock FOV" checkbox in the HTML
 </script>
 
-{# ... somewhere above, in the HTML for the framing modal, find the checkbox: #}
-{# <input type="checkbox" id="lock-to-object" ...> #}
-{# Change to: #}
-{# <input type="checkbox" id="lock-to-object" checked> #}
 {% endblock %}
