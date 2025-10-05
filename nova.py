@@ -4522,22 +4522,64 @@ def get_object_list_from_config():
         return g.user_config.get("objects", [])
     return []
 
+
+@app.route('/api/get_moon_data')
+@login_required
+def get_moon_data_for_session():
+    try:
+        date_str = request.args.get('date')
+        lat = float(request.args.get('lat'))
+        lon = float(request.args.get('lon'))
+        ra = float(request.args.get('ra'))
+        dec = float(request.args.get('dec'))
+        tz_name = request.args.get('tz')
+
+        if not all([date_str, tz_name]):
+            raise ValueError("Missing date or timezone.")
+
+        local_tz = pytz.timezone(tz_name)
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+
+        # Calculate moon phase at dusk for consistency
+        sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+        dusk_str = sun_events.get("astronomical_dusk", "21:00")
+        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+        time_for_calc_local = local_tz.localize(datetime.combine(date_obj.date(), dusk_time_obj))
+        moon_phase = round(ephem.Moon(time_for_calc_local.astimezone(pytz.utc)).phase, 1)
+
+        # Calculate angular separation
+        location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        time_obj = Time(time_for_calc_local.astimezone(pytz.utc))
+        frame = AltAz(obstime=time_obj, location=location_obj)
+        obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        moon_coord = get_body('moon', time_obj, location=location_obj)
+        separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+
+        return jsonify({
+            "status": "success",
+            "moon_illumination": moon_phase,
+            "angular_separation": round(separation, 1)
+        })
+
+    except Exception as e:
+        print(f"ERROR in /api/get_moon_data: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
     # --- Initialize effective context with global defaults/URL args ---
     effective_location_name = g.selected_location if hasattr(g,
                                                              'selected_location') and g.selected_location else "Unknown"
-    effective_lat = g.lat if hasattr(g, 'lat') else 0.0  # Ensure float for calcs
-    effective_lon = g.lon if hasattr(g, 'lon') else 0.0  # Ensure float for calcs
+    effective_lat = g.lat if hasattr(g, 'lat') else 0.0
+    effective_lon = g.lon if hasattr(g, 'lon') else 0.0
     effective_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
 
     now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
-
     effective_day = now_at_effective_location.day
     effective_month = now_at_effective_location.month
     effective_year = now_at_effective_location.year
 
-    # Override with URL args if present
     if request.args.get('day'):
         try:
             effective_day = int(request.args.get('day'))
@@ -4560,19 +4602,15 @@ def graph_dashboard(object_name):
     elif current_user.is_authenticated:
         username_for_journal = current_user.username
     else:
-        username_for_journal = "guest_user"  # Or handle as per your guest policy
+        username_for_journal = "guest_user"
 
-    object_specific_sessions = []
-    selected_session_data = None
+    object_specific_sessions, selected_session_data = [], None
     requested_session_id = request.args.get('session_id')
-
     if username_for_journal:
         journal_data = load_journal(username_for_journal)
         all_user_sessions = journal_data.get('sessions', [])
-
-        object_specific_sessions = [s for s in all_user_sessions if s.get('target_object_id') == object_name]
-        object_specific_sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
-
+        object_specific_sessions = sorted([s for s in all_user_sessions if s.get('target_object_id') == object_name],
+                                          key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
         if requested_session_id:
             selected_session_data = next(
                 (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
@@ -4581,66 +4619,78 @@ def graph_dashboard(object_name):
                 if session_date_str:
                     try:
                         session_date_obj = datetime.strptime(session_date_str, '%Y-%m-%d')
-                        effective_day = session_date_obj.day
-                        effective_month = session_date_obj.month
-                        effective_year = session_date_obj.year
+                        effective_day, effective_month, effective_year = session_date_obj.day, session_date_obj.month, session_date_obj.year
                     except ValueError:
-                        flash(f"Invalid date in session. Using current/URL date.", "warning")
-
+                        flash("Invalid date in session. Using current/URL date.", "warning")
                 session_loc_name = selected_session_data.get('location_name')
                 if session_loc_name:
-                    all_locations_config = g.user_config.get("locations", {})
-                    session_loc_details = all_locations_config.get(session_loc_name)
+                    session_loc_details = g.user_config.get("locations", {}).get(session_loc_name)
                     if session_loc_details:
-                        effective_lat = session_loc_details.get('lat', effective_lat)
-                        effective_lon = session_loc_details.get('lon', effective_lon)
-                        effective_tz_name = session_loc_details.get('timezone', effective_tz_name)
+                        effective_lat, effective_lon, effective_tz_name = session_loc_details.get('lat',
+                                                                                                  effective_lat), session_loc_details.get(
+                            'lon', effective_lon), session_loc_details.get('timezone', effective_tz_name)
                         effective_location_name = session_loc_name
-                        now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
                     else:
                         flash(f"Location '{session_loc_name}' from session not in config. Using default.", "warning")
             elif requested_session_id:
                 flash(f"Requested session ID '{requested_session_id}' not found for this object.", "info")
 
-    # --- Finalize effective date string and dependent calculations ---
     try:
         if not (1 <= effective_month <= 12): effective_month = now_at_effective_location.month
         max_days_in_month = calendar.monthrange(effective_year, effective_month)[1]
-        if not (1 <= effective_day <= max_days_in_month):
-            effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
+        if not (
+                1 <= effective_day <= max_days_in_month): effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
         effective_date_obj = datetime(effective_year, effective_month, effective_day)
         effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
     except ValueError:
-        effective_date_obj = now_at_effective_location.date()
-        effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
+        effective_date_obj, effective_date_str = now_at_effective_location.date(), now_at_effective_location.date().strftime(
+            '%Y-%m-%d')
         effective_day, effective_month, effective_year = effective_date_obj.day, effective_date_obj.month, effective_date_obj.year
         flash("Invalid date components, defaulting to today.", "warning")
 
-    effective_local_tz = pytz.timezone(effective_tz_name)
-    try:
-        dt_for_moon_naive = datetime(effective_year, effective_month, effective_day, 12, 0, 0)
-        dt_for_moon_local = effective_local_tz.localize(dt_for_moon_naive)
-        moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 0)
-    except Exception as e:
-        print(f"Error calculating moon phase for {effective_date_str} at {effective_location_name}: {e}")
-        moon_phase_for_effective_date = "N/A"
-
     sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat,
                                                                 effective_lon)
+    try:
+        effective_local_tz = pytz.timezone(effective_tz_name)
+        dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
+        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+        dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
+        moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 1)
+    except Exception as e:
+        print(f"Error calculating moon phase for header: {e}")
+        moon_phase_for_effective_date = "N/A"
 
+    # --- CORRECTED RIG DATA PREPARATION ---
     username_for_rigs = "default" if SINGLE_USER_MODE else (
         current_user.username if current_user.is_authenticated else "guest_user")
     full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
-    unsorted_rigs = full_rig_config.get('rigs', [])
-    sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
-    rigs_with_calculated_data = []
-    if unsorted_rigs:
+    final_rigs_for_template = []
+    if full_rig_config and full_rig_config.get('rigs'):
         all_components = full_rig_config.get('components', {})
-        for rig in unsorted_rigs:
+        telescopes = {t['id']: t['name'] for t in all_components.get('telescopes', [])}
+        cameras = {c['id']: c['name'] for c in all_components.get('cameras', [])}
+        reducers = {r['id']: r['name'] for r in all_components.get('reducers_extenders', [])}
+
+        for rig in full_rig_config.get('rigs', []):
+            # Calculate technical data
             calculated_data = calculate_rig_data(rig, all_components)
             rig.update(calculated_data)
-            rigs_with_calculated_data.append(rig)
-    rigs_with_fov = sort_rigs_list(rigs_with_calculated_data, sort_preference)
+
+            # Calculate resolved_string
+            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
+            cam_name = cameras.get(rig['camera_id'], 'N/A')
+            resolved_parts = [tele_name]
+            if rig.get('reducer_extender_id'):
+                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
+                resolved_parts.append(reducer_name)
+            resolved_parts.append(cam_name)
+            rig['resolved_string'] = ' + '.join(resolved_parts)
+
+            final_rigs_for_template.append(rig)
+
+    sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
+    sorted_rigs = sort_rigs_list(final_rigs_for_template, sort_preference)
+    # --- END OF RIG CORRECTION ---
 
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
@@ -4651,31 +4701,27 @@ def graph_dashboard(object_name):
                            object_name=object_name,
                            alt_name=object_main_details.get("Common Name", object_name),
                            object_main_details=object_main_details,
-                           available_rigs=rigs_with_fov,
+                           available_rigs=sorted_rigs,  # Pass the corrected list
                            selected_day=effective_day,
                            selected_month=effective_month,
                            selected_year=effective_year,
-                           selected_date_for_display=effective_date_str,
                            header_location_name=effective_location_name,
-                           header_date_display=effective_date_str,
+                           header_date_display=effective_date_obj.strftime('%d.%m.%Y'),
                            header_moon_phase=moon_phase_for_effective_date,
                            header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                            header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
                            project_notes_from_config=object_main_details.get("Project", "N/A"),
-                           timestamp=datetime.now(effective_local_tz).timestamp(),
                            object_specific_sessions=object_specific_sessions,
                            selected_session_data=selected_session_data,
                            current_session_id=requested_session_id if selected_session_data else None,
-                           graph_location_name_param=effective_location_name,
                            graph_lat_param=effective_lat,
                            graph_lon_param=effective_lon,
                            graph_tz_name_param=effective_tz_name,
-                           # --- THIS IS THE CORRECTED PART ---
                            available_objects=get_object_list_from_config(),
                            available_locations=g.locations,
                            default_location=g.user_config.get('default_location'),
-                           today_date=datetime.now().strftime('%Y-%m-%d')
-                           )
+                           today_date=datetime.now().strftime('%Y-%m-%d'))
+
 @app.route('/plot_day/<path:object_name>')
 def plot_day(object_name):
     # --- Determine Date for the plot from request.args ---
