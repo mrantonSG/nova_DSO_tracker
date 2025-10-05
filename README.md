@@ -17,7 +17,7 @@ A Flask-based web application designed specifically for astrophotographers, prov
 - API integrations (SIMBAD, Stellarium)
 - SSO for Multi User installations
 
-# Nova DSO Altitude Tracker 3.5 - Quick Guide
+# Nova DSO Altitude Tracker 3.6 - Quick Guide
 
 ### Purpose
 Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astrophotography or visual observations.
@@ -107,7 +107,7 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 You can not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 The daily graph also displays a vertical dashed line indicating the meridian transit, which is the point of highest altitude and a crucial time for equatorial mount users to plan for a "meridian flip."
 
-![Screenshot_35_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_35_graphic.png)
+![Screenshot_36_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_36_graphic.png)
 
 ![Screenshot_28_month.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_month.png)
 
@@ -120,7 +120,7 @@ From here you can also add the information to your calendar.
 
 In addition, you will also see an approximate fit of your configured rigs.
 
-![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_31_rig_fit.png)
+![Screenshot_36_rig_fit.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_36_rig_fit.png)
 
 
 You can edit the selection criteria for the opportunity search in the configuration settings.
@@ -137,11 +137,11 @@ On the main screen you can find the Journal at the third tab:
 
 Here you can find all your imaging sessions. If you want to see the detail, click on it and the graph screen for that particular day will open and in addition you will find the session details:
 
-![Screenshot_28_sessions.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_sessions.png)
+![Screenshot_36_sessions.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_36_sessions.png)
 
 You can add new sessions by clicking the "add new session" button - and filling up the form:
 
-![Screenshot_28_addform.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_28_addform.png)
+![Screenshot_36_addform.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_36_addform.png)
 
 
 ### Anonymous Telemetry for Better Development
