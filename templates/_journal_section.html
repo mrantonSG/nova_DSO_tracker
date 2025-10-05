@@ -1,0 +1,110 @@
+{# templates/_journal_section.html #}
+<style>
+    .journal-container {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+    .session-list-column {
+        flex: 0 0 450px; /* Fixed width for the session list */
+        max-height: 700px; /* Make the list scrollable if it's long */
+        overflow-y: auto;
+    }
+    .session-detail-column {
+        flex: 1 1 auto; /* The details will take the remaining space */
+        max-height: 700px;
+        overflow-y: auto;
+        padding-right: 15px; /* Add some padding for the scrollbar */
+    }
+</style>
+
+<h3>Imaging Journal for {{ alt_name | default(object_name, True) }}</h3>
+<div class="action-button-group">
+    <a href="{{ url_for('journal_add_for_target', object_name=object_name) }}" class="inline-button">Add New Session</a>
+</div>
+
+{% if object_specific_sessions %}
+<div class="journal-container">
+    <div class="session-list-column">
+        <h4>Session History:</h4>
+        <div class="table-wrapper">
+            <table class="session-history-table">
+                <thead>
+                <tr>
+                    <th class="col-date">Date</th>
+                    <th class="col-integ">Integ. Time</th>
+                    <th class="col-rating">Rating</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for session_item in object_specific_sessions %}
+                <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}"
+                    onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}"'>
+                    <td class="col-date">
+                        {{ session_item.session_date |date_eu| default("N/A") }}<br>
+                        <small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small>
+                    </td>
+                    <td class="col-integ">
+                        {% set integ_min = session_item.get('calculated_integration_time_minutes') %}
+                        {{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min
+                    </td>
+                    <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and session_item.session_rating_subjective is not none %} ★{% endif %}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="session-detail-column">
+    {% if selected_session_data %}
+        <div class="selected-session-details">
+            <h4>Details for Session: {{ selected_session_data.session_date | date_eu }}</h4>
+            <div class="action-button-group">
+                <a href="{{ url_for('journal_edit', session_id=selected_session_data.session_id) }}" class="inline-button" style="background-color:#ffc107; color:black;">Edit This Session</a>
+                <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this journal entry?');">
+                    <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
+                </form>
+            </div>
+
+            {# --- Core Info --- #}
+            <div class="form-section-title">Core Info</div>
+            <div class="form-group"><label>Location:</label><p class="form-data-value">{{ selected_session_data.location_name | default('N/A') }}</p></div>
+
+            {# --- Sky Conditions --- #}
+            <div class="form-section-title">Sky Conditions</div>
+            <div class="form-row">
+                <div class="form-group"><label>Seeing (FWHM):</label><p class="form-data-value">{{ selected_session_data.seeing_observed_fwhm | default('N/A') }}"</p></div>
+                <div class="form-group"><label>SQM:</label><p class="form-data-value">{{ selected_session_data.sky_sqm_observed | default('N/A') }}</p></div>
+            </div>
+            <div class="form-group"><label>Weather Notes:</label><div class="form-data-value preserve-newlines">{{ selected_session_data.weather_notes | default('N/A') }}</div></div>
+
+            {# --- Equipment & Guiding --- #}
+            <div class="form-section-title">Equipment & Guiding</div>
+            <div class="form-group"><label>Telescope Setup:</label><p class="form-data-value">{{ selected_session_data.telescope_setup_notes | default('N/A') }}</p></div>
+            <div class="form-row">
+                 <div class="form-group"><label>Filter Used:</label><p class="form-data-value">{{ selected_session_data.filter_used_session | default('N/A') }}</p></div>
+                 <div class="form-group"><label>Guiding RMS:</label><p class="form-data-value">{{ selected_session_data.guiding_rms_avg_arcsec | default('N/A') }}"</p></div>
+            </div>
+
+            {# --- Acquisition --- #}
+            <div class="form-section-title">Acquisition</div>
+             <div class="form-row">
+                <div class="form-group"><label>Integration:</label><p class="form-data-value">{% set integ_min_detail = selected_session_data.get('calculated_integration_time_minutes') %}{{ integ_min_detail | round(0) if integ_min_detail is number and integ_min_detail != 'N/A' else 'N/A' }} min</p></div>
+                <div class="form-group"><label>Sub Exposure:</label><p class="form-data-value">{{ selected_session_data.exposure_time_per_sub_sec | default('N/A') }}s</p></div>
+                <div class="form-group"><label># Subs:</label><p class="form-data-value">{{ selected_session_data.number_of_subs_light | default('N/A') }}</p></div>
+            </div>
+
+            {# --- Outcome --- #}
+            <div class="form-section-title">Outcome</div>
+            <div class="form-group"><label>Session Rating:</label><p class="form-data-value">{{ selected_session_data.session_rating_subjective | default('N/A') }} ★</p></div>
+            <div class="form-group"><label>Notes/Learnings:</label><div class="form-data-value preserve-newlines">{{ selected_session_data.general_notes_problems_learnings | default('N/A') }}</div></div>
+        </div>
+    {% else %}
+        <p style="margin-top:50px; color:#555; text-align: center;"><em>Select a session from the history on the left to view its full details.</em></p>
+    {% endif %}
+    </div>
+</div>
+{% else %}
+    <p style="margin-top:15px; color:#777;">No journal entries found for {{ alt_name | default(object_name, True) }}.</p>
+{% endif %}
