@@ -25,21 +25,33 @@
     .notes-block { margin-top: 8px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; min-height: 60px; }
 
     h3 { font-size: 1.4em; font-weight: 600; color: #333; margin-bottom: 1em; }
-    .session-list-column h4, .session-detail-column h4 { font-size: 1.2em; font-weight: 600; margin-top: 0; color: #343a40; }
+    .session-list-column h4, .session-detail-column h4 { font-size: 1.2em; font-weight: 600; margin-top: 0; margin-bottom: 0; color: #343a40; }
 
     .edit-mode .form-group input, .edit-mode .form-group textarea, .edit-mode .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
     .edit-mode .form-group textarea { min-height: 100px; }
+
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75em; }
+    .history-header .inline-button { font-size: 13px; padding: 6px 12px; margin-right: 0; }
+
+    /* --- NEW styles for the detail header --- */
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1em;
+    }
+    .detail-header .action-button-group {
+        margin: 0;
+    }
 </style>
 
-<h3>Imaging Journal for {{ alt_name | default(object_name, True) }}</h3>
-<div class="action-button-group">
-    <button type="button" class="inline-button" onclick="setupAddMode()">Add New Session</button>
-</div>
-
-{% if object_specific_sessions or True %} {# Always show the container #}
+{% if object_specific_sessions or True %}
 <div class="journal-container">
     <div class="session-list-column">
-        <h4>Session History:</h4>
+        <div class="history-header">
+            <h4>Session History:</h4>
+            <button type="button" class="inline-button" onclick="setupAddMode()">Add New Session</button>
+        </div>
         <div class="table-wrapper" style="border-top: 1px solid #dee2e6;">
             <table class="session-history-table">
                 <thead>
@@ -61,13 +73,14 @@
 
     <div class="session-detail-column">
         <div id="session-detail-wrapper">
-            <h4 id="detail-title">{% if selected_session_data %}Details for Session: {{ selected_session_data.session_date | date_eu }}{% endif %}</h4>
-
-            <div class="action-button-group view-mode" {% if not selected_session_data %}style="display:none;"{% endif %}>
-                <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="setupEditMode()">Edit This Session</button>
-                <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure?');">
-                    <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
-                </form>
+            <div class="detail-header">
+                <h4 id="detail-title">{% if selected_session_data %}Details for Session: {{ selected_session_data.session_date | date_eu }}{% endif %}</h4>
+                <div class="action-button-group view-mode" {% if not selected_session_data %}style="display:none;"{% endif %}>
+                    <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="setupEditMode()">Edit This Session</button>
+                    <form action="{{ url_for('journal_delete', session_id=selected_session_data.session_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure?');">
+                        <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
+                    </form>
+                </div>
             </div>
 
             <form id="journal-detail-form" method="POST" action="">
@@ -84,7 +97,6 @@
                     <button type="button" class="detail-tab-button" data-tab="outcome" onclick="showDetailTab('outcome')">Outcome</button>
                 </div>
 
-                {# Renders the view or a prompt if no session is selected #}
                 <div class="view-mode">
                 {% if selected_session_data %}
                     <div id="summary-tab" class="detail-tab-content active">
@@ -106,8 +118,8 @@
                 {% endif %}
                 </div>
 
+                {% set entry = selected_session_data or {} %}
                 <div class="edit-mode">
-                    {% set entry = selected_session_data %} {# Use 'entry' alias for consistency with form html #}
                     <div class="form-group"><label for="session_date">Session Date:</label><input type="date" id="session_date" name="session_date" value=""></div>
                     <div class="form-group"><label for="location_name">Location:</label><select id="location_name" name="location_name">{% for loc_name_key, loc_details in available_locations.items() %}<option value="{{ loc_name_key }}">{{ loc_name_key }}</option>{% endfor %}</select></div>
                 </div>
@@ -118,8 +130,38 @@
                 </div>
 
                 <div id="acq-tab" class="detail-tab-content">
-                    <div class="view-mode"><dl class="detail-grid"><dt>Sub Exposure:</dt><dd>{{ entry.exposure_time_per_sub_sec | default('N/A') }}s</dd><dt># Light Subs:</dt><dd>{{ entry.number_of_subs_light | default('N/A') }}</dd><dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd><dt>Gain / Offset:</dt><dd>{{ entry.gain_setting | default('N/A') }} / {{ entry.offset_setting | default('N/A') }}</dd></dl>{% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}{% set has_mono_data = namespace(found=false) %}{% for filt_key, _ in mono_filters %}{% if entry.get('filter_' + filt_key + '_subs') or entry.get('filter_' + filt_key + '_exposure_sec') %}{% set has_mono_data.found = true %}{% endif %}{% endfor %}{% if has_mono_data.found %}<div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div><dl class="detail-grid">{% for filt_key, filt_name in mono_filters %}{% set subs = entry.get('filter_' + filt_key + '_subs') %}{% set exp = entry.get('filter_' + filt_key + '_exposure_sec') %}{% if subs or exp %}<dt>{{ filt_name }} ({{ filt_key }}):</dt><dd>{{ subs | default('N/A') }} subs x {{ exp | default('N/A') }}s</dd>{% endif %}{% endfor %}</dl>{% endif %}</div>
-                    <div class="edit-mode"><div class="form-row"><div class="form-group"><label>Sub Exposure (s):</label><input type="text" name="exposure_time_per_sub_sec" value="{{ entry.exposure_time_per_sub_sec if entry.exposure_time_per_sub_sec is not none else '' }}"></div><div class="form-group"><label># Light Subs:</label><input type="text" name="number_of_subs_light" value="{{ entry.number_of_subs_light if entry.number_of_subs_light is not none else '' }}"></div></div><div class="form-group"><label>Filter Used (for OSC/broadband):</label><input type="text" name="filter_used_session" value="{{ entry.filter_used_session or '' }}"></div><div class="form-row"><div class="form-group"><label>Gain:</label><input type="number" name="gain_setting" value="{{ entry.gain_setting if entry.gain_setting is not none else '' }}"></div><div class="form-group"><label>Offset:</label><input type="number" name="offset_setting" value="{{ entry.offset_setting if entry.offset_setting is not none else '' }}"></div></div><div class="form-section-title" style="margin-top:20px;">Monochrome Filter Exposures</div>{% for filt_key, filt_name in mono_filters %}<div class="form-row"><div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div><div class="form-group"><label># Subs:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" value="{{ entry['filter_' + filt_key + '_subs'] if entry['filter_' + filt_key + '_subs'] is not none else '' }}" placeholder="Count"></div><div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" value="{{ entry['filter_' + filt_key + '_exposure_sec'] if entry['filter_' + filt_key + '_exposure_sec'] is not none else '' }}" placeholder="Seconds"></div></div>{% endfor %}</div>
+                    <div class="view-mode">
+                        <dl class="detail-grid"><dt>Sub Exposure:</dt><dd>{{ entry.exposure_time_per_sub_sec | default('N/A') }}s</dd><dt># Light Subs:</dt><dd>{{ entry.number_of_subs_light | default('N/A') }}</dd><dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd><dt>Gain / Offset:</dt><dd>{{ entry.gain_setting | default('N/A') }} / {{ entry.offset_setting | default('N/A') }}</dd></dl>
+                        {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
+                        {% set has_mono_data = namespace(found=false) %}
+                        {% for filt_key, _ in mono_filters %}{% if entry.get('filter_' ~ filt_key ~ '_subs') or entry.get('filter_' ~ filt_key ~ '_exposure_sec') %}{% set has_mono_data.found = true %}{% endif %}{% endfor %}
+                        {% if has_mono_data.found %}
+                        <div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div>
+                        <dl class="detail-grid">
+                        {% for filt_key, filt_name in mono_filters %}
+                            {% set subs = entry.get('filter_' ~ filt_key ~ '_subs') %}
+                            {% set exp = entry.get('filter_' ~ filt_key ~ '_exposure_sec') %}
+                            {% if subs or exp %}
+                                <dt>{{ filt_name }} ({{ filt_key }}):</dt>
+                                <dd>{{ subs | default('N/A') }} subs x {{ exp | default('N/A') }}s</dd>
+                            {% endif %}
+                        {% endfor %}
+                        </dl>
+                        {% endif %}
+                    </div>
+                    <div class="edit-mode">
+                        <div class="form-row"><div class="form-group"><label>Sub Exposure (s):</label><input type="text" name="exposure_time_per_sub_sec" value="{{ entry.exposure_time_per_sub_sec if entry.exposure_time_per_sub_sec is not none else '' }}"></div><div class="form-group"><label># Light Subs:</label><input type="text" name="number_of_subs_light" value="{{ entry.number_of_subs_light if entry.number_of_subs_light is not none else '' }}"></div></div>
+                        <div class="form-group"><label>Filter Used (for OSC/broadband):</label><input type="text" name="filter_used_session" value="{{ entry.filter_used_session or '' }}"></div>
+                        <div class="form-row"><div class="form-group"><label>Gain:</label><input type="number" name="gain_setting" value="{{ entry.gain_setting if entry.gain_setting is not none else '' }}"></div><div class="form-group"><label>Offset:</label><input type="number" name="offset_setting" value="{{ entry.offset_setting if entry.offset_setting is not none else '' }}"></div></div>
+                        <div class="form-section-title" style="margin-top:20px;">Monochrome Filter Exposures</div>
+                        {% for filt_key, filt_name in mono_filters %}
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div>
+                            <div class="form-group"><label># Subs:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" value="{{ entry['filter_' ~ filt_key ~ '_subs'] if entry['filter_' ~ filt_key ~ '_subs'] is not none else '' }}" placeholder="Count"></div>
+                            <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" value="{{ entry['filter_' ~ filt_key ~ '_exposure_sec'] if entry['filter_' ~ filt_key ~ '_exposure_sec'] is not none else '' }}" placeholder="Seconds"></div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
 
                 <div id="outcome-tab" class="detail-tab-content">
@@ -151,13 +193,13 @@
         wrapper.classList.remove('is-editing', 'is-adding');
 
         if (mode === 'edit' || mode === 'add') {
-            wrapper.classList.add('is-editing'); // Re-use 'is-editing' class for styling
+            wrapper.classList.add('is-editing');
             if (mode === 'add') {
-                wrapper.classList.add('is-adding'); // Specific class for add logic
+                wrapper.classList.add('is-adding');
                 title.textContent = 'Add New Session for {{ alt_name | default(object_name, True) }}';
                 submitBtn.textContent = 'Add Session';
                 form.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}';
-                form.reset(); // Clear all fields
+                form.reset();
                 form.elements.session_id.value = '';
                 form.elements.session_date.value = '{{ today_date }}';
                 form.elements.location_name.value = '{{ default_location }}';
@@ -165,13 +207,12 @@
                 title.textContent = 'Editing Session: {{ selected_session_data.session_date | date_eu if selected_session_data }}';
                 submitBtn.textContent = 'Save Changes';
                 form.action = '{{ url_for("journal_edit", session_id=(selected_session_data.session_id if selected_session_data)) }}';
-                // Repopulate form in case it was cleared by 'add' mode
                 form.elements.session_date.value = '{{ selected_session_data.session_date if selected_session_data }}';
                 form.elements.location_name.value = '{{ selected_session_data.location_name if selected_session_data }}';
             }
             showDetailTab('sky');
         } else { // 'view'
-            title.textContent = '{{ "Details for Session: " + (selected_session_data.session_date | date_eu) if selected_session_data else "" }}';
+            title.textContent = '{% if selected_session_data %}Details for Session: {{ selected_session_data.session_date | date_eu }}{% endif %}';
             showDetailTab('summary');
         }
     }
