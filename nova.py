@@ -390,6 +390,20 @@ def _fix_mode_switch_sessions():
             # never block a request due to cleanup logic
             pass
 
+def load_effective_settings():
+    """
+    Determines the effective settings for telemetry and calculation precision
+    based on the application mode (single-user vs. multi-user).
+    """
+    if SINGLE_USER_MODE:
+        # In single-user mode, read from the user's config file.
+        g.sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+        g.telemetry_enabled = g.user_config.get('telemetry', {}).get('enabled', True)
+    else:
+        # In multi-user mode, read from the .env file with hardcoded defaults.
+        g.sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        g.telemetry_enabled = os.environ.get('TELEMETRY_ENABLED', 'true').lower() == 'true'
+
 
 def convert_to_native_python(val):
     """Converts a NumPy data type to a native Python type if necessary."""
@@ -692,7 +706,7 @@ def trigger_outlook_update_for_user(username):
         for loc_name in locations.keys():
             # We don't need to check for staleness here, we want to force the update.
             # print(f"    -> Starting Outlook worker for location '{loc_name}'.")
-            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy()))
+            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy(), g.sampling_interval))
             thread.start()
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
@@ -746,7 +760,19 @@ def trigger_startup_cache_workers():
 
             username, loc_name, cfg = tasks.pop(0)
             print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
-            worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg))
+            # Determine the sampling interval to pass to the thread
+            if SINGLE_USER_MODE:
+                sampling_interval = cfg.get('sampling_interval_minutes', 15)
+            else:
+                sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+            # Determine the sampling interval to pass to the thread
+            if SINGLE_USER_MODE:
+                sampling_interval = cfg.get('sampling_interval_minutes', 15)
+            else:
+                sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+            worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg, sampling_interval))
             worker_thread.start()
             threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
 
@@ -754,7 +780,7 @@ def trigger_startup_cache_workers():
         if all_tasks:
             run_tasks_sequentially(all_tasks)
 
-def update_outlook_cache(username, location_name, user_config):
+def update_outlook_cache(username, location_name, user_config, sampling_interval):
     """
     NEW LOGIC: Finds ALL good imaging opportunities for PROJECT objects only
     and saves them sorted by date.
@@ -818,7 +844,7 @@ def update_outlook_cache(username, location_name, user_config):
                         obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(
                             ra, dec, lat, lon,
                             date_str, tz_name,
-                            altitude_threshold, user_config.get('sampling_interval_minutes', 15),
+                            altitude_threshold, sampling_interval,
                             horizon_mask=horizon_mask
                         )
 
@@ -892,7 +918,7 @@ def update_outlook_cache(username, location_name, user_config):
             traceback.print_exc()
             cache_worker_status[status_key] = "error"
 
-def warm_main_cache(username, location_name, user_config):
+def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
     Warms the main data cache on startup and then triggers the Outlook cache
     update for the same location.
@@ -917,8 +943,8 @@ def warm_main_cache(username, location_name, user_config):
             lat = float(user_config["locations"][location_name]["lat"])
             lon = float(user_config["locations"][location_name]["lon"])
             tz_name = user_config["locations"][location_name]["timezone"]
+
             altitude_threshold = user_config.get("altitude_threshold", 20)
-            sampling_interval = user_config.get('sampling_interval_minutes', 15)
 
             times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
             location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
@@ -985,7 +1011,8 @@ def warm_main_cache(username, location_name, user_config):
 
         if needs_update:
             # Pass username to the thread's target function
-            thread = threading.Thread(target=update_outlook_cache, args=(username, location_name, user_config.copy()))
+            thread = threading.Thread(target=update_outlook_cache,
+                                      args=(username, location_name, user_config.copy(), sampling_interval))
             thread.start()
 
     except Exception as e:
@@ -2626,6 +2653,8 @@ def load_config_for_request():
     }
     g.objects = [ obj.get("Object") for obj in g.objects_list ]
 
+    load_effective_settings()
+
 @app.before_request
 def ensure_telemetry_defaults():
     """
@@ -4087,12 +4116,13 @@ def config_form():
                 g.user_config[
                     'default_location'] = new_default_location if new_default_location else "Singapore"  # Default from original
 
-                g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
-                # Telemetry checkbox (default True if missing)
-                telemetry_enabled = bool(request.form.get('telemetry_enabled'))
-                tcfg = g.user_config.setdefault('telemetry', {})
-                tcfg['enabled'] = telemetry_enabled
-                tcfg.pop('instance_id', None)
+                if SINGLE_USER_MODE:
+                    g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
+                    # Telemetry checkbox (default True if missing)
+                    telemetry_enabled = bool(request.form.get('telemetry_enabled'))
+                    tcfg = g.user_config.setdefault('telemetry', {})
+                    tcfg['enabled'] = telemetry_enabled
+                    tcfg.pop('instance_id', None)
 
                 imaging = g.user_config.setdefault("imaging_criteria", {})
                 try:

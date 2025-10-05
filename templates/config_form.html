@@ -479,6 +479,7 @@
                          value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
                 </div>
               </div>
+              {% if SINGLE_USER_MODE %}
               <hr>
               <div class="form-group">
                 <label for="sampling_interval">Calculation Precision:</label>
@@ -494,6 +495,8 @@
                   Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
                 </small>
               </div>
+              {% endif %}
+              {% if SINGLE_USER_MODE %}
               <hr>
               <div class="inline-fields">
                 <div>
@@ -506,6 +509,7 @@
                 </small>
               </div>
               <hr>
+              {% endif %}
                <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
           </form>
         </div>
