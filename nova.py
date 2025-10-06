@@ -88,7 +88,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.6.0"
+APP_VERSION = "3.6.2"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -492,7 +492,23 @@ def load_journal(username):
         return {"sessions": []}
 
 def save_journal(username, journal_data):
-    """Saves journal data for the given username to a YAML file."""
+    """
+    Saves journal data for the given username to a YAML file,
+    including a safety check to prevent writing corrupted data.
+    """
+    # --- Safety Check ---
+    # Abort if the data is not a dict, is missing the 'sessions' key,
+    # or if the 'sessions' value is not a list. This prevents
+    # overwriting a valid journal with malformed data due to a runtime error.
+    if (not isinstance(journal_data, dict) or
+            "sessions" not in journal_data or
+            not isinstance(journal_data.get("sessions"), list)):
+        print(f"❌ CRITICAL SAVE ABORTED for journal of user '{username}': "
+              f"Attempted to save invalid or malformed journal data.")
+        # Stop the function here to prevent overwriting the file.
+        return
+
+    # --- Original Save Logic ---
     if SINGLE_USER_MODE:
         filename = "journal_default.yaml"
     else:
@@ -500,11 +516,12 @@ def save_journal(username, journal_data):
     filepath = os.path.join(CONFIG_DIR, filename)
 
     try:
-        with open(filepath, "w", encoding="utf-8") as file: # Added encoding
-            yaml.dump(journal_data, file, sort_keys=False, allow_unicode=True, indent=2) # Added indent for readability
+        with open(filepath, "w", encoding="utf-8") as file:
+            yaml.dump(journal_data, file, sort_keys=False, allow_unicode=True, indent=2)
         print(f"💾 Journal saved to '{filename}' successfully.")
     except Exception as e:
         print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
+
 
 def sort_rigs_list(rigs_list, sort_key='name-asc'):
     """Sorts a list of rig dictionaries based on a given key."""
@@ -2468,11 +2485,20 @@ def load_user_config(username):
     return config_data
 
 def save_user_config(username, config_data):
+    # --- ADD THIS SAFETY CHECK ---
+    # Before saving, check if the 'locations' list is present but empty.
+    # This prevents overwriting a valid config with a bad one.
+    if 'locations' in config_data and not config_data['locations']:
+        # Log a critical warning instead of proceeding
+        print(f"❌ CRITICAL SAVE ABORTED for user '{username}': "
+              f"Attempted to save a configuration with an empty locations list. This would cause data loss.")
+        # Stop the function here to prevent the overwrite
+        return
+    # --- END OF SAFETY CHECK ---
+
     if SINGLE_USER_MODE:
-        # Corrected: Only the filename is needed here.
         filename = "config_default.yaml"
     else:
-        # This part was already correct.
         filename = f"config_{username}.yaml"
 
     filepath = os.path.join(CONFIG_DIR, filename)
