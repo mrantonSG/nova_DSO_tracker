@@ -757,6 +757,14 @@
         position: relative;
     }
 
+    /* Weather overlay container: shares the exact width and parent as the chart canvas */
+    #weather-overlay {
+        position: relative;
+        margin: 0;
+        padding: 0; /* keep at 0 so pixel math stays exact */
+        width: 100%;
+    }
+
     #altitudeChartCanvas {
         display: block;
         width: 100% !important;
@@ -819,6 +827,8 @@
     <div id="chart-section">
         <div style="width: 100%; max-width: 1300px; margin-left: 0;">
             <div id="chart-area">
+                <!-- Weather overlay placeholder sits directly above the canvas for perfect alignment -->
+                <div id="weather-overlay"></div>
                 <canvas id="altitudeChartCanvas"></canvas>
                 <div id="chart-loading" class="loading-overlay">Loading chart...</div>
             </div>
