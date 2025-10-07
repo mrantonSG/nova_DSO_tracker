@@ -7,6 +7,193 @@ function showTab(tabName) {
     localStorage.setItem('activeGraphTab', tabName);
 }
 
+// === Weather overlay (above chart) ===
+function clearWeatherOverlay() {
+    const c = document.getElementById('weather-overlay');
+    if (c) c.innerHTML = '';
+}
+function ensureWeatherOverlay() {
+    const canvas = document.getElementById('altitudeChartCanvas');
+    if (!canvas || !canvas.parentNode) return null;
+    let host = document.getElementById('weather-overlay');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'weather-overlay';
+        canvas.parentNode.insertBefore(host, canvas);
+    }
+    // Improved visual layout for weather overlay
+    host.style.display = 'flex';
+    host.style.flexDirection = 'column';
+    host.style.alignItems = 'stretch';
+    host.style.justifyContent = 'center';
+    host.style.padding = '0 6px';
+    host.style.boxSizing = 'border-box';
+    host.style.height = '40px';
+    host.style.marginBottom = '8px';
+    host.style.background = 'rgba(255,255,255,0.9)';
+    host.style.borderRadius = '4px';
+    host.style.backdropFilter = 'blur(4px)';
+    host.style.font = '12px/1.2 system-ui, Arial, sans-serif';
+    host.style.userSelect = 'none';
+    host.style.borderTop = '1px solid rgba(0,0,0,0.06)';
+    host.style.borderBottom = '1px solid rgba(0,0,0,0.06)';
+
+    let cv = document.getElementById('weather-overlay-cv');
+    if (!cv) {
+        cv = document.createElement('canvas');
+        cv.id = 'weather-overlay-cv';
+        cv.style.position = 'absolute';
+        cv.style.top = '0';
+        cv.style.height = '40px';
+        host.appendChild(cv);
+    }
+    return host;
+}
+
+function layoutWeatherOverlayCanvas(chart) {
+    const host = document.getElementById('weather-overlay');
+    const cv = document.getElementById('weather-overlay-cv');
+    if (!host || !cv || !chart) return null;
+    const baseCanvas = chart.canvas;
+    const baseRect = baseCanvas.getBoundingClientRect();
+    const hostRect = host.getBoundingClientRect();
+    const left = Math.round(baseRect.left - hostRect.left);
+    // Align overlay canvas to the x-scale inner plot span
+    const x = chart.scales && chart.scales.x ? chart.scales.x : null;
+    const scaleLeft  = x && typeof x.left  === 'number' ? x.left  : 0;
+    const scaleRight = x && typeof x.right === 'number' ? x.right : baseRect.width;
+    const scaleWidth = Math.max(1, scaleRight - scaleLeft);
+
+    cv.style.left = (left + scaleLeft) + 'px';
+    cv.style.width = scaleWidth + 'px';
+    cv.width = Math.round(scaleWidth * window.devicePixelRatio);
+    cv.height = Math.round(40 * window.devicePixelRatio);
+    return cv.getContext('2d');
+}
+
+function renderWeatherOverlay(chart, forecast, cloudInfo, seeingInfo) {
+    // Legacy overlay function (no longer used)
+}
+
+// ===== Weather overlay plugin (drawn inside the chart canvas) =====
+const weatherOverlayPlugin = {
+  id: 'weatherOverlay',
+  // Draw the 2-row weather overlay before datasets (as before)
+  beforeDatasetsDraw(chart) {
+    const info = chart.__weather;
+    if (!info || !info.hasWeather) return;
+    const { forecast, cloudInfo, seeingInfo } = info;
+    const { ctx, chartArea, scales } = chart;
+    const x = scales.x;
+    if (!x || !chartArea) return;
+
+    const rowH = 18; // px per row
+    const gap = 2;   // px between rows
+    const pad = 1;   // inner padding for blocks
+    const totalH = rowH * 2 + gap;
+    const topY = chartArea.top - (totalH + 6);
+
+    ctx.save();
+    // Reset any previous clipping that might hide text
+    ctx.beginPath();
+    ctx.rect(0, 0, chart.width, chart.height);
+    ctx.clip();
+    // Ensure full opacity and predictable text state
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = 'transparent';
+    ctx.font = '12px system-ui, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // background strip and separator
+    ctx.fillStyle = 'rgba(131, 180, 197, 0.08)';
+    ctx.fillRect(chartArea.left, topY, chartArea.right - chartArea.left, totalH + 4);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(chartArea.left + 0.5, topY + rowH + 1);
+    ctx.lineTo(chartArea.right - 0.5, topY + rowH + 1);
+    ctx.stroke();
+
+    // text fitting helper
+    const fitText = (text, maxPx) => {
+      if (!text) return '';
+      if (ctx.measureText(text).width <= maxPx) return text;
+      const ell = '…';
+      let lo = 0, hi = text.length;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const candidate = text.slice(0, mid) + ell;
+        if (ctx.measureText(candidate).width <= maxPx) lo = mid + 1; else hi = mid;
+      }
+      return text.slice(0, Math.max(0, lo - 1)) + ell;
+    };
+
+    const drawBlock = (y, x0, x1, label, fill) => {
+      const left = Math.round(Math.min(x0, x1));
+      const width = Math.max(1, Math.round(Math.abs(x1 - x0)));
+      ctx.fillStyle = fill;
+      ctx.fillRect(left + pad, y + pad, width - 2 * pad, rowH - 2 * pad);
+      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(left + pad + 0.5, y + pad + 0.5, width - 2 * pad - 1, rowH - 2 * pad - 1);
+      const maxTextW = Math.max(0, width - 8);
+      const txt = fitText(label, maxTextW);
+      ctx.fillStyle = '#444';
+      ctx.fillText(txt, left + width / 2, y + rowH / 2);
+    };
+
+    const xMinPx = x.getPixelForValue(x.min);
+    const xMaxPx = x.getPixelForValue(x.max);
+
+    forecast.forEach(b => {
+      let x0 = x.getPixelForValue(b.start);
+      let x1 = x.getPixelForValue(b.end);
+      if (!Number.isFinite(x0) || !Number.isFinite(x1)) return;
+      x0 = Math.max(xMinPx, Math.min(x0, xMaxPx));
+      x1 = Math.max(xMinPx, Math.min(x1, xMaxPx));
+      if (Math.abs(x1 - x0) < 1) return;
+      const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
+      drawBlock(topY, x0, x1, ci.label, ci.color);
+      if (b.seeing) {
+        const si = seeingInfo[b.seeing] || { label: 'Seeing', color: 'rgba(0,0,0,0.08)' };
+        drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
+      }
+    });
+
+    ctx.restore();
+  },
+
+  // Draw the no-forecast banner last so it sits on top of everything
+  afterDraw(chart) {
+    const info = chart.__weather;
+    if (!info || info.hasWeather) return;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+    const rowH = 22;
+    const pad = 1;
+    const topY = chartArea.top - (rowH + 6);
+    ctx.save();
+    ctx.font = '12px system-ui, Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(131, 180, 197, 0.08)';
+    ctx.fillRect(chartArea.left, topY, chartArea.right - chartArea.left, rowH + 4);
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(chartArea.left + 0.5, topY + 0.5, (chartArea.right - chartArea.left) - 1, (rowH + 4) - 1);
+    const msg = 'No weather forecast for this date/location';
+    ctx.fillStyle = '#222';
+    // tiny shadow for readability
+    ctx.shadowColor = 'rgba(255,255,255,0.6)';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.fillText(msg, (chartArea.left + chartArea.right) / 2, topY + rowH / 2 + pad);
+    ctx.restore();
+  }
+};
+
 const plotTz = NOVA_GRAPH_DATA.plotTz;
 Chart.defaults.adapters = Chart.defaults.adapters || {};
 Chart.defaults.adapters.date = {
@@ -60,12 +247,14 @@ async function renderClientSideChart() {
         const nextDt = baseDt.plus({days: 1});
         const cloudInfo = { 1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.0)'}, 2: {label: 'Clear', color: 'rgba(135, 206, 250, 0.05)'}, 3: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.1)'}, 4: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.15)'}, 5: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.2)'}, 6: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.25)'}, 7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.3)'}, 8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.35)'}, 9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.4)'} };
         const seeingInfo = { 1: {label: 'Seeing: Exc.', color: 'rgba(0, 255, 127, 0.15)'}, 2: {label: 'Seeing: Good', color: 'rgba(0, 255, 127, 0.2)'}, 3: {label: 'Seeing: Good', color: 'rgba(173, 255, 47, 0.2)'}, 4: {label: 'Seeing: Avg.', color: 'rgba(255, 255, 0, 0.2)'}, 5: {label: 'Seeing: Avg.', color: 'rgba(255, 215, 0, 0.2)'}, 6: {label: 'Seeing: Poor', color: 'rgba(255, 165, 0, 0.2)'}, 7: {label: 'Seeing: Poor', color: 'rgba(255, 69, 0, 0.2)'}, 8: {label: 'Seeing: Bad', color: 'rgba(255, 0, 0, 0.2)'} };
-        if (data.weather_forecast && data.weather_forecast.length > 0) {
-            data.weather_forecast.forEach((block, index) => {
-                annotations[`cloud_block_${index}`] = { type: 'box', xMin: block.start, xMax: block.end, yMin: 80, yMax: 90, backgroundColor: cloudInfo[block.cloudcover]?.color || 'rgba(0,0,0,0.1)', borderColor: 'transparent', borderWidth: 0, label: { display: true, content: cloudInfo[block.cloudcover]?.label || 'Cloudy', position: 'center', font: { size: 10 }, color: '#444' } };
-                if (block.seeing) annotations[`seeing_block_${index}`] = { type: 'box', xMin: block.start, xMax: block.end, yMin: 70, yMax: 80, backgroundColor: seeingInfo[block.seeing]?.color || 'rgba(0,0,0,0.1)', borderColor: 'transparent', borderWidth: 0, label: { display: true, content: seeingInfo[block.seeing]?.label || 'Seeing: N/A', position: 'center', font: {size: 10}, color: '#444' } };
-            });
-        }
+        const hasWeather = Array.isArray(data.weather_forecast) && data.weather_forecast.length > 0;
+        // Normalize weather block times to ms (Chart time scale handles multiple types, but we ensure consistency)
+        const forecastForOverlay = hasWeather ? data.weather_forecast.map(b => ({
+            start: toMs(b.start),
+            end: toMs(b.end),
+            cloudcover: b.cloudcover,
+            seeing: b.seeing
+        })) : [];
         function wallTimeMs(baseDateTime, timeStr) {
             if (!timeStr || !timeStr.includes(':')) return null;
             const [h, m] = timeStr.split(':').map(Number);
@@ -95,7 +284,68 @@ async function renderClientSideChart() {
         const nightShade = { id: 'nightShade', beforeDraw(chart) { const {ctx, chartArea, scales} = chart; if (!chartArea) return; const left = scales.x.getPixelForValue(scales.x.min), right = scales.x.getPixelForValue(scales.x.max); const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right, dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left; ctx.save(); ctx.fillStyle = 'rgba(211, 211, 211, 1)'; if (duskPx < dawnPx) { if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height); if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height); } else ctx.fillRect(left, chartArea.top, right - left, chartArea.height); ctx.restore(); } };
         const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
         if (window.altitudeChart) window.altitudeChart.destroy();
-        window.altitudeChart = new Chart(ctx, { type: 'line', data: { labels, datasets: [ { label: `${NOVA_GRAPH_DATA.objectName} Altitude`, data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 }, { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 }, { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' }, { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 }, { label: `${NOVA_GRAPH_DATA.objectName} Azimuth`, data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }, { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 } ] }, plugins: [nightShade], options: { responsive: true, maintainAspectRatio: true, aspectRatio: 2, adapters: {date: {zone: plotTz}}, plugins: { annotation: {annotations}, legend: {position: 'right'}, title: { display: false, text: `Altitude and Azimuth for ${NOVA_GRAPH_DATA.altName} on ${data.date}`, align: 'start', font: {size: 16} } }, scales: { x: { type: 'time', adapters: { date: { zone: plotTz }}, parsing: false, time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}}, min: xMinCentered, max: xMaxCentered, bounds: 'ticks', ticks: {source: 'auto'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}, title: {display: true, text: `Time (Local - ${NOVA_GRAPH_DATA.plotLocName})`} }, yAltitude: { position: 'left', min: -90, max: 90, title: {display: true, text: 'Altitude (°)'}, grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}}, yAzimuth: { position: 'right', min: 0, max: 360, title: {display: true, text: 'Azimuth (°)'}, grid: {drawOnChartArea: false} } } } });
+        window.altitudeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    { label: `${NOVA_GRAPH_DATA.objectName} Altitude`, data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+                    { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+                    { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
+                    { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
+                    { label: `${NOVA_GRAPH_DATA.objectName} Azimuth`, data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+                    { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
+                ]
+            },
+            plugins: [nightShade, weatherOverlayPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2,
+                adapters: {date: {zone: plotTz}},
+                layout: { padding: { top: hasWeather ? 46 : 28 } },
+                plugins: {
+                    annotation: {annotations},
+                    legend: {position: 'right'},
+                    title: {
+                        display: false,
+                        text: `Altitude and Azimuth for ${NOVA_GRAPH_DATA.altName} on ${data.date}`,
+                        align: 'start',
+                        font: {size: 16}
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        adapters: { date: { zone: plotTz }},
+                        parsing: false,
+                        time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}},
+                        min: xMinCentered,
+                        max: xMaxCentered,
+                        bounds: 'ticks',
+                        ticks: {source: 'auto'},
+                        grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]},
+                        title: {display: true, text: `Time (Local - ${NOVA_GRAPH_DATA.plotLocName})`}
+                    },
+                    yAltitude: {
+                        position: 'left',
+                        min: -90,
+                        max: 90,
+                        title: {display: true, text: 'Altitude (°)'},
+                        grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}
+                    },
+                    yAzimuth: {
+                        position: 'right',
+                        min: 0,
+                        max: 360,
+                        title: {display: true, text: 'Azimuth (°)'},
+                        grid: {drawOnChartArea: false}
+                    }
+                }
+            }
+        });
+        // Attach weather info for the plugin
+        window.altitudeChart.__weather = { hasWeather, forecast: forecastForOverlay, cloudInfo, seeingInfo };
     } catch (err) {
         console.error('Could not render chart:', err);
         const canvas = document.getElementById('altitudeChartCanvas'), ctx = canvas.getContext('2d');
@@ -109,6 +359,8 @@ async function renderMonthlyYearlyChart(view) {
     chartLoadingDiv?.classList.remove('hidden');
     const objectName = NOVA_GRAPH_DATA.objectName, selMonth = document.getElementById('month-select').value, year = document.getElementById('year-select').value, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon, plotTz = NOVA_GRAPH_DATA.plotTz;
     let titleText, objAlt = [], moonAlt = [], horizon = [];
+    // Always clear weather overlay in month/year view
+    clearWeatherOverlay();
     try {
         if (view === 'year') {
             titleText = `Yearly Altitude at Local Midnight for ${NOVA_GRAPH_DATA.altName} - ${year}`;
@@ -403,7 +655,12 @@ window.addEventListener('load', () => {
     updateDayLimit();
     const framingModal = document.getElementById('framing-modal');
     window.addEventListener('click', function (event) { if (event.target == framingModal) closeFramingAssistant(); });
-    window.addEventListener('resize', () => { if (document.getElementById('framing-modal').style.display === 'block') if (aladin) updateFramingChart(false); });
+window.addEventListener('resize', () => {
+    if (document.getElementById('framing-modal').style.display === 'block') {
+        if (aladin) updateFramingChart(false);
+    }
+    // Chart.js will re-render the plugin overlay on resize automatically
+});
     const ta = document.getElementById('project-field');
     if (ta) { const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g); if (m && m.length) setProjectQuickLink(m[m.length - 1]); }
 });
