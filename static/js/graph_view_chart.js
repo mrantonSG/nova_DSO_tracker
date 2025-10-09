@@ -9,8 +9,8 @@ function showTab(tabName) {
 
 // === Weather overlay (above chart) ===
 function clearWeatherOverlay() {
-    const c = document.getElementById('weather-overlay');
-    if (c) c.innerHTML = '';
+    const host = document.getElementById('weather-overlay');
+    if (host) host.remove();
 }
 function ensureWeatherOverlay() {
     const canvas = document.getElementById('altitudeChartCanvas');
@@ -81,7 +81,8 @@ const weatherOverlayPlugin = {
   // Draw the 2-row weather overlay before datasets (as before)
   beforeDatasetsDraw(chart) {
     const info = chart.__weather;
-    if (!info || !info.hasWeather) return;
+    // Draw only if there are drawable forecast blocks
+    if (!info || !info.hasWeather || !Array.isArray(info.forecast) || info.forecast.length === 0) return;
     const { forecast, cloudInfo, seeingInfo } = info;
     const { ctx, chartArea, scales } = chart;
     const x = scales.x;
@@ -164,33 +165,11 @@ const weatherOverlayPlugin = {
     ctx.restore();
   },
 
-  // Draw the no-forecast banner last so it sits on top of everything
+  // Do not render anything when there is no forecast
   afterDraw(chart) {
     const info = chart.__weather;
-    if (!info || info.hasWeather) return;
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    const rowH = 22;
-    const pad = 1;
-    const topY = chartArea.top - (rowH + 6);
-    ctx.save();
-    ctx.font = '12px system-ui, Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(131, 180, 197, 0.08)';
-    ctx.fillRect(chartArea.left, topY, chartArea.right - chartArea.left, rowH + 4);
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(chartArea.left + 0.5, topY + 0.5, (chartArea.right - chartArea.left) - 1, (rowH + 4) - 1);
-    const msg = 'No weather forecast for this date/location';
-    ctx.fillStyle = '#222';
-    // tiny shadow for readability
-    ctx.shadowColor = 'rgba(255,255,255,0.6)';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.fillText(msg, (chartArea.left + chartArea.right) / 2, topY + rowH / 2 + pad);
-    ctx.restore();
+    if (!info || info.hasWeather) return; // no forecast -> no header
+    return;
   }
 };
 
@@ -255,6 +234,10 @@ async function renderClientSideChart() {
             cloudcover: b.cloudcover,
             seeing: b.seeing
         })) : [];
+        // Filter to blocks that actually have drawable start/end values
+        const drawableForecast = forecastForOverlay.filter(b => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start);
+        const hasDrawableWeather = drawableForecast.length > 0;
+        if (!hasDrawableWeather) clearWeatherOverlay();
         function wallTimeMs(baseDateTime, timeStr) {
             if (!timeStr || !timeStr.includes(':')) return null;
             const [h, m] = timeStr.split(':').map(Number);
@@ -297,13 +280,13 @@ async function renderClientSideChart() {
                     { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
                 ]
             },
-            plugins: [nightShade, weatherOverlayPlugin],
+            plugins: hasDrawableWeather ? [nightShade, weatherOverlayPlugin] : [nightShade],
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 aspectRatio: 2,
                 adapters: {date: {zone: plotTz}},
-                layout: { padding: { top: hasWeather ? 46 : 28 } },
+                layout: { padding: { top: hasDrawableWeather ? 46 : 0 } },
                 plugins: {
                     annotation: {annotations},
                     legend: {position: 'right'},
@@ -344,8 +327,7 @@ async function renderClientSideChart() {
                 }
             }
         });
-        // Attach weather info for the plugin
-        window.altitudeChart.__weather = { hasWeather, forecast: forecastForOverlay, cloudInfo, seeingInfo };
+        window.altitudeChart.__weather = { hasWeather: hasDrawableWeather, forecast: drawableForecast, cloudInfo, seeingInfo };
     } catch (err) {
         console.error('Could not render chart:', err);
         const canvas = document.getElementById('altitudeChartCanvas'), ctx = canvas.getContext('2d');

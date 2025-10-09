@@ -15,7 +15,6 @@ March 2025, Anton Gutscher
 # Imports
 # =============================================================================
 import os
-from datetime import datetime, timedelta, timezone
 from decouple import config
 from ics import Calendar, Event
 import arrow
@@ -28,7 +27,7 @@ import numpy as np
 from yaml.constructor import ConstructorError
 import threading
 import glob
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 import traceback
 import uuid
 
@@ -88,7 +87,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.6.2"
+APP_VERSION = "3.6.3"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -172,6 +171,81 @@ CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
 
+# === Safe YAML IO helpers (atomic writes + rotating backups) ===
+import tempfile
+try:
+    import fcntl  # POSIX-only; no-op lock on Windows if import fails
+    _HAS_FCNTL = True
+except Exception:
+    _HAS_FCNTL = False
+
+def _yaml_dump_pretty(data):
+    return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+
+def _mkdirp(path):
+    os.makedirs(path, exist_ok=True)
+    return path
+
+def _backup_with_rotation(src_path: str, keep: int = 10):
+    try:
+        _mkdirp(BACKUP_DIR)
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        stem = Path(src_path).stem
+        dst = os.path.join(BACKUP_DIR, f"{stem}_{ts}.yaml")
+        if os.path.exists(src_path):
+            shutil.copy2(src_path, dst)
+        # prune old
+        siblings = sorted([p for p in Path(BACKUP_DIR).glob(f"{stem}_*.yaml")],
+                          key=lambda p: p.stat().st_mtime, reverse=True)
+        for p in siblings[keep:]:
+            try: p.unlink()
+            except: pass
+        return dst
+    except Exception as e:
+        print(f"[BACKUP] warning: {e}")
+
+def _atomic_write_yaml(path: str, data: dict):
+    dir_ = os.path.dirname(path)
+    _mkdirp(dir_)
+    fd, tmp = tempfile.mkstemp(prefix=".tmp_", dir=dir_, text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(_yaml_dump_pretty(data))
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)  # atomic on POSIX
+    finally:
+        try:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass
+
+class _FileLock:
+    """Simple advisory lock; no-ops if fcntl is unavailable."""
+    def __init__(self, path: str):
+        self.path = path
+        self._fh = None
+    def __enter__(self):
+        try:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            self._fh = open(self.path + ".lock", "a+")
+            if _HAS_FCNTL:
+                fcntl.flock(self._fh, fcntl.LOCK_EX)
+        except Exception:
+            pass
+        return self
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            if self._fh:
+                if _HAS_FCNTL:
+                    fcntl.flock(self._fh, fcntl.LOCK_UN)
+                self._fh.close()
+        except Exception:
+            pass
 
 def initialize_instance_directory():
     """
@@ -493,35 +567,25 @@ def load_journal(username):
 
 def save_journal(username, journal_data):
     """
-    Saves journal data for the given username to a YAML file,
-    including a safety check to prevent writing corrupted data.
+    Saves journal data safely (schema guard + backup + atomic write).
     """
-    # --- Safety Check ---
-    # Abort if the data is not a dict, is missing the 'sessions' key,
-    # or if the 'sessions' value is not a list. This prevents
-    # overwriting a valid journal with malformed data due to a runtime error.
     if (not isinstance(journal_data, dict) or
             "sessions" not in journal_data or
             not isinstance(journal_data.get("sessions"), list)):
-        print(f"❌ CRITICAL SAVE ABORTED for journal of user '{username}': "
-              f"Attempted to save invalid or malformed journal data.")
-        # Stop the function here to prevent overwriting the file.
+        print(f"❌ CRITICAL SAVE ABORTED for journal of user '{username}': invalid/malformed journal data.")
         return
 
-    # --- Original Save Logic ---
-    if SINGLE_USER_MODE:
-        filename = "journal_default.yaml"
-    else:
-        filename = f"journal_{username}.yaml"
+    filename = "journal_default.yaml" if SINGLE_USER_MODE else f"journal_{username}.yaml"
     filepath = os.path.join(CONFIG_DIR, filename)
 
     try:
-        with open(filepath, "w", encoding="utf-8") as file:
-            yaml.dump(journal_data, file, sort_keys=False, allow_unicode=True, indent=2)
-        print(f"💾 Journal saved to '{filename}' successfully.")
+        with _FileLock(filepath):
+            if os.path.exists(filepath):
+                _backup_with_rotation(filepath, keep=10)
+            _atomic_write_yaml(filepath, journal_data)
+        print(f" Journal saved to '{filename}' successfully (atomic).")
     except Exception as e:
         print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
-
 
 def sort_rigs_list(rigs_list, sort_key='name-asc'):
     """Sorts a list of rig dictionaries based on a given key."""
@@ -610,68 +674,70 @@ def migrate_journal_data():
             print(f"    -> ERROR: Could not process {journal_file}: {e}")
     print("[MIGRATION] Check complete.")
 
-
 def get_hybrid_weather_forecast(lat, lon):
     """
-    DEFINITIVE v2: Fetches and merges forecasts with robust, simple logic.
-    Prioritizes the 8-day 'meteo' forecast as the base and enhances it with 'astro' data if available.
+    Fetch 8-day 'meteo' (base) and optionally merge 3-day 'astro'.
+    On failure:
+      - return the last successful cached result (if any)
+      - rate-limit error logs to avoid console spam
     """
     cache_key = f"hybrid_{lat}_{lon}"
-    if cache_key in weather_cache and datetime.now() < weather_cache[cache_key]['expires']:
-        return weather_cache[cache_key]['data']
+    now = datetime.now(UTC)
+    entry = weather_cache.get(cache_key) or {}
+    last_good = entry.get('data')
+    last_err_ts = entry.get('last_err_ts')
 
-    # Step 1: Fetch the base 8-day forecast ('meteo'). This is the foundation.
-    meteo_data = None
+    # serve unexpired cache fast-path
+    if entry and 'expires' in entry and now < entry['expires']:
+        return entry['data']
+
+    def _update_cache_ok(data, ttl_hours=3):
+        weather_cache[cache_key] = {'data': data, 'expires': now + timedelta(hours=ttl_hours), 'last_err_ts': None}
+
+    def _rate_limited_error(msg):
+        nonlocal last_err_ts
+        if not last_err_ts or (now - last_err_ts) > timedelta(minutes=15):
+            print(msg)
+            weather_cache.setdefault(cache_key, {})['last_err_ts'] = now
+
+    # --- Try base 'meteo' ---
     try:
         meteo_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=meteo&output=json&unit=metric"
-        response = requests.get(meteo_url, timeout=10)
-        if response.ok:
-            meteo_data = response.json()
-            print("DEBUG: Successfully fetched 8-day 'meteo' forecast.")
-        else:
-            print(f"WARNING: 'meteo' API call failed with status {response.status_code}")
+        resp = requests.get(meteo_url, timeout=10)
+        resp.raise_for_status()
+        meteo_data = resp.json()
+        # Optional: quiet success log
+        # print("DEBUG: Successfully fetched 8-day 'meteo' forecast.")
     except Exception as e:
-        print(f"ERROR: Could not fetch 'meteo' weather data: {e}")
+        _rate_limited_error(f"ERROR: Could not fetch 'meteo' weather data: {e}")
+        return last_good or None
 
-    # If the base 8-day forecast fails, we cannot proceed. Return nothing.
     if not meteo_data or 'dataseries' not in meteo_data:
-        print("DEBUG: Base 'meteo' forecast failed. Returning no weather data.")
-        return None
+        _rate_limited_error("DEBUG: Base 'meteo' forecast failed. Returning last good (if any).")
+        return last_good or None
 
-    # Step 2: Create a dictionary from the base forecast for easy updates.
-    forecasts_by_timepoint = {block['timepoint']: block for block in meteo_data['dataseries']}
+    # index for merge
+    base = {blk.get('timepoint'): dict(blk) for blk in meteo_data['dataseries']
+            if isinstance(blk, dict) and 'timepoint' in blk}
 
-    # Step 3: Try to fetch the detailed 3-day 'astro' forecast to enhance the base. This is optional.
+    # --- Optional 'astro' merge ---
     try:
         astro_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
-        response = requests.get(astro_url, timeout=10)
-        if response.ok:
-            astro_data = response.json()
-            print("DEBUG: Successfully fetched 3-day 'astro' forecast for enhancement.")
-            # If successful, merge the detailed data into our base forecast
-            for astro_block in astro_data.get('dataseries', []):
-                timepoint = astro_block.get('timepoint')
-                if timepoint is not None and timepoint in forecasts_by_timepoint:
-                    forecasts_by_timepoint[timepoint].update(astro_block)
-        else:
-             print(f"WARNING: 'astro' API call failed. Proceeding with cloud data only.")
+        resp = requests.get(astro_url, timeout=10)
+        if resp.ok:
+            astro_data = resp.json()
+            for ablk in astro_data.get('dataseries', []):
+                tp = ablk.get('timepoint')
+                if tp in base:
+                    base[tp].update(ablk)
+            # Optional: quiet success log
+            # print("DEBUG: Successfully fetched 3-day 'astro' forecast for enhancement.")
     except Exception as e:
-        print(f"WARNING: Could not fetch 'astro' data for enhancement: {e}. Proceeding with cloud data only.")
+        _rate_limited_error(f"WARNING: 'astro' merge skipped: {e}")
 
-    # Step 4: Reconstruct the final dataseries and prepare the final data object.
-    final_dataseries = list(forecasts_by_timepoint.values())
-    final_weather_data = {
-        'init': meteo_data['init'],
-        'dataseries': final_dataseries
-    }
-
-    # Step 5: Cache the result and return it.
-    weather_cache[cache_key] = {
-        'data': final_weather_data,
-        'expires': datetime.now() + timedelta(hours=3)
-    }
-    return final_weather_data
-
+    final = {'init': meteo_data.get('init'), 'dataseries': list(base.values())}
+    _update_cache_ok(final, ttl_hours=3)
+    return final
 
 def generate_session_id():
     """Generates a unique session ID."""
@@ -2446,6 +2512,33 @@ def load_user_config(username):
         with open(filepath, "r", encoding='utf-8') as file:
             config_data = yaml.safe_load(file) or {}
         print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
+        # --- Auto-restore if obviously broken/empty ---
+        try:
+            broken = (not isinstance(config_data, dict)) or (len(config_data) == 0) or \
+                     (not isinstance(config_data.get("locations"), dict)) or (
+                                 len(config_data.get("locations") or {}) == 0)
+        except Exception:
+            broken = True
+
+        if broken:
+            print(f"⚠️ [LOAD CONFIG] '{filename}' appears empty/invalid. Attempting restore from latest backup...")
+            try:
+                backups = sorted(Path(BACKUP_DIR).glob(f"{Path(filepath).stem}_*.yaml"),
+                                 key=lambda p: p.stat().st_mtime, reverse=True)
+                for b in backups:
+                    try:
+                        recovered = yaml.safe_load(open(b, "r", encoding="utf-8")) or {}
+                        if isinstance(recovered, dict) and isinstance(recovered.get("locations"), dict) and len(
+                                recovered["locations"]) > 0:
+                            with _FileLock(filepath):
+                                _atomic_write_yaml(filepath, recovered)
+                            config_data = recovered
+                            print(f"   -> Restored from {b.name}")
+                            break
+                    except Exception:
+                        continue
+            except Exception as e:
+                print(f"   -> Restore failed: {e}")
 
     except ConstructorError as e:
         if 'numpy' in str(e):
@@ -2484,38 +2577,67 @@ def load_user_config(username):
     config_mtime[filepath] = os.path.getmtime(filepath)
     return config_data
 
-def save_user_config(username, config_data):
-    # --- ADD THIS SAFETY CHECK ---
-    # Before saving, check if the 'locations' list is present but empty.
-    # This prevents overwriting a valid config with a bad one.
-    if 'locations' in config_data and not config_data['locations']:
-        # Log a critical warning instead of proceeding
-        print(f"❌ CRITICAL SAVE ABORTED for user '{username}': "
-              f"Attempted to save a configuration with an empty locations list. This would cause data loss.")
-        # Stop the function here to prevent the overwrite
-        return
-    # --- END OF SAFETY CHECK ---
+def save_user_config(username, config_data, *, require_objects=True, require_locations=True):
+    """
+    Safe, validated, atomic save with backup + rotation.
+    Guards against empty/invalid locations/objects; conservative merge avoids
+    dropping keys on partial form posts.
+    """
+    config_data = dict(config_data or {})
 
-    if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
-    else:
-        filename = f"config_{username}.yaml"
+    # Invariants
+    locs = config_data.get("locations")
+    objs = config_data.get("objects")
+    if require_locations and (not isinstance(locs, dict) or len(locs) == 0):
+        print(f"❌ ABORT SAVE for '{username}': empty or missing 'locations'.")
+        return False
+    if require_objects and (objs is not None) and (not isinstance(objs, list) or any(not isinstance(o, dict) for o in objs)):
+        print(f"❌ ABORT SAVE for '{username}': 'objects' invalid (must be a list of dicts).")
+        return False
 
+    # Validate schema
+    try:
+        ok, errors = validate_config(config_data)
+        if not ok:
+            print(f"❌ ABORT SAVE for '{username}': validation failed: {errors}")
+            return False
+    except Exception as e:
+        print(f"❌ ABORT SAVE for '{username}': validator error: {e}")
+        return False
+
+    # Resolve path
+    filename = "config_default.yaml" if SINGLE_USER_MODE else f"config_{username}.yaml"
     filepath = os.path.join(CONFIG_DIR, filename)
-    with open(filepath, "w") as file:
-        yaml.dump(config_data, file)
 
-def get_imaging_criteria():
-    default_criteria = {
-        "min_observable_minutes": 60,
-        "min_max_altitude": 30,
-        "max_moon_illumination": 20,
-        "min_angular_distance": 30,
-        "search_horizon_months": 6
-    }
-    user_criteria = g.user_config.get("imaging_criteria", {})
-    return {**default_criteria, **user_criteria}
-# In nova.py
+    # Conservative merge with existing (prevents partial form posts from nuking keys)
+    try:
+        if os.path.exists(filepath):
+            existing = yaml.safe_load(open(filepath, "r", encoding="utf-8")) or {}
+            merged = dict(existing)
+            for k in ("altitude_threshold", "default_location", "sampling_interval_minutes",
+                      "telemetry", "imaging_criteria", "objects", "locations", "rigs", "ui_preferences"):
+                if k in config_data:
+                    merged[k] = config_data[k]
+            config_data = merged
+    except Exception as e:
+        print(f"[SAVE] merge warning (using new data as-is): {e}")
+
+    # Backup + atomic write
+    with _FileLock(filepath):
+        try:
+            if os.path.exists(filepath):
+                _backup_with_rotation(filepath, keep=10)
+            _atomic_write_yaml(filepath, config_data)
+            config_cache[filepath] = config_data
+            try:
+                config_mtime[filepath] = os.path.getmtime(filepath)
+            except Exception:
+                pass
+            print(f"[SAVE] '{filename}' saved safely.")
+            return True
+        except Exception as e:
+            print(f"❌ SAVE FAILED for '{username}': {e}")
+            return False
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -2969,10 +3091,12 @@ def import_config():
             shutil.copy(config_path, backup_path)
             print(f"[IMPORT] Backed up current config to {backup_path}")
 
-        with open(config_path, 'w') as f:
-            yaml.dump(new_config, f, default_flow_style=False)
+        if os.path.exists(config_path):
+            _backup_with_rotation(config_path, keep=10)
+        with _FileLock(config_path):
+            _atomic_write_yaml(config_path, new_config)
+        print(f"[IMPORT] Overwrote {config_path} successfully with new config (atomic).")
 
-        print(f"[IMPORT] Overwrote {config_path} successfully with new config.")
         flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
 
         user_config_for_thread = new_config.copy()
@@ -4236,10 +4360,13 @@ def config_form():
                         changed_in_locations = True
 
                 if changed_in_locations:
-                    g.user_config['locations'] = updated_locations
-                    message = "Locations updated."
-                    updated = True
-                # else: # If no changes, don't necessarily set message/updated status
+                    # Step 7 safety: prevent wiping all locations accidentally
+                    if len(updated_locations) == 0 and len(g.user_config.get("locations", {})) > 0:
+                        error = "Refusing to save: locations update would remove all locations."
+                    else:
+                        g.user_config['locations'] = updated_locations
+                        message = "Locations updated."
+                        updated = True
 
             elif 'submit_new_object' in request.form:  # Ensure this block is correctly indented
                 new_object = request.form.get("new_object")
@@ -4294,9 +4421,13 @@ def config_form():
                     new_objects_list.append(current_obj_values)
 
                 if made_changes_this_block:
-                    g.user_config['objects'] = new_objects_list
-                    updated = True
-                    message = "Objects updated."
+                    # Step 7 safety: prevent wiping all objects accidentally
+                    if len(new_objects_list) == 0 and len(g.user_config.get("objects", [])) > 0:
+                        error = "Refusing to save: objects update would remove all objects."
+                    else:
+                        g.user_config['objects'] = new_objects_list
+                        updated = True
+                        message = "Objects updated."
 
             # Centralized save if any 'updated' flag was set to True in any block
             if updated and not error:
