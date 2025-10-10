@@ -12,39 +12,67 @@ const weatherOverlayPlugin = {
   beforeDatasetsDraw(chart) {
     const info = chart.__weather;
     if (!info || !info.hasWeather || !Array.isArray(info.forecast) || info.forecast.length === 0) return;
-
     const { forecast, cloudInfo, seeingInfo } = info;
     const { ctx, chartArea, scales } = chart;
     const x = scales.x;
     if (!x || !chartArea) return;
 
-    const rowH = 18;
-    const gap = 2;
-    const pad = 1;
+    const rowH = 18; // px per row
+    const gap = 2;   // px between rows
+    const pad = 1;   // inner padding for blocks
     const totalH = rowH * 2 + gap;
     const topY = chartArea.top - (totalH + 6);
 
     ctx.save();
-    ctx.font = '11px system-ui, Arial';
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = 'transparent';
+    ctx.font = '12px system-ui, Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+
+    // Helper to get contrasting text color
+    const getTextColorForBackground = (rgbaColor) => {
+        if (!rgbaColor || !rgbaColor.startsWith('rgba')) return '#333';
+        try {
+            const [r, g, b] = rgbaColor.match(/\d+/g).map(Number);
+            // Calculate perceived brightness (luminance)
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+            // Return white for dark backgrounds, dark grey for light ones
+            return luminance < 128 ? '#FFFFFF' : '#333';
+        } catch (e) {
+            return '#333'; // Fallback
+        }
+    };
+
+    // Text fitting helper
+    const fitText = (text, maxPx) => {
+      if (!text) return '';
+      if (ctx.measureText(text).width <= maxPx) return text;
+      const ell = '…';
+      let lo = 0, hi = text.length;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi) / 2);
+        const candidate = text.slice(0, mid) + ell;
+        if (ctx.measureText(candidate).width <= maxPx) lo = mid + 1; else hi = mid;
+      }
+      return text.slice(0, Math.max(0, lo - 1)) + ell;
+    };
 
     const drawBlock = (y, x0, x1, label, fill) => {
       const left = Math.round(Math.min(x0, x1));
       const width = Math.max(1, Math.round(Math.abs(x1 - x0)));
-
       ctx.fillStyle = fill;
       ctx.fillRect(left + pad, y + pad, width - 2 * pad, rowH - 2 * pad);
-
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-      ctx.lineWidth = 0.5;
+      ctx.lineWidth = 1;
       ctx.strokeRect(left + pad + 0.5, y + pad + 0.5, width - 2 * pad - 1, rowH - 2 * pad - 1);
 
-      const maxTextW = Math.max(0, width - 6);
-      if (maxTextW > 10) { // Only draw text if there's enough space
-        ctx.fillStyle = '#333';
-        ctx.fillText(label, left + width / 2, y + rowH / 2 + 1);
-      }
+      const maxTextW = Math.max(0, width - 8);
+      const txt = fitText(label, maxTextW);
+
+      // Use the helper to set the text color dynamically
+      ctx.fillStyle = getTextColorForBackground(fill);
+      ctx.fillText(txt, left + width / 2, y + rowH / 2);
     };
 
     const xMinPx = x.getPixelForValue(x.min);
@@ -54,21 +82,18 @@ const weatherOverlayPlugin = {
       let x0 = x.getPixelForValue(b.start);
       let x1 = x.getPixelForValue(b.end);
       if (!Number.isFinite(x0) || !Number.isFinite(x1)) return;
-
       x0 = Math.max(xMinPx, Math.min(x0, xMaxPx));
       x1 = Math.max(xMinPx, Math.min(x1, xMaxPx));
-
       if (Math.abs(x1 - x0) < 1) return;
 
-      const ci = cloudInfo[b.cloudcover] || { label: 'N/A', color: 'rgba(0,0,0,0.08)' };
+      const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
       drawBlock(topY, x0, x1, ci.label, ci.color);
 
       if (b.seeing) {
-        const si = seeingInfo[b.seeing] || { label: 'N/A', color: 'rgba(0,0,0,0.08)' };
+        const si = seeingInfo[b.seeing] || { label: 'Seeing', color: 'rgba(0,0,0,0.08)' };
         drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
       }
     });
-
     ctx.restore();
   }
 };
