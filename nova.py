@@ -479,6 +479,48 @@ def load_effective_settings():
         g.telemetry_enabled = os.environ.get('TELEMETRY_ENABLED', 'true').lower() == 'true'
 
 
+def get_imaging_criteria():
+    """
+    Return normalized imaging criteria from the current user config (g.user_config)
+    with safe defaults.
+    """
+    defaults = {
+        "min_observable_minutes": 60,
+        "min_max_altitude": 30,
+        "max_moon_illumination": 20,
+        "min_angular_separation": 30,
+        "search_horizon_months": 6
+    }
+    try:
+        cfg = getattr(g, 'user_config', {}) or {}
+        raw = cfg.get("imaging_criteria") or {}
+        out = dict(defaults) # Start with defaults
+
+        if isinstance(raw, dict):
+            def _update_key(key, cast_func):
+                if key in raw and raw[key] is not None:
+                    try:
+                        out[key] = cast_func(str(raw[key]))
+                    except (ValueError, TypeError):
+                        pass # Keep default if parsing fails
+
+            _update_key("min_observable_minutes", int)
+            _update_key("min_max_altitude", float)
+            _update_key("max_moon_illumination", int)
+            _update_key("min_angular_separation", int)
+            _update_key("search_horizon_months", int)
+
+        # Clamp to sensible ranges
+        out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0))
+        out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0)))
+        out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100)))
+        out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0)))
+        out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
+        return out
+    except Exception:
+        return dict(defaults)
+
+
 def convert_to_native_python(val):
     """Converts a NumPy data type to a native Python type if necessary."""
     if isinstance(val, np.generic):
@@ -4279,8 +4321,8 @@ def config_form():
                     imaging["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
                     imaging["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
                     imaging["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
-                    imaging["min_angular_distance"] = int(
-                        request.form.get("min_angular_separation", 30))  # name from original
+                    imaging["min_angular_separation"] = int(
+                        request.form.get("min_angular_separation", 30))
                     imaging["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
                 except ValueError as ve:
                     error = f"Invalid imaging criteria: {ve}" if not error else error + f"; Invalid imaging criteria: {ve}"
@@ -5033,7 +5075,7 @@ def get_imaging_opportunities(object_name):
     min_obs = criteria["min_observable_minutes"]
     min_alt = criteria["min_max_altitude"]
     max_moon = criteria["max_moon_illumination"]
-    min_sep = criteria["min_angular_distance"]
+    min_sep = criteria["min_angular_separation"]
     months = criteria.get("search_horizon_months", 6)
 
     local_tz = pytz.timezone(g.tz_name)
