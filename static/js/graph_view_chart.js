@@ -7,141 +7,44 @@ function showTab(tabName) {
     localStorage.setItem('activeGraphTab', tabName);
 }
 
-// === Weather overlay (above chart) ===
-function clearWeatherOverlay() {
-    const host = document.getElementById('weather-overlay');
-    if (host) host.remove();
-}
-function ensureWeatherOverlay() {
-    const canvas = document.getElementById('altitudeChartCanvas');
-    if (!canvas || !canvas.parentNode) return null;
-    let host = document.getElementById('weather-overlay');
-    if (!host) {
-        host = document.createElement('div');
-        host.id = 'weather-overlay';
-        canvas.parentNode.insertBefore(host, canvas);
-    }
-    // Improved visual layout for weather overlay
-    host.style.display = 'flex';
-    host.style.flexDirection = 'column';
-    host.style.alignItems = 'stretch';
-    host.style.justifyContent = 'center';
-    host.style.padding = '0 6px';
-    host.style.boxSizing = 'border-box';
-    host.style.height = '40px';
-    host.style.marginBottom = '8px';
-    host.style.background = 'rgba(255,255,255,0.9)';
-    host.style.borderRadius = '4px';
-    host.style.backdropFilter = 'blur(4px)';
-    host.style.font = '12px/1.2 system-ui, Arial, sans-serif';
-    host.style.userSelect = 'none';
-    host.style.borderTop = '1px solid rgba(0,0,0,0.06)';
-    host.style.borderBottom = '1px solid rgba(0,0,0,0.06)';
-
-    let cv = document.getElementById('weather-overlay-cv');
-    if (!cv) {
-        cv = document.createElement('canvas');
-        cv.id = 'weather-overlay-cv';
-        cv.style.position = 'absolute';
-        cv.style.top = '0';
-        cv.style.height = '40px';
-        host.appendChild(cv);
-    }
-    return host;
-}
-
-function layoutWeatherOverlayCanvas(chart) {
-    const host = document.getElementById('weather-overlay');
-    const cv = document.getElementById('weather-overlay-cv');
-    if (!host || !cv || !chart) return null;
-    const baseCanvas = chart.canvas;
-    const baseRect = baseCanvas.getBoundingClientRect();
-    const hostRect = host.getBoundingClientRect();
-    const left = Math.round(baseRect.left - hostRect.left);
-    // Align overlay canvas to the x-scale inner plot span
-    const x = chart.scales && chart.scales.x ? chart.scales.x : null;
-    const scaleLeft  = x && typeof x.left  === 'number' ? x.left  : 0;
-    const scaleRight = x && typeof x.right === 'number' ? x.right : baseRect.width;
-    const scaleWidth = Math.max(1, scaleRight - scaleLeft);
-
-    cv.style.left = (left + scaleLeft) + 'px';
-    cv.style.width = scaleWidth + 'px';
-    cv.width = Math.round(scaleWidth * window.devicePixelRatio);
-    cv.height = Math.round(40 * window.devicePixelRatio);
-    return cv.getContext('2d');
-}
-
-function renderWeatherOverlay(chart, forecast, cloudInfo, seeingInfo) {
-    // Legacy overlay function (no longer used)
-}
-
-// ===== Weather overlay plugin (drawn inside the chart canvas) =====
 const weatherOverlayPlugin = {
   id: 'weatherOverlay',
-  // Draw the 2-row weather overlay before datasets (as before)
   beforeDatasetsDraw(chart) {
     const info = chart.__weather;
-    // Draw only if there are drawable forecast blocks
     if (!info || !info.hasWeather || !Array.isArray(info.forecast) || info.forecast.length === 0) return;
+
     const { forecast, cloudInfo, seeingInfo } = info;
     const { ctx, chartArea, scales } = chart;
     const x = scales.x;
     if (!x || !chartArea) return;
 
-    const rowH = 18; // px per row
-    const gap = 2;   // px between rows
-    const pad = 1;   // inner padding for blocks
+    const rowH = 18;
+    const gap = 2;
+    const pad = 1;
     const totalH = rowH * 2 + gap;
     const topY = chartArea.top - (totalH + 6);
 
     ctx.save();
-    // Reset any previous clipping that might hide text
-    ctx.beginPath();
-    ctx.rect(0, 0, chart.width, chart.height);
-    ctx.clip();
-    // Ensure full opacity and predictable text state
-    ctx.globalAlpha = 1;
-    ctx.shadowColor = 'transparent';
-    ctx.font = '12px system-ui, Arial';
+    ctx.font = '11px system-ui, Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
-    // background strip and separator
-    ctx.fillStyle = 'rgba(131, 180, 197, 0.08)';
-    ctx.fillRect(chartArea.left, topY, chartArea.right - chartArea.left, totalH + 4);
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(chartArea.left + 0.5, topY + rowH + 1);
-    ctx.lineTo(chartArea.right - 0.5, topY + rowH + 1);
-    ctx.stroke();
-
-    // text fitting helper
-    const fitText = (text, maxPx) => {
-      if (!text) return '';
-      if (ctx.measureText(text).width <= maxPx) return text;
-      const ell = '…';
-      let lo = 0, hi = text.length;
-      while (lo < hi) {
-        const mid = Math.floor((lo + hi) / 2);
-        const candidate = text.slice(0, mid) + ell;
-        if (ctx.measureText(candidate).width <= maxPx) lo = mid + 1; else hi = mid;
-      }
-      return text.slice(0, Math.max(0, lo - 1)) + ell;
-    };
 
     const drawBlock = (y, x0, x1, label, fill) => {
       const left = Math.round(Math.min(x0, x1));
       const width = Math.max(1, Math.round(Math.abs(x1 - x0)));
+
       ctx.fillStyle = fill;
       ctx.fillRect(left + pad, y + pad, width - 2 * pad, rowH - 2 * pad);
+
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 0.5;
       ctx.strokeRect(left + pad + 0.5, y + pad + 0.5, width - 2 * pad - 1, rowH - 2 * pad - 1);
-      const maxTextW = Math.max(0, width - 8);
-      const txt = fitText(label, maxTextW);
-      ctx.fillStyle = '#444';
-      ctx.fillText(txt, left + width / 2, y + rowH / 2);
+
+      const maxTextW = Math.max(0, width - 6);
+      if (maxTextW > 10) { // Only draw text if there's enough space
+        ctx.fillStyle = '#333';
+        ctx.fillText(label, left + width / 2, y + rowH / 2 + 1);
+      }
     };
 
     const xMinPx = x.getPixelForValue(x.min);
@@ -151,25 +54,22 @@ const weatherOverlayPlugin = {
       let x0 = x.getPixelForValue(b.start);
       let x1 = x.getPixelForValue(b.end);
       if (!Number.isFinite(x0) || !Number.isFinite(x1)) return;
+
       x0 = Math.max(xMinPx, Math.min(x0, xMaxPx));
       x1 = Math.max(xMinPx, Math.min(x1, xMaxPx));
+
       if (Math.abs(x1 - x0) < 1) return;
-      const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
+
+      const ci = cloudInfo[b.cloudcover] || { label: 'N/A', color: 'rgba(0,0,0,0.08)' };
       drawBlock(topY, x0, x1, ci.label, ci.color);
+
       if (b.seeing) {
-        const si = seeingInfo[b.seeing] || { label: 'Seeing', color: 'rgba(0,0,0,0.08)' };
+        const si = seeingInfo[b.seeing] || { label: 'N/A', color: 'rgba(0,0,0,0.08)' };
         drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
       }
     });
 
     ctx.restore();
-  },
-
-  // Do not render anything when there is no forecast
-  afterDraw(chart) {
-    const info = chart.__weather;
-    if (!info || info.hasWeather) return; // no forecast -> no header
-    return;
   }
 };
 
@@ -224,8 +124,27 @@ async function renderClientSideChart() {
         const annotations = {};
         const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
         const nextDt = baseDt.plus({days: 1});
-        const cloudInfo = { 1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.0)'}, 2: {label: 'Clear', color: 'rgba(135, 206, 250, 0.05)'}, 3: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.1)'}, 4: {label: 'P/Clear', color: 'rgba(170, 170, 170, 0.15)'}, 5: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.2)'}, 6: {label: 'P/Cloudy', color: 'rgba(120, 120, 120, 0.25)'}, 7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.3)'}, 8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.35)'}, 9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.4)'} };
-        const seeingInfo = { 1: {label: 'Seeing: Exc.', color: 'rgba(0, 255, 127, 0.15)'}, 2: {label: 'Seeing: Good', color: 'rgba(0, 255, 127, 0.2)'}, 3: {label: 'Seeing: Good', color: 'rgba(173, 255, 47, 0.2)'}, 4: {label: 'Seeing: Avg.', color: 'rgba(255, 255, 0, 0.2)'}, 5: {label: 'Seeing: Avg.', color: 'rgba(255, 215, 0, 0.2)'}, 6: {label: 'Seeing: Poor', color: 'rgba(255, 165, 0, 0.2)'}, 7: {label: 'Seeing: Poor', color: 'rgba(255, 69, 0, 0.2)'}, 8: {label: 'Seeing: Bad', color: 'rgba(255, 0, 0, 0.2)'} };
+        const cloudInfo = {
+            1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.15)'},
+            2: {label: 'P. Clear', color: 'rgba(135, 206, 250, 0.25)'},
+            3: {label: 'P. Clear', color: 'rgba(170, 170, 170, 0.2)'},
+            4: {label: 'P. Clear', color: 'rgba(170, 170, 170, 0.3)'},
+            5: {label: 'P. Cloudy', color: 'rgba(120, 120, 120, 0.35)'},
+            6: {label: 'P. Cloudy', color: 'rgba(120, 120, 120, 0.45)'},
+            7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.5)'},
+            8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.6)'},
+            9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.7)'}
+        };
+        const seeingInfo = {
+            1: {label: 'See: Exc', color: 'rgba(0, 255, 127, 0.2)'},
+            2: {label: 'See: Good', color: 'rgba(0, 255, 127, 0.3)'},
+            3: {label: 'See: Good', color: 'rgba(173, 255, 47, 0.3)'},
+            4: {label: 'See: Avg', color: 'rgba(255, 255, 0, 0.3)'},
+            5: {label: 'See: Avg', color: 'rgba(255, 215, 0, 0.3)'},
+            6: {label: 'See: Poor', color: 'rgba(255, 165, 0, 0.3)'},
+            7: {label: 'See: Poor', color: 'rgba(255, 69, 0, 0.3)'},
+            8: {label: 'See: Bad', color: 'rgba(255, 0, 0, 0.3)'}
+        };
         const hasWeather = Array.isArray(data.weather_forecast) && data.weather_forecast.length > 0;
         // Normalize weather block times to ms (Chart time scale handles multiple types, but we ensure consistency)
         const forecastForOverlay = hasWeather ? data.weather_forecast.map(b => ({
@@ -237,7 +156,6 @@ async function renderClientSideChart() {
         // Filter to blocks that actually have drawable start/end values
         const drawableForecast = forecastForOverlay.filter(b => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start);
         const hasDrawableWeather = drawableForecast.length > 0;
-        if (!hasDrawableWeather) clearWeatherOverlay();
         function wallTimeMs(baseDateTime, timeStr) {
             if (!timeStr || !timeStr.includes(':')) return null;
             const [h, m] = timeStr.split(':').map(Number);
@@ -342,7 +260,6 @@ async function renderMonthlyYearlyChart(view) {
     const objectName = NOVA_GRAPH_DATA.objectName, selMonth = document.getElementById('month-select').value, year = document.getElementById('year-select').value, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon, plotTz = NOVA_GRAPH_DATA.plotTz;
     let titleText, objAlt = [], moonAlt = [], horizon = [];
     // Always clear weather overlay in month/year view
-    clearWeatherOverlay();
     try {
         if (view === 'year') {
             titleText = `Yearly Altitude at Local Midnight for ${NOVA_GRAPH_DATA.altName} - ${year}`;
