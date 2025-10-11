@@ -933,11 +933,10 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
             criteria = {**{"min_observable_minutes": 60, "min_max_altitude": 30},
                         **user_config.get("imaging_criteria", {})}
 
-            # --- NEW: Filter for objects with a project note ONLY ---
             all_objects_from_config = user_config.get("objects", [])
             project_objects = [
                 obj for obj in all_objects_from_config
-                if obj.get("Project") and obj.get("Project").lower().strip() not in ["", "none"]
+                if obj.get("ActiveProject")
             ]
             # print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects for user '{username}'.")
 
