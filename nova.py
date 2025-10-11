@@ -5060,7 +5060,7 @@ def get_date_info(object_name):
     })
 
 
-@app.route('/get_imaging_opportunities/<object_name>')
+@app.route('/get_imaging_opportunities/<path:object_name>')
 def get_imaging_opportunities(object_name):
     # Load object data from config or SIMBAD.
     data = get_ra_dec(object_name)
