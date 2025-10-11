@@ -904,7 +904,8 @@
             <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
             <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
             <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
-            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()">Open in Stellarium</button>
+            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
+
         </div>
         <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
     </div>
@@ -1020,5 +1021,47 @@
     };
 </script>
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        /**
+         * Checks if the Stellarium Remote Control plugin is reachable and shows the
+         * "Open in Stellarium" button if it is.
+         */
+        async function checkStellariumStatus() {
+            // Get the button element
+            const stellariumButton = document.getElementById('open-in-stellarium');
+            if (!stellariumButton) return;
 
+            // Get the API URL passed from the Python backend
+            const stellariumApiUrl = {{ stellarium_api_url_base | tojson }};
+
+            if (!stellariumApiUrl) {
+                console.log("Stellarium URL not configured.");
+                return;
+            }
+
+            // The status endpoint is a simple GET request endpoint, perfect for a health check.
+            const statusCheckUrl = `${stellariumApiUrl}/api/main/status`;
+
+            try {
+                // We use 'no-cors' mode because a simple check doesn't need the response body,
+                // and this avoids potential CORS issues if Stellarium's server is strict.
+                // A successful network request is enough to confirm it's running.
+                const response = await fetch(statusCheckUrl, { method: 'GET', mode: 'no-cors', signal: AbortSignal.timeout(2000) });
+
+                // If the fetch promise resolves without a network error, Stellarium is likely running.
+                console.log("Stellarium is reachable. Showing button.");
+                stellariumButton.style.display = 'inline-block'; // Make the button visible!
+
+            } catch (error) {
+                // This catch block will trigger on network errors (e.g., connection refused) or timeout.
+                console.log("Stellarium not reachable:", error.message);
+                // The button remains hidden, as intended.
+            }
+        }
+
+        // Run the check!
+        checkStellariumStatus();
+    });
+</script>
 {% endblock %}
