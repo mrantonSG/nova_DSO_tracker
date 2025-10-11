@@ -87,7 +87,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.6.3"
+APP_VERSION = "3.6.4"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -4949,6 +4949,7 @@ def graph_dashboard(object_name):
                            available_objects=get_object_list_from_config(),
                            available_locations=g.locations,
                            default_location=g.user_config.get('default_location'),
+                           stellarium_api_url_base=STELLARIUM_API_URL_BASE,
                            today_date=datetime.now().strftime('%Y-%m-%d'))
 
 @app.route('/plot_day/<path:object_name>')
