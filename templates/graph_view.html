@@ -899,6 +899,10 @@
         <textarea id="project-field" name="project_notes_from_config"
                   title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
         <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+        <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
+            <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>
+            Active Project
+        </label>
         <div class="button-group">
             <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
             <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
@@ -1063,5 +1067,28 @@
         // Run the check!
         checkStellariumStatus();
     });
+</script>
+<script>
+(function(){
+  const cb = document.getElementById('active-project-checkbox');
+  if (!cb) return;
+  cb.addEventListener('change', async (e) => {
+    try {
+      const res = await fetch('/update_project_active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ object: {{ object_name|tojson }}, active: e.target.checked })
+      });
+      const data = await res.json();
+      if (!res.ok || data.status !== 'success') {
+        alert('Failed to update Active Project: ' + (data.error || res.status));
+        e.target.checked = !e.target.checked; // revert on error
+      }
+    } catch (err) {
+      alert('Failed to update Active Project: ' + err);
+      e.target.checked = !e.target.checked; // revert on error
+    }
+  });
+})();
 </script>
 {% endblock %}

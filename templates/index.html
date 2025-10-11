@@ -132,6 +132,7 @@
 
 
     .highlight { background-color: #83b4c5; }
+    .active-project-row { background-color: #dce5eb !important; }
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
     #graph-section { display: none; text-align: left; margin-left: 0px; }
     #back-button {
@@ -610,8 +611,13 @@
 
                 if (objectData['Common Name'] && objectData['Common Name'].toLowerCase().startsWith("error:")) {
                     row.style.backgroundColor = "#f8d7da";
-                } else if (objectData.Project && objectData.Project.toLowerCase() !== "none" && objectData.Project.trim() !== "") {
-                    row.style.backgroundColor = "#dce5ea";
+                } else {
+                    const ap = objectData.ActiveProject;
+                    console.log('ActiveProject', objectData.Object, ap);
+                    const isActive = (ap === true) || (ap === 1) || (ap === '1') || (ap === 'true') || (ap === 'True');
+                    if (isActive) {
+                        row.classList.add('active-project-row');
+                    }
                 }
 
                 row.onclick = () => {
@@ -621,8 +627,7 @@
                     }
                     showGraph(objectData.Object);
                 };
-
-                columnOrder.forEach(columnKey => {
+              columnOrder.forEach(columnKey => {
                     const config = columnConfig[columnKey];
                     const td = document.createElement('td');
                     td.dataset.columnKey = columnKey;

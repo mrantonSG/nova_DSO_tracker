@@ -4149,6 +4149,15 @@ def get_object_data(object_name):
     frame = AltAz(obstime=time_obj, location=location)
     angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
     is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
+    active_flag = False
+    try:
+        cfg_objs = (g.user_config.get('objects') or []) if hasattr(g, 'user_config') else []
+        for _o in cfg_objs:
+            if str(_o.get('Object', '')).lower() == str(object_name).lower():
+                active_flag = bool(_o.get('ActiveProject', obj_details.get('ActiveProject', False)))
+                break
+    except Exception:
+        active_flag = bool(obj_details.get('ActiveProject', False))
     single_object_data = {
         'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
         'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}", 'Trend': trend,
@@ -4161,7 +4170,8 @@ def get_object_data(object_name):
         'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'),
         'SB': obj_details.get('SB', 'N/A'),
         'is_obstructed_now': is_obstructed_now,
-        'is_obstructed_at_11pm': is_obstructed_at_11pm
+        'is_obstructed_at_11pm': is_obstructed_at_11pm,
+        'ActiveProject': active_flag
     }
     return jsonify(single_object_data)
 @app.route('/')
@@ -4547,6 +4557,42 @@ def update_project():
     except Exception as exception_value:
         return jsonify({"status": "error", "error": str(exception_value)}), 500
 
+@app.route('/update_project_active', methods=['POST'])
+@login_required
+def update_project_active():
+    try:
+        payload = request.get_json(force=True) or {}
+        object_name = payload.get('object')
+        active = payload.get('active')
+
+        if object_name is None or active is None:
+            return jsonify({"status": "error", "error": "Missing object or active flag."}), 400
+
+        username = "default" if SINGLE_USER_MODE else current_user.username
+        config = load_user_config(username)
+
+        found = False
+        for obj in config.get('objects', []):
+            if str(obj.get('Object', '')).lower() == str(object_name).lower():
+                obj['ActiveProject'] = bool(active)
+                found = True
+                break
+
+        if not found:
+            return jsonify({"status": "error", "error": "Object not found in configuration."}), 404
+
+        save_user_config(username, config)
+        # Refresh downstream views/caches (safe no-op if helper not present)
+        try:
+            trigger_outlook_update_for_user(username)
+        except Exception:
+            pass
+        return jsonify({"status": "success", "active": bool(active)})
+
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
 @app.before_request
 def bypass_login_in_single_user():
     if SINGLE_USER_MODE and not current_user.is_authenticated:
@@ -4925,7 +4971,14 @@ def graph_dashboard(object_name):
     if not object_main_details or object_main_details.get("RA (hours)") is None:
         flash(f"Details for '{object_name}' could not be found.", "error")
         return redirect(url_for('index'))
-
+    is_project_active = False
+    try:
+        for _o in (g.user_config.get('objects') or []):
+            if str(_o.get('Object', '')).lower() == str(object_name).lower():
+                is_project_active = bool(_o.get('ActiveProject', False))
+                break
+    except Exception:
+        pass
     return render_template('graph_view.html',
                            object_name=object_name,
                            alt_name=object_main_details.get("Common Name", object_name),
@@ -4940,6 +4993,7 @@ def graph_dashboard(object_name):
                            header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                            header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
                            project_notes_from_config=object_main_details.get("Project", "N/A"),
+                           is_project_active=is_project_active,
                            object_specific_sessions=object_specific_sessions,
                            selected_session_data=selected_session_data,
                            current_session_id=requested_session_id if selected_session_data else None,
