@@ -790,9 +790,9 @@
             <div class="form-group">
                 <label for="seeing-select">Select Your Typical Seeing:</label>
                 <select id="seeing-select">
-                    <option value="none" selected>-- Select Seeing to Assess Rigs --</option>
+                    <option value="none" >-- Select Seeing to Assess Rigs --</option>
                     <option value="1.0-2.0">Excellent Seeing (1.0" - 2.0" FWHM)</option>
-                    <option value="2.0-4.0">Good Seeing (2.0" - 4.0" FWHM)</option>
+                    <option value="2.0-4.0" selected >Good Seeing (2.0" - 4.0" FWHM)</option>
                     <option value="4.0-6.0">Poor Seeing (> 4.0" FWHM)</option>
                 </select>
             </div>
@@ -954,6 +954,7 @@ function fetchRigsData() {
       }
 
       renderRigsUI();
+      updateSamplingInfo();
       rigsDataLoaded = true;
     })
     .catch(error => console.error("Error fetching rigs data:", error));
