@@ -47,6 +47,11 @@
                         <th colspan="3" style="background-color: #f0f2f5; font-weight: bold; padding: 8px 5px; border-top: 1px solid #ddd;">
                             {% if group.is_project %}
                                 Project: {{ group.project_name }}
+                                {% if group.total_integration_time > 0 %}
+                                    <span style="float: right; font-weight: normal; color: #555;">
+                                        Total: {{ (group.total_integration_time / 60) | round(1) }}h
+                                    </span>
+                                {% endif %}
                             {% else %}
                                 {{ group.project_name }} {# This will be "Standalone Sessions" #}
                             {% endif %}

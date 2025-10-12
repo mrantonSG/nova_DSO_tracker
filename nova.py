@@ -2088,6 +2088,8 @@ def journal_add():
                     # Check file size (max 5 MB) before saving
                     if len(file.read()) > 5 * 1024 * 1024:
                         flash("Image upload failed: File is larger than 5MB.", "error")
+                        return redirect(
+                            url_for('journal_add_for_target', object_name=request.form.get("target_object_id")))
                     else:
                         file.seek(0)  # IMPORTANT: Go back to the start of the file after reading its size
 
@@ -2374,6 +2376,8 @@ def journal_edit(session_id):  # REMOVED: final_session_entry=None
                 if file and file.filename != '' and allowed_file(file.filename):
                     if len(file.read()) > 5 * 1024 * 1024:
                         flash("Image upload failed: File is larger than 5MB.", "error")
+                        return redirect(url_for('graph_dashboard', object_name=request.form.get("target_object_id"),
+                                                session_id=session_id))
                     else:
                         file.seek(0)
                         file_extension = file.filename.rsplit('.', 1)[1].lower()
@@ -5009,12 +5013,24 @@ def graph_dashboard(object_name):
         # Convert dictionary to a sorted list for the template
         temp_grouped_list = []
         # Add named projects first
+        # Inside the grouping logic in graph_dashboard
         for project_id, sessions_in_group in grouped_sessions_dict.items():
             if project_id:
+                # --- NEW: Calculate total integration time ---
+                total_minutes = 0
+                for session in sessions_in_group:
+                    try:
+                        # Safely get and convert time, treating 'N/A' or errors as 0
+                        minutes = float(session.get('calculated_integration_time_minutes', 0))
+                        total_minutes += minutes
+                    except (ValueError, TypeError):
+                        continue  # Skip if value is not a valid number
+
                 temp_grouped_list.append({
                     'is_project': True,
                     'project_name': projects_map.get(project_id, 'Unknown Project'),
-                    'sessions': sessions_in_group
+                    'sessions': sessions_in_group,
+                    'total_integration_time': total_minutes  # <-- ADD THIS
                 })
 
         # Sort projects alphabetically by name
