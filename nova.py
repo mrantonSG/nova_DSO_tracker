@@ -5476,7 +5476,7 @@ def generate_ics(object_name):
         c.events.add(e)
 
         # --- 5. Return the .ics file ---
-        ics_content = str(c)
+        ics_content = c.serialize()
         filename = f"imaging_{object_name.replace(' ', '_')}_{start_date.strftime('%Y-%m-%d')}.ics"
 
         return ics_content, 200, {
