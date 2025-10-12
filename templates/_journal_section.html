@@ -41,12 +41,26 @@
             <table class="session-history-table">
                 <thead><tr><th class="col-date">Date & Location</th><th class="col-integ">Integ.</th><th class="col-rating">Rating</th></tr></thead>
                 <tbody>
-                {% for session_item in object_specific_sessions %}
-                <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}" onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}"'>
-                    <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}<br><small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small></td>
-                    <td class="col-integ">{% set integ_min = session_item.get('calculated_integration_time_minutes') %}{{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min</td>
-                    <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and session_item.session_rating_subjective is not none %} ★{% endif %}</td>
-                </tr>
+                {% for group in grouped_sessions %}
+                    {# Project Header Row #}
+                    <tr>
+                        <th colspan="3" style="background-color: #f0f2f5; font-weight: bold; padding: 8px 5px; border-top: 1px solid #ddd;">
+                            {% if group.is_project %}
+                                Project: {{ group.project_name }}
+                            {% else %}
+                                {{ group.project_name }} {# This will be "Standalone Sessions" #}
+                            {% endif %}
+                        </th>
+                    </tr>
+
+                    {# Session Rows for this group #}
+                    {% for session_item in group.sessions %}
+                        <tr class="clickable-session-row {{ 'current-session-item' if session_item.session_id == current_session_id else '' }}" onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, day=selected_day, month=selected_month, year=selected_year, session_id=session_item.session_id) }}"'>
+                            <td class="col-date">{{ session_item.session_date |date_eu| default("N/A") }}<br><small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small></td>
+                            <td class="col-integ">{% set integ_min = session_item.get('calculated_integration_time_minutes') %}{{ integ_min | round(0) if integ_min is number and integ_min != 'N/A' else 'N/A' }} min</td>
+                            <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective and session_item.session_rating_subjective != 'N/A' and session_item.session_rating_subjective is not none %} ★{% endif %}</td>
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
                 </tbody>
             </table>
@@ -139,6 +153,24 @@
                 <div id="sky-tab" class="detail-tab-content">
                     <div class="view-mode"><dl class="detail-grid"><dt>Seeing (FWHM):</dt><dd>{{ entry.seeing_observed_fwhm | default('N/A') }}"</dd><dt>SQM:</dt><dd>{{ entry.sky_sqm_observed | default('N/A') }}</dd><dt>Moon Illum/Sep:</dt><dd>{{ entry.moon_illumination_session | default('N/A') }}% / {{ entry.moon_angular_separation_session | default('N/A') }}°</dd><dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd><dt>Guiding RMS:</dt><dd>{{ entry.guiding_rms_avg_arcsec | default('N/A') }}"</dd></dl></div>
                     <div class="edit-mode">
+                        <div class="form-group full-width">
+                            <label for="project_selection">Link to Project (Optional)</label>
+                            <select name="project_selection" id="project_selection" onchange="toggleNewProjectField()">
+                                <option value="standalone">-- Standalone Session --</option>
+                                {% for project in all_projects %}
+                                    <option value="{{ project.project_id }}" {% if project.project_id == entry.project_id %}selected{% endif %}>
+                                        {{ project.project_name }}
+                                    </option>
+                                {% endfor %}
+                                <option value="new_project">-- Create New Project --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width" id="new_project_name_group" style="display: none;">
+                            <label for="new_project_name">New Project Name:</label>
+                            <input type="text" name="new_project_name" id="new_project_name" placeholder="e.g., M31 Galaxy - 2025">
+                        </div>
+
                         <div class="form-row"><div class="form-group"><label>Seeing (FWHM, arcsec):</label><input type="number" step="0.01" name="seeing_observed_fwhm" value="{{ entry.seeing_observed_fwhm if entry.seeing_observed_fwhm is not none else '' }}"></div><div class="form-group"><label>SQM Reading:</label><input type="number" step="0.01" name="sky_sqm_observed" value="{{ entry.sky_sqm_observed if entry.sky_sqm_observed is not none else '' }}"></div></div>
                         <div class="form-row"><div class="form-group"><label>Moon Illumination (%):</label><input type="number" step="0.1" id="moon_illumination_session" name="moon_illumination_session" value="{{ entry.moon_illumination_session if entry.moon_illumination_session is not none else '' }}"></div><div class="form-group"><label>Moon Angular Separation (°):</label><input type="number" step="0.1" id="moon_angular_separation_session" name="moon_angular_separation_session" value="{{ entry.moon_angular_separation_session if entry.moon_angular_separation_session is not none else '' }}"></div></div>
                         <div class="form-group"><label for="rig-selector">Select a Rig (Optional):</label><select id="rig-selector" onchange="document.getElementById('telescope_setup_notes').value = this.value;"><option value="">-- Manually Enter Below --</option>{% for rig in available_rigs %}<option value="{{ rig.resolved_string }}">{{ rig.rig_name }}</option>{% endfor %}</select></div>
@@ -279,9 +311,23 @@
         }
     }
 
+    function toggleNewProjectField() {
+        const projectSelect = document.getElementById('project_selection');
+        const newProjectGroup = document.getElementById('new_project_name_group');
+        if (projectSelect.value === 'new_project') {
+            newProjectGroup.style.display = 'block';
+        } else {
+            newProjectGroup.style.display = 'none';
+        }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializePage);
+        document.addEventListener('DOMContentLoaded', () => {
+            initializePage();
+            toggleNewProjectField();
+        });
     } else {
         initializePage();
+        toggleNewProjectField();
     }
 </script>
