@@ -4986,6 +4986,7 @@ def graph_dashboard(object_name):
     if username_for_journal:
         journal_data = load_journal(username_for_journal)
         all_projects = journal_data.get('projects', [])
+        all_projects.sort(key=lambda p: p.get('project_name', '').lower())
         all_user_sessions = journal_data.get('sessions', [])
 
         # Filter sessions for the current object and sort them by date
