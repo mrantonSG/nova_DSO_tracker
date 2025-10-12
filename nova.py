@@ -575,44 +575,61 @@ app.jinja_env.filters['date_eu'] = python_format_date_eu
 
 
 def load_journal(username):
-    """Loads journal data from cache or file, checking for modifications."""
+    """
+    Loads journal data, ensuring it conforms to the new {projects, sessions} structure.
+    Automatically migrates old journal files.
+    """
     if SINGLE_USER_MODE:
         filename = "journal_default.yaml"
     else:
         filename = f"journal_{username}.yaml"
     filepath = os.path.join(CONFIG_DIR, filename)
 
-    # --- NEW: Create journal from template if it doesn't exist ---
     if not SINGLE_USER_MODE and not os.path.exists(filepath):
-        print(f"-> Journal for user '{username}' not found. Creating from default template.")
         try:
             default_template_path = os.path.join(TEMPLATE_DIR, 'journal_default.yaml')
             shutil.copy(default_template_path, filepath)
             print(f"   -> Successfully created {filename}.")
         except Exception as e:
             print(f"   -> ❌ ERROR: Could not create journal for '{username}': {e}")
-            return {"sessions": []}
+            return {"projects": [], "sessions": []}
 
-    # --- Caching and loading logic continues below ---
     last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
     if filepath in journal_cache and last_modified <= journal_mtime.get(filepath, 0):
         return journal_cache[filepath]
 
     if not os.path.exists(filepath):
-        return {"sessions": []}
+        return {"projects": [], "sessions": []}
 
     try:
         with open(filepath, "r", encoding="utf-8") as file:
-            data = yaml.safe_load(file) or {"sessions": []}
-            if "sessions" not in data or not isinstance(data["sessions"], list):
-                data["sessions"] = []
+            data = yaml.safe_load(file) or {}
 
-            journal_cache[filepath] = data
-            journal_mtime[filepath] = last_modified
-            return data
+        # --- NEW MIGRATION LOGIC ---
+        # If 'projects' key is missing, it's an old format.
+        if 'projects' not in data:
+            print(f"-> Migrating old journal format for '{filename}'.")
+            # Old format might just be a dict with 'sessions' or an empty dict
+            sessions_list = data.get('sessions', []) if isinstance(data, dict) else []
+            migrated_data = {
+                'projects': [],
+                'sessions': sessions_list
+            }
+            data = migrated_data
+            # We don't save it back immediately, but the next save will fix it.
+
+        # Ensure both keys exist even if the file was just empty
+        if 'projects' not in data:
+            data['projects'] = []
+        if 'sessions' not in data:
+            data['sessions'] = []
+
+        journal_cache[filepath] = data
+        journal_mtime[filepath] = last_modified
+        return data
     except Exception as e:
         print(f"❌ ERROR: Failed to load journal '{filename}': {e}")
-        return {"sessions": []}
+        return {"projects": [], "sessions": []}
 
 def save_journal(username, journal_data):
     """
@@ -2040,6 +2057,30 @@ def journal_add():
                 final_session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
             else:
                 final_session_entry['calculated_integration_time_minutes'] = 'N/A'
+
+            project_selection = request.form.get("project_selection")
+            new_project_name = request.form.get("new_project_name", "").strip()
+            project_id_for_session = None
+
+            if project_selection == "new_project" and new_project_name:
+                # User is creating a new project
+                new_project_id = uuid.uuid4().hex
+                new_project = {
+                    "project_id": new_project_id,
+                    "project_name": new_project_name
+                }
+                journal_data.setdefault('projects', []).append(new_project)
+                project_id_for_session = new_project_id
+                print(f"Created new project '{new_project_name}' with ID {new_project_id}")
+
+            elif project_selection and project_selection not in ["standalone", "new_project"]:
+                # User selected an existing project
+                project_id_for_session = project_selection
+
+            # Add the project_id to the session data dictionary
+            # Use `final_session_entry` for the add function, and `final_updated_entry` for the edit function.
+            final_session_entry['project_id'] = project_id_for_session
+
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 # Check if a file was selected and it has an allowed extension
@@ -2197,7 +2238,7 @@ def journal_add():
 
 @app.route('/journal/edit/<session_id>', methods=['GET', 'POST'])
 @login_required
-def journal_edit(session_id):
+def journal_edit(session_id):  # REMOVED: final_session_entry=None
     if SINGLE_USER_MODE:
         username = "default"
     else:
@@ -2271,9 +2312,10 @@ def journal_edit(session_id):
 
             final_updated_entry = {k: v for k, v in updated_session_data.items() if v is not None and v != ""}
             final_updated_entry['session_id'] = session_id  # Ensure session_id is always present
+
+            # --- Integration Time Calculation ---
             total_integration_seconds = 0
             has_any_integration_data = False
-
             try:
                 num_subs = int(str(final_updated_entry.get('number_of_subs_light', 0)))
                 exp_time = int(str(final_updated_entry.get('exposure_time_per_sub_sec', 0)))
@@ -2282,7 +2324,6 @@ def journal_edit(session_id):
                     has_any_integration_data = True
             except (ValueError, TypeError):
                 pass
-
             mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
             for filt in mono_filters:
                 try:
@@ -2293,63 +2334,62 @@ def journal_edit(session_id):
                         has_any_integration_data = True
                 except (ValueError, TypeError):
                     pass
-
             if has_any_integration_data:
                 final_updated_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
             else:
                 final_updated_entry['calculated_integration_time_minutes'] = 'N/A'
 
+            # --- Image Deletion Logic ---
             if request.form.get('delete_session_image') == '1':
-                # Check if there is an image filename in the original session data
                 if session_to_edit.get('session_image_file'):
                     image_filename = session_to_edit['session_image_file']
                     image_path = os.path.join(UPLOAD_FOLDER, username, image_filename)
                     try:
-                        # Delete the physical file
                         os.remove(image_path)
                         print(f"Deleted image file: {image_path}")
                     except OSError as e:
-                        # Log an error if the file couldn't be deleted (e.g., not found)
                         print(f"Error deleting image file {image_path}: {e}")
-
-                # Remove the image key from the updated entry, regardless of whether the file existed
                 final_updated_entry.pop('session_image_file', None)
                 flash("Session image deleted.", "success")
 
+            # --- Project Handling Logic (CORRECTED) ---
+            project_selection = request.form.get("project_selection")
+            new_project_name = request.form.get("new_project_name", "").strip()
+            project_id_for_session = None
+            if project_selection == "new_project" and new_project_name:
+                new_project_id = uuid.uuid4().hex
+                new_project = {"project_id": new_project_id, "project_name": new_project_name}
+                journal_data.setdefault('projects', []).append(new_project)
+                project_id_for_session = new_project_id
+                print(f"Created new project '{new_project_name}' with ID {new_project_id}")
+            elif project_selection and project_selection not in ["standalone", "new_project"]:
+                project_id_for_session = project_selection
+
+            # THIS IS THE FIX: Use `final_updated_entry`
+            final_updated_entry['project_id'] = project_id_for_session
+
+            # --- Image Upload Logic ---
             if 'session_image' in request.files:
                 file = request.files['session_image']
-                # Check if a file was selected and it has an allowed extension
                 if file and file.filename != '' and allowed_file(file.filename):
-                    # Check file size (max 5 MB) before saving
                     if len(file.read()) > 5 * 1024 * 1024:
                         flash("Image upload failed: File is larger than 5MB.", "error")
                     else:
-                        file.seek(0)  # IMPORTANT: Go back to the start of the file after reading its size
-
-                        # Create a unique filename based on the session ID
+                        file.seek(0)
                         file_extension = file.filename.rsplit('.', 1)[1].lower()
-                        new_filename = f"{session_id}.{file_extension}"  # Use the existing session_id
-
-                        # Create the user's personal upload folder if it doesn't exist
+                        new_filename = f"{session_id}.{file_extension}"
                         user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
                         os.makedirs(user_upload_dir, exist_ok=True)
-
-                        # Save the file
                         file.save(os.path.join(user_upload_dir, new_filename))
-
-                        # Store the new filename in the journal data
                         final_updated_entry['session_image_file'] = new_filename
 
+            # --- Save and Redirect ---
             sessions[session_index] = final_updated_entry
             journal_data['sessions'] = sessions
             save_journal(username, journal_data)
 
-            flash_message_target = final_updated_entry.get('target_object_id', session_id[:8] + "...")
-            flash_message_date = final_updated_entry.get('session_date', 'entry')
-            flash(f"Journal entry for '{flash_message_target}' on {flash_message_date} updated successfully!",
-                  "success")
+            flash(f"Journal entry updated successfully!", "success")
 
-            # --- THIS IS THE CRITICAL REDIRECT LOGIC ---
             target_object_id_for_redirect = final_updated_entry.get("target_object_id")
             if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
                 return redirect(
@@ -2390,7 +2430,7 @@ def journal_edit(session_id):
         cancel_url_for_edit = url_for('graph_dashboard', object_name=target_object_id_for_cancel, session_id=session_id)
     elif session_id:
         cancel_url_for_edit = url_for('journal_list_view')
-    # --- Apply per-user rig sort preference for the journal form ---
+
     try:
         username_effective = "default" if SINGLE_USER_MODE else current_user.username
         _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
@@ -2406,46 +2446,32 @@ def journal_edit(session_id):
         _reverse = (_direction == 'desc')
 
         def _getattr_or_dict(x, attr, key):
-            if isinstance(x, dict):
-                return x.get(key)
+            if isinstance(x, dict): return x.get(key)
             return getattr(x, attr, None)
 
         def _get(r):
-            if _key == 'name':
-                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
-                return str(v).lower()
-            if _key == 'fl':
-                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
-            if _key == 'fr':
-                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
-            if _key == 'scale':
-                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
-            if _key == 'fovw':
-                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
+            if _key == 'name': v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''; return str(v).lower()
+            if _key == 'fl': return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
+            if _key == 'fr': return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
+            if _key == 'scale': return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
+            if _key == 'fovw': return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
             if _key == 'recent':
-                ts = (
-                        _getattr_or_dict(r, 'updated_at', 'updated_at')
-                        or _getattr_or_dict(r, 'created_at', 'created_at')
-                        or ''
-                )
+                ts = (_getattr_or_dict(r, 'updated_at', 'updated_at') or _getattr_or_dict(r, 'created_at',
+                                                                                          'created_at') or '')
                 try:
                     return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
                 except Exception:
                     return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
-            # default: name
-            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
+            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or '';
             return str(v).lower()
 
         def _none_safe(x):
-            v = _get(x)
-            return (v is None, v)
+            v = _get(x); return (v is None, v)
 
-        # IMPORTANT: this variable name must match what you pass to the template
         available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
-
     except Exception as _e:
         print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
-    # --- end rig sort preference ---
+
     return render_template('journal_form.html',
                            form_title=f"Edit Imaging Session",
                            form_action_url=url_for('journal_edit', session_id=session_id),
@@ -4944,7 +4970,12 @@ def graph_dashboard(object_name):
         except ValueError:
             pass
 
-    # --- Journal Data Logic ---
+    # --- Journal Data Logic (CORRECTED INITIALIZATION) ---
+    object_specific_sessions, selected_session_data = [], None
+    requested_session_id = request.args.get('session_id')
+    grouped_sessions = []  # <-- FIX: Initialize here, outside the 'if'
+    all_projects = []  # <-- FIX: Initialize here, outside the 'if'
+
     if SINGLE_USER_MODE:
         username_for_journal = "default"
     elif current_user.is_authenticated:
@@ -4952,13 +4983,54 @@ def graph_dashboard(object_name):
     else:
         username_for_journal = "guest_user"
 
-    object_specific_sessions, selected_session_data = [], None
-    requested_session_id = request.args.get('session_id')
     if username_for_journal:
         journal_data = load_journal(username_for_journal)
+        all_projects = journal_data.get('projects', [])
         all_user_sessions = journal_data.get('sessions', [])
-        object_specific_sessions = sorted([s for s in all_user_sessions if s.get('target_object_id') == object_name],
-                                          key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
+
+        # Filter sessions for the current object and sort them by date
+        object_specific_sessions = sorted(
+            [s for s in all_user_sessions if s.get('target_object_id') == object_name],
+            key=lambda s: s.get('session_date', '1900-01-01'),
+            reverse=True
+        )
+
+        # --- GROUPING LOGIC ---
+        projects_map = {p['project_id']: p['project_name'] for p in all_projects}
+        grouped_sessions_dict = {}
+
+        for session in object_specific_sessions:
+            project_id = session.get('project_id')  # Will be None for standalone sessions
+            if project_id not in grouped_sessions_dict:
+                grouped_sessions_dict[project_id] = []
+            grouped_sessions_dict[project_id].append(session)
+
+        # Convert dictionary to a sorted list for the template
+        temp_grouped_list = []
+        # Add named projects first
+        for project_id, sessions_in_group in grouped_sessions_dict.items():
+            if project_id:
+                temp_grouped_list.append({
+                    'is_project': True,
+                    'project_name': projects_map.get(project_id, 'Unknown Project'),
+                    'sessions': sessions_in_group
+                })
+
+        # Sort projects alphabetically by name
+        temp_grouped_list.sort(key=lambda g: g['project_name'])
+
+        # Add standalone sessions at the very end
+        if None in grouped_sessions_dict:
+            grouped_sessions.extend(temp_grouped_list)  # Add sorted projects first
+            grouped_sessions.append({
+                'is_project': False,
+                'project_name': 'Standalone Sessions',
+                'sessions': grouped_sessions_dict[None]
+            })
+        else:
+            grouped_sessions = temp_grouped_list  # Case where only projects exist
+
+        # --- Logic to find the selected session and override date/location ---
         if requested_session_id:
             selected_session_data = next(
                 (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
@@ -4986,8 +5058,8 @@ def graph_dashboard(object_name):
     try:
         if not (1 <= effective_month <= 12): effective_month = now_at_effective_location.month
         max_days_in_month = calendar.monthrange(effective_year, effective_month)[1]
-        if not (
-                1 <= effective_day <= max_days_in_month): effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
+        if not (1 <= effective_day <= max_days_in_month):
+            effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
         effective_date_obj = datetime(effective_year, effective_month, effective_day)
         effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
     except ValueError:
@@ -5008,7 +5080,6 @@ def graph_dashboard(object_name):
         print(f"Error calculating moon phase for header: {e}")
         moon_phase_for_effective_date = "N/A"
 
-    # --- CORRECTED RIG DATA PREPARATION ---
     username_for_rigs = "default" if SINGLE_USER_MODE else (
         current_user.username if current_user.is_authenticated else "guest_user")
     full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
@@ -5018,13 +5089,9 @@ def graph_dashboard(object_name):
         telescopes = {t['id']: t['name'] for t in all_components.get('telescopes', [])}
         cameras = {c['id']: c['name'] for c in all_components.get('cameras', [])}
         reducers = {r['id']: r['name'] for r in all_components.get('reducers_extenders', [])}
-
         for rig in full_rig_config.get('rigs', []):
-            # Calculate technical data
             calculated_data = calculate_rig_data(rig, all_components)
             rig.update(calculated_data)
-
-            # Calculate resolved_string
             tele_name = telescopes.get(rig['telescope_id'], 'N/A')
             cam_name = cameras.get(rig['camera_id'], 'N/A')
             resolved_parts = [tele_name]
@@ -5033,12 +5100,9 @@ def graph_dashboard(object_name):
                 resolved_parts.append(reducer_name)
             resolved_parts.append(cam_name)
             rig['resolved_string'] = ' + '.join(resolved_parts)
-
             final_rigs_for_template.append(rig)
-
     sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
     sorted_rigs = sort_rigs_list(final_rigs_for_template, sort_preference)
-    # --- END OF RIG CORRECTION ---
 
     object_main_details = get_ra_dec(object_name)
     if not object_main_details or object_main_details.get("RA (hours)") is None:
@@ -5052,11 +5116,12 @@ def graph_dashboard(object_name):
                 break
     except Exception:
         pass
+
     return render_template('graph_view.html',
                            object_name=object_name,
                            alt_name=object_main_details.get("Common Name", object_name),
                            object_main_details=object_main_details,
-                           available_rigs=sorted_rigs,  # Pass the corrected list
+                           available_rigs=sorted_rigs,
                            selected_day=effective_day,
                            selected_month=effective_month,
                            selected_year=effective_year,
@@ -5067,6 +5132,7 @@ def graph_dashboard(object_name):
                            header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
                            project_notes_from_config=object_main_details.get("Project", "N/A"),
                            is_project_active=is_project_active,
+                           grouped_sessions=grouped_sessions,
                            object_specific_sessions=object_specific_sessions,
                            selected_session_data=selected_session_data,
                            current_session_id=requested_session_id if selected_session_data else None,
@@ -5074,6 +5140,7 @@ def graph_dashboard(object_name):
                            graph_lon_param=effective_lon,
                            graph_tz_name_param=effective_tz_name,
                            available_objects=get_object_list_from_config(),
+                           all_projects=all_projects,
                            available_locations=g.locations,
                            default_location=g.user_config.get('default_location'),
                            stellarium_api_url_base=STELLARIUM_API_URL_BASE,
