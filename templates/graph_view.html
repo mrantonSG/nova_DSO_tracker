@@ -1108,16 +1108,26 @@
     }
   });
 })();
+
 document.addEventListener('DOMContentLoaded', (event) => {
+    // 1. Check for a 'tab' parameter in the URL first
+    const params = new URLSearchParams(window.location.search);
+    const tabFromUrl = params.get('tab');
+
+    if (tabFromUrl) {
+        showTab(tabFromUrl);
+        return; // Use the tab from the URL and stop here
+    }
+
+    // 2. If no URL parameter, fall back to localStorage
     const lastTab = localStorage.getItem('lastActiveTab-{{ object_name|tojson }}');
     if (lastTab) {
         showTab(lastTab);
     }
 });
 
-let opportunitiesLoaded = false; // Flag to prevent multiple fetches
-let simbadLoaded = false; // Flag for SIMBAD iframe
-// --- NEW SCRIPT FOR TABS AND OPPORTUNITIES ---
+// --- CORRECTED SCRIPT FOR TABS AND OPPORTUNITIES ---
+// The duplicate declarations have been removed from here.
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
 let simbadLoaded = false; // Flag for SIMBAD iframe
 
@@ -1170,7 +1180,7 @@ async function loadImagingOpportunities() {
                     const row = document.createElement('tr');
 
                     const [year, month, day] = opp.date.split('-');
-                    const url = `/graph_dashboard/${objectName}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}`;
+                    const url = `/graph_dashboard/${objectName}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart`;
                     row.style.cursor = 'pointer';
                     row.onclick = () => {
                         window.location.href = url;
