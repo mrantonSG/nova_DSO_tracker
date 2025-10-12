@@ -564,6 +564,15 @@
                     <div>
                       <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
                     </div>
+                    <div>
+                      <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
+                         target="_blank"
+                         title="View on Google Maps"
+                         class="action-button"
+                         style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
+                         Open Map
+                      </a>
+                    </div>
                   </div>
                     <div class="inline-fields">
                         <div class="location-id">
