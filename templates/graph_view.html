@@ -1178,7 +1178,7 @@ async function loadImagingOpportunities() {
                     icsUrl.searchParams.append('tz', '{{ graph_tz_name_param }}');
 
                     row.innerHTML = `
-                        <td>${new Date(opp.date + 'T00:00:00').toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                        <td>${new Date(opp.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                         <td>${opp.from_time}</td>
                         <td>${opp.to_time}</td>
                         <td>${opp.obs_minutes}</td>
