@@ -62,6 +62,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import getpass
 import jwt
 
@@ -170,6 +171,8 @@ STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
+UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # === Safe YAML IO helpers (atomic writes + rotating backups) ===
 import tempfile
@@ -178,6 +181,10 @@ try:
     _HAS_FCNTL = True
 except Exception:
     _HAS_FCNTL = False
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def _yaml_dump_pretty(data):
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
@@ -2033,8 +2040,33 @@ def journal_add():
                 final_session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
             else:
                 final_session_entry['calculated_integration_time_minutes'] = 'N/A'
+            if 'session_image' in request.files:
+                file = request.files['session_image']
+                # Check if a file was selected and it has an allowed extension
+                if file and file.filename != '' and allowed_file(file.filename):
+                    # Check file size (max 5 MB) before saving
+                    if len(file.read()) > 5 * 1024 * 1024:
+                        flash("Image upload failed: File is larger than 5MB.", "error")
+                    else:
+                        file.seek(0)  # IMPORTANT: Go back to the start of the file after reading its size
+
+                        # Create a unique filename based on the session ID
+                        file_extension = file.filename.rsplit('.', 1)[1].lower()
+                        new_filename = f"{final_session_entry['session_id']}.{file_extension}"
+
+                        # Create the user's personal upload folder if it doesn't exist
+                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                        os.makedirs(user_upload_dir, exist_ok=True)
+
+                        # Save the file
+                        file.save(os.path.join(user_upload_dir, new_filename))
+
+                        # Store the new filename in the journal data
+                        final_session_entry['session_image_file'] = new_filename
+
             journal_data['sessions'].append(final_session_entry)
             save_journal(username, journal_data)
+
             flash("New journal entry added successfully!", "success")
 
             target_object_id_for_redirect = final_session_entry.get("target_object_id")
@@ -2266,6 +2298,48 @@ def journal_edit(session_id):
                 final_updated_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
             else:
                 final_updated_entry['calculated_integration_time_minutes'] = 'N/A'
+
+            if request.form.get('delete_session_image') == '1':
+                # Check if there is an image filename in the original session data
+                if session_to_edit.get('session_image_file'):
+                    image_filename = session_to_edit['session_image_file']
+                    image_path = os.path.join(UPLOAD_FOLDER, username, image_filename)
+                    try:
+                        # Delete the physical file
+                        os.remove(image_path)
+                        print(f"Deleted image file: {image_path}")
+                    except OSError as e:
+                        # Log an error if the file couldn't be deleted (e.g., not found)
+                        print(f"Error deleting image file {image_path}: {e}")
+
+                # Remove the image key from the updated entry, regardless of whether the file existed
+                final_updated_entry.pop('session_image_file', None)
+                flash("Session image deleted.", "success")
+
+            if 'session_image' in request.files:
+                file = request.files['session_image']
+                # Check if a file was selected and it has an allowed extension
+                if file and file.filename != '' and allowed_file(file.filename):
+                    # Check file size (max 5 MB) before saving
+                    if len(file.read()) > 5 * 1024 * 1024:
+                        flash("Image upload failed: File is larger than 5MB.", "error")
+                    else:
+                        file.seek(0)  # IMPORTANT: Go back to the start of the file after reading its size
+
+                        # Create a unique filename based on the session ID
+                        file_extension = file.filename.rsplit('.', 1)[1].lower()
+                        new_filename = f"{session_id}.{file_extension}"  # Use the existing session_id
+
+                        # Create the user's personal upload folder if it doesn't exist
+                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                        os.makedirs(user_upload_dir, exist_ok=True)
+
+                        # Save the file
+                        file.save(os.path.join(user_upload_dir, new_filename))
+
+                        # Store the new filename in the journal data
+                        final_updated_entry['session_image_file'] = new_filename
+
             sessions[session_index] = final_updated_entry
             journal_data['sessions'] = sessions
             save_journal(username, journal_data)
@@ -5735,6 +5809,18 @@ def deprovision_user():
     else:
         ok = disable_user(username)
         return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
+
+@app.route('/uploads/<path:username>/<path:filename>')
+@login_required
+def get_uploaded_image(username, filename):
+    # Security check:
+    # In multi-user mode, only let a user see their own uploads.
+    # In single-user mode, 'default' user can see 'default' uploads.
+    if not SINGLE_USER_MODE and current_user.username != username:
+        return "Forbidden", 403
+
+    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+    return send_from_directory(user_upload_dir, filename)
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
