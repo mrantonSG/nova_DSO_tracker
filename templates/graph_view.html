@@ -1108,7 +1108,15 @@
     }
   });
 })();
+document.addEventListener('DOMContentLoaded', (event) => {
+    const lastTab = localStorage.getItem('lastActiveTab-{{ object_name|tojson }}');
+    if (lastTab) {
+        showTab(lastTab);
+    }
+});
 
+let opportunitiesLoaded = false; // Flag to prevent multiple fetches
+let simbadLoaded = false; // Flag for SIMBAD iframe
 // --- NEW SCRIPT FOR TABS AND OPPORTUNITIES ---
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
 let simbadLoaded = false; // Flag for SIMBAD iframe
@@ -1119,6 +1127,8 @@ function showTab(tabName) {
 
     document.getElementById(tabName + '-tab').classList.add('active');
     document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
+
+    localStorage.setItem('lastActiveTab-{{ object_name|tojson }}', tabName);
 
     if (tabName === 'opportunities' && !opportunitiesLoaded) {
         loadImagingOpportunities();
