@@ -1,11 +1,3 @@
-// --- NEW: Tab Management Function ---
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-    document.getElementById(tabName + '-tab').classList.add('active');
-    document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
-    localStorage.setItem('activeGraphTab', tabName);
-}
 
 const weatherOverlayPlugin = {
   id: 'weatherOverlay',
@@ -564,7 +556,7 @@ function openInStellarium() { document.getElementById('stellarium-status').textC
 window.addEventListener('load', () => {
     if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
     const savedTab = localStorage.getItem('activeGraphTab') || 'chart';
-    showTab(savedTab);
+
     changeView('day');
     const lockBox = document.getElementById('lock-to-object');
     if (lockBox) lockBox.checked = true;

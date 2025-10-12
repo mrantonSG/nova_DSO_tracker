@@ -829,18 +829,29 @@
       localStorage.setItem(tableType + "_filter_col_key_" + columnKey, inputElement.value);
     }
 
-    function showGraph(objectName, dateStr = null) {
+    function showGraph(objectName, dateStr = null, targetTab = null) {
         let url = '/graph_dashboard/' + encodeURIComponent(objectName);
+        const params = new URLSearchParams();
 
         if (dateStr) {
             const parts = dateStr.split('-');
             if (parts.length === 3) {
-                const year = parts[0];
-                const month = parts[1];
-                const day = parts[2];
-                url += `?year=${year}&month=${month}&day=${day}`;
+                params.set('year', parts[0]);
+                params.set('month', parts[1]);
+                params.set('day', parts[2]);
             }
         }
+
+        // This 'if' block is the key part of the logic
+        if (targetTab) {
+            params.set('tab', targetTab);
+        }
+
+        const queryString = params.toString();
+        if (queryString) {
+            url += '?' + queryString;
+        }
+
         window.location.href = url;
     }
 
@@ -1062,7 +1073,7 @@
             row.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target-object-id');
                 const sessionId = this.getAttribute('data-session-id');
-                if (targetId && sessionId) { window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}`; }
+                if (targetId && sessionId) { window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`; }
                 else { console.warn("Missing targetId or sessionId", session); }
             });
             tableBody.appendChild(row);
