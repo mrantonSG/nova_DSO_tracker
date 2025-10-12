@@ -314,7 +314,7 @@
     }
 
     #opportunities-section {
-        margin-top: 0; /* Changed from 40px */
+        margin-top: 0;
     }
 
     .opportunities-heading {
@@ -852,6 +852,7 @@
     <button class="tab-button" data-tab="journal" onclick="showTab('journal')">Journal</button>
     <button class="tab-button" data-tab="framing" onclick="showTab('framing')">Framing & Notes</button>
     <button class="tab-button" data-tab="opportunities" onclick="showTab('opportunities')">Opportunities</button>
+    <button class="tab-button" data-tab="simbad" onclick="showTab('simbad')">SIMBAD</button>
 </div>
 
 <div id="chart-tab" class="tab-content active">
@@ -934,20 +935,22 @@
         <div class="button-group">
             <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
             <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
-            <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
             <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
         </div>
         <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
-    </div>
-
-    <div id="simbadContainer" style="display:none; margin-top:20px;">
-        <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
     </div>
 </div>
 
 <div id="opportunities-tab" class="tab-content">
     {% include '_opportunities_section.html' %}
 </div>
+
+<div id="simbad-tab" class="tab-content">
+    <div id="simbadContainer">
+        <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
+    </div>
+</div>
+
 
 <div id="framing-modal" class="modal">
     <div id="framing-modal-content">
@@ -1108,6 +1111,7 @@
 
 // --- NEW SCRIPT FOR TABS AND OPPORTUNITIES ---
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
+let simbadLoaded = false; // Flag for SIMBAD iframe
 
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1119,6 +1123,18 @@ function showTab(tabName) {
     if (tabName === 'opportunities' && !opportunitiesLoaded) {
         loadImagingOpportunities();
     }
+
+    if (tabName === 'simbad' && !simbadLoaded) {
+        loadSimbadInfo();
+    }
+}
+
+function loadSimbadInfo() {
+    if (simbadLoaded) return;
+    const iframe = document.getElementById('simbadIframe');
+    const objectName = {{ object_name|tojson }};
+    iframe.src = `https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=${encodeURIComponent(objectName)}&submit=SIMBAD+search`;
+    simbadLoaded = true;
 }
 
 async function loadImagingOpportunities() {
@@ -1143,14 +1159,12 @@ async function loadImagingOpportunities() {
                 data.results.forEach(opp => {
                     const row = document.createElement('tr');
 
-                    // --- START: Added logic for clickable rows ---
                     const [year, month, day] = opp.date.split('-');
                     const url = `/graph_dashboard/${objectName}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}`;
                     row.style.cursor = 'pointer';
                     row.onclick = () => {
                         window.location.href = url;
                     };
-                    // --- END: Added logic for clickable rows ---
 
                     const icsUrl = new URL(`/generate_ics/${objectName}`, window.location.origin);
                     icsUrl.searchParams.append('date', opp.date);
@@ -1174,7 +1188,6 @@ async function loadImagingOpportunities() {
                         <td>${opp.rating}</td>
                         <td><a href="${icsUrl.href}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" onclick="event.stopPropagation();">📅</a></td>
                     `;
-                    // Added event.stopPropagation() to the calendar link to prevent the row click from firing.
                     tableBody.appendChild(row);
                 });
             }
