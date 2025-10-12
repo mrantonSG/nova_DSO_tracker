@@ -291,7 +291,6 @@
         border-collapse: collapse;
         margin-top: 20px;
         font-size: 14px;
-        margin-left: 20px;
     }
 
     #opportunities-table th, #opportunities-table td {
@@ -315,15 +314,14 @@
     }
 
     #opportunities-section {
-        margin-top: 40px;
+        margin-top: 0; /* Changed from 40px */
     }
 
     .opportunities-heading {
-        font-size: 16px;
-        font-weight: normal;
-        color: #333;
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #343a40;
         margin-bottom: 10px;
-        margin-left: 20px;
     }
 
     #opportunities-table th,
@@ -791,7 +789,7 @@
     .tab-container { display: flex; margin-bottom: 25px; border-bottom: 2px solid #ccc; }
     .tab-button { padding: 10px 20px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; background-color: #e9e9e9; margin-right: 5px; border-radius: 5px 5px 0 0; font-size: 16px; }
     .tab-button.active { background-color: #fff; border-color: #ccc; border-bottom: 2px solid #fff; position: relative; top: 1px; }
-    .tab-content { display: none; }
+    .tab-content { display: none; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 6px 6px; }
     .tab-content.active { display: block; }
 
     #active-project-checkbox {
@@ -853,13 +851,13 @@
     <button class="tab-button active" data-tab="chart" onclick="showTab('chart')">Chart</button>
     <button class="tab-button" data-tab="journal" onclick="showTab('journal')">Journal</button>
     <button class="tab-button" data-tab="framing" onclick="showTab('framing')">Framing & Notes</button>
+    <button class="tab-button" data-tab="opportunities" onclick="showTab('opportunities')">Opportunities</button>
 </div>
 
 <div id="chart-tab" class="tab-content active">
     <div id="chart-section">
         <div style="width: 100%; max-width: 1300px; margin-left: 0;">
             <div id="chart-area">
-                <!-- Weather overlay placeholder sits directly above the canvas for perfect alignment -->
                 <canvas id="altitudeChartCanvas"></canvas>
                 <div id="chart-loading" class="loading-overlay">Loading chart...</div>
             </div>
@@ -883,9 +881,7 @@
 </div>
 
 <div id="journal-tab" class="tab-content">
-    <div class="content-section">
-        {% include '_journal_section.html' %}
-    </div>
+    {% include '_journal_section.html' %}
 </div>
 
 <div id="framing-tab" class="tab-content">
@@ -939,9 +935,7 @@
             <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
             <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
             <button class="inline-button" onclick="toggleSimbad()">Toggle SIMBAD Info</button>
-            <button class="inline-button" onclick="loadImagingOpportunities()">Find Imaging Opportunities</button>
             <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
-
         </div>
         <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
     </div>
@@ -949,22 +943,11 @@
     <div id="simbadContainer" style="display:none; margin-top:20px;">
         <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
     </div>
-
-    <div id="opportunities-section" style="display: none; max-width: 800px; margin-top: 30px;">
-        <div class="opportunities-heading">Imaging Opportunities:<br><small>Note: The star rating does not differentiate
-            whether the moon is above or below the horizon.</small></div>
-        <table id="opportunities-table" class="opportunity-table center-text">
-            <thead>
-            <tr>
-                <th>Date</th><th>From</th><th>To</th><th>Obs Duration (min)</th><th>Max Alt (°)</th>
-                <th>Moon Illum (%)</th><th>Ang Sep (°)</th><th>Rating</th><th>Add to Cal</th>
-            </tr>
-            </thead>
-            <tbody id="opportunities-body"></tbody>
-        </table>
-    </div>
 </div>
 
+<div id="opportunities-tab" class="tab-content">
+    {% include '_opportunities_section.html' %}
+</div>
 
 <div id="framing-modal" class="modal">
     <div id="framing-modal-content">
@@ -1122,5 +1105,89 @@
     }
   });
 })();
+
+// --- NEW SCRIPT FOR TABS AND OPPORTUNITIES ---
+let opportunitiesLoaded = false; // Flag to prevent multiple fetches
+
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+
+    document.getElementById(tabName + '-tab').classList.add('active');
+    document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
+
+    if (tabName === 'opportunities' && !opportunitiesLoaded) {
+        loadImagingOpportunities();
+    }
+}
+
+async function loadImagingOpportunities() {
+    if (opportunitiesLoaded) return; // Don't fetch if already loaded
+
+    const tableBody = document.getElementById('opportunities-body');
+    const loader = document.getElementById('opportunities-loader');
+    const objectName = {{ object_name|tojson }};
+
+    loader.style.display = 'block';
+    tableBody.innerHTML = ''; // Clear previous content
+
+    try {
+        const response = await fetch(`/get_imaging_opportunities/${objectName}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            if (data.results.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
+            } else {
+                data.results.forEach(opp => {
+                    const row = document.createElement('tr');
+
+                    // --- START: Added logic for clickable rows ---
+                    const [year, month, day] = opp.date.split('-');
+                    const url = `/graph_dashboard/${objectName}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}`;
+                    row.style.cursor = 'pointer';
+                    row.onclick = () => {
+                        window.location.href = url;
+                    };
+                    // --- END: Added logic for clickable rows ---
+
+                    const icsUrl = new URL(`/generate_ics/${objectName}`, window.location.origin);
+                    icsUrl.searchParams.append('date', opp.date);
+                    icsUrl.searchParams.append('from_time', opp.from_time);
+                    icsUrl.searchParams.append('to_time', opp.to_time);
+                    icsUrl.searchParams.append('max_alt', opp.max_alt);
+                    icsUrl.searchParams.append('moon_illum', opp.moon_illumination);
+                    icsUrl.searchParams.append('obs_dur', opp.obs_minutes);
+                    icsUrl.searchParams.append('lat', '{{ graph_lat_param }}');
+                    icsUrl.searchParams.append('lon', '{{ graph_lon_param }}');
+                    icsUrl.searchParams.append('tz', '{{ graph_tz_name_param }}');
+
+                    row.innerHTML = `
+                        <td>${new Date(opp.date + 'T00:00:00').toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                        <td>${opp.from_time}</td>
+                        <td>${opp.to_time}</td>
+                        <td>${opp.obs_minutes}</td>
+                        <td>${opp.max_alt}</td>
+                        <td>${opp.moon_illumination}</td>
+                        <td>${opp.moon_separation}</td>
+                        <td>${opp.rating}</td>
+                        <td><a href="${icsUrl.href}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" onclick="event.stopPropagation();">📅</a></td>
+                    `;
+                    // Added event.stopPropagation() to the calendar link to prevent the row click from firing.
+                    tableBody.appendChild(row);
+                });
+            }
+            opportunitiesLoaded = true; // Mark as loaded
+        } else {
+            tableBody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`;
+        }
+    } catch (error) {
+        console.error('Error fetching imaging opportunities:', error);
+        tableBody.innerHTML = '<tr><td colspan="9">Failed to load imaging opportunities. Check console for details.</td></tr>';
+    } finally {
+        loader.style.display = 'none'; // Hide loader
+    }
+}
 </script>
 {% endblock %}

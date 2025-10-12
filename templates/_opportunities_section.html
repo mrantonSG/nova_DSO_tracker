@@ -1,0 +1,26 @@
+{# templates/_opportunities_section.html #}
+<div id="opportunities-section">
+    <div class="opportunities-heading">
+        Imaging Opportunities
+        <br>
+    </div>
+    <div id="opportunities-loader" style="text-align: center; padding: 20px; display: none;">Loading...</div>
+    <table id="opportunities-table" class="opportunity-table center-text">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>From</th>
+                <th>To</th>
+                <th>Obs Duration (min)</th>
+                <th>Max Alt (°)</th>
+                <th>Moon Illum (%)</th>
+                <th>Ang Sep (°)</th>
+                <th>Rating</th>
+                <th>Add to Cal</th>
+            </tr>
+        </thead>
+        <tbody id="opportunities-body">
+            {# This will be populated by JavaScript when the tab is clicked #}
+        </tbody>
+    </table>
+</div>
