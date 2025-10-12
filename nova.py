@@ -2108,6 +2108,7 @@ def journal_add():
                         final_session_entry['session_image_file'] = new_filename
 
             journal_data['sessions'].append(final_session_entry)
+            journal_data = _cleanup_orphan_projects(journal_data)
             save_journal(username, journal_data)
 
             flash("New journal entry added successfully!", "success")
@@ -2390,6 +2391,7 @@ def journal_edit(session_id):  # REMOVED: final_session_entry=None
             # --- Save and Redirect ---
             sessions[session_index] = final_updated_entry
             journal_data['sessions'] = sessions
+            journal_data = _cleanup_orphan_projects(journal_data)
             save_journal(username, journal_data)
 
             flash(f"Journal entry updated successfully!", "success")
@@ -2513,6 +2515,7 @@ def journal_delete(session_id):
         try:
             sessions.remove(session_to_delete)  # Remove the session from the list
             journal_data['sessions'] = sessions  # Assign the modified list back to the main data
+            journal_data = _cleanup_orphan_projects(journal_data)
             save_journal(username, journal_data)  # Save the updated journal data
 
             flash_message_target = target_object_id_of_deleted_session if target_object_id_of_deleted_session else "N/A"
@@ -2549,6 +2552,29 @@ def journal_delete(session_id):
         # If the session was not found at all, redirecting to journal_list_view or index is appropriate.
         return redirect(url_for('journal_list_view'))
 
+
+def _cleanup_orphan_projects(journal_data):
+    """
+    Scans a journal's projects and sessions, removing any project
+    that has no sessions linked to it.
+    """
+    if 'projects' not in journal_data or 'sessions' not in journal_data:
+        return journal_data  # Not a valid journal structure
+
+    projects = journal_data.get('projects', [])
+    sessions = journal_data.get('sessions', [])
+
+    # Create a set of all project_ids that are actually being used by sessions
+    project_ids_in_use = {s['project_id'] for s in sessions if s.get('project_id')}
+
+    # Filter the projects list, keeping only those whose IDs are in use
+    cleaned_projects = [p for p in projects if p.get('project_id') in project_ids_in_use]
+
+    if len(cleaned_projects) < len(projects):
+        print(f"[CLEANUP] Removed {len(projects) - len(cleaned_projects)} orphan project(s).")
+        journal_data['projects'] = cleaned_projects
+
+    return journal_data
 
 @app.route('/journal/add_for_target/<path:object_name>', methods=['GET', 'POST'])
 @login_required
