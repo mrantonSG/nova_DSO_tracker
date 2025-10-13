@@ -367,13 +367,13 @@ _ensure_env_defaults(ENV_FILE)
 # Load SECRET_KEY and users from the .env file
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))  # Ensure a fallback key
 
-def to_yaml_filter(data, indent=2):
+def to_yaml_filter(data):
     """Jinja2 filter to convert a Python object to a YAML string for form display."""
     if data is None:
         return ''
     try:
-        # Dumps to a string, now correctly using the indent argument
-        return yaml.dump(data, default_flow_style=True, indent=indent, sort_keys=False).strip()
+        # CORRECT: Force flow style AND provide a large width to prevent any wrapping.
+        return yaml.dump(data, default_flow_style=True, width=9999, sort_keys=False).strip()
     except Exception:
         return ''
 app = Flask(__name__)
