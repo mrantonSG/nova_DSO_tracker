@@ -515,15 +515,20 @@
         </div>
       </div>
 
-    <div id="locations-tab-content">
-        <div class="config-section">
-          <h2>Locations Configuration</h2>
-          <form method="post">
-            <h3>Add New Location</h3>
+<div id="locations-tab-content">
+    <div class="config-section">
+      <h2 style="display: flex; align-items: center; gap: 15px;">
+        Locations Configuration
+        <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: #555;"></span>
+      </h2>
+
+      <form method="post">
+        <h3>Add New Location</h3>
+        <div class="block">
             <div class="inline-fields">
               <div>
                 <label class="short-label" for="new_location">Name:</label>
-                <input type="text" name="new_location" id="new_location" placeholder="e.g., New York">
+                <input type="text" name="new_location" id="new_location" placeholder="e.g., Home Observatory">
               </div>
               <div>
                 <label class="short-label" for="new_lat">Lat:</label>
@@ -534,73 +539,91 @@
                 <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
               </div>
               <div>
-                <label class="short-label" for="new_timezone">Timezone:</label>
+                <label class="long-label" for="new_timezone">Timezone:</label>
                 <input type="text" name="new_timezone" id="new_timezone" placeholder="America/New_York">
               </div>
               <div>
-                <button type="submit" name="submit_new_location" value="1" class="action-button">Add</button>
+                  <label class="short-label" for="new_active">Active:</label>
+                  <input type="checkbox" name="new_active" id="new_active" class="active-location-checkbox" checked>
               </div>
             </div>
-            <hr>
-            <div class="locations-list">
-              {% for loc_key, loc_val in locations.items() %}
-                <div class="block">
-                  <div class="inline-fields">
-                    <div class="location-id">
-                      <strong>{{ loc_key }}</strong>
-                    </div>
-                    <div>
-                      <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
-                      <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
-                    </div>
-                    <div>
-                      <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
-                      <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
-                    </div>
-                    <div>
-                      <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
-                      <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
-                    </div>
-                    <div>
-                      <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
-                    </div>
-                    <div>
-                      <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
-                         target="_blank"
-                         title="View on Google Maps"
-                         class="action-button"
-                         style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
-                         Open Map
-                      </a>
-                    </div>
-                  </div>
-                    <div class="inline-fields">
-                        <div class="location-id">
-                            </div>
-                        <div style="display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 5px;">
 
-                            <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
+            <div class="inline-fields">
+                 <div class="location-id"></div>
+                 <div style="display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 5px;">
+                    <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">Horizon Mask:</label>
+                    <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
+                 </div>
+            </div>
 
-                            <textarea name="horizon_mask_{{ loc_key }}"
-                                      id="horizon_mask_{{ loc_key }}"
-                                      rows="3"
-                                      style="width: 655px; font-family: monospace; font-size: 13px;"
-                                      placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
-
-                            <div></div>
-
-                            <small style="max-width: 500px; color: #666;">
-                                Optional list of `[azimuth, altitude]` pairs. Use `[az, 0]` to revert to the baseline.
-                            </small>
-                        </div>
+            <div class="inline-fields">
+                 <div class="location-id"></div>
+                 <div style="display: grid; grid-template-columns: 91px 1fr; align-items: start; gap: 5px;">
+                    <label class="short-label" for="new_comments" style="padding-top: 5px;">Comments:</label>
+                    <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="new-comment-counter"></textarea>
+                    <div></div>
+                    <small id="new-comment-counter" style="color: #666;">0 / 500</small>
+                 </div>
+            </div>
+            <button type="submit" name="submit_new_location" value="1" class="action-button" style="margin-top: 10px;">Add</button>
+        </div>
+        <hr>
+        <div class="locations-list">
+          {% for loc_key, loc_val in locations.items() %}
+            <div class="block">
+              <div class="inline-fields">
+                <div class="location-id">
+                  <strong>{{ loc_key }}</strong>
+                </div>
+                <div>
+                  <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
+                  <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
+                </div>
+                <div>
+                  <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
+                  <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
+                </div>
+                <div>
+                  <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
+                  <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
+                </div>
+                <div>
+                    <label class="short-label" for="active_{{ loc_key }}">Active:</label>
+                    <input type="checkbox" name="active_{{ loc_key }}" id="active_{{ loc_key }}" class="active-location-checkbox" {% if loc_val.get('active', True) %}checked{% endif %}>
+                </div>
+                <div>
+                  <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+                </div>
+                <div>
+                  <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
+                     target="_blank" title="View on Google Maps" class="action-button" style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
+                     Open Map
+                  </a>
+                </div>
+              </div>
+                <div class="inline-fields">
+                    <div class="location-id"></div>
+                    <div style="display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 5px;">
+                        <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
+                        <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
                     </div>
                 </div>
-              {% endfor %}
-              <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
+                <div class="inline-fields">
+                    <div class="location-id"></div>
+                    <div style="display: grid; grid-template-columns: 91px 1fr; align-items: start; gap: 5px;">
+                        <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
+                        <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
+                        <div></div>
+                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ loc_val.get('comments', '')|length }} / 500</small>
+                    </div>
+                </div>
             </div>
-          </form>
+          {% endfor %}
+          <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
         </div>
-      </div>
+      </form>
+    </div>
+</div>
 
 <div id="objects-tab-content">
     <div class="config-section">
@@ -839,38 +862,18 @@
     // --- Rigs Tab Functions ---
 
     function populateComponentFormForEdit(type, id) {
-        // --- NEW, ROBUST LOGIC ---
-        // First, determine the correct key for the component list based on the type.
         let componentListKey;
-        if (type === 'telescope') {
-            componentListKey = 'telescopes';
-        } else if (type === 'camera') {
-            componentListKey = 'cameras';
-        } else if (type === 'reducer_extender') {
-            componentListKey = 'reducers_extenders';
-        } else {
-            // If the type is unknown, stop and log an error.
-            console.error("Unknown component type provided to populateComponentFormForEdit:", type);
-            return;
-        }
+        if (type === 'telescope') componentListKey = 'telescopes';
+        else if (type === 'camera') componentListKey = 'cameras';
+        else if (type === 'reducer_extender') componentListKey = 'reducers_extenders';
+        else return console.error("Unknown component type:", type);
 
-        // Now, find the component in the correct list using the determined key.
         const component = rigsData.components[componentListKey].find(c => c.id === id);
-        // --- END NEW LOGIC ---
+        if (!component) return console.error("Could not find component with ID:", id);
 
-        if (!component) {
-            console.error("Could not find component with ID:", id, "in list:", componentListKey);
-            return; // Exit if the component can't be found.
-        }
-
-        // Map internal type 'reducer_extender' to the form's ID 'form-reducer'
         const formType = type === 'reducer_extender' ? 'reducer' : type;
         const form = document.getElementById(`form-${formType}`);
-
-        // Change the form's action to the update route
         form.action = "{{ url_for('update_component') }}";
-
-        // Populate the form fields with the component's data
         form.querySelector('input[name="component_id"]').value = component.id;
         form.querySelector('input[name="name"]').value = component.name;
 
@@ -885,7 +888,6 @@
             form.querySelector('input[name="factor"]').value = component.factor;
         }
 
-        // Update the button text and scroll the form into view
         form.querySelector('button[type="submit"]').textContent = 'Update Component';
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -911,20 +913,18 @@
 
     function compareBy(a, b, getter, dir = 'asc') {
         const av = getter(a), bv = getter(b);
-        // put null/undefined at the end regardless of sort direction
         const aNull = (av === null || av === undefined);
         const bNull = (bv === null || bv === undefined);
         if (aNull && bNull) return 0;
         if (aNull) return 1;
         if (bNull) return -1;
-
         if (av < bv) return dir === 'asc' ? -1 : 1;
         if (av > bv) return dir === 'asc' ? 1 : -1;
         return 0;
     }
 
     function sortRigs(rigs, sortValue) {
-        const [key, dir] = sortValue.split('-'); // e.g. 'name-asc'
+        const [key, dir] = sortValue.split('-');
         const getterMap = {
             name: (r) => (r.rig_name || '').toLowerCase(),
             fl:   (r) => safeNum(r.effective_focal_length, null),
@@ -932,50 +932,42 @@
             scale:(r) => safeNum(r.image_scale, null),
             fovw: (r) => safeNum(r.fov_w_arcmin, null),
             recent: (r) => {
-                // try to sort by a timestamp if present, else by rig_id string
-                // assuming backend might provide `created_at` (ISO) or `updated_at`
                 const ts = r.created_at || r.updated_at || '';
                 const tnum = Date.parse(ts);
-                if (Number.isFinite(tnum)) return tnum;
-                // fall back to a stable string key
-                return (r.rig_id || '').toString();
+                return Number.isFinite(tnum) ? tnum : (r.rig_id || '').toString();
             }
         };
         const getter = getterMap[key] || getterMap.name;
-        const rigsCopy = rigs.slice(); // do not mutate original
+        const rigsCopy = rigs.slice();
         rigsCopy.sort((a, b) => compareBy(a, b, getter, dir));
         return rigsCopy;
     }
 
-function fetchRigsData() {
-  if (rigsDataLoaded) return;
-  fetch('/get_rig_data')
-    .then(response => response.json())
-    .then(data => {
-      rigsData = data;
-
-      // use server-provided preference if present
-      if (data.sort_preference && typeof data.sort_preference === 'string') {
-        rigSort = data.sort_preference;
-        localStorage.setItem('rigSort', rigSort);
-        const sortSelectEl = document.getElementById('rig-sort');
-        if (sortSelectEl) sortSelectEl.value = rigSort;
-      }
-
-      renderRigsUI();
-      updateSamplingInfo();
-      rigsDataLoaded = true;
-    })
-    .catch(error => console.error("Error fetching rigs data:", error));
-}
+    function fetchRigsData() {
+        if (rigsDataLoaded) return;
+        fetch('/get_rig_data')
+            .then(response => response.json())
+            .then(data => {
+                rigsData = data;
+                if (data.sort_preference && typeof data.sort_preference === 'string') {
+                    rigSort = data.sort_preference;
+                    localStorage.setItem('rigSort', rigSort);
+                    const sortSelectEl = document.getElementById('rig-sort');
+                    if (sortSelectEl) sortSelectEl.value = rigSort;
+                }
+                renderRigsUI();
+                updateSamplingInfo();
+                rigsDataLoaded = true;
+            })
+            .catch(error => console.error("Error fetching rigs data:", error));
+    }
 
     function renderRigsUI() {
-        const data = rigsData; // Use global data
+        const data = rigsData;
         if (!data.components) return;
 
         const { telescopes, cameras, reducers_extenders } = data.components;
         const { rigs } = data;
-        // Determine selected sort (from UI if present, else from stored default)
         const sortSelectEl = document.getElementById('rig-sort');
         const currentSort = sortSelectEl ? (sortSelectEl.value || rigSort) : rigSort;
         if (sortSelectEl && sortSelectEl.value !== currentSort) {
@@ -989,8 +981,7 @@ function fetchRigsData() {
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
                     <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
-                        <input type="hidden" name="component_id" value="${t.id}">
-                        <input type="hidden" name="component_type" value="telescopes">
+                        <input type="hidden" name="component_id" value="${t.id}"><input type="hidden" name="component_type" value="telescopes">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
                 </div>
@@ -1002,8 +993,7 @@ function fetchRigsData() {
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
                     <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
-                        <input type="hidden" name="component_id" value="${c.id}">
-                        <input type="hidden" name="component_type" value="cameras">
+                        <input type="hidden" name="component_id" value="${c.id}"><input type="hidden" name="component_type" value="cameras">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
                 </div>
@@ -1015,8 +1005,7 @@ function fetchRigsData() {
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
                     <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
-                        <input type="hidden" name="component_id" value="${r.id}">
-                        <input type="hidden" name="component_type" value="reducers_extenders">
+                        <input type="hidden" name="component_id" value="${r.id}"><input type="hidden" name="component_type" value="reducers_extenders">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
                 </div>
@@ -1057,139 +1046,121 @@ function fetchRigsData() {
     }
 
     function updateSamplingInfo() {
-            const seeingSelect = document.getElementById('seeing-select');
-            const selectedSeeing = seeingSelect.value;
+        const seeingSelect = document.getElementById('seeing-select');
+        const selectedSeeing = seeingSelect.value;
+        const rigListItems = document.querySelectorAll('#existing-rigs-list li');
 
-            const rigListItems = document.querySelectorAll('#existing-rigs-list li');
+        rigListItems.forEach(item => {
+            const infoContainer = item.querySelector('.item-info');
+            infoContainer.querySelectorAll('.sampling-info, .sampling-binning-tip').forEach(el => el.remove());
+            if (selectedSeeing === 'none') return;
 
-            rigListItems.forEach(item => {
-                const infoContainer = item.querySelector('.item-info');
-                // Remove any old sampling info and tips
-                infoContainer.querySelectorAll('.sampling-info, .sampling-binning-tip').forEach(el => el.remove());
+            const rigId = item.dataset.rigId;
+            const rig = rigsData.rigs.find(r => r.rig_id === rigId);
+            if (rig && rig.image_scale) {
+                const imageScale = rig.image_scale;
+                const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
+                const seeingAvg = (seeingLow + seeingHigh) / 2;
+                const samplingAvg = seeingAvg / imageScale;
 
-                if (selectedSeeing === 'none') return;
+                let text = '', colorClass = '', isOversampled = false;
+                if (samplingAvg > 4.0) { text = `Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-oversampled'; isOversampled = true; }
+                else if (samplingAvg > 3.0) { text = `Slightly Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-oversampled'; isOversampled = true; }
+                else if (samplingAvg >= 1.0) { text = `Good Sampling: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-good'; }
+                else if (samplingAvg >= 0.67) { text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-undersampled'; }
+                else { text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-undersampled'; }
 
-                const rigId = item.dataset.rigId;
-                const rig = rigsData.rigs.find(r => r.rig_id === rigId);
+                const infoEl = document.createElement('span');
+                infoEl.className = `sampling-info ${colorClass}`;
+                infoEl.textContent = text;
+                infoContainer.appendChild(infoEl);
 
-                if (rig && rig.image_scale) {
-                    const imageScale = rig.image_scale;
-                    const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
-                    const seeingAvg = (seeingLow + seeingHigh) / 2;
-
-                    // --- Logic for Average Value ---
-                    const samplingAvg = seeingAvg / imageScale;
-
-                    // --- More Granular Logic ---
-                    let text = '';
-                    let colorClass = '';
-                    let isOversampled = false;
-
-                    if (samplingAvg > 4.0) {
-                        text = `Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`;
-                        colorClass = 'sampling-oversampled';
-                        isOversampled = true;
-                    } else if (samplingAvg > 3.0) {
-                        text = `Slightly Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`;
-                        colorClass = 'sampling-slightly-oversampled';
-                        isOversampled = true;
-                    } else if (samplingAvg >= 1.0) {
-                        text = `Good Sampling: ${samplingAvg.toFixed(1)} px/FWHM`;
-                        colorClass = 'sampling-good';
-                    } else if (samplingAvg >= 0.67) {
-                        text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`;
-                        colorClass = 'sampling-slightly-undersampled';
-                    } else {
-                        text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`;
-                        colorClass = 'sampling-undersampled';
-                    }
-
-                    // Create and append the main info element
-                    const infoEl = document.createElement('span');
-                    infoEl.className = `sampling-info ${colorClass}`;
-                    infoEl.textContent = text;
-                    infoContainer.appendChild(infoEl);
-
-                    // --- Binning Suggestion Logic ---
-                    if (isOversampled) {
-                        const binningEl = document.createElement('small');
-                        binningEl.className = 'sampling-binning-tip';
-                        const binnedScale = (imageScale * 2).toFixed(2);
-                        const binnedSampling = (samplingAvg / 2).toFixed(1);
-                        binningEl.textContent = `Tip: 2x2 binning would yield ~${binnedScale}"/px (${binnedSampling} px/FWHM)`;
-                        infoContainer.appendChild(binningEl);
-                    }
+                if (isOversampled) {
+                    const binningEl = document.createElement('small');
+                    binningEl.className = 'sampling-binning-tip';
+                    const binnedScale = (imageScale * 2).toFixed(2);
+                    const binnedSampling = (samplingAvg / 2).toFixed(1);
+                    binningEl.textContent = `Tip: 2x2 binning would yield ~${binnedScale}"/px (${binnedSampling} px/FWHM)`;
+                    infoContainer.appendChild(binningEl);
                 }
-            });
-        }
+            }
+        });
+    }
 
-    // --- General Page Logic ---
     function confirmAndFetchDetails(formElement) {
         const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
         let estimatedTime = numObjects * 0.6;
-        let confirmationMessage = "Fetching all missing object details (Type, Magnitude, Size, SB) can take some time.\n";
-        if (numObjects > 0) {
-            confirmationMessage += `With ${numObjects} object(s), this might take around ${estimatedTime.toFixed(0)} seconds.\n`;
-        }
-        confirmationMessage += "Only fields currently empty or marked 'N/A' or 'Fetch Error' will be updated.\nAre you sure you want to proceed?";
+        let confirmationMessage = "Fetching all missing object details can take some time.\n";
+        if (numObjects > 0) confirmationMessage += `With ${numObjects} object(s), this may take ~${estimatedTime.toFixed(0)} seconds.\n`;
+        confirmationMessage += "Only empty or placeholder fields will be updated.\nAre you sure you want to proceed?";
         if (confirm(confirmationMessage)) {
-            const messageContainer = document.getElementById('message-container');
             const button = document.getElementById('fetch-details-button');
-            if (button) {
-                button.disabled = true;
-                button.innerText = 'Processing... Please Wait';
-            }
-            if (messageContainer) {
-                const existingError = document.getElementById('error-msg');
-                const existingFlash = document.getElementById('flash-msg');
-                if (existingError) existingError.remove();
-                if (existingFlash) existingFlash.remove();
-                let progressText = `Fetching details for up to ${numObjects} object(s). The page will reload upon completion.`;
-                messageContainer.innerHTML = `<p class="progress-message">${progressText}</p>`;
-            }
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => formElement.submit());
-            });
+            if (button) { button.disabled = true; button.innerText = 'Processing...'; }
+            document.getElementById('message-container').innerHTML = `<p class="progress-message">Fetching details... The page will reload when complete.</p>`;
+            formElement.submit();
         }
     }
 
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
-        // --- Anonymous telemetry client ping (once per 24h in this browser) ---
-        try {
-          const TELEMETRY_KEY = 'novaTelemetryPingAt';
-          const lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10);
-          const now = Date.now();
-          const DAY_MS = 24*60*60*1000;
-          const telemetryEnabled = {{ 'true' if config.get('telemetry', {}).get('enabled', True) else 'false' }};
-          if (telemetryEnabled && (!Number.isFinite(lastPing) || (now - lastPing) > DAY_MS)) {
-            fetch('/telemetry/ping', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ browser_user_agent: navigator.userAgent || '', force: true })
-            }).then(() => {
-              localStorage.setItem(TELEMETRY_KEY, String(now));
-            }).catch(() => {/* ignore errors */});
-          }
-        } catch (e) { /* ignore */ }
-        // --- Telemetry test button logic ---
-        const testTelemetryBtn = document.getElementById('test-telemetry');
-        if (testTelemetryBtn) {
-          testTelemetryBtn.addEventListener('click', () => {
-            fetch('/telemetry/ping', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ browser_user_agent: navigator.userAgent || '', force: true })
-            })
-            .then(resp => resp.json())
-            .then(data => {
-              alert("Telemetry test sent.\nStatus: " + (data.status || 'unknown'));
-            })
-            .catch(err => {
-              alert("Telemetry test failed: " + err.message);
+
+        // --- NEW: Location Limit & Counter Logic ---
+        const MAX_ACTIVE_LOCATIONS = 5;
+
+        function setupCharCounters() {
+            document.querySelectorAll('textarea[maxlength][data-counter-id]').forEach(textarea => {
+                const counterId = textarea.dataset.counterId;
+                const counterEl = document.getElementById(counterId);
+                if (counterEl) {
+                    const updateCounter = () => { counterEl.textContent = `${textarea.value.length} / ${textarea.maxLength}`; };
+                    textarea.addEventListener('input', updateCounter);
+                    updateCounter();
+                }
             });
-          });
         }
+
+        function manageActiveLocationLimit() {
+            const checkboxes = document.querySelectorAll('.active-location-checkbox');
+            const checkedCount = document.querySelectorAll('.active-location-checkbox:checked').length;
+            const counterEl = document.getElementById('active-location-counter');
+
+            if(counterEl) {
+                counterEl.textContent = `(${checkedCount} / ${MAX_ACTIVE_LOCATIONS} active)`;
+                if (checkedCount >= MAX_ACTIVE_LOCATIONS) {
+                    counterEl.style.color = '#dc3545';
+                    counterEl.style.fontWeight = 'bold';
+                } else {
+                    counterEl.style.color = '#555';
+                    counterEl.style.fontWeight = 'normal';
+                }
+            }
+
+            if (checkedCount >= MAX_ACTIVE_LOCATIONS) {
+                checkboxes.forEach(cb => {
+                    if (!cb.checked) {
+                        cb.disabled = true;
+                        cb.closest('div').style.opacity = '0.5';
+                    }
+                });
+            } else {
+                checkboxes.forEach(cb => {
+                    cb.disabled = false;
+                    cb.closest('div').style.opacity = '1';
+                });
+            }
+        }
+        // --- END of new logic block ---
+
+        // --- Anonymous telemetry client ping (once per 24h) ---
+        try {
+          const TELEMETRY_KEY = 'novaTelemetryPingAt', lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10), now = Date.now(), DAY_MS = 86400000;
+          const telemetryEnabled = {{ 'true' if config.get('telemetry', {}).get('enabled', True) else 'false' }};
+          if (telemetryEnabled && (now - lastPing) > DAY_MS) {
+            fetch('/telemetry/ping', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ browser_user_agent: navigator.userAgent })})
+              .then(() => localStorage.setItem(TELEMETRY_KEY, String(now))).catch(()=>{});
+          }
+        } catch (e) {}
+
         // --- Tab Management ---
         const tabs = document.querySelectorAll('.tab-button');
         const contentPanels = {
@@ -1200,249 +1171,140 @@ function fetchRigsData() {
         };
         let activeTab = localStorage.getItem('activeConfigTab') || 'general';
 
-        const seeingSelect = document.getElementById('seeing-select');
-        if (seeingSelect) {
-            seeingSelect.addEventListener('change', updateSamplingInfo);
-        }
-
         function updateTabDisplay() {
-            Object.values(contentPanels).forEach(panel => {
-                if(panel) panel.style.display = 'none';
-            });
-            tabs.forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.tab === activeTab);
-            });
-            if (contentPanels[activeTab]) {
-                contentPanels[activeTab].style.display = 'block';
-            }
-            if (activeTab === 'rigs') {
-                fetchRigsData();
-            }
+            Object.values(contentPanels).forEach(panel => { if(panel) panel.style.display = 'none'; });
+            tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === activeTab));
+            if (contentPanels[activeTab]) contentPanels[activeTab].style.display = 'block';
+            if (activeTab === 'rigs') fetchRigsData();
             localStorage.setItem('activeConfigTab', activeTab);
         }
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                activeTab = tab.dataset.tab;
-                updateTabDisplay();
+        tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
+        updateTabDisplay();
+
+        // --- Rigs Setup ---
+        const seeingSelect = document.getElementById('seeing-select');
+        if (seeingSelect) seeingSelect.addEventListener('change', updateSamplingInfo);
+        const rigSortEl = document.getElementById('rig-sort');
+        if (rigSortEl) {
+            rigSortEl.value = rigSort;
+            rigSortEl.addEventListener('change', () => {
+                rigSort = rigSortEl.value;
+                localStorage.setItem('rigSort', rigSort);
+                fetch('/set_rig_sort_preference', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sort: rigSort }) });
+                if (rigsDataLoaded) { renderRigsUI(); updateSamplingInfo(); }
             });
-        });
-        updateTabDisplay(); // Initial call
-
-      const rigSortEl = document.getElementById('rig-sort');
-      if (rigSortEl && rigSortEl.value !== rigSort) {
-        rigSortEl.value = rigSort;
-      }
-
-      if (rigSortEl) {
-        rigSortEl.addEventListener('change', () => {
-          rigSort = rigSortEl.value;
-          localStorage.setItem('rigSort', rigSort);
-          fetch('/set_rig_sort_preference', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sort: rigSort })
-          }).catch(err => console.error("Could not save sort preference:", err));
-
-          if (rigsDataLoaded) {
-            renderRigsUI();
-            updateSamplingInfo();
-          }
-        });
-      }
+        }
 
         // --- Message Fader ---
         setTimeout(() => {
-            const messageContainer = document.getElementById('message-container');
-            if (messageContainer && !messageContainer.querySelector('.progress-message')) {
-                document.querySelectorAll(".flash-transient").forEach(el => {
-                    el.style.transition = "opacity 0.5s ease";
-                    el.style.opacity = "0";
-                    setTimeout(() => el.remove(), 500);
-                });
-            }
+            document.querySelectorAll(".flash-transient").forEach(el => {
+                el.style.transition = "opacity 0.5s ease"; el.style.opacity = "0";
+                setTimeout(() => el.remove(), 500);
+            });
         }, 3000);
 
         // --- Fetch Details Logic ---
         const fetchDetailsForm = document.getElementById('fetch-details-form');
-        if (fetchDetailsForm) {
-            fetchDetailsForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                confirmAndFetchDetails(this);
-            });
-        }
+        if (fetchDetailsForm) fetchDetailsForm.addEventListener('submit', function(e) { e.preventDefault(); confirmAndFetchDetails(this); });
 
         // --- Add Object Form Logic ---
-        const resultDiv = document.getElementById('object_result');
-        const submitNewObjectBtn = document.getElementById('submit_new_object');
-        const confirmAddObjectBtn = document.getElementById('confirm_add_object');
-        const editObjectBtn = document.getElementById('edit_object');
+        const resultDiv = document.getElementById('object_result'), submitNewObjectBtn = document.getElementById('submit_new_object'),
+              confirmAddObjectBtn = document.getElementById('confirm_add_object'), editObjectBtn = document.getElementById('edit_object');
         if (submitNewObjectBtn) {
-            submitNewObjectBtn.addEventListener('click', function(event) {
-                // ... (add object search logic is unchanged)
-                event.preventDefault();
+            submitNewObjectBtn.addEventListener('click', e => {
+                e.preventDefault();
                 const objectName = document.getElementById('new_object').value.trim();
                 if (!objectName) { alert("Please enter an object identifier."); return; }
-                resultDiv.innerHTML = '<p class="progress-message">Searching SIMBAD, please wait...</p>';
-                fetch("{{ url_for('search_object') }}", {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ object: objectName })
-                })
-                .then(r => r.json())
-                .then(data => {
-                  if (data.status !== "success") throw new Error(data.message || 'SIMBAD lookup failed');
-                  document.getElementById('new_name').value    = data.data["Common Name"];
-                  document.getElementById('new_ra').value      = data.data["RA (hours)"];
-                  document.getElementById('new_dec').value     = data.data["DEC (degrees)"];
+                resultDiv.innerHTML = '<p class="progress-message">Searching...</p>';
+                fetch("{{ url_for('search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
+                .then(r => r.json()).then(data => {
+                  if (data.status !== "success") throw new Error(data.message);
+                  document.getElementById('new_name').value = data.data["Common Name"];
+                  document.getElementById('new_ra').value = data.data["RA (hours)"];
+                  document.getElementById('new_dec').value = data.data["DEC (degrees)"];
                   document.getElementById('new_constellation').value = data.data["Constellation"] || '';
                   ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]} (RA: ${data.data["RA (hours)"]}, DEC: ${data.data["DEC (degrees)"]})</p>`;
-                  return fetch("{{ url_for('fetch_object_details') }}", {
-                      method: 'POST', headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ object: objectName })
-                  });
-                })
-                .then(r => r.json())
-                .then(extra => {
+                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}</p>`;
+                  return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
+                }).then(r => r.json()).then(extra => {
                   if (extra.status === 'success') {
-                      document.getElementById('new_type').value      = extra.data.Type      || '';
+                      document.getElementById('new_type').value = extra.data.Type || '';
                       document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
-                      document.getElementById('new_size').value      = extra.data.Size      || '';
-                      document.getElementById('new_sb').value        = extra.data.SB        || '';
-                  } else { console.warn("Extra fields error:", extra.message); }
+                      document.getElementById('new_size').value = extra.data.Size || '';
+                      document.getElementById('new_sb').value = extra.data.SB || '';
+                  }
                   ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
                   submitNewObjectBtn.style.display = 'none';
-                })
-                .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
+                }).catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; });
             });
         }
         if (confirmAddObjectBtn) {
-            // ... (confirm add object logic is unchanged)
-            confirmAddObjectBtn.addEventListener('click', function(event) {
-                event.preventDefault();
+            confirmAddObjectBtn.addEventListener('click', e => {
+                e.preventDefault();
                 const payload = {
-                    object: document.getElementById('new_object').value.trim(),
-                    name: document.getElementById('new_name').value.trim(),
-                    ra: document.getElementById('new_ra').value.trim(),
-                    dec: document.getElementById('new_dec').value.trim(),
-                    project: document.getElementById('new_project').value.trim(),
-                    type: document.getElementById('new_type').value.trim(),
-                    magnitude: document.getElementById('new_magnitude').value,
-                    size: document.getElementById('new_size').value,
-                    constellation: document.getElementById('new_constellation').value.trim(),
-                    sb: document.getElementById('new_sb').value
+                    object: document.getElementById('new_object').value, name: document.getElementById('new_name').value, ra: document.getElementById('new_ra').value,
+                    dec: document.getElementById('new_dec').value, project: document.getElementById('new_project').value, type: document.getElementById('new_type').value,
+                    magnitude: document.getElementById('new_magnitude').value, size: document.getElementById('new_size').value,
+                    constellation: document.getElementById('new_constellation').value, sb: document.getElementById('new_sb').value
                 };
-                fetch("{{ url_for('confirm_object') }}", {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-                })
-                .then(response => response.json()).then(data => {
-                if (data.status === "success") {
-                    resultDiv.innerHTML = `<p class="message">Object added successfully. Page will reload.</p>`;
-                    setTimeout(() => window.location.reload(), 1500);
-                } else { throw new Error(data.message || 'Add failed'); }
-                })
-                .catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; console.error(err); });
+                fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                .then(r => r.json()).then(data => {
+                    if (data.status === "success") { window.location.reload(); }
+                    else { throw new Error(data.message); }
+                }).catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; });
             });
         }
         if (editObjectBtn) {
-            // ... (edit object logic is unchanged)
-            editObjectBtn.addEventListener('click', function(event) {
-                event.preventDefault();
-                ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.readOnly = false;
+            editObjectBtn.addEventListener('click', e => {
+                e.preventDefault();
+                ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project', 'new_object'].forEach(id => {
+                    document.getElementById(id).readOnly = false;
                 });
-                document.getElementById('new_object').readOnly = false;
             });
         }
 
         // --- Dropdown Menu & Import Logic ---
         document.querySelectorAll('.dropdown-btn').forEach(button => {
-            button.addEventListener('click', function(event) {
-                document.querySelectorAll('.dropdown-content.show').forEach(openDropdown => {
-                    if (openDropdown !== this.nextElementSibling) openDropdown.classList.remove('show');
-                });
-                this.nextElementSibling.classList.toggle('show');
-                event.stopPropagation();
+            button.addEventListener('click', e => {
+                document.querySelectorAll('.dropdown-content.show').forEach(d => { if (d !== button.nextElementSibling) d.classList.remove('show'); });
+                button.nextElementSibling.classList.toggle('show');
+                e.stopPropagation();
             });
         });
-        window.addEventListener('click', function(event) {
-            if (!event.target.matches('.dropdown-btn')) {
-                document.querySelectorAll('.dropdown-content.show').forEach(openDropdown => {
-                    openDropdown.classList.remove('show');
+        window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
+
+        function setupImport(btnId, inputId, url, entityName) {
+            const btn = document.getElementById(btnId), input = document.getElementById(inputId);
+            if (btn && input) {
+                btn.addEventListener('click', e => {
+                    e.preventDefault();
+                    if (confirm(`This will overwrite your current ${entityName}. The existing file will be backed up. Are you sure?`)) input.click();
+                });
+                input.addEventListener('change', function() {
+                    if (!this.files[0]) return;
+                    const formData = new FormData();
+                    formData.append("file", this.files[0]);
+                    fetch(url, { method: "POST", body: formData })
+                        .then(resp => { if (resp.ok && resp.redirected) window.location.href = resp.url; else throw new Error(`Import failed.`); })
+                        .catch(err => alert(`${entityName} import failed: ${err.message}`)).finally(() => { this.value = ""; });
                 });
             }
-        });
-
-        const importConfigBtn = document.getElementById('import-config-btn');
-        const configUploadInput = document.getElementById('config-upload');
-        if (importConfigBtn && configUploadInput) {
-            importConfigBtn.addEventListener('click', event => {
-                event.preventDefault();
-                if (confirm("This will overwrite your current configuration. Your existing configuration will be backed up. Are you sure?")) {
-                    configUploadInput.click();
-                }
-            });
-            configUploadInput.addEventListener('change', function () {
-                if (!this.files[0]) return;
-                const formData = new FormData();
-                formData.append("file", this.files[0]);
-                fetch("{{ url_for('import_config') }}", { method: "POST", body: formData })
-                  .then(resp => {
-                      if (resp.ok && resp.redirected) window.location.href = resp.url;
-                      else return resp.text().then(text => { throw new Error(text || 'Import failed') });
-                  })
-                  .catch(err => alert("Config import failed: " + err.message))
-                  .finally(() => { this.value = ""; });
-            });
         }
+        setupImport('import-config-btn', 'config-upload', "{{ url_for('import_config') }}", 'configuration');
+        setupImport('import-journal-btn', 'journal-upload', "{{ url_for('import_journal') }}", 'journal');
+        setupImport('import-rigs-btn', 'rigs-upload', "{{ url_for('import_rig_config') }}", 'rigs file');
 
-        const importJournalBtn = document.getElementById('import-journal-btn');
-        const journalUploadInput = document.getElementById('journal-upload');
-        if (importJournalBtn && journalUploadInput) {
-            importJournalBtn.addEventListener('click', event => {
-                event.preventDefault();
-                if (confirm("This will overwrite your current journal. Your existing journal will be backed up. Are you sure?")) {
-                    journalUploadInput.click();
-                }
-            });
-            journalUploadInput.addEventListener('change', function () {
-                if (!this.files[0]) return;
-                const formData = new FormData();
-                formData.append("file", this.files[0]);
-                fetch("{{ url_for('import_journal') }}", { method: "POST", body: formData })
-                  .then(resp => {
-                      if (resp.ok && resp.redirected) window.location.href = resp.url;
-                      else return resp.text().then(text => { throw new Error(text || 'Import failed') });
-                  })
-                  .catch(err => alert("Journal import failed: " + err.message))
-                  .finally(() => { this.value = ""; });
-            });
-        }
-
-        const importRigsBtn = document.getElementById('import-rigs-btn');
-        const rigsUploadInput = document.getElementById('rigs-upload');
-        if (importRigsBtn && rigsUploadInput) {
-            importRigsBtn.addEventListener('click', event => {
-                event.preventDefault();
-                if (confirm("This will overwrite your current rigs file. The existing file will be backed up. Are you sure?")) {
-                    rigsUploadInput.click();
-                }
-            });
-            rigsUploadInput.addEventListener('change', function () {
-                if (!this.files[0]) return;
-                const formData = new FormData();
-                formData.append("file", this.files[0]);
-                fetch("{{ url_for('import_rig_config') }}", { method: "POST", body: formData })
-                  .then(resp => {
-                      if (resp.ok && resp.redirected) window.location.href = resp.url;
-                      else return resp.json().then(err => { throw new Error(err.message || 'Import failed') });
-                  })
-                  .catch(err => alert("Rigs import failed: " + err.message))
-                  .finally(() => { this.value = ""; });
+        // --- NEW: Run location setup functions ---
+        if (document.getElementById('locations-tab-content')) {
+            setupCharCounters();
+            manageActiveLocationLimit();
+            document.querySelectorAll('.active-location-checkbox').forEach(cb => {
+                cb.addEventListener('change', manageActiveLocationLimit);
             });
         }
     });
-  </script>
+</script>
+
 {% endblock %}
 </body>
 </html>
