@@ -291,6 +291,7 @@
         border-collapse: collapse;
         margin-top: 20px;
         font-size: 14px;
+        table-layout: fixed;
     }
 
     #opportunities-table th, #opportunities-table td {
@@ -791,7 +792,14 @@
     .tab-button.active { background-color: #fff; border-color: #ccc; border-bottom: 2px solid #fff; position: relative; top: 1px; }
     .tab-content { display: none; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 6px 6px; }
     .tab-content.active { display: block; }
-
+    .loader-row td {
+        text-align: center !important;
+        padding: 40px 0;
+        font-size: 1.1em;
+        font-weight: 500;
+        color: #555;
+        background-color: #f8f9fa;
+    }
     #active-project-checkbox {
         transform: scale(1.5); /* Adjust this value to change the size */
         vertical-align: middle; /* Keeps it nicely aligned with the text */
@@ -1158,19 +1166,21 @@ function loadSimbadInfo() {
 }
 
 async function loadImagingOpportunities() {
-    if (opportunitiesLoaded) return; // Don't fetch if already loaded
+    if (opportunitiesLoaded) return;
 
     const tableBody = document.getElementById('opportunities-body');
-    const loader = document.getElementById('opportunities-loader');
     const objectName = {{ object_name|tojson }};
 
-    loader.style.display = 'block';
-    tableBody.innerHTML = ''; // Clear previous content
+    // NEW: Instead of showing a div, inject a styled loading row into the table.
+    tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">Loading...</td></tr>';
 
     try {
         const response = await fetch(`/get_imaging_opportunities/${objectName}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
+
+        // Clear the loading row before adding data
+        tableBody.innerHTML = '';
 
         if (data.status === 'success') {
             if (data.results.length === 0) {
@@ -1182,9 +1192,7 @@ async function loadImagingOpportunities() {
                     const [year, month, day] = opp.date.split('-');
                     const url = `/graph_dashboard/${objectName}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart`;
                     row.style.cursor = 'pointer';
-                    row.onclick = () => {
-                        window.location.href = url;
-                    };
+                    row.onclick = () => { window.location.href = url; };
 
                     const icsUrl = new URL(`/generate_ics/${objectName}`, window.location.origin);
                     icsUrl.searchParams.append('date', opp.date);
@@ -1211,16 +1219,16 @@ async function loadImagingOpportunities() {
                     tableBody.appendChild(row);
                 });
             }
-            opportunitiesLoaded = true; // Mark as loaded
+            opportunitiesLoaded = true;
         } else {
             tableBody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`;
         }
     } catch (error) {
         console.error('Error fetching imaging opportunities:', error);
         tableBody.innerHTML = '<tr><td colspan="9">Failed to load imaging opportunities. Check console for details.</td></tr>';
-    } finally {
-        loader.style.display = 'none'; // Hide loader
     }
+    // The finally block is no longer needed as the loader is part of the table body
 }
+
 </script>
 {% endblock %}

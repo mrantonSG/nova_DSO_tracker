@@ -1,26 +1,51 @@
-{# templates/_opportunities_section.html #}
+<style>
+    /* NEW: Container for positioning the loader overlay */
+    #opportunities-container {
+        position: relative;
+        min-height: 200px; /* Prevents container collapse before data loads */
+    }
+
+    /* NEW: Styles for the loading overlay */
+    #opportunities-loader {
+        position: absolute;
+        inset: 0; /* A modern shorthand for top:0, left:0, right:0, bottom:0 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(248, 249, 250, 0.7); /* Semi-transparent background */
+        backdrop-filter: blur(2px);
+        z-index: 10;
+        font-size: 1.1em;
+        font-weight: 500;
+        color: #333;
+        border-radius: 6px;
+    }
+</style>
+
 <div id="opportunities-section">
-    <div class="opportunities-heading">
+    <h3 class="opportunities-heading">
         Imaging Opportunities
-        <br>
+    </h3>
+
+    <div id="opportunities-container">
+
+        <table id="opportunities-table" class="opportunity-table center-text">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Obs Duration (min)</th>
+                    <th>Max Alt (°)</th>
+                    <th>Moon Illum (%)</th>
+                    <th>Ang Sep (°)</th>
+                    <th>Rating</th>
+                    <th>Add to Cal</th>
+                </tr>
+            </thead>
+            <tbody id="opportunities-body">
+                {# This will be populated by JavaScript when the tab is clicked #}
+            </tbody>
+        </table>
     </div>
-    <div id="opportunities-loader" style="text-align: center; padding: 20px; display: none;">Loading...</div>
-    <table id="opportunities-table" class="opportunity-table center-text">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Obs Duration (min)</th>
-                <th>Max Alt (°)</th>
-                <th>Moon Illum (%)</th>
-                <th>Ang Sep (°)</th>
-                <th>Rating</th>
-                <th>Add to Cal</th>
-            </tr>
-        </thead>
-        <tbody id="opportunities-body">
-            {# This will be populated by JavaScript when the tab is clicked #}
-        </tbody>
-    </table>
 </div>
