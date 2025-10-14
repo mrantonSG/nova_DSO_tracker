@@ -62,7 +62,7 @@ and you can combine filters and sorting from both tabs:
 In this example the objects are sorted by maximum observation time. 
 In combination with the filter under "Properties" this shows potential observation time only for the DSO type selected.
 If you have only a limited view to the sky, for instance because you image from a balcony, you can also set azimuth filters, to focus on objects actually visible to you.
-Once you set the sorting order and filters, the screen will continue updating every minute, so you can see where the the objects are at any moment. These settings will stay even when switch screens, until you manually reset them.
+Once you set the sorting order and filters, the screen will continue updating every minute, so you can see where the objects are at any moment. These settings will stay even when switch screens, until you manually reset them.
 
 ### Configuration
 Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen. To add an object, enter its ID and click `search`. This will trigger a SIMBAD search. If an object was found you can edit its name and project fields and finally add it to your list.
