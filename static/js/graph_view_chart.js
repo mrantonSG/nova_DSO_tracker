@@ -90,6 +90,34 @@ const weatherOverlayPlugin = {
   }
 };
 
+/**
+ * Displays a formatted offline message inside a specified container.
+ * @param {string} containerId The ID of the element to display the message in.
+ * @param {string} message The text message to display.
+ */
+function displayOfflineMessage(containerId, message) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // A simple, embedded SVG icon for "no connection"
+    const offlineIconSvg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+            <path d="M8.53 16.11a6.5 6.5 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12" y2="20"></line>
+        </svg>`;
+
+    container.innerHTML = `
+        <div class="offline-message">
+            ${offlineIconSvg}
+            <p>${message}</p>
+        </div>`;
+}
+
 const plotTz = NOVA_GRAPH_DATA.plotTz;
 Chart.defaults.adapters = Chart.defaults.adapters || {};
 Chart.defaults.adapters.date = {
@@ -365,9 +393,18 @@ function setProjectQuickLink(url) {
 }
 function openFramingAssistant() {
     const framingModal = document.getElementById('framing-modal');
+    framingModal.style.display = 'block'; // Show the modal frame immediately
+
+    // --- MODIFIED: Check for internet connection first ---
+    if (!navigator.onLine) {
+        displayOfflineMessage('aladin-lite-div', 'The Framing Assistant requires an active internet connection to load sky surveys.');
+        return; // Stop execution if offline
+    }
+    // --- END OF MODIFICATION ---
+
     const framingRigSelect = document.getElementById('framing-rig-select');
     if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") { alert("Please configure at least one rig on the Configuration page first."); return; }
-    framingModal.style.display = 'block';
+
     (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '-90'); slider.setAttribute('max', '90'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
     if (!aladin) {
         aladin = A.aladin('#aladin-lite-div', { survey: "P/DSS2/color", fov: 1.5, cooFrame: 'ICRS', showFullscreenControl: false, showGotoControl: false });
@@ -548,7 +585,6 @@ function setLocation() { const selectedLocation = document.getElementById('locat
 function saveProject() { const newProject = document.getElementById('project-field').value, objectName = NOVA_GRAPH_DATA.objectName; fetch('/update_project', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({object: objectName, project: newProject}) }).then(res => res.json()).then(data => { alert(data.status === "success" ? "Project updated successfully!" : data.error); }); }
 function insertFramingIntoProject() { try { const ta = document.getElementById('project-field'); if (!ta) { alert('Project notes box not found.'); return; } const sel = document.getElementById('framing-rig-select'), rigId = sel?.value || '', rigName = (sel && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex].textContent.trim() : 'rig?', rotInput = document.getElementById('framing-rotation'), rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0, survSel = document.getElementById('survey-select'), survey = survSel?.value || '', blendSel = document.getElementById('blend-survey-select'), blendSurvey = blendSel?.value || '', blendOpEl = document.getElementById('blend-opacity'), blendOp = Math.max(0, Math.min(1, parseFloat(blendOpEl?.value ?? '0') || 0)); const center = getFrameCenterRaDec(), raDeg = center.ra, decDeg = center.dec; updateReadout(raDeg, decDeg); const qs = new URLSearchParams(); if (rigId) qs.set('rig', rigId); if (Number.isFinite(raDeg)) qs.set('ra', raDeg.toFixed(6)); if (Number.isFinite(decDeg)) qs.set('dec', decDeg.toFixed(6)); qs.set('rot', String(rotDeg)); if (survey) qs.set('survey', survey); if (blendSurvey) qs.set('blend', blendSurvey); qs.set('blend_op', String(blendOp)); const url = `${location.origin}${location.pathname}?${qs.toString()}`; const objectName = NOVA_GRAPH_DATA.objectName, centerTxt = `RA ${formatRA(raDeg)}, Dec ${formatDec(decDeg)}`, line = `[Framing:${objectName}] ${rigName}, rot ${rotDeg}\u00B0, ${centerTxt}, survey ${survey || 'default'}${blendSurvey ? ` + blend ${blendSurvey} @ ${blendOp}` : ''}`; const lines = ta.value.split(/\r?\n/), out = []; for (let i = 0; i < lines.length; i++) { const L = lines[i]; if (/^\[Framing:/.test(L)) { if (L.startsWith(`[Framing:${objectName}]`)) { const maybeUrl = lines[i + 1] || ''; if (/^https?:\/\//i.test(maybeUrl)) i++; continue; } } out.push(L); } if (out.length && out[out.length - 1] !== '') out.push(''); out.push(line); out.push(url); ta.value = out.join('\n'); ta.dispatchEvent(new Event('input', { bubbles: true })); ta.scrollTop = ta.scrollHeight; setProjectQuickLink(url); } catch (e) { console.error('insertFramingIntoProject failed', e); alert('Could not insert framing into Project. See console for details.'); } }
 function copyFramingUrl() { try { const q = buildFramingQuery(), url = location.origin + location.pathname + q; navigator.clipboard.writeText(url); console.log("[Framing] Copied URL:", url); } catch (e) { console.warn("[Framing] copyFramingUrl failed:", e); } }
-function toggleSimbad() { var container = document.getElementById('simbadContainer'); const objectName = NOVA_GRAPH_DATA.objectName; if (container.style.display === 'none' || container.style.display === '') { document.getElementById('simbadIframe').src = "https://simbad.u-strasbg.fr/simbad/sim-id?Ident=" + encodeURIComponent(objectName); container.style.display = 'block'; } else container.style.display = 'none'; }
 function loadImagingOpportunities() { document.getElementById("opportunities-section").style.display = "block"; const tbody = document.getElementById("opportunities-body"); tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`; const objectName = NOVA_GRAPH_DATA.objectName; fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`).then(response => response.json()).then(data => { if (data.status === "success") { if (data.results.length === 0) { tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`; return; } let htmlRows = ""; const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon; data.results.forEach(r => { const isSelected = r.date === selectedDateStr, formattedDate = formatDateISOtoEuropean(r.date), ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`, filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`; htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;"><td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td><td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td><td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`; }); tbody.innerHTML = htmlRows; } else tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`; }); }
 function selectSuggestedDate(dateStr) { const [year, month, day] = dateStr.split('-').map(Number); document.getElementById('year-select').value = year; document.getElementById('month-select').value = month; document.getElementById('day-select').value = day; changeView('day'); setTimeout(() => { const rows = document.getElementById("opportunities-body").querySelectorAll("tr"); rows.forEach(row => { row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr); }); }, 100); }
 function openInStellarium() { document.getElementById('stellarium-status').textContent = "Sending object to Stellarium..."; document.getElementById('stellarium-status').style.color = "#666"; const objectName = NOVA_GRAPH_DATA.objectName; fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) }).then(async response => { let data; try { data = await response.json(); } catch (e) { data = {message: "Could not parse server response."}; } if (response.ok && data.status === "success") { document.getElementById('stellarium-status').textContent = "Stellarium view updated!"; document.getElementById('stellarium-status').style.color = "#83b4c5"; } else document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`; }); }
