@@ -132,18 +132,20 @@
                         <dl class="detail-grid">
                             <dt>Filter:</dt><dd>{{ selected_session_data.filter_used_session | default('N/A') }}</dd>
                             <dt>Telescope Setup:</dt><dd>{{ selected_session_data.telescope_setup_notes | default('N/A') }}</dd>
-                        </dl>
 
-                        {% if selected_session_data.session_image_file %}
-                            <div class="session-image-container" style="margin-top: 20px;">
-                                <h4 style="margin-bottom: 10px; font-size: 1.1em; color: #343a40;">Session Image</h4>
-                                <a href="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=selected_session_data.session_image_file) }}" target="_blank" title="Click to view full size">
-                                    <img src="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=selected_session_data.session_image_file) }}"
-                                         alt="Session Image for {{ selected_session_data.target_object_id }}"
-                                         style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
-                                </a>
-                            </div>
-                        {% endif %}
+                            {# --- MODIFICATION START --- #}
+                            {% if selected_session_data.session_image_file %}
+                                <dt style="grid-column: 1 / -1;">Session Image:</dt>
+                                <dd style="grid-column: 1 / -1; margin-top: 8px;">
+                                    <a href="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=selected_session_data.session_image_file) }}" target="_blank" title="Click to view full size">
+                                        <img src="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=selected_session_data.session_image_file) }}"
+                                             alt="Session Image for {{ selected_session_data.target_object_id }}"
+                                             style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
+                                    </a>
+                                </dd>
+                            {% endif %}
+                            {# --- MODIFICATION END --- #}
+                        </dl>
                     </div>
                 {% else %}
                      <div style="padding-top: 50px; padding-left: 20px; color: #6c757d;"><p>← Select a session from the history to view its details, or add a new one.</p></div>
@@ -194,18 +196,20 @@
                         <dl class="detail-grid">
                             <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('N/A') }} ★</dd>
                             <dt>Notes:</dt><dd><div class="notes-block">{{ entry.general_notes_problems_learnings | default('N/A') }}</div></dd>
-                        </dl>
 
-                        {% if entry.session_image_file %}
-                            <div class="session-image-container" style="margin-top: 20px;">
-                                <h4 style="margin-bottom: 10px; font-size: 1.1em; color: #343a40;">Session Image</h4>
-                                <a href="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=entry.session_image_file) }}" target="_blank" title="Click to view full size">
-                                    <img src="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=entry.session_image_file) }}"
-                                         alt="Session Image for {{ entry.target_object_id }}"
-                                         style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
-                                </a>
-                            </div>
-                        {% endif %}
+                            {# --- MODIFICATION START --- #}
+                            {% if entry.session_image_file %}
+                                <dt style="grid-column: 1 / -1;">Session Image:</dt>
+                                <dd style="grid-column: 1 / -1; margin-top: 8px;">
+                                    <a href="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=entry.session_image_file) }}" target="_blank" title="Click to view full size">
+                                        <img src="{{ url_for('get_uploaded_image', username=(current_user.username if not SINGLE_USER_MODE else 'default'), filename=entry.session_image_file) }}"
+                                             alt="Session Image for {{ entry.target_object_id }}"
+                                             style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
+                                    </a>
+                                </dd>
+                            {% endif %}
+                            {# --- MODIFICATION END --- #}
+                        </dl>
                     </div>
                     <div class="edit-mode">
                         <div class="form-group"><label>Session Rating (1-5 ★):</label><input type="number" min="1" max="5" name="session_rating_subjective" value="{{ entry.session_rating_subjective if entry.session_rating_subjective is not none else '' }}"></div>
