@@ -30,7 +30,8 @@ import glob
 from datetime import datetime, timedelta, timezone, UTC
 import traceback
 import uuid
-
+import io
+import zipfile
 import pytz
 import ephem
 import yaml
@@ -5474,7 +5475,108 @@ def download_rig_config():
         flash("Rigs configuration file not found.", "error")
         return redirect(url_for('config_form'))
 
+@app.route('/download_journal_photos')
+@login_required
+def download_journal_photos():
+    """
+    Finds all journal images for the current user, creates a ZIP file in memory,
+    and sends it as a download.
+    """
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
 
+    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+
+    # Check if the user's upload directory exists and has files
+    if not os.path.isdir(user_upload_dir):
+        flash("No journal photos found to download.", "info")
+        return redirect(url_for('config_form'))
+
+    # Use an in-memory buffer to build the ZIP file without writing to disk
+    memory_file = io.BytesIO()
+
+    with zipfile.ZipFile(memory_file, 'w', zipfile.ZIP_DEFLATED) as zf:
+        # Walk through the user's directory and add all files to the ZIP
+        for root, dirs, files in os.walk(user_upload_dir):
+            for file in files:
+                # Create the full path to the file
+                file_path = os.path.join(root, file)
+                # Add the file to the zip, using just the filename as the archive name
+                zf.write(file_path, arcname=file)
+
+    # After the 'with' block, the ZIP is built in memory_file.
+    # Move the buffer's cursor to the beginning.
+    memory_file.seek(0)
+
+    # Create a dynamic filename for the download
+    timestamp = datetime.now().strftime('%Y-%m-%d')
+    download_name = f"nova_journal_photos_{username}_{timestamp}.zip"
+
+    # Send the in-memory file to the user
+    return send_file(
+        memory_file,
+        mimetype='application/zip',
+        as_attachment=True,
+        download_name=download_name
+    )
+
+
+@app.route('/import_journal_photos', methods=['POST'])
+@login_required
+def import_journal_photos():
+    """
+    Handles the upload of a ZIP archive and safely extracts its contents
+    into the user's upload directory.
+    """
+    if 'file' not in request.files:
+        flash("No file selected for photo import.", "error")
+        return redirect(url_for('config_form'))
+
+    file = request.files['file']
+    if file.filename == '' or not file.filename.lower().endswith('.zip'):
+        flash("Please select a valid .zip file to import.", "error")
+        return redirect(url_for('config_form'))
+
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+    os.makedirs(user_upload_dir, exist_ok=True)  # Ensure the destination exists
+
+    try:
+        # Check if the file is a valid ZIP archive
+        if not zipfile.is_zipfile(file):
+            flash("Import failed: The uploaded file is not a valid ZIP archive.", "error")
+            return redirect(url_for('config_form'))
+
+        # Rewind the file stream after the check
+        file.seek(0)
+
+        with zipfile.ZipFile(file, 'r') as zf:
+            for member in zf.infolist():
+                # 🔒 Security Check: Prevent path traversal attacks (Zip Slip)
+                # This ensures files are only extracted inside the user's directory.
+                target_path = os.path.join(user_upload_dir, member.filename)
+                if not os.path.abspath(target_path).startswith(os.path.abspath(user_upload_dir)):
+                    raise ValueError(f"Illegal file path in ZIP: {member.filename}")
+
+                # We only want to extract files, not directories
+                if not member.is_dir():
+                    # extract() will overwrite existing files, which is what we want for a restore
+                    zf.extract(member, user_upload_dir)
+
+        flash("Journal photos imported successfully!", "success")
+
+    except zipfile.BadZipFile:
+        flash("Import failed: The ZIP file appears to be corrupted.", "error")
+    except Exception as e:
+        flash(f"An unexpected error occurred during import: {e}", "error")
+
+    return redirect(url_for('config_form'))
 @app.route('/import_rig_config', methods=['POST'])
 @login_required
 def import_rig_config():

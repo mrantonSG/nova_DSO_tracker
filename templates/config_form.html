@@ -412,6 +412,8 @@
           <a href="{{ url_for('download_config') }}">Configuration</a>
           <a href="{{ url_for('download_journal') }}">Journal</a>
           <a href="{{ url_for('download_rig_config') }}">Rigs</a>
+          <a href="{{ url_for('download_journal_photos') }}">Journal Photos</a>
+
         </div>
       </div>
 
@@ -421,12 +423,14 @@
           <a href="#" id="import-config-btn">Configuration</a>
           <a href="#" id="import-journal-btn">Journal</a>
           <a href="#" id="import-rigs-btn">Rigs</a>
+          <a href="#" id="import-photos-btn">Journal Photos</a>
         </div>
       </div>
 
       <input type="file" id="config-upload" accept=".yaml" style="display:none;">
       <input type="file" id="journal-upload" accept=".yaml,.yml" style="display:none;">
       <input type="file" id="rigs-upload" accept=".yaml,.yml" style="display:none;">
+      <input type="file" id="photos-upload" accept=".zip" style="display:none;">
     </div>
   </div>
 
@@ -1293,6 +1297,7 @@
         setupImport('import-config-btn', 'config-upload', "{{ url_for('import_config') }}", 'configuration');
         setupImport('import-journal-btn', 'journal-upload', "{{ url_for('import_journal') }}", 'journal');
         setupImport('import-rigs-btn', 'rigs-upload', "{{ url_for('import_rig_config') }}", 'rigs file');
+        setupImport('import-photos-btn', 'photos-upload', "{{ url_for('import_journal_photos') }}", 'journal photos archive');
 
         // --- NEW: Run location setup functions ---
         if (document.getElementById('locations-tab-content')) {
