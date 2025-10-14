@@ -804,7 +804,29 @@
         transform: scale(1.5); /* Adjust this value to change the size */
         vertical-align: middle; /* Keeps it nicely aligned with the text */
     }
+    .offline-message {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        min-height: 200px;
+        background-color: #f8f9fa;
+        border: 1px dashed #ced4da;
+        border-radius: 6px;
+        padding: 20px;
+        box-sizing: border-box;
+        text-align: center;
+        color: #555;
+        font-size: 1.1em;
+    }
 
+    .offline-message svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
 </style>
 {% endblock %}
 
@@ -1134,8 +1156,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 });
 
-// --- CORRECTED SCRIPT FOR TABS AND OPPORTUNITIES ---
-// The duplicate declarations have been removed from here.
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
 let simbadLoaded = false; // Flag for SIMBAD iframe
 
@@ -1159,6 +1179,16 @@ function showTab(tabName) {
 
 function loadSimbadInfo() {
     if (simbadLoaded) return;
+
+    // --- ADD THIS CHECK ---
+    if (!navigator.onLine) {
+        // We have a helper function in the other JS file, so we can call it!
+        displayOfflineMessage('simbadContainer', 'SIMBAD requires an active internet connection to load data.');
+        simbadLoaded = true; // Mark as "loaded" to prevent re-triggering
+        return;
+    }
+    // --- END OF ADDED CHECK ---
+
     const iframe = document.getElementById('simbadIframe');
     const objectName = {{ object_name|tojson }};
     iframe.src = `https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=${encodeURIComponent(objectName)}&submit=SIMBAD+search`;
