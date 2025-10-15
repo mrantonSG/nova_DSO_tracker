@@ -44,10 +44,6 @@ import uuid
 from pathlib import Path
 import platform
 
-import matplotlib
-matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
@@ -83,7 +79,600 @@ from modules.astro_calculations import (
 from modules import nova_data_fetcher
 from modules import rig_config
 from modules.rig_config import calculate_rig_data, get_rig_config_path
+
 from modules.rig_config import save_rig_config, load_rig_config
+
+# === DB: Unified SQLAlchemy setup ============================================
+from sqlalchemy import (
+    create_engine, Column, Integer, Float, String, Boolean, Date, DateTime,
+    ForeignKey, Text, UniqueConstraint
+)
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
+
+INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
+os.makedirs(INSTANCE_PATH, exist_ok=True)
+DB_PATH = os.path.join(INSTANCE_PATH, 'app.db')
+DB_URI = f"sqlite:///{DB_PATH}"
+
+engine = create_engine(DB_URI, echo=False, future=True)
+SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
+Base = declarative_base()
+
+def get_db():
+    """Use inside request context or background tasks."""
+    return SessionLocal()
+
+# --- MODELS ------------------------------------------------------------------
+class DbUser(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False, index=True)
+    password_hash = Column(String(256), nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")
+    objects = relationship("AstroObject", back_populates="user", cascade="all, delete-orphan")
+    components = relationship("Component", back_populates="user", cascade="all, delete-orphan")
+    rigs = relationship("Rig", back_populates="user", cascade="all, delete-orphan")
+    sessions = relationship("JournalSession", back_populates="user", cascade="all, delete-orphan")
+    ui_prefs = relationship("UiPref", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+class Location(Base):
+    __tablename__ = 'locations'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    name = Column(String(128), nullable=False)
+    lat = Column(Float, nullable=False)
+    lon = Column(Float, nullable=False)
+    timezone = Column(String(64), nullable=False)
+    altitude_threshold = Column(Float, nullable=True)
+    is_default = Column(Boolean, nullable=False, default=False)
+    user = relationship("DbUser", back_populates="locations")
+    horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
+    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_location_name'),)
+
+class HorizonPoint(Base):
+    __tablename__ = 'horizon_points'
+    id = Column(Integer, primary_key=True)
+    location_id = Column(Integer, ForeignKey('locations.id', ondelete="CASCADE"), index=True)
+    az_deg = Column(Float, nullable=False)
+    alt_min_deg = Column(Float, nullable=False)
+    location = relationship("Location", back_populates="horizon_points")
+
+class AstroObject(Base):
+    __tablename__ = 'astro_objects'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    object_name = Column(String(256), nullable=False)
+    common_name = Column(String(256), nullable=True)
+    ra_hours = Column(Float, nullable=False)
+    dec_deg = Column(Float, nullable=False)
+    type = Column(String(128), nullable=True)
+    constellation = Column(String(64), nullable=True)
+    magnitude = Column(String(32), nullable=True)
+    size = Column(String(64), nullable=True)
+    sb = Column(String(64), nullable=True)
+    active_project = Column(Boolean, nullable=False, default=False)
+    project_name = Column(String(256), nullable=True)
+    user = relationship("DbUser", back_populates="objects")
+    __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
+
+class Component(Base):
+    __tablename__ = 'components'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    kind = Column(String(32), nullable=False)           # 'telescope' | 'camera' | 'reducer_extender'
+    name = Column(String(256), nullable=False)
+    aperture_mm = Column(Float, nullable=True)
+    focal_length_mm = Column(Float, nullable=True)
+    sensor_width_mm = Column(Float, nullable=True)
+    sensor_height_mm = Column(Float, nullable=True)
+    pixel_size_um = Column(Float, nullable=True)
+    factor = Column(Float, nullable=True)
+    user = relationship("DbUser", back_populates="components")
+    rigs_using = relationship("Rig", back_populates="telescope", foreign_keys="Rig.telescope_id")
+
+class Rig(Base):
+    __tablename__ = 'rigs'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    rig_name = Column(String(256), nullable=False)
+    telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    reducer_extender_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    effective_focal_length = Column(Float, nullable=True)
+    f_ratio = Column(Float, nullable=True)
+    image_scale = Column(Float, nullable=True)
+    fov_w_arcmin = Column(Float, nullable=True)
+    user = relationship("DbUser", back_populates="rigs")
+    telescope = relationship("Component", foreign_keys=[telescope_id])
+    camera = relationship("Component", foreign_keys=[camera_id])
+    reducer_extender = relationship("Component", foreign_keys=[reducer_extender_id])
+    __table_args__ = (UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),)
+
+class JournalSession(Base):
+    __tablename__ = 'journal_sessions'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    date_utc = Column(Date, nullable=False)
+    object_name = Column(String(256), nullable=True)
+    notes = Column(Text, nullable=True)
+    number_of_subs_light = Column(Integer, nullable=True)
+    exposure_time_per_sub_sec = Column(Integer, nullable=True)
+    filter_L_subs = Column(Integer, nullable=True);  filter_L_exposure_sec = Column(Integer, nullable=True)
+    filter_R_subs = Column(Integer, nullable=True);  filter_R_exposure_sec = Column(Integer, nullable=True)
+    filter_G_subs = Column(Integer, nullable=True);  filter_G_exposure_sec = Column(Integer, nullable=True)
+    filter_B_subs = Column(Integer, nullable=True);  filter_B_exposure_sec = Column(Integer, nullable=True)
+    filter_Ha_subs = Column(Integer, nullable=True); filter_Ha_exposure_sec = Column(Integer, nullable=True)
+    filter_OIII_subs = Column(Integer, nullable=True); filter_OIII_exposure_sec = Column(Integer, nullable=True)
+    filter_SII_subs = Column(Integer, nullable=True);  filter_SII_exposure_sec = Column(Integer, nullable=True)
+    calculated_integration_time_minutes = Column(Float, nullable=True)
+    user = relationship("DbUser", back_populates="sessions")
+
+class UiPref(Base):
+    __tablename__ = 'ui_prefs'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    json_blob = Column(Text, nullable=True)
+    user = relationship("DbUser", back_populates="ui_prefs")
+
+# --- Create tables if needed (non-destructive) -------------------------------
+def ensure_db_initialized_unified():
+    Base.metadata.create_all(bind=engine)
+    # Improve SQLite concurrency
+    with engine.begin() as conn:
+        conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+        conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+
+
+ensure_db_initialized_unified()
+
+# --- Early paths & helpers for migration (must exist before first call) ----
+def _mkdirp(path: str):
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception as e:
+        print(f"[INIT] WARN could not create directory '{path}': {e}")
+
+# Ensure config/backup directories exist before migration runs
+CONFIG_DIR = globals().get("CONFIG_DIR") or os.path.join(INSTANCE_PATH, "configs")
+BACKUP_DIR = globals().get("BACKUP_DIR") or os.path.join(INSTANCE_PATH, "backups")
+_mkdirp(CONFIG_DIR)
+_mkdirp(BACKUP_DIR)
+
+
+# === YAML → DB one-time migration ===========================================
+def _timestamped_copy(src_dir: str):
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    dst = os.path.join(BACKUP_DIR, f"yaml_backup_{ts}")
+    try:
+        shutil.copytree(src_dir, dst)
+        print(f"[MIGRATION] YAML backup saved to {dst}")
+    except Exception as e:
+        print(f"[MIGRATION] WARNING: could not backup YAMLs: {e}")
+
+def _read_yaml(path: str):
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        print(f"[MIGRATION] WARN cannot read {path}: {e}")
+        return {}
+
+def _iter_candidate_users():
+    names = set()
+    for p in glob.glob(os.path.join(CONFIG_DIR, "config_*.yaml")):
+        names.add(Path(p).stem.replace("config_", ""))
+    for p in glob.glob(os.path.join(CONFIG_DIR, "journal_*.yaml")):
+        names.add(Path(p).stem.replace("journal_", ""))
+    names.update(["default", "guest_user"])
+    return sorted(n for n in names if n)
+
+def _upsert_user(db, username: str) -> DbUser:
+    u = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not u:
+        u = DbUser(username=username, active=True)
+        db.add(u)
+        db.flush()
+    return u
+
+def _migrate_locations(db, user: DbUser, config: dict):
+    locs = (config or {}).get("locations", {}) or {}
+    default_name = (config or {}).get("default_location")
+    for name, loc in locs.items():
+        lat = float(loc.get("lat")); lon = float(loc.get("lon"))
+        tz = loc.get("timezone", "UTC")
+        alt_thr = loc.get("altitude_threshold")
+        row = Location(user_id=user.id, name=name, lat=lat, lon=lon, timezone=tz,
+                       altitude_threshold=float(alt_thr) if alt_thr is not None else None,
+                       is_default=(name == default_name))
+        db.add(row); db.flush()
+        hm = loc.get("horizon_mask")
+        if isinstance(hm, list):
+            for pair in hm:
+                try:
+                    az, altmin = float(pair[0]), float(pair[1])
+                    db.add(HorizonPoint(location_id=row.id, az_deg=az, alt_min_deg=altmin))
+                except Exception:
+                    pass
+
+def _migrate_objects(db, user: DbUser, config: dict):
+    objs = (config or {}).get("objects", []) or []
+    for o in objs:
+        try:
+            ra = o.get("RA")
+            if ra is None:
+                ra = o.get("RA (hours)")
+            dec = o.get("DEC")
+            if dec is None:
+                dec = o.get("DEC (degrees)")
+            row = AstroObject(
+                user_id=user.id,
+                object_name=o.get("Object"),
+                common_name=o.get("Common Name"),
+                ra_hours=float(ra),
+                dec_deg=float(dec),
+                type=o.get("Type"),
+                constellation=o.get("Constellation"),
+                magnitude=str(o.get("Magnitude")) if o.get("Magnitude") is not None else None,
+                size=str(o.get("Size")) if o.get("Size") is not None else None,
+                sb=str(o.get("SB")) if o.get("SB") is not None else None,
+                active_project=bool(o.get("ActiveProject")),
+                project_name=o.get("Project"),
+            )
+            db.add(row)
+        except Exception as e:
+            print(f"[MIGRATION] Skip object '{o}': {e}")
+
+def _try_float(v):
+    try:
+        return float(v) if v is not None else None
+    except:
+        return None
+
+def _as_int(v):
+    try:
+        return int(str(v)) if v is not None else None
+    except:
+        return None
+
+def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict):
+    comps = rigs_yaml.get("components", {})
+    id_map = {}
+    for t in comps.get("telescopes", []):
+        c = Component(user_id=user.id, kind="telescope", name=t.get("name"),
+                      aperture_mm=_try_float(t.get("aperture_mm")),
+                      focal_length_mm=_try_float(t.get("focal_length_mm")))
+        db.add(c); db.flush(); id_map[t.get("id")] = c.id
+    for c0 in comps.get("cameras", []):
+        c = Component(user_id=user.id, kind="camera", name=c0.get("name"),
+                      sensor_width_mm=_try_float(c0.get("sensor_width_mm")),
+                      sensor_height_mm=_try_float(c0.get("sensor_height_mm")),
+                      pixel_size_um=_try_float(c0.get("pixel_size_um")))
+        db.add(c); db.flush(); id_map[c0.get("id")] = c.id
+    for r0 in comps.get("reducers_extenders", []):
+        c = Component(user_id=user.id, kind="reducer_extender", name=r0.get("name"),
+                      factor=_try_float(r0.get("factor")))
+        db.add(c); db.flush(); id_map[r0.get("id")] = c.id
+    for r in (rigs_yaml.get("rigs") or []):
+        rig = Rig(
+            user_id=user.id,
+            rig_name=r.get("rig_name"),
+            telescope_id=id_map.get(r.get("telescope_id")),
+            camera_id=id_map.get(r.get("camera_id")),
+            reducer_extender_id=id_map.get(r.get("reducer_extender_id"))
+        )
+        db.add(rig)
+
+def _migrate_journal(db, user: DbUser, journal_yaml: dict):
+    data = journal_yaml or {}
+    # Normalize older journal layouts to the new {'projects': [], 'sessions': []} shape
+    if isinstance(data, list):
+        # Very old format: raw list of sessions
+        data = {"projects": [], "sessions": data}
+    elif isinstance(data, dict) and "sessions" not in data:
+        # Older dict formats: sessions may be under 'entries' or missing entirely
+        if isinstance(data.get("entries"), list):
+            data = {"projects": data.get("projects") or [], "sessions": data.get("entries")}
+        else:
+            data = {"projects": data.get("projects") or [], "sessions": []}
+    sessions = data.get("sessions") or []
+    for s in sessions:
+        row = JournalSession(
+            user_id=user.id,
+            date_utc=datetime.fromisoformat(s.get("date") + "T00:00:00").date()
+                     if isinstance(s.get("date"), str) else datetime.now(UTC).date(),
+            object_name=s.get("object_name") or s.get("Object") or s.get("target"),
+            notes=s.get("notes"),
+            number_of_subs_light=_as_int(s.get("number_of_subs_light")),
+            exposure_time_per_sub_sec=_as_int(s.get("exposure_time_per_sub_sec")),
+            filter_L_subs=_as_int(s.get("filter_L_subs")),
+            filter_L_exposure_sec=_as_int(s.get("filter_L_exposure_sec")),
+            filter_R_subs=_as_int(s.get("filter_R_subs")),
+            filter_R_exposure_sec=_as_int(s.get("filter_R_exposure_sec")),
+            filter_G_subs=_as_int(s.get("filter_G_subs")),
+            filter_G_exposure_sec=_as_int(s.get("filter_G_exposure_sec")),
+            filter_B_subs=_as_int(s.get("filter_B_subs")),
+            filter_B_exposure_sec=_as_int(s.get("filter_B_exposure_sec")),
+            filter_Ha_subs=_as_int(s.get("filter_Ha_subs")),
+            filter_Ha_exposure_sec=_as_int(s.get("filter_Ha_exposure_sec")),
+            filter_OIII_subs=_as_int(s.get("filter_OIII_subs")),
+            filter_OIII_exposure_sec=_as_int(s.get("filter_OIII_exposure_sec")),
+            filter_SII_subs=_as_int(s.get("filter_SII_subs")),
+            filter_SII_exposure_sec=_as_int(s.get("filter_SII_exposure_sec")),
+            calculated_integration_time_minutes=_try_float(
+                s.get("calculated_integration_time_minutes"))
+        )
+        db.add(row)
+
+def _migrate_ui_prefs(db, user: DbUser, config: dict):
+    ui = {"rig_sort": (config.get("ui") or {}).get("rig_sort")}
+    if any(v is not None for v in ui.values()):
+        blob = json.dumps(ui, ensure_ascii=False)
+        row = UiPref(user_id=user.id, json_blob=blob)
+        db.add(row)
+
+# === DB-backed "user_config" assembly (compat with existing code paths) ===
+def build_user_config_from_db(username: str) -> dict:
+    """
+    Returns a dict shaped like the legacy YAML config so existing functions
+    (warmers, outlook, etc.) can keep working unchanged.
+    Keys included:
+      - default_location
+      - locations: { name: {lat, lon, timezone, altitude_threshold, horizon_mask} }
+      - objects: [ {Object, Common Name, RA, DEC, RA (hours), DEC (degrees), ...} ]
+    """
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            return {"default_location": None, "locations": {}, "objects": []}
+
+        # Locations
+        loc_rows = db.query(Location).filter_by(user_id=u.id).all()
+        locations = {}
+        default_loc = None
+        for l in loc_rows:
+            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            locations[l.name] = {
+                "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold,
+                "horizon_mask": mask
+            }
+            if l.is_default:
+                default_loc = l.name
+        if not default_loc and locations:
+            default_loc = next(iter(locations.keys()))
+
+        # Objects
+        obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
+        objects = []
+        for o in obj_rows:
+            row = {
+                "Object": o.object_name,
+                "Common Name": o.common_name,
+                # Provide both legacy and explicit names to satisfy all call sites
+                "RA": o.ra_hours,
+                "DEC": o.dec_deg,
+                "RA (hours)": o.ra_hours,
+                "DEC (degrees)": o.dec_deg,
+                "Type": o.type,
+                "Constellation": o.constellation,
+                "Magnitude": o.magnitude,
+                "Size": o.size,
+                "SB": o.sb,
+                "ActiveProject": o.active_project,
+                "Project": o.project_name
+            }
+            objects.append(row)
+
+        return {
+            "default_location": default_loc,
+            "locations": locations,
+            "objects": objects
+        }
+    finally:
+        db.close()
+
+# === YAML Portability: Export / Import ======================================
+def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
+    """
+    Write three YAML files (config_*.yaml, rigs_default.yaml, journal_*.yaml) in out_dir.
+    """
+    db = get_db()
+    try:
+        out_dir = out_dir or CONFIG_DIR
+        os.makedirs(out_dir, exist_ok=True)
+
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            return False
+
+        # CONFIG (locations + objects + defaults)
+        locs = db.query(Location).filter_by(user_id=u.id).all()
+        default_loc = next((l.name for l in locs if l.is_default), None)
+        cfg = {
+            "default_location": default_loc,
+            "locations": {
+                l.name: {
+                    "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                    "altitude_threshold": l.altitude_threshold,
+                    "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                } for l in locs
+            },
+            "objects": [
+                {
+                    "Object": o.object_name, "Common Name": o.common_name,
+                    "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
+                    "Type": o.type, "Constellation": o.constellation,
+                    "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                    "ActiveProject": o.active_project, "Project": o.project_name
+                } for o in db.query(AstroObject).filter_by(user_id=u.id).all()
+            ]
+        }
+        cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
+        _atomic_write_yaml(os.path.join(out_dir, cfg_file), cfg)
+
+        # RIGS/COMPONENTS
+        comps = db.query(Component).filter_by(user_id=u.id).all()
+        rigs = db.query(Rig).filter_by(user_id=u.id).all()
+        def bykind(k): return [c for c in comps if c.kind == k]
+        rigs_doc = {
+            "components": {
+                "telescopes": [
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm}
+                    for c in bykind("telescope")
+                ],
+                "cameras": [
+                    {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um}
+                    for c in bykind("camera")
+                ],
+                "reducers_extenders": [
+                    {"id": c.id, "name": c.name, "factor": c.factor}
+                    for c in bykind("reducer_extender")
+                ],
+            },
+            "rigs": [
+                {
+                    "rig_name": r.rig_name,
+                    "telescope_id": r.telescope_id,
+                    "camera_id": r.camera_id,
+                    "reducer_extender_id": r.reducer_extender_id,
+                    "effective_focal_length": r.effective_focal_length,
+                    "f_ratio": r.f_ratio,
+                    "image_scale": r.image_scale,
+                    "fov_w_arcmin": r.fov_w_arcmin
+                } for r in rigs
+            ]
+        }
+        _atomic_write_yaml(os.path.join(out_dir, "rigs_default.yaml"), rigs_doc)
+
+        # JOURNAL
+        sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
+        jdoc = {
+            "projects": [],
+            "sessions": [
+                {
+                    "date": s.date_utc.isoformat(), "object_name": s.object_name, "notes": s.notes,
+                    "number_of_subs_light": s.number_of_subs_light,
+                    "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
+                    "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
+                    "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
+                    "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
+                    "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
+                    "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
+                    "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
+                    "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
+                    "calculated_integration_time_minutes": s.calculated_integration_time_minutes
+                } for s in sessions
+            ]
+        }
+        jfile = "journal_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
+        _atomic_write_yaml(os.path.join(out_dir, jfile), jdoc)
+        return True
+    finally:
+        db.close()
+
+def import_user_from_yaml(username: str,
+                          config_path: str,
+                          rigs_path: str,
+                          journal_path: str,
+                          clear_existing: bool = False) -> bool:
+    """
+    Upsert from YAML into DB. Optionally clears existing user data first.
+    """
+    db = get_db()
+    try:
+        user = _upsert_user(db, username)
+        if clear_existing:
+            # cascades remove all
+            db.delete(user); db.flush()
+            user = _upsert_user(db, username)
+
+        cfg = _read_yaml(config_path); rigs = _read_yaml(rigs_path); jrn = _read_yaml(journal_path)
+        _migrate_locations(db, user, cfg)
+        _migrate_objects(db, user, cfg)
+        _migrate_components_and_rigs(db, user, rigs)
+        _migrate_journal(db, user, jrn)
+        _migrate_ui_prefs(db, user, cfg)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        traceback.print_exc()
+        return False
+    finally:
+        db.close()
+
+def run_one_time_yaml_migration():
+    db = get_db()
+    try:
+        any_user = db.query(DbUser).first()
+        any_location = db.query(Location).first()
+        if any_user and any_location:
+            print("[MIGRATION] DB already populated; skipping YAML migration.")
+            return
+        _mkdirp(BACKUP_DIR); _timestamped_copy(CONFIG_DIR)
+        report = {"users": 0, "locations": 0, "objects": 0, "components": 0, "rigs": 0, "sessions": 0}
+        for username in _iter_candidate_users():
+            # SINGLE_USER_MODE may be defined later in the file; use a safe fallback here.
+            s_mode = bool(globals().get("SINGLE_USER_MODE", True))
+            cfg_path = os.path.join(CONFIG_DIR, "config_default.yaml" if (s_mode and username == "default") else f"config_{username}.yaml")
+            jrn_path = os.path.join(CONFIG_DIR, "journal_default.yaml" if (s_mode and username == "default") else f"journal_{username}.yaml")
+            rigs_path = os.path.join(CONFIG_DIR, "rigs_default.yaml")
+            if not (os.path.exists(cfg_path) or os.path.exists(jrn_path) or os.path.exists(rigs_path)):
+                continue
+            # Load YAMLs with sensible fallbacks
+            cfg_user = _read_yaml(cfg_path)
+            cfg_default = _read_yaml(os.path.join(CONFIG_DIR, "config_default.yaml"))
+            # If a user's file has no objects, fall back to default objects so users aren't left empty
+            cfg_for_objects = dict(cfg_user or {})
+            if not (isinstance(cfg_for_objects.get("objects"), list) and len(cfg_for_objects["objects"]) > 0):
+                if isinstance(cfg_default.get("objects"), list) and cfg_default["objects"]:
+                    cfg_for_objects["objects"] = cfg_default["objects"]
+
+            # Rigs: prefer per-user rigs file if present, else default
+            rigs_candidates = [
+                os.path.join(CONFIG_DIR, f"rigs_{username}.yaml"),
+                rigs_path  # default
+            ]
+            rigs_yaml = {}
+            for cand in rigs_candidates:
+                if os.path.exists(cand):
+                    rigs_yaml = _read_yaml(cand) or {}
+                    if rigs_yaml:
+                        break
+            user = _upsert_user(db, username); db.flush()
+            before_l = db.query(Location).count()
+            before_o = db.query(AstroObject).count()
+            before_c = db.query(Component).count()
+            before_r = db.query(Rig).count()
+            before_s = db.query(JournalSession).count()
+            _migrate_locations(db, user, cfg_user)
+            _migrate_objects(db, user, cfg_for_objects)
+            _migrate_components_and_rigs(db, user, rigs_yaml)
+            _migrate_journal(db, user, _read_yaml(jrn_path))
+            _migrate_ui_prefs(db, user, cfg_user)
+            report["users"] += 1
+            report["locations"] += db.query(Location).count() - before_l
+            report["objects"] += db.query(AstroObject).count() - before_o
+            report["components"] += db.query(Component).count() - before_c
+            report["rigs"] += db.query(Rig).count() - before_r
+            report["sessions"] += db.query(JournalSession).count() - before_s
+        db.commit()
+        with open(os.path.join(BACKUP_DIR, "migration_report.json"), "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+        print(f"[MIGRATION] Done: {report}")
+    except Exception as e:
+        db.rollback()
+        print(f"[MIGRATION] FATAL: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()
+
+run_one_time_yaml_migration()
 
 # =============================================================================
 # Flask and Flask-Login Setup
@@ -473,6 +1062,44 @@ def _fix_mode_switch_sessions():
             # never block a request due to cleanup logic
             pass
 
+# --- DB user data injection before request ---
+@app.before_request
+def inject_user_data():
+    try:
+        username = "default" if SINGLE_USER_MODE else (current_user.username if getattr(current_user, "is_authenticated", False) else None)
+        if not username:
+            return
+        # Load from DB
+        db = get_db()
+        try:
+            u = db.query(DbUser).filter_by(username=username).one_or_none()
+            if not u:
+                return
+            # Locations
+            loc_rows = db.query(Location).filter_by(user_id=u.id).all()
+            g.locations = {}
+            for l in loc_rows:
+                mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                g.locations[l.name] = {
+                    "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                    "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
+                    "horizon_mask": mask
+                }
+            # Default location
+            g.selected_location = next((n for n, v in g.locations.items() if v.get("is_default")), None) or (list(g.locations.keys())[:1] or [None])[0]
+            # Objects
+            obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
+            g.objects_list = [
+                {"Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
+                 "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                 "ActiveProject": o.active_project, "Project": o.project_name}
+                for o in obj_rows
+            ]
+        finally:
+            db.close()
+    except Exception:
+        pass
+
 def load_effective_settings():
     """
     Determines the effective settings for telemetry and calculation precision
@@ -778,10 +1405,12 @@ def get_hybrid_weather_forecast(lat, lon):
         # print("DEBUG: Successfully fetched 8-day 'meteo' forecast.")
     except Exception as e:
         _rate_limited_error(f"ERROR: Could not fetch 'meteo' weather data: {e}")
+        # print(f"       Response text from server: {resp.text[:500]}")
         return last_good or None
 
     if not meteo_data or 'dataseries' not in meteo_data:
         _rate_limited_error("DEBUG: Base 'meteo' forecast failed. Returning last good (if any).")
+        # print(f"       Response text from server: {resp.text[:500]}")
         return last_good or None
 
     # index for merge
@@ -873,22 +1502,26 @@ def trigger_startup_cache_workers():
         if SINGLE_USER_MODE:
             usernames_to_check = ["default"]
         else:
-            # Query the User table to get all registered usernames
+            # Pull usernames from the unified DB (DbUser)
             try:
-                all_db_users = db.session.execute(db.select(User)).scalars().all()
-                usernames_to_check = [user.username for user in all_db_users]
+                _db = get_db()
+                try:
+                    all_db_users = _db.query(DbUser).filter(DbUser.active == True).all()
+                    usernames_to_check = [u.username for u in all_db_users]
+                finally:
+                    _db.close()
             except Exception as e:
-                print(f"⚠️ [STARTUP] Could not query users from database, may need initialization. Error: {e}")
-                usernames_to_check = [] # Continue with no users if DB isn't ready
+                print(f"⚠️ [STARTUP] Could not query unified DB users. Error: {e}")
+                usernames_to_check = []
 
         # The rest of this function remains the same
         all_tasks = []
         for username in set(usernames_to_check):
             try:
                 print(f"--- Preparing tasks for user: {username} ---")
-                config = load_user_config(username)
-                if not config:
-                    print(f"    -> No config found for user '{username}', skipping.")
+                config = build_user_config_from_db(username)
+                if not config or not config.get("locations"):
+                    print(f"    -> No locations in DB for user '{username}', skipping.")
                     continue
 
                 locations = config.get("locations", {})
@@ -5360,3 +5993,84 @@ if __name__ == '__main__':
         port=5001
     )
 
+
+#
+# --- YAML Portability Routes -----------------------------------------------
+@app.route("/tools/export/<username>", methods=["GET"])
+@login_required
+def export_yaml_for_user(username):
+    # Only allow exporting self in multi-user; admin can export anyone (basic guard, adjust as needed)
+    if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
+        flash("Not authorized to export another user's data.", "error")
+        return redirect(url_for("index"))
+    ok = export_user_to_yaml(username, out_dir=CONFIG_DIR)
+    if not ok:
+        flash("Export failed (no such user or empty data).", "error")
+        return redirect(url_for("index"))
+    # Package into a ZIP so users get all three files at once
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    zip_name = f"nova_export_{username}_{ts}.zip"
+    zip_path = os.path.join(INSTANCE_PATH, zip_name)
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
+        jrn_file = "journal_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
+        rigs_file = "rigs_default.yaml"
+        for fn in [cfg_file, jrn_file, rigs_file]:
+            full = os.path.join(CONFIG_DIR, fn)
+            if os.path.exists(full):
+                zf.write(full, arcname=fn)
+    return send_file(zip_path, as_attachment=True, download_name=zip_name)
+
+@app.route("/tools/import", methods=["POST"])
+@login_required
+def import_yaml_for_user():
+    """
+    Expect multipart form-data with fields:
+      - username (optional in single-user; otherwise required)
+      - config_file
+      - rigs_file
+      - journal_file
+      - clear_existing = 'true'|'false'
+    """
+    username = request.form.get("username") or ("default" if SINGLE_USER_MODE else None)
+    if not username:
+        flash("Username is required in multi-user mode.", "error")
+        return redirect(url_for("index"))
+
+    # Basic guard: only allow importing for self unless admin
+    if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
+        flash("Not authorized to import for another user.", "error")
+        return redirect(url_for("index"))
+
+    try:
+        cfg = request.files.get("config_file")
+        rigs = request.files.get("rigs_file")
+        jrn = request.files.get("journal_file")
+        if not (cfg and rigs and jrn):
+            flash("Please provide config, rigs, and journal YAML files.", "error")
+            return redirect(url_for("index"))
+
+        # Persist to temp paths
+        tmp_dir = os.path.join(INSTANCE_PATH, "tmp_import")
+        os.makedirs(tmp_dir, exist_ok=True)
+        cfg_path = os.path.join(tmp_dir, f"cfg_{uuid.uuid4().hex}.yaml")
+        rigs_path = os.path.join(tmp_dir, f"rigs_{uuid.uuid4().hex}.yaml")
+        jrn_path = os.path.join(tmp_dir, f"jrn_{uuid.uuid4().hex}.yaml")
+        cfg.save(cfg_path); rigs.save(rigs_path); jrn.save(jrn_path)
+
+        clear_existing = (request.form.get("clear_existing", "false").lower() == "true")
+        ok = import_user_from_yaml(username, cfg_path, rigs_path, jrn_path, clear_existing=clear_existing)
+
+        # Cleanup temp
+        for p in [cfg_path, rigs_path, jrn_path]:
+            try: os.remove(p)
+            except Exception: pass
+
+        if ok:
+            flash("Import completed successfully!", "success")
+        else:
+            flash("Import failed. See server logs for details.", "error")
+    except Exception as e:
+        print(f"[IMPORT] ERROR: {e}")
+        flash("Import crashed. Check logs.", "error")
+    return redirect(url_for("index"))
