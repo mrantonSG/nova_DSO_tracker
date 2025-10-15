@@ -89,7 +89,7 @@ from modules.rig_config import save_rig_config, load_rig_config
 # Flask and Flask-Login Setup
 # =============================================================================
 
-APP_VERSION = "3.7.0"
+APP_VERSION = "3.7.1"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -3081,6 +3081,20 @@ def set_location_api():
     # Save to appropriate config file
     username = current_user.username if current_user.is_authenticated else 'guest_user'
     save_user_config(username, g.user_config)
+
+    # Proactively warm the weather cache for the new location in the background.
+    try:
+        new_loc_details = g.locations.get(location_name, {})
+        new_lat = new_loc_details.get("lat")
+        new_lon = new_loc_details.get("lon")
+        if new_lat is not None and new_lon is not None:
+            # Run the weather fetch in a separate thread so it doesn't block
+            # the current request. We don't need its return value here.
+            thread = threading.Thread(target=get_hybrid_weather_forecast, args=(new_lat, new_lon))
+            thread.start()
+            print(f"[CACHE WARMING] Triggered background weather fetch for new location: {location_name}")
+    except Exception as e:
+        print(f"[CACHE WARMING] Failed to trigger background weather fetch: {e}")
 
     return jsonify({"status": "success", "message": f"Location set to {location_name}"})
 
