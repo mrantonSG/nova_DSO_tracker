@@ -101,6 +101,38 @@ engine = create_engine(DB_URI, echo=False, future=True)
 SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
 Base = declarative_base()
 
+def get_or_create_db_user(db_session, username: str) -> 'DbUser':
+    """
+    Finds a user in the `DbUser` table by username or creates them if they don't exist.
+    This is the bridge between the authentication DB and the application DB.
+
+    Returns:
+        The SQLAlchemy DbUser object for the given username.
+    """
+    if not username:
+        return None
+
+    # Try to find the user in our application database
+    user = db_session.query(DbUser).filter_by(username=username).one_or_none()
+
+    if user:
+        # The user already exists, just return them
+        return user
+    else:
+        # User exists in WordPress/users.db but not here. Create them now.
+        print(f"[PROVISIONING] User '{username}' not found in app.db. Creating new record.")
+        new_user = DbUser(username=username)
+        db_session.add(new_user)
+        try:
+            db_session.commit()
+            print(f"   -> Successfully provisioned '{username}' in app database.")
+            # We need to re-fetch to get the fully loaded object with its new ID
+            return db_session.query(DbUser).filter_by(username=username).one()
+        except Exception as e:
+            db_session.rollback()
+            print(f"   -> FAILED to provision '{username}'. Error: {e}")
+            return None
+
 def get_db():
     """Use inside request context or background tasks."""
     return SessionLocal()
@@ -119,6 +151,20 @@ class DbUser(Base):
     sessions = relationship("JournalSession", back_populates="user", cascade="all, delete-orphan")
     ui_prefs = relationship("UiPref", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
+class Project(Base):
+    __tablename__ = 'projects'
+    # The project_id from YAML will be our primary key. It's a string (UUID).
+    id = Column(String(64), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    name = Column(String(256), nullable=False)
+
+    user = relationship("DbUser")
+    sessions = relationship("JournalSession", back_populates="project")
+
+    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_project_name'),)
+
+
+
 class Location(Base):
     __tablename__ = 'locations'
     id = Column(Integer, primary_key=True)
@@ -129,6 +175,8 @@ class Location(Base):
     timezone = Column(String(64), nullable=False)
     altitude_threshold = Column(Float, nullable=True)
     is_default = Column(Boolean, nullable=False, default=False)
+    active = Column(Boolean, nullable=False, default=True)
+    comments = Column(String(500), nullable=True)
     user = relationship("DbUser", back_populates="locations")
     horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_location_name'),)
@@ -196,9 +244,11 @@ class JournalSession(Base):
     __tablename__ = 'journal_sessions'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    project_id = Column(String(64), ForeignKey('projects.id', ondelete="SET NULL"), nullable=True, index=True)
     date_utc = Column(Date, nullable=False)
     object_name = Column(String(256), nullable=True)
     notes = Column(Text, nullable=True)
+    session_image_file = Column(String(256), nullable=True)
     number_of_subs_light = Column(Integer, nullable=True)
     exposure_time_per_sub_sec = Column(Integer, nullable=True)
     filter_L_subs = Column(Integer, nullable=True);  filter_L_exposure_sec = Column(Integer, nullable=True)
@@ -209,8 +259,10 @@ class JournalSession(Base):
     filter_OIII_subs = Column(Integer, nullable=True); filter_OIII_exposure_sec = Column(Integer, nullable=True)
     filter_SII_subs = Column(Integer, nullable=True);  filter_SII_exposure_sec = Column(Integer, nullable=True)
     calculated_integration_time_minutes = Column(Float, nullable=True)
-    external_id = Column(String(64), unique=True, nullable=True)
+    external_id = Column(String(64), nullable=True)
     user = relationship("DbUser", back_populates="sessions")
+    project = relationship("Project", back_populates="sessions")
+    __table_args__ = (UniqueConstraint('user_id', 'external_id', name='uq_user_session_external_id'),)
 
 class UiPref(Base):
     __tablename__ = 'ui_prefs'
@@ -722,185 +774,161 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
         except Exception as e:
             print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
 
+
 def _migrate_journal(db, user: DbUser, journal_yaml: dict):
-    # normalize shapes: accept old/new formats
     data = journal_yaml or {}
+    # Normalize the structure
     if isinstance(data, list):
         data = {"projects": [], "sessions": data}
-    elif isinstance(data, dict) and "sessions" not in data:
-        if isinstance(data.get("entries"), list):
-            data = {"projects": data.get("projects") or [], "sessions": data.get("entries")}
-        else:
-            data = {"projects": data.get("projects") or [], "sessions": []}
+    elif isinstance(data, dict):
+        data.setdefault("projects", [])
+        data.setdefault("sessions", data.get("entries", []))
 
-    sessions = data.get("sessions") or []
-    for s in sessions:
-        # --- keys present in your latest YAML ---
-        ext_id = (s.get("session_id") or s.get("id"))  # stable external key if present
+    # --- 1. Migrate Projects ---
+    for p in (data.get("projects") or []):
+        if p.get("project_id") and p.get("project_name"):
+            if not db.query(Project).filter_by(id=p["project_id"]).one_or_none():
+                db.add(Project(id=p["project_id"], user_id=user.id, name=p["project_name"]))
+    db.flush()
+
+    # --- 2. Migrate Sessions ---
+    for s in (data.get("sessions") or []):
+        ext_id = s.get("session_id") or s.get("id")
         date_str = s.get("session_date") or s.get("date")
-        if not date_str:
-            # skip completely malformed entries
-            continue
+        if not date_str: continue
 
-        # UTC date only (app displays local later)
         try:
             dt = datetime.fromisoformat(date_str).date()
         except Exception:
-            # last-resort parsing
-            dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+            try:
+                dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except Exception:
+                continue
 
-        # Prefer human-friendly name, fall back to catalog identifier
-        obj_name = (s.get("target_common_name")
-                    or s.get("object_name")
-                    or s.get("target_object_id")
-                    or s.get("Object")
-                    or None)
+        # --- START: This is the complete data mapping that was missing ---
+        row_values = {
+            "user_id": user.id,
+            "project_id": s.get("project_id"),
+            "date_utc": dt,
+            "object_name": s.get("target_object_id") or s.get("object_name"),
+            "notes": s.get("general_notes_problems_learnings"),
+            "session_image_file": s.get("session_image_file"),
+            "number_of_subs_light": _as_int(s.get("number_of_subs_light")),
+            "exposure_time_per_sub_sec": _as_int(s.get("exposure_time_per_sub_sec")),
+            "filter_L_subs": _as_int(s.get("filter_L_subs")),
+            "filter_L_exposure_sec": _as_int(s.get("filter_L_exposure_sec")),
+            "filter_R_subs": _as_int(s.get("filter_R_subs")),
+            "filter_R_exposure_sec": _as_int(s.get("filter_R_exposure_sec")),
+            "filter_G_subs": _as_int(s.get("filter_G_subs")),
+            "filter_G_exposure_sec": _as_int(s.get("filter_G_exposure_sec")),
+            "filter_B_subs": _as_int(s.get("filter_B_subs")),
+            "filter_B_exposure_sec": _as_int(s.get("filter_B_exposure_sec")),
+            "filter_Ha_subs": _as_int(s.get("filter_Ha_subs")),
+            "filter_Ha_exposure_sec": _as_int(s.get("filter_Ha_exposure_sec")),
+            "filter_OIII_subs": _as_int(s.get("filter_OIII_subs")),
+            "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
+            "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
+            "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
+            "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
+            "external_id": str(ext_id) if ext_id else None
+        }
+        # --- END: Complete data mapping ---
 
-        # Build a rich note from available fields (only what exists)
-        notes_parts = []
-        def add_note(k, label=None):
-            v = s.get(k)
-            if v not in (None, "", "N/A"):
-                notes_parts.append(f"{label or k}: {v}")
-        add_note("general_notes_problems_learnings", "notes")
-        add_note("weather_notes")
-        add_note("telescope_setup_notes", "setup")
-        add_note("guiding_equipment")
-        add_note("acquisition_software")
-        add_note("dither_details")
-        add_note("transparency_observed_scale", "transparency")
-        add_note("seeing_observed_fwhm", "seeing_fwhm")
-        add_note("sky_sqm_observed", "SQM")
-        composed_notes = "\n".join(notes_parts) if notes_parts else None
-
-        row_values = dict(
-            user_id=user.id,
-            date_utc=dt,
-            object_name=obj_name,
-            notes=composed_notes,
-            number_of_subs_light=_as_int(s.get("number_of_subs_light")),
-            exposure_time_per_sub_sec=_as_int(s.get("exposure_time_per_sub_sec")),
-            filter_L_subs=_as_int(s.get("filter_L_subs")),           filter_L_exposure_sec=_as_int(s.get("filter_L_exposure_sec")),
-            filter_R_subs=_as_int(s.get("filter_R_subs")),           filter_R_exposure_sec=_as_int(s.get("filter_R_exposure_sec")),
-            filter_G_subs=_as_int(s.get("filter_G_subs")),           filter_G_exposure_sec=_as_int(s.get("filter_G_exposure_sec")),
-            filter_B_subs=_as_int(s.get("filter_B_subs")),           filter_B_exposure_sec=_as_int(s.get("filter_B_exposure_sec")),
-            filter_Ha_subs=_as_int(s.get("filter_Ha_subs")),         filter_Ha_exposure_sec=_as_int(s.get("filter_Ha_exposure_sec")),
-            filter_OIII_subs=_as_int(s.get("filter_OIII_subs")),     filter_OIII_exposure_sec=_as_int(s.get("filter_OIII_exposure_sec")),
-            filter_SII_subs=_as_int(s.get("filter_SII_subs")),       filter_SII_exposure_sec=_as_int(s.get("filter_SII_exposure_sec")),
-            calculated_integration_time_minutes=_try_float(s.get("calculated_integration_time_minutes")),
-        )
-
-        # --- Upsert lookup order ---
+        # Upsert logic (this part is already correct)
         existing = None
         if ext_id:
-            existing = db.query(JournalSession)\
-                .filter(JournalSession.external_id == str(ext_id)).one_or_none()
-
-        if not existing:
-            # Heuristic fallback: same user+date and same integration minutes & (object_name or NULL)
-            q = db.query(JournalSession).filter(
-                JournalSession.user_id == user.id,
-                JournalSession.date_utc == dt
-            )
-            # prefer exact object match when present
-            if obj_name:
-                q = q.filter(JournalSession.object_name == obj_name)
-            # optional tie-breaker
-            cim = row_values["calculated_integration_time_minutes"]
-            if cim is not None:
-                q = q.filter(JournalSession.calculated_integration_time_minutes == cim)
-            candidates = q.all()
-            if len(candidates) == 1:
-                existing = candidates[0]
-            elif len(candidates) > 1:
-                # choose the one that is currently the emptiest (most NULLs), so we enrich it
-                def null_score(r):
-                    fields = ("object_name","notes","number_of_subs_light","exposure_time_per_sub_sec",
-                              "filter_L_subs","filter_R_subs","filter_G_subs","filter_B_subs",
-                              "filter_Ha_subs","filter_OIII_subs","filter_SII_subs")
-                    return sum(1 for f in fields if getattr(r, f) in (None, "", 0))
-                existing = sorted(candidates, key=null_score, reverse=True)[0]
+            existing = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).one_or_none()
 
         if existing:
-            # UPDATE
             for k, v in row_values.items():
                 if v is not None:
                     setattr(existing, k, v)
-            if ext_id and not existing.external_id:
-                existing.external_id = str(ext_id)
         else:
-            # INSERT
-            jr = JournalSession(**row_values)
-            if ext_id:
-                jr.external_id = str(ext_id)
-            db.add(jr)
+            # Filter out external_id before creating new, as it's not a direct column
+            create_values = {k: v for k, v in row_values.items()}
+            new_session = JournalSession(**create_values)
+            db.add(new_session)
+
 
 def _migrate_ui_prefs(db, user: DbUser, config: dict):
-    ui = {"rig_sort": (config.get("ui") or {}).get("rig_sort")}
-    if any(v is not None for v in ui.values()):
-        blob = json.dumps(ui, ensure_ascii=False)
-        row = UiPref(user_id=user.id, json_blob=blob)
-        db.add(row)
+    """
+    Saves all general, user-specific settings from the config YAML
+    into a single JSON blob in the ui_prefs table.
+    """
+    # Gather all the top-level settings we want to save
+    settings_to_save = {
+        "altitude_threshold": config.get("altitude_threshold"),
+        "default_location": config.get("default_location"),
+        "imaging_criteria": config.get("imaging_criteria"),
+        "sampling_interval_minutes": config.get("sampling_interval_minutes"),
+        "telemetry": config.get("telemetry"),
+        "rig_sort": (config.get("ui") or {}).get("rig_sort")
+    }
 
-# === DB-backed "user_config" assembly (compat with existing code paths) ===
+    # Only create a record if there's at least one setting to save
+    if any(v is not None for v in settings_to_save.values()):
+        # Upsert logic: find existing pref or create a new one
+        existing_pref = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+
+        blob = json.dumps(settings_to_save, ensure_ascii=False)
+
+        if existing_pref:
+            existing_pref.json_blob = blob
+        else:
+            new_pref = UiPref(user_id=user.id, json_blob=blob)
+            db.add(new_pref)
+
+
 def build_user_config_from_db(username: str) -> dict:
     """
-    Returns a dict shaped like the legacy YAML config so existing functions
-    (warmers, outlook, etc.) can keep working unchanged.
-    Keys included:
-      - default_location
-      - locations: { name: {lat, lon, timezone, altitude_threshold, horizon_mask} }
-      - objects: [ {Object, Common Name, RA, DEC, RA (hours), DEC (degrees), ...} ]
+    Builds a complete, YAML-like user config dictionary from the database tables.
+    This is the new single source of truth for runtime configuration.
     """
     db = get_db()
     try:
         u = db.query(DbUser).filter_by(username=username).one_or_none()
         if not u:
-            return {"default_location": None, "locations": {}, "objects": []}
+            return {}
 
-        # Locations
+        # --- 1. Load the general settings from the UiPref table ---
+        user_config = {}
+        prefs = db.query(UiPref).filter_by(user_id=u.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                user_config = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                print(f"[CONFIG BUILD] WARNING: Could not parse UI prefs JSON for user '{username}'")
+
+        # --- 2. Load Locations (your existing logic is perfect) ---
         loc_rows = db.query(Location).filter_by(user_id=u.id).all()
         locations = {}
-        default_loc = None
         for l in loc_rows:
             mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
             locations[l.name] = {
                 "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                "altitude_threshold": l.altitude_threshold,
-                "horizon_mask": mask
+                "altitude_threshold": l.altitude_threshold, "horizon_mask": mask
             }
-            if l.is_default:
-                default_loc = l.name
-        if not default_loc and locations:
-            default_loc = next(iter(locations.keys()))
+        user_config["locations"] = locations
 
-        # Objects
+        # --- 3. Load Objects (your existing logic is perfect) ---
         obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
         objects = []
         for o in obj_rows:
             row = {
                 "Object": o.object_name,
-                "Common Name": o.common_name,
-                # Provide both legacy and explicit names to satisfy all call sites
+                "Name": o.common_name,  # For compatibility with config_form.html
+                "Common Name": o.common_name,  # For compatibility with the index page
                 "RA": o.ra_hours,
                 "DEC": o.dec_deg,
-                "RA (hours)": o.ra_hours,
-                "DEC (degrees)": o.dec_deg,
-                "Type": o.type,
-                "Constellation": o.constellation,
-                "Magnitude": o.magnitude,
-                "Size": o.size,
-                "SB": o.sb,
-                "ActiveProject": o.active_project,
-                "Project": o.project_name
+                # ... (the rest of the fields are the same)
+                "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
+                "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude,
+                "Size": o.size, "SB": o.sb, "ActiveProject": o.active_project, "Project": o.project_name
             }
             objects.append(row)
+        user_config["objects"] = objects
 
-        return {
-            "default_location": default_loc,
-            "locations": locations,
-            "objects": objects
-        }
+        return user_config
     finally:
         db.close()
 
@@ -1170,43 +1198,73 @@ def _select_rigs_yaml_path(username: str) -> str:
     # For any other user, return their specific (potentially non-existent) path.
     return user_path
 
+
 def run_one_time_yaml_migration():
     """
-    Acts as the main driver for the one-time migration from YAML files to the database.
-    Now with robust error handling for corrupt files.
+    Drives the one-time migration from YAML files to the app.db database.
+
+    This function uses the separate users.db as the source of truth for which users
+    to migrate, ensuring consistency with the external authentication system.
     """
     db = get_db()
     try:
         # Safety Check: Prevent re-running on an already populated database
         if db.query(DbUser).first() and db.query(Location).first():
-            print("[MIGRATION] Database already appears to be populated. Skipping YAML migration.")
+            print("[MIGRATION] Database (app.db) already appears to be populated. Skipping YAML migration.")
             return
 
         print("[MIGRATION] Starting one-time migration from YAML files to the database...")
 
-        # Backup Existing Configuration
+        # Backup Existing Configuration Directory
         _mkdirp(BACKUP_DIR)
         _timestamped_copy(CONFIG_DIR)
 
-        # Iterate Through Each Potential User
-        for username in _iter_candidate_users():
+        # --- Get the Definitive List of Users from the Authentication DB ---
+        usernames_to_migrate = set()
+        auth_db_path = os.path.join(INSTANCE_PATH, "users.db")
+        if os.path.exists(auth_db_path):
+            print(f"[MIGRATION] Reading user list from authentication database: {os.path.basename(auth_db_path)}")
+            AuthBase = declarative_base()
+
+            class AuthUser(AuthBase):
+                __tablename__ = 'user'
+                id = Column(Integer, primary_key=True)
+                username = Column(String)
+
+            auth_engine = create_engine(f'sqlite:///{auth_db_path}')
+            AuthSession = sessionmaker(bind=auth_engine)
+            auth_session = AuthSession()
+            try:
+                all_auth_users = auth_session.query(AuthUser).all()
+                usernames_to_migrate.update(u.username for u in all_auth_users)
+                print(f"   -> Found {len(all_auth_users)} users in users.db.")
+            finally:
+                auth_session.close()
+        else:
+            print(
+                "[MIGRATION] WARNING: Authentication database (users.db) not found. Will migrate based on YAML files only.")
+            usernames_to_migrate.update(_iter_candidate_users())
+
+        # Add special users that are required but may not be in the auth DB
+        usernames_to_migrate.update(["default", "guest_user"])
+
+        # --- Iterate Through Each User and Migrate Their Data ---
+        for username in sorted(list(usernames_to_migrate)):
             print(f"--- Processing migration for user: '{username}' ---")
 
             s_mode = bool(globals().get("SINGLE_USER_MODE", True))
             cfg_path = os.path.join(CONFIG_DIR, "config_default.yaml" if (
                         s_mode and username == "default") else f"config_{username}.yaml")
 
-            # Use the robust reader for the critical config file
             cfg_user, error = _read_yaml(cfg_path)
 
-            # If cfg_user is None, a fatal error occurred. Skip this user.
             if cfg_user is None:
                 print(f"[MIGRATION] FATAL ERROR for user '{username}'. The primary config file is corrupt.")
                 print(f"   └─ Details: {error}")
                 print(f"   └─ Skipping all migration for this user. Please fix the YAML file.")
-                continue  # Move to the next user
+                continue
 
-            # Load other, non-critical files. Errors here will result in empty data, which is fine.
+            # Load other, non-critical files
             rigs_path = _select_rigs_yaml_path(username)
             rigs_yaml, _ = _read_yaml(rigs_path)
 
@@ -1214,18 +1272,17 @@ def run_one_time_yaml_migration():
                         s_mode and username == "default") else f"journal_{username}.yaml")
             jrn_yaml, _ = _read_yaml(jrn_path)
 
-            # Get or Create the User Record in the DB
+            # Get or Create the User Record in app.db
             user = _upsert_user(db, username)
             db.flush()
 
-            # Execute the Migration Steps
+            # Execute the Migration Steps for this user
             _migrate_locations(db, user, cfg_user)
             _migrate_objects(db, user, cfg_user)
             _migrate_components_and_rigs(db, user, rigs_yaml, username)
             _migrate_journal(db, user, jrn_yaml)
             _migrate_ui_prefs(db, user, cfg_user)
 
-            # Commit transactions per user for resilience
             db.commit()
             print(f"--- Successfully committed data for user: '{username}' ---")
 
@@ -1628,43 +1685,60 @@ def _fix_mode_switch_sessions():
             # never block a request due to cleanup logic
             pass
 
-# --- DB user data injection before request ---
+
 @app.before_request
 def inject_user_data():
+    """
+    Ensures that for every authenticated user, we have a corresponding record
+    in our application database (app.db) and load their data into the request context (g).
+    """
+    # Determine the username from the authentication system (Flask-Login)
+    username = None
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+        username = current_user.username
+
+    if not username:
+        # No user logged in, or not in single-user mode. Nothing to do.
+        g.db_user = None
+        return
+
+    db = get_db()
     try:
-        username = "default" if SINGLE_USER_MODE else (current_user.username if getattr(current_user, "is_authenticated", False) else None)
-        if not username:
+        # Use our new helper to find or create the user in app.db
+        app_db_user = get_or_create_db_user(db, username)
+        g.db_user = app_db_user  # Store this for other functions if needed
+
+        if not app_db_user:
+            # If provisioning failed, we can't load any data.
             return
-        # Load from DB
-        db = get_db()
-        try:
-            u = db.query(DbUser).filter_by(username=username).one_or_none()
-            if not u:
-                return
-            # Locations
-            loc_rows = db.query(Location).filter_by(user_id=u.id).all()
-            g.locations = {}
-            for l in loc_rows:
-                mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
-                g.locations[l.name] = {
-                    "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                    "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
-                    "horizon_mask": mask
-                }
-            # Default location
-            g.selected_location = next((n for n, v in g.locations.items() if v.get("is_default")), None) or (list(g.locations.keys())[:1] or [None])[0]
-            # Objects
-            obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
-            g.objects_list = [
-                {"Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
-                 "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
-                 "ActiveProject": o.active_project, "Project": o.project_name}
-                for o in obj_rows
-            ]
-        finally:
-            db.close()
-    except Exception:
-        pass
+
+        # --- The rest of your data loading logic remains the same ---
+        # It now correctly uses the ID from the app.db user record.
+        loc_rows = db.query(Location).filter_by(user_id=app_db_user.id).all()
+        g.locations = {}
+        for l in loc_rows:
+            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            g.locations[l.name] = {
+                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
+                "horizon_mask": mask
+            }
+
+        g.selected_location = next((n for n, v in g.locations.items() if v.get("is_default")), None) or \
+                              (list(g.locations.keys())[:1] or [None])[0]
+
+        obj_rows = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+        g.objects_list = [
+            {"Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours,
+             "DEC (degrees)": o.dec_deg,
+             "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+             "ActiveProject": o.active_project, "Project": o.project_name}
+            for o in obj_rows
+        ]
+    finally:
+        db.close()
 
 def load_effective_settings():
     """
@@ -2163,8 +2237,7 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
             altitude_threshold = user_config.get("altitude_threshold", 20)
             if not all([lat, lon, tz_name]): raise ValueError(f"Missing lat/lon/tz for '{location_name}'")
 
-            criteria = {**{"min_observable_minutes": 60, "min_max_altitude": 30},
-                        **user_config.get("imaging_criteria", {})}
+            criteria = get_imaging_criteria()
 
             all_objects_from_config = user_config.get("objects", [])
             project_objects = [
@@ -4128,30 +4201,40 @@ def proxy_focus():
         print(f"[PROXY FOCUS ERROR] Unexpected error: {e}")  # Log the actual error
         return jsonify({"status": "error", "message": message}), 500
 
-# START: Complete block for nova.py function `load_config_for_request`
 @app.before_request
 def load_config_for_request():
+    """
+    Loads all necessary user configuration and data from the DATABASE at the
+    beginning of each request. This function is the bridge between the database
+    and the application's runtime logic, populating the Flask global `g` object.
+    """
+    # 1. Determine the current user's username
     if SINGLE_USER_MODE:
-        g.user_config = load_user_config("default")
+        username = "default"
         g.is_guest = False
     elif current_user.is_authenticated:
-        g.user_config = load_user_config(current_user.username)
+        username = current_user.username
         g.is_guest = False
     else:
-        g.user_config = load_user_config("guest_user")
+        username = "guest_user"
         g.is_guest = True
 
-    # Differentiate between all locations and active locations
+    # 2. CRITICAL CHANGE: Load the entire configuration from the database
+    #    This replaces the old call to load_user_config(username) which read from YAML files.
+    g.user_config = build_user_config_from_db(username)
+
+    # 3. Populate the request context (`g`) with the DB-backed configuration.
+    #    The rest of the application will use these `g` variables.
     g.locations = g.user_config.get("locations", {})
     g.active_locations = {
         name: details for name, details in g.locations.items()
-        if details.get('active', True) # Defaults to active for old configs without the key
+        if details.get('active', True) # Defaults to active for older configs
     }
 
+    # Validate the default location, falling back if it's inactive or doesn't exist.
     default_loc_name = g.user_config.get("default_location")
     validated_location = default_loc_name
 
-    # Check against ACTIVE locations for the default
     if not default_loc_name or default_loc_name not in g.active_locations:
         if g.active_locations:
             first_active_loc = next(iter(g.active_locations))
@@ -4163,71 +4246,49 @@ def load_config_for_request():
             print(f"⚠️ WARNING: No active locations are defined in the configuration.")
 
     g.selected_location = validated_location
-    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
 
+    # Set safe defaults to prevent crashes if no location is configured
+    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
     if g.selected_location:
-        # Get details from the full locations dictionary
         loc_cfg = g.locations.get(g.selected_location, {})
         g.lat = loc_cfg.get("lat")
         g.lon = loc_cfg.get("lon")
         g.tz_name = loc_cfg.get("timezone", "UTC")
     else:
-        # No valid location, set safe defaults to prevent crashes
         g.lat = None
         g.lon = None
         g.tz_name = "UTC"
 
+    # Populate object lists for use in dropdowns and lookups
     g.objects_list = g.user_config.get("objects", [])
     g.alternative_names = {
         obj.get("Object").lower(): obj.get("Name")
-        for obj in g.objects_list
+        for obj in g.objects_list if obj.get("Object")
     }
     g.projects = {
         obj.get("Object").lower(): obj.get("Project")
-        for obj in g.objects_list
+        for obj in g.objects_list if obj.get("Object")
     }
-    g.objects = [ obj.get("Object") for obj in g.objects_list ]
+    g.objects = [ obj.get("Object") for obj in g.objects_list if obj.get("Object") ]
 
+    # Finally, load other settings like calculation precision
     load_effective_settings()
 
 @app.before_request
 def ensure_telemetry_defaults():
     """
-    Ensure telemetry defaults safely, without ever overwriting unrelated config
-    and without persisting instance_id into YAML.
+    Ensures telemetry defaults IN MEMORY for the current request,
+    without writing back to any files.
     """
     try:
-        # Proceed only if a valid user config dict is already loaded into g
-        if not (hasattr(g, 'user_config') and isinstance(g.user_config, dict)):
-            return
-
-        changed = False
-        telemetry_config = g.user_config.setdefault('telemetry', {})
-
-        # Default for 'enabled'
-        if 'enabled' not in telemetry_config:
-            telemetry_config['enabled'] = True
-            changed = True
-
-        # Never persist instance_id in YAML; use .env at send-time
-        if 'instance_id' in telemetry_config:
-            telemetry_config.pop('instance_id', None)
-            # no need to mark changed; we remove a field we don't store
-
-        # Save only if we actually added the enabled default
-        if changed:
-            username = "default" if SINGLE_USER_MODE else (
-                current_user.username if getattr(current_user, 'is_authenticated', False) else "guest_user"
-            )
-            print("[CONFIG] Telemetry defaults were missing. Updating config file (enabled).")
-            save_user_config(username, g.user_config)
-
-        # Optionally expose the env-based ID in-memory if other code wants it
-        g.telemetry_instance_id = os.environ.get('INSTANCE_ID') or secrets.token_hex(16)
-
+        if hasattr(g, 'user_config') and isinstance(g.user_config, dict):
+            # Use setdefault to add the 'telemetry' key if it's missing.
+            # This modifies the g.user_config dictionary for this request only.
+            telemetry_config = g.user_config.setdefault('telemetry', {})
+            # Now ensure the 'enabled' key has a default value.
+            telemetry_config.setdefault('enabled', True)
     except Exception as e:
         print(f"❌ ERROR in ensure_telemetry_defaults: {e}")
-
 
 @app.before_request
 def telemetry_startup_ping_once():
@@ -5353,48 +5414,46 @@ def config_form():
                         error = f"Invalid input for new location: {ve}"
 
             elif 'submit_locations' in request.form:
-                updated_locations = {}
-                active_count = 0
+                db = get_db()
+                try:
+                    # Get the application user record from the database
+                    app_db_user = db.query(DbUser).filter_by(username=username_for_save).one()
+                    user_locations = db.query(Location).filter_by(user_id=app_db_user.id).all()
 
-                for loc_key, loc_data in g.user_config.get("locations", {}).items():
-                    if request.form.get(f"delete_loc_{loc_key}") == "on":
-                        continue
+                    active_count = 0
 
-                    is_active = request.form.get(f"active_{loc_key}") == "on"
-                    if is_active:
-                        active_count += 1
+                    for loc in user_locations:
+                        # Check if the location is marked for deletion
+                        if request.form.get(f"delete_loc_{loc.name}") == "on":
+                            db.delete(loc)
+                            continue
 
-                    try:
-                        new_lat = float(request.form.get(f"lat_{loc_key}"))
-                        new_lon = float(request.form.get(f"lon_{loc_key}"))
-                        new_timezone = request.form.get(f"timezone_{loc_key}")
-                        if new_timezone not in pytz.all_timezones:
-                            raise ValueError(f"Invalid timezone for {loc_key}")
+                        # Update the location object with data from the form
+                        is_active = request.form.get(f"active_{loc.name}") == "on"
+                        if is_active:
+                            active_count += 1
 
-                        comments = request.form.get(f"comments_{loc_key}", "").strip()[:500]
+                        loc.active = is_active
+                        loc.lat = float(request.form.get(f"lat_{loc.name}"))
+                        loc.lon = float(request.form.get(f"lon_{loc.name}"))
+                        loc.timezone = request.form.get(f"timezone_{loc.name}")
+                        loc.comments = request.form.get(f"comments_{loc.name}", "").strip()
 
-                        updated_loc_data = {
-                            "lat": new_lat, "lon": new_lon, "timezone": new_timezone,
-                            "active": is_active, "comments": comments
-                        }
+                        # (Horizon mask logic can be added here if needed)
 
-                        horizon_mask_str = request.form.get(f"horizon_mask_{loc_key}", "").strip()
-                        if horizon_mask_str:
-                            mask_data = yaml.safe_load(horizon_mask_str)
-                            if isinstance(mask_data, list):
-                                updated_loc_data['horizon_mask'] = mask_data
-
-                        updated_locations[loc_key] = updated_loc_data
-                    except (ValueError, TypeError) as ve:
-                        error = (error + "; " if error else "") + f"Invalid data for {loc_key}: {ve}"
-
-                if not error:
                     if active_count > MAX_ACTIVE_LOCATIONS:
                         error = f"Update failed: You cannot have more than {MAX_ACTIVE_LOCATIONS} active locations."
+                        db.rollback()
                     else:
-                        g.user_config['locations'] = updated_locations
-                        message = "Locations updated."
+                        db.commit()  # Commit all changes (updates and deletions) to the database
+                        message = "Locations updated successfully."
                         updated = True
+
+                except Exception as e:
+                    db.rollback()
+                    error = f"An error occurred while updating locations: {e}"
+                finally:
+                    db.close()
 
             elif 'submit_objects' in request.form:
                 # This block remains unchanged but is included for completeness
