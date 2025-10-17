@@ -3059,661 +3059,258 @@ def get_rig_data():
     finally:
         db.close()
 
+
 @app.route('/journal')
-@login_required # Or handle SINGLE_USER_MODE appropriately if guests can see a default journal
+@login_required
 def journal_list_view():
-    if SINGLE_USER_MODE:
-        username = "default"
-        # If you want g.is_guest to be available in journal_list.html for SINGLE_USER_MODE
-        # ensure it's set correctly or just pass a specific variable.
-        # For SINGLE_USER_MODE, the user is effectively always "logged in".
-        is_guest_for_template = False
-    elif current_user.is_authenticated:
-        username = current_user.username
-        is_guest_for_template = False
-    else:
-        # This case should ideally not be hit if @login_required is effective.
-        # If you allow guests to see a specific journal, handle 'guest_user' here.
-        # For now, let's assume they get redirected to login.
-        # If you reach here due to some other logic, provide default.
-        flash("Please log in to view the journal.", "info")
-        return redirect(url_for('login'))
-
-    journal_data = load_journal(username)
-    sessions = journal_data.get('sessions', [])
-
-    # Optionally sort sessions by date descending before passing to template
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
-    except Exception as e:
-        print(f"Warning: Could not sort journal sessions by date: {e}")
+        user = db.query(DbUser).filter_by(username=username).one()
+        # Query sessions and order by date descending
+        sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
 
-    return render_template('journal_list.html',
-                           journal_sessions=sessions,
-                           is_guest=is_guest_for_template # Pass if your base.html or journal_list.html needs it
-                           )
+        # Create a lookup for object common names for efficiency
+        objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
+        object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
 
+        # Add the common name to each session object for the template
+        for s in sessions:
+            s.target_common_name = object_names_lookup.get(s.object_name, s.object_name)
 
-def safe_float(value_str):
-    if value_str is None or str(value_str).strip() == "":  # Check for None and empty string
-        return None
-    try:
-        return float(value_str)
-    except ValueError:
-        print(f"Warning: Could not convert '{value_str}' to float.")
-        return None
-
-
-def safe_int(value_str):
-    if value_str is None or str(value_str).strip() == "":  # Check for None and empty string
-        return None
-    try:
-        # First try float conversion to handle inputs like "10.0" for an int field, then convert to int
-        return int(float(value_str))
-    except ValueError:
-        print(f"Warning: Could not convert '{value_str}' to int.")
-        return None
+        return render_template('journal_list.html', journal_sessions=sessions)
+    finally:
+        db.close()
 
 
 @app.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        if not current_user.is_authenticated:
-            flash("Please log in to add a journal entry.", "warning")
-            return redirect(url_for('login'))
-        username = current_user.username
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
 
-    if request.method == 'POST':
-        try:
-            journal_data = load_journal(username)
-            if not isinstance(journal_data.get('sessions'), list):
-                journal_data['sessions'] = []
-
-            user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
-            today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
-
-            # THIS IS THE FULL, CORRECTED LIST OF ALL FORM FIELDS
-            new_session_data = {
-                "session_id": generate_session_id(),
-                "session_date": request.form.get("session_date") or today_date_in_user_tz,
-                "target_object_id": request.form.get("target_object_id", "").strip(),
-                "location_name": request.form.get("location_name", "").strip(),
-                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
-                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
-                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
-                "weather_notes": request.form.get("weather_notes", "").strip(),
-                "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
-                "filter_used_session": request.form.get("filter_used_session", "").strip(),
-                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
-                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
-                "dither_details": request.form.get("dither_details", "").strip(),
-                "acquisition_software": request.form.get("acquisition_software", "").strip(),
-                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
-                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
-                "gain_setting": safe_int(request.form.get("gain_setting")),
-                "offset_setting": safe_int(request.form.get("offset_setting")),
-                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
-                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
-                "binning_session": request.form.get("binning_session", "").strip(),
-                "darks_strategy": request.form.get("darks_strategy", "").strip(),
-                "flats_strategy": request.form.get("flats_strategy", "").strip(),
-                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
-                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
-                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
-                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
-                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
-                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
-                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
-                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
-                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
-                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
-                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
-                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
-                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
-                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
-                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
-                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
-                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
-                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
-                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
-            }
-
-            final_session_entry = {}
-            for k, v in new_session_data.items():
-                is_empty_str_for_non_special_field = isinstance(v, str) and v.strip() == "" and k not in [
-                    "target_object_id", "location_name"]
-                is_none_for_non_special_field = v is None and k not in ["target_object_id", "location_name"]
-                if not (is_empty_str_for_non_special_field or is_none_for_non_special_field):
-                    final_session_entry[k] = v
-            if "session_id" not in final_session_entry:
-                final_session_entry["session_id"] = new_session_data["session_id"]
-            if "session_date" not in final_session_entry or not final_session_entry["session_date"]:
-                final_session_entry["session_date"] = datetime.now().strftime('%Y-%m-%d')
-            total_integration_seconds = 0
-            has_any_integration_data = False
-
-            try:
-                num_subs = int(str(final_session_entry.get('number_of_subs_light', 0)))
-                exp_time = int(str(final_session_entry.get('exposure_time_per_sub_sec', 0)))
-                if num_subs > 0 and exp_time > 0:
-                    total_integration_seconds += (num_subs * exp_time)
-                    has_any_integration_data = True
-            except (ValueError, TypeError):
-                pass
-
-            mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-            for filt in mono_filters:
-                try:
-                    subs_val = int(str(final_session_entry.get(f'filter_{filt}_subs', 0)))
-                    exp_val = int(str(final_session_entry.get(f'filter_{filt}_exposure_sec', 0)))
-                    if subs_val > 0 and exp_val > 0:
-                        total_integration_seconds += (subs_val * exp_val)
-                        has_any_integration_data = True
-                except (ValueError, TypeError):
-                    pass
-
-            if has_any_integration_data:
-                final_session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
-            else:
-                final_session_entry['calculated_integration_time_minutes'] = 'N/A'
-
+        if request.method == 'POST':
+            # --- Handle Project Creation/Selection ---
+            project_id_for_session = None
             project_selection = request.form.get("project_selection")
             new_project_name = request.form.get("new_project_name", "").strip()
-            project_id_for_session = None
 
             if project_selection == "new_project" and new_project_name:
-                # User is creating a new project
-                new_project_id = uuid.uuid4().hex
-                new_project = {
-                    "project_id": new_project_id,
-                    "project_name": new_project_name
-                }
-                journal_data.setdefault('projects', []).append(new_project)
-                project_id_for_session = new_project_id
-                print(f"Created new project '{new_project_name}' with ID {new_project_id}")
-
+                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
+                db.add(new_project)
+                db.flush()  # So we get the ID
+                project_id_for_session = new_project.id
             elif project_selection and project_selection not in ["standalone", "new_project"]:
-                # User selected an existing project
                 project_id_for_session = project_selection
 
-            # Add the project_id to the session data dictionary
-            # Use `final_session_entry` for the add function, and `final_updated_entry` for the edit function.
-            final_session_entry['project_id'] = project_id_for_session
+            # --- Create New Session Object ---
+            new_session = JournalSession(
+                user_id=user.id,
+                project_id=project_id_for_session,
+                date_utc=datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date(),
+                object_name=request.form.get("target_object_id", "").strip(),
+                notes=request.form.get("general_notes_problems_learnings", "").strip(),
+                number_of_subs_light=safe_int(request.form.get("number_of_subs_light")),
+                exposure_time_per_sub_sec=safe_int(request.form.get("exposure_time_per_sub_sec")),
+                filter_L_subs=safe_int(request.form.get("filter_L_subs")),
+                filter_L_exposure_sec=safe_int(request.form.get("filter_L_exposure_sec")),
+                filter_R_subs=safe_int(request.form.get("filter_R_subs")),
+                filter_R_exposure_sec=safe_int(request.form.get("filter_R_exposure_sec")),
+                filter_G_subs=safe_int(request.form.get("filter_G_subs")),
+                filter_G_exposure_sec=safe_int(request.form.get("filter_G_exposure_sec")),
+                filter_B_subs=safe_int(request.form.get("filter_B_subs")),
+                filter_B_exposure_sec=safe_int(request.form.get("filter_B_exposure_sec")),
+                filter_Ha_subs=safe_int(request.form.get("filter_Ha_subs")),
+                filter_Ha_exposure_sec=safe_int(request.form.get("filter_Ha_exposure_sec")),
+                filter_OIII_subs=safe_int(request.form.get("filter_OIII_subs")),
+                filter_OIII_exposure_sec=safe_int(request.form.get("filter_OIII_exposure_sec")),
+                filter_SII_subs=safe_int(request.form.get("filter_SII_subs")),
+                filter_SII_exposure_sec=safe_int(request.form.get("filter_SII_exposure_sec")),
+                external_id=generate_session_id()
+            )
 
+            # Calculate total integration time
+            total_seconds = (new_session.number_of_subs_light or 0) * (new_session.exposure_time_per_sub_sec or 0) + \
+                            (new_session.filter_L_subs or 0) * (new_session.filter_L_exposure_sec or 0) + \
+                            (new_session.filter_R_subs or 0) * (new_session.filter_R_exposure_sec or 0) + \
+                            (new_session.filter_G_subs or 0) * (new_session.filter_G_exposure_sec or 0) + \
+                            (new_session.filter_B_subs or 0) * (new_session.filter_B_exposure_sec or 0) + \
+                            (new_session.filter_Ha_subs or 0) * (new_session.filter_Ha_exposure_sec or 0) + \
+                            (new_session.filter_OIII_subs or 0) * (new_session.filter_OIII_exposure_sec or 0) + \
+                            (new_session.filter_SII_subs or 0) * (new_session.filter_SII_exposure_sec or 0)
+            new_session.calculated_integration_time_minutes = round(total_seconds / 60.0,
+                                                                    1) if total_seconds > 0 else None
+
+            db.add(new_session)
+            db.flush()  # Assigns an ID to new_session
+
+            # --- Handle Image Upload ---
             if 'session_image' in request.files:
                 file = request.files['session_image']
-                # Check if a file was selected and it has an allowed extension
                 if file and file.filename != '' and allowed_file(file.filename):
-                    # Check file size (max 5 MB) before saving
-                    if len(file.read()) > 5 * 1024 * 1024:
-                        flash("Image upload failed: File is larger than 5MB.", "error")
-                        return redirect(
-                            url_for('journal_add_for_target', object_name=request.form.get("target_object_id")))
-                    else:
-                        file.seek(0)  # IMPORTANT: Go back to the start of the file after reading its size
+                    file_extension = file.filename.rsplit('.', 1)[1].lower()
+                    new_filename = f"{new_session.id}.{file_extension}"
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    os.makedirs(user_upload_dir, exist_ok=True)
+                    file.save(os.path.join(user_upload_dir, new_filename))
+                    new_session.session_image_file = new_filename
 
-                        # Create a unique filename based on the session ID
-                        file_extension = file.filename.rsplit('.', 1)[1].lower()
-                        new_filename = f"{final_session_entry['session_id']}.{file_extension}"
-
-                        # Create the user's personal upload folder if it doesn't exist
-                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                        os.makedirs(user_upload_dir, exist_ok=True)
-
-                        # Save the file
-                        file.save(os.path.join(user_upload_dir, new_filename))
-
-                        # Store the new filename in the journal data
-                        final_session_entry['session_image_file'] = new_filename
-
-            journal_data['sessions'].append(final_session_entry)
-            journal_data = _cleanup_orphan_projects(journal_data)
-            save_journal(username, journal_data)
-
+            db.commit()
             flash("New journal entry added successfully!", "success")
+            return redirect(url_for('graph_dashboard', object_name=new_session.object_name, session_id=new_session.id))
 
-            target_object_id_for_redirect = final_session_entry.get("target_object_id")
-            new_session_id_for_redirect = final_session_entry.get("session_id")
+        # --- GET Request Logic ---
+        available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
+        entry_for_form = {
+            "target_object_id": request.args.get('target', ''),
+            "session_date": datetime.now(pytz.timezone(g.tz_name or 'UTC')).strftime('%Y-%m-%d'),
+            "location_name": g.selected_location or ''
+        }
+        cancel_url = url_for('index')
+        if entry_for_form["target_object_id"]:
+            cancel_url = url_for('graph_dashboard', object_name=entry_for_form["target_object_id"])
 
-            if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
-                return redirect(url_for('graph_dashboard', object_name=target_object_id_for_redirect,
-                                        session_id=new_session_id_for_redirect))
-            else:
-                return redirect(url_for('index'))
-
-        except Exception as e:
-            flash(f"Error adding journal entry: {e}", "error")
-            print(f"❌ ERROR in journal_add POST: {e}")
-            return redirect(url_for('journal_add'))
-
-    # --- GET request logic ---
-    available_rigs = []
-    rig_data = load_rig_config(username, SINGLE_USER_MODE)
-    if rig_data and rig_data.get('rigs'):
-        components = rig_data.get('components', {})
-        telescopes = {t['id']: t['name'] for t in components.get('telescopes', [])}
-        cameras = {c['id']: c['name'] for c in components.get('cameras', [])}
-        reducers = {r['id']: r['name'] for r in components.get('reducers_extenders', [])}
-
-        for rig in rig_data['rigs']:
-            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
-            cam_name = cameras.get(rig['camera_id'], 'N/A')
-
-            resolved_parts = [tele_name]
-            if rig.get('reducer_extender_id'):
-                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
-                resolved_parts.append(reducer_name)
-            resolved_parts.append(cam_name)
-
-            available_rigs.append({
-                'rig_name': rig['rig_name'],
-                'resolved_string': ' + '.join(resolved_parts)
-            })
-
-    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
-    available_locations = g.locations if hasattr(g, 'locations') else {}
-    default_loc = g.selected_location if hasattr(g, 'selected_location') else ""
-    preselected_target_id = request.args.get('target', None)
-    entry_for_form = {}
-
-    if preselected_target_id:
-        entry_for_form["target_object_id"] = preselected_target_id
-    if not entry_for_form.get("location_name") and default_loc:
-        entry_for_form["location_name"] = default_loc
-
-    user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
-    today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
-
-    if not entry_for_form.get("session_date"):
-        entry_for_form["session_date"] = today_date_in_user_tz
-
-    cancel_url_for_add = url_for('index')
-    if preselected_target_id:
-        cancel_url_for_add = url_for('graph_dashboard', object_name=preselected_target_id)
-    # --- Apply per-user rig sort preference for the journal form ---
-    try:
-        username_effective = "default" if SINGLE_USER_MODE else current_user.username
-        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
-        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
-
-        def _to_num(v):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-
-        _key, _, _direction = _sort_pref.partition('-')
-        _reverse = (_direction == 'desc')
-
-        def _getattr_or_dict(x, attr, key):
-            if isinstance(x, dict):
-                return x.get(key)
-            return getattr(x, attr, None)
-
-        def _get(r):
-            if _key == 'name':
-                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
-                return str(v).lower()
-            if _key == 'fl':
-                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
-            if _key == 'fr':
-                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
-            if _key == 'scale':
-                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
-            if _key == 'fovw':
-                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
-            if _key == 'recent':
-                ts = (
-                        _getattr_or_dict(r, 'updated_at', 'updated_at')
-                        or _getattr_or_dict(r, 'created_at', 'created_at')
-                        or ''
-                )
-                try:
-                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
-                except Exception:
-                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
-            # default: name
-            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
-            return str(v).lower()
-
-        def _none_safe(x):
-            v = _get(x)
-            return (v is None, v)
-
-        # IMPORTANT: this variable name must match what you pass to the template
-        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
-
-    except Exception as _e:
-        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
-    # --- end rig sort preference ---
-    return render_template('journal_form.html',
-                           form_title="Add New Imaging Session",
-                           form_action_url=url_for('journal_add'),
-                           submit_button_text="Add Session",
-                           available_objects=available_objects,
-                           available_locations=available_locations,
-                           available_rigs=available_rigs,
-                           entry=entry_for_form,
-                           cancel_url=cancel_url_for_add
-                           )
+        return render_template('journal_form.html',
+                               form_title="Add New Imaging Session",
+                               form_action_url=url_for('journal_add'),
+                               submit_button_text="Add Session",
+                               available_objects=available_objects,
+                               available_locations=available_locations,
+                               available_rigs=available_rigs,
+                               entry=entry_for_form,
+                               cancel_url=cancel_url)
+    finally:
+        db.close()
 
 
-@app.route('/journal/edit/<session_id>', methods=['GET', 'POST'])
+@app.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
 @login_required
-def journal_edit(session_id):  # REMOVED: final_session_entry=None
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        if not current_user.is_authenticated:
-            flash("Please log in to edit journal entries.", "warning")
-            return redirect(url_for('login'))
-        username = current_user.username
+def journal_edit(session_id):
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        session_to_edit = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
-    journal_data = load_journal(username)
-    sessions = journal_data.get('sessions', [])
-    session_to_edit = None
-    session_index = -1
+        if not session_to_edit:
+            flash("Journal entry not found or you do not have permission to edit it.", "error")
+            return redirect(url_for('journal_list_view'))
 
-    for index, session_item in enumerate(sessions):
-        if session_item.get('session_id') == session_id:
-            session_to_edit = session_item
-            session_index = index
-            break
+        if request.method == 'POST':
+            # Update all fields from the form
+            session_to_edit.date_utc = datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date()
+            session_to_edit.object_name = request.form.get("target_object_id", "").strip()
+            session_to_edit.notes = request.form.get("general_notes_problems_learnings", "").strip()
+            session_to_edit.number_of_subs_light = safe_int(request.form.get("number_of_subs_light"))
+            session_to_edit.exposure_time_per_sub_sec = safe_int(request.form.get("exposure_time_per_sub_sec"))
+            session_to_edit.filter_L_subs = safe_int(request.form.get("filter_L_subs"));
+            session_to_edit.filter_L_exposure_sec = safe_int(request.form.get("filter_L_exposure_sec"))
+            session_to_edit.filter_R_subs = safe_int(request.form.get("filter_R_subs"));
+            session_to_edit.filter_R_exposure_sec = safe_int(request.form.get("filter_R_exposure_sec"))
+            session_to_edit.filter_G_subs = safe_int(request.form.get("filter_G_subs"));
+            session_to_edit.filter_G_exposure_sec = safe_int(request.form.get("filter_G_exposure_sec"))
+            session_to_edit.filter_B_subs = safe_int(request.form.get("filter_B_subs"));
+            session_to_edit.filter_B_exposure_sec = safe_int(request.form.get("filter_B_exposure_sec"))
+            session_to_edit.filter_Ha_subs = safe_int(request.form.get("filter_Ha_subs"));
+            session_to_edit.filter_Ha_exposure_sec = safe_int(request.form.get("filter_Ha_exposure_sec"))
+            session_to_edit.filter_OIII_subs = safe_int(request.form.get("filter_OIII_subs"));
+            session_to_edit.filter_OIII_exposure_sec = safe_int(request.form.get("filter_OIII_exposure_sec"))
+            session_to_edit.filter_SII_subs = safe_int(request.form.get("filter_SII_subs"));
+            session_to_edit.filter_SII_exposure_sec = safe_int(request.form.get("filter_SII_exposure_sec"))
 
-    if session_index == -1 or not session_to_edit:
-        flash(f"Journal entry with ID {session_id} not found.", "error")
-        return redirect(url_for('journal_list_view'))
+            # Recalculate integration time
+            total_seconds = (session_to_edit.number_of_subs_light or 0) * (
+                        session_to_edit.exposure_time_per_sub_sec or 0) + \
+                            (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
+                            (session_to_edit.filter_R_subs or 0) * (session_to_edit.filter_R_exposure_sec or 0) + \
+                            (session_to_edit.filter_G_subs or 0) * (session_to_edit.filter_G_exposure_sec or 0) + \
+                            (session_to_edit.filter_B_subs or 0) * (session_to_edit.filter_B_exposure_sec or 0) + \
+                            (session_to_edit.filter_Ha_subs or 0) * (session_to_edit.filter_Ha_exposure_sec or 0) + \
+                            (session_to_edit.filter_OIII_subs or 0) * (session_to_edit.filter_OIII_exposure_sec or 0) + \
+                            (session_to_edit.filter_SII_subs or 0) * (session_to_edit.filter_SII_exposure_sec or 0)
+            session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
+                                                                        1) if total_seconds > 0 else None
 
-    if request.method == 'POST':
-        try:
-            # This is the full logic for updating the entry
-            updated_session_data = {
-                "session_id": session_id,
-                "session_date": request.form.get("session_date") or session_to_edit.get("session_date"),
-                "target_object_id": request.form.get("target_object_id", "").strip(),
-                "location_name": request.form.get("location_name", "").strip(),
-                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
-                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
-                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
-                "weather_notes": request.form.get("weather_notes", "").strip(),
-                "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
-                "filter_used_session": request.form.get("filter_used_session", "").strip(),
-                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
-                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
-                "dither_details": request.form.get("dither_details", "").strip(),
-                "acquisition_software": request.form.get("acquisition_software", "").strip(),
-                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
-                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
-                "gain_setting": safe_int(request.form.get("gain_setting")),
-                "offset_setting": safe_int(request.form.get("offset_setting")),
-                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
-                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
-                "binning_session": request.form.get("binning_session", "").strip(),
-                "darks_strategy": request.form.get("darks_strategy", "").strip(),
-                "flats_strategy": request.form.get("flats_strategy", "").strip(),
-                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
-                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
-                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
-                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
-                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
-                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
-                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
-                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
-                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
-                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
-                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
-                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
-                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
-                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
-                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
-                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
-                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
-                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
-                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
-            }
+            # Handle image deletion and upload
+            if request.form.get('delete_session_image') == '1' and session_to_edit.session_image_file:
+                image_path = os.path.join(UPLOAD_FOLDER, username, session_to_edit.session_image_file)
+                if os.path.exists(image_path): os.remove(image_path)
+                session_to_edit.session_image_file = None
 
-            final_updated_entry = {k: v for k, v in updated_session_data.items() if v is not None and v != ""}
-            final_updated_entry['session_id'] = session_id  # Ensure session_id is always present
-
-            # --- Integration Time Calculation ---
-            total_integration_seconds = 0
-            has_any_integration_data = False
-            try:
-                num_subs = int(str(final_updated_entry.get('number_of_subs_light', 0)))
-                exp_time = int(str(final_updated_entry.get('exposure_time_per_sub_sec', 0)))
-                if num_subs > 0 and exp_time > 0:
-                    total_integration_seconds += (num_subs * exp_time)
-                    has_any_integration_data = True
-            except (ValueError, TypeError):
-                pass
-            mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-            for filt in mono_filters:
-                try:
-                    subs_val = int(str(final_updated_entry.get(f'filter_{filt}_subs', 0)))
-                    exp_val = int(str(final_updated_entry.get(f'filter_{filt}_exposure_sec', 0)))
-                    if subs_val > 0 and exp_val > 0:
-                        total_integration_seconds += (subs_val * exp_val)
-                        has_any_integration_data = True
-                except (ValueError, TypeError):
-                    pass
-            if has_any_integration_data:
-                final_updated_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
-            else:
-                final_updated_entry['calculated_integration_time_minutes'] = 'N/A'
-
-            # --- Image Deletion Logic ---
-            if request.form.get('delete_session_image') == '1':
-                if session_to_edit.get('session_image_file'):
-                    image_filename = session_to_edit['session_image_file']
-                    image_path = os.path.join(UPLOAD_FOLDER, username, image_filename)
-                    try:
-                        os.remove(image_path)
-                        print(f"Deleted image file: {image_path}")
-                    except OSError as e:
-                        print(f"Error deleting image file {image_path}: {e}")
-                final_updated_entry.pop('session_image_file', None)
-                flash("Session image deleted.", "success")
-
-            # --- Project Handling Logic (CORRECTED) ---
-            project_selection = request.form.get("project_selection")
-            new_project_name = request.form.get("new_project_name", "").strip()
-            project_id_for_session = None
-            if project_selection == "new_project" and new_project_name:
-                new_project_id = uuid.uuid4().hex
-                new_project = {"project_id": new_project_id, "project_name": new_project_name}
-                journal_data.setdefault('projects', []).append(new_project)
-                project_id_for_session = new_project_id
-                print(f"Created new project '{new_project_name}' with ID {new_project_id}")
-            elif project_selection and project_selection not in ["standalone", "new_project"]:
-                project_id_for_session = project_selection
-
-            # THIS IS THE FIX: Use `final_updated_entry`
-            final_updated_entry['project_id'] = project_id_for_session
-
-            # --- Image Upload Logic ---
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 if file and file.filename != '' and allowed_file(file.filename):
-                    if len(file.read()) > 5 * 1024 * 1024:
-                        flash("Image upload failed: File is larger than 5MB.", "error")
-                        return redirect(url_for('graph_dashboard', object_name=request.form.get("target_object_id"),
-                                                session_id=session_id))
-                    else:
-                        file.seek(0)
-                        file_extension = file.filename.rsplit('.', 1)[1].lower()
-                        new_filename = f"{session_id}.{file_extension}"
-                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                        os.makedirs(user_upload_dir, exist_ok=True)
-                        file.save(os.path.join(user_upload_dir, new_filename))
-                        final_updated_entry['session_image_file'] = new_filename
+                    file_extension = file.filename.rsplit('.', 1)[1].lower()
+                    new_filename = f"{session_to_edit.id}.{file_extension}"
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    os.makedirs(user_upload_dir, exist_ok=True)
+                    file.save(os.path.join(user_upload_dir, new_filename))
+                    session_to_edit.session_image_file = new_filename
 
-            # --- Save and Redirect ---
-            sessions[session_index] = final_updated_entry
-            journal_data['sessions'] = sessions
-            journal_data = _cleanup_orphan_projects(journal_data)
-            save_journal(username, journal_data)
+            db.commit()
+            flash("Journal entry updated successfully!", "success")
+            return redirect(
+                url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_to_edit.id))
 
-            flash(f"Journal entry updated successfully!", "success")
+        # --- GET Request Logic ---
+        available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
 
-            target_object_id_for_redirect = final_updated_entry.get("target_object_id")
-            if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
-                return redirect(
-                    url_for('graph_dashboard', object_name=target_object_id_for_redirect, session_id=session_id))
-            else:
-                return redirect(url_for('index'))
+        # Convert the SQLAlchemy object to a dict for the template
+        entry_dict = {c.name: getattr(session_to_edit, c.name) for c in session_to_edit.__table__.columns}
+        if isinstance(entry_dict.get('date_utc'), (datetime, date)):
+            entry_dict['session_date'] = entry_dict['date_utc'].strftime('%Y-%m-%d')
+        entry_dict['target_object_id'] = entry_dict.get('object_name')
 
-        except Exception as e:
-            flash(f"Error updating journal entry: {e}", "error")
-            print(f"❌ ERROR in journal_edit POST for session {session_id}: {e}")
-            traceback.print_exc()
-            return redirect(url_for('journal_edit', session_id=session_id))
+        cancel_url = url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_to_edit.id)
 
-    # --- GET request logic (for loading the form) ---
-    available_rigs = []
-    rig_data = load_rig_config(username, SINGLE_USER_MODE)
-    if rig_data and rig_data.get('rigs'):
-        components = rig_data.get('components', {})
-        telescopes = {t['id']: t['name'] for t in components.get('telescopes', [])}
-        cameras = {c['id']: c['name'] for c in components.get('cameras', [])}
-        reducers = {r['id']: r['name'] for r in components.get('reducers_extenders', [])}
-        for rig in rig_data['rigs']:
-            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
-            cam_name = cameras.get(rig['camera_id'], 'N/A')
-            resolved_parts = [tele_name]
-            if rig.get('reducer_extender_id'):
-                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
-                resolved_parts.append(reducer_name)
-            resolved_parts.append(cam_name)
-            available_rigs.append({'rig_name': rig['rig_name'], 'resolved_string': ' + '.join(resolved_parts)})
+        return render_template('journal_form.html',
+                               form_title="Edit Imaging Session",
+                               form_action_url=url_for('journal_edit', session_id=session_id),
+                               submit_button_text="Save Changes",
+                               entry=entry_dict,
+                               available_objects=available_objects,
+                               available_locations=available_locations,
+                               available_rigs=available_rigs,
+                               cancel_url=cancel_url)
+    finally:
+        db.close()
 
-    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
-    available_locations = g.locations if hasattr(g, 'locations') else {}
-    target_object_id_for_cancel = session_to_edit.get("target_object_id")
-    cancel_url_for_edit = url_for('index')
 
-    if target_object_id_for_cancel and target_object_id_for_cancel.strip() != "":
-        cancel_url_for_edit = url_for('graph_dashboard', object_name=target_object_id_for_cancel, session_id=session_id)
-    elif session_id:
-        cancel_url_for_edit = url_for('journal_list_view')
-
-    try:
-        username_effective = "default" if SINGLE_USER_MODE else current_user.username
-        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
-        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
-
-        def _to_num(v):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-
-        _key, _, _direction = _sort_pref.partition('-')
-        _reverse = (_direction == 'desc')
-
-        def _getattr_or_dict(x, attr, key):
-            if isinstance(x, dict): return x.get(key)
-            return getattr(x, attr, None)
-
-        def _get(r):
-            if _key == 'name': v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''; return str(v).lower()
-            if _key == 'fl': return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
-            if _key == 'fr': return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
-            if _key == 'scale': return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
-            if _key == 'fovw': return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
-            if _key == 'recent':
-                ts = (_getattr_or_dict(r, 'updated_at', 'updated_at') or _getattr_or_dict(r, 'created_at',
-                                                                                          'created_at') or '')
-                try:
-                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
-                except Exception:
-                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
-            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or '';
-            return str(v).lower()
-
-        def _none_safe(x):
-            v = _get(x); return (v is None, v)
-
-        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
-    except Exception as _e:
-        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
-
-    return render_template('journal_form.html',
-                           form_title=f"Edit Imaging Session",
-                           form_action_url=url_for('journal_edit', session_id=session_id),
-                           submit_button_text="Save Changes",
-                           entry=session_to_edit,
-                           available_objects=available_objects,
-                           available_locations=available_locations,
-                           available_rigs=available_rigs,
-                           cancel_url=cancel_url_for_edit)
-
-@app.route('/journal/delete/<session_id>', methods=['POST'])
-@login_required  # Or your custom logic for SINGLE_USER_MODE access
+@app.route('/journal/delete/<int:session_id>', methods=['POST'])
+@login_required
 def journal_delete(session_id):
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        if not current_user.is_authenticated:  # Should be caught by @login_required
-            flash("Please log in to delete journal entries.", "warning")
-            return redirect(url_for('login'))  # Or your login route name
-        username = current_user.username
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        session_to_delete = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
-    journal_data = load_journal(username)
-    sessions = journal_data.get('sessions', [])
+        if session_to_delete:
+            object_name_redirect = session_to_delete.object_name
+            # Delete associated image file
+            if session_to_delete.session_image_file:
+                image_path = os.path.join(UPLOAD_FOLDER, username, session_to_delete.session_image_file)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
 
-    session_to_delete = None
-    target_object_id_of_deleted_session = None  # Variable to store the target ID
-
-    for session_item in sessions:  # Changed loop variable to avoid conflict if 'session' is used by Flask
-        if session_item.get('session_id') == session_id:
-            session_to_delete = session_item
-            target_object_id_of_deleted_session = session_item.get('target_object_id')
-            break
-
-    if session_to_delete:
-        try:
-            sessions.remove(session_to_delete)  # Remove the session from the list
-            journal_data['sessions'] = sessions  # Assign the modified list back to the main data
-            journal_data = _cleanup_orphan_projects(journal_data)
-            save_journal(username, journal_data)  # Save the updated journal data
-
-            flash_message_target = target_object_id_of_deleted_session if target_object_id_of_deleted_session else "N/A"
-            # Provide a more specific flash message, perhaps using a few chars of the ID if target is missing
-            flash_id_snippet = session_id[:8] + "..." if session_id and len(session_id) > 8 else session_id
-            flash(f"Journal entry for '{flash_message_target}' (ID: {flash_id_snippet}) deleted successfully.",
-                  "success")
-
-            # --- CORRECTED REDIRECT LOGIC after successful delete ---
-            if target_object_id_of_deleted_session and target_object_id_of_deleted_session.strip() != "":
-                print(f"Redirecting after delete to graph_dashboard for object: {target_object_id_of_deleted_session}")
-                return redirect(url_for('graph_dashboard', object_name=target_object_id_of_deleted_session))
+            db.delete(session_to_delete)
+            db.commit()
+            flash("Journal entry deleted successfully.", "success")
+            if object_name_redirect:
+                return redirect(url_for('graph_dashboard', object_name=object_name_redirect))
             else:
-                # Fallback if target_object_id was somehow missing or empty from the deleted session
-                print(
-                    f"Redirecting after delete to main journal list (target_object_id was missing for deleted session).")
-                return redirect(url_for('journal_list_view'))  # Or url_for('index') if you prefer
-            # --- END OF CORRECTED REDIRECT LOGIC ---
-
-        except Exception as e:  # Catch potential errors during remove or save
-            flash(f"Error processing deletion for session ID {session_id}: {e}", "error")
-            print(f"ERROR during deletion/save for session {session_id}: {e}")
-            # If error during save, redirect back to where the user was, if possible, or a safe page.
-            # Re-fetching target_object_id here as it might be lost if session_to_delete was modified
-            # This is a basic fallback; more sophisticated state restoration might be needed for complex cases.
-            if target_object_id_of_deleted_session and target_object_id_of_deleted_session.strip() != "":
-                return redirect(url_for('graph_dashboard', object_name=target_object_id_of_deleted_session,
-                                        session_id=session_id))  # Back to object page, session might still appear if save failed
-            else:
-                return redirect(url_for('journal_list_view'))  # General fallback
-
-    else:  # This else is for 'if session_to_delete:' (i.e., session was not found)
-        flash(f"Journal entry with ID {session_id} not found for deletion.", "error")
-        # If the session was not found at all, redirecting to journal_list_view or index is appropriate.
-        return redirect(url_for('journal_list_view'))
-
+                return redirect(url_for('journal_list_view'))
+        else:
+            flash("Journal entry not found or you do not have permission to delete it.", "error")
+            return redirect(url_for('journal_list_view'))
+    finally:
+        db.close()
 
 def _cleanup_orphan_projects(journal_data):
     """
