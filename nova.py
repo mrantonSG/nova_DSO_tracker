@@ -2451,6 +2451,10 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         traceback.print_exc()
 
 def sort_rigs(rigs, sort_key: str):
+    # FIX: Add a fallback for None to prevent the AttributeError
+    if not sort_key:
+        sort_key = 'name-asc'  # A sensible default if no preference is set
+
     key, _, direction = sort_key.partition('-')
     reverse = (direction == 'desc')
 
@@ -2480,13 +2484,12 @@ def sort_rigs(rigs, sort_key: str):
         # default to name
         return (r.get('rig_name') or '').lower()
 
-    # sort with None-safe behavior (None => bottom)
+    # sort with None-safe behavior (None values are sorted to the bottom)
     def none_safe(x):
         v = getter(x)
         return (v is None, v)
 
     return sorted(rigs, key=none_safe, reverse=reverse)
-
 
 # --- Anonymous telemetry helpers ---
 def is_docker_env():
@@ -2765,6 +2768,27 @@ if FIRST_RUN_ENV_CREATED:
             print(f"[TELEMETRY] first-run timer init failed: {_e}")
     threading.Timer(1.0, _telemetry_first_run_timer).start()
 
+def safe_float(value_str):
+    """Safely converts a string to a float, returning None if empty or invalid."""
+    if value_str is None or str(value_str).strip() == "":
+        return None
+    try:
+        return float(value_str)
+    except (ValueError, TypeError):
+        print(f"Warning: Could not convert '{value_str}' to float.")
+        return None
+
+
+def safe_int(value_str):
+    """Safely converts a string to an integer, returning None if empty or invalid."""
+    if value_str is None or str(value_str).strip() == "":
+        return None
+    try:
+        # Convert to float first to handle inputs like "10.0"
+        return int(float(value_str))
+    except (ValueError, TypeError):
+        print(f"Warning: Could not convert '{value_str}' to int.")
+        return None
 
 # --- Telemetry diagnostics route ---
 @app.route('/telemetry/debug', methods=['GET'])
@@ -3779,64 +3803,6 @@ def telemetry_startup_ping_once():
         except Exception:
             pass
 
-@app.route('/fetch_all_details', methods=['POST'])
-@login_required
-def fetch_all_details():
-    username = "default" if SINGLE_USER_MODE else current_user.username
-    db = get_db()
-    try:
-        app_db_user = db.query(DbUser).filter_by(username=username).one()
-        objects_to_check = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
-
-        modified = False
-        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
-
-        for obj in objects_to_check:
-            needs_update = (
-                obj.type in refetch_triggers or
-                obj.magnitude in refetch_triggers or
-                obj.size in refetch_triggers or
-                obj.sb in refetch_triggers or
-                obj.constellation in refetch_triggers
-            )
-            if needs_update:
-                try:
-                    # This function needs to be adapted slightly if it's not already
-                    # to just fetch data without modifying a config dict directly.
-                    # Assuming check_and_fill_object_data is a helper you can call.
-                    # For this example, let's inline the logic.
-
-                    # Auto-calculate Constellation if missing
-                    if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
-                        coords = SkyCoord(ra=obj.ra_hours*u.hourangle, dec=obj.dec_deg*u.deg)
-                        obj.constellation = get_constellation(coords, short_name=True)
-                        modified = True
-
-                    # Fetch other details
-                    fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
-                    if fetched_data.get("object_type"): obj.type = fetched_data["object_type"]
-                    if fetched_data.get("magnitude"): obj.magnitude = str(fetched_data["magnitude"])
-                    if fetched_data.get("size_arcmin"): obj.size = str(fetched_data["size_arcmin"])
-                    if fetched_data.get("surface_brightness"): obj.sb = str(fetched_data["surface_brightness"])
-                    modified = True
-                    time.sleep(0.5) # Be kind to external APIs
-                except Exception as e:
-                    print(f"Failed to fetch details for {obj.object_name}: {e}")
-
-        if modified:
-            db.commit()
-            flash("Fetched and saved missing object details.", "success")
-        else:
-            flash("No missing data found or no updates needed.", "info")
-
-    except Exception as e:
-        db.rollback()
-        flash(f"An error occurred during data fetching: {e}", "error")
-    finally:
-        db.close()
-
-    return redirect(url_for('config_form'))
-
 @app.route('/set_location', methods=['POST'])
 def set_location_api():
     data = request.get_json()
@@ -4562,18 +4528,13 @@ def fetch_all_details():
             )
             if needs_update:
                 try:
-                    # This function needs to be adapted slightly if it's not already
-                    # to just fetch data without modifying a config dict directly.
-                    # Assuming check_and_fill_object_data is a helper you can call.
-                    # For this example, let's inline the logic.
-
                     # Auto-calculate Constellation if missing
                     if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
                         coords = SkyCoord(ra=obj.ra_hours*u.hourangle, dec=obj.dec_deg*u.deg)
                         obj.constellation = get_constellation(coords, short_name=True)
                         modified = True
 
-                    # Fetch other details
+                    # Fetch other details from external API
                     fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
                     if fetched_data.get("object_type"): obj.type = fetched_data["object_type"]
                     if fetched_data.get("magnitude"): obj.magnitude = str(fetched_data["magnitude"])
@@ -5073,70 +5034,50 @@ def precompute_time_arrays():
 def update_project():
     data = request.get_json()
     object_name = data.get('object')
-    new_project = data.get('project')
-
-    if not object_name:
-        return jsonify({"status": "error", "error": "Object name is missing."}), 400
-
+    new_project_notes = data.get('project')
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        # Load the current configuration for the user.
-        config = load_user_config(current_user.username)
-        found = False
-        # Locate the object in the objects list.
-        for obj in config.get("objects", []):
-            if obj.get("Object").lower() == object_name.lower():
-                obj["Project"] = new_project
-                found = True
-                break
-        if not found:
-            return jsonify({"status": "error", "error": "Object not found in configuration."}), 404
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj_to_update = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
-        # Save the updated configuration.
-        save_user_config(current_user.username, config)
-
-        trigger_outlook_update_for_user(current_user.username)
-
-        # Optionally update the persistent cache.
-        key = object_name.lower()
-
-        return jsonify({"status": "success"})
-    except Exception as exception_value:
-        return jsonify({"status": "error", "error": str(exception_value)}), 500
+        if obj_to_update:
+            obj_to_update.project_name = new_project_notes
+            db.commit()
+            trigger_outlook_update_for_user(username)
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"status": "error", "error": "Object not found."}), 404
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "error": str(e)}), 500
+    finally:
+        db.close()
 
 @app.route('/update_project_active', methods=['POST'])
 @login_required
 def update_project_active():
+    data = request.get_json()
+    object_name = data.get('object')
+    is_active = data.get('active')
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        payload = request.get_json(force=True) or {}
-        object_name = payload.get('object')
-        active = payload.get('active')
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj_to_update = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
-        if object_name is None or active is None:
-            return jsonify({"status": "error", "error": "Missing object or active flag."}), 400
-
-        username = "default" if SINGLE_USER_MODE else current_user.username
-        config = load_user_config(username)
-
-        found = False
-        for obj in config.get('objects', []):
-            if str(obj.get('Object', '')).lower() == str(object_name).lower():
-                obj['ActiveProject'] = bool(active)
-                found = True
-                break
-
-        if not found:
-            return jsonify({"status": "error", "error": "Object not found in configuration."}), 404
-
-        save_user_config(username, config)
-        # Refresh downstream views/caches (safe no-op if helper not present)
-        try:
+        if obj_to_update:
+            obj_to_update.active_project = bool(is_active)
+            db.commit()
             trigger_outlook_update_for_user(username)
-        except Exception:
-            pass
-        return jsonify({"status": "success", "active": bool(active)})
-
+            return jsonify({"status": "success", "active": obj_to_update.active_project})
+        else:
+            return jsonify({"status": "error", "error": "Object not found."}), 404
     except Exception as e:
+        db.rollback()
         return jsonify({"status": "error", "error": str(e)}), 500
+    finally:
+        db.close()
 
 
 @app.before_request
@@ -5199,223 +5140,163 @@ def get_moon_data_for_session():
 
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
-    # --- Initialize effective context with global defaults/URL args ---
-    effective_location_name = g.selected_location if hasattr(g,
-                                                             'selected_location') and g.selected_location else "Unknown"
-    effective_lat = g.lat if hasattr(g, 'lat') else 0.0
-    effective_lon = g.lon if hasattr(g, 'lon') else 0.0
-    effective_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
-
+    # --- 1. Initialize effective context ---
+    effective_location_name = g.selected_location or "Unknown"
+    effective_lat = g.lat or 0.0
+    effective_lon = g.lon or 0.0
+    effective_tz_name = g.tz_name or 'UTC'
     now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
-    effective_day = now_at_effective_location.day
-    effective_month = now_at_effective_location.month
-    effective_year = now_at_effective_location.year
 
-    if request.args.get('day'):
-        try:
-            effective_day = int(request.args.get('day'))
-        except ValueError:
-            pass
-    if request.args.get('month'):
-        try:
-            effective_month = int(request.args.get('month'))
-        except ValueError:
-            pass
-    if request.args.get('year'):
-        try:
-            effective_year = int(request.args.get('year'))
-        except ValueError:
-            pass
-
-    # --- Journal Data Logic (CORRECTED INITIALIZATION) ---
-    object_specific_sessions, selected_session_data = [], None
-    requested_session_id = request.args.get('session_id')
-    grouped_sessions = []  # <-- FIX: Initialize here, outside the 'if'
-    all_projects = []  # <-- FIX: Initialize here, outside the 'if'
-
-    if SINGLE_USER_MODE:
-        username_for_journal = "default"
-    elif current_user.is_authenticated:
-        username_for_journal = current_user.username
-    else:
-        username_for_journal = "guest_user"
-
-    if username_for_journal:
-        journal_data = load_journal(username_for_journal)
-        all_projects = journal_data.get('projects', [])
-        all_projects.sort(key=lambda p: p.get('project_name', '').lower())
-        all_user_sessions = journal_data.get('sessions', [])
-
-        # Filter sessions for the current object and sort them by date
-        object_specific_sessions = sorted(
-            [s for s in all_user_sessions if s.get('target_object_id') == object_name],
-            key=lambda s: s.get('session_date', '1900-01-01'),
-            reverse=True
-        )
-
-        # --- GROUPING LOGIC ---
-        projects_map = {p['project_id']: p['project_name'] for p in all_projects}
-        grouped_sessions_dict = {}
-
-        for session in object_specific_sessions:
-            project_id = session.get('project_id')  # Will be None for standalone sessions
-            if project_id not in grouped_sessions_dict:
-                grouped_sessions_dict[project_id] = []
-            grouped_sessions_dict[project_id].append(session)
-
-        # Convert dictionary to a sorted list for the template
-        temp_grouped_list = []
-        # Add named projects first
-        # Inside the grouping logic in graph_dashboard
-        for project_id, sessions_in_group in grouped_sessions_dict.items():
-            if project_id:
-                # --- NEW: Calculate total integration time ---
-                total_minutes = 0
-                for session in sessions_in_group:
-                    try:
-                        # Safely get and convert time, treating 'N/A' or errors as 0
-                        minutes = float(session.get('calculated_integration_time_minutes', 0))
-                        total_minutes += minutes
-                    except (ValueError, TypeError):
-                        continue  # Skip if value is not a valid number
-
-                temp_grouped_list.append({
-                    'is_project': True,
-                    'project_name': projects_map.get(project_id, 'Unknown Project'),
-                    'sessions': sessions_in_group,
-                    'total_integration_time': total_minutes  # <-- ADD THIS
-                })
-
-        # Sort projects alphabetically by name
-        temp_grouped_list.sort(key=lambda g: g['project_name'])
-
-        # Add standalone sessions at the very end
-        if None in grouped_sessions_dict:
-            grouped_sessions.extend(temp_grouped_list)  # Add sorted projects first
-            grouped_sessions.append({
-                'is_project': False,
-                'project_name': 'Standalone Sessions',
-                'sessions': grouped_sessions_dict[None]
-            })
-        else:
-            grouped_sessions = temp_grouped_list  # Case where only projects exist
-
-        # --- Logic to find the selected session and override date/location ---
-        if requested_session_id:
-            selected_session_data = next(
-                (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
-            if selected_session_data:
-                session_date_str = selected_session_data.get('session_date')
-                if session_date_str:
-                    try:
-                        session_date_obj = datetime.strptime(session_date_str, '%Y-%m-%d')
-                        effective_day, effective_month, effective_year = session_date_obj.day, session_date_obj.month, session_date_obj.year
-                    except ValueError:
-                        flash("Invalid date in session. Using current/URL date.", "warning")
-                session_loc_name = selected_session_data.get('location_name')
-                if session_loc_name:
-                    session_loc_details = g.user_config.get("locations", {}).get(session_loc_name)
-                    if session_loc_details:
-                        effective_lat, effective_lon, effective_tz_name = session_loc_details.get('lat',
-                                                                                                  effective_lat), session_loc_details.get(
-                            'lon', effective_lon), session_loc_details.get('timezone', effective_tz_name)
-                        effective_location_name = session_loc_name
-                    else:
-                        flash(f"Location '{session_loc_name}' from session not in config. Using default.", "warning")
-            elif requested_session_id:
-                flash(f"Requested session ID '{requested_session_id}' not found for this object.", "info")
-
-    try:
-        if not (1 <= effective_month <= 12): effective_month = now_at_effective_location.month
-        max_days_in_month = calendar.monthrange(effective_year, effective_month)[1]
-        if not (1 <= effective_day <= max_days_in_month):
-            effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
-        effective_date_obj = datetime(effective_year, effective_month, effective_day)
-        effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
-    except ValueError:
-        effective_date_obj, effective_date_str = now_at_effective_location.date(), now_at_effective_location.date().strftime(
-            '%Y-%m-%d')
-        effective_day, effective_month, effective_year = effective_date_obj.day, effective_date_obj.month, effective_date_obj.year
-        flash("Invalid date components, defaulting to today.", "warning")
-
-    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat,
-                                                                effective_lon)
-    try:
-        effective_local_tz = pytz.timezone(effective_tz_name)
-        dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
-        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
-        dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
-        moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 1)
-    except Exception as e:
-        print(f"Error calculating moon phase for header: {e}")
-        moon_phase_for_effective_date = "N/A"
-
-    username_for_rigs = "default" if SINGLE_USER_MODE else (
+    # --- 2. Determine username for DB queries ---
+    username = "default" if SINGLE_USER_MODE else (
         current_user.username if current_user.is_authenticated else "guest_user")
-    full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
-    final_rigs_for_template = []
-    if full_rig_config and full_rig_config.get('rigs'):
-        all_components = full_rig_config.get('components', {})
-        telescopes = {t['id']: t['name'] for t in all_components.get('telescopes', [])}
-        cameras = {c['id']: c['name'] for c in all_components.get('cameras', [])}
-        reducers = {r['id']: r['name'] for r in all_components.get('reducers_extenders', [])}
-        for rig in full_rig_config.get('rigs', []):
-            calculated_data = calculate_rig_data(rig, all_components)
-            rig.update(calculated_data)
-            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
-            cam_name = cameras.get(rig['camera_id'], 'N/A')
-            resolved_parts = [tele_name]
-            if rig.get('reducer_extender_id'):
-                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
-                resolved_parts.append(reducer_name)
-            resolved_parts.append(cam_name)
-            rig['resolved_string'] = ' + '.join(resolved_parts)
-            final_rigs_for_template.append(rig)
-    sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
-    sorted_rigs = sort_rigs_list(final_rigs_for_template, sort_preference)
 
-    object_main_details = get_ra_dec(object_name)
-    if not object_main_details or object_main_details.get("RA (hours)") is None:
-        flash(f"Details for '{object_name}' could not be found.", "error")
-        return redirect(url_for('index'))
-    is_project_active = False
+    db = get_db()
     try:
-        for _o in (g.user_config.get('objects') or []):
-            if str(_o.get('Object', '')).lower() == str(object_name).lower():
-                is_project_active = bool(_o.get('ActiveProject', False))
-                break
-    except Exception:
-        pass
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            flash(f"User '{username}' not found in database.", "error")
+            return redirect(url_for('index'))
 
-    return render_template('graph_view.html',
-                           object_name=object_name,
-                           alt_name=object_main_details.get("Common Name", object_name),
-                           object_main_details=object_main_details,
-                           available_rigs=sorted_rigs,
-                           selected_day=effective_day,
-                           selected_month=effective_month,
-                           selected_year=effective_year,
-                           header_location_name=effective_location_name,
-                           header_date_display=effective_date_obj.strftime('%d.%m.%Y'),
-                           header_moon_phase=moon_phase_for_effective_date,
-                           header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
-                           header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                           project_notes_from_config=object_main_details.get("Project", "N/A"),
-                           is_project_active=is_project_active,
-                           grouped_sessions=grouped_sessions,
-                           object_specific_sessions=object_specific_sessions,
-                           selected_session_data=selected_session_data,
-                           current_session_id=requested_session_id if selected_session_data else None,
-                           graph_lat_param=effective_lat,
-                           graph_lon_param=effective_lon,
-                           graph_tz_name_param=effective_tz_name,
-                           available_objects=get_object_list_from_config(),
-                           all_projects=all_projects,
-                           available_locations=g.locations,
-                           default_location=g.user_config.get('default_location'),
-                           stellarium_api_url_base=STELLARIUM_API_URL_BASE,
-                           today_date=datetime.now().strftime('%Y-%m-%d'))
+        # --- 3. Handle Journal Data and Date Overrides from Selected Session ---
+        requested_session_id = request.args.get('session_id')
+        selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id,
+                                                                   user_id=user.id).one_or_none() if requested_session_id else None
 
+        # Base date is today, or from URL params
+        effective_day = int(request.args.get('day', now_at_effective_location.day))
+        effective_month = int(request.args.get('month', now_at_effective_location.month))
+        effective_year = int(request.args.get('year', now_at_effective_location.year))
+
+        if selected_session_data:
+            if selected_session_data.date_utc:
+                effective_day, effective_month, effective_year = selected_session_data.date_utc.day, selected_session_data.date_utc.month, selected_session_data.date_utc.year
+
+            # Assuming JournalSession model will have a 'location_name' field
+            session_loc_name = getattr(selected_session_data, 'location_name', None)
+            if session_loc_name:
+                session_loc_details = db.query(Location).filter_by(user_id=user.id, name=session_loc_name).one_or_none()
+                if session_loc_details:
+                    effective_lat, effective_lon, effective_tz_name = session_loc_details.lat, session_loc_details.lon, session_loc_details.timezone
+                    effective_location_name = session_loc_name
+                else:
+                    flash(f"Location '{session_loc_name}' from session not found. Using default.", "warning")
+        elif requested_session_id:
+            flash(f"Requested session ID '{requested_session_id}' not found.", "info")
+
+        try:
+            effective_date_obj = datetime(effective_year, effective_month, effective_day)
+            effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            effective_date_obj = now_at_effective_location.date()
+            effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
+            flash("Invalid date components provided, defaulting to today.", "warning")
+
+        sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name,
+                                                                    effective_lat, effective_lon)
+        try:
+            effective_local_tz = pytz.timezone(effective_tz_name)
+            dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
+            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+            dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
+            moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 1)
+        except Exception:
+            moon_phase_for_effective_date = "N/A"
+
+        all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
+        object_specific_sessions = db.query(JournalSession).filter_by(user_id=user.id,
+                                                                      object_name=object_name).order_by(
+            JournalSession.date_utc.desc()).all()
+
+        projects_map = {p.id: p.name for p in all_projects}
+        grouped_sessions_dict = {}
+        for session in object_specific_sessions:
+            project_id = session.project_id
+            grouped_sessions_dict.setdefault(project_id, []).append(session)
+
+        grouped_sessions = []
+        sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
+                                    key=lambda pid: projects_map.get(pid, ''))
+        for project_id in sorted_project_ids:
+            sessions_in_group = grouped_sessions_dict[project_id]
+            total_minutes = sum(s.calculated_integration_time_minutes or 0 for s in sessions_in_group)
+            grouped_sessions.append({
+                'is_project': True, 'project_name': projects_map.get(project_id, 'Unknown Project'),
+                'sessions': sessions_in_group, 'total_integration_time': total_minutes
+            })
+        if None in grouped_sessions_dict:
+            grouped_sessions.append({
+                'is_project': False, 'project_name': 'Standalone Sessions', 'sessions': grouped_sessions_dict[None]
+            })
+
+        # --- RIG DATA LOADING ---
+        rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
+        final_rigs_for_template = []
+        for rig in rigs_from_db:
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera,
+                                                                              rig.reducer_extender)
+            fov_h = (degrees(2 * atan((
+                                                  rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0) if rig.camera and rig.camera.sensor_height_mm and efl else None
+            final_rigs_for_template.append({
+                "rig_id": rig.id,  # <-- THIS LINE IS THE FIX
+                "rig_name": rig.rig_name,
+                "effective_focal_length": efl,
+                "f_ratio": f_ratio,
+                "image_scale": scale,
+                "fov_w_arcmin": fov_w,
+                "fov_h_arcmin": fov_h
+            })
+
+        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        sort_preference = 'name-asc'
+        if prefs and prefs.json_blob:
+            try:
+                sort_preference = json.loads(prefs.json_blob).get('rig_sort', 'name-asc')
+            except:
+                pass
+        sorted_rigs = sort_rigs(final_rigs_for_template, sort_preference)
+
+        object_main_details = get_ra_dec(object_name)
+        if not object_main_details or object_main_details.get("RA (hours)") is None:
+            flash(f"Details for '{object_name}' could not be found.", "error")
+            return redirect(url_for('index'))
+
+        is_project_active = object_main_details.get('ActiveProject', False)
+        available_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).all()
+        default_location_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
+        default_location_name = default_location_obj.name if default_location_obj else None
+
+        return render_template('graph_view.html',
+                               object_name=object_name,
+                               alt_name=object_main_details.get("Common Name", object_name),
+                               object_main_details=object_main_details,
+                               available_rigs=sorted_rigs,
+                               selected_day=effective_date_obj.day,
+                               selected_month=effective_date_obj.month,
+                               selected_year=effective_date_obj.year,
+                               header_location_name=effective_location_name,
+                               header_date_display=effective_date_obj.strftime('%d.%m.%Y'),
+                               header_moon_phase=moon_phase_for_effective_date,
+                               header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                               header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                               project_notes_from_config=object_main_details.get("Project", "N/A"),
+                               is_project_active=is_project_active,
+                               grouped_sessions=grouped_sessions,
+                               object_specific_sessions=object_specific_sessions,
+                               selected_session_data=selected_session_data,
+                               current_session_id=requested_session_id if selected_session_data else None,
+                               graph_lat_param=effective_lat,
+                               graph_lon_param=effective_lon,
+                               graph_tz_name_param=effective_tz_name,
+                               available_objects=available_objects,
+                               all_projects=all_projects,
+                               available_locations=available_locations,
+                               default_location=default_location_name,
+                               stellarium_api_url_base=STELLARIUM_API_URL_BASE,
+                               today_date=datetime.now().strftime('%Y-%m-%d'))
+    finally:
+        db.close()
 
 @app.route('/get_date_info/<object_name>')
 def get_date_info(object_name):
