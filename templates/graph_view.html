@@ -5,6 +5,10 @@
 {% block head_extra %}
 
 <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+<script>
+    // Safely convert the Python object to a JavaScript object
+    const selectedSessionData = {{ selected_session_data_dict | tojson }};
+  </script>
 <style>
     body {
         padding: 20px;
