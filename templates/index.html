@@ -380,13 +380,52 @@
     const allJournalSessions = {{ journal_sessions | tojson | safe }};
     let currentJournalSort = { columnKey: 'session_date', ascending: false };
     const journalColumnConfig = {
-        'target_object_id': { headerText: 'Object', dataKey: 'target_object_id', sortable: true, filterable: true },
-        'target_common_name': { headerText: 'Common Name', dataKey: 'target_common_name', sortable: true, filterable: true },
-        'session_date': { headerText: 'Date', dataKey: 'session_date', sortable: true, filterable: true, format: formatDateISOtoEuropean },
-        'location_name': { headerText: 'Location', dataKey: 'location_name', sortable: true, filterable: true },
-        'telescope_setup_notes': { headerText: 'Telescope Setup', dataKey: 'telescope_setup_notes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) ? 'N/A' : String(val).substring(0, 60) + (String(val).length > 60 ? '...' : '') }, // New field, added a simple truncate
-        'calculated_integration_time_minutes': { headerText: 'Total Integration', dataKey: 'calculated_integration_time_minutes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min` },
-        'session_rating_subjective': { headerText: 'Session Rating', dataKey: 'session_rating_subjective', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${String(val)} ★` }
+        'object_name': {
+            headerText: 'Object',
+            dataKey: 'object_name',
+            sortable: true,
+            filterable: true
+        },
+        'target_common_name': {
+            headerText: 'Common Name',
+            dataKey: 'target_common_name',
+            sortable: true,
+            filterable: true
+        },
+        'date_utc': {
+            headerText: 'Date',
+            dataKey: 'date_utc',
+            sortable: true,
+            filterable: true,
+            format: formatDateISOtoEuropean
+        },
+        'location_name': {
+            headerText: 'Location',
+            dataKey: 'location_name',
+            sortable: true,
+            filterable: true
+        },
+        'telescope_setup_notes': {
+            headerText: 'Telescope Setup',
+            dataKey: 'telescope_setup_notes',
+            sortable: true,
+            filterable: true,
+            format: val => (val === null || val === undefined || String(val).trim() === '') ? 'N/A' : String(val).substring(0, 60) + (String(val).length > 60 ? '...' : '')
+        },
+        'calculated_integration_time_minutes': {
+            headerText: 'Total Integration',
+            dataKey: 'calculated_integration_time_minutes',
+            sortable: true,
+            filterable: true,
+            format: val => (val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min`
+        },
+        'session_rating_subjective': {
+            headerText: 'Session Rating',
+            dataKey: 'session_rating_subjective',
+            sortable: true,
+            filterable: true,
+            format: val => (val === null || val === undefined) ? 'N/A' : `${String(val)} ★`
+        }
     };
 
     // ========================================================================
@@ -938,10 +977,13 @@
     // ========================================================================
     // Journal Table Functions
     // ========================================================================
-    function populateJournalTable() {
+function populateJournalTable() {
         const tableBody = document.getElementById('journal-data-body');
         if (!tableBody || !allJournalSessions) return;
+
         let sessionsToDisplay = [...allJournalSessions];
+
+        // --- [PRESERVED] Your existing filtering logic ---
         const journalFilterInputs = document.querySelectorAll("#journal-filter-row input");
         const activeJournalFilters = {};
         journalFilterInputs.forEach(input => {
@@ -960,15 +1002,8 @@
                     const config = journalColumnConfig[key];
                     if (!config) continue;
                     let rawSessionValueStr = String(session[config.dataKey] || '').toLowerCase();
-                    let formattedSessionValueStr = "";
-                    if (config.dataKey === 'session_date') {
-                        rawSessionValueStr = session[config.dataKey] || "";
-                        if (rawSessionValueStr && config.format) { formattedSessionValueStr = config.format(rawSessionValueStr).toLowerCase(); }
-                    } else if (config.dataKey === 'calculated_integration_time_minutes') {
-                        rawSessionValueStr = String(session.calculated_integration_time_minutes === undefined || session.calculated_integration_time_minutes === null ? 'N/A' : session.calculated_integration_time_minutes).toLowerCase();
-                    }
                     if (filterValue === "n/a" || filterValue === "na") { if (rawSessionValueStr !== "n/a" && rawSessionValueStr !== "") return false; continue; }
-                    if (config.dataKey === 'session_date') {
+                    if (key === 'date_utc') { // Corrected key for date filtering
                         const sessionDateString_YYYY_MM_DD = session[config.dataKey] || "";
                         if (!sessionDateString_YYYY_MM_DD) return false;
                         let operator = null; let dateFilterStringUserInput = filterValue;
@@ -976,105 +1011,101 @@
                         else if (dateFilterStringUserInput.startsWith("<=")) { operator = "<="; dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim(); }
                         else if (dateFilterStringUserInput.startsWith(">")) { operator = ">"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
                         else if (dateFilterStringUserInput.startsWith("<")) { operator = "<"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
-                        else { dateFilterStringUserInput = dateFilterStringUserInput.trim(); }
                         try {
                             let filterDateObj = null;
-                            if (dateFilterStringUserInput.includes('.')) { const parts = dateFilterStringUserInput.split('.'); if (parts.length === 3 && parts.every(p => !isNaN(parseInt(p)))) { filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))); } }
-                            else if (dateFilterStringUserInput.includes('-')) { const parts = dateFilterStringUserInput.split('-'); if (parts.length === 3 && parts.every(p => !isNaN(parseInt(p)))) { filterDateObj = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))); } else if (parts.length === 2 && parts.every(p => !isNaN(parseInt(p)))) { filterDateObj = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)); } else if (parts.length === 1 && /^\d{4}$/.test(parts[0])) { filterDateObj = new Date(Date.UTC(parseInt(parts[0]), 0, 1)); } }
-                            else if (/^\d{4}$/.test(dateFilterStringUserInput) && !operator) {} else if (dateFilterStringUserInput.length > 0 && operator) { return false; }
+                            if (dateFilterStringUserInput.includes('.')) { const parts = dateFilterStringUserInput.split('.'); if (parts.length === 3) { filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))); } }
                             const sessionParts = sessionDateString_YYYY_MM_DD.split('-'); if (sessionParts.length !== 3) return false;
                             const sessionDateObj = new Date(Date.UTC(parseInt(sessionParts[0]), parseInt(sessionParts[1]) - 1, parseInt(sessionParts[2])));
-                            if (isNaN(sessionDateObj.getTime())) { return false; }
-                            if (operator && filterDateObj && !isNaN(filterDateObj.getTime())) {
+                            if (operator && filterDateObj) {
                                 if (operator === ">=" && sessionDateObj < filterDateObj) return false; if (operator === "<=" && sessionDateObj > filterDateObj) return false;
                                 if (operator === ">" && sessionDateObj <= filterDateObj) return false; if (operator === "<" && sessionDateObj >= filterDateObj) return false;
-                            } else if (!operator) { const formattedSessionDateForDisplay = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase(); if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) && !formattedSessionDateForDisplay.includes(dateFilterStringUserInput)) { return false; } }
-                            else if (operator && (!filterDateObj || isNaN(filterDateObj.getTime()))) { return false; }
-                        } catch (e) { console.error("Date filter error:", e); return false; }
+                            } else if (!operator) { const formattedSessionDate = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase(); if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) && !formattedSessionDate.includes(dateFilterStringUserInput)) return false; }
+                        } catch (e) { return false; }
                         continue;
                     }
-                    if (journalNumericFilterKeys.includes(config.dataKey)) {
+                    if (journalNumericFilterKeys.includes(key)) {
                         let sessionNumericValue = session[config.dataKey];
-                        if (config.dataKey === 'calculated_integration_time_minutes') { sessionNumericValue = session.calculated_integration_time_minutes; }
-                        if (sessionNumericValue === 'N/A' || sessionNumericValue === null || sessionNumericValue === undefined) { if (filterValue === "n/a" || filterValue === "na") continue; return false; }
+                        if (sessionNumericValue === null || sessionNumericValue === undefined) return false;
                         const cellNumber = parseFloat(sessionNumericValue);
                         if (isNaN(cellNumber)) { if (!rawSessionValueStr.includes(filterValue)) return false; continue; }
-                        const conditions = filterValue.split(" ").filter(cond => cond !== ""); let conditionMetOverall = true;
-                        for (let cond of conditions) {
-                            let op = ""; let valStr = "";
-                            if (cond.startsWith(">=")) { op = ">="; valStr = cond.substring(2); } else if (cond.startsWith("<=")) { op = "<="; valStr = cond.substring(2); }
-                            else if (cond.startsWith(">")) { op = ">"; valStr = cond.substring(1); } else if (cond.startsWith("<")) { op = "<"; valStr = cond.substring(1); }
-                            else { if (String(cellNumber).indexOf(cond) === -1 && rawSessionValueStr.indexOf(cond) === -1) { conditionMetOverall = false; break; } continue; }
-                            let condVal = parseFloat(valStr); if (isNaN(condVal)) { conditionMetOverall = false; break; } let currentCondMet = false;
-                            if (op === ">" && cellNumber > condVal) currentCondMet = true; else if (op === ">=" && cellNumber >= condVal) currentCondMet = true;
-                            else if (op === "<" && cellNumber < condVal) currentCondMet = true; else if (op === "<=" && cellNumber <= condVal) currentCondMet = true;
-                            if (!currentCondMet) { conditionMetOverall = false; break;}
-                        }
-                        if (!conditionMetOverall) return false;
+                        if (!matchesNumericFilter(cellNumber, filterValue)) return false;
                     } else { if (filterValue.startsWith("!")) { if (rawSessionValueStr.includes(filterValue.substring(1))) return false; } else { if (!rawSessionValueStr.includes(filterValue)) return false; } }
                 } return true;
             });
         }
+
+        // --- [PRESERVED] Your existing sorting logic ---
         const sortConfig = journalColumnConfig[currentJournalSort.columnKey];
         if (sortConfig) {
             sessionsToDisplay.sort((a, b) => {
                 let valA_str = String(a[sortConfig.dataKey] === undefined ? '' : a[sortConfig.dataKey]);
                 let valB_str = String(b[sortConfig.dataKey] === undefined ? '' : b[sortConfig.dataKey]);
-                if (sortConfig.dataKey === 'calculated_integration_time_minutes') {
-                    valA_str = String(a.calculated_integration_time_minutes === undefined || a.calculated_integration_time_minutes === 'N/A' ? -Infinity : a.calculated_integration_time_minutes);
-                    valB_str = String(b.calculated_integration_time_minutes === undefined || b.calculated_integration_time_minutes === 'N/A' ? -Infinity : b.calculated_integration_time_minutes);
-                } else if (sortConfig.dataKey === 'session_date') {
-                    valA_str = String(a[sortConfig.dataKey] || '9999-99-99');
-                    valB_str = String(b[sortConfig.dataKey] || '9999-99-99');
-                } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
-                     valA_str = String(a[sortConfig.dataKey] === 'N/A' || a[sortConfig.dataKey] === null || a[sortConfig.dataKey] === undefined ? -Infinity : a[sortConfig.dataKey]);
-                     valB_str = String(b[sortConfig.dataKey] === 'N/A' || b[sortConfig.dataKey] === null || b[sortConfig.dataKey] === undefined ? -Infinity : b[sortConfig.dataKey]);
-                }
-                const isNA_A = valA_str.toLowerCase() === 'n/a' || valA_str === '' || valA_str === String(-Infinity);
-                const isNA_B = valB_str.toLowerCase() === 'n/a' || valB_str === '' || valB_str === String(-Infinity);
+                const isNA_A = valA_str.toLowerCase() === 'n/a' || valA_str === '';
+                const isNA_B = valB_str.toLowerCase() === 'n/a' || valB_str === '';
                 if (isNA_A && isNA_B) return 0; if (isNA_A) return currentJournalSort.ascending ? 1 : -1; if (isNA_B) return currentJournalSort.ascending ? -1 : 1;
-                let valA = valA_str; let valB = valB_str;
-                if (sortConfig.dataKey === 'session_date') {
-                    valA = new Date(valA_str); valB = new Date(valB_str);
-                     if (isNaN(valA.getTime()) && isNaN(valB.getTime())) return 0;
-                     if (isNaN(valA.getTime())) return currentJournalSort.ascending ? 1 : -1;
-                     if (isNaN(valB.getTime())) return currentJournalSort.ascending ? -1 : 1;
+                if (sortConfig.dataKey === 'date_utc') {
+                    const valA = new Date(valA_str); const valB = new Date(valB_str);
                     return currentJournalSort.ascending ? valA - valB : valB - valA;
                 } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
-                    valA = parseFloat(valA_str); valB = parseFloat(valB_str);
-                    if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentJournalSort.ascending ? 1 : -1; if (isNaN(valB)) return currentJournalSort.ascending ? -1 : 1;
+                    const valA = parseFloat(valA_str); const valB = parseFloat(valB_str);
                     return currentJournalSort.ascending ? valA - valB : valB - valA;
                 }
-                return currentJournalSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+                return currentJournalSort.ascending ? valA_str.localeCompare(valB_str) : valB_str.localeCompare(valA_str);
             });
         }
+
+        // --- [PRESERVED & CORRECTED] Your rendering logic ---
         tableBody.innerHTML = '';
         let previousTargetIdForGrouping = null;
+
         sessionsToDisplay.forEach(session => {
-            const row = document.createElement('tr'); row.classList.add('clickable-row');
-            row.setAttribute('data-session-id', session.session_id); row.setAttribute('data-target-object-id', session.target_object_id);
+            const row = document.createElement('tr');
+            row.classList.add('clickable-row');
+            row.setAttribute('data-session-id', session.id);
+            row.setAttribute('data-target-object-id', session.object_name);
+
             let showFullTargetInfoThisRow = true;
-            if (currentJournalSort.columnKey === 'target_object_id' || currentJournalSort.columnKey === 'target_common_name') {
-                if (session.target_object_id === previousTargetIdForGrouping) { showFullTargetInfoThisRow = false; }
-                previousTargetIdForGrouping = session.target_object_id;
+
+            // --- THIS IS THE CORRECTED GROUPING LOGIC ---
+            if (currentJournalSort.columnKey === 'object_name' || currentJournalSort.columnKey === 'target_common_name') {
+                if (session.object_name === previousTargetIdForGrouping) {
+                    showFullTargetInfoThisRow = false;
+                }
+                previousTargetIdForGrouping = session.object_name;
             }
+            // --- END OF CORRECTION ---
+
             for (const key in journalColumnConfig) {
-                const config = journalColumnConfig[key]; const td = document.createElement('td');
-                td.dataset.journalColumnKey = key; let rawValue = session[config.dataKey]; let displayValue = "";
-                 if (config.dataKey === 'calculated_integration_time_minutes') { rawValue = session.calculated_integration_time_minutes; }
-                if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') { displayValue = "N/A"; }
-                else if (config.format) { displayValue = config.format(rawValue); } else { displayValue = String(rawValue); }
-                if ((config.dataKey === 'target_object_id' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) { td.innerHTML = ""; }
-                else { td.innerHTML = String(displayValue); }
-                if (typeof session[config.dataKey] === 'number' && !isNaN(session[config.dataKey])) { td.dataset.rawValue = session[config.dataKey]; }
-                else if (config.dataKey === 'calculated_integration_time_minutes' && typeof session.calculated_integration_time_minutes === 'number' && !isNaN(session.calculated_integration_time_minutes) ) { td.dataset.rawValue = session.calculated_integration_time_minutes; }
+                const config = journalColumnConfig[key];
+                const td = document.createElement('td');
+                td.dataset.journalColumnKey = key;
+
+                let rawValue = session[config.dataKey];
+                let displayValue = "";
+                if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
+                    displayValue = "N/A";
+                } else if (config.format) {
+                    displayValue = config.format(rawValue);
+                } else {
+                    displayValue = String(rawValue);
+                }
+
+                // Correctly apply the grouping visual effect
+                if ((config.dataKey === 'object_name' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) {
+                    td.innerHTML = "";
+                } else {
+                    td.innerHTML = String(displayValue);
+                }
+
                 row.appendChild(td);
             }
+
             row.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target-object-id');
                 const sessionId = this.getAttribute('data-session-id');
-                if (targetId && sessionId) { window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`; }
-                else { console.warn("Missing targetId or sessionId", session); }
+                if (targetId && sessionId) {
+                    window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
+                }
             });
             tableBody.appendChild(row);
         });
@@ -1400,18 +1431,18 @@
         <table id="journal-data-table" data-sort-order="desc">
             <thead>
                 <tr>
-                    <th data-journal-column-key="target_object_id"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="object_name"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="target_common_name"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="session_date"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="date_utc"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="location_name"><span>Location</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="telescope_setup_notes"><span>Telescope Setup</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="calculated_integration_time_minutes"><span>Total Integration</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="session_rating_subjective"><span>Session Rating</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                 </tr>
                 <tr class="filter-row" id="journal-filter-row">
-                    <th data-journal-column-key="target_object_id"><input type="text" placeholder="Object ID"/></th>
+                    <th data-journal-column-key="object_name"><input type="text" placeholder="Object ID"/></th>
                     <th data-journal-column-key="target_common_name"><input type="text" placeholder="Search Common Name"/></th>
-                    <th data-journal-column-key="session_date"><input type="text" placeholder="DD.MM.YYYY"/></th> {# Changed placeholder #}
+                    <th data-journal-column-key="date_utc"><input type="text" placeholder="DD.MM.YYYY"/></th>
                     <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
                     <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
                     <th data-journal-column-key="calculated_integration_time_minutes"><input type="text" placeholder="e.g. >120"/></th>

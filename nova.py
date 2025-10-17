@@ -4710,57 +4710,52 @@ def get_object_data(object_name):
         'ActiveProject': active_flag
     }
     return jsonify(single_object_data)
+
+
 @app.route('/')
 def index():
-    if SINGLE_USER_MODE:
-        username = "default"
-        # g.is_guest is likely set to False by your before_request that logs in a dummy user
-    elif current_user.is_authenticated:
-        username = current_user.username
-    else:
-        # If guests can view the index page but have no specific journal,
-        # or if you have a 'journal_guest.yaml'.
-        # For now, assuming a guest might get an empty journal or one named 'guest_user'.
-        # Your @app.before_request loads config for 'guest_user' if not authenticated,
-        # so we can try to load a journal for 'guest_user'.
-        username = "guest_user"
+    if not (current_user.is_authenticated or SINGLE_USER_MODE):
+        return redirect(url_for('login'))
 
-    journal_data = load_journal(username)  # Your function to load journal YAML
-    sessions = journal_data.get('sessions', [])
-
-    # --- Add target_common_name and calculated_integration_time to each session ---
-    # This assumes g.user_config is populated by your @app.before_request
-    # and contains the 'objects' list.
-    objects_from_config = []
-    if hasattr(g, 'user_config') and g.user_config and "objects" in g.user_config:
-        objects_from_config = g.user_config.get("objects", [])
-
-    object_names_lookup = {
-        obj.get("Object"): obj.get("Name", obj.get("Object"))  # Fallback to Object ID if Name is missing
-        for obj in objects_from_config if obj.get("Object")  # Ensure obj has an "Object" key
-    }
-    for session_entry in sessions:
-        target_id = session_entry.get('target_object_id')
-        if target_id:
-            # Look up the common name, default to 'N/A' if not found
-            common_name = object_names_lookup.get(target_id, 'N/A')
-            session_entry['target_common_name'] = common_name
-        else:
-            session_entry['target_common_name'] = 'N/A'
-
-    # Sort sessions by date descending by default for the journal tab initial view
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
-    except Exception as e:
-        print(f"Warning: Could not sort journal sessions by date in index route: {e}")
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            # Handle case where user is authenticated but not yet in app.db
+            return render_template('index.html', journal_sessions=[])
 
-    return render_template('index.html',
-                           journal_sessions=sessions
-                           # Pass any other variables your index.html template already expects.
-                           # For example, if your base.html or index.html uses 'is_guest':
-                           # is_guest = g.is_guest if hasattr(g, 'is_guest') else (not current_user.is_authenticated and not SINGLE_USER_MODE)
-                           )
+        sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
+        objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
+        object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
 
+        # --- THIS IS THE CRITICAL FIX ---
+        # Convert the list of objects into a list of JSON-safe dictionaries
+        sessions_for_template = []
+        for session in sessions:
+            # Create a dictionary from the database object's columns
+            session_dict = {c.name: getattr(session, c.name) for c in session.__table__.columns}
+
+            # Convert the date object to an ISO string for JavaScript
+            if isinstance(session_dict.get('date_utc'), (datetime, date)):
+                session_dict['date_utc'] = session_dict['date_utc'].isoformat()
+
+            # Add the common name for convenience in the template
+            session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
+
+            sessions_for_template.append(session_dict)
+        # --- END OF FIX ---
+
+        local_tz = pytz.timezone(g.tz_name or 'UTC')
+        now_local = datetime.now(local_tz)
+
+        return render_template('index.html',
+                               journal_sessions=sessions_for_template,  # Pass the new list of dictionaries
+                               selected_day=now_local.day,
+                               selected_month=now_local.month,
+                               selected_year=now_local.year)
+    finally:
+        db.close()
 
 @app.route('/sun_events')
 def sun_events():
