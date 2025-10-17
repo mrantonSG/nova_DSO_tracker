@@ -618,7 +618,7 @@
                         <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
                         <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
                         <div></div>
-                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ loc_val.get('comments', '')|length }} / 500</small>
+                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ (loc_val.get('comments') or '')|length }} / 500</small>
                     </div>
                 </div>
             </div>
