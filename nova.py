@@ -2830,354 +2830,234 @@ def get_latest_version():
 @login_required
 def add_component():
     username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+        user = db.query(DbUser).filter_by(username=username).one()
+        form = request.form
+        kind = form.get('component_type').replace('s', '').replace('ie', 'y') # 'telescopes' -> 'telescope'
 
-        component_id = request.form.get('component_id')
-        component_type_plural = request.form.get('component_type')  # This will be 'telescopes', 'cameras', etc.
-        component_name = request.form.get('name')
+        new_comp = Component(user_id=user.id, kind=kind, name=form.get('name'))
+        if kind == 'telescope':
+            new_comp.aperture_mm = float(form.get('aperture_mm'))
+            new_comp.focal_length_mm = float(form.get('focal_length_mm'))
+        elif kind == 'camera':
+            new_comp.sensor_width_mm = float(form.get('sensor_width_mm'))
+            new_comp.sensor_height_mm = float(form.get('sensor_height_mm'))
+            new_comp.pixel_size_um = float(form.get('pixel_size_um'))
+        elif kind == 'reducer_extender':
+            new_comp.factor = float(form.get('factor'))
 
-        if not component_type_plural or not component_name:
-            flash("Component type and name are required.", "error")
-            return redirect(url_for('config_form'))
-
-        # Check if this is an UPDATE or an ADD
-        if component_id:
-            # --- This is an UPDATE ---
-            component_to_update = next(
-                (c for c in rig_data['components'][component_type_plural] if c['id'] == component_id), None)
-            if not component_to_update:
-                flash('Component to update not found.', 'error')
-                return redirect(url_for('config_form'))
-
-            # Update the fields
-            component_to_update['name'] = component_name
-            if component_type_plural == 'telescopes':
-                component_to_update['aperture_mm'] = float(request.form.get('aperture_mm'))
-                component_to_update['focal_length_mm'] = float(request.form.get('focal_length_mm'))
-            elif component_type_plural == 'cameras':
-                component_to_update['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
-                component_to_update['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
-                component_to_update['pixel_size_um'] = float(request.form.get('pixel_size_um'))
-            elif component_type_plural == 'reducers_extenders':
-                component_to_update['factor'] = float(request.form.get('factor'))
-
-            flash(f"Component '{component_name}' updated successfully.", "success")
-
-        else:
-            # --- This is an ADD ---
-            new_component = {"id": uuid.uuid4().hex, "name": component_name}
-            if component_type_plural == 'telescopes':
-                new_component['aperture_mm'] = float(request.form.get('aperture_mm'))
-                new_component['focal_length_mm'] = float(request.form.get('focal_length_mm'))
-            elif component_type_plural == 'cameras':
-                new_component['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
-                new_component['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
-                new_component['pixel_size_um'] = float(request.form.get('pixel_size_um'))
-            elif component_type_plural == 'reducers_extenders':
-                new_component['factor'] = float(request.form.get('factor'))
-
-            rig_data['components'][component_type_plural].append(new_component)
-            flash(f"Component '{component_name}' added successfully.", "success")
-
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-        rig_data_cache.clear()
-
-    except (ValueError, TypeError) as e:
-        flash(f"Invalid data provided. Please ensure all numbers are valid. Error: {e}", "error")
+        db.add(new_comp)
+        db.commit()
+        flash(f"Component '{new_comp.name}' added successfully.", "success")
     except Exception as e:
-        flash(f"An unexpected error occurred: {e}", "error")
-
+        db.rollback()
+        flash(f"Error adding component: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
-
 
 @app.route('/update_component', methods=['POST'])
 @login_required
 def update_component():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+        form = request.form
+        comp_id = int(form.get('component_id'))
+        comp = db.get(Component, comp_id)
 
-        component_id = request.form.get('component_id')
-        # The form sends the PLURAL key (e.g., 'telescopes') in this field
-        component_type_plural = request.form.get('component_type')
-
-        if not all([component_id, component_type_plural]):
-            flash('Missing component data for update.', 'error')
+        # Security check: ensure component belongs to the current user
+        if comp.user.username != ("default" if SINGLE_USER_MODE else current_user.username):
+            flash("Authorization error.", "error")
             return redirect(url_for('config_form'))
 
-        # Find the component to update using the plural key
-        component_to_update = next(
-            (c for c in rig_data['components'][component_type_plural] if c['id'] == component_id), None)
+        comp.name = form.get('name')
+        if comp.kind == 'telescope':
+            comp.aperture_mm = float(form.get('aperture_mm'))
+            comp.focal_length_mm = float(form.get('focal_length_mm'))
+        elif comp.kind == 'camera':
+            comp.sensor_width_mm = float(form.get('sensor_width_mm'))
+            comp.sensor_height_mm = float(form.get('sensor_height_mm'))
+            comp.pixel_size_um = float(form.get('pixel_size_um'))
+        elif comp.kind == 'reducer_extender':
+            comp.factor = float(form.get('factor'))
 
-        if not component_to_update:
-            flash('Component not found for update.', 'error')
-            return redirect(url_for('config_form'))
-
-        # Update common field
-        component_to_update['name'] = request.form.get('name')
-
-        # Update specific fields based on the plural type
-        if component_type_plural == 'telescopes':
-            component_to_update['aperture_mm'] = float(request.form.get('aperture_mm'))
-            component_to_update['focal_length_mm'] = float(request.form.get('focal_length_mm'))
-        elif component_type_plural == 'cameras':
-            component_to_update['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
-            component_to_update['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
-            component_to_update['pixel_size_um'] = float(request.form.get('pixel_size_um'))
-        elif component_type_plural == 'reducers_extenders':
-            component_to_update['factor'] = float(request.form.get('factor'))
-
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-        rig_data_cache.clear()
-
-        # Create a user-friendly name for the flash message
-        display_type = component_type_plural.replace('_', ' ').replace('reducers', 'reducer').rstrip('s').title()
-        flash(f"{display_type} '{component_to_update['name']}' updated successfully.", "success")
-
-    except (ValueError, TypeError) as e:
-        flash(f"Invalid data for update. Please ensure all numbers are valid. Error: {e}", "error")
+        db.commit()
+        flash(f"Component '{comp.name}' updated successfully.", "success")
     except Exception as e:
-        flash(f"An unexpected error occurred during update: {e}", "error")
-
+        db.rollback()
+        flash(f"Error updating component: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
 
 @app.route('/add_rig', methods=['POST'])
 @login_required
 def add_rig():
     username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
-        rig_name = request.form.get('rig_name')
-        telescope_id = request.form.get('telescope_id')
-        camera_id = request.form.get('camera_id')
-        reducer_extender_id = request.form.get('reducer_extender_id')
-        rig_id = request.form.get('rig_id') # Will be empty for new rigs
+        user = db.query(DbUser).filter_by(username=username).one()
+        form = request.form
+        rig_id = form.get('rig_id')
 
-        if not rig_name or not telescope_id or not camera_id:
-            flash("Rig Name, Telescope, and Camera are all required.", "error")
-            return redirect(url_for('config_form'))
+        tel_id = int(form.get('telescope_id'))
+        cam_id = int(form.get('camera_id'))
+        red_id_str = form.get('reducer_extender_id')
+        red_id = int(red_id_str) if red_id_str else None
 
-        rig_details = {
-            "rig_name": rig_name,
-            "telescope_id": telescope_id,
-            "camera_id": camera_id,
-            "reducer_extender_id": reducer_extender_id if reducer_extender_id else None
-        }
+        if rig_id: # Update
+            rig = db.get(Rig, int(rig_id))
+            rig.rig_name = form.get('rig_name')
+            rig.telescope_id, rig.camera_id, rig.reducer_extender_id = tel_id, cam_id, red_id
+            flash(f"Rig '{rig.rig_name}' updated successfully.", "success")
+        else: # Add
+            new_rig = Rig(
+                user_id=user.id, rig_name=form.get('rig_name'),
+                telescope_id=tel_id, camera_id=cam_id, reducer_extender_id=red_id
+            )
+            db.add(new_rig)
+            flash(f"Rig '{new_rig.rig_name}' created successfully.", "success")
 
-        if rig_id:  # This is an UPDATE
-            found = False
-            for i, rig in enumerate(rig_data['rigs']):
-                if rig.get('rig_id') == rig_id:
-                    rig_data['rigs'][i].update(rig_details)
-                    found = True
-                    break
-            if found:
-                flash(f"Rig '{rig_name}' updated successfully.", "success")
-            else:
-                flash(f"Error: Rig with ID {rig_id} not found for update.", "error")
-        else:  # This is an ADD
-            rig_details["rig_id"] = uuid.uuid4().hex
-            rig_data['rigs'].append(rig_details)
-            flash(f"Rig '{rig_name}' created successfully.", "success")
-
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-        rig_data_cache.clear()
-
+        db.commit()
     except Exception as e:
-        flash(f"An unexpected error occurred while creating/updating the rig: {e}", "error")
-
+        db.rollback()
+        flash(f"Error saving rig: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
 
 @app.route('/delete_component', methods=['POST'])
 @login_required
 def delete_component():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        component_id = request.form.get('component_id')
-        component_type = request.form.get('component_type') # e.g., 'telescopes'
-        if not component_id or not component_type:
-            flash("Missing component ID or type for deletion.", "error")
-            return redirect(url_for('config_form'))
+        comp_id = int(request.form.get('component_id'))
+        # Check if component is in use by any rig for this user
+        in_use = db.query(Rig).filter(
+            (Rig.telescope_id == comp_id) |
+            (Rig.camera_id == comp_id) |
+            (Rig.reducer_extender_id == comp_id)
+        ).first()
 
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
-
-        # Check for dependencies in rigs
-        is_in_use = False
-        for rig in rig_data.get('rigs', []):
-            if component_id in [rig.get('telescope_id'), rig.get('camera_id'), rig.get('reducer_extender_id')]:
-                is_in_use = True
-                break
-
-        if is_in_use:
-            flash(f"Cannot delete component: It is currently used in at least one rig.", "error")
-            return redirect(url_for('config_form'))
-
-        # If not in use, proceed with deletion
-        component_list = rig_data.get('components', {}).get(component_type, [])
-        original_len = len(component_list)
-        rig_data['components'][component_type] = [c for c in component_list if c.get('id') != component_id]
-
-        if len(rig_data['components'][component_type]) < original_len:
-            rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-            rig_data_cache.clear()
-            flash("Component deleted successfully.", "success")
+        if in_use:
+            flash("Cannot delete component: It is used in at least one rig.", "error")
         else:
-            flash("Component not found for deletion.", "error")
-
+            comp_to_delete = db.get(Component, comp_id)
+            db.delete(comp_to_delete)
+            db.commit()
+            flash("Component deleted successfully.", "success")
     except Exception as e:
-        flash(f"An error occurred during component deletion: {e}", "error")
-
+        db.rollback()
+        flash(f"Error deleting component: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
-
 
 @app.route('/delete_rig', methods=['POST'])
 @login_required
 def delete_rig():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_id = request.form.get('rig_id')
-        if not rig_id:
-            flash("Missing rig ID for deletion.", "error")
-            return redirect(url_for('config_form'))
-
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
-        rigs_list = rig_data.get('rigs', [])
-        original_len = len(rigs_list)
-        rig_data['rigs'] = [r for r in rigs_list if r.get('rig_id') != rig_id]
-
-        if len(rig_data['rigs']) < original_len:
-            rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-            rig_data_cache.clear()
-            flash("Rig deleted successfully.", "success")
-        else:
-            flash("Rig not found for deletion.", "error")
-
+        rig_id = int(request.form.get('rig_id'))
+        rig_to_delete = db.get(Rig, rig_id)
+        db.delete(rig_to_delete)
+        db.commit()
+        flash("Rig deleted successfully.", "success")
     except Exception as e:
-        flash(f"An error occurred during rig deletion: {e}", "error")
-
+        db.rollback()
+        flash(f"Error deleting rig: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
+
 
 @app.route('/set_rig_sort_preference', methods=['POST'])
 @login_required
 def set_rig_sort_preference():
-    """Save the user's rig sort preference (e.g., 'name-asc') into their config YAML."""
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        data = request.get_json(force=True) or {}
-        sort_value = data.get('sort', 'name-asc')
+        user = db.query(DbUser).filter_by(username=username).one()
+        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        if not prefs:
+            prefs = UiPref(user_id=user.id, json_blob='{}')
+            db.add(prefs)
 
-        username = "default" if SINGLE_USER_MODE else current_user.username
+        try:
+            settings = json.loads(prefs.json_blob or '{}')
+        except json.JSONDecodeError:
+            settings = {}
 
-        # Load existing config
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
+        sort_value = request.get_json(force=True).get('sort', 'name-asc')
+        settings['rig_sort'] = sort_value
+        prefs.json_blob = json.dumps(settings)
 
-        # Ensure ui_preferences section exists
-        if 'ui_preferences' not in rig_data:
-            rig_data['ui_preferences'] = {}
-
-        # Save the new sort order
-        rig_data['ui_preferences']['sort_order'] = sort_value
-
-        # Persist the updated config
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-
+        db.commit()
         return jsonify({"status": "ok", "sort_order": sort_value})
     except Exception as e:
-        print(f"[set_rig_sort_preference] Error: {e}")
+        db.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
 
 @app.route('/get_rig_data')
 @login_required
 def get_rig_data():
-    """Return components + rigs with calculated fields, sorted per the user's saved preference.
-       Also includes `sort_preference` so the frontend can sync its dropdown/state."""
     username = "default" if SINGLE_USER_MODE else current_user.username
-
-    # Load full rig config (components, rigs, ui_preferences, etc.)
-    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
-
-    # Ensure expected keys exist
-    rig_data.setdefault('components', {
-        'telescopes': [],
-        'cameras': [],
-        'reducers_extenders': []
-    })
-    rig_data.setdefault('rigs', [])
-    rig_data.setdefault('ui_preferences', {})
-
-    # Calculate derived fields for each rig (image scale, f/ratio, FOV, etc.)
+    db = get_db()
     try:
-        components = rig_data.get('components', {})
-        for rig in rig_data['rigs']:
+        user = db.query(DbUser).filter_by(username=username).one()
+
+        # Fetch all components for the user
+        components = db.query(Component).filter_by(user_id=user.id).all()
+        telescopes = [c for c in components if c.kind == 'telescope']
+        cameras = [c for c in components if c.kind == 'camera']
+        reducers = [c for c in components if c.kind == 'reducer_extender']
+
+        # Fetch all rigs and their related components eagerly
+        rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
+
+        # Assemble the data structure for the frontend
+        components_dict = {
+            "telescopes": [{"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm} for c in telescopes],
+            "cameras": [{"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm, "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um} for c in cameras],
+            "reducers_extenders": [{"id": c.id, "name": c.name, "factor": c.factor} for c in reducers]
+        }
+
+        rigs_list = []
+        for r in rigs_from_db:
+            # Use the already fetched components to calculate rig data
+            tel_obj = next((c for c in telescopes if c.id == r.telescope_id), None)
+            cam_obj = next((c for c in cameras if c.id == r.camera_id), None)
+            red_obj = next((c for c in reducers if c.id == r.reducer_extender_id), None)
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
+            fov_h = (degrees(2 * atan((cam_obj.sensor_height_mm / 2.0) / efl)) * 60.0) if cam_obj and cam_obj.sensor_height_mm and efl else None
+
+            rigs_list.append({
+                "rig_id": r.id, "rig_name": r.rig_name,
+                "telescope_id": r.telescope_id, "camera_id": r.camera_id, "reducer_extender_id": r.reducer_extender_id,
+                "effective_focal_length": efl, "f_ratio": f_ratio,
+                "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
+            })
+
+        # Get sorting preference from UiPref
+        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        sort_preference = 'name-asc'
+        if prefs and prefs.json_blob:
             try:
-                calc = rig_config.calculate_rig_data(rig, components)
-                if isinstance(calc, dict):
-                    rig.update(calc)
-            except Exception as e:
-                # Non-fatal: keep going for other rigs
-                print(f"[get_rig_data] Warning: could not calculate fields for rig '{rig.get('rig_name','?')}': {e}")
-    except Exception as e:
-        print(f"[get_rig_data] Warning during rig calculations: {e}")
+                sort_preference = json.loads(prefs.json_blob).get('rig_sort', 'name-asc')
+            except json.JSONDecodeError: pass
 
-    # Resolve the user's saved sort preference (default to name-asc)
-    sort_preference = rig_data.get('ui_preferences', {}).get('sort_order') or 'name-asc'
+        sorted_rigs = sort_rigs(rigs_list, sort_preference)
 
-    # Sort rigs using your helper if present; otherwise use a safe local fallback
-    def _fallback_sort(rigs, sort_key: str):
-        key, _, direction = sort_key.partition('-')
-        reverse = (direction == 'desc')
-
-        def to_num(v):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-
-        def getter(r):
-            if key == 'name':
-                return (r.get('rig_name') or '').lower()
-            if key == 'fl':
-                return to_num(r.get('effective_focal_length'))
-            if key == 'fr':
-                return to_num(r.get('f_ratio'))
-            if key == 'scale':
-                return to_num(r.get('image_scale'))
-            if key == 'fovw':
-                return to_num(r.get('fov_w_arcmin'))
-            if key == 'recent':
-                ts = r.get('updated_at') or r.get('created_at') or ''
-                try:
-                    # ISO 8601 with optional Z
-                    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
-                except Exception:
-                    # fall back to id so sort is at least stable
-                    return r.get('rig_id') or ''
-            # default by name
-            return (r.get('rig_name') or '').lower()
-
-        # None-safe key: Nones sink to bottom
-        def none_safe(x):
-            v = getter(x)
-            return (v is None, v)
-
-        return sorted(rigs, key=none_safe, reverse=reverse)
-
-    try:
-        # Prefer your existing helper if it exists
-        sorted_rigs = sort_rigs_list(rig_data['rigs'], sort_preference)  # type: ignore[name-defined]
-    except NameError:
-        # Fallback if sort_rigs_list isn't available in this context
-        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
-    except Exception as e:
-        print(f"[get_rig_data] Warning: sort helper failed ({e}); using fallback.")
-        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
-
-    rig_data['rigs'] = sorted_rigs
-
-    # Expose the effective preference explicitly so the frontend can sync its UI
-    rig_data['sort_preference'] = sort_preference
-
-    return jsonify(rig_data)
+        return jsonify({
+            "components": components_dict,
+            "rigs": sorted_rigs,
+            "sort_preference": sort_preference
+        })
+    finally:
+        db.close()
 
 @app.route('/journal')
 @login_required # Or handle SINGLE_USER_MODE appropriately if guests can see a default journal
@@ -4305,34 +4185,59 @@ def telemetry_startup_ping_once():
 @app.route('/fetch_all_details', methods=['POST'])
 @login_required
 def fetch_all_details():
-    """Fetches missing details for all objects in the user's config."""
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        username = current_user.username
-
-    print(f"[FETCH ALL] Triggered for user: {username}")
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        config_data = load_user_config(username)  # Load current config
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
+        objects_to_check = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
 
-        # check_and_fill_object_data modifies config_data in place
-        # and returns True if changes were made and need saving
-        config_modified = check_and_fill_object_data(config_data)
+        modified = False
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
 
-        if config_modified:
-            # Save the potentially modified config
-            save_user_config(username, config_data)
+        for obj in objects_to_check:
+            needs_update = (
+                obj.type in refetch_triggers or
+                obj.magnitude in refetch_triggers or
+                obj.size in refetch_triggers or
+                obj.sb in refetch_triggers or
+                obj.constellation in refetch_triggers
+            )
+            if needs_update:
+                try:
+                    # This function needs to be adapted slightly if it's not already
+                    # to just fetch data without modifying a config dict directly.
+                    # Assuming check_and_fill_object_data is a helper you can call.
+                    # For this example, let's inline the logic.
+
+                    # Auto-calculate Constellation if missing
+                    if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
+                        coords = SkyCoord(ra=obj.ra_hours*u.hourangle, dec=obj.dec_deg*u.deg)
+                        obj.constellation = get_constellation(coords, short_name=True)
+                        modified = True
+
+                    # Fetch other details
+                    fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
+                    if fetched_data.get("object_type"): obj.type = fetched_data["object_type"]
+                    if fetched_data.get("magnitude"): obj.magnitude = str(fetched_data["magnitude"])
+                    if fetched_data.get("size_arcmin"): obj.size = str(fetched_data["size_arcmin"])
+                    if fetched_data.get("surface_brightness"): obj.sb = str(fetched_data["surface_brightness"])
+                    modified = True
+                    time.sleep(0.5) # Be kind to external APIs
+                except Exception as e:
+                    print(f"Failed to fetch details for {obj.object_name}: {e}")
+
+        if modified:
+            db.commit()
             flash("Fetched and saved missing object details.", "success")
-            print("[FETCH ALL] Data fetched and config saved.")
         else:
             flash("No missing data found or no updates needed.", "info")
-            print("[FETCH ALL] No missing data needed fetching.")
 
     except Exception as e:
-        print(f"[FETCH ALL ERROR] Failed during fetch all process: {e}")
+        db.rollback()
         flash(f"An error occurred during data fetching: {e}", "error")
+    finally:
+        db.close()
 
-    # Redirect back to the config form to show updated data/messages
     return redirect(url_for('config_form'))
 
 @app.route('/set_location', methods=['POST'])
@@ -4994,55 +4899,107 @@ def fetch_object_details():
 @login_required
 def confirm_object():
     req = request.get_json()
-    object_name = req.get('object')
-    common_name = req.get('name')
-    ra = req.get('ra')
-    dec = req.get('dec')
-    project = req.get('project', 'none')
-    constellation = req.get('constellation')
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
 
-    # --- FIX: Use the helper function to clean data before saving ---
-    obj_type = convert_to_native_python(req.get('type'))
-    magnitude = convert_to_native_python(req.get('magnitude'))
-    size = convert_to_native_python(req.get('size'))
-    sb = convert_to_native_python(req.get('sb'))
+        object_name = req.get('object')
+        # Check if object already exists for this user
+        existing = db.query(AstroObject).filter_by(user_id=app_db_user.id, object_name=object_name).one_or_none()
+        if existing:
+            # Update existing object's details
+            existing.common_name = req.get('name')
+            existing.ra_hours = float(req.get('ra'))
+            existing.dec_deg = float(req.get('dec'))
+            existing.project_name = req.get('project', 'none')
+            existing.constellation = req.get('constellation')
+            existing.type = convert_to_native_python(req.get('type'))
+            existing.magnitude = str(convert_to_native_python(req.get('magnitude')) or '')
+            existing.size = str(convert_to_native_python(req.get('size')) or '')
+            existing.sb = str(convert_to_native_python(req.get('sb')) or '')
+        else:
+            # Create a new object record
+            new_obj = AstroObject(
+                user_id=app_db_user.id,
+                object_name=object_name,
+                common_name=req.get('name'),
+                ra_hours=float(req.get('ra')),
+                dec_deg=float(req.get('dec')),
+                project_name=req.get('project', 'none'),
+                constellation=req.get('constellation'),
+                type=convert_to_native_python(req.get('type')),
+                magnitude=str(convert_to_native_python(req.get('magnitude')) or ''),
+                size=str(convert_to_native_python(req.get('size')) or ''),
+                sb=str(convert_to_native_python(req.get('sb')) or '')
+            )
+            db.add(new_obj)
 
-    if not object_name or not common_name:
-        return jsonify({"status": "error", "message": "Object ID and name are required."}), 400
-    if ra is None or dec is None:
-        return jsonify({"status": "error", "message": "RA and DEC are required for the object."}), 400
+        db.commit()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
 
-    config_data = load_user_config(current_user.username)
-    objects_list = config_data.setdefault('objects', [])
+@app.route('/fetch_all_details', methods=['POST'])
+@login_required
+def fetch_all_details():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
+        objects_to_check = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
 
-    existing = next((obj for obj in objects_list if obj["Object"].lower() == object_name.lower()), None)
-    if existing:
-        existing["Name"] = common_name
-        existing["Project"] = project
-        existing["RA"] = ra
-        existing["DEC"] = dec
-        existing["Type"] = obj_type if obj_type is not None else existing.get("Type", "")
-        existing["Magnitude"] = magnitude if magnitude is not None else existing.get("Magnitude", "")
-        existing["Size"] = size if size is not None else existing.get("Size", "")
-        existing["Constellation"] = constellation if constellation is not None else existing.get("Constellation", "N/A")
-        existing["SB"] = sb if sb is not None else existing.get("SB", "")
-    else:
-        new_obj = {
-            "Object": object_name,
-            "Name": common_name,
-            "Project": project,
-            "RA": ra,
-            "DEC": dec,
-            "Constellation": constellation if constellation is not None else "N/A",
-            "Type": obj_type if obj_type is not None else "",
-            "Magnitude": magnitude if magnitude is not None else "",
-            "Size": size if size is not None else "",
-            "SB": sb if sb is not None else ""
-        }
-        objects_list.append(new_obj)
+        modified = False
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
 
-    save_user_config(current_user.username, config_data)
-    return jsonify({"status": "success"})
+        for obj in objects_to_check:
+            needs_update = (
+                obj.type in refetch_triggers or
+                obj.magnitude in refetch_triggers or
+                obj.size in refetch_triggers or
+                obj.sb in refetch_triggers or
+                obj.constellation in refetch_triggers
+            )
+            if needs_update:
+                try:
+                    # This function needs to be adapted slightly if it's not already
+                    # to just fetch data without modifying a config dict directly.
+                    # Assuming check_and_fill_object_data is a helper you can call.
+                    # For this example, let's inline the logic.
+
+                    # Auto-calculate Constellation if missing
+                    if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
+                        coords = SkyCoord(ra=obj.ra_hours*u.hourangle, dec=obj.dec_deg*u.deg)
+                        obj.constellation = get_constellation(coords, short_name=True)
+                        modified = True
+
+                    # Fetch other details
+                    fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
+                    if fetched_data.get("object_type"): obj.type = fetched_data["object_type"]
+                    if fetched_data.get("magnitude"): obj.magnitude = str(fetched_data["magnitude"])
+                    if fetched_data.get("size_arcmin"): obj.size = str(fetched_data["size_arcmin"])
+                    if fetched_data.get("surface_brightness"): obj.sb = str(fetched_data["surface_brightness"])
+                    modified = True
+                    time.sleep(0.5) # Be kind to external APIs
+                except Exception as e:
+                    print(f"Failed to fetch details for {obj.object_name}: {e}")
+
+        if modified:
+            db.commit()
+            flash("Fetched and saved missing object details.", "success")
+        else:
+            flash("No missing data found or no updates needed.", "info")
+
+    except Exception as e:
+        db.rollback()
+        flash(f"An error occurred during data fetching: {e}", "error")
+    finally:
+        db.close()
+
+    return redirect(url_for('config_form'))
 
 @app.route('/api/get_object_list')
 def get_object_list():
@@ -5319,184 +5276,191 @@ def telemetry_ping():
 
     return jsonify({"status": "ok"}), 200
 
-
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
     error = None
     message = None
-    updated = False
-    username_for_save = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        # Get the primary user object from our application DB
+        app_db_user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not app_db_user:
+            flash(f"Could not find user '{username}' in the database.", "error")
+            return redirect(url_for('index'))
 
-    if request.method == 'POST':
-        try:
+        # --- POST Request: Handle Form Submissions ---
+        if request.method == 'POST':
+            # --- General Settings Tab ---
             if 'submit_general' in request.form:
-                new_altitude_threshold = request.form.get('altitude_threshold')
-                new_default_location = request.form.get('default_location', g.user_config.get("default_location", ""))
+                # Load or create the user's preferences record
+                prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+                if not prefs:
+                    prefs = UiPref(user_id=app_db_user.id, json_blob='{}')
+                    db.add(prefs)
 
+                # Safely parse existing JSON, update it, and write it back
                 try:
-                    threshold_value = int(new_altitude_threshold)
-                    if threshold_value < 0 or threshold_value > 90:
-                        raise ValueError("Altitude threshold must be between 0 and 90 degrees.")
-                    g.user_config['altitude_threshold'] = threshold_value
-                except (ValueError, TypeError) as ve:
-                    error = str(ve)
+                    settings = json.loads(prefs.json_blob or '{}')
+                except json.JSONDecodeError:
+                    settings = {}
 
-                g.user_config['default_location'] = new_default_location
+                # Update settings from the form
+                settings['altitude_threshold'] = int(request.form.get('altitude_threshold', 20))
+                settings['default_location'] = request.form.get('default_location', settings.get('default_location'))
 
                 if SINGLE_USER_MODE:
-                    g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
-                    telemetry_enabled = bool(request.form.get('telemetry_enabled'))
-                    tcfg = g.user_config.setdefault('telemetry', {})
-                    tcfg['enabled'] = telemetry_enabled
+                    settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
+                    settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
 
-                imaging = g.user_config.setdefault("imaging_criteria", {})
-                try:
-                    imaging["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
-                    imaging["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
-                    imaging["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
-                    imaging["min_angular_separation"] = int(request.form.get("min_angular_separation", 30))
-                    imaging["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
-                except (ValueError, TypeError) as ve:
-                    error = (error + "; " if error else "") + f"Invalid imaging criteria: {ve}"
+                # Update imaging criteria
+                imaging_criteria = settings.setdefault("imaging_criteria", {})
+                imaging_criteria["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
+                imaging_criteria["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
+                imaging_criteria["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
+                imaging_criteria["min_angular_separation"] = int(request.form.get("min_angular_separation", 30))
+                imaging_criteria["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
 
-                message = "Settings updated."
-                updated = True
+                prefs.json_blob = json.dumps(settings)
+                message = "General settings updated."
 
+            # --- Add New Location ---
             elif 'submit_new_location' in request.form:
-                new_location_name = request.form.get("new_location")
-                new_lat = request.form.get("new_lat")
-                new_lon = request.form.get("new_lon")
-                new_timezone = request.form.get("new_timezone")
-                new_active = request.form.get("new_active") == "on"
-                new_horizon_mask_str = request.form.get("new_horizon_mask", "").strip()
-                new_comments = request.form.get("new_comments", "").strip()[:500]
-
-                active_count = sum(1 for loc in g.user_config.get("locations", {}).values() if loc.get('active', True))
-
-                if new_active and active_count >= MAX_ACTIVE_LOCATIONS:
-                    error = f"Cannot add as active: You have reached the limit of {MAX_ACTIVE_LOCATIONS} active locations."
-                elif not all([new_location_name, new_lat, new_lon, new_timezone]):
-                    error = "Name, Latitude, Longitude, and Timezone are required to add a new location."
+                new_name = request.form.get("new_location").strip()
+                # Check for existing location with the same name for this user
+                existing = db.query(Location).filter_by(user_id=app_db_user.id, name=new_name).first()
+                if existing:
+                     error = f"A location named '{new_name}' already exists."
+                elif not all([new_name, request.form.get("new_lat"), request.form.get("new_lon"), request.form.get("new_timezone")]):
+                    error = "Name, Latitude, Longitude, and Timezone are required."
                 else:
-                    try:
-                        lat_val = float(new_lat)
-                        lon_val = float(new_lon)
-                        if new_timezone not in pytz.all_timezones:
-                            raise ValueError("Invalid timezone provided.")
+                    new_loc = Location(
+                        user_id=app_db_user.id,
+                        name=new_name,
+                        lat=float(request.form.get("new_lat")),
+                        lon=float(request.form.get("new_lon")),
+                        timezone=request.form.get("new_timezone"),
+                        active=request.form.get("new_active") == "on",
+                        comments=request.form.get("new_comments", "").strip()[:500]
+                    )
+                    db.add(new_loc)
+                    db.flush() # So new_loc gets an ID
+                    # Add horizon mask points if provided
+                    mask_str = request.form.get("new_horizon_mask", "").strip()
+                    if mask_str:
+                        try:
+                            mask_data = yaml.safe_load(mask_str)
+                            if isinstance(mask_data, list):
+                                for point in mask_data:
+                                    db.add(HorizonPoint(location_id=new_loc.id, az_deg=float(point[0]), alt_min_deg=float(point[1])))
+                        except (yaml.YAMLError, ValueError, TypeError):
+                             flash("Warning: Horizon Mask was invalid and was ignored.", "warning")
+                    message = "New location added."
 
-                        new_loc_data = {
-                            "lat": lat_val, "lon": lon_val, "timezone": new_timezone,
-                            "active": new_active, "comments": new_comments
-                        }
-
-                        if new_horizon_mask_str:
-                            try:
-                                mask_data = yaml.safe_load(new_horizon_mask_str)
-                                if isinstance(mask_data, list):
-                                    new_loc_data['horizon_mask'] = mask_data
-                                else:
-                                    flash("Warning: Horizon Mask was not a valid list and was ignored.", "warning")
-                            except yaml.YAMLError:
-                                flash("Warning: Invalid format for Horizon Mask, it was not saved.", "warning")
-
-                        g.user_config.setdefault('locations', {})[new_location_name] = new_loc_data
-                        message = "New location added successfully."
-                        updated = True
-
-                        if new_active:
-                            thread = threading.Thread(target=update_outlook_cache,
-                                                      args=(username_for_save, new_location_name, g.user_config.copy(),
-                                                            g.sampling_interval))
-                            thread.start()
-
-                    except (ValueError, TypeError) as ve:
-                        error = f"Invalid input for new location: {ve}"
-
+            # --- Update Existing Locations ---
             elif 'submit_locations' in request.form:
-                db = get_db()
-                try:
-                    # Get the application user record from the database
-                    app_db_user = db.query(DbUser).filter_by(username=username_for_save).one()
-                    user_locations = db.query(Location).filter_by(user_id=app_db_user.id).all()
-
-                    active_count = 0
-
-                    for loc in user_locations:
-                        # Check if the location is marked for deletion
-                        if request.form.get(f"delete_loc_{loc.name}") == "on":
-                            db.delete(loc)
-                            continue
-
-                        # Update the location object with data from the form
-                        is_active = request.form.get(f"active_{loc.name}") == "on"
-                        if is_active:
-                            active_count += 1
-
-                        loc.active = is_active
-                        loc.lat = float(request.form.get(f"lat_{loc.name}"))
-                        loc.lon = float(request.form.get(f"lon_{loc.name}"))
-                        loc.timezone = request.form.get(f"timezone_{loc.name}")
-                        loc.comments = request.form.get(f"comments_{loc.name}", "").strip()
-
-                        # (Horizon mask logic can be added here if needed)
-
-                    if active_count > MAX_ACTIVE_LOCATIONS:
-                        error = f"Update failed: You cannot have more than {MAX_ACTIVE_LOCATIONS} active locations."
-                        db.rollback()
-                    else:
-                        db.commit()  # Commit all changes (updates and deletions) to the database
-                        message = "Locations updated successfully."
-                        updated = True
-
-                except Exception as e:
-                    db.rollback()
-                    error = f"An error occurred while updating locations: {e}"
-                finally:
-                    db.close()
-
-            elif 'submit_objects' in request.form:
-                # This block remains unchanged but is included for completeness
-                new_objects_list = []
-                original_objects_list = g.user_config.get("objects", [])
-                made_changes_this_block = False
-
-                for existing_obj_data in original_objects_list:
-                    object_key = existing_obj_data.get("Object")
-                    if not object_key or request.form.get(f"delete_{object_key}") == "on":
-                        made_changes_this_block = True
+                locs_to_update = db.query(Location).filter_by(user_id=app_db_user.id).all()
+                for loc in locs_to_update:
+                    if request.form.get(f"delete_loc_{loc.name}") == "on":
+                        db.delete(loc)
                         continue
+                    # Update fields from form
+                    loc.lat = float(request.form.get(f"lat_{loc.name}"))
+                    loc.lon = float(request.form.get(f"lon_{loc.name}"))
+                    loc.timezone = request.form.get(f"timezone_{loc.name}")
+                    loc.active = request.form.get(f"active_{loc.name}") == "on"
+                    loc.comments = request.form.get(f"comments_{loc.name}", "").strip()[:500]
+                    # Update horizon mask
+                    db.query(HorizonPoint).filter_by(location_id=loc.id).delete()
+                    mask_str = request.form.get(f"horizon_mask_{loc.name}", "").strip()
+                    if mask_str:
+                        try:
+                            mask_data = yaml.safe_load(mask_str)
+                            if isinstance(mask_data, list):
+                                for point in mask_data:
+                                    db.add(HorizonPoint(location_id=loc.id, az_deg=float(point[0]), alt_min_deg=float(point[1])))
+                        except Exception:
+                            flash(f"Warning: Horizon Mask for '{loc.name}' was invalid and ignored.", "warning")
 
-                    updated_obj_data = existing_obj_data.copy()
-                    form_fields = ["Name", "RA", "DEC", "Project", "Type", "Constellation", "Magnitude", "Size", "SB"]
+                message = "Locations updated."
 
-                    for field in form_fields:
-                        form_key = f"{field.lower().replace(' (′)', '').replace(' ', '_')}_{object_key}"
-                        new_value = request.form.get(form_key, updated_obj_data.get(field))
-                        if updated_obj_data.get(field) != new_value:
-                            updated_obj_data[field] = new_value
-                            made_changes_this_block = True
+            # --- Update Existing Objects ---
+            elif 'submit_objects' in request.form:
+                objs_to_update = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+                for obj in objs_to_update:
+                    if request.form.get(f"delete_{obj.object_name}") == "on":
+                        db.delete(obj)
+                        continue
+                    # Update fields from form
+                    obj.common_name = request.form.get(f"name_{obj.object_name}")
+                    obj.ra_hours = float(request.form.get(f"ra_{obj.object_name}"))
+                    obj.dec_deg = float(request.form.get(f"dec_{obj.object_name}"))
+                    obj.project_name = request.form.get(f"project_{obj.object_name}")
+                    obj.type = request.form.get(f"type_{obj.object_name}")
+                    obj.magnitude = request.form.get(f"magnitude_{obj.object_name}")
+                    obj.size = request.form.get(f"size_{obj.object_name}")
+                    obj.sb = request.form.get(f"sb_{obj.object_name}")
+                message = "Objects updated."
 
-                    new_objects_list.append(updated_obj_data)
-
-                if made_changes_this_block:
-                    g.user_config['objects'] = new_objects_list
-                    updated = True
-                    message = "Objects updated."
-
-            if updated and not error:
-                save_user_config(username_for_save, g.user_config)
+            # --- Final Commit and Redirect ---
+            if not error:
+                db.commit()
                 flash(f"{message or 'Configuration'} updated successfully.", "success")
                 return redirect(url_for('config_form'))
-
-            if error:
+            else:
+                db.rollback()
                 flash(error, "error")
 
-        except Exception as e:
-            flash(f"An unexpected error occurred: {e}", "error")
-            traceback.print_exc()
+        # --- GET Request: Populate Template Context from DB ---
+        # Build a config-like dictionary for the template to use
+        config_for_template = {}
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                config_for_template = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass # Use empty dict on parse error
 
-    return render_template('config_form.html', config=g.user_config, locations=g.locations)
+        # Load locations for the template
+        locations_for_template = {}
+        db_locations = db.query(Location).filter_by(user_id=app_db_user.id).order_by(Location.name).all()
+        for loc in db_locations:
+            locations_for_template[loc.name] = {
+                "lat": loc.lat,
+                "lon": loc.lon,
+                "timezone": loc.timezone,
+                "active": loc.active,
+                "comments": loc.comments,
+                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(loc.horizon_points, key=lambda p: p.az_deg)]
+            }
+            if loc.is_default:
+                config_for_template['default_location'] = loc.name
+
+        # Load objects for the template
+        db_objects = db.query(AstroObject).filter_by(user_id=app_db_user.id).order_by(AstroObject.object_name).all()
+        config_for_template['objects'] = [{
+            "Object": o.object_name,
+            "Name": o.common_name,
+            "RA": o.ra_hours,
+            "DEC": o.dec_deg,
+            "Project": o.project_name,
+            "Constellation": o.constellation,
+            "Type": o.type,
+            "Magnitude": o.magnitude,
+            "Size": o.size,
+            "SB": o.sb
+        } for o in db_objects]
+
+        return render_template('config_form.html', config=config_for_template, locations=locations_for_template)
+
+    except Exception as e:
+        db.rollback()
+        flash(f"A database error occurred: {e}", "error")
+        traceback.print_exc()
+        return redirect(url_for('index'))
+    finally:
+        db.close()
 
 
 @app.before_request
