@@ -27,7 +27,7 @@ import numpy as np
 from yaml.constructor import ConstructorError
 import threading
 import glob
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, timezone, UTC, date
 import traceback
 import uuid
 import io
@@ -240,6 +240,7 @@ class Rig(Base):
     reducer_extender = relationship("Component", foreign_keys=[reducer_extender_id])
     __table_args__ = (UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),)
 
+
 class JournalSession(Base):
     __tablename__ = 'journal_sessions'
     id = Column(Integer, primary_key=True)
@@ -249,20 +250,53 @@ class JournalSession(Base):
     object_name = Column(String(256), nullable=True)
     notes = Column(Text, nullable=True)
     session_image_file = Column(String(256), nullable=True)
+
+    # --- NEW & CORRECTED COLUMNS START HERE ---
+    location_name = Column(String(128), nullable=True)
+    seeing_observed_fwhm = Column(Float, nullable=True)
+    sky_sqm_observed = Column(Float, nullable=True)
+    moon_illumination_session = Column(Integer, nullable=True)
+    moon_angular_separation_session = Column(Float, nullable=True)
+    weather_notes = Column(Text, nullable=True)
+    telescope_setup_notes = Column(Text, nullable=True)
+    filter_used_session = Column(String(128), nullable=True)
+    guiding_rms_avg_arcsec = Column(Float, nullable=True)
+    guiding_equipment = Column(String(256), nullable=True)
+    dither_details = Column(String(256), nullable=True)
+    acquisition_software = Column(String(128), nullable=True)
+    gain_setting = Column(Integer, nullable=True)
+    offset_setting = Column(Integer, nullable=True)
+    camera_temp_setpoint_c = Column(Float, nullable=True)
+    camera_temp_actual_avg_c = Column(Float, nullable=True)
+    binning_session = Column(String(16), nullable=True)
+    darks_strategy = Column(Text, nullable=True)
+    flats_strategy = Column(Text, nullable=True)
+    bias_darkflats_strategy = Column(Text, nullable=True)
+    session_rating_subjective = Column(Integer, nullable=True)
+    transparency_observed_scale = Column(String(64), nullable=True)
+    # --- END OF NEW COLUMNS ---
+
     number_of_subs_light = Column(Integer, nullable=True)
     exposure_time_per_sub_sec = Column(Integer, nullable=True)
-    filter_L_subs = Column(Integer, nullable=True);  filter_L_exposure_sec = Column(Integer, nullable=True)
-    filter_R_subs = Column(Integer, nullable=True);  filter_R_exposure_sec = Column(Integer, nullable=True)
-    filter_G_subs = Column(Integer, nullable=True);  filter_G_exposure_sec = Column(Integer, nullable=True)
-    filter_B_subs = Column(Integer, nullable=True);  filter_B_exposure_sec = Column(Integer, nullable=True)
-    filter_Ha_subs = Column(Integer, nullable=True); filter_Ha_exposure_sec = Column(Integer, nullable=True)
-    filter_OIII_subs = Column(Integer, nullable=True); filter_OIII_exposure_sec = Column(Integer, nullable=True)
-    filter_SII_subs = Column(Integer, nullable=True);  filter_SII_exposure_sec = Column(Integer, nullable=True)
+    filter_L_subs = Column(Integer, nullable=True);
+    filter_L_exposure_sec = Column(Integer, nullable=True)
+    filter_R_subs = Column(Integer, nullable=True);
+    filter_R_exposure_sec = Column(Integer, nullable=True)
+    filter_G_subs = Column(Integer, nullable=True);
+    filter_G_exposure_sec = Column(Integer, nullable=True)
+    filter_B_subs = Column(Integer, nullable=True);
+    filter_B_exposure_sec = Column(Integer, nullable=True)
+    filter_Ha_subs = Column(Integer, nullable=True);
+    filter_Ha_exposure_sec = Column(Integer, nullable=True)
+    filter_OIII_subs = Column(Integer, nullable=True);
+    filter_OIII_exposure_sec = Column(Integer, nullable=True)
+    filter_SII_subs = Column(Integer, nullable=True);
+    filter_SII_exposure_sec = Column(Integer, nullable=True)
     calculated_integration_time_minutes = Column(Float, nullable=True)
-    external_id = Column(String(64), nullable=True)
+    external_id = Column(String(64), nullable=True, unique=True)  # Added unique constraint
+
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
-    __table_args__ = (UniqueConstraint('user_id', 'external_id', name='uq_user_session_external_id'),)
 
 class UiPref(Base):
     __tablename__ = 'ui_prefs'
@@ -777,10 +811,10 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
 def _migrate_journal(db, user: DbUser, journal_yaml: dict):
     data = journal_yaml or {}
-    # Normalize the structure
+    # Normalize old list-based journals to the new dict structure
     if isinstance(data, list):
         data = {"projects": [], "sessions": data}
-    elif isinstance(data, dict):
+    else:
         data.setdefault("projects", [])
         data.setdefault("sessions", data.get("entries", []))
 
@@ -791,7 +825,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                 db.add(Project(id=p["project_id"], user_id=user.id, name=p["project_name"]))
     db.flush()
 
-    # --- 2. Migrate Sessions ---
+    # --- 2. Migrate Sessions with ALL fields ---
     for s in (data.get("sessions") or []):
         ext_id = s.get("session_id") or s.get("id")
         date_str = s.get("session_date") or s.get("date")
@@ -799,13 +833,13 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
 
         try:
             dt = datetime.fromisoformat(date_str).date()
-        except Exception:
+        except:
             try:
                 dt = datetime.strptime(date_str, "%Y-%m-%d").date()
-            except Exception:
+            except:
                 continue
 
-        # --- START: This is the complete data mapping that was missing ---
+        # This dictionary now maps every key from your YAML to the database column
         row_values = {
             "user_id": user.id,
             "project_id": s.get("project_id"),
@@ -813,6 +847,28 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "object_name": s.get("target_object_id") or s.get("object_name"),
             "notes": s.get("general_notes_problems_learnings"),
             "session_image_file": s.get("session_image_file"),
+            "location_name": s.get("location_name"),
+            "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
+            "sky_sqm_observed": _try_float(s.get("sky_sqm_observed")),
+            "moon_illumination_session": _as_int(s.get("moon_illumination_session")),
+            "moon_angular_separation_session": _try_float(s.get("moon_angular_separation_session")),
+            "weather_notes": s.get("weather_notes"),
+            "telescope_setup_notes": s.get("telescope_setup_notes"),
+            "filter_used_session": s.get("filter_used_session"),
+            "guiding_rms_avg_arcsec": _try_float(s.get("guiding_rms_avg_arcsec")),
+            "guiding_equipment": s.get("guiding_equipment"),
+            "dither_details": s.get("dither_details"),
+            "acquisition_software": s.get("acquisition_software"),
+            "gain_setting": _as_int(s.get("gain_setting")),
+            "offset_setting": _as_int(s.get("offset_setting")),
+            "camera_temp_setpoint_c": _try_float(s.get("camera_temp_setpoint_c")),
+            "camera_temp_actual_avg_c": _try_float(s.get("camera_temp_actual_avg_c")),
+            "binning_session": s.get("binning_session"),
+            "darks_strategy": s.get("darks_strategy"),
+            "flats_strategy": s.get("flats_strategy"),
+            "bias_darkflats_strategy": s.get("bias_darkflats_strategy"),
+            "session_rating_subjective": _as_int(s.get("session_rating_subjective")),
+            "transparency_observed_scale": s.get("transparency_observed_scale"),
             "number_of_subs_light": _as_int(s.get("number_of_subs_light")),
             "exposure_time_per_sub_sec": _as_int(s.get("exposure_time_per_sub_sec")),
             "filter_L_subs": _as_int(s.get("filter_L_subs")),
@@ -832,9 +888,8 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
             "external_id": str(ext_id) if ext_id else None
         }
-        # --- END: Complete data mapping ---
 
-        # Upsert logic (this part is already correct)
+        # Upsert logic
         existing = None
         if ext_id:
             existing = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).one_or_none()
@@ -844,11 +899,8 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                 if v is not None:
                     setattr(existing, k, v)
         else:
-            # Filter out external_id before creating new, as it's not a direct column
-            create_values = {k: v for k, v in row_values.items()}
-            new_session = JournalSession(**create_values)
+            new_session = JournalSession(**row_values)
             db.add(new_session)
-
 
 def _migrate_ui_prefs(db, user: DbUser, config: dict):
     """
@@ -3106,7 +3158,6 @@ def journal_list_view():
     finally:
         db.close()
 
-
 @app.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
@@ -3124,38 +3175,40 @@ def journal_add():
             if project_selection == "new_project" and new_project_name:
                 new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
                 db.add(new_project)
-                db.flush()  # So we get the ID
+                db.flush()
                 project_id_for_session = new_project.id
             elif project_selection and project_selection not in ["standalone", "new_project"]:
                 project_id_for_session = project_selection
 
-            # --- Create New Session Object ---
+            # --- Create New Session Object with ALL fields from the form ---
             new_session = JournalSession(
                 user_id=user.id,
                 project_id=project_id_for_session,
                 date_utc=datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date(),
                 object_name=request.form.get("target_object_id", "").strip(),
                 notes=request.form.get("general_notes_problems_learnings", "").strip(),
-                number_of_subs_light=safe_int(request.form.get("number_of_subs_light")),
+                seeing_observed_fwhm=safe_float(request.form.get("seeing_observed_fwhm")),
+                sky_sqm_observed=safe_float(request.form.get("sky_sqm_observed")),
+                moon_illumination_session=safe_int(request.form.get("moon_illumination_session")),
+                moon_angular_separation_session=safe_float(request.form.get("moon_angular_separation_session")),
+                telescope_setup_notes=request.form.get("telescope_setup_notes", "").strip(),
+                guiding_rms_avg_arcsec=safe_float(request.form.get("guiding_rms_avg_arcsec")),
                 exposure_time_per_sub_sec=safe_int(request.form.get("exposure_time_per_sub_sec")),
-                filter_L_subs=safe_int(request.form.get("filter_L_subs")),
-                filter_L_exposure_sec=safe_int(request.form.get("filter_L_exposure_sec")),
-                filter_R_subs=safe_int(request.form.get("filter_R_subs")),
-                filter_R_exposure_sec=safe_int(request.form.get("filter_R_exposure_sec")),
-                filter_G_subs=safe_int(request.form.get("filter_G_subs")),
-                filter_G_exposure_sec=safe_int(request.form.get("filter_G_exposure_sec")),
-                filter_B_subs=safe_int(request.form.get("filter_B_subs")),
-                filter_B_exposure_sec=safe_int(request.form.get("filter_B_exposure_sec")),
-                filter_Ha_subs=safe_int(request.form.get("filter_Ha_subs")),
-                filter_Ha_exposure_sec=safe_int(request.form.get("filter_Ha_exposure_sec")),
-                filter_OIII_subs=safe_int(request.form.get("filter_OIII_subs")),
-                filter_OIII_exposure_sec=safe_int(request.form.get("filter_OIII_exposure_sec")),
-                filter_SII_subs=safe_int(request.form.get("filter_SII_subs")),
-                filter_SII_exposure_sec=safe_int(request.form.get("filter_SII_exposure_sec")),
+                number_of_subs_light=safe_int(request.form.get("number_of_subs_light")),
+                filter_used_session=request.form.get("filter_used_session", "").strip(),
+                gain_setting=safe_int(request.form.get("gain_setting")),
+                offset_setting=safe_int(request.form.get("offset_setting")),
+                session_rating_subjective=safe_int(request.form.get("session_rating_subjective")),
+                filter_L_subs=safe_int(request.form.get("filter_L_subs")), filter_L_exposure_sec=safe_int(request.form.get("filter_L_exposure_sec")),
+                filter_R_subs=safe_int(request.form.get("filter_R_subs")), filter_R_exposure_sec=safe_int(request.form.get("filter_R_exposure_sec")),
+                filter_G_subs=safe_int(request.form.get("filter_G_subs")), filter_G_exposure_sec=safe_int(request.form.get("filter_G_exposure_sec")),
+                filter_B_subs=safe_int(request.form.get("filter_B_subs")), filter_B_exposure_sec=safe_int(request.form.get("filter_B_exposure_sec")),
+                filter_Ha_subs=safe_int(request.form.get("filter_Ha_subs")), filter_Ha_exposure_sec=safe_int(request.form.get("filter_Ha_exposure_sec")),
+                filter_OIII_subs=safe_int(request.form.get("filter_OIII_subs")), filter_OIII_exposure_sec=safe_int(request.form.get("filter_OIII_exposure_sec")),
+                filter_SII_subs=safe_int(request.form.get("filter_SII_subs")), filter_SII_exposure_sec=safe_int(request.form.get("filter_SII_exposure_sec")),
                 external_id=generate_session_id()
             )
 
-            # Calculate total integration time
             total_seconds = (new_session.number_of_subs_light or 0) * (new_session.exposure_time_per_sub_sec or 0) + \
                             (new_session.filter_L_subs or 0) * (new_session.filter_L_exposure_sec or 0) + \
                             (new_session.filter_R_subs or 0) * (new_session.filter_R_exposure_sec or 0) + \
@@ -3164,13 +3217,11 @@ def journal_add():
                             (new_session.filter_Ha_subs or 0) * (new_session.filter_Ha_exposure_sec or 0) + \
                             (new_session.filter_OIII_subs or 0) * (new_session.filter_OIII_exposure_sec or 0) + \
                             (new_session.filter_SII_subs or 0) * (new_session.filter_SII_exposure_sec or 0)
-            new_session.calculated_integration_time_minutes = round(total_seconds / 60.0,
-                                                                    1) if total_seconds > 0 else None
+            new_session.calculated_integration_time_minutes = round(total_seconds / 60.0, 1) if total_seconds > 0 else None
 
             db.add(new_session)
-            db.flush()  # Assigns an ID to new_session
+            db.flush()
 
-            # --- Handle Image Upload ---
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 if file and file.filename != '' and allowed_file(file.filename):
@@ -3185,7 +3236,7 @@ def journal_add():
             flash("New journal entry added successfully!", "success")
             return redirect(url_for('graph_dashboard', object_name=new_session.object_name, session_id=new_session.id))
 
-        # --- GET Request Logic ---
+        # --- GET Request Logic (this part remains the same) ---
         available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
         available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
         available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
@@ -3225,12 +3276,23 @@ def journal_edit(session_id):
             return redirect(url_for('journal_list_view'))
 
         if request.method == 'POST':
-            # Update all fields from the form
+            # --- Update ALL fields from the form ---
             session_to_edit.date_utc = datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date()
             session_to_edit.object_name = request.form.get("target_object_id", "").strip()
             session_to_edit.notes = request.form.get("general_notes_problems_learnings", "").strip()
-            session_to_edit.number_of_subs_light = safe_int(request.form.get("number_of_subs_light"))
+            session_to_edit.seeing_observed_fwhm = safe_float(request.form.get("seeing_observed_fwhm"))
+            session_to_edit.sky_sqm_observed = safe_float(request.form.get("sky_sqm_observed"))
+            session_to_edit.moon_illumination_session = safe_int(request.form.get("moon_illumination_session"))
+            session_to_edit.moon_angular_separation_session = safe_float(
+                request.form.get("moon_angular_separation_session"))
+            session_to_edit.telescope_setup_notes = request.form.get("telescope_setup_notes", "").strip()
+            session_to_edit.guiding_rms_avg_arcsec = safe_float(request.form.get("guiding_rms_avg_arcsec"))
             session_to_edit.exposure_time_per_sub_sec = safe_int(request.form.get("exposure_time_per_sub_sec"))
+            session_to_edit.number_of_subs_light = safe_int(request.form.get("number_of_subs_light"))
+            session_to_edit.filter_used_session = request.form.get("filter_used_session", "").strip()
+            session_to_edit.gain_setting = safe_int(request.form.get("gain_setting"))
+            session_to_edit.offset_setting = safe_int(request.form.get("offset_setting"))
+            session_to_edit.session_rating_subjective = safe_int(request.form.get("session_rating_subjective"))
             session_to_edit.filter_L_subs = safe_int(request.form.get("filter_L_subs"));
             session_to_edit.filter_L_exposure_sec = safe_int(request.form.get("filter_L_exposure_sec"))
             session_to_edit.filter_R_subs = safe_int(request.form.get("filter_R_subs"));
@@ -3246,7 +3308,6 @@ def journal_edit(session_id):
             session_to_edit.filter_SII_subs = safe_int(request.form.get("filter_SII_subs"));
             session_to_edit.filter_SII_exposure_sec = safe_int(request.form.get("filter_SII_exposure_sec"))
 
-            # Recalculate integration time
             total_seconds = (session_to_edit.number_of_subs_light or 0) * (
                         session_to_edit.exposure_time_per_sub_sec or 0) + \
                             (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
@@ -3259,7 +3320,6 @@ def journal_edit(session_id):
             session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                         1) if total_seconds > 0 else None
 
-            # Handle image deletion and upload
             if request.form.get('delete_session_image') == '1' and session_to_edit.session_image_file:
                 image_path = os.path.join(UPLOAD_FOLDER, username, session_to_edit.session_image_file)
                 if os.path.exists(image_path): os.remove(image_path)
@@ -3285,7 +3345,6 @@ def journal_edit(session_id):
         available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
         available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
 
-        # Convert the SQLAlchemy object to a dict for the template
         entry_dict = {c.name: getattr(session_to_edit, c.name) for c in session_to_edit.__table__.columns}
         if isinstance(entry_dict.get('date_utc'), (datetime, date)):
             entry_dict['session_date'] = entry_dict['date_utc'].strftime('%Y-%m-%d')
@@ -3304,7 +3363,6 @@ def journal_edit(session_id):
                                cancel_url=cancel_url)
     finally:
         db.close()
-
 
 @app.route('/journal/delete/<int:session_id>', methods=['POST'])
 @login_required
@@ -4060,46 +4118,51 @@ def import_config():
 # Astronomical Calculations
 # =============================================================================
 
-
 def get_ra_dec(object_name):
     obj_key = object_name.lower()
+    # g.user_config is built from the database and available globally in the request
     objects_config = g.user_config.get("objects", [])
     obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
 
+    # --- Define defaults ---
     default_type = "N/A"
     default_magnitude = "N/A"
     default_size = "N/A"
     default_sb = "N/A"
     default_project = "none"
     default_constellation = "N/A"
+    default_active_project = False
 
+    # --- Path 1: Object is found in the user's configuration ---
     if obj_entry:
         ra_str = obj_entry.get("RA")
         dec_str = obj_entry.get("DEC")
-        constellation_val = obj_entry.get("Constellation", default_constellation)  # Get existing constellation
+        constellation_val = obj_entry.get("Constellation", default_constellation)
         type_val = obj_entry.get("Type", default_type)
         magnitude_val = obj_entry.get("Magnitude", default_magnitude)
         size_val = obj_entry.get("Size", default_size)
         sb_val = obj_entry.get("SB", default_sb)
         project_val = obj_entry.get("Project", default_project)
         common_name_val = obj_entry.get("Name", object_name)
+        active_project_val = obj_entry.get("ActiveProject", default_active_project)
 
+        # Sub-path 1a: Config entry has coordinates, so we can return directly.
         if ra_str is not None and dec_str is not None:
             try:
                 ra_hours_float = float(ra_str)
                 dec_degrees_float = float(dec_str)
 
+                # Auto-calculate constellation if missing
                 if constellation_val in [None, "N/A", ""]:
                     try:
-                        coords = SkyCoord(ra=ra_hours_float*u.hourangle, dec=dec_degrees_float*u.deg)
+                        coords = SkyCoord(ra=ra_hours_float * u.hourangle, dec=dec_degrees_float * u.deg)
                         constellation_val = get_constellation(coords, short_name=True)
-                    except Exception as e:
-                        print(f"Constellation calculation failed for {object_name}: {e}")
+                    except Exception:
                         constellation_val = "N/A"
 
                 return {
                     "Object": object_name,
-                    "Constellation": constellation_val,  # Add to return dictionary
+                    "Constellation": constellation_val,
                     "Common Name": common_name_val,
                     "RA (hours)": ra_hours_float,
                     "DEC (degrees)": dec_degrees_float,
@@ -4108,135 +4171,68 @@ def get_ra_dec(object_name):
                     "Magnitude": magnitude_val if magnitude_val else default_magnitude,
                     "Size": size_val if size_val else default_size,
                     "SB": sb_val if sb_val else default_sb,
+                    "ActiveProject": active_project_val
                 }
-            except ValueError as ve:
-                print(f"[ERROR] Failed to parse RA/DEC for {object_name} from config: {ve}")
+            except ValueError:
                 return {
-                    "Object": object_name,
-                    "Constellation": "N/A",
-                    "Common Name": f"Error: Invalid RA/DEC in config",
-                    "RA (hours)": None, "DEC (degrees)": None,
-                    "Project": project_val, "Type": type_val if type_val else default_type,
-                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
-                    "Size": size_val if size_val else default_size,
-                    "SB": sb_val if sb_val else default_sb,
+                    "Object": object_name, "Constellation": "N/A", "Common Name": "Error: Invalid RA/DEC in config",
+                    "RA (hours)": None, "DEC (degrees)": None, "Project": project_val, "Type": type_val,
+                    "Magnitude": magnitude_val, "Size": size_val, "SB": sb_val, "ActiveProject": active_project_val
                 }
-        else:  # RA/DEC are missing in config for an existing obj_entry
-            print(f"[SIMBAD] RA/DEC missing for {object_name} in config. Querying SIMBAD...")
-            # Fall through to SIMBAD lookup logic below
-            pass  # Explicitly falling through
+        # Sub-path 1b: Config entry exists but is missing coordinates. Fall through to SIMBAD lookup.
+        else:
+            pass
 
-    # This block handles:
-    # 1. Object not in config at all.
-    # 2. Object in config but RA/DEC were missing (due to the 'pass' above).
-    if not obj_entry or (obj_entry and (obj_entry.get("RA") is None or obj_entry.get("DEC") is None)):
-        if not obj_entry:  # Case: Object not found in config
-            print(f"[INFO] Object {object_name} not found in config. Attempting SIMBAD lookup.")
-        # These values would be from config if obj_entry existed
-        common_name_to_use = obj_entry.get("Name", object_name) if obj_entry else object_name
-        project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
-        type_to_use = obj_entry.get("Type", default_type) if obj_entry else default_type
-        mag_to_use = obj_entry.get("Magnitude", default_magnitude) if obj_entry else default_magnitude
-        size_to_use = obj_entry.get("Size", default_size) if obj_entry else default_size
-        sb_to_use = obj_entry.get("SB", default_sb) if obj_entry else default_sb
+    # --- Path 2: Object not in config, or was missing coordinates. Query SIMBAD. ---
+    project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
+    active_project_to_use = obj_entry.get("ActiveProject",
+                                          default_active_project) if obj_entry else default_active_project
+
+    try:
+        custom_simbad = Simbad()
+        custom_simbad.ROW_LIMIT = 1
+        custom_simbad.TIMEOUT = 60
+        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+        result = custom_simbad.query_object(object_name)
+
+        if result is None or len(result) == 0:
+            raise ValueError(f"No results for '{object_name}' in SIMBAD.")
+
+        ra_col = 'RA' if 'RA' in result.colnames else 'ra'
+        dec_col = 'DEC' if 'DEC' in result.colnames else 'dec'
+        ra_value_simbad = str(result[ra_col][0])
+        dec_value_simbad = str(result[dec_col][0])
+
+        ra_hours_simbad = hms_to_hours(ra_value_simbad)
+        dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
+        simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
 
         try:
-            custom_simbad = Simbad()
-            custom_simbad.ROW_LIMIT = 1
-            custom_simbad.TIMEOUT = 60
-            # Explicitly request fields. 'ra' and 'dec' are for J2000 sexagesimal.
-            # 'main_id' for a common identifier, 'otype' for object type.
-            custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+            coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
+            constellation_simbad = get_constellation(coords, short_name=True)
+        except Exception:
+            constellation_simbad = "N/A"
 
-            result = custom_simbad.query_object(object_name)
-
-            if result is None or len(result) == 0:
-                raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
-
-            # Crucial Debugging Line:
-            # print(f"[SIMBAD DEBUG] Columns for {object_name}: {result.colnames}")
-
-            ra_col, dec_col = None, None
-            if 'RA' in result.colnames:
-                ra_col = 'RA'
-            elif 'ra' in result.colnames:
-                ra_col = 'ra'  # Check for lowercase
-            else:
-                raise ValueError(
-                    f"SIMBAD result for '{object_name}' is missing RA column. Available: {result.colnames}")
-
-            if 'DEC' in result.colnames:
-                dec_col = 'DEC'
-            elif 'dec' in result.colnames:
-                dec_col = 'dec'  # Check for lowercase
-            else:
-                raise ValueError(
-                    f"SIMBAD result for '{object_name}' is missing DEC column. Available: {result.colnames}")
-
-            ra_value_simbad = str(result[ra_col][0])
-            dec_value_simbad = str(result[dec_col][0])
-
-            ra_hours_simbad = hms_to_hours(ra_value_simbad)
-            dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
-
-            simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames and result['MAIN_ID'][
-                0] else common_name_to_use
-            simbad_otype = str(result['OTYPE'][0]) if 'OTYPE' in result.colnames and result['OTYPE'][0] else type_to_use
-
-            try:
-                coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
-                constellation_simbad = get_constellation(coords, short_name=True)
-            except Exception:
-                constellation_simbad = "N/A"
-
-            # If the object was in config but RA/DEC were missing, update the in-memory entry
-            if obj_entry:
-                obj_entry["RA"] = ra_hours_simbad
-                obj_entry["DEC"] = dec_degrees_simbad
-                if obj_entry.get("Name") in [None, "",
-                                             object_name] and simbad_main_id != object_name:  # Update common name if generic
-                    obj_entry["Name"] = simbad_main_id
-                if obj_entry.get("Type") in [None, "", "N/A"] and simbad_otype != "N/A":  # Update type if generic
-                    obj_entry["Type"] = simbad_otype
-
-            return {
-                "Object": object_name,
-                "Constellation": constellation_simbad,
-                "Common Name": simbad_main_id if not obj_entry or obj_entry.get("Name") in [None,
-                                                                                            ""] else obj_entry.get(
-                    "Name"),
-                "RA (hours)": ra_hours_simbad,
-                "DEC (degrees)": dec_degrees_simbad,
-                "Project": project_to_use,
-                "Type": simbad_otype if not obj_entry or obj_entry.get("Type") in [None, "", "N/A"] else obj_entry.get(
-                    "Type"),
-                "Magnitude": mag_to_use,  # These are not fetched by this basic SIMBAD query
-                "Size": size_to_use,
-                "SB": sb_to_use,
-            }
-
-        except Exception as ex:
-            # Provide more detailed error including exception type
-            error_message = f"Error: SIMBAD lookup failed ({type(ex).__name__}): {str(ex)}"
-            print(f"[ERROR] {error_message} for {object_name}")
-            return {
-                "Object": object_name,
-                "Constellation": "N/A",
-                "Common Name": error_message,
-                "RA (hours)": None, "DEC (degrees)": None,
-                "Project": project_to_use, "Type": type_to_use,  # Use defaults or config values if obj_entry existed
-                "Magnitude": mag_to_use, "Size": size_to_use, "SB": sb_to_use,
-            }
-
-    print(f"[WARN] get_ra_dec: Unhandled case for object {object_name}")
-    return {
-        "Object": object_name, "Common Name": "Error: Could not determine RA/DEC",
-        "RA (hours)": None, "DEC (degrees)": None,
-        "Project": default_project, "Type": default_type,
-        "Magnitude": default_magnitude, "Size": default_size, "SB": default_sb,
-    }
-
-
+        return {
+            "Object": object_name,
+            "Constellation": constellation_simbad,
+            "Common Name": simbad_main_id,
+            "RA (hours)": ra_hours_simbad,
+            "DEC (degrees)": dec_degrees_simbad,
+            "Project": project_to_use,
+            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
+            "Magnitude": "N/A",  # Not fetched in this simple query
+            "Size": "N/A",  # Not fetched in this simple query
+            "SB": "N/A",  # Not fetched in this simple query
+            "ActiveProject": active_project_to_use
+        }
+    except Exception as ex:
+        return {
+            "Object": object_name, "Constellation": "N/A",
+            "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
+            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
 
 # =============================================================================
 # Protected Routes
@@ -5162,7 +5158,14 @@ def graph_dashboard(object_name):
         requested_session_id = request.args.get('session_id')
         selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id,
                                                                    user_id=user.id).one_or_none() if requested_session_id else None
-
+        # Convert the SQLAlchemy object to a JSON-serializable dictionary
+        selected_session_data_dict = None
+        if selected_session_data:
+            selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
+                                          selected_session_data.__table__.columns}
+            # Date objects are not JSON serializable, so convert to a string
+            if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
+                selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
         # Base date is today, or from URL params
         effective_day = int(request.args.get('day', now_at_effective_location.day))
         effective_month = int(request.args.get('month', now_at_effective_location.month))
@@ -5285,6 +5288,7 @@ def graph_dashboard(object_name):
                                grouped_sessions=grouped_sessions,
                                object_specific_sessions=object_specific_sessions,
                                selected_session_data=selected_session_data,
+                               selected_session_data_dict=selected_session_data_dict,
                                current_session_id=requested_session_id if selected_session_data else None,
                                graph_lat_param=effective_lat,
                                graph_lon_param=effective_lon,
