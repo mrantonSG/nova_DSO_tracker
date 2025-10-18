@@ -464,6 +464,7 @@ def _migrate_locations(db, user: DbUser, config: dict):
                 existing.timezone = tz
                 existing.altitude_threshold = alt_thr
                 existing.is_default = new_is_default
+                existing.active = loc.get("active", True)
 
                 # Replace horizon points
                 db.query(HorizonPoint).filter_by(location_id=existing.id).delete()
