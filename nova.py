@@ -3237,7 +3237,18 @@ def journal_add():
                 filter_Ha_subs=safe_int(request.form.get("filter_Ha_subs")), filter_Ha_exposure_sec=safe_int(request.form.get("filter_Ha_exposure_sec")),
                 filter_OIII_subs=safe_int(request.form.get("filter_OIII_subs")), filter_OIII_exposure_sec=safe_int(request.form.get("filter_OIII_exposure_sec")),
                 filter_SII_subs=safe_int(request.form.get("filter_SII_subs")), filter_SII_exposure_sec=safe_int(request.form.get("filter_SII_exposure_sec")),
-                external_id=generate_session_id()
+                external_id=generate_session_id(),
+                weather_notes=request.form.get("weather_notes", "").strip() or None,
+                guiding_equipment=request.form.get("guiding_equipment", "").strip() or None,
+                dither_details=request.form.get("dither_details", "").strip() or None,
+                acquisition_software=request.form.get("acquisition_software", "").strip() or None,
+                camera_temp_setpoint_c=safe_float(request.form.get("camera_temp_setpoint_c")),
+                camera_temp_actual_avg_c=safe_float(request.form.get("camera_temp_actual_avg_c")),
+                binning_session=request.form.get("binning_session", "").strip() or None,
+                darks_strategy=request.form.get("darks_strategy", "").strip() or None,  # Added calibration
+                flats_strategy=request.form.get("flats_strategy", "").strip() or None,  # Added calibration
+                bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None
+                # Added calibration
             )
 
             total_seconds = (new_session.number_of_subs_light or 0) * (new_session.exposure_time_per_sub_sec or 0) + \
@@ -3338,6 +3349,17 @@ def journal_edit(session_id):
             session_to_edit.filter_OIII_exposure_sec = safe_int(request.form.get("filter_OIII_exposure_sec"))
             session_to_edit.filter_SII_subs = safe_int(request.form.get("filter_SII_subs"));
             session_to_edit.filter_SII_exposure_sec = safe_int(request.form.get("filter_SII_exposure_sec"))
+            session_to_edit.weather_notes = request.form.get("weather_notes", "").strip() or None
+            session_to_edit.guiding_equipment = request.form.get("guiding_equipment", "").strip() or None
+            session_to_edit.dither_details = request.form.get("dither_details", "").strip() or None
+            session_to_edit.acquisition_software = request.form.get("acquisition_software", "").strip() or None
+            session_to_edit.camera_temp_setpoint_c = safe_float(request.form.get("camera_temp_setpoint_c"))
+            session_to_edit.camera_temp_actual_avg_c = safe_float(request.form.get("camera_temp_actual_avg_c"))
+            session_to_edit.binning_session = request.form.get("binning_session", "").strip() or None
+            session_to_edit.darks_strategy = request.form.get("darks_strategy", "").strip() or None  # Added calibration
+            session_to_edit.flats_strategy = request.form.get("flats_strategy", "").strip() or None  # Added calibration
+            session_to_edit.bias_darkflats_strategy = request.form.get("bias_darkflats_strategy",
+                                                                       "").strip() or None  # Added calibration
 
             total_seconds = (session_to_edit.number_of_subs_light or 0) * (
                         session_to_edit.exposure_time_per_sub_sec or 0) + \
