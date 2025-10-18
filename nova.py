@@ -1105,12 +1105,21 @@ def import_user_from_yaml(username: str,
             db.delete(user); db.flush()
             user = _upsert_user(db, username)
 
-        cfg = _read_yaml(config_path); rigs = _read_yaml(rigs_path); jrn = _read_yaml(journal_path)
-        _migrate_locations(db, user, cfg)
-        _migrate_objects(db, user, cfg)
-        _migrate_components_and_rigs(db, user, rigs, username)
-        _migrate_journal(db, user, jrn)
-        _migrate_ui_prefs(db, user, cfg)
+        cfg_tuple = _read_yaml(config_path);
+        rigs_tuple = _read_yaml(rigs_path);
+        jrn_tuple = _read_yaml(journal_path)
+
+        # Extract the data dictionary (first element) from each tuple
+        cfg_data = cfg_tuple[0]
+        rigs_data = rigs_tuple[0]
+        jrn_data = jrn_tuple[0]
+
+        # Pass the extracted dictionaries to the migration functions
+        _migrate_locations(db, user, cfg_data)
+        _migrate_objects(db, user, cfg_data)
+        _migrate_components_and_rigs(db, user, rigs_data, username)
+        _migrate_journal(db, user, jrn_data)
+        _migrate_ui_prefs(db, user, cfg_data)
         db.commit()
         return True
     except Exception:
