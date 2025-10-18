@@ -2193,7 +2193,7 @@ def trigger_outlook_update_for_user(username):
 
 def trigger_startup_cache_workers():
     """
-    REVISED FOR DATABASE: Gets users from the DB to warm caches.
+    REVISED FOR DATABASE: Gets users from the DB to warm caches for ACTIVE locations only.
     """
     print("[STARTUP] Checking all caches for freshness...")
 
@@ -2206,37 +2206,63 @@ def trigger_startup_cache_workers():
             try:
                 _db = get_db()
                 try:
+                    # Query only active users from the DbUser table
                     all_db_users = _db.query(DbUser).filter(DbUser.active == True).all()
                     usernames_to_check = [u.username for u in all_db_users]
                 finally:
                     _db.close()
             except Exception as e:
                 print(f"⚠️ [STARTUP] Could not query unified DB users. Error: {e}")
-                usernames_to_check = []
+                usernames_to_check = [] # Fallback to empty list on error
 
-        # The rest of this function remains the same
+        # Prepare tasks only for active locations
         all_tasks = []
         for username in set(usernames_to_check):
             try:
                 print(f"--- Preparing tasks for user: {username} ---")
+                # Build the user's config dictionary directly from the database
                 config = build_user_config_from_db(username)
                 if not config or not config.get("locations"):
                     print(f"    -> No locations in DB for user '{username}', skipping.")
                     continue
 
                 locations = config.get("locations", {})
-                default_location = config.get("default_location")
+                default_location_name = config.get("default_location")
 
-                if default_location and default_location in locations:
-                    all_tasks.insert(0, (username, default_location, config.copy()))
+                # --- NEW FILTERING LOGIC ---
+                active_location_names = []
+                default_active_location = None
+                for loc_name, loc_details in locations.items():
+                    # Use .get('active', True) to default to active if the flag isn't set (older configs)
+                    # We check the 'active' flag from the config dict built from the DB
+                    if loc_details.get('active', True):
+                        active_location_names.append(loc_name)
+                        if loc_name == default_location_name:
+                            default_active_location = loc_name
+                # --- END NEW FILTERING LOGIC ---
 
-                for loc_name in locations.keys():
-                    if loc_name != default_location:
-                        all_tasks.append((username, loc_name, config.copy()))
+                if not active_location_names:
+                    print(f"    -> No ACTIVE locations found for user '{username}', skipping cache warming.")
+                    continue
+
+                # Prioritize the default location if it's active
+                if default_active_location:
+                    # Add the default location first
+                    all_tasks.insert(0, (username, default_active_location, config.copy()))
+                    # Add remaining active locations
+                    for loc_name in active_location_names:
+                        if loc_name != default_active_location:
+                            all_tasks.append((username, loc_name, config.copy()))
+                else:
+                    # If default isn't active (or doesn't exist), just add all active ones
+                     for loc_name in active_location_names:
+                         all_tasks.append((username, loc_name, config.copy()))
 
             except Exception as e:
                 print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
+                traceback.print_exc() # Print traceback for detailed debugging
 
+        # Function to run tasks sequentially with a delay
         def run_tasks_sequentially(tasks):
             if not tasks:
                 print("[STARTUP] All cache workers have completed.")
@@ -2244,25 +2270,30 @@ def trigger_startup_cache_workers():
 
             username, loc_name, cfg = tasks.pop(0)
             print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
-            # Determine the sampling interval to pass to the thread
-            if SINGLE_USER_MODE:
-                sampling_interval = cfg.get('sampling_interval_minutes', 15)
-            else:
-                sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
             # Determine the sampling interval to pass to the thread
+            sampling_interval = 15 # Default
             if SINGLE_USER_MODE:
+                # In single-user mode, get it from the user's config (UiPref blob)
                 sampling_interval = cfg.get('sampling_interval_minutes', 15)
             else:
+                # In multi-user mode, get it from environment variables (or default)
                 sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
+            # Start the cache warming thread for the main data cache
+            # This thread will subsequently trigger the outlook cache update
             worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg, sampling_interval))
             worker_thread.start()
+
+            # Schedule the next task after a delay (e.g., 15 seconds)
             threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
 
-        print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
+        print(f"[STARTUP] Found a total of {len(all_tasks)} active user/location tasks to process.")
         if all_tasks:
+            # Start the sequential processing
             run_tasks_sequentially(all_tasks)
+        else:
+            print("[STARTUP] No active locations found across all users. No cache warming needed.")
 
 def update_outlook_cache(username, location_name, user_config, sampling_interval):
     """
@@ -4241,9 +4272,28 @@ def get_ra_dec(object_name):
 @app.route('/get_locations')
 def get_locations():
     """Returns only ACTIVE locations for the main UI dropdown."""
-    # The g.active_locations dictionary is prepared by the before_request hook.
-    return jsonify({"locations": list(g.active_locations.keys()), "selected": g.selected_location})
+    username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            return jsonify({"locations": [], "selected": None}) # No user, no locations
 
+        # Query only active locations for this user
+        active_locs = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        active_loc_names = [loc.name for loc in active_locs]
+
+        # Determine the selected location (prefer default, fallback to first active)
+        selected = None
+        default_loc = next((loc.name for loc in active_locs if loc.is_default), None)
+        if default_loc:
+            selected = default_loc
+        elif active_loc_names:
+            selected = active_loc_names[0]
+
+        return jsonify({"locations": active_loc_names, "selected": selected})
+    finally:
+        db.close()
 @app.route('/search_object', methods=['POST'])
 @login_required
 def search_object():
