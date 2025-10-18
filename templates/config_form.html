@@ -1060,7 +1060,8 @@
             if (selectedSeeing === 'none') return;
 
             const rigId = item.dataset.rigId;
-            const rig = rigsData.rigs.find(r => r.rig_id === rigId);
+            const rigIdNum = parseInt(rigId, 10);
+            const rig = rigsData.rigs.find(r => r.rig_id === rigIdNum);
             if (rig && rig.image_scale) {
                 const imageScale = rig.image_scale;
                 const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
@@ -1124,8 +1125,8 @@
         }
 
         function manageActiveLocationLimit() {
-            const checkboxes = document.querySelectorAll('.active-location-checkbox');
-            const checkedCount = document.querySelectorAll('.active-location-checkbox:checked').length;
+            const checkboxes = document.querySelectorAll('.locations-list .active-location-checkbox');
+            const checkedCount = document.querySelectorAll('.locations-list .active-location-checkbox:checked').length;
             const counterEl = document.getElementById('active-location-counter');
 
             if(counterEl) {
