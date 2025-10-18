@@ -610,52 +610,7 @@
     }
 
     // --- Initial setup on page load ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const wrapper = document.getElementById('session-detail-wrapper');
-        const urlParams = new URLSearchParams(window.location.search);
-        let initialTab = urlParams.get('tab') || 'summary'; // Default to summary
 
-        // Determine if we are initially in view or edit mode (or add mode, which behaves like edit)
-        const isEditingOrAdding = wrapper.classList.contains('is-editing') || wrapper.classList.contains('is-adding');
-
-        if (isEditingOrAdding) {
-             // If editing/adding, hide summary button and default to 'sky' tab if 'summary' was the initial target
-             wrapper.querySelector('.detail-tab-button[data-tab="summary"]').style.display = 'none';
-             if (initialTab === 'summary') {
-                 initialTab = 'sky';
-             }
-             showDetailTab(initialTab); // Show the correct tab (sky or specified)
-             updateMoonData();         // Fetch moon data if needed
-        } else if (window.selectedSessionData) {
-            // If viewing a selected session, show the initial tab (could be summary)
-            showDetailTab(initialTab);
-        } else {
-            // If viewing the placeholder (no session selected), ensure summary tab is visually selected, but no content needs showing yet.
-             document.querySelectorAll('.detail-tab-button').forEach(button => button.classList.remove('active'));
-             const summaryButton = document.querySelector('.detail-tab-button[data-tab="summary"]');
-             if(summaryButton) summaryButton.classList.add('active');
-        }
-
-        // Add listener for project selection changes
-        const projectSelect = document.getElementById('project_selection');
-        if (projectSelect) {
-            projectSelect.addEventListener('change', toggleNewProjectField);
-            toggleNewProjectField(); // Run initially
-        }
-
-         // Add listener for rig selector changes in edit mode
-        const rigSelectorEdit = document.getElementById('rig-selector-edit');
-        const setupNotesEdit = document.getElementById('telescope_setup_notes');
-        if (rigSelectorEdit && setupNotesEdit) {
-            rigSelectorEdit.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption && selectedOption.value) { // Check if a valid rig is selected
-                     // Use the text content of the option, which is the rig name
-                    setupNotesEdit.value = selectedOption.text;
-                }
-            });
-        }
-    });
 
 </script>
 
