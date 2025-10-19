@@ -3975,56 +3975,159 @@ def favicon():
 def inject_version():
     return dict(version=APP_VERSION)
 
+
 @app.route('/download_config')
-@login_required # This was missing, it's good practice to add it
+@login_required
 def download_config():
-    if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
-    else:
-        filename = f"config_{current_user.username}.yaml"
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            flash("User not found.", "error")
+            return redirect(url_for('config_form'))
 
-    # FIX: Use the CONFIG_DIR variable for a reliable path
-    filepath = os.path.join(CONFIG_DIR, filename)
+        # --- 1. Load base settings from UiPref ---
+        config_doc = {}
+        prefs = db.query(UiPref).filter_by(user_id=u.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                config_doc = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass  # Start with empty doc if JSON is corrupt
 
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True)
-    else:
-        flash("Configuration file not found.", "error")
+        # --- 2. Load Locations ---
+        locs = db.query(Location).filter_by(user_id=u.id).all()
+        default_loc_name = next((l.name for l in locs if l.is_default), None)
+        config_doc["default_location"] = default_loc_name
+        config_doc["locations"] = {
+            l.name: {
+                "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold,
+                "active": l.active,
+                "comments": l.comments,
+                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            } for l in locs
+        }
+
+        # --- 3. Load Objects ---
+        config_doc["objects"] = [
+            {
+                "Object": o.object_name,
+                "Name": o.common_name,  # "Name" is used by the form
+                "Common Name": o.common_name,  # "Common Name" is used by the index page
+                "RA": o.ra_hours, "DEC": o.dec_deg,
+                "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,  # Redundant for compatibility
+                "Type": o.type, "Constellation": o.constellation,
+                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                "ActiveProject": o.active_project, "Project": o.project_name
+            } for o in db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
+        ]
+
+        # --- 4. Create in-memory file ---
+        yaml_string = yaml.dump(config_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
+        str_io = io.BytesIO(yaml_string.encode('utf-8'))
+
+        # Determine filename
+        if SINGLE_USER_MODE:
+            download_name = "config_default.yaml"
+        else:
+            download_name = f"config_{username}.yaml"
+
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error generating config file: {e}", "error")
+        traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('config_form'))
+    finally:
+        db.close()
+
 
 @app.route('/download_journal')
-@login_required # Or your custom logic for SINGLE_USER_MODE
+@login_required
 def download_journal():
-    if SINGLE_USER_MODE:
-        filename = "journal_default.yaml"
-        # Ensure the user is effectively logged in for single user mode if needed by send_file context
-    else:
-        if not current_user.is_authenticated: # Should be caught by @login_required
-            flash("Please log in to download your journal.", "warning")
-            return redirect(url_for('login'))
-        username = current_user.username
-        filename = f"journal_{username}.yaml"
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            flash("User not found.", "error")
+            return redirect(url_for('config_form'))
 
-    # Construct the full path to the file
-    # Assuming your journal YAML files are in the same directory as app.py (instance path or app root)
-    # If they are in a subdirectory e.g. 'user_data/', adjust the path.
-    # For consistency with how load_journal/save_journal build paths:
-    filepath = os.path.join(CONFIG_DIR, filename)
+        # --- 1. Load Projects ---
+        projects = db.query(Project).filter_by(user_id=u.id).order_by(Project.name).all()
+        projects_list = [
+            {"project_id": p.id, "project_name": p.name} for p in projects
+        ]
 
+        # --- 2. Load Sessions ---
+        sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
+        sessions_list = []
+        for s in sessions:
+            sessions_list.append({
+                "session_id": s.external_id or s.id,
+                "project_id": s.project_id,
+                "session_date": s.date_utc.isoformat(),
+                "target_object_id": s.object_name,
+                "general_notes_problems_learnings": s.notes,
+                "session_image_file": s.session_image_file,
+                "location_name": s.location_name,
+                "seeing_observed_fwhm": s.seeing_observed_fwhm,
+                "sky_sqm_observed": s.sky_sqm_observed,
+                "moon_illumination_session": s.moon_illumination_session,
+                "moon_angular_separation_session": s.moon_angular_separation_session,
+                "weather_notes": s.weather_notes,
+                "telescope_setup_notes": s.telescope_setup_notes,
+                "filter_used_session": s.filter_used_session,
+                "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
+                "guiding_equipment": s.guiding_equipment,
+                "dither_details": s.dither_details,
+                "acquisition_software": s.acquisition_software,
+                "gain_setting": s.gain_setting,
+                "offset_setting": s.offset_setting,
+                "camera_temp_setpoint_c": s.camera_temp_setpoint_c,
+                "camera_temp_actual_avg_c": s.camera_temp_actual_avg_c,
+                "binning_session": s.binning_session,
+                "darks_strategy": s.darks_strategy,
+                "flats_strategy": s.flats_strategy,
+                "bias_darkflats_strategy": s.bias_darkflats_strategy,
+                "session_rating_subjective": s.session_rating_subjective,
+                "transparency_observed_scale": s.transparency_observed_scale,
+                "number_of_subs_light": s.number_of_subs_light,
+                "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
+                "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
+                "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
+                "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
+                "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
+                "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
+                "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
+                "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
+                "calculated_integration_time_minutes": s.calculated_integration_time_minutes
+            })
 
-    if os.path.exists(filepath):
-        try:
-            return send_file(filepath, as_attachment=True, download_name=filename)
-        except Exception as e:
-            print(f"Error sending journal file: {e}")
-            flash("Error downloading journal file.", "error")
-            return redirect(url_for('config_form')) # Or some other appropriate page
-    else:
-        flash(f"Journal file '{filename}' not found.", "error")
-        # If no journal exists, you could offer to download an empty template,
-        # but for now, just an error is fine.
-        return redirect(url_for('config_form')) # Redirect back to config form
+        journal_doc = {"projects": projects_list, "sessions": sessions_list}
 
+        # --- 3. Create in-memory file ---
+        yaml_string = yaml.dump(journal_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
+        str_io = io.BytesIO(yaml_string.encode('utf-8'))
+
+        # Determine filename
+        if SINGLE_USER_MODE:
+            download_name = "journal_default.yaml"
+        else:
+            download_name = f"journal_{username}.yaml"
+
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error generating journal file: {e}", "error")
+        traceback.print_exc()  # Log the full error to the console
+        return redirect(url_for('config_form'))
+    finally:
+        db.close()
 
 def validate_journal_data(journal_data):
     """
