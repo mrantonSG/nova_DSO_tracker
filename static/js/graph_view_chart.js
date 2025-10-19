@@ -678,5 +678,5 @@ function startCurrentTimeUpdater(chartInstance) {
 
     // Run it once immediately, and then set it to run every 10 minutes
     updateLine();
-    currentTimeUpdateInterval = setInterval(updateLine, 10 * 60 * 1000); // 10 minutes in milliseconds
+    currentTimeUpdateInterval = setInterval(updateLine, 1 * 60 * 1000); // 1 minutes in milliseconds
 }
