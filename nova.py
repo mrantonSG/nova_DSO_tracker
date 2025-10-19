@@ -2951,7 +2951,18 @@ def add_component():
     try:
         user = db.query(DbUser).filter_by(username=username).one()
         form = request.form
-        kind = form.get('component_type').replace('s', '').replace('ie', 'y') # 'telescopes' -> 'telescope'
+        form_kind = form.get('component_type')
+        kind_map = {
+            'telescopes': 'telescope',
+            'cameras': 'camera',
+            'reducers_extenders': 'reducer_extender'
+        }
+        kind = kind_map.get(form_kind)
+
+        if not kind:
+            db.rollback()
+            flash(f"Error: Unknown component type '{form_kind}'", "error")
+            return redirect(url_for('config_form'))
 
         new_comp = Component(user_id=user.id, kind=kind, name=form.get('name'))
         if kind == 'telescope':
@@ -5599,14 +5610,81 @@ def generate_ics(object_name):
 @login_required
 def download_rig_config():
     username = "default" if SINGLE_USER_MODE else current_user.username
-    # Use the new central function to get the correct path
-    filepath = rig_config.get_rig_config_path(username, SINGLE_USER_MODE)
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            flash("User not found.", "error")
+            return redirect(url_for('config_form'))
 
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
-    else:
-        flash("Rigs configuration file not found.", "error")
+        # --- Generate rigs doc from DB ---
+        comps = db.query(Component).filter_by(user_id=u.id).all()
+        rigs = db.query(Rig).filter_by(user_id=u.id).order_by(Rig.rig_name).all()
+
+        def bykind(k):
+            return [c for c in comps if c.kind == k]
+
+        rigs_doc = {
+            "components": {
+                "telescopes": [
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm}
+                    for c in bykind("telescope")
+                ],
+                "cameras": [
+                    {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um}
+                    for c in bykind("camera")
+                ],
+                "reducers_extenders": [
+                    {"id": c.id, "name": c.name, "factor": c.factor}
+                    for c in bykind("reducer_extender")
+                ],
+            },
+            "rigs": []  # We will populate this next
+        }
+
+        # --- Calculate metrics for each rig ---
+        final_rigs_list = []
+        for r in rigs:
+            tel_obj = next((c for c in comps if c.id == r.telescope_id), None)
+            cam_obj = next((c for c in comps if c.id == r.camera_id), None)
+            red_obj = next((c for c in comps if c.id == r.reducer_extender_id), None)
+
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
+
+            final_rigs_list.append({
+                "rig_id": r.id,
+                "rig_name": r.rig_name,
+                "telescope_id": r.telescope_id,
+                "camera_id": r.camera_id,
+                "reducer_extender_id": r.reducer_extender_id,
+                "effective_focal_length": efl,
+                "f_ratio": f_ratio,
+                "image_scale": scale,
+                "fov_w_arcmin": fov_w
+            })
+
+        rigs_doc["rigs"] = final_rigs_list  # Add the populated list to the doc
+
+        # --- Create in-memory file ---
+        yaml_string = yaml.dump(rigs_doc, sort_keys=False, allow_unicode=True)
+        str_io = io.BytesIO(yaml_string.encode('utf-8'))
+
+        # Determine filename
+        if SINGLE_USER_MODE:
+            download_name = "rigs_default.yaml"
+        else:
+            download_name = f"rigs_{username}.yaml"
+
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error generating rig config: {e}", "error")
+        traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('config_form'))
+    finally:
+        db.close()
 
 @app.route('/download_journal_photos')
 @login_required
