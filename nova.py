@@ -29,7 +29,6 @@ import threading
 import glob
 from datetime import datetime, timedelta, timezone, UTC, date
 import traceback
-import uuid
 import io
 import zipfile
 import pytz
@@ -44,13 +43,12 @@ import uuid
 from pathlib import Path
 import platform
 
-import inspect
 from math import atan, degrees
 
 
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from flask import session, get_flashed_messages
+from flask import session
 from flask import Flask, send_from_directory, has_request_context
 
 from astroquery.simbad import Simbad
@@ -60,9 +58,7 @@ import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
-from sqlalchemy.exc import OperationalError
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 import getpass
 import jwt
 
@@ -81,13 +77,10 @@ from modules.astro_calculations import (
 
 from modules import nova_data_fetcher
 from modules import rig_config
-from modules.rig_config import calculate_rig_data, get_rig_config_path
-
-from modules.rig_config import save_rig_config, load_rig_config
 
 # === DB: Unified SQLAlchemy setup ============================================
 from sqlalchemy import (
-    create_engine, Column, Integer, Float, String, Boolean, Date, DateTime,
+    create_engine, Column, Integer, Float, String, Boolean, Date,
     ForeignKey, Text, UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
@@ -1985,9 +1978,10 @@ def load_journal(username):
         print(f"❌ ERROR: Failed to load journal '{filename}': {e}")
         return {"projects": [], "sessions": []}
 
+
 def save_journal(username, journal_data):
     """
-    Saves journal data safely (schema guard + backup + atomic write).
+    Saves journal data safely (schema guard + backup + atomic write + DB sync).
     """
     if (not isinstance(journal_data, dict) or
             "sessions" not in journal_data or
@@ -1999,21 +1993,31 @@ def save_journal(username, journal_data):
     filepath = os.path.join(CONFIG_DIR, filename)
 
     try:
+        # --- Start of combined operation block ---
+
+        # 1. Perform file operations (backup + atomic write)
         with _FileLock(filepath):
             if os.path.exists(filepath):
                 _backup_with_rotation(filepath, keep=10)
             _atomic_write_yaml(filepath, journal_data)
+
+        # 2. If file write succeeded, print success and sync DB
         print(f" Journal saved to '{filename}' successfully (atomic).")
-        try:
-            # Keep DB in sync with freshly saved YAMLs
-            _username = username or ("default" if SINGLE_USER_MODE else None)
-            if _username:
-                import_from_existing_yaml(_username, clear_existing=False)
-                print(f"[IMPORT→DB] Synced DB from YAMLs for user '{_username}' after journal save.")
-        except Exception as e:
-            print(f"[IMPORT→DB] WARNING: Could not sync DB from YAMLs after journal save: {e}")
+
+        # 3. Keep DB in sync with freshly saved YAMLs
+        try:  # Separate try-except specifically for the DB sync part
+            if username:
+                import_from_existing_yaml(username, clear_existing=False)
+                print(f"[IMPORT→DB] Synced DB from YAMLs for user '{username}' after journal save.")
+        except Exception as sync_e:
+            # Log a warning if ONLY the sync fails, but the file was saved
+            print(f"[IMPORT→DB] WARNING: File saved, but could not sync DB from YAMLs after journal save: {sync_e}")
+            # Optionally: re-raise sync_e or flash a message if you want the user to know
+
     except Exception as e:
-        print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
+        # This catches errors from file operations (_FileLock, _backup, _atomic_write)
+        print(f"❌ ERROR: Failed to save journal '{filename}' or sync DB: {e}")
+        # Note: We don't print the "successfully saved" message if we end up here.
 
 def sort_rigs_list(rigs_list, sort_key='name-asc'):
     """Sorts a list of rig dictionaries based on a given key."""
@@ -4241,6 +4245,14 @@ def import_journal():
 @app.route('/import_config', methods=['POST'])
 @login_required
 def import_config():
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif current_user.is_authenticated:
+        username = current_user.username
+    else:
+        # This case should ideally not be reached due to @login_required
+        flash("Authentication error during import.", "error")
+        return redirect(url_for('login'))
     try:
         if 'file' not in request.files:
             flash("No file selected for import.", "error")
@@ -6461,13 +6473,7 @@ def repair_db_now():
         flash("Not authorized.", "error")
         return redirect(url_for("index"))
     try:
-        db = get_db()
-        try:
-            _dedupe_locations(db)
-            db.commit()
-        finally:
-            db.close()
-        backfill_missing_fields()
+        repair_journals(dry_run=False)
         flash("Database repair completed.", "success")
     except Exception as e:
         flash(f"Repair failed: {e}", "error")
