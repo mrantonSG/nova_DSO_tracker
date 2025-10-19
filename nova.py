@@ -890,18 +890,33 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "external_id": str(ext_id) if ext_id else None
         }
 
-        # Upsert logic
-        existing = None
+        # Upsert logic - More Defensive
+        should_add = True
         if ext_id:
-            existing = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).one_or_none()
+            # Check if it *already exists in the DB*
+            existing_in_db = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).one_or_none()
+            if existing_in_db:
+                 # It's already committed in the DB, just update it
+                for k, v in row_values.items():
+                    if v is not None:
+                        setattr(existing_in_db, k, v)
+                should_add = False # Don't try to add it again
+            else:
+                 # Check if we *just added* it in this same transaction (prevent double-add before commit)
+                 # This uses SQLAlchemy's identity map implicitly
+                 maybe_added_session = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).with_for_update().one_or_none()
+                 if maybe_added_session in db.new:
+                     # Already staged for insert, maybe update if needed, but don't add again
+                     for k, v in row_values.items():
+                         if v is not None:
+                             setattr(maybe_added_session, k, v)
+                     should_add = False
 
-        if existing:
-            for k, v in row_values.items():
-                if v is not None:
-                    setattr(existing, k, v)
-        else:
+        if should_add:
+             # Only add if it doesn't exist in DB and isn't already staged for insertion
             new_session = JournalSession(**row_values)
             db.add(new_session)
+
 
 def _migrate_ui_prefs(db, user: DbUser, config: dict):
     """
@@ -1281,34 +1296,42 @@ def run_one_time_yaml_migration():
         _mkdirp(BACKUP_DIR)
         _timestamped_copy(CONFIG_DIR)
 
-        # --- Get the Definitive List of Users from the Authentication DB ---
         usernames_to_migrate = set()
-        auth_db_path = os.path.join(INSTANCE_PATH, "users.db")
-        if os.path.exists(auth_db_path):
-            print(f"[MIGRATION] Reading user list from authentication database: {os.path.basename(auth_db_path)}")
-            AuthBase = declarative_base()
+        # FIX: Read SINGLE_USER_MODE directly from environment/config here
+        is_single_user_mode_for_migration = config('SINGLE_USER_MODE', default='True') == 'True'
 
-            class AuthUser(AuthBase):
-                __tablename__ = 'user'
-                id = Column(Integer, primary_key=True)
-                username = Column(String)
-
-            auth_engine = create_engine(f'sqlite:///{auth_db_path}')
-            AuthSession = sessionmaker(bind=auth_engine)
-            auth_session = AuthSession()
-            try:
-                all_auth_users = auth_session.query(AuthUser).all()
-                usernames_to_migrate.update(u.username for u in all_auth_users)
-                print(f"   -> Found {len(all_auth_users)} users in users.db.")
-            finally:
-                auth_session.close()
+        if is_single_user_mode_for_migration:
+            print("[MIGRATION] Single-User Mode: Migrating only the 'default' user.")
+            usernames_to_migrate.add("default")
         else:
-            print(
-                "[MIGRATION] WARNING: Authentication database (users.db) not found. Will migrate based on YAML files only.")
-            usernames_to_migrate.update(_iter_candidate_users())
+            # Multi-User Mode: Get users from the authentication DB
+            auth_db_path = os.path.join(INSTANCE_PATH, "users.db")
+            if os.path.exists(auth_db_path):
+                print(
+                    f"[MIGRATION] Multi-User Mode: Reading user list from authentication database: {os.path.basename(auth_db_path)}")
+                AuthBase = declarative_base()
 
-        # Add special users that are required but may not be in the auth DB
-        usernames_to_migrate.update(["default", "guest_user"])
+                class AuthUser(AuthBase):
+                    __tablename__ = 'user';
+                    id = Column(Integer, primary_key=True);
+                    username = Column(String)
+
+                auth_engine = create_engine(f'sqlite:///{auth_db_path}');
+                AuthSession = sessionmaker(bind=auth_engine);
+                auth_session = AuthSession()
+                try:
+                    all_auth_users = auth_session.query(AuthUser).all()
+                    usernames_to_migrate.update(u.username for u in all_auth_users)
+                    print(f"   -> Found {len(all_auth_users)} users in users.db.")
+                finally:
+                    auth_session.close()
+            else:
+                print(
+                    "[MIGRATION] WARNING: Multi-User Mode but users.db not found. Migrating based on YAML files only.")
+                usernames_to_migrate.update(_iter_candidate_users())
+
+            # Always include default and guest in multi-user mode as well
+            usernames_to_migrate.update(["default", "guest_user"])
 
         # --- Iterate Through Each User and Migrate Their Data ---
         for username in sorted(list(usernames_to_migrate)):
@@ -4955,6 +4978,13 @@ def index():
 
 @app.route('/sun_events')
 def sun_events():
+    if not g.lat or not g.lon:
+        return jsonify({
+            "date": datetime.now().strftime('%Y-%m-%d'),
+            "time": datetime.now().strftime('%H:%M'),
+            "phase": 0,
+            "error": "No location set"
+        })
     local_tz = pytz.timezone(g.tz_name)
     now_local = datetime.now(local_tz)
     local_date = now_local.strftime('%Y-%m-%d')
