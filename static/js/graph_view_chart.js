@@ -1,4 +1,5 @@
 
+let currentTimeUpdateInterval = null;
 const weatherOverlayPlugin = {
   id: 'weatherOverlay',
   beforeDatasetsDraw(chart) {
@@ -153,6 +154,10 @@ async function renderClientSideChart() {
     console.log("Fetching Chart Data from API URL:", apiUrl);
 
     try {
+        if (currentTimeUpdateInterval) {
+            clearInterval(currentTimeUpdateInterval);
+            currentTimeUpdateInterval = null;
+        }
         const resp = await fetch(apiUrl);
         if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
         const data = await resp.json();
@@ -167,6 +172,27 @@ async function renderClientSideChart() {
         }
         const labels = data.times.map(toMs);
         const annotations = {};
+        const nowMs = luxon.DateTime.now().setZone(plotTz).toMillis();
+annotations.currentTimeLine = {
+            type: 'line',
+            borderColor: 'rgba(255, 99, 132, 0.8)', // Reddish color
+            // --- ADD THESE TWO LINES ---
+            borderWidth: 3,                           // Set the line thickness
+            borderDash: [10, 3],                       // Define the dash pattern [dash length, gap length]
+            // --- END ADD ---
+            label: {
+                display: true,
+                content: 'Now',
+                position: 'start',
+                rotation: 90,
+                font: { size: 10, weight: 'bold' },
+                color: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)'
+            },
+            xMin: nowMs, // Set initial position
+            xMax: nowMs, // Set initial position
+            xScaleID: 'x' // Ensure it uses the correct x-axis
+        };
         const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
         const nextDt = baseDt.plus({days: 1});
         const cloudInfo = {
@@ -291,6 +317,7 @@ async function renderClientSideChart() {
             }
         });
         window.altitudeChart.__weather = { hasWeather: hasDrawableWeather, forecast: drawableForecast, cloudInfo, seeingInfo };
+        startCurrentTimeUpdater(window.altitudeChart);
     } catch (err) {
         console.error('Could not render chart:', err);
         const canvas = document.getElementById('altitudeChartCanvas'), ctx = canvas.getContext('2d');
@@ -300,6 +327,10 @@ async function renderClientSideChart() {
 }
 
 async function renderMonthlyYearlyChart(view) {
+    if (currentTimeUpdateInterval) {
+        clearInterval(currentTimeUpdateInterval);
+        currentTimeUpdateInterval = null;
+    }
     const chartLoadingDiv = document.getElementById('chart-loading');
     chartLoadingDiv?.classList.remove('hidden');
     const objectName = NOVA_GRAPH_DATA.objectName, selMonth = document.getElementById('month-select').value, year = document.getElementById('year-select').value, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon, plotTz = NOVA_GRAPH_DATA.plotTz;
@@ -616,3 +647,36 @@ window.addEventListener('resize', () => {
     const ta = document.getElementById('project-field');
     if (ta) { const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g); if (m && m.length) setProjectQuickLink(m[m.length - 1]); }
 });
+
+function startCurrentTimeUpdater(chartInstance) {
+    if (!chartInstance) return; // Don't run if the chart doesn't exist
+
+    // Clear any previous timer first
+    if (currentTimeUpdateInterval) {
+        clearInterval(currentTimeUpdateInterval);
+    }
+
+    const updateLine = () => {
+        // Check if the chart still exists before trying to update it
+        if (!chartInstance || !chartInstance.options || !chartInstance.options.plugins?.annotation?.annotations) {
+            if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
+            currentTimeUpdateInterval = null;
+            return;
+        }
+
+        // Get the current time in the chart's timezone
+        const nowMs = luxon.DateTime.now().setZone(plotTz).toMillis();
+        const annotations = chartInstance.options.plugins.annotation.annotations;
+
+        // Update the position of our line
+        if (annotations.currentTimeLine) {
+            annotations.currentTimeLine.xMin = nowMs;
+            annotations.currentTimeLine.xMax = nowMs;
+            chartInstance.update('none'); // Update the chart without a flashy animation
+        }
+    };
+
+    // Run it once immediately, and then set it to run every 10 minutes
+    updateLine();
+    currentTimeUpdateInterval = setInterval(updateLine, 10 * 60 * 1000); // 10 minutes in milliseconds
+}
