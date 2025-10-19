@@ -872,7 +872,7 @@
         else if (type === 'reducer_extender') componentListKey = 'reducers_extenders';
         else return console.error("Unknown component type:", type);
 
-        const component = rigsData.components[componentListKey].find(c => c.id === id);
+        const component = rigsData.components[componentListKey].find(c => c.id == id);
         if (!component) return console.error("Could not find component with ID:", id);
 
         const formType = type === 'reducer_extender' ? 'reducer' : type;
