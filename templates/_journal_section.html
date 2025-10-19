@@ -479,44 +479,65 @@
         toggleNewProjectField(); // Ensure correct display after setting value
     }
 
-    function setupAddMode() {
-        // ... (Keep the existing setupAddMode function) ...
-         const wrapper = document.getElementById('session-detail-wrapper');
-        const existingFormHTML = document.getElementById('journal-detail-form').outerHTML; // Grab current form structure
+function setupAddMode() {
+        const wrapper = document.getElementById('session-detail-wrapper');
+        const form = document.getElementById('journal-detail-form'); // Get the existing form element
+        const detailTitle = document.getElementById('detail-title');
+        const submitButton = document.getElementById('form-submit-button');
+        const cancelButton = submitButton.nextElementSibling; // Assuming cancel is next
 
-        // Replace content but keep the form structure available
-        wrapper.innerHTML = `
-            <div class="detail-header">
-                <h4 id="detail-title">Add New Session for {{ alt_name | default(object_name, True) }}</h4>
-                <div class="action-button-group">
-                    <button id="form-submit-button" type="submit" form="journal-detail-form" class="inline-button" style="background-color:#28a745;">Add Session</button>
-                    <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="window.location.reload()">Cancel</button>
-                </div>
-            </div>
-            ${existingFormHTML} {# Re-insert the form structure #}
-        `;
+        if (!wrapper || !form || !detailTitle || !submitButton || !cancelButton) {
+            console.error("Required elements for setupAddMode not found.");
+            return;
+        }
 
-        const newForm = document.getElementById('journal-detail-form');
+        // --- Start modifying the EXISTING form ---
         wrapper.classList.remove('is-editing');
         wrapper.classList.add('is-adding'); // Add 'is-adding' class
 
-        // Configure the newly inserted form for ADD mode
-        newForm.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}';
-        newForm.reset(); // Clear all fields
-        newForm.elements.session_id.value = ''; // Ensure no session ID
-        newForm.elements.session_date.value = '{{ today_date }}'; // Default to today
-        newForm.elements.location_name.value = '{{ default_location }}'; // Default location
-        newForm.elements['project_selection'].value = 'standalone'; // Default project selection
+        // 1. Reset form fields to clear current values AND defaults defined in HTML
+        form.reset();
+
+        // 2. Set the correct action URL for adding
+        form.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}';
+
+        // 3. Explicitly clear fields that reset() might not fully clear or that need specific defaults
+        form.elements.session_id.value = ''; // Ensure no session ID is carried over
+        form.elements.session_date.value = '{{ today_date }}'; // Default to today's date
+        form.elements.location_name.value = '{{ default_location or (available_locations[0].name if available_locations else "") }}'; // Default location
+        form.elements['project_selection'].value = 'standalone'; // Default project selection
+        // Clear any potentially remaining image deletion checkbox state
+        const deleteCheckbox = form.elements['delete_session_image'];
+        if (deleteCheckbox) {
+            deleteCheckbox.checked = false;
+        }
+        // Clear file input visually (though reset() often does this)
+        const fileInput = form.elements['session_image'];
+        if(fileInput) {
+            fileInput.value = ''; // Clears the selected file
+        }
 
 
-        // Hide summary tab button, show edit fields, activate a default tab (e.g., sky)
+        // 4. Update titles and buttons
+        detailTitle.textContent = 'Add New Session for {{ alt_name | default(object_name, True) }}';
+        submitButton.textContent = 'Add Session';
+        submitButton.style.backgroundColor = '#28a745'; // Green for Add
+        cancelButton.onclick = () => window.location.reload(); // Make Cancel reload the page
+
+        // 5. Ensure correct UI state (show edit fields, hide view mode parts if necessary)
         const viewModeElement = wrapper.querySelector('.view-mode');
-        if (viewModeElement) viewModeElement.style.display = 'none'; // Hide view mode content if present
-        wrapper.querySelector('.edit-mode').style.display = 'block'; // Ensure edit mode fields are visible
-        wrapper.querySelector('.detail-tab-button[data-tab="summary"]').style.display = 'none'; // Hide summary button
+        if (viewModeElement) viewModeElement.style.display = 'none'; // Ensure view mode is hidden
+        const editModeElement = wrapper.querySelector('.edit-mode');
+        if (editModeElement) editModeElement.style.display = 'block'; // Ensure edit mode fields are visible
+
+        // 6. Manage tabs: Hide summary, show a default tab (e.g., sky)
+        const summaryTabButton = wrapper.querySelector('.detail-tab-button[data-tab="summary"]');
+        if(summaryTabButton) summaryTabButton.style.display = 'none'; // Hide summary button
         showDetailTab('sky'); // Activate Sky tab by default for adding
-        updateMoonData(); // Auto-fill moon data
-        toggleNewProjectField(); // Ensure project field visibility is correct
+
+        // 7. Trigger initial calculations/updates for the new empty form
+        updateMoonData(); // Auto-fill moon data based on default date/location
+        toggleNewProjectField(); // Ensure project field visibility is correct based on default selection
     }
 
     function setupEditMode() {
