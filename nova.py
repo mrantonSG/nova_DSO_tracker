@@ -5923,6 +5923,12 @@ def import_rig_config():
 
             # Use save_rig_config which now also uses the central path function
             rig_config.save_rig_config(username, new_rigs_data, SINGLE_USER_MODE)
+            try:
+                import_from_existing_yaml(username, clear_existing=False)
+                print(f"[IMPORT→DB] Synced DB from YAMLs for user '{username}' after rig import.")
+            except Exception as e:
+                print(f"[IMPORT→DB] WARNING: Could not sync DB from YAMLs after rig import: {e}")
+                flash("File saved, but syncing to database failed. Please check logs.", "warning")
 
             flash("Rigs configuration imported successfully.", "success")
         except (yaml.YAMLError, Exception) as e:
