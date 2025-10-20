@@ -1144,22 +1144,6 @@ def import_user_from_yaml(username: str,
     finally:
         db.close()
 
-def import_from_existing_yaml(username: str, clear_existing: bool = False) -> bool:
-    """
-    Import for `username` from YAML files that are already on disk in CONFIG_DIR.
-    This keeps the SQLite database in sync after any UI-based YAML import.
-    """
-    s_mode = bool(globals().get("SINGLE_USER_MODE", True))
-    cfg_file = "config_default.yaml" if (s_mode and username == "default") else f"config_{username}.yaml"
-    jrn_file = "journal_default.yaml" if (s_mode and username == "default") else f"journal_{username}.yaml"
-
-    # Prefer per-user rigs; fall back to default
-    per_user_rigs = os.path.join(CONFIG_DIR, f"rigs_{username}.yaml")
-    rigs_path = per_user_rigs if os.path.exists(per_user_rigs) else os.path.join(CONFIG_DIR, "rigs_default.yaml")
-
-    cfg_path = os.path.join(CONFIG_DIR, cfg_file)
-    jrn_path = os.path.join(CONFIG_DIR, jrn_file)
-    return import_user_from_yaml(username, cfg_path, rigs_path, jrn_path, clear_existing=clear_existing)
 
 def repair_journals(dry_run: bool = False):
     """
@@ -1929,104 +1913,6 @@ def python_format_date_eu(value_iso_str):
 app.jinja_env.filters['date_eu'] = python_format_date_eu
 
 
-def load_journal(username):
-    """
-    Loads journal data, ensuring it conforms to the new {projects, sessions} structure.
-    Automatically migrates old journal files.
-    """
-    if SINGLE_USER_MODE:
-        filename = "journal_default.yaml"
-    else:
-        filename = f"journal_{username}.yaml"
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    if not SINGLE_USER_MODE and not os.path.exists(filepath):
-        try:
-            default_template_path = os.path.join(TEMPLATE_DIR, 'journal_default.yaml')
-            shutil.copy(default_template_path, filepath)
-            print(f"   -> Successfully created {filename}.")
-        except Exception as e:
-            print(f"   -> ❌ ERROR: Could not create journal for '{username}': {e}")
-            return {"projects": [], "sessions": []}
-
-    last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
-    if filepath in journal_cache and last_modified <= journal_mtime.get(filepath, 0):
-        return journal_cache[filepath]
-
-    if not os.path.exists(filepath):
-        return {"projects": [], "sessions": []}
-
-    try:
-        with open(filepath, "r", encoding="utf-8") as file:
-            data = yaml.safe_load(file) or {}
-
-        # --- NEW MIGRATION LOGIC ---
-        # If 'projects' key is missing, it's an old format.
-        if 'projects' not in data:
-            print(f"-> Migrating old journal format for '{filename}'.")
-            # Old format might just be a dict with 'sessions' or an empty dict
-            sessions_list = data.get('sessions', []) if isinstance(data, dict) else []
-            migrated_data = {
-                'projects': [],
-                'sessions': sessions_list
-            }
-            data = migrated_data
-            # We don't save it back immediately, but the next save will fix it.
-
-        # Ensure both keys exist even if the file was just empty
-        if 'projects' not in data:
-            data['projects'] = []
-        if 'sessions' not in data:
-            data['sessions'] = []
-
-        journal_cache[filepath] = data
-        journal_mtime[filepath] = last_modified
-        return data
-    except Exception as e:
-        print(f"❌ ERROR: Failed to load journal '{filename}': {e}")
-        return {"projects": [], "sessions": []}
-
-
-def save_journal(username, journal_data):
-    """
-    Saves journal data safely (schema guard + backup + atomic write + DB sync).
-    """
-    if (not isinstance(journal_data, dict) or
-            "sessions" not in journal_data or
-            not isinstance(journal_data.get("sessions"), list)):
-        print(f"❌ CRITICAL SAVE ABORTED for journal of user '{username}': invalid/malformed journal data.")
-        return
-
-    filename = "journal_default.yaml" if SINGLE_USER_MODE else f"journal_{username}.yaml"
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    try:
-        # --- Start of combined operation block ---
-
-        # 1. Perform file operations (backup + atomic write)
-        with _FileLock(filepath):
-            if os.path.exists(filepath):
-                _backup_with_rotation(filepath, keep=10)
-            _atomic_write_yaml(filepath, journal_data)
-
-        # 2. If file write succeeded, print success and sync DB
-        print(f" Journal saved to '{filename}' successfully (atomic).")
-
-        # 3. Keep DB in sync with freshly saved YAMLs
-        try:  # Separate try-except specifically for the DB sync part
-            if username:
-                import_from_existing_yaml(username, clear_existing=False)
-                print(f"[IMPORT→DB] Synced DB from YAMLs for user '{username}' after journal save.")
-        except Exception as sync_e:
-            # Log a warning if ONLY the sync fails, but the file was saved
-            print(f"[IMPORT→DB] WARNING: File saved, but could not sync DB from YAMLs after journal save: {sync_e}")
-            # Optionally: re-raise sync_e or flash a message if you want the user to know
-
-    except Exception as e:
-        # This catches errors from file operations (_FileLock, _backup, _atomic_write)
-        print(f"❌ ERROR: Failed to save journal '{filename}' or sync DB: {e}")
-        # Note: We don't print the "successfully saved" message if we end up here.
-
 def sort_rigs_list(rigs_list, sort_key='name-asc'):
     """Sorts a list of rig dictionaries based on a given key."""
     key, direction = sort_key.split('-')
@@ -2226,7 +2112,7 @@ def trigger_outlook_update_for_user(username):
     """
     print(f"[TRIGGER] Firing Outlook cache update for user '{username}' due to a project note change.")
     try:
-        user_cfg = load_user_config(username)
+        user_cfg = build_user_config_from_db(username)
         locations = user_cfg.get('locations', {})
         for loc_name in locations.keys():
             # We don't need to check for staleness here, we want to force the update.
@@ -2658,65 +2544,36 @@ def telemetry_mark_sent(state_dir: Path):
     except Exception:
         pass
 
+
 def build_telemetry_payload(user_config, browser_user_agent: str = ''):
-    # --- Add anonymized counts (numbers only, never contents) ---
-    cfg = user_config or {}
-    def _len_any(x):
-        if isinstance(x, dict):
-            return len(x)
-        if isinstance(x, list):
-            return len(x)
-        # support sets/tuples just in case
-        try:
-            return len(x)
-        except Exception:
-            return 0
-
-    def pick_first(*candidates):
-        for c in candidates:
-            if c is not None and c != {} and c != []:
-                return c
-        return None
-
-    objects_count = _len_any(cfg.get("objects"))
-
-    # Rigs: prefer canonical rig file used by the UI; fall back to possible in-config locations
+    # === START REFACTOR ===
+    # Get counts directly from the database, which is the single source of truth.
     try:
+        db = get_db()  # Get a DB session
         username_eff = "default" if SINGLE_USER_MODE else (
             current_user.username if getattr(current_user, "is_authenticated", False) else "default"
         )
-        rd = rig_config.load_rig_config(username_eff, SINGLE_USER_MODE) or {}
-        rigs_count = _len_any(rd.get("rigs"))
-    except Exception:
-        # Fallbacks if rig config couldn't be loaded
-        rigs_container = pick_first(
-            cfg.get("rigs"),
-            cfg.get("rig_list"),
-            cfg.get("available_rigs"),
-            (cfg.get("equipment") or {}).get("rigs"),
-            (cfg.get("user") or {}).get("rigs"),
-        )
-        rigs_count = _len_any(rigs_container)
+        # Get the user from the app.db
+        user = db.query(DbUser).filter_by(username=username_eff).one_or_none()
 
-    # Locations: use container variants resolved above
-    locations_container = pick_first(
-        cfg.get("locations"),
-        cfg.get("sites"),
-        (cfg.get("user") or {}).get("locations"),
-        (cfg.get("observing") or {}).get("locations"),
-    )
-    locations_count = _len_any(locations_container)
-    # Journals: load via canonical loader (journal lives in nova.py), fallback to config keys if needed
-    try:
-        username_eff = "default" if SINGLE_USER_MODE else (
-            current_user.username if getattr(current_user, "is_authenticated", False) else "default"
-        )
-        jd = load_journal(username_eff) or {}
-        sessions = jd.get("sessions") or []
-        journals_count = _len_any(sessions)
-    except Exception:
-        # Fallback for older in-config layouts
-        journals_count = _len_any(cfg.get("journals")) or _len_any(cfg.get("journal_entries"))
+        if user:
+            # Query the DB for the *actual* counts
+            rigs_count = db.query(Rig).filter_by(user_id=user.id).count()
+            objects_count = db.query(AstroObject).filter_by(user_id=user.id).count()
+            locations_count = db.query(Location).filter_by(user_id=user.id).count()
+            journals_count = db.query(JournalSession).filter_by(user_id=user.id).count()
+        else:
+            # Fallback if user not found for some reason
+            rigs_count, objects_count, locations_count, journals_count = 0, 0, 0, 0
+
+    except Exception as e:
+        print(f"[TELEMETRY] DB count query failed: {e}")
+        rigs_count, objects_count, locations_count, journals_count = 0, 0, 0, 0
+    finally:
+        if 'db' in locals() and db:
+            db.close()
+    # === END REFACTOR ===
+
     instance_id, enabled = ensure_instance_id(user_config)
     mode = 'single' if SINGLE_USER_MODE else 'multi'
     return {
@@ -2805,7 +2662,10 @@ def _start_telemetry_scheduler_once():
     try:
         username = "default" if SINGLE_USER_MODE else "default"
         try:
-            cfg = load_user_config(username)
+            # === START REFACTOR ===
+            # Use the DB-backed function instead of the deleted YAML function
+            cfg = build_user_config_from_db(username)
+            # === END REFACTOR ===
         except Exception:
             cfg = {}
         # Send immediately on restart (explicitly allowed)
@@ -2818,7 +2678,10 @@ def _start_telemetry_scheduler_once():
                 try:
                     time.sleep(24 * 60 * 60)
                     try:
-                        daily_cfg = load_user_config(username)
+                        # === START REFACTOR ===
+                        # Use the DB-backed function here as well
+                        daily_cfg = build_user_config_from_db(username)
+                        # === END REFACTOR ===
                     except Exception:
                         daily_cfg = cfg or {}
                     # print("[TELEMETRY] Daily ping: attempting send (force=False)")
@@ -2830,6 +2693,7 @@ def _start_telemetry_scheduler_once():
         threading.Thread(target=_daily_loop, daemon=True).start()
     except Exception as e:
         print(f"[TELEMETRY] Scheduler init error: {e}")
+
 
 def to_yaml_filter(data):
     """Jinja2 filter to convert a Python object to a YAML string for form display."""
@@ -2876,7 +2740,7 @@ def _telemetry_bootstrap_hook():
                     username = current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
 
                 try:
-                    cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+                    cfg = g.user_config if hasattr(g, 'user_config') else {}
                 except Exception:
                     cfg = {}
 
@@ -2927,7 +2791,7 @@ def telemetry_debug():
     except Exception:
         username = "default"
     try:
-        cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+        cfg = g.user_config if hasattr(g, 'user_config') else {}
     except Exception:
         cfg = {}
     enabled = bool(cfg.get('telemetry', {}).get('enabled', True))
@@ -3593,173 +3457,6 @@ def trigger_update():
         return jsonify({"status": "error", "message": str(e)})
 
 
-def load_user_config(username):
-    """
-    Loads user configuration from a YAML file.
-    - Uses caching for performance.
-    - If a user's config is not found in multi-user mode, it creates one
-      by copying the default template.
-    - If the file contains unsafe NumPy tags, it will automatically repair it.
-    """
-    global config_cache, config_mtime
-    if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
-    else:
-        filename = f"config_{username}.yaml"
-
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    # --- NEW: Create config from template if it doesn't exist for a multi-user ---
-    if not SINGLE_USER_MODE and not os.path.exists(filepath):
-        print(f"-> Config for user '{username}' not found. Creating from default template.")
-        try:
-            default_template_path = os.path.join(TEMPLATE_DIR, 'config_default.yaml')
-            shutil.copy(default_template_path, filepath)
-            print(f"   -> Successfully created {filename}.")
-        except Exception as e:
-            print(f"   -> ❌ ERROR: Could not create config for '{username}': {e}")
-            return {}  # Return empty on failure to prevent a crash
-
-    # --- Caching and loading logic continues below ---
-    if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
-            filepath, 0):
-        return config_cache[filepath]
-
-    if not os.path.exists(filepath):
-        print(f"⚠️ Config file '{filename}' not found in '{CONFIG_DIR}'. Using default empty config.")
-        return {}
-
-    try:
-        with open(filepath, "r", encoding='utf-8') as file:
-            config_data = yaml.safe_load(file) or {}
-        print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
-        # --- Auto-restore if obviously broken/empty ---
-        try:
-            broken = (not isinstance(config_data, dict)) or (len(config_data) == 0) or \
-                     (not isinstance(config_data.get("locations"), dict)) or (
-                                 len(config_data.get("locations") or {}) == 0)
-        except Exception:
-            broken = True
-
-        if broken:
-            print(f"⚠️ [LOAD CONFIG] '{filename}' appears empty/invalid. Attempting restore from latest backup...")
-            try:
-                backups = sorted(Path(BACKUP_DIR).glob(f"{Path(filepath).stem}_*.yaml"),
-                                 key=lambda p: p.stat().st_mtime, reverse=True)
-                for b in backups:
-                    try:
-                        recovered = yaml.safe_load(open(b, "r", encoding="utf-8")) or {}
-                        if isinstance(recovered, dict) and isinstance(recovered.get("locations"), dict) and len(
-                                recovered["locations"]) > 0:
-                            with _FileLock(filepath):
-                                _atomic_write_yaml(filepath, recovered)
-                            config_data = recovered
-                            print(f"   -> Restored from {b.name}")
-                            break
-                    except Exception:
-                        continue
-            except Exception as e:
-                print(f"   -> Restore failed: {e}")
-
-    except ConstructorError as e:
-        if 'numpy' in str(e):
-            print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
-            try:
-                backup_dir = os.path.join(INSTANCE_PATH, "backups")
-                os.makedirs(backup_dir, exist_ok=True)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_path = os.path.join(backup_dir,
-                                           f"{os.path.basename(filename)}_corrupted_backup_{timestamp}.yaml")
-                shutil.copy(filepath, backup_path)
-                print(f"    -> Backed up corrupted file to '{backup_path}'")
-
-                with open(filepath, "r", encoding='utf-8') as file:
-                    corrupted_data = yaml.load(file, Loader=yaml.UnsafeLoader)
-
-                cleaned_data = recursively_clean_numpy_types(corrupted_data)
-                print("    -> Successfully cleaned data in memory.")
-
-                save_user_config(username, cleaned_data)
-                print(f"    -> Repaired and saved clean data to '{filename}'.")
-                config_data = cleaned_data
-
-            except Exception as repair_e:
-                print(f"❌ [CONFIG REPAIR] Automatic repair failed: {repair_e}")
-                return {}
-        else:
-            print(f"❌ ERROR: Unrecoverable YAML error in '{filename}': {e}")
-            return {}
-
-    except Exception as e:
-        print(f"❌ ERROR: A critical error occurred while loading config '{filename}': {e}")
-        return {}
-
-    config_cache[filepath] = config_data
-    config_mtime[filepath] = os.path.getmtime(filepath)
-    return config_data
-
-def save_user_config(username, config_data, *, require_objects=True, require_locations=True):
-    """
-    Safe, validated, atomic save with backup + rotation.
-    Guards against empty/invalid locations/objects; conservative merge avoids
-    dropping keys on partial form posts.
-    """
-    config_data = dict(config_data or {})
-
-    # Invariants
-    locs = config_data.get("locations")
-    objs = config_data.get("objects")
-    if require_locations and (not isinstance(locs, dict) or len(locs) == 0):
-        print(f"❌ ABORT SAVE for '{username}': empty or missing 'locations'.")
-        return False
-    if require_objects and (objs is not None) and (not isinstance(objs, list) or any(not isinstance(o, dict) for o in objs)):
-        print(f"❌ ABORT SAVE for '{username}': 'objects' invalid (must be a list of dicts).")
-        return False
-
-    # Validate schema
-    try:
-        ok, errors = validate_config(config_data)
-        if not ok:
-            print(f"❌ ABORT SAVE for '{username}': validation failed: {errors}")
-            return False
-    except Exception as e:
-        print(f"❌ ABORT SAVE for '{username}': validator error: {e}")
-        return False
-
-    # Resolve path
-    filename = "config_default.yaml" if SINGLE_USER_MODE else f"config_{username}.yaml"
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    # Conservative merge with existing (prevents partial form posts from nuking keys)
-    try:
-        if os.path.exists(filepath):
-            existing = yaml.safe_load(open(filepath, "r", encoding="utf-8")) or {}
-            merged = dict(existing)
-            for k in ("altitude_threshold", "default_location", "sampling_interval_minutes",
-                      "telemetry", "imaging_criteria", "objects", "locations", "rigs", "ui_preferences"):
-                if k in config_data:
-                    merged[k] = config_data[k]
-            config_data = merged
-    except Exception as e:
-        print(f"[SAVE] merge warning (using new data as-is): {e}")
-
-    # Backup + atomic write
-    with _FileLock(filepath):
-        try:
-            if os.path.exists(filepath):
-                _backup_with_rotation(filepath, keep=10)
-            _atomic_write_yaml(filepath, config_data)
-            config_cache[filepath] = config_data
-            try:
-                config_mtime[filepath] = os.path.getmtime(filepath)
-            except Exception:
-                pass
-            print(f"[SAVE] '{filename}' saved safely.")
-            return True
-        except Exception as e:
-            print(f"❌ SAVE FAILED for '{username}': {e}")
-            return False
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if SINGLE_USER_MODE:
@@ -3965,7 +3662,7 @@ def telemetry_startup_ping_once():
         _telemetry_startup_once.set()
         try:
             username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
-            cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+            cfg = g.user_config if hasattr(g, 'user_config') else {}
             send_telemetry_async(cfg, browser_user_agent='')
         except Exception:
             pass
@@ -3981,9 +3678,35 @@ def set_location_api():
     g.user_config['default_location'] = location_name
     g.selected_location = location_name
 
-    # Save to appropriate config file
-    username = current_user.username if current_user.is_authenticated else 'guest_user'
-    save_user_config(username, g.user_config)
+    # Save to database
+    username = "default" if SINGLE_USER_MODE else (
+        current_user.username if current_user.is_authenticated else 'guest_user')
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if user:
+            prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+            if not prefs:
+                prefs = UiPref(user_id=user.id, json_blob='{}')
+                db.add(prefs)
+
+            try:
+                settings = json.loads(prefs.json_blob or '{}')
+            except json.JSONDecodeError:
+                settings = {}
+
+            settings['default_location'] = location_name
+            prefs.json_blob = json.dumps(settings)
+            db.commit()
+        else:
+            # User not found, but we can't save. Log it.
+            print(f"[set_location] ERROR: Could not find user '{username}' to save default location.")
+    except Exception as e:
+        db.rollback()
+        print(f"[set_location] ERROR: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
 
     # Proactively warm the weather cache for the new location in the background.
     try:
@@ -4186,6 +3909,7 @@ def validate_journal_data(journal_data):
         # Add more checks per session if desired (e.g., session_date format)
     return True, "Journal data seems structurally valid."
 
+
 @app.route('/import_journal', methods=['POST'])
 @login_required
 def import_journal():
@@ -4204,37 +3928,35 @@ def import_journal():
             new_journal_data = yaml.safe_load(contents)
 
             if new_journal_data is None:
-                new_journal_data = {"sessions": []}
+                new_journal_data = {"projects": [], "sessions": []}  # Handle empty file
 
+            # You can keep your validation function if you like
             is_valid, message = validate_journal_data(new_journal_data)
             if not is_valid:
                 flash(f"Invalid journal file structure: {message}", "error")
                 return redirect(url_for('config_form'))
 
-            if SINGLE_USER_MODE:
-                username = "default"
-                journal_filename = "journal_default.yaml"
-            else:
-                if not current_user.is_authenticated:
-                    flash("Please log in to import a journal.", "warning")
-                    return redirect(url_for('login'))
-                username = current_user.username
-                journal_filename = f"journal_{username}.yaml"
+            username = "default" if SINGLE_USER_MODE else current_user.username
 
-            journal_filepath = os.path.join(CONFIG_DIR, journal_filename)
+            # === START REFACTOR ===
+            # Import directly into the database
+            db = get_db()
+            try:
+                user = _upsert_user(db, username)  # Get or create the user in app.db
 
-            if os.path.exists(journal_filepath):
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_filename = f"{journal_filename}_backup_{timestamp}.yaml"
-                backup_path = os.path.join(BACKUP_DIR, backup_filename)
-                try:
-                    shutil.copy(journal_filepath, backup_path)
-                    print(f"[IMPORT JOURNAL] Backed up current journal to {backup_path}")
-                except Exception as backup_e:
-                    print(f"Warning: Could not back up existing journal: {backup_e}")
+                # Use the migration helper to load data directly into the DB
+                _migrate_journal(db, user, new_journal_data)
 
-            save_journal(username, new_journal_data)
-            flash("Journal imported successfully! Your old journal (if any) has been backed up.", "success")
+                db.commit()
+                flash("Journal imported and synced to database successfully!", "success")
+            except Exception as e:
+                db.rollback()
+                print(f"[IMPORT_JOURNAL] DB Error: {e}")
+                raise e  # Re-throw to be caught by the outer block
+            finally:
+                db.close()
+            # === END REFACTOR ===
+
             return redirect(url_for('config_form'))
 
         except yaml.YAMLError as ye:
@@ -4249,7 +3971,6 @@ def import_journal():
         flash("Invalid file type. Please upload a .yaml journal file.", "error")
         return redirect(url_for('config_form'))
 
-
 @app.route('/import_config', methods=['POST'])
 @login_required
 def import_config():
@@ -4261,6 +3982,7 @@ def import_config():
         # This case should ideally not be reached due to @login_required
         flash("Authentication error during import.", "error")
         return redirect(url_for('login'))
+
     try:
         if 'file' not in request.files:
             flash("No file selected for import.", "error")
@@ -4280,47 +4002,38 @@ def import_config():
             flash(error_message, "error")
             return redirect(url_for('config_form'))
 
-        if SINGLE_USER_MODE:
-            username_for_backup = "default"
-            config_filename = "config_default.yaml"
-        else:
-            if not current_user.is_authenticated:
-                flash("You must be logged in to import a configuration.", "error")
-                return redirect(url_for('login'))
-            username_for_backup = current_user.username
-            config_filename = f"config_{username_for_backup}.yaml"
-
-        config_path = os.path.join(CONFIG_DIR, config_filename)
-
-        if os.path.exists(config_path):
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            backup_filename = f"{username_for_backup}_backup_{timestamp}.yaml"
-            backup_path = os.path.join(BACKUP_DIR, backup_filename)
-            shutil.copy(config_path, backup_path)
-            print(f"[IMPORT] Backed up current config to {backup_path}")
-
-        if os.path.exists(config_path):
-            _backup_with_rotation(config_path, keep=10)
-        with _FileLock(config_path):
-            _atomic_write_yaml(config_path, new_config)
-        print(f"[IMPORT] Overwrote {config_path} successfully with new config (atomic).")
+        # === START REFACTOR ===
+        # Import directly into the database
+        db = get_db()
         try:
-            _username = username if 'username' in locals() else (
-                current_user.username if getattr(current_user, "is_authenticated", False) else "default")
-            import_from_existing_yaml(_username, clear_existing=False)
-            print(f"[IMPORT→DB] Synced DB from YAMLs for user '{_username}' after config import.")
-        except Exception as e:
-            print(f"[IMPORT→DB] WARNING: Could not sync DB from YAMLs after config import: {e}")
-        flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
+            user = _upsert_user(db, username)  # Get or create the user in app.db
 
+            # We re-use the exact same logic from your one-time migration
+            # This is robust and efficient.
+            _migrate_locations(db, user, new_config)
+            _migrate_objects(db, user, new_config)
+            _migrate_ui_prefs(db, user, new_config)
+
+            db.commit()
+            flash("Config imported and synced to database successfully!", "success")
+        except Exception as e:
+            db.rollback()
+            print(f"[IMPORT_CONFIG] DB Error: {e}")
+            raise e  # Re-throw to be caught by the outer block
+        finally:
+            db.close()
+        # === END REFACTOR ===
+
+        # Trigger background cache update for any new locations
         user_config_for_thread = new_config.copy()
         for loc_name in user_config_for_thread.get('locations', {}).keys():
-            cache_filename = f"outlook_cache_{username_for_backup}_{loc_name.lower().replace(' ', '_')}.json"
+            cache_filename = f"outlook_cache_{username}_{loc_name.lower().replace(' ', '_')}.json"
             cache_filepath = os.path.join(CACHE_DIR, cache_filename)
             if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
                 thread = threading.Thread(target=update_outlook_cache,
-                                          args=(username_for_backup, loc_name, user_config_for_thread))
+                                          args=(username, loc_name, user_config_for_thread,
+                                                g.sampling_interval))  # Pass sampling_interval
                 thread.start()
 
         return redirect(url_for('config_form'))
@@ -5168,7 +4881,10 @@ def telemetry_ping():
         username = "default"
 
     try:
-        cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+        # === START REFACTOR ===
+        # Use the g.user_config, which is already loaded from the DB
+        cfg = g.user_config if hasattr(g, "user_config") else {}
+        # === END REFACTOR ===
     except Exception:
         cfg = {}
 
@@ -5191,7 +4907,7 @@ def telemetry_ping():
     # DO NOT force a send here; avoid doubling the startup/daily sends.
     # Only trigger a send if the 24h gate says it's okay right now.
     try:
-        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', CACHE_DIR))
         if telemetry_should_send(state_dir):
             send_telemetry_async(cfg, browser_user_agent=ua_final, force=False)
         # else: silently skip; scheduler or next allowed window will send
@@ -6101,6 +5817,8 @@ def import_journal_photos():
         flash(f"An unexpected error occurred during import: {e}", "error")
 
     return redirect(url_for('config_form'))
+
+
 @app.route('/import_rig_config', methods=['POST'])
 @login_required
 def import_rig_config():
@@ -6121,26 +5839,25 @@ def import_rig_config():
 
             username = "default" if SINGLE_USER_MODE else current_user.username
 
-            # Use the new central function to get the correct path
-            rigs_filepath = rig_config.get_rig_config_path(username, SINGLE_USER_MODE)
-
-            if os.path.exists(rigs_filepath):
-                backup_dir = os.path.join(os.path.dirname(rigs_filepath), "backups")
-                os.makedirs(backup_dir, exist_ok=True)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_path = os.path.join(backup_dir, f"{os.path.basename(rigs_filepath)}_backup_{timestamp}.yaml")
-                shutil.copy(rigs_filepath, backup_path)
-
-            # Use save_rig_config which now also uses the central path function
-            rig_config.save_rig_config(username, new_rigs_data, SINGLE_USER_MODE)
+            # === START REFACTOR ===
+            # Import directly into the database
+            db = get_db()
             try:
-                import_from_existing_yaml(username, clear_existing=False)
-                print(f"[IMPORT→DB] Synced DB from YAMLs for user '{username}' after rig import.")
-            except Exception as e:
-                print(f"[IMPORT→DB] WARNING: Could not sync DB from YAMLs after rig import: {e}")
-                flash("File saved, but syncing to database failed. Please check logs.", "warning")
+                user = _upsert_user(db, username)  # Get or create the user in app.db
 
-            flash("Rigs configuration imported successfully.", "success")
+                # Use the migration helper to load data directly into the DB
+                _migrate_components_and_rigs(db, user, new_rigs_data, username)
+
+                db.commit()
+                flash("Rigs configuration imported and synced to database successfully!", "success")
+            except Exception as e:
+                db.rollback()
+                print(f"[IMPORT_RIGS] DB Error: {e}")
+                raise e  # Re-throw to be caught by the outer block
+            finally:
+                db.close()
+            # === END REFACTOR ===
+
         except (yaml.YAMLError, Exception) as e:
             flash(f"Error importing rigs file: {e}", "error")
 
@@ -6441,11 +6158,6 @@ def provision_user():
             db.session.add(new_user)
             db.session.commit()
             print(f"✅ User '{username}' provisioned in database via API.")
-            try:
-                load_user_config(username)
-                load_journal(username)
-            except Exception as e:
-                print(f"❌ ERROR: Could not create YAML files for '{username}': {e}")
             return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
 
 def disable_user(username: str) -> bool:
