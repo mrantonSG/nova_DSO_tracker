@@ -196,8 +196,20 @@ class AstroObject(Base):
     size = Column(String(64), nullable=True)
     sb = Column(String(64), nullable=True)
     active_project = Column(Boolean, nullable=False, default=False)
-    project_name = Column(String(256), nullable=True)
+    # project_name = Column(String(256), nullable=True) # REMOVED/RENAMED
+
+    # --- NEW COLUMNS FOR SHARING ---
+    is_shared = Column(Boolean, nullable=False, default=False, index=True)
+    shared_by_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True)
+    public_notes = Column(Text, nullable=True)
+    private_notes = Column(Text, nullable=True) # RENAMED from project_name
+    # --- END NEW COLUMNS ---
+
+
     user = relationship("DbUser", back_populates="objects")
+    # Define relationship for shared_by_user_id if needed for easy username lookup later
+    # shared_by_user = relationship("DbUser", foreign_keys=[shared_by_user_id]) # Optional
+
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
 
 class Component(Base):
