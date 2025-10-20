@@ -1280,6 +1280,9 @@ def run_one_time_yaml_migration():
     """
     db = get_db()
     try:
+        _INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
+        _ENV_FILE = os.path.join(_INSTANCE_PATH, ".env")
+        load_dotenv(dotenv_path=_ENV_FILE, override=True)
         # Safety Check: Prevent re-running on an already populated database
         if db.query(DbUser).first() and db.query(Location).first():
             print("[MIGRATION] Database (app.db) already appears to be populated. Skipping YAML migration.")
@@ -1326,7 +1329,8 @@ def run_one_time_yaml_migration():
                 usernames_to_migrate.update(_iter_candidate_users())
 
             # Always include default and guest in multi-user mode as well
-            usernames_to_migrate.update(["default", "guest_user"])
+            usernames_to_migrate.update(["guest_user"])
+            print("[MIGRATION] Excluding 'default' user's YAML data from multi-user migration.")
 
         # --- Iterate Through Each User and Migrate Their Data ---
         for username in sorted(list(usernames_to_migrate)):
