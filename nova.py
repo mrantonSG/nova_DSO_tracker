@@ -478,7 +478,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                     lon=lon,
                     timezone=tz,
                     altitude_threshold=alt_thr,
-                    is_default=new_is_default
+                    is_default=new_is_default,
+                    active=loc.get("active", True)
                 )
                 db.add(row); db.flush()
 
