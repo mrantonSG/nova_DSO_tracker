@@ -1104,7 +1104,37 @@
             formElement.submit();
         }
     }
+    // --- Sexagesimal-to-Decimal Parsers ---
+    function parseRAToDecimal(raStr) {
+        raStr = String(raStr).trim();
+        // If it's already a plain number, just return it
+        if (!isNaN(raStr) && !raStr.match(/[:\s]/)) {
+            return parseFloat(raStr);
+        }
+        // Replace colons with spaces, split by spaces, filter out empty strings
+        const parts = raStr.replace(/:/g, ' ').split(/\s+/).filter(Boolean);
+        const h = parseFloat(parts[0]) || 0;
+        const m = parseFloat(parts[1]) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        // Calculate decimal hours
+        return (h + m/60 + s/3600);
+    }
 
+    function parseDecToDecimal(decStr) {
+        decStr = String(decStr).trim();
+        // If it's already a plain number, just return it
+        if (!isNaN(decStr) && !decStr.match(/[:\s]/)) {
+            return parseFloat(decStr);
+        }
+        const sign = decStr.startsWith('-') ? -1 : 1;
+        // Remove sign, replace colons, split by spaces, filter out empty strings
+        const parts = decStr.replace(/^-|\+/, '').replace(/:/g, ' ').split(/\s+/).filter(Boolean);
+        const d = parseFloat(parts[0]) || 0;
+        const m = parseFloat(parts[1]) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        // Calculate decimal degrees
+        return sign * (d + m/60 + s/3600);
+    }
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -1258,12 +1288,28 @@
         if (confirmAddObjectBtn) {
             confirmAddObjectBtn.addEventListener('click', e => {
                 e.preventDefault();
+
+                // --- NEW: Parse RA/DEC inputs before creating payload ---
+                const raInput = document.getElementById('new_ra').value;
+                const decInput = document.getElementById('new_dec').value;
+
+                const raDecimal = parseRAToDecimal(raInput);
+                const decDecimal = parseDecToDecimal(decInput);
+                // --- END NEW ---
+
                 const payload = {
-                    object: document.getElementById('new_object').value, name: document.getElementById('new_name').value, ra: document.getElementById('new_ra').value,
-                    dec: document.getElementById('new_dec').value, project: document.getElementById('new_project').value, type: document.getElementById('new_type').value,
-                    magnitude: document.getElementById('new_magnitude').value, size: document.getElementById('new_size').value,
-                    constellation: document.getElementById('new_constellation').value, sb: document.getElementById('new_sb').value
+                    object: document.getElementById('new_object').value,
+                    name: document.getElementById('new_name').value,
+                    ra: raDecimal, // <-- Use the parsed decimal value
+                    dec: decDecimal, // <-- Use the parsed decimal value
+                    project: document.getElementById('new_project').value,
+                    type: document.getElementById('new_type').value,
+                    magnitude: document.getElementById('new_magnitude').value,
+                    size: document.getElementById('new_size').value,
+                    constellation: document.getElementById('new_constellation').value,
+                    sb: document.getElementById('new_sb').value
                 };
+
                 fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                 .then(r => r.json()).then(data => {
                     if (data.status === "success") { window.location.reload(); }
