@@ -139,6 +139,7 @@
                             <dl class="detail-grid">
                                 <dt>Seeing (FWHM):</dt><dd>{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</dd>
                                 <dt>SQM:</dt><dd>{{ entry.sky_sqm_observed | default('N/A') }}</dd>
+                                <dt>Transparency Scale:</dt><dd>{{ entry.transparency_observed_scale | default('N/A') }}</dd>
                                 <dt>Moon Illum/Sep:</dt><dd>{{ entry.moon_illumination_session | default('N/A') }}% / {{ entry.moon_angular_separation_session | default('N/A') }}°</dd>
                                 <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
                                 <dt>Guiding Equipment:</dt><dd>{{ entry.guiding_equipment | default('N/A') }}</dd> {# Added #}
