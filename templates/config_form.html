@@ -393,14 +393,7 @@
       <a href="{{ url_for('index') }}" class="dlback-button">Back to Tracker</a>
     </div>
     <div id="message-container" style="height: 24px; flex-grow: 1; text-align: center;">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <p class="{{ 'error' if category == 'error' else 'message' }} flash-transient" style="margin: 0;">{{ message }}</p>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-    </div>
+        </div>
 <div class="right-group">
       <form method="post" action="{{ url_for('fetch_all_details') }}" id="fetch-details-form">
         <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
@@ -1101,7 +1094,6 @@
         if (confirm(confirmationMessage)) {
             const button = document.getElementById('fetch-details-button');
             if (button) { button.disabled = true; button.innerText = 'Processing...'; }
-            document.getElementById('message-container').innerHTML = `<p class="progress-message">Fetching details... The page will reload when complete.</p>`;
             formElement.submit();
         }
     }
@@ -1229,14 +1221,6 @@
                 if (rigsDataLoaded) { renderRigsUI(); updateSamplingInfo(); }
             });
         }
-
-        // --- Message Fader ---
-        setTimeout(() => {
-            document.querySelectorAll(".flash-transient").forEach(el => {
-                el.style.transition = "opacity 0.5s ease"; el.style.opacity = "0";
-                setTimeout(() => el.remove(), 500);
-            });
-        }, 3000);
 
         // --- Fetch Details Logic ---
         const fetchDetailsForm = document.getElementById('fetch-details-form');
