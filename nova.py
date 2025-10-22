@@ -3167,7 +3167,8 @@ def journal_add():
                 binning_session=request.form.get("binning_session", "").strip() or None,
                 darks_strategy=request.form.get("darks_strategy", "").strip() or None,  # Added calibration
                 flats_strategy=request.form.get("flats_strategy", "").strip() or None,  # Added calibration
-                bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None
+                bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None,
+                transparency_observed_scale=request.form.get("transparency_observed_scale", "").strip() or None
                 # Added calibration
             )
 
@@ -3280,6 +3281,8 @@ def journal_edit(session_id):
             session_to_edit.flats_strategy = request.form.get("flats_strategy", "").strip() or None  # Added calibration
             session_to_edit.bias_darkflats_strategy = request.form.get("bias_darkflats_strategy",
                                                                        "").strip() or None  # Added calibration
+            session_to_edit.transparency_observed_scale = request.form.get("transparency_observed_scale",
+                                                                           "").strip() or None
 
             total_seconds = (session_to_edit.number_of_subs_light or 0) * (
                         session_to_edit.exposure_time_per_sub_sec or 0) + \
