@@ -58,6 +58,7 @@ import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session, selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
 import jwt
@@ -1736,6 +1737,137 @@ def load_user(user_id):
     return db.session.get(User, uid)
 
 
+@app.before_request
+def load_global_request_context():
+    # 1. Skip all expensive logic for static files
+    if request.endpoint in ('static', 'favicon'):
+        return
+
+    # 2. Handle Single-User-Mode login bypass
+    if SINGLE_USER_MODE and not current_user.is_authenticated:
+        login_user(User("default", "default"))
+
+    # 3. Determine username
+    username = None
+    if SINGLE_USER_MODE:
+        username = "default"
+        g.is_guest = False
+    elif hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+        username = current_user.username
+        g.is_guest = False
+    else:
+        username = "guest_user"
+        g.is_guest = True
+
+    if not username:
+        g.db_user = None
+        return
+
+    # 4. Get DB user and all related data in ONE pass
+    db = get_db()
+    try:
+        # Get or create the user in app.db
+        app_db_user = get_or_create_db_user(db, username)
+        g.db_user = app_db_user
+
+        if not app_db_user:
+            return
+
+        # --- Load all config data from DB ---
+
+        # Load UI Prefs (general settings)
+        g.user_config = {}
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                g.user_config = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass  # g.user_config remains {}
+
+        # Load Locations with Horizon Points (Fixes N+1 query)
+        loc_rows = db.query(Location).options(
+            selectinload(Location.horizon_points)  # Eagerly load horizon points
+        ).filter_by(user_id=app_db_user.id).all()
+
+        g.locations = {}
+        g.active_locations = {}
+        default_loc_name = g.user_config.get("default_location")
+        validated_location = default_loc_name
+
+        for l in loc_rows:
+            # The l.horizon_points access is now free, no new query
+            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            loc_data = {
+                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
+                "horizon_mask": mask, "active": l.active, "comments": l.comments
+            }
+            g.locations[l.name] = loc_data
+            if l.active:
+                g.active_locations[l.name] = loc_data
+
+        # Validate default location
+        if not default_loc_name or default_loc_name not in g.active_locations:
+            validated_location = next(iter(g.active_locations), None)
+
+        g.selected_location = validated_location
+
+        # Set safe defaults
+        g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        if g.selected_location:
+            loc_cfg = g.locations.get(g.selected_location, {})
+            g.lat = loc_cfg.get("lat")
+            g.lon = loc_cfg.get("lon")
+            g.tz_name = loc_cfg.get("timezone", "UTC")
+        else:
+            g.lat, g.lon, g.tz_name = None, None, "UTC"
+
+        # Load Objects
+        obj_rows = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+        g.objects_list = []  # List for iteration
+        g.objects_map = {}  # <<< NEW: Dictionary for fast lookups
+        g.alternative_names = {}
+        g.projects = {}
+        g.objects = []
+
+        for o in obj_rows:
+            obj_data = {
+                "Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours,
+                "DEC (degrees)": o.dec_deg, "Type": o.type, "Constellation": o.constellation,
+                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                "ActiveProject": o.active_project, "Project": o.project_name,
+                # Add legacy keys for compatibility
+                "Name": o.common_name, "RA": o.ra_hours, "DEC": o.dec_deg
+            }
+            g.objects_list.append(obj_data)
+            g.objects.append(o.object_name)
+            if o.object_name:
+                obj_key = o.object_name.lower()
+                g.objects_map[obj_key] = obj_data  # <<< Add to map
+                g.alternative_names[obj_key] = o.common_name
+                g.projects[obj_key] = o.project_name
+
+        # Add objects list to user_config dict for compatibility
+        g.user_config["objects"] = g.objects_list
+        g.user_config["locations"] = g.locations
+
+        # Load other settings
+        load_effective_settings()  # This function reads from g.user_config
+
+        # 5. Precompute time arrays (from precompute_time_arrays)
+        if g.tz_name:
+            local_tz = pytz.timezone(g.tz_name)
+            local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
+            g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
+
+    except Exception as e:
+        # Handle exceptions, maybe log them
+        print(f"Error in load_global_request_context: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()  # Close the session
+
+
 # --- Guard against stale _user_id left in session when switching from single-user to multi-user mode ---
 @app.before_request
 def _fix_mode_switch_sessions():
@@ -1755,60 +1887,6 @@ def _fix_mode_switch_sessions():
             # never block a request due to cleanup logic
             pass
 
-
-@app.before_request
-def inject_user_data():
-    """
-    Ensures that for every authenticated user, we have a corresponding record
-    in our application database (app.db) and load their data into the request context (g).
-    """
-    # Determine the username from the authentication system (Flask-Login)
-    username = None
-    if SINGLE_USER_MODE:
-        username = "default"
-    elif hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
-        username = current_user.username
-
-    if not username:
-        # No user logged in, or not in single-user mode. Nothing to do.
-        g.db_user = None
-        return
-
-    db = get_db()
-    try:
-        # Use our new helper to find or create the user in app.db
-        app_db_user = get_or_create_db_user(db, username)
-        g.db_user = app_db_user  # Store this for other functions if needed
-
-        if not app_db_user:
-            # If provisioning failed, we can't load any data.
-            return
-
-        # --- The rest of your data loading logic remains the same ---
-        # It now correctly uses the ID from the app.db user record.
-        loc_rows = db.query(Location).filter_by(user_id=app_db_user.id).all()
-        g.locations = {}
-        for l in loc_rows:
-            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
-            g.locations[l.name] = {
-                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
-                "horizon_mask": mask
-            }
-
-        g.selected_location = next((n for n, v in g.locations.items() if v.get("is_default")), None) or \
-                              (list(g.locations.keys())[:1] or [None])[0]
-
-        obj_rows = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
-        g.objects_list = [
-            {"Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours,
-             "DEC (degrees)": o.dec_deg,
-             "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
-             "ActiveProject": o.active_project, "Project": o.project_name}
-            for o in obj_rows
-        ]
-    finally:
-        db.close()
 
 def load_effective_settings():
     """
@@ -3090,20 +3168,30 @@ def get_rig_data():
 @app.route('/journal')
 @login_required
 def journal_list_view():
-    username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
-        user = db.query(DbUser).filter_by(username=username).one()
-        # Query sessions and order by date descending
-        sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
+        # 1. Use the pre-loaded g.db_user (from the consolidated before_request)
+        if not g.db_user:
+            flash("User session error, please log in again.", "error")
+            return redirect(url_for('login'))
 
-        # Create a lookup for object common names for efficiency
-        objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
-        object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
+        user_id = g.db_user.id
 
-        # Add the common name to each session object for the template
+        # 2. Query only for the sessions for this user
+        sessions = db.query(JournalSession).filter_by(user_id=user_id).order_by(JournalSession.date_utc.desc()).all()
+
+        # 3. Use the pre-loaded g.alternative_names map for common names
+        #    This avoids a second DB query for AstroObject.
+        #    The map is { "m31": "Andromeda Galaxy", ... }
+        object_names_lookup = g.alternative_names or {}
+
+        # 4. Add the common name to each session object for the template
         for s in sessions:
-            s.target_common_name = object_names_lookup.get(s.object_name, s.object_name)
+            # Safely look up the common name using the lowercase object name
+            s.target_common_name = object_names_lookup.get(
+                s.object_name.lower() if s.object_name else '',
+                s.object_name  # Fallback to the object_name itself if not found
+            )
 
         return render_template('journal_list.html', journal_sessions=sessions)
     finally:
@@ -3569,78 +3657,6 @@ def proxy_focus():
         print(f"[PROXY FOCUS ERROR] Unexpected error: {e}")  # Log the actual error
         return jsonify({"status": "error", "message": message}), 500
 
-@app.before_request
-def load_config_for_request():
-    """
-    Loads all necessary user configuration and data from the DATABASE at the
-    beginning of each request. This function is the bridge between the database
-    and the application's runtime logic, populating the Flask global `g` object.
-    """
-    # 1. Determine the current user's username
-    if SINGLE_USER_MODE:
-        username = "default"
-        g.is_guest = False
-    elif current_user.is_authenticated:
-        username = current_user.username
-        g.is_guest = False
-    else:
-        username = "guest_user"
-        g.is_guest = True
-
-    # 2. CRITICAL CHANGE: Load the entire configuration from the database
-    #    This replaces the old call to load_user_config(username) which read from YAML files.
-    g.user_config = build_user_config_from_db(username)
-
-    # 3. Populate the request context (`g`) with the DB-backed configuration.
-    #    The rest of the application will use these `g` variables.
-    g.locations = g.user_config.get("locations", {})
-    g.active_locations = {
-        name: details for name, details in g.locations.items()
-        if details.get('active', True) # Defaults to active for older configs
-    }
-
-    # Validate the default location, falling back if it's inactive or doesn't exist.
-    default_loc_name = g.user_config.get("default_location")
-    validated_location = default_loc_name
-
-    if not default_loc_name or default_loc_name not in g.active_locations:
-        if g.active_locations:
-            first_active_loc = next(iter(g.active_locations))
-            validated_location = first_active_loc
-            print(f"⚠️ WARNING: Default location '{default_loc_name}' not found or is inactive. "
-                  f"Falling back to first available active location: '{validated_location}'.")
-        else:
-            validated_location = None
-            print(f"⚠️ WARNING: No active locations are defined in the configuration.")
-
-    g.selected_location = validated_location
-
-    # Set safe defaults to prevent crashes if no location is configured
-    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    if g.selected_location:
-        loc_cfg = g.locations.get(g.selected_location, {})
-        g.lat = loc_cfg.get("lat")
-        g.lon = loc_cfg.get("lon")
-        g.tz_name = loc_cfg.get("timezone", "UTC")
-    else:
-        g.lat = None
-        g.lon = None
-        g.tz_name = "UTC"
-
-    # Populate object lists for use in dropdowns and lookups
-    g.objects_list = g.user_config.get("objects", [])
-    g.alternative_names = {
-        obj.get("Object").lower(): obj.get("Name")
-        for obj in g.objects_list if obj.get("Object")
-    }
-    g.projects = {
-        obj.get("Object").lower(): obj.get("Project")
-        for obj in g.objects_list if obj.get("Object")
-    }
-    g.objects = [ obj.get("Object") for obj in g.objects_list if obj.get("Object") ]
-
-    # Finally, load other settings like calculation precision
-    load_effective_settings()
 
 @app.before_request
 def ensure_telemetry_defaults():
@@ -4057,8 +4073,7 @@ def import_config():
 def get_ra_dec(object_name):
     obj_key = object_name.lower()
     # g.user_config is built from the database and available globally in the request
-    objects_config = g.user_config.get("objects", [])
-    obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
+    obj_entry = g.objects_map.get(obj_key)
 
     # --- Define defaults ---
     default_type = "N/A"
@@ -5144,15 +5159,6 @@ def config_form():
     finally:
         db.close()
 
-
-@app.before_request
-def precompute_time_arrays():
-    if current_user.is_authenticated and g.tz_name:
-        local_tz = pytz.timezone(g.tz_name)
-        local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
-        g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date)
-
-
 @app.route('/update_project', methods=['POST'])
 @login_required
 def update_project():
@@ -5203,14 +5209,6 @@ def update_project_active():
     finally:
         db.close()
 
-
-@app.before_request
-def bypass_login_in_single_user():
-    if SINGLE_USER_MODE and not current_user.is_authenticated:
-        # Create a dummy user.
-        dummy_user = User("default", "default")
-        # Log in the dummy user.
-        login_user(dummy_user)
 
 def get_object_list_from_config():
     """Helper function to get the list of objects from the current user's config."""
