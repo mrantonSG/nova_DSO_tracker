@@ -1105,7 +1105,37 @@
             formElement.submit();
         }
     }
+    // --- Sexagesimal-to-Decimal Parsers ---
+    function parseRAToDecimal(raStr) {
+        raStr = String(raStr).trim();
+        // If it's already a plain number, just return it
+        if (!isNaN(raStr) && !raStr.match(/[:\s]/)) {
+            return parseFloat(raStr);
+        }
+        // Replace colons with spaces, split by spaces, filter out empty strings
+        const parts = raStr.replace(/:/g, ' ').split(/\s+/).filter(Boolean);
+        const h = parseFloat(parts[0]) || 0;
+        const m = parseFloat(parts[1]) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        // Calculate decimal hours
+        return (h + m/60 + s/3600);
+    }
 
+    function parseDecToDecimal(decStr) {
+        decStr = String(decStr).trim();
+        // If it's already a plain number, just return it
+        if (!isNaN(decStr) && !decStr.match(/[:\s]/)) {
+            return parseFloat(decStr);
+        }
+        const sign = decStr.startsWith('-') ? -1 : 1;
+        // Remove sign, replace colons, split by spaces, filter out empty strings
+        const parts = decStr.replace(/^-|\+/, '').replace(/:/g, ' ').split(/\s+/).filter(Boolean);
+        const d = parseFloat(parts[0]) || 0;
+        const m = parseFloat(parts[1]) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        // Calculate decimal degrees
+        return sign * (d + m/60 + s/3600);
+    }
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -1229,9 +1259,14 @@
                   document.getElementById('new_dec').value = data.data["DEC (degrees)"];
                   document.getElementById('new_constellation').value = data.data["Constellation"] || '';
                   ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}</p>`;
+                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
                   return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
                 }).then(r => r.json()).then(extra => {
+                  // --- FIX: Update message to remove "Fetching details..." ---
+                  const commonName = document.getElementById('new_name').value;
+                  resultDiv.innerHTML = `<p class="message">Found: ${commonName}. Details loaded.</p>`;
+                  // --- END FIX ---
+
                   if (extra.status === 'success') {
                       document.getElementById('new_type').value = extra.data.Type || '';
                       document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
@@ -1240,18 +1275,47 @@
                   }
                   ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
                   submitNewObjectBtn.style.display = 'none';
-                }).catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; });
+                }).catch(err => {
+                  // This is the UPDATED failure path
+                  resultDiv.innerHTML = `<p class="error">Error: ${err.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+
+                  // --- FIX: Show buttons and unlock fields on failure ---
+                  ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                  submitNewObjectBtn.style.display = 'none';
+
+                  // Automatically unlock all fields for manual entry
+                  ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project', 'new_object'].forEach(id => {
+                      document.getElementById(id).readOnly = false;
+                  });
+                  // --- END OF FIX ---
+                });
             });
         }
         if (confirmAddObjectBtn) {
             confirmAddObjectBtn.addEventListener('click', e => {
                 e.preventDefault();
+
+                // --- NEW: Parse RA/DEC inputs before creating payload ---
+                const raInput = document.getElementById('new_ra').value;
+                const decInput = document.getElementById('new_dec').value;
+
+                const raDecimal = parseRAToDecimal(raInput);
+                const decDecimal = parseDecToDecimal(decInput);
+                // --- END NEW ---
+
                 const payload = {
-                    object: document.getElementById('new_object').value, name: document.getElementById('new_name').value, ra: document.getElementById('new_ra').value,
-                    dec: document.getElementById('new_dec').value, project: document.getElementById('new_project').value, type: document.getElementById('new_type').value,
-                    magnitude: document.getElementById('new_magnitude').value, size: document.getElementById('new_size').value,
-                    constellation: document.getElementById('new_constellation').value, sb: document.getElementById('new_sb').value
+                    object: document.getElementById('new_object').value,
+                    name: document.getElementById('new_name').value,
+                    ra: raDecimal, // <-- Use the parsed decimal value
+                    dec: decDecimal, // <-- Use the parsed decimal value
+                    project: document.getElementById('new_project').value,
+                    type: document.getElementById('new_type').value,
+                    magnitude: document.getElementById('new_magnitude').value,
+                    size: document.getElementById('new_size').value,
+                    constellation: document.getElementById('new_constellation').value,
+                    sb: document.getElementById('new_sb').value
                 };
+
                 fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                 .then(r => r.json()).then(data => {
                     if (data.status === "success") { window.location.reload(); }

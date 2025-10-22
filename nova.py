@@ -4423,6 +4423,17 @@ def fetch_object_details():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+# This helper function (which I sent before) is still needed.
+def _parse_float_from_request(value, field_name="field"):
+    """Helper to convert request values to float, raising a clear ValueError."""
+    if value is None:
+        raise ValueError(f"{field_name} is required and cannot be empty.")
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid non-numeric value '{value}' received for {field_name}.")
+
 @app.route('/confirm_object', methods=['POST'])
 @login_required
 def confirm_object():
@@ -4432,41 +4443,69 @@ def confirm_object():
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one()
 
+        # --- FIX: Validate inputs before using them ---
         object_name = req.get('object')
+        if not object_name or not object_name.strip():
+            raise ValueError("Object ID is required and cannot be empty.")
+
+        common_name = req.get('name')
+        if not common_name or not common_name.strip():
+            raise ValueError("Name is required and cannot be empty.")
+
+        # Use our new helper to safely get float values
+        ra_float = _parse_float_from_request(req.get('ra'), "RA")
+        dec_float = _parse_float_from_request(req.get('dec'), "DEC")
+        # --- END FIX ---
+
         # Check if object already exists for this user
         existing = db.query(AstroObject).filter_by(user_id=app_db_user.id, object_name=object_name).one_or_none()
+
+        # Get other fields (these can be empty/None)
+        project_name = req.get('project', 'none')
+        constellation = req.get('constellation')
+        obj_type = convert_to_native_python(req.get('type'))
+        magnitude = str(convert_to_native_python(req.get('magnitude')) or '')
+        size = str(convert_to_native_python(req.get('size')) or '')
+        sb = str(convert_to_native_python(req.get('sb')) or '')
+
         if existing:
             # Update existing object's details
-            existing.common_name = req.get('name')
-            existing.ra_hours = float(req.get('ra'))
-            existing.dec_deg = float(req.get('dec'))
-            existing.project_name = req.get('project', 'none')
-            existing.constellation = req.get('constellation')
-            existing.type = convert_to_native_python(req.get('type'))
-            existing.magnitude = str(convert_to_native_python(req.get('magnitude')) or '')
-            existing.size = str(convert_to_native_python(req.get('size')) or '')
-            existing.sb = str(convert_to_native_python(req.get('sb')) or '')
+            existing.common_name = common_name
+            existing.ra_hours = ra_float
+            existing.dec_deg = dec_float
+            existing.project_name = project_name
+            existing.constellation = constellation
+            existing.type = obj_type
+            existing.magnitude = magnitude
+            existing.size = size
+            existing.sb = sb
         else:
             # Create a new object record
             new_obj = AstroObject(
                 user_id=app_db_user.id,
                 object_name=object_name,
-                common_name=req.get('name'),
-                ra_hours=float(req.get('ra')),
-                dec_deg=float(req.get('dec')),
-                project_name=req.get('project', 'none'),
-                constellation=req.get('constellation'),
-                type=convert_to_native_python(req.get('type')),
-                magnitude=str(convert_to_native_python(req.get('magnitude')) or ''),
-                size=str(convert_to_native_python(req.get('size')) or ''),
-                sb=str(convert_to_native_python(req.get('sb')) or '')
+                common_name=common_name,
+                ra_hours=ra_float,
+                dec_deg=dec_float,
+                project_name=project_name,
+                constellation=constellation,
+                type=obj_type,
+                magnitude=magnitude,
+                size=size,
+                sb=sb
             )
             db.add(new_obj)
 
         db.commit()
         return jsonify({"status": "success"})
+
+    except ValueError as ve:  # --- FIX: Catch our specific validation errors
+        db.rollback()
+        # Send a 400 Bad Request with a clear message
+        return jsonify({"status": "error", "message": str(ve)}), 400
     except Exception as e:
         db.rollback()
+        # Send a 500 for unexpected server errors
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
