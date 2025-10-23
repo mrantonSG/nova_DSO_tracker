@@ -1363,35 +1363,64 @@ function populateJournalTable() {
         }
     }
 
+
     function fetchOutlookData() {
         const tableBody = document.getElementById('outlook-body');
-        const loadingDiv = document.getElementById("table-loading");
+        const loadingDiv = document.getElementById("table-loading"); // Assuming you might have a general loading div
         if (!tableBody) return;
 
-        if (!isUpdatingLocation) { // <-- Checks the flag
+        // Show fetching message only if not already updating location UI
+        if (!isUpdatingLocation) {
             tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Fetching...</td></tr>`;
         }
 
-        fetch('/get_outlook_data')
+        // --- START FIX ---
+        // Get the currently selected location name from browser's session storage
+        const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+        // Construct the URL with the location as a query parameter
+        const fetchUrl = `/get_outlook_data?location=${encodeURIComponent(currentSelectedLocation || '')}`;
+        // --- END FIX ---
+
+        fetch(fetchUrl) // <-- Use the modified URL
             .then(response => response.json())
             .then(data => {
-                if (!outlookDataLoaded) { outlookDataLoaded = true; }
+                // --- FIX: Only set outlookDataLoaded to true when data is actually complete ---
+                // if (!outlookDataLoaded) { outlookDataLoaded = true; } // REMOVE THIS LINE (it was a bug)
+
                 if (data.status === 'complete') {
-                    allOutlookOpportunities = data.results || [];
-                    if (allOutlookOpportunities.length > 0) { sortOutlookTable(currentOutlookSort.columnKey, false); }
-                    else { tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">No imaging opportunities found matching the criteria.</td></tr>`; }
+                    // --- FIX: Set loaded flag ONLY on complete ---
+                    if (!outlookDataLoaded) { outlookDataLoaded = true; } // Correct placement
+
+                    allOutlookOpportunities = data.results || []; // Store data globally
+                    if (allOutlookOpportunities.length > 0) {
+                        // Sort and render the table (assuming sortOutlookTable also calls renderOutlookTable)
+                        sortOutlookTable(currentOutlookSort.columnKey, false);
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">No imaging opportunities found matching the criteria.</td></tr>`;
+                    }
                 } else if (data.status === 'running' || data.status === 'starting') {
-                    if ((data.results || []).length > 0) { allOutlookOpportunities = data.results || []; sortOutlookTable(currentOutlookSort.columnKey, false); }
-                    else { tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Waiting for background task...</td></tr>`; }
+                    // Background task is running, show waiting message
+                    if ((data.results || []).length > 0) {
+                         // Optionally display stale data while waiting
+                        allOutlookOpportunities = data.results || [];
+                        sortOutlookTable(currentOutlookSort.columnKey, false);
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Waiting for background task...</td></tr>`;
+                    }
+                    // Poll again after a delay
                     setTimeout(fetchOutlookData, 10000);
-                } else {
-                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">No data available. Check server logs if this persists.</td></tr>`;
+                } else { // Handle 'idle' (should become 'starting' now) or 'error'
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">No data available or error. Check server logs if this persists. ${data.message || ''}</td></tr>`;
+                    // Optionally set outlookDataLoaded = true here too, to stop retrying on error
+                     if (!outlookDataLoaded) { outlookDataLoaded = true; }
                 }
+                // Hide general loading indicator if used
                 if (loadingDiv) loadingDiv.style.display = 'none';
             })
             .catch(error => {
-                outlookDataLoaded = true; console.error("Error fetching outlook data:", error);
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error. Check console for details.</td></tr>`;
+                // outlookDataLoaded = true; // Set flag even on error to stop retries
+                console.error("Error fetching outlook data:", error);
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error fetching data. Check console for details.</td></tr>`;
                 if (loadingDiv) loadingDiv.style.display = 'none';
             });
     }

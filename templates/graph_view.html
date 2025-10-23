@@ -1200,47 +1200,72 @@ function loadSimbadInfo() {
 }
 
 async function loadImagingOpportunities() {
-    if (opportunitiesLoaded) return;
+    if (opportunitiesLoaded) return; // Prevent multiple loads
 
     const tableBody = document.getElementById('opportunities-body');
-    const objectName = {{ object_name|tojson }};
+    const objectName = {{ object_name|tojson }}; // Get object name from template
 
-    // NEW: Instead of showing a div, inject a styled loading row into the table.
+    // Show loading indicator row
     tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">Loading...</td></tr>';
 
     try {
-        const response = await fetch(`/get_imaging_opportunities/${objectName}`);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        // --- START FIX ---
+        // Get plot location data stored globally on this page by the Python template
+        const plotLat = window.NOVA_GRAPH_DATA.plotLat;
+        const plotLon = window.NOVA_GRAPH_DATA.plotLon;
+        const plotTz = window.NOVA_GRAPH_DATA.plotTz;
 
-        // Clear the loading row before adding data
+        // Create URL query parameters from the plot location data
+        const params = new URLSearchParams({
+            plot_lat: plotLat,
+            plot_lon: plotLon,
+            plot_tz: plotTz
+        });
+
+        // Construct the fetch URL including the object name and location parameters
+        const fetchUrl = `/get_imaging_opportunities/${encodeURIComponent(objectName)}?${params.toString()}`;
+        // --- END FIX ---
+
+        // Fetch data from the backend using the constructed URL
+        const response = await fetch(fetchUrl); // <-- Use the modified URL
+        if (!response.ok) {
+            // Throw error if response status is not OK (e.g., 404, 500)
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json(); // Parse the JSON response
+
+        // Clear the loading row
         tableBody.innerHTML = '';
 
+        // Check the status field in the response data
         if (data.status === 'success') {
-            if (data.results.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
-            } else {
+            if (data.results && data.results.length > 0) {
+                // If results exist, populate the table
                 data.results.forEach(opp => {
                     const row = document.createElement('tr');
 
+                    // Make row clickable to navigate to that date's chart
                     const [year, month, day] = opp.date.split('-');
-                    const url = `/graph_dashboard/${objectName}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart`;
+                    const url = `/graph_dashboard/${encodeURIComponent(objectName)}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart&location=${encodeURIComponent(window.NOVA_GRAPH_DATA.plotLocName || '')}`; // Include location in URL
                     row.style.cursor = 'pointer';
                     row.onclick = () => { window.location.href = url; };
 
-                    const icsUrl = new URL(`/generate_ics/${objectName}`, window.location.origin);
+                    // Create URL for the "Add to Calendar" (.ics) link
+                    const icsUrl = new URL(`/generate_ics/${encodeURIComponent(objectName)}`, window.location.origin);
                     icsUrl.searchParams.append('date', opp.date);
                     icsUrl.searchParams.append('from_time', opp.from_time);
                     icsUrl.searchParams.append('to_time', opp.to_time);
                     icsUrl.searchParams.append('max_alt', opp.max_alt);
                     icsUrl.searchParams.append('moon_illum', opp.moon_illumination);
                     icsUrl.searchParams.append('obs_dur', opp.obs_minutes);
-                    icsUrl.searchParams.append('lat', '{{ graph_lat_param }}');
-                    icsUrl.searchParams.append('lon', '{{ graph_lon_param }}');
-                    icsUrl.searchParams.append('tz', '{{ graph_tz_name_param }}');
+                    // Pass the correct location parameters used for the calculation
+                    icsUrl.searchParams.append('lat', plotLat);
+                    icsUrl.searchParams.append('lon', plotLon);
+                    icsUrl.searchParams.append('tz', plotTz);
 
+                    // Populate row cells
                     row.innerHTML = `
-                        <td>${new Date(opp.date + 'T00:00:00').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                        <td>${new Date(opp.date + 'T00:00:00Z').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })}</td>
                         <td>${opp.from_time}</td>
                         <td>${opp.to_time}</td>
                         <td>${opp.obs_minutes}</td>
@@ -1252,16 +1277,22 @@ async function loadImagingOpportunities() {
                     `;
                     tableBody.appendChild(row);
                 });
+            } else {
+                // No opportunities found
+                tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
             }
-            opportunitiesLoaded = true;
+            opportunitiesLoaded = true; // Mark as loaded
         } else {
-            tableBody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`;
+            // Handle error status from backend
+            tableBody.innerHTML = `<tr><td colspan="9">Error loading opportunities: ${data.message || 'Unknown error'}</td></tr>`;
+             opportunitiesLoaded = true; // Also mark loaded on error to prevent loops
         }
     } catch (error) {
+        // Handle fetch errors (network, parsing)
         console.error('Error fetching imaging opportunities:', error);
-        tableBody.innerHTML = '<tr><td colspan="9">Failed to load imaging opportunities. Check console for details.</td></tr>';
+        tableBody.innerHTML = `<tr><td colspan="9">Failed to load imaging opportunities. Check console for details. (${error.message})</td></tr>`;
+         opportunitiesLoaded = true; // Also mark loaded on error
     }
-    // The finally block is no longer needed as the loader is part of the table body
 }
 
 </script>
