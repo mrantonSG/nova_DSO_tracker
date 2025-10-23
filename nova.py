@@ -2169,6 +2169,65 @@ def get_hybrid_weather_forecast(lat, lon):
     _update_cache_ok(final, ttl_hours=3)
     return final
 
+
+def weather_cache_worker():
+    """
+    A background worker thread that proactively refreshes the 7Timer! weather cache
+    for all active locations, preventing delays during user requests.
+    """
+    # Wait 60 seconds on initial startup to let the app finish booting
+    # and avoid conflicting with the main cache warmers.
+    print("[WEATHER WORKER] Initializing... waiting 60s for app to settle.")
+    time.sleep(60)
+
+    while True:
+        print("[WEATHER WORKER] Starting background refresh cycle...")
+        unique_locations = set()
+
+        # We must use an app context to access the database from a thread
+        with app.app_context():
+            db = None
+            try:
+                db = get_db()
+                # Query all locations that are marked as 'active'
+                active_locs = db.query(Location).filter_by(active=True).all()
+
+                for loc in active_locs:
+                    if loc.lat is not None and loc.lon is not None:
+                        # Add (lat, lon) tuples to a set to avoid duplicate lookups
+                        # Rounding to 4 decimal places (~11 meters) prevents
+                        # tiny float differences from causing duplicate API calls.
+                        unique_locations.add((round(loc.lat, 4), round(loc.lon, 4)))
+
+            except Exception as e:
+                print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
+            finally:
+                if db:
+                    db.close()  # Always close the session
+
+        print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
+
+        refreshed_count = 0
+        for lat, lon in unique_locations:
+            try:
+                # Call the existing function. It will fetch from 7Timer!
+                # and automatically update the in-memory 'weather_cache'.
+                get_hybrid_weather_forecast(lat, lon)
+                refreshed_count += 1
+
+                # Be kind to the 7Timer! API, wait 5 seconds between requests
+                time.sleep(5)
+
+            except Exception as e:
+                print(f"[WEATHER WORKER] ERROR: Failed to fetch for ({lat}, {lon}): {e}")
+
+        # Sleep for 2 hours before the next cycle.
+        # The cache TTL is 3 hours, so this ensures it's always fresh.
+        print(
+            f"[WEATHER WORKER] Refresh cycle complete ({refreshed_count}/{len(unique_locations)} successful). Sleeping for 2 hours.")
+        time.sleep(2 * 60 * 60)  # 2 hours * 60 min/hr * 60 sec/min
+
+
 def generate_session_id():
     """Generates a unique session ID."""
     return uuid.uuid4().hex
@@ -6453,6 +6512,9 @@ if __name__ == '__main__':
     update_thread = threading.Thread(target=check_for_updates)
     update_thread.daemon = True
     update_thread.start()
+    weather_thread = threading.Thread(target=weather_cache_worker)
+    weather_thread.daemon = True
+    weather_thread.start()
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
 
