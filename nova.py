@@ -2306,139 +2306,171 @@ def trigger_startup_cache_workers():
 
 def update_outlook_cache(username, location_name, user_config, sampling_interval):
     """
-    NEW LOGIC: Finds ALL good imaging opportunities for PROJECT objects only
-    and saves them sorted by date.
+    Finds ALL good imaging opportunities for PROJECT objects only for the specified
+    user and location, saving them sorted by date.
+    Relies ONLY on passed arguments, not the global 'g' object.
     """
-    with app.app_context():
-        # Create a unique key for the status dictionary
-        status_key = f"{username}_{location_name}"
+    status_key = f"{username}_{location_name}"
+    cache_filename = os.path.join(CACHE_DIR,
+                                  f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
-        # print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
+    with app.app_context(): # Keep app context for potential future DB needs, but avoid using 'g'
+        print(f"--- [OUTLOOK WORKER {status_key}] Starting ---")
         cache_worker_status[status_key] = "running"
-        cache_filename = os.path.join(CACHE_DIR,
-                                      f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
         try:
-            g.user_config = user_config
-            g.locations = user_config.get("locations", {})
-            loc_cfg = g.locations.get(location_name, {})
-            g.lat, g.lon, g.tz_name = loc_cfg.get("lat"), loc_cfg.get("lon"), loc_cfg.get("timezone", "UTC")
-            g.objects_list = g.user_config.get("objects", [])
-
-            lat, lon, tz_name = g.lat, g.lon, g.tz_name
+            # --- Extract Location Data from ARGUMENTS ---
+            all_locations_from_config = user_config.get("locations", {})
+            loc_cfg = all_locations_from_config.get(location_name)
+            if not loc_cfg: raise ValueError(f"Location '{location_name}' not found.")
+            lat = loc_cfg.get("lat"); lon = loc_cfg.get("lon"); tz_name = loc_cfg.get("timezone", "UTC")
+            horizon_mask = loc_cfg.get("horizon_mask")
+            if lat is None or lon is None: raise ValueError(f"Missing lat/lon for '{location_name}'.")
+            print(f"[OUTLOOK WORKER {status_key}] Using Loc: lat={lat}, lon={lon}, tz={tz_name}")
             altitude_threshold = user_config.get("altitude_threshold", 20)
-            if not all([lat, lon, tz_name]): raise ValueError(f"Missing lat/lon/tz for '{location_name}'")
 
-            criteria = get_imaging_criteria()
+            # --- Extract Imaging Criteria from ARGUMENTS ---
+            def _get_criteria_from_config(cfg):
+                defaults = { "min_observable_minutes": 60, "min_max_altitude": 30, "max_moon_illumination": 20, "min_angular_separation": 30, "search_horizon_months": 6 }
+                raw = (cfg or {}).get("imaging_criteria") or {}; out = dict(defaults)
+                if isinstance(raw, dict):
+                    def _update_key(key, cast_func):
+                        if key in raw and raw[key] is not None:
+                            try: out[key] = cast_func(str(raw[key]))
+                            except: pass
+                    _update_key("min_observable_minutes", int); _update_key("min_max_altitude", float); _update_key("max_moon_illumination", int); _update_key("min_angular_separation", int); _update_key("search_horizon_months", int)
+                out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0)); out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0))); out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100))); out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0))); out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
+                return out
+            criteria = _get_criteria_from_config(user_config)
 
+            # --- Extract Objects List from ARGUMENTS ---
             all_objects_from_config = user_config.get("objects", [])
-            project_objects = [
-                obj for obj in all_objects_from_config
-                if obj.get("ActiveProject")
-            ]
-            # print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects for user '{username}'.")
 
+            # --- START FIX: Build object map for this thread ---
+            local_objects_map = {
+                str(o.get("Object", "")).lower(): o
+                for o in all_objects_from_config if isinstance(o, dict) and o.get("Object")
+            }
+            # --- END FIX ---
+
+            # --- Filter Active Projects ---
+            project_objects = []
+            if isinstance(all_objects_from_config, list):
+                for obj in all_objects_from_config:
+                    if isinstance(obj, dict):
+                        ap_val = obj.get("ActiveProject")
+                        is_active = (ap_val is True or str(ap_val).lower() in ['true', '1', 'yes'])
+                        if is_active: project_objects.append(obj)
+
+            active_object_names = [o.get('Object', 'Unnamed') for o in project_objects]
+            print(f"[OUTLOOK WORKER {status_key}] Found {len(project_objects)} active projects: {active_object_names}")
+
+            if not project_objects:
+                print(f"[OUTLOOK WORKER {status_key}] No active projects. Writing empty cache.")
+                cache_content = {"metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username}, "opportunities": []}
+                with open(cache_filename, 'w') as f: json.dump(cache_content, f)
+                cache_worker_status[status_key] = "complete"
+                print(f"--- [OUTLOOK WORKER {status_key}] Finished (no active projects) ---")
+                return # Exit early
+
+            # --- Calculation Loop ---
             all_good_opportunities = []
             local_tz = pytz.timezone(tz_name)
             start_date = datetime.now(local_tz).date()
-            dates_to_check = [start_date + timedelta(days=i) for i in range(30)]
+            dates_to_check = [start_date + timedelta(days=i) for i in range(criteria["search_horizon_months"] * 30)]
 
             for obj_config_entry in project_objects:
+                object_name_from_config = obj_config_entry.get("Object", "Unknown")
                 try:
                     time.sleep(0.01)
-                    object_name_from_config = obj_config_entry.get("Object")
-                    if not object_name_from_config: continue
 
-                    obj_details = get_ra_dec(object_name_from_config)
-                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get(
-                        "DEC (degrees)")
-                    if not all([object_name, ra, dec]): continue
+                    # --- START FIX: Call get_ra_dec with the local map ---
+                    obj_details = get_ra_dec(object_name_from_config, objects_map=local_objects_map)
+                    # --- END FIX ---
 
-                    # --- NEW: Loop through dates and collect ALL good nights ---
+                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get("DEC (degrees)")
+                    if not all([object_name, ra is not None, dec is not None]):
+                        print(f"[OUTLOOK WORKER {status_key}] Skipping {object_name_from_config}: Missing RA/DEC or lookup failed.")
+                        continue
+
                     for d in dates_to_check:
                         date_str = d.strftime('%Y-%m-%d')
-                        # Respect per-azimuth horizon mask (houses/trees etc.)
-                        try:
-                            horizon_mask = (g.locations.get(location_name, {}).get("horizon_mask")
-                                            if isinstance(g.locations, dict) else None)
-                        except Exception:
-                            horizon_mask = None
-                        obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(
-                            ra, dec, lat, lon,
-                            date_str, tz_name,
-                            altitude_threshold, sampling_interval,
-                            horizon_mask=horizon_mask
+
+                        obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
+                            ra, dec, lat, lon, date_str, tz_name,
+                            altitude_threshold, sampling_interval, horizon_mask=horizon_mask
                         )
 
-                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
-                                criteria["min_observable_minutes"]:
-                            continue
+                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < criteria["min_observable_minutes"]: continue
 
-                        # Perform scoring (same as before)
-                        moon_phase = ephem.Moon(
-                            local_tz.localize(datetime.combine(d, datetime.now().time())).astimezone(pytz.utc)).phase
+                        moon_phase = ephem.Moon(local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(pytz.utc)).phase
+                        if moon_phase > criteria["max_moon_illumination"]: continue
+
                         sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
                         dusk = sun_events.get("astronomical_dusk", "20:00")
-                        dusk_dt = local_tz.localize(datetime.combine(d, datetime.strptime(dusk, "%H:%M").time()))
+                        try: dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
+                        except ValueError: dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
+                        dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
                         location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-                        frame = AltAz(obstime=Time(dusk_dt.astimezone(pytz.utc)), location=location_obj)
+                        time_obj = Time(dusk_dt.astimezone(pytz.utc))
+                        frame = AltAz(obstime=time_obj, location=location_obj)
                         obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-                        moon_coord = get_body('moon', Time(dusk_dt.astimezone(pytz.utc)), location=location_obj)
-                        separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
-                        score_alt = min((max_altitude - 20) / 70, 1) if max_altitude > 20 else 0
+                        moon_coord = get_body('moon', time_obj, location=location_obj)
+                        try:
+                           separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+                           if separation < criteria["min_angular_separation"]: continue
+                        except Exception as sep_e:
+                           print(f"[OUTLOOK WORKER {status_key}] WARN Sep calc fail for {object_name} on {date_str}: {sep_e}")
+                           continue
+
+                        score_alt = max(0, min((max_altitude - 20) / 70, 1))
                         score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
                         score_moon_illum = 1 - min(moon_phase / 100, 1)
-                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
-                                                                                                     1)
-                        composite_score = 100 * (
-                                    0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
+                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180, 1)
+                        composite_score = 100 * (0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
 
-                        # --- NEW: If score is good, add it to the list ---
-                        if composite_score > 75:  # Set a threshold for what constitutes a "good" opportunity
+                        if composite_score > 75:
                             stars = int(round((composite_score / 100) * 4)) + 1
+                            # --- Ensure native Python floats are stored ---
+                            opportunity_score = float(composite_score)
+                            opportunity_max_alt = float(max_altitude)
+                            # --- End ensure native floats ---
                             good_night_opportunity = {
-                                "object_name": object_name,
-                                "common_name": obj_details.get("Common Name", object_name),
-                                "date": date_str,  # Note the key is now 'date'
-                                "score": composite_score,
-                                "rating": "★" * stars + "☆" * (5 - stars),
-                                "rating_num": stars,
-                                "max_alt": round(max_altitude, 1),
+                                "object_name": object_name, "common_name": obj_details.get("Common Name", object_name),
+                                "date": date_str, "score": opportunity_score, "rating": "★" * stars + "☆" * (5 - stars),
+                                "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
                                 "obs_dur": int(obs_duration.total_seconds() / 60),
-                                "project": obj_config_entry.get("Project", "none"),
-                                "type": obj_details.get("Type", "N/A"),
-                                "constellation": obj_details.get("Constellation", "N/A"),
-                                "magnitude": obj_details.get("Magnitude", "N/A"),
-                                "size": obj_details.get("Size", "N/A"),
-                                "sb": obj_details.get("SB", "N/A")
+                                "project": obj_config_entry.get("Project", "none"), "type": obj_details.get("Type", "N/A"),
+                                "constellation": obj_details.get("Constellation", "N/A"), "magnitude": obj_details.get("Magnitude", "N/A"),
+                                "size": obj_details.get("Size", "N/A"), "sb": obj_details.get("SB", "N/A")
                             }
                             all_good_opportunities.append(good_night_opportunity)
 
                 except Exception as e:
-                    import traceback
-                    print(
-                        f"[OUTLOOK WORKER] WARNING: Skipping object '{obj_config_entry.get('Object', 'Unknown')}' due to an error: {e}")
-                    traceback.print_exc()
+                    print(f"❌ [OUTLOOK WORKER {status_key}] ERROR processing object '{object_name_from_config}': {e}")
+                    # traceback.print_exc() # Uncomment for more detail if needed
                     continue
+            # --- End Calculation Loop ---
 
-            # --- NEW: Sort the final list of all opportunities by date ---
+            print(f"[OUTLOOK WORKER {status_key}] Found {len(all_good_opportunities)} total opportunities.")
+
             opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
-
             cache_content = {
                 "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username},
                 "opportunities": opportunities_sorted_by_date
             }
 
-            with open(cache_filename, 'w') as f:
-                json.dump(cache_content, f)
-            # print(f"[OUTLOOK WORKER] Successfully updated cache file: {cache_filename}")
+            _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
+            with open(cache_filename, 'w') as f: json.dump(cache_content, f)
+            print(f"[OUTLOOK WORKER {status_key}] Successfully updated cache: {cache_filename}")
             cache_worker_status[status_key] = "complete"
 
         except Exception as e:
-            import traceback
-            print(f"❌ [OUTLOOK WORKER] FATAL ERROR for user '{username}' at location '{location_name}': {e}")
+            print(f"❌❌ [OUTLOOK WORKER {status_key}] FATAL ERROR: {e}")
             traceback.print_exc()
             cache_worker_status[status_key] = "error"
+        finally:
+             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
 def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
@@ -2884,36 +2916,103 @@ def telemetry_debug():
 
 @app.route('/get_outlook_data')
 def get_outlook_data():
-    # --- NEW: Check for guest user first ---
+    # --- Check for guest user first ---
     if hasattr(g, 'is_guest') and g.is_guest:
-        # Guests have no projects, so their outlook is always empty.
         return jsonify({"status": "complete", "results": []})
 
-    # --- Original logic for logged-in users continues below ---
+    # --- Determine username ---
     if SINGLE_USER_MODE:
         username = "default"
     elif current_user.is_authenticated:
         username = current_user.username
     else:
-        # Handle cases where no user is logged in in multi-user mode
         return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
-    location_name = g.selected_location
-    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+    # --- START FIX: Determine Location to Use ---
+    # Check for a location override from the request query parameter
+    requested_location_name = request.args.get('location')
+    # Start with the user's saved default location from the global 'g' object
+    location_name_to_use = g.selected_location
 
+    # If a location name was provided in the URL AND it's a valid location for the user...
+    if requested_location_name and requested_location_name in g.locations:
+        # ...use the requested location instead of the default.
+        location_name_to_use = requested_location_name
+        # print(f"[Outlook] Using requested location: {location_name_to_use}") # Optional debug
+    # else:
+        # print(f"[Outlook] Using default location: {location_name_to_use}") # Optional debug
+
+    # Safety check: If no location could be determined (e.g., user has no locations configured)
+    if not location_name_to_use:
+        return jsonify({"status": "error", "message": "No valid location selected or configured."}), 400
+
+    # Use the finally determined location name for the rest of the function
+    location_name = location_name_to_use
+    # --- END FIX ---
+
+    # Construct cache filename using the determined username and location name
+    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+    status_key = f"{username}_{location_name}" # Key for checking background worker status
+
+    # --- Check for existing cache file ---
     if os.path.exists(cache_filename):
         try:
-            with open(cache_filename, 'r') as f:
-                data = json.load(f)
-            return jsonify({"status": "complete", "results": data.get("opportunities", [])})
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"❌ ERROR: Could not read or parse outlook cache file '{cache_filename}': {e}")
-            return jsonify({"status": "error", "results": []})
-    else:
-        # Create the unique key to check the worker's status
-        status_key = f"{username}_{location_name}"
-        worker_status = cache_worker_status.get(status_key, "idle")
+            # Check if the cache is stale (e.g., older than 1 day)
+            cache_mtime = os.path.getmtime(cache_filename)
+            is_stale = (datetime.now().timestamp() - cache_mtime) > 86400 # 86400 seconds = 1 day
+
+            if not is_stale:
+                # Cache is fresh, read and return its content
+                with open(cache_filename, 'r') as f:
+                    data = json.load(f)
+                return jsonify({"status": "complete", "results": data.get("opportunities", [])})
+            else:
+                # Cache is stale, proceed to check worker status and potentially trigger an update
+                print(f"[OUTLOOK] Cache for {status_key} is stale. Checking worker status.")
+
+        except (json.JSONDecodeError, IOError, OSError) as e:
+            # Error reading or parsing the file, treat as missing/corrupt
+            print(f"❌ ERROR: Could not read/parse outlook cache '{cache_filename}': {e}")
+            # Proceed to check worker status
+
+    # --- Cache is missing, stale, or corrupt. Check background worker. ---
+    worker_status = cache_worker_status.get(status_key, "idle")
+
+    if worker_status in ["running", "starting"]:
+        # Worker is already active, tell the frontend to wait and poll again
         return jsonify({"status": worker_status, "results": []})
+
+    # --- Worker is idle, completed (but cache was bad/stale), or errored. Start a new one. ---
+    print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
+    try:
+        # Ensure user config is available (should be in 'g')
+        if not hasattr(g, 'user_config') or not g.user_config:
+             return jsonify({"status": "error", "message": "User configuration not loaded."}), 500
+
+        # Determine sampling interval based on mode
+        sampling_interval = 15 # Default
+        if SINGLE_USER_MODE:
+            sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+        else:
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+        # Start the background thread, passing necessary data
+        # CRITICAL: Pass user_config.copy() to avoid issues with 'g' context in the thread
+        thread = threading.Thread(target=update_outlook_cache,
+                                  args=(username, location_name, g.user_config.copy(), sampling_interval))
+        thread.start()
+
+        # Mark status as 'starting' immediately to prevent duplicate workers
+        cache_worker_status[status_key] = "starting"
+
+        # Tell the client we've started, and to poll again later
+        return jsonify({"status": "starting", "results": []})
+
+    except Exception as e:
+        print(f"❌ ERROR: Failed to start outlook worker thread for {status_key}: {e}")
+        traceback.print_exc()
+        cache_worker_status[status_key] = "error" # Mark as error if thread start fails
+        return jsonify({"status": "error", "message": "Failed to start background worker."}), 500
 
 @app.route('/api/latest_version')
 def get_latest_version():
@@ -4070,115 +4169,87 @@ def import_config():
 # Astronomical Calculations
 # =============================================================================
 
-def get_ra_dec(object_name):
+def get_ra_dec(object_name, objects_map=None): # <-- ADD objects_map=None parameter
+    """
+    Looks up RA/DEC and other details for an object.
+    Prioritizes the provided objects_map (if given), then falls back to g.objects_map (in request context),
+    then queries SIMBAD.
+    """
     obj_key = object_name.lower()
-    # g.user_config is built from the database and available globally in the request
-    obj_entry = g.objects_map.get(obj_key)
+
+    # --- Use the provided map first, then g, then None ---
+    obj_map_to_use = objects_map # Use the one passed in (e.g., from the worker thread)
+    if obj_map_to_use is None and has_request_context():
+        # Fallback to g ONLY if in a request context and no map was passed
+        obj_map_to_use = getattr(g, 'objects_map', None)
+
+    obj_entry = obj_map_to_use.get(obj_key) if obj_map_to_use else None # Use the determined map
 
     # --- Define defaults ---
-    default_type = "N/A"
-    default_magnitude = "N/A"
-    default_size = "N/A"
-    default_sb = "N/A"
-    default_project = "none"
-    default_constellation = "N/A"
-    default_active_project = False
+    # (Defaults remain the same)
+    default_type = "N/A"; default_magnitude = "N/A"; default_size = "N/A"; default_sb = "N/A";
+    default_project = "none"; default_constellation = "N/A"; default_active_project = False
 
-    # --- Path 1: Object is found in the user's configuration ---
+    # --- Path 1: Object found in config (using obj_map_to_use) ---
     if obj_entry:
-        ra_str = obj_entry.get("RA")
-        dec_str = obj_entry.get("DEC")
+        # (Logic inside Path 1 remains the same, using obj_entry)
+        ra_str = obj_entry.get("RA"); dec_str = obj_entry.get("DEC")
         constellation_val = obj_entry.get("Constellation", default_constellation)
         type_val = obj_entry.get("Type", default_type)
         magnitude_val = obj_entry.get("Magnitude", default_magnitude)
         size_val = obj_entry.get("Size", default_size)
         sb_val = obj_entry.get("SB", default_sb)
         project_val = obj_entry.get("Project", default_project)
-        common_name_val = obj_entry.get("Name", object_name)
+        common_name_val = obj_entry.get("Name", object_name) # Uses "Name" for config form compatibility
         active_project_val = obj_entry.get("ActiveProject", default_active_project)
 
-        # Sub-path 1a: Config entry has coordinates, so we can return directly.
         if ra_str is not None and dec_str is not None:
             try:
-                ra_hours_float = float(ra_str)
-                dec_degrees_float = float(dec_str)
-
-                # Auto-calculate constellation if missing
+                ra_hours_float = float(ra_str); dec_degrees_float = float(dec_str)
                 if constellation_val in [None, "N/A", ""]:
                     try:
                         coords = SkyCoord(ra=ra_hours_float * u.hourangle, dec=dec_degrees_float * u.deg)
                         constellation_val = get_constellation(coords, short_name=True)
-                    except Exception:
-                        constellation_val = "N/A"
-
+                    except Exception: constellation_val = "N/A"
                 return {
-                    "Object": object_name,
-                    "Constellation": constellation_val,
-                    "Common Name": common_name_val,
-                    "RA (hours)": ra_hours_float,
-                    "DEC (degrees)": dec_degrees_float,
-                    "Project": project_val,
-                    "Type": type_val if type_val else default_type,
-                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
-                    "Size": size_val if size_val else default_size,
-                    "SB": sb_val if sb_val else default_sb,
-                    "ActiveProject": active_project_val
+                    "Object": object_name, "Constellation": constellation_val, "Common Name": common_name_val,
+                    "RA (hours)": ra_hours_float, "DEC (degrees)": dec_degrees_float, "Project": project_val,
+                    "Type": type_val or default_type, "Magnitude": magnitude_val or default_magnitude,
+                    "Size": size_val or default_size, "SB": sb_val or default_sb, "ActiveProject": active_project_val
                 }
             except ValueError:
-                return {
+                return { # Return error but keep other config data
                     "Object": object_name, "Constellation": "N/A", "Common Name": "Error: Invalid RA/DEC in config",
                     "RA (hours)": None, "DEC (degrees)": None, "Project": project_val, "Type": type_val,
                     "Magnitude": magnitude_val, "Size": size_val, "SB": sb_val, "ActiveProject": active_project_val
                 }
-        # Sub-path 1b: Config entry exists but is missing coordinates. Fall through to SIMBAD lookup.
-        else:
-            pass
+        # Fall through to SIMBAD if coordinates missing in config
 
-    # --- Path 2: Object not in config, or was missing coordinates. Query SIMBAD. ---
+    # --- Path 2: Object not in config OR missing coords -> Query SIMBAD ---
+    # (SIMBAD lookup logic remains the same)
     project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
-    active_project_to_use = obj_entry.get("ActiveProject",
-                                          default_active_project) if obj_entry else default_active_project
-
+    active_project_to_use = obj_entry.get("ActiveProject", default_active_project) if obj_entry else default_active_project
     try:
-        custom_simbad = Simbad()
-        custom_simbad.ROW_LIMIT = 1
-        custom_simbad.TIMEOUT = 60
+        custom_simbad = Simbad(); custom_simbad.ROW_LIMIT = 1; custom_simbad.TIMEOUT = 60
         custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
         result = custom_simbad.query_object(object_name)
-
-        if result is None or len(result) == 0:
-            raise ValueError(f"No results for '{object_name}' in SIMBAD.")
-
-        ra_col = 'RA' if 'RA' in result.colnames else 'ra'
-        dec_col = 'DEC' if 'DEC' in result.colnames else 'dec'
-        ra_value_simbad = str(result[ra_col][0])
-        dec_value_simbad = str(result[dec_col][0])
-
-        ra_hours_simbad = hms_to_hours(ra_value_simbad)
-        dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
+        if result is None or len(result) == 0: raise ValueError(f"No results for '{object_name}' in SIMBAD.")
+        ra_col = 'RA' if 'RA' in result.colnames else 'ra'; dec_col = 'DEC' if 'DEC' in result.colnames else 'dec'
+        ra_value_simbad = str(result[ra_col][0]); dec_value_simbad = str(result[dec_col][0])
+        ra_hours_simbad = hms_to_hours(ra_value_simbad); dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
         simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
-
         try:
             coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
             constellation_simbad = get_constellation(coords, short_name=True)
-        except Exception:
-            constellation_simbad = "N/A"
-
+        except Exception: constellation_simbad = "N/A"
         return {
-            "Object": object_name,
-            "Constellation": constellation_simbad,
-            "Common Name": simbad_main_id,
-            "RA (hours)": ra_hours_simbad,
-            "DEC (degrees)": dec_degrees_simbad,
-            "Project": project_to_use,
+            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
+            "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
             "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
-            "Magnitude": "N/A",  # Not fetched in this simple query
-            "Size": "N/A",  # Not fetched in this simple query
-            "SB": "N/A",  # Not fetched in this simple query
-            "ActiveProject": active_project_to_use
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
         }
     except Exception as ex:
-        return {
+        return { # Return error structure
             "Object": object_name, "Constellation": "N/A",
             "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
             "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
@@ -5485,16 +5556,46 @@ def get_date_info(object_name):
 
 @app.route('/get_imaging_opportunities/<path:object_name>')
 def get_imaging_opportunities(object_name):
-    # Load object data from config or SIMBAD.
+    # Load object RA/DEC (this uses 'g' context correctly)
     data = get_ra_dec(object_name)
     if not data or data.get("RA (hours)") is None or data.get("DEC (degrees)") is None:
-        return jsonify({"status": "error", "message": "Object has no valid RA/DEC."}), 400
+        error_msg = data.get("Common Name", "Object data not found or invalid RA/DEC.")
+        return jsonify({"status": "error", "message": error_msg}), 400
 
     ra = data["RA (hours)"]
     dec = data["DEC (degrees)"]
     alt_name = data.get("Common Name", object_name)
 
-    # Get imaging criteria.
+    # --- START FIX: Read location from query parameters ---
+    # Try to get lat, lon, tz from the URL query string.
+    # Fall back to the values in the global 'g' object if parameters are missing.
+    try:
+        lat_str = request.args.get('plot_lat')
+        lon_str = request.args.get('plot_lon')
+        tz_name_req = request.args.get('plot_tz')
+
+        # Use request args if provided and valid, otherwise fallback to g
+        lat = float(lat_str) if lat_str else g.lat
+        lon = float(lon_str) if lon_str else g.lon
+        tz_name = tz_name_req if tz_name_req else g.tz_name
+
+        # Validate that we ended up with valid numeric lat/lon
+        if lat is None or lon is None:
+             raise ValueError("Latitude or Longitude could not be determined.")
+        # Validate timezone
+        if not tz_name:
+             raise ValueError("Timezone could not be determined.")
+        local_tz = pytz.timezone(tz_name) # This will raise UnknownTimeZoneError if invalid
+
+    except (ValueError, TypeError, pytz.UnknownTimeZoneError) as e:
+        # Handle errors if lat/lon aren't numbers or tz is invalid
+        print(f"❌ ERROR: Invalid location data in get_imaging_opportunities: {e}")
+        return jsonify({"status": "error", "message": f"Invalid location data provided: {e}"}), 400
+    # --- END FIX ---
+
+    # --- Use the determined lat, lon, tz_name, local_tz variables below ---
+
+    # Get imaging criteria (this uses 'g' context correctly)
     criteria = get_imaging_criteria()
     min_obs = criteria["min_observable_minutes"]
     min_alt = criteria["min_max_altitude"]
@@ -5502,77 +5603,97 @@ def get_imaging_opportunities(object_name):
     min_sep = criteria["min_angular_separation"]
     months = criteria.get("search_horizon_months", 6)
 
-    local_tz = pytz.timezone(g.tz_name)
+    # Use the determined local_tz for date calculations
     today = datetime.now(local_tz).date()
     end_date = today + timedelta(days=months * 30)
     dates = [today + timedelta(days=i) for i in range((end_date - today).days)]
 
-    # Local cache for sun events so each date is calculated only once.
     sun_events_cache = {}
-
     final_results = []
+
+    # Get altitude threshold and sampling interval (from 'g')
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    sampling_interval = g.user_config.get('sampling_interval_minutes', 15) if SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
+
+    # --- Get Horizon Mask for the specific location ---
+    # We need the location *name* to look up the mask.
+    # It's tricky because the graph view only sends lat/lon/tz.
+    # We'll approximate by finding a location in g.locations that matches lat/lon/tz.
+    # This isn't perfect if multiple locations share coords but is the best we can do without passing the name.
+    horizon_mask = None
+    try:
+        if hasattr(g, 'locations') and isinstance(g.locations, dict):
+            for loc_name, loc_details in g.locations.items():
+                # Compare floats with a small tolerance
+                if (abs(loc_details.get('lat', 999) - lat) < 0.001 and
+                    abs(loc_details.get('lon', 999) - lon) < 0.001 and
+                    loc_details.get('timezone') == tz_name):
+                    horizon_mask = loc_details.get('horizon_mask')
+                    # print(f"[Opportunities] Found matching location '{loc_name}' for horizon mask.") # Debug
+                    break # Use the first match
+            # if not horizon_mask: print("[Opportunities] No matching location found for horizon mask.") # Debug
+    except Exception as e:
+        print(f"Warning: Error accessing horizon mask - {e}")
+    # --- End Horizon Mask Lookup ---
+
 
     for d in dates:
         date_str = d.strftime('%Y-%m-%d')
-        # Check cache first. If not there, compute and store.
+        # Check cache or compute sun events using determined lat, lon, tz_name
         if date_str not in sun_events_cache:
-            sun_events_cache[date_str] = calculate_sun_events_cached(date_str, g.tz_name, g.lat, g.lon)
+            sun_events_cache[date_str] = calculate_sun_events_cached(date_str, tz_name, lat, lon)
         sun_events = sun_events_cache[date_str]
+        dusk = sun_events.get("astronomical_dusk", "20:00") # Default dusk if not found
 
-        # Use the sun events to get, for example, the dusk time.
-        dusk = sun_events.get("astronomical_dusk", "20:00")
-
-        # Calculate observable duration and maximum altitude.
-        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        # Calculate observable duration using determined lat, lon, tz_name, threshold, interval, AND horizon_mask
         obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
-            ra, dec, g.lat, g.lon, date_str, g.tz_name, altitude_threshold
+            ra, dec, lat, lon, date_str, tz_name,
+            altitude_threshold, sampling_interval,
+            horizon_mask=horizon_mask # Pass the looked-up mask
         )
-        # Apply thresholds.
-        if obs_duration.total_seconds() / 60 < min_obs:
-            continue
-        if max_altitude < min_alt:
+
+        # Apply basic thresholds
+        if obs_duration.total_seconds() / 60 < min_obs or max_altitude < min_alt:
             continue
 
-        # Get the moon phase.
-        local_time = local_tz.localize(datetime.combine(d, datetime.now().time()))
-        moon_phase = ephem.Moon(local_time.astimezone(pytz.utc)).phase
+        # Calculate Moon phase using determined local_tz
+        time_for_moon_phase = local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))) # Use local noon
+        moon_phase = ephem.Moon(time_for_moon_phase.astimezone(pytz.utc)).phase
         if moon_phase > max_moon:
             continue
 
-        # Compute angular separation at dusk.
+        # Calculate separation using determined local_tz, lat, lon
         try:
             dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
-        except Exception:
-            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
-        dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
-        dusk_utc = dusk_dt.astimezone(pytz.utc)
+        except ValueError:
+            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time() # Fallback dusk time
+        dusk_dt_local = local_tz.localize(datetime.combine(d, dusk_time_obj))
+        dusk_utc = dusk_dt_local.astimezone(pytz.utc)
 
-        location_obj = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-        frame = AltAz(obstime=Time(dusk_utc), location=location_obj)
+        location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg) # Use determined lat, lon
+        time_for_sep = Time(dusk_utc)
+        frame = AltAz(obstime=time_for_sep, location=location_obj)
         obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-        moon_coord = get_body('moon', Time(dusk_utc), location=location_obj)
-        obj_altaz = obj_coord.transform_to(frame)
-        moon_altaz = moon_coord.transform_to(frame)
-        separation = obj_altaz.separation(moon_altaz).deg
-        if separation < min_sep:
-            continue
+        moon_coord = get_body('moon', time_for_sep, location=location_obj)
+        try:
+            separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+            if separation < min_sep:
+                continue
+        except Exception as sep_err:
+             print(f"Warning: Could not calculate separation for {object_name} on {date_str}: {sep_err}")
+             continue # Skip if separation calc fails
 
-        # Calculate individual scores.
-        MIN_ALTITUDE = 20  # degrees threshold for a "good" altitude
-        score_alt = 0 if max_altitude < MIN_ALTITUDE else min((max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE), 1)
-        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)  # maximum 12 hours
+        # Scoring logic (remains the same)
+        MIN_ALTITUDE = 20
+        score_alt = max(0, min((max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE), 1))
+        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
         score_moon_illum = 1 - min(moon_phase / 100, 1)
-        score_moon_sep = min(separation / 180, 1)
-        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * score_moon_sep
-
-        # Composite score using equal weights (adjust weights as desired).
-        composite_score = 100 * (
-                0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic
-        )
-        # Map composite score to stars (1 to 5 stars).
+        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180, 1)
+        composite_score = 100 * (0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
         stars = int(round((composite_score / 100) * 4)) + 1
         star_string = "★" * stars + "☆" * (5 - stars)
 
+        # Append results
         final_results.append({
             "date": date_str,
             "obs_minutes": int(obs_duration.total_seconds() / 60),
@@ -5584,8 +5705,8 @@ def get_imaging_opportunities(object_name):
             "rating": star_string
         })
 
+    # Return success response
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
-
 
 @app.route('/generate_ics/<object_name>')
 def generate_ics(object_name):
