@@ -1763,7 +1763,7 @@ def load_global_request_context():
         g.db_user = None
         return
 
-    # 4. Get DB user and all related data in ONE pass
+    # 4. Get DB user and UI preferences (FAST queries)
     db = get_db()
     try:
         # Get or create the user in app.db
@@ -1773,9 +1773,7 @@ def load_global_request_context():
         if not app_db_user:
             return
 
-        # --- Load all config data from DB ---
-
-        # Load UI Prefs (general settings)
+        # --- Load UI Prefs (general settings) ---
         g.user_config = {}
         prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
         if prefs and prefs.json_blob:
@@ -1784,10 +1782,39 @@ def load_global_request_context():
             except json.JSONDecodeError:
                 pass  # g.user_config remains {}
 
-        # Load Locations with Horizon Points (Fixes N+1 query)
+        # 5. Load effective settings (depends on g.user_config)
+        load_effective_settings()
+
+    except Exception as e:
+        # Handle exceptions, maybe log them
+        print(f"Error in slim load_global_request_context: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()
+
+def load_full_astro_context():
+    """
+    Loads heavy astro data (locations, objects) into the global 'g' context.
+    Assumes g.db_user and g.user_config are already populated.
+    """
+    # If this is already loaded for this request, don't do it again
+    if hasattr(g, 'locations'):
+        return
+
+    # If there's no user, there's nothing to load
+    if not hasattr(g, 'db_user') or not g.db_user:
+        g.locations, g.active_locations, g.objects_list, g.objects_map = {}, {}, [], {}
+        g.lat, g.lon, g.tz_name, g.selected_location = None, None, "UTC", None
+        g.altitude_threshold = 20
+        g.times_local, g.times_utc = [], []
+        return
+
+    db = get_db()
+    try:
+        # --- Load Locations with Horizon Points (Fixes N+1 query) ---
         loc_rows = db.query(Location).options(
             selectinload(Location.horizon_points)  # Eagerly load horizon points
-        ).filter_by(user_id=app_db_user.id).all()
+        ).filter_by(user_id=g.db_user.id).all()
 
         g.locations = {}
         g.active_locations = {}
@@ -1822,8 +1849,8 @@ def load_global_request_context():
         else:
             g.lat, g.lon, g.tz_name = None, None, "UTC"
 
-        # Load Objects
-        obj_rows = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+        # --- Load Objects ---
+        obj_rows = db.query(AstroObject).filter_by(user_id=g.db_user.id).all()
         g.objects_list = []  # List for iteration
         g.objects_map = {}  # <<< NEW: Dictionary for fast lookups
         g.alternative_names = {}
@@ -1851,22 +1878,19 @@ def load_global_request_context():
         g.user_config["objects"] = g.objects_list
         g.user_config["locations"] = g.locations
 
-        # Load other settings
-        load_effective_settings()  # This function reads from g.user_config
-
-        # 5. Precompute time arrays (from precompute_time_arrays)
+        # --- Precompute time arrays ---
         if g.tz_name:
             local_tz = pytz.timezone(g.tz_name)
             local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
             g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
+        else:
+            g.times_local, g.times_utc = [], []
 
     except Exception as e:
-        # Handle exceptions, maybe log them
-        print(f"Error in load_global_request_context: {e}")
+        print(f"Error in load_full_astro_context: {e}")
         traceback.print_exc()
     finally:
-        db.close()  # Close the session
-
+        db.close()
 
 # --- Guard against stale _user_id left in session when switching from single-user to multi-user mode ---
 @app.before_request
@@ -2916,6 +2940,7 @@ def telemetry_debug():
 
 @app.route('/get_outlook_data')
 def get_outlook_data():
+    load_full_astro_context()
     # --- Check for guest user first ---
     if hasattr(g, 'is_guest') and g.is_guest:
         return jsonify({"status": "complete", "results": []})
@@ -3267,6 +3292,7 @@ def get_rig_data():
 @app.route('/journal')
 @login_required
 def journal_list_view():
+    load_full_astro_context()
     db = get_db()
     try:
         # 1. Use the pre-loaded g.db_user (from the consolidated before_request)
@@ -3299,6 +3325,7 @@ def journal_list_view():
 @app.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
+    load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
@@ -3415,6 +3442,7 @@ def journal_add():
 @app.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
 @login_required
 def journal_edit(session_id):
+    load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
@@ -4654,6 +4682,7 @@ def fetch_all_details():
 
 @app.route('/api/get_object_list')
 def get_object_list():
+    load_full_astro_context()
     """
     A new, very fast endpoint that just returns the list of object names.
     """
@@ -4669,6 +4698,7 @@ def get_object_data(object_name):
     using the location specified in the 'location' query parameter
     or falling back to the user's default location.
     """
+    load_full_astro_context()
     # --- ADD: Determine location to use ---
     requested_location_name = request.args.get('location')
     lat, lon, tz_name, selected_location_name = g.lat, g.lon, g.tz_name, g.selected_location # Defaults from g
@@ -4874,6 +4904,7 @@ def get_object_data(object_name):
 
 @app.route('/')
 def index():
+    load_full_astro_context()
     if not (current_user.is_authenticated or SINGLE_USER_MODE):
         return redirect(url_for('login'))
 
@@ -4925,6 +4956,7 @@ def sun_events():
     specified in the 'location' query parameter or falls back to the
     user's default location.
     """
+    load_full_astro_context()
     # --- Determine location to use ---
     requested_location_name = request.args.get('location')
     lat, lon, tz_name = g.lat, g.lon, g.tz_name # Defaults from flask global 'g'
@@ -5047,6 +5079,7 @@ def telemetry_ping():
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
+    load_full_astro_context()
     error = None
     message = None
     username = "default" if SINGLE_USER_MODE else current_user.username
@@ -5333,6 +5366,7 @@ def get_moon_data_for_session():
 
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
+    load_full_astro_context()
     # --- 1. Initialize effective context ---
     effective_location_name = g.selected_location or "Unknown"
     effective_lat = g.lat or 0.0
@@ -5532,6 +5566,7 @@ def graph_dashboard(object_name):
 
 @app.route('/get_date_info/<object_name>')
 def get_date_info(object_name):
+    load_full_astro_context()
     tz = pytz.timezone(g.tz_name)
     now = datetime.now(tz)  # current time in user's local timezone
 
@@ -5556,6 +5591,7 @@ def get_date_info(object_name):
 
 @app.route('/get_imaging_opportunities/<path:object_name>')
 def get_imaging_opportunities(object_name):
+    load_full_astro_context()
     # Load object RA/DEC (this uses 'g' context correctly)
     data = get_ra_dec(object_name)
     if not data or data.get("RA (hours)") is None or data.get("DEC (degrees)") is None:
@@ -6029,6 +6065,7 @@ def import_rig_config():
 
 @app.route('/api/get_monthly_plot_data/<path:object_name>')
 def get_monthly_plot_data(object_name):
+    load_full_astro_context()
     # This function provides data for the monthly chart view.
     data = get_ra_dec(object_name)
     if not data or data.get('RA (hours)') is None:
@@ -6069,6 +6106,7 @@ def get_monthly_plot_data(object_name):
 
 @app.route('/api/get_yearly_plot_data/<path:object_name>')
 def get_yearly_plot_data(object_name):
+    load_full_astro_context()
     # This function provides data for the yearly chart view.
     data = get_ra_dec(object_name)
     if not data or data.get('RA (hours)') is None:
@@ -6106,6 +6144,7 @@ def get_yearly_plot_data(object_name):
 
 @app.route('/api/get_plot_data/<path:object_name>')
 def get_plot_data(object_name):
+    load_full_astro_context()
     """
     API endpoint to provide all necessary data for client-side chart rendering.
     Returns:
