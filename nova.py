@@ -4751,216 +4751,217 @@ def get_object_list():
 
 @app.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):
-    """
-    API endpoint that calculates and returns detailed astronomical data
-    (current position, nightly overview) for a single object,
-    using the location specified in the 'location' query parameter
-    or falling back to the user's default location.
-    """
-    load_full_astro_context()
-    # --- ADD: Determine location to use ---
-    requested_location_name = request.args.get('location')
-    lat, lon, tz_name, selected_location_name = g.lat, g.lon, g.tz_name, g.selected_location # Defaults from g
-    current_location_config = {} # Default empty config for horizon mask etc.
-
-    # Prioritize the location passed in the query parameter
-    if requested_location_name and requested_location_name in g.locations:
-        loc_cfg = g.locations[requested_location_name]
-        lat = loc_cfg.get("lat")
-        lon = loc_cfg.get("lon")
-        tz_name = loc_cfg.get("timezone", "UTC")
-        selected_location_name = requested_location_name
-        current_location_config = loc_cfg # Use the specific location's config
-        # print(f"[API Get Object Data] Using requested location: {selected_location_name}") # Debug print
-    elif g.selected_location and g.selected_location in g.locations:
-         # Fallback to default location if request param is missing/invalid but default exists
-         loc_cfg = g.locations[g.selected_location]
-         lat = loc_cfg.get("lat", g.lat) # Use default g value if key missing
-         lon = loc_cfg.get("lon", g.lon)
-         tz_name = loc_cfg.get("timezone", g.tz_name or "UTC")
-         selected_location_name = g.selected_location
-         current_location_config = loc_cfg
-         # print(f"[API Get Object Data] Using default location: {g.selected_location}") # Debug print
+    # --- 1. Determine User (No change needed here) ---
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif current_user.is_authenticated:
+        username = current_user.username
+    elif request.args.get('location'): # Allow guest if location provided
+         username = "guest_user"
     else:
-         # print(f"[API Get Object Data] Warning: No location specified or default found.") # Debug print
-         # lat, lon, tz_name remain the initial g values (which might be None)
-         pass # Proceed with potentially None values, handle error below
-
-    # If after checks, we don't have valid coordinates, return an error
-    if lat is None or lon is None:
-         return jsonify({
-             'Object': object_name, 'Common Name': "Error: Location not set or invalid.",
-             'Altitude Current': "N/A", 'Azimuth Current': "N/A", 'Trend': "–",
-             'Altitude 11PM': "N/A", 'Azimuth 11PM': "N/A", 'Transit Time': "N/A",
-             'Observable Duration (min)': "N/A", 'Max Altitude (°)': "N/A",
-             'Angular Separation (°)': "N/A", 'Project': "N/A", 'Time': "N/A",
-             'Constellation': 'N/A', 'Type': 'N/A', 'Magnitude': 'N/A',
-             'Size': 'N/A', 'SB': 'N/A', 'is_obstructed_now': False,
-             'is_obstructed_at_11pm': False, 'ActiveProject': False,
-             'error': True
-         }), 400
-    # --- END Location Determination ---
-
-    # --- Use the determined lat, lon, tz_name variables below ---
-    local_tz = pytz.timezone(tz_name) # Use determined tz_name
-    current_datetime_local = datetime.now(local_tz)
-
-    # Determine the "astronomical night" date (adjust if it's past midnight but before dawn)
-    today_str = current_datetime_local.strftime('%Y-%m-%d')
-    # Use determined lat, lon, tz_name for sun events
-    dawn_today_str = calculate_sun_events_cached(today_str, tz_name, lat, lon).get("astronomical_dawn")
-    local_date = today_str # Start assuming today is the correct night
-    if dawn_today_str:
-        try:
-            dawn_today_dt = local_tz.localize(
-                datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
-            # If current time is before today's dawn, the relevant "night" started yesterday
-            if current_datetime_local < dawn_today_dt:
-                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-        except (ValueError, TypeError):
-            pass # Use today_str if dawn time parsing fails
-
-    # --- Horizon mask from the determined location's config ---
-    horizon_mask = current_location_config.get("horizon_mask")
-    # --- END Horizon Mask ---
-
-    # Get altitude threshold and sampling interval (these remain global/user-wide settings for now)
-    altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
-
-    # Get object details (RA/DEC etc.)
-    obj_details = get_ra_dec(object_name)
-
-    # Handle case where object lookup fails (e.g., not in config, SIMBAD fails)
-    if not obj_details or obj_details.get("RA (hours)") is None:
-        error_message = (obj_details.get("Common Name") if obj_details else "Object data not found.")
+        # Deny guest if no location specified (cannot determine defaults)
         return jsonify({
-            'Object': object_name, 'Common Name': f"Error: {error_message}",
-            'Altitude Current': "N/A", 'Azimuth Current': "N/A", 'Trend': "–",
-            'Altitude 11PM': "N/A", 'Azimuth 11PM': "N/A", 'Transit Time': "N/A",
-            'Observable Duration (min)': "N/A", 'Max Altitude (°)': "N/A",
-            'Angular Separation (°)': "N/A", 'Project': "N/A", 'Time': "N/A",
-            'Constellation': 'N/A', 'Type': 'N/A', 'Magnitude': 'N/A',
-            'Size': 'N/A', 'SB': 'N/A', 'is_obstructed_now': False,
-            'is_obstructed_at_11pm': False, 'ActiveProject': False,
-            'error': True
-        }), 404 # Use 404 for "Not Found" type errors
+             'Object': object_name, 'Common Name': "Error: Authentication required.", 'error': True
+         }), 401
 
-    ra = obj_details["RA (hours)"]
-    dec = obj_details["DEC (degrees)"]
 
-    # Use a cache key incorporating the specific location name being used
-    cache_key = f"{object_name.lower()}_{local_date}_{selected_location_name.lower().replace(' ', '_')}"
+    db = get_db()
+    try:
+        # --- 2. Get User Record (No change needed here) ---
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+             return jsonify({
+                 'Object': object_name, 'Common Name': "Error: User not found.", 'error': True
+             }), 404
 
-    # Calculate or retrieve cached nightly data using determined location parameters
-    if cache_key not in nightly_curves_cache:
-        # Use determined tz_name, lat, lon
-        times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
-        location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg) # Use determined lat, lon
-        sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-        altaz_frame = AltAz(obstime=times_utc, location=location)
-        altitudes = sky_coord.transform_to(altaz_frame).alt.deg
-        azimuths = sky_coord.transform_to(altaz_frame).az.deg
-        # Use determined lat, lon, tz_name
-        transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+        # --- 3. Determine Location to Use (Modified: Query DB directly) ---
+        requested_location_name = request.args.get('location')
+        selected_location = None
+        current_location_config = {}
 
-        # Pass determined lat, lon, tz_name AND the specific horizon_mask
-        obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-            ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
-            horizon_mask=horizon_mask # Pass the mask obtained earlier
-        )
+        if requested_location_name:
+            # Try to load the specific location requested
+            selected_location = db.query(Location).filter_by(user_id=user.id, name=requested_location_name).options(selectinload(Location.horizon_points)).one_or_none()
+            if not selected_location:
+                 return jsonify({'Object': object_name, 'Common Name': "Error: Requested location not found.", 'error': True }), 404
+        else:
+            # Fallback to the user's default location
+            selected_location = db.query(Location).filter_by(user_id=user.id, is_default=True).options(selectinload(Location.horizon_points)).one_or_none()
+            # If no default, try the first active one
+            if not selected_location:
+                selected_location = db.query(Location).filter_by(user_id=user.id, active=True).options(selectinload(Location.horizon_points)).order_by(Location.id).first()
 
-        # Use determined tz_name, lat, lon
-        fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
-        alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+        if not selected_location:
+             return jsonify({'Object': object_name, 'Common Name': "Error: No valid location configured or selected.", 'error': True }), 400
 
-        # Check obstruction at 11pm using determined horizon_mask
-        is_obstructed_at_11pm = False
-        if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-            # Use determined az_11pm and altitude_threshold
-            required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
-            if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
-                is_obstructed_at_11pm = True
-
-        # Store calculated data in cache
-        nightly_curves_cache[cache_key] = {
-            "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
-            "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
-            "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-            "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
-            "is_obstructed_at_11pm": is_obstructed_at_11pm
+        # Extract details from the selected location object
+        lat = selected_location.lat
+        lon = selected_location.lon
+        tz_name = selected_location.timezone
+        selected_location_name = selected_location.name
+        # Build the config-like dict for horizon mask etc.
+        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(selected_location.horizon_points, key=lambda p: p.az_deg)]
+        current_location_config = {
+            "lat": lat, "lon": lon, "timezone": tz_name,
+            "altitude_threshold": selected_location.altitude_threshold,
+            "horizon_mask": horizon_mask
+            # Add other fields if needed by calculations below
         }
+        # --- End Location Determination ---
 
-    # Retrieve data (either fresh or from cache)
-    cached_night_data = nightly_curves_cache[cache_key]
+        # --- 4. Query ONLY the specific object ---
+        obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
-    # Calculate current position and trend using cached data
-    now_utc = datetime.now(pytz.utc)
-    # Find the index closest to the current time
-    time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
-    current_index = np.argmin(time_diffs)
-    current_alt = cached_night_data["altitudes"][current_index]
-    current_az = cached_night_data["azimuths"][current_index]
+        # Handle case where object isn't found for this user
+        if not obj_record:
+            # Optionally try SIMBAD as a fallback *here* if desired,
+            # or just return not found. Let's return not found for now.
+             return jsonify({
+                 'Object': object_name, 'Common Name': f"Error: Object '{object_name}' not found in your config.",
+                 'error': True
+             }), 404
 
-    # Determine trend by looking at the next point
-    next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
-    next_alt = cached_night_data["altitudes"][next_index]
-    trend = '–'
-    if abs(next_alt - current_alt) > 0.01: # Check for significant change
-        trend = '↑' if next_alt > current_alt else '↓'
+        # Extract necessary details
+        ra = obj_record.ra_hours
+        dec = obj_record.dec_deg
+        if ra is None or dec is None:
+             return jsonify({
+                 'Object': object_name, 'Common Name': f"Error: RA/DEC missing for '{object_name}'.",
+                 'error': True
+             }), 400
 
-    # Check obstruction *now* using determined horizon_mask
-    is_obstructed_now = False
-    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-        # Use determined current_az and altitude_threshold
-        required_altitude_now = interpolate_horizon(current_az, sorted_mask, altitude_threshold)
-        if current_alt >= altitude_threshold and current_alt < required_altitude_now:
-            is_obstructed_now = True
+        # --- 5. Perform Calculations (Largely unchanged, but uses specific object/location) ---
+        local_tz = pytz.timezone(tz_name)
+        current_datetime_local = datetime.now(local_tz)
+        today_str = current_datetime_local.strftime('%Y-%m-%d')
+        dawn_today_str = calculate_sun_events_cached(today_str, tz_name, lat, lon).get("astronomical_dawn")
+        local_date = today_str
+        if dawn_today_str:
+            try:
+                dawn_today_dt = local_tz.localize(
+                    datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
+                if current_datetime_local < dawn_today_dt:
+                    local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+            except (ValueError, TypeError): pass
 
-    # Calculate Moon separation using determined lat, lon
-    time_obj = Time(datetime.now(pytz.utc))
-    location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg) # Use determined lat, lon
-    moon_coord = get_body('moon', time_obj, location_for_moon)
-    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    frame = AltAz(obstime=time_obj, location=location_for_moon)
-    angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+        # Load UI Prefs specifically for altitude_threshold and sampling_interval
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        user_prefs_dict = {}
+        if prefs_record and prefs_record.json_blob:
+            try: user_prefs_dict = json.loads(prefs_record.json_blob)
+            except: pass
+        altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
+        # Use location-specific threshold if available
+        if selected_location.altitude_threshold is not None:
+             altitude_threshold = selected_location.altitude_threshold
 
-    # Get obstruction flag for 11pm from cached data
-    is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
+        # Determine sampling interval based on mode
+        sampling_interval = 15 # Default
+        if SINGLE_USER_MODE:
+            sampling_interval = user_prefs_dict.get('sampling_interval_minutes', 15)
+        else:
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
-    # Get ActiveProject flag (remains from global user config lookup for now)
-    active_flag = bool(obj_details.get('ActiveProject', False))
-    # You could potentially make this location-specific if needed later
 
-    # Assemble the final JSON payload
-    single_object_data = {
-        'Object': obj_details['Object'],
-        'Common Name': obj_details['Common Name'],
-        'Altitude Current': f"{current_alt:.2f}",
-        'Azimuth Current': f"{current_az:.2f}",
-        'Trend': trend,
-        'Altitude 11PM': cached_night_data['alt_11pm'],
-        'Azimuth 11PM': cached_night_data['az_11pm'],
-        'Transit Time': cached_night_data['transit_time'],
-        'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
-        'Max Altitude (°)': cached_night_data['max_altitude'],
-        'Angular Separation (°)': round(angular_sep),
-        'Project': obj_details.get('Project', "none"),
-        'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'), # Time at the selected location
-        'Constellation': obj_details.get('Constellation', 'N/A'),
-        'Type': obj_details.get('Type', 'N/A'),
-        'Magnitude': obj_details.get('Magnitude', 'N/A'),
-        'Size': obj_details.get('Size', 'N/A'),
-        'SB': obj_details.get('SB', 'N/A'),
-        'is_obstructed_now': is_obstructed_now,
-        'is_obstructed_at_11pm': is_obstructed_at_11pm,
-        'ActiveProject': active_flag,
-        'error': False # Indicate success
-    }
-    return jsonify(single_object_data)
+        cache_key = f"{object_name.lower()}_{local_date}_{selected_location_name.lower().replace(' ', '_')}"
 
+        # Calculate or retrieve cached nightly data (logic remains similar)
+        if cache_key not in nightly_curves_cache:
+            times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+            location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            altaz_frame = AltAz(obstime=times_utc, location=location)
+            altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+            azimuths = sky_coord.transform_to(altaz_frame).az.deg
+            transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
+                horizon_mask=horizon_mask # Pass the specific mask
+            )
+            fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+            is_obstructed_at_11pm = False
+            if horizon_mask and len(horizon_mask) > 1:
+                sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+                if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                    is_obstructed_at_11pm = True
+
+            nightly_curves_cache[cache_key] = {
+                "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
+                "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
+                "is_obstructed_at_11pm": is_obstructed_at_11pm
+            }
+
+        cached_night_data = nightly_curves_cache[cache_key]
+
+        # Calculate current position and trend (logic remains similar)
+        now_utc = datetime.now(pytz.utc)
+        time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
+        current_index = np.argmin(time_diffs)
+        current_alt = cached_night_data["altitudes"][current_index]
+        current_az = cached_night_data["azimuths"][current_index]
+        next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
+        next_alt = cached_night_data["altitudes"][next_index]
+        trend = '–'
+        if abs(next_alt - current_alt) > 0.01: trend = '↑' if next_alt > current_alt else '↓'
+
+        # Check obstruction now
+        is_obstructed_now = False
+        if horizon_mask and len(horizon_mask) > 1:
+            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            required_altitude_now = interpolate_horizon(current_az, sorted_mask, altitude_threshold)
+            if current_alt >= altitude_threshold and current_alt < required_altitude_now:
+                is_obstructed_now = True
+
+        # Calculate Moon separation (logic remains similar)
+        time_obj = Time(datetime.now(pytz.utc))
+        location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body('moon', time_obj, location_for_moon)
+        obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        frame = AltAz(obstime=time_obj, location=location_for_moon)
+        angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+
+        is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
+
+        # --- 6. Assemble JSON using the single object record ---
+        single_object_data = {
+            'Object': obj_record.object_name,
+            'Common Name': obj_record.common_name,
+            'Altitude Current': f"{current_alt:.2f}",
+            'Azimuth Current': f"{current_az:.2f}",
+            'Trend': trend,
+            'Altitude 11PM': cached_night_data['alt_11pm'],
+            'Azimuth 11PM': cached_night_data['az_11pm'],
+            'Transit Time': cached_night_data['transit_time'],
+            'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
+            'Max Altitude (°)': cached_night_data['max_altitude'],
+            'Angular Separation (°)': round(angular_sep),
+            'Project': obj_record.project_name or "none",
+            'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+            'Constellation': obj_record.constellation or 'N/A',
+            'Type': obj_record.type or 'N/A',
+            'Magnitude': obj_record.magnitude or 'N/A',
+            'Size': obj_record.size or 'N/A',
+            'SB': obj_record.sb or 'N/A',
+            'is_obstructed_now': is_obstructed_now,
+            'is_obstructed_at_11pm': is_obstructed_at_11pm,
+            'ActiveProject': obj_record.active_project or False,
+            'error': False
+        }
+        return jsonify(single_object_data)
+
+    except Exception as e:
+        print(f"ERROR in get_object_data for '{object_name}': {e}")
+        traceback.print_exc()
+        # Return a generic error structure
+        return jsonify({
+            'Object': object_name, 'Common Name': "Error processing request.", 'error': True
+        }), 500
+    finally:
+        db.close()
 @app.route('/')
 def index():
     load_full_astro_context()
@@ -5425,88 +5426,136 @@ def get_moon_data_for_session():
 
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
-    load_full_astro_context()
-    # --- 1. Initialize effective context ---
-    effective_location_name = g.selected_location or "Unknown"
-    effective_lat = g.lat or 0.0
-    effective_lon = g.lon or 0.0
-    effective_tz_name = g.tz_name or 'UTC'
-    requested_location_name_from_url = request.args.get('location')
-    if requested_location_name_from_url and requested_location_name_from_url in g.locations:
-        # If a valid location is provided in the URL, use its details instead of the default
-        loc_cfg = g.locations[requested_location_name_from_url]
-        effective_location_name = requested_location_name_from_url
-        effective_lat = loc_cfg.get("lat")
-        effective_lon = loc_cfg.get("lon")
-        effective_tz_name = loc_cfg.get("timezone", "UTC")
-        print(f"[Graph View] Using location from URL: {effective_location_name}")  # Optional debug print
-    elif g.selected_location:
-        # If no valid URL location, make sure we use the actual default's details
-        loc_cfg = g.locations.get(g.selected_location, {})
-        effective_lat = loc_cfg.get("lat", g.lat)
-        effective_lon = loc_cfg.get("lon", g.lon)
-        effective_tz_name = loc_cfg.get("timezone", g.tz_name or "UTC")
-        print(f"[Graph View] Using default location: {effective_location_name}")  # Optional debug print
+    # --- 1. Determine User (No change) ---
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif current_user.is_authenticated:
+        username = current_user.username
     else:
-        print("[Graph View] Warning: No default or URL location found.")  # Optional debug print
-        # effective_lat, lon, tz_name might be None, handle potential errors later
-
-    # Ensure we have coordinates before proceeding
-    if effective_lat is None or effective_lon is None:
-        flash("Error: Could not determine a valid location for the graph.", "error")
-        # Redirect or render an error template might be better here
-        return redirect(url_for('index'))
-
-    try:
-        now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
-    except pytz.UnknownTimeZoneError:
-        flash(f"Warning: Invalid timezone '{effective_tz_name}', using UTC.", "warning")
-        effective_tz_name = 'UTC'
-        now_at_effective_location = datetime.now(pytz.utc)
-
-    # --- 2. Determine username for DB queries ---
-    username = "default" if SINGLE_USER_MODE else (
-        current_user.username if current_user.is_authenticated else "guest_user")
+        # Guests generally shouldn't reach here if routes are protected
+        # but handle just in case, maybe redirect to login or show limited view
+        flash("Please log in to view object details.", "info")
+        return redirect(url_for('login')) # Or render a specific guest view
 
     db = get_db()
     try:
+        # --- 2. Get User Record (No change) ---
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if not user:
-            flash(f"User '{username}' not found in database.", "error")
+            flash(f"User '{username}' not found.", "error")
             return redirect(url_for('index'))
 
-        # --- 3. Handle Journal Data and Date Overrides from Selected Session ---
+        # --- 3. Determine Effective Location (Query DB directly) ---
+        effective_location_name = "Unknown"
+        effective_lat, effective_lon, effective_tz_name = None, None, 'UTC'
+        requested_location_name_from_url = request.args.get('location')
+        selected_location_db = None
+
+        if requested_location_name_from_url:
+            selected_location_db = db.query(Location).filter_by(user_id=user.id, name=requested_location_name_from_url).one_or_none()
+            if selected_location_db:
+                print(f"[Graph View] Using location from URL: {requested_location_name_from_url}")
+            else:
+                flash(f"Requested location '{requested_location_name_from_url}' not found, using default.", "warning")
+
+        if not selected_location_db: # If URL param missing, invalid, or no URL param
+            selected_location_db = db.query(Location).filter_by(user_id=user.id, is_default=True).one_or_none()
+            if not selected_location_db: # If no default, try first active
+                selected_location_db = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.id).first()
+
+        if selected_location_db:
+            effective_location_name = selected_location_db.name
+            effective_lat = selected_location_db.lat
+            effective_lon = selected_location_db.lon
+            effective_tz_name = selected_location_db.timezone
+            if not requested_location_name_from_url: # Only print if we fell back
+                 print(f"[Graph View] Using default/first location: {effective_location_name}")
+        else:
+             # Critical error - no location found at all
+             flash("Error: No valid location configured or selected for this user.", "error")
+             return redirect(url_for('index'))
+
+        try:
+            now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
+        except pytz.UnknownTimeZoneError:
+            flash(f"Warning: Invalid timezone '{effective_tz_name}', using UTC.", "warning")
+            effective_tz_name = 'UTC'
+            now_at_effective_location = datetime.now(pytz.utc)
+        # --- End Location Determination ---
+
+        # --- 4. Query ONLY the specific object ---
+        obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
+
+        if not obj_record:
+            flash(f"Object '{object_name}' not found in your configuration.", "error")
+            return redirect(url_for('index'))
+
+        # Convert the single object record to a dictionary format similar to get_ra_dec's output
+        object_main_details = {
+            "Object": obj_record.object_name,
+            "Common Name": obj_record.common_name,
+            "RA (hours)": obj_record.ra_hours,
+            "DEC (degrees)": obj_record.dec_deg,
+            "Type": obj_record.type,
+            "Constellation": obj_record.constellation,
+            "Magnitude": obj_record.magnitude,
+            "Size": obj_record.size,
+            "SB": obj_record.sb,
+            "ActiveProject": obj_record.active_project,
+            "Project": obj_record.project_name,
+            # Add legacy keys if needed by template
+            "Name": obj_record.common_name,
+            "RA": obj_record.ra_hours,
+            "DEC": obj_record.dec_deg
+        }
+
+        # Check if basic details are missing (RA/DEC) - should ideally not happen if DB has constraints
+        if obj_record.ra_hours is None or obj_record.dec_deg is None:
+             # You *could* trigger a SIMBAD lookup here if desired, using get_ra_dec
+             # simbad_details = get_ra_dec(object_name) # Call ONLY if needed
+             # object_main_details.update(simbad_details) # Merge SIMBAD results
+             flash(f"Warning: RA/DEC missing for object '{object_name}' in database.", "warning")
+             # Decide if you want to proceed or redirect
+
+        # --- 5. Handle Journal Data (Deferred loading logic - no change needed here) ---
         requested_session_id = request.args.get('session_id')
-        selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id,
-                                                                   user_id=user.id).one_or_none() if requested_session_id else None
-        # Convert the SQLAlchemy object to a JSON-serializable dictionary
+        selected_session_data = None
         selected_session_data_dict = None
-        if selected_session_data:
-            selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
-                                          selected_session_data.__table__.columns}
-            # Date objects are not JSON serializable, so convert to a string
-            if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
-                selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
-        # Base date is today, or from URL params
-        effective_day = int(request.args.get('day', now_at_effective_location.day))
-        effective_month = int(request.args.get('month', now_at_effective_location.month))
-        effective_year = int(request.args.get('year', now_at_effective_location.year))
+        # Adjust date/location based on selected session *after* loading the object record
+        if requested_session_id:
+             selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id, user_id=user.id).one_or_none()
+             if selected_session_data:
+                selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in selected_session_data.__table__.columns}
+                if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
+                    selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
+                    # Override effective date/location ONLY if session provides them
+                    if selected_session_data.date_utc:
+                        effective_day, effective_month, effective_year = selected_session_data.date_utc.day, selected_session_data.date_utc.month, selected_session_data.date_utc.year
+                    session_loc_name = getattr(selected_session_data, 'location_name', None)
+                    if session_loc_name:
+                        session_loc_details = db.query(Location).filter_by(user_id=user.id, name=session_loc_name).one_or_none()
+                        if session_loc_details:
+                            effective_lat, effective_lon, effective_tz_name = session_loc_details.lat, session_loc_details.lon, session_loc_details.timezone
+                            effective_location_name = session_loc_name
+                        else: flash(f"Location '{session_loc_name}' from session not found.", "warning")
+             elif requested_session_id:
+                  flash(f"Requested session ID '{requested_session_id}' not found.", "info")
 
-        if selected_session_data:
-            if selected_session_data.date_utc:
-                effective_day, effective_month, effective_year = selected_session_data.date_utc.day, selected_session_data.date_utc.month, selected_session_data.date_utc.year
 
-            # Assuming JournalSession model will have a 'location_name' field
-            session_loc_name = getattr(selected_session_data, 'location_name', None)
-            if session_loc_name:
-                session_loc_details = db.query(Location).filter_by(user_id=user.id, name=session_loc_name).one_or_none()
-                if session_loc_details:
-                    effective_lat, effective_lon, effective_tz_name = session_loc_details.lat, session_loc_details.lon, session_loc_details.timezone
-                    effective_location_name = session_loc_name
-                else:
-                    flash(f"Location '{session_loc_name}' from session not found. Using default.", "warning")
-        elif requested_session_id:
-            flash(f"Requested session ID '{requested_session_id}' not found.", "info")
+        # --- 6. Calculate Effective Date and Sun/Moon Data (No change) ---
+        effective_day_req = request.args.get('day')
+        effective_month_req = request.args.get('month')
+        effective_year_req = request.args.get('year')
+
+        # Use request args if provided AND no session override happened
+        if effective_day_req and not selected_session_data_dict: effective_day = int(effective_day_req)
+        elif not selected_session_data_dict: effective_day = now_at_effective_location.day
+
+        if effective_month_req and not selected_session_data_dict: effective_month = int(effective_month_req)
+        elif not selected_session_data_dict: effective_month = now_at_effective_location.month
+
+        if effective_year_req and not selected_session_data_dict: effective_year = int(effective_year_req)
+        elif not selected_session_data_dict: effective_year = now_at_effective_location.year
 
         try:
             effective_date_obj = datetime(effective_year, effective_month, effective_day)
@@ -5514,7 +5563,7 @@ def graph_dashboard(object_name):
         except ValueError:
             effective_date_obj = now_at_effective_location.date()
             effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
-            flash("Invalid date components provided, defaulting to today.", "warning")
+            flash("Invalid date components provided, defaulting to current date.", "warning")
 
         sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name,
                                                                     effective_lat, effective_lon)
@@ -5527,75 +5576,53 @@ def graph_dashboard(object_name):
         except Exception:
             moon_phase_for_effective_date = "N/A"
 
-        all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
-        object_specific_sessions = db.query(JournalSession).filter_by(user_id=user.id,
-                                                                      object_name=object_name).order_by(
-            JournalSession.date_utc.desc()).all()
-
-        projects_map = {p.id: p.name for p in all_projects}
-        grouped_sessions_dict = {}
-        for session in object_specific_sessions:
-            project_id = session.project_id
-            grouped_sessions_dict.setdefault(project_id, []).append(session)
-
-        grouped_sessions = []
-        sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
-                                    key=lambda pid: projects_map.get(pid, ''))
-        for project_id in sorted_project_ids:
-            sessions_in_group = grouped_sessions_dict[project_id]
-            total_minutes = sum(s.calculated_integration_time_minutes or 0 for s in sessions_in_group)
-            grouped_sessions.append({
-                'is_project': True, 'project_name': projects_map.get(project_id, 'Unknown Project'),
-                'sessions': sessions_in_group, 'total_integration_time': total_minutes
-            })
-        if None in grouped_sessions_dict:
-            grouped_sessions.append({
-                'is_project': False, 'project_name': 'Standalone Sessions', 'sessions': grouped_sessions_dict[None]
-            })
-
-        # --- RIG DATA LOADING ---
-        rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
+        # --- 7. Load Rigs (Query separately, only needed data) ---
+        rigs_from_db = db.query(Rig).options(
+            selectinload(Rig.telescope), # Eager load components
+            selectinload(Rig.camera),
+            selectinload(Rig.reducer_extender)
+        ).filter_by(user_id=user.id).all()
         final_rigs_for_template = []
         for rig in rigs_from_db:
-            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera,
-                                                                              rig.reducer_extender)
-            fov_h = (degrees(2 * atan((
-                                                  rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0) if rig.camera and rig.camera.sensor_height_mm and efl else None
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera, rig.reducer_extender)
+            fov_h = None
+            if rig.camera and rig.camera.sensor_height_mm and efl:
+                 try: fov_h = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
+                 except: pass # Ignore math errors if efl is zero etc.
+
             final_rigs_for_template.append({
-                "rig_id": rig.id,  # <-- THIS LINE IS THE FIX
-                "rig_name": rig.rig_name,
-                "effective_focal_length": efl,
-                "f_ratio": f_ratio,
-                "image_scale": scale,
-                "fov_w_arcmin": fov_w,
-                "fov_h_arcmin": fov_h
+                "rig_id": rig.id, "rig_name": rig.rig_name,
+                "effective_focal_length": efl, "f_ratio": f_ratio,
+                "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
             })
 
-        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
         sort_preference = 'name-asc'
-        if prefs and prefs.json_blob:
-            try:
-                sort_preference = json.loads(prefs.json_blob).get('rig_sort', 'name-asc')
-            except:
-                pass
+        if prefs_record and prefs_record.json_blob:
+             try: sort_preference = json.loads(prefs_record.json_blob).get('rig_sort', 'name-asc')
+             except: pass
         sorted_rigs = sort_rigs(final_rigs_for_template, sort_preference)
 
-        object_main_details = get_ra_dec(object_name)
-        if not object_main_details or object_main_details.get("RA (hours)") is None:
-            flash(f"Details for '{object_name}' could not be found.", "error")
-            return redirect(url_for('index'))
+        # --- 8. Load Other Template Data (Projects, Locations for dropdowns) ---
+        # These are generally smaller lists, loading them fully might be acceptable
+        all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
+        # Only load *active* locations for dropdowns
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        # Get default location name again for context if needed (already found above)
+        default_location_name = effective_location_name if selected_location_db and selected_location_db.is_default else None
+        if not default_location_name: # Find default if not already set
+             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
+             if default_loc_obj: default_location_name = default_loc_obj.name
 
-        is_project_active = object_main_details.get('ActiveProject', False)
-        available_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
-        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).all()
-        default_location_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
-        default_location_name = default_location_obj.name if default_location_obj else None
-
+        # --- 9. Render Template ---
         return render_template('graph_view.html',
+                               # Pass the single object's details
                                object_name=object_name,
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
+                               # Rigs
                                available_rigs=sorted_rigs,
+                               # Date/Time/Location context for the view
                                selected_day=effective_date_obj.day,
                                selected_month=effective_date_obj.month,
                                selected_year=effective_date_obj.year,
@@ -5604,24 +5631,36 @@ def graph_dashboard(object_name):
                                header_moon_phase=moon_phase_for_effective_date,
                                header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                                header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                               project_notes_from_config=object_main_details.get("Project", "N/A"),
-                               is_project_active=is_project_active,
-                               grouped_sessions=grouped_sessions,
-                               object_specific_sessions=object_specific_sessions,
-                               selected_session_data=selected_session_data,
-                               selected_session_data_dict=selected_session_data_dict,
+                               # Notes/Active Status (from the single object)
+                               project_notes_from_config=object_main_details.get("Project", ""), # Use empty string default
+                               is_project_active=object_main_details.get('ActiveProject', False),
+                               # Journal Data (pass placeholders/flags for async loading)
+                               grouped_sessions=[], # Empty list initially
+                               object_specific_sessions=[], # Empty list initially
+                               selected_session_data=selected_session_data, # Pass if loaded
+                               selected_session_data_dict=selected_session_data_dict, # Pass dict if loaded
                                current_session_id=requested_session_id if selected_session_data else None,
+                               # Data for client-side chart JS
                                graph_lat_param=effective_lat,
                                graph_lon_param=effective_lon,
                                graph_tz_name_param=effective_tz_name,
-                               available_objects=available_objects,
+                               # Other data needed for forms/UI elements
                                all_projects=all_projects,
                                available_locations=available_locations,
                                default_location=default_location_name,
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
-                               today_date=datetime.now().strftime('%Y-%m-%d'))
+                               today_date=datetime.now().strftime('%Y-%m-%d')
+                               # REMOVED available_objects (full list no longer needed here)
+                               )
+
+    except Exception as e:
+        db.rollback() # Rollback any potential partial changes
+        print(f"ERROR rendering graph dashboard for '{object_name}': {e}")
+        traceback.print_exc()
+        flash(f"An error occurred while loading the details for {object_name}.", "error")
+        return redirect(url_for('index'))
     finally:
-        db.close()
+        db.close() # Ensure session is closed
 
 @app.route('/get_date_info/<object_name>')
 def get_date_info(object_name):
