@@ -6292,8 +6292,59 @@ def get_plot_data(object_name):
     local_date = f"{year:04d}-{month:02d}-{day:02d}"
 
     # 1. Fetch the weather forecast for the location
-    weather_data = get_hybrid_weather_forecast(lat, lon)
-    weather_forecast_series = []
+    weather_forecast_series = []  # Initialize empty list
+    cache_key = f"hybrid_{lat}_{lon}"
+    cached_entry = weather_cache.get(cache_key)  # Get cache entry if it exists
+
+    # Check if cache entry exists, is valid data, and hasn't expired
+    if cached_entry and 'data' in cached_entry and 'expires' in cached_entry:
+        now_utc = datetime.now(timezone.utc)  # Get current UTC time
+        # Use pytz-aware comparison if expires is timezone-aware, otherwise make now_utc naive
+        expires_dt = cached_entry['expires']
+        if expires_dt.tzinfo is not None:
+            if now_utc < expires_dt:
+                weather_data = cached_entry['data']  # Use cached data
+                print(f"[Weather API /get_plot_data] Using FRESH cache for {lat},{lon}")  # Optional log
+            else:
+                weather_data = None  # Cache expired
+                print(f"[Weather API /get_plot_data] Cache EXPIRED for {lat},{lon}")  # Optional log
+        else:
+            # If cached expiry is naive, make current time naive for comparison
+            if now_utc.replace(tzinfo=None) < expires_dt:
+                weather_data = cached_entry['data']
+                print(f"[Weather API /get_plot_data] Using FRESH (naive) cache for {lat},{lon}")  # Optional log
+            else:
+                weather_data = None
+                print(f"[Weather API /get_plot_data] Cache EXPIRED (naive) for {lat},{lon}")  # Optional log
+
+    else:
+        weather_data = None  # Cache miss or invalid entry
+        print(f"[Weather API /get_plot_data] Cache MISS for {lat},{lon}")  # Optional log
+        # NOTE: We are NOT calling get_hybrid_weather_forecast() here anymore
+        # The background worker will eventually fill the cache.
+
+    # Process weather_data ONLY if it was successfully retrieved from cache
+    if weather_data and isinstance(weather_data.get('dataseries'), list):
+        # ... (keep the existing try...except block that processes weather_data) ...
+        try:
+            init_str = weather_data.get('init', '')
+            init_time = datetime(
+                year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
+                hour=int(init_str[8:10]), tzinfo=timezone.utc
+            )
+            for block in weather_data['dataseries']:
+                timepoint_hours = block.get('timepoint')
+                if timepoint_hours is None: continue
+                start_time = init_time + timedelta(hours=int(timepoint_hours))
+                end_time = start_time + timedelta(hours=3)
+                weather_forecast_series.append({
+                    "start": start_time.isoformat(), "end": end_time.isoformat(),
+                    "cloudcover": block.get("cloudcover"), "seeing": block.get("seeing"),
+                    "transparency": block.get("transparency"),
+                })
+        except Exception as e:
+            print(f"Error processing cached 7Timer! data (tolerated): {e}")
+            weather_forecast_series = []  # Ensure it's empty on error
 
     # 2. Process the data if the fetch was successful
     if weather_data and isinstance(weather_data.get('dataseries'), list):
