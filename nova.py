@@ -2171,17 +2171,23 @@ def get_hybrid_weather_forecast(lat, lon):
             # --- Store aware datetime ---
             weather_cache.setdefault(cache_key, {})['last_err_ts'] = now_aware
         # --- END ---
-
+        # (This is where the bad code was removed from)
 
     # --- Try base 'meteo' ---
+    # (This block is now in the correct place)
     try:
         meteo_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=meteo&output=json&unit=metric"
         resp = requests.get(meteo_url, timeout=10)
         resp.raise_for_status()
-        meteo_data = resp.json()
+        try:
+            meteo_data = resp.json()  # Try to parse JSON normally
+        except requests.exceptions.JSONDecodeError:
+            # This happens if 7timer sends a text/html header for valid JSON
+            print(f"[Weather Func] WARN: 7timer (meteo) sent wrong content-type. Parsing text body manually.")
+            meteo_data = json.loads(resp.text)  # Manually parse the text
     except Exception as e:
         _rate_limited_error(f"[Weather Func] ERROR: Could not fetch 'meteo' for key '{cache_key}': {e}")
-        return last_good or None # Return last good or None on failure
+        return last_good or None  # Return last good or None on failure
 
     if not meteo_data or 'dataseries' not in meteo_data:
         _rate_limited_error(f"[Weather Func] ERROR: Invalid 'meteo' data for key '{cache_key}'.")
@@ -2196,7 +2202,13 @@ def get_hybrid_weather_forecast(lat, lon):
         astro_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
         resp = requests.get(astro_url, timeout=10)
         if resp.ok:
-            astro_data = resp.json()
+            try:
+                astro_data = resp.json()  # Try to parse JSON normally
+            except requests.exceptions.JSONDecodeError:
+                # This happens if 7timer sends a text/html header for valid JSON
+                print(f"[Weather Func] WARN: 7timer (astro) sent wrong content-type. Parsing text body manually.")
+                astro_data = json.loads(resp.text)  # Manually parse the text
+
             for ablk in astro_data.get('dataseries', []):
                 tp = ablk.get('timepoint')
                 if tp in base:
@@ -6485,6 +6497,17 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+# Start the background thread to check for updates
+print("[STARTUP] Starting background update check thread...")
+update_thread = threading.Thread(target=check_for_updates)
+update_thread.daemon = True
+update_thread.start()
+
+print("[STARTUP] Starting background weather worker thread...")
+weather_thread = threading.Thread(target=weather_cache_worker)
+weather_thread.daemon = True
+weather_thread.start()
+
 if not SINGLE_USER_MODE:
     @app.cli.command("init-db")
     def init_db_command():
@@ -6633,12 +6656,7 @@ def get_uploaded_image(username, filename):
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
-    update_thread = threading.Thread(target=check_for_updates)
-    update_thread.daemon = True
-    update_thread.start()
-    weather_thread = threading.Thread(target=weather_cache_worker)
-    weather_thread.daemon = True
-    weather_thread.start()
+
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
 
