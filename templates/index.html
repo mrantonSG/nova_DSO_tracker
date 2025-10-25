@@ -39,6 +39,9 @@
         top: 1px;
     }
 
+    #journal-data-table {
+        table-layout: fixed; /* Explicitly set fixed layout for this table */
+    }
 
     table {
         width: max-content;       /* allow natural column widths */
@@ -237,8 +240,8 @@
     }
 
 
-    #journal-data-table th[data-journal-column-key="target_object_id"],
-    #journal-data-table td[data-journal-column-key="target_object_id"],
+    #journal-data-table th[data-journal-column-key="object_name"],
+    #journal-data-table td[data-journal-column-key="object_name"],
     #journal-data-table th[data-journal-column-key="target_common_name"],
     #journal-data-table td[data-journal-column-key="target_common_name"],
     #journal-data-table th[data-journal-column-key="location_name"],
@@ -250,8 +253,8 @@
     }
 
 
-    #journal-data-table th[data-journal-column-key="target_object_id"],
-    #journal-data-table td[data-journal-column-key="target_object_id"] { width: 120px; min-width: 120px; }
+    #journal-data-table th[data-journal-column-key="object_name"],
+    #journal-data-table td[data-journal-column-key="object_name"] { width: 120px; min-width: 120px; }
     #journal-data-table th[data-journal-column-key="target_common_name"],
     #journal-data-table td[data-journal-column-key="target_common_name"] { min-width: 150px; }
     #journal-data-table th[data-journal-column-key="session_date"],
