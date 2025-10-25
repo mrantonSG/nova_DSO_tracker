@@ -5543,7 +5543,43 @@ def graph_dashboard(object_name):
              elif requested_session_id:
                   flash(f"Requested session ID '{requested_session_id}' not found.", "info")
 
+        # Query all sessions for this object and group them by project
+        all_projects_for_user = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
+        object_specific_sessions_db = db.query(JournalSession).filter_by(user_id=user.id,
+                                                                         object_name=object_name).order_by(
+            JournalSession.date_utc.desc()).all()
 
+        # Convert sessions to dictionaries and prepare for grouping
+        object_specific_sessions_list = []
+        for s in object_specific_sessions_db:
+            session_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
+            object_specific_sessions_list.append(session_dict)
+
+        projects_map = {p.id: p.name for p in all_projects_for_user}
+        grouped_sessions_dict = {}
+        for session in object_specific_sessions_list:  # Use the dict list
+            project_id = session.get('project_id')
+            grouped_sessions_dict.setdefault(project_id, []).append(session)
+
+        grouped_sessions_for_template = []  # Use a distinct name
+        sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
+                                    key=lambda pid: projects_map.get(pid, ''))
+        # Add sessions grouped by Project
+        for project_id in sorted_project_ids:
+            sessions_in_group = grouped_sessions_dict[project_id]
+            total_minutes = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_in_group)
+            grouped_sessions_for_template.append({
+                'is_project': True, 'project_name': projects_map.get(project_id, 'Unknown Project'),
+                'sessions': sessions_in_group, 'total_integration_time': total_minutes
+            })
+        # Add Standalone sessions (those with project_id=None)
+        if None in grouped_sessions_dict:
+            sessions_none_project = grouped_sessions_dict[None]
+            total_minutes_none = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_none_project)
+            grouped_sessions_for_template.append({
+                'is_project': False, 'project_name': 'Standalone Sessions',
+                'sessions': sessions_none_project, 'total_integration_time': total_minutes_none
+            })
         # --- 6. Calculate Effective Date and Sun/Moon Data (No change) ---
         effective_day_req = request.args.get('day')
         effective_month_req = request.args.get('month')
@@ -5637,8 +5673,8 @@ def graph_dashboard(object_name):
                                project_notes_from_config=object_main_details.get("Project", ""), # Use empty string default
                                is_project_active=object_main_details.get('ActiveProject', False),
                                # Journal Data (pass placeholders/flags for async loading)
-                               grouped_sessions=[], # Empty list initially
-                               object_specific_sessions=[], # Empty list initially
+                               grouped_sessions=grouped_sessions_for_template,  # Pass the calculated groups
+                               object_specific_sessions=object_specific_sessions_list,  # Pass the flat list too
                                selected_session_data=selected_session_data, # Pass if loaded
                                selected_session_data_dict=selected_session_data_dict, # Pass dict if loaded
                                current_session_id=requested_session_id if selected_session_data else None,
