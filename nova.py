@@ -86,7 +86,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
-APP_VERSION = "3.7.3"
+APP_VERSION = "3.8.0"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -132,6 +132,59 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
 def get_db():
     """Use inside request context or background tasks."""
     return SessionLocal()
+
+# === DEFINE VARS NEEDED BY INIT FUNCTION ===
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
+CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
+
+def initialize_instance_directory():
+    """
+    Checks if the instance directory and default configs exist.
+    If not, it creates them from the templates. This makes the app
+    work correctly on first run after a fresh git clone.
+    """
+    # Use the module-level TEMPLATE_DIR
+
+    # The user-specific config directory
+    config_dir = os.path.join(INSTANCE_PATH, "configs")
+
+    # Only run this if the user's config directory doesn't exist
+    config_file_path = os.path.join(config_dir, 'config_default.yaml')
+    if not os.path.exists(config_file_path):
+        print("First run detected. Initializing instance directory...")
+        try:
+            # Create all necessary directories
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            os.makedirs(BACKUP_DIR, exist_ok=True)
+
+            # List of (template_filename, final_filename) pairs
+            files_to_create = [
+                ('config_default.yaml', 'config_default.yaml'),
+                ('journal_default.yaml', 'journal_default.yaml'),
+                ('rigs_default.yaml', 'rigs_default.yaml'),
+                ('config_guest_user.yaml', 'config_guest_user.yaml'),
+                # Add a journal for the guest user too
+                ('journal_default.yaml', 'journal_guest_user.yaml'),
+            ]
+
+            for template_name, final_name in files_to_create:
+                src_path = os.path.join(TEMPLATE_DIR, template_name)
+                dest_path = os.path.join(config_dir, final_name)
+
+                if os.path.exists(src_path):
+                    shutil.copy(src_path, dest_path)
+                    print(f"   -> Created '{final_name}' from template.")
+                else:
+                    print(f"   -> WARNING: Template file '{template_name}' not found. Cannot create '{final_name}'.")
+
+            print("✅ Initialization complete.")
+        except Exception as e:
+            print(f"❌ FATAL ERROR during first-run initialization: {e}")
+            # You might want the app to exit if this fails
+            # import sys
+            # sys.exit(1)
+
 
 # --- MODELS ------------------------------------------------------------------
 class DbUser(Base):
@@ -1368,6 +1421,7 @@ def run_one_time_yaml_migration():
     finally:
         db.close()
 
+initialize_instance_directory()
 run_one_time_yaml_migration()
 
 # =============================================================================
@@ -1390,7 +1444,7 @@ FIRST_RUN_ENV_CREATED = False
 
 INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
 # Directory where master template files live (used across the module)
-TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
+
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
 load_dotenv(dotenv_path=ENV_FILE)
 
@@ -1453,7 +1507,6 @@ MAX_ACTIVE_LOCATIONS = 5
 
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 
-CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
 UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, 'uploads')
@@ -1539,54 +1592,6 @@ class _FileLock:
         except Exception:
             pass
 
-def initialize_instance_directory():
-    """
-    Checks if the instance directory and default configs exist.
-    If not, it creates them from the templates. This makes the app
-    work correctly on first run after a fresh git clone.
-    """
-    # Use the module-level TEMPLATE_DIR
-
-    # The user-specific config directory
-    config_dir = os.path.join(INSTANCE_PATH, "configs")
-
-    # Only run this if the user's config directory doesn't exist
-    if not os.path.exists(config_dir):
-        print("First run detected. Initializing instance directory...")
-        try:
-            # Create all necessary directories
-            os.makedirs(CONFIG_DIR, exist_ok=True)
-            os.makedirs(CACHE_DIR, exist_ok=True)
-            os.makedirs(BACKUP_DIR, exist_ok=True)
-
-            # List of (template_filename, final_filename) pairs
-            files_to_create = [
-                ('config_default.yaml', 'config_default.yaml'),
-                ('journal_default.yaml', 'journal_default.yaml'),
-                ('rigs_default.yaml', 'rigs_default.yaml'),
-                ('config_guest_user.yaml', 'config_guest_user.yaml'),
-                # Add a journal for the guest user too
-                ('journal_default.yaml', 'journal_guest_user.yaml'),
-            ]
-
-            for template_name, final_name in files_to_create:
-                src_path = os.path.join(TEMPLATE_DIR, template_name)
-                dest_path = os.path.join(config_dir, final_name)
-
-                if os.path.exists(src_path):
-                    shutil.copy(src_path, dest_path)
-                    print(f"   -> Created '{final_name}' from template.")
-                else:
-                    print(f"   -> WARNING: Template file '{template_name}' not found. Cannot create '{final_name}'.")
-
-            print("✅ Initialization complete.")
-        except Exception as e:
-            print(f"❌ FATAL ERROR during first-run initialization: {e}")
-            # You might want the app to exit if this fails
-            # import sys
-            # sys.exit(1)
-
-initialize_instance_directory()
 
 # --- Stellarium API URL Configuration ---
 # Default URL for running directly on the host
@@ -1919,7 +1924,7 @@ def load_effective_settings():
     """
     if SINGLE_USER_MODE:
         # In single-user mode, read from the user's config file.
-        g.sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+        g.sampling_interval = g.user_config.get('sampling_interval_minutes') or 15
         g.telemetry_enabled = g.user_config.get('telemetry', {}).get('enabled', True)
     else:
         # In multi-user mode, read from the .env file with hardcoded defaults.
@@ -2383,7 +2388,7 @@ def trigger_startup_cache_workers():
             sampling_interval = 15 # Default
             if SINGLE_USER_MODE:
                 # In single-user mode, get it from the user's config (UiPref blob)
-                sampling_interval = cfg.get('sampling_interval_minutes', 15)
+                sampling_interval = cfg.get('sampling_interval_minutes') or 15
             else:
                 # In multi-user mode, get it from environment variables (or default)
                 sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
@@ -4874,7 +4879,7 @@ def get_object_data(object_name):
         # Determine sampling interval based on mode
         sampling_interval = 15 # Default
         if SINGLE_USER_MODE:
-            sampling_interval = user_prefs_dict.get('sampling_interval_minutes', 15)
+            sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
@@ -5802,7 +5807,8 @@ def get_imaging_opportunities(object_name):
 
     # Get altitude threshold and sampling interval (from 'g')
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    sampling_interval = g.user_config.get('sampling_interval_minutes', 15) if SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
+    sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if SINGLE_USER_MODE else int(
+        os.environ.get('CALCULATION_PRECISION', 15))
 
     # --- Get Horizon Mask for the specific location ---
     # We need the location *name* to look up the mask.
