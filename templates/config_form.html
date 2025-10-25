@@ -451,29 +451,29 @@
                 <div>
                   <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
                   <input type="number" name="min_observable_minutes" id="min_observable_minutes"
-                         value="{{ config.get('imaging_criteria', {}).get('min_observable_minutes', 60) }}" min="0" max="600">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_observable_minutes', 60) }}" min="0" max="600">
                 </div>
                 <div>
                   <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
                   <input type="number" name="min_max_altitude" id="min_max_altitude"
-                         value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_max_altitude', 30) }}" min="0" max="90">
                 </div>
               </div>
               <div class="inline-fields">
                 <div>
                   <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
                   <input type="number" name="max_moon_illumination" id="max_moon_illumination"
-                         value="{{ config.get('imaging_criteria', {}).get('max_moon_illumination', 20) }}" min="0" max="100">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('max_moon_illumination', 20) }}" min="0" max="100">
                 </div>
                 <div>
                   <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
                   <input type="number" name="min_angular_separation" id="min_angular_separation"
-                         value="{{ config.get('imaging_criteria', {}).get('min_angular_distance', 30) }}" min="0" max="180">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_angular_separation', 30) }}" min="0" max="180">
                 </div>
                 <div>
                   <label class="verylong-label" for="search_horizon_months">Search months:</label>
                   <input type="number" name="search_horizon_months" id="search_horizon_months"
-                         value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('search_horizon_months', 6) }}" min="1" max="12">
                 </div>
               </div>
               {% if SINGLE_USER_MODE %}
