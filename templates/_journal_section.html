@@ -1,4 +1,4 @@
-{# templates/_journal_section.html - COMPLETE AND CORRECTED VERSION #}
+
 <style>
     .journal-container { display: flex; gap: 25px; align-items: flex-start; }
     .session-list-column { flex: 0 0 450px; max-height: 750px; overflow-y: auto; }
@@ -8,10 +8,18 @@
     .detail-tab-button.active { color: #83b4c5; border-bottom-color: #83b4c5; font-weight: 600; }
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; }
-    .edit-mode { display: none; }
-    .is-editing .view-mode, .is-adding .view-mode { display: none; }
-    .is-editing .edit-mode, .is-adding .edit-mode { display: block; }
-    .is-editing .detail-tab-button[data-tab="summary"], .is-adding .detail-tab-button[data-tab="summary"] { display: none; }
+
+    /* Controls visibility based on mode */
+    .view-mode { display: block; } /* Show view mode by default */
+    .edit-mode-form { display: none; } /* Hide form by default (using class on form) */
+    .is-editing .view-mode, .is-adding .view-mode { display: none; } /* Hide view when editing/adding */
+    .is-editing .edit-mode-form, .is-adding .edit-mode-form { display: block; } /* Show form when editing/adding */
+
+    /* Hide summary tab button in edit/add modes */
+    .is-editing .detail-tab-button[data-tab="summary"],
+    .is-adding .detail-tab-button[data-tab="summary"] { display: none; }
+
+    /* Other styles remain the same */
     .summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 20px; text-align: center; padding: 15px; background-color: #e9ecef; border-radius: 6px; margin-bottom: 25px; }
     .summary-box .stat-value { font-size: 1.4em; font-weight: 600; color: #343a40; display: block; }
     .summary-box .stat-label { font-size: 0.8em; color: #6c757d; text-transform: uppercase; }
@@ -20,25 +28,42 @@
     .detail-grid > dd { margin: 0; color: #212529; }
     .notes-block { margin-top: 8px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; min-height: 60px; }
     .session-list-column h4, .session-detail-column h4 { font-size: 1.2em; font-weight: 600; margin-top: 0; margin-bottom: 0; color: #343a40; }
-    .edit-mode .form-group input, .edit-mode .form-group textarea, .edit-mode .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
-    .edit-mode .form-group textarea { min-height: 100px; }
+
+    /* Form specific styles */
+    .edit-mode-form .form-group input,
+    .edit-mode-form .form-group textarea,
+    .edit-mode-form .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    .edit-mode-form .form-group textarea { min-height: 100px; }
+
     .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75em; }
     .history-header .inline-button { font-size: 13px; padding: 6px 12px; margin-right: 0; }
     .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
     .detail-header .action-button-group { margin: 0; }
     .form-group.full-width { flex-basis: 100%; }
     .form-group.full-width label { width: auto; }
+
+    /* Existing table styles... */
+    .session-history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
+    .session-history-table th, .session-history-table td { border: 1px solid #dde; padding: 6px 8px; text-align: left; vertical-align: middle; }
+    .session-history-table th { background-color: #e9ecef; font-weight: 600; }
+    .session-history-table tr.clickable-session-row:hover { background-color: #e6f7ff; cursor: pointer; }
+    .session-history-table tr.current-session-item { background-color: #cfe2ff !important; font-weight: bold; }
+    .session-history-table td.col-date, .session-history-table th.col-date { width: 120px; }
+    .session-history-table td.col-integ, .session-history-table th.col-integ { width: 100px; text-align: center; }
+    .session-history-table td.col-rating, .session-history-table th.col-rating { width: 100px; text-align: center; }
 </style>
 
 <div class="journal-container">
     <div class="session-list-column">
         <div class="history-header">
             <h4>Session History:</h4>
+            {# --- Button to trigger Add mode --- #}
             <button type="button" class="inline-button" onclick="setupAddMode()">Add New Session</button>
         </div>
         <div class="table-wrapper" style="border-top: 1px solid #dee2e6;">
             <table class="session-history-table">
                 <thead><tr><th class="col-date">Date & Location</th><th class="col-integ">Integ.</th><th class="col-rating">Rating</th></tr></thead>
+                {# --- Table body rendered by server (Jinja) --- #}
                 <tbody>
                 {% for group in grouped_sessions %}
                     <tr>
@@ -50,8 +75,10 @@
                         </th>
                     </tr>
                     {% for session_item in group.sessions %}
-                        <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}" onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}"'>
-                            <td class="col-date">{{ session_item.date_utc |date_eu| default("N/A") }}<br><small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small></td>
+                        {# Use session_item dictionary keys directly #}
+                        <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
+                            onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}"'>
+                            <td class="col-date">{{ session_item.date_utc | date_eu | default("N/A") }}<br><small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else 'N/A' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
                         </tr>
@@ -60,381 +87,396 @@
                 </tbody>
             </table>
         </div>
+        {# Loading indicator for async (not currently used by this version) #}
+        <p id="journal-loading-indicator" style="display: none; text-align: center; color: #666; margin-top: 15px;">Loading history...</p>
     </div>
 
     <div class="session-detail-column">
-        <div id="session-detail-wrapper">
+        {# --- Wrapper div controlled by JS to show/hide sections --- #}
+        <div id="session-detail-wrapper" class="{{ 'is-editing' if request.args.get('edit') == 'true' else '' }}">
 
+            {# --- VIEW MODE SECTION (Only rendered if selected_session_data exists) --- #}
             {% if selected_session_data %}
-                {% set entry = selected_session_data %} {# Use 'entry' as the variable for consistency #}
-
-                <div class="detail-header">
+                {% set entry = selected_session_data_dict %} {# Use the dictionary for easy access #}
+                {# --- View Header --- #}
+                <div class="detail-header view-mode">
                     <h4 id="detail-title">Details for Session: {{ entry.date_utc | date_eu }}</h4>
-                    <div class="action-button-group view-mode">
+                    <div class="action-button-group">
                         <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="setupEditMode()">Edit This Session</button>
                         <form action="{{ url_for('journal_delete', session_id=entry.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this session permanently?');">
                             <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
                         </form>
                     </div>
-                    <div class="action-button-group edit-mode">
-                        <button id="form-submit-button" type="submit" form="journal-detail-form" class="inline-button" style="background-color:#28a745;">Save Changes</button>
-                        <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="cancelForm()">Cancel</button>
+                </div>
+                {# --- View Tabs --- #}
+                <div class="detail-tabs-container view-mode">
+                    <button type="button" class="detail-tab-button active" data-tab="summary" onclick="showDetailTab('summary')">Summary</button>
+                    <button type="button" class="detail-tab-button" data-tab="sky" onclick="showDetailTab('sky')">Sky & Equipment</button>
+                    <button type="button" class="detail-tab-button" data-tab="acq" onclick="showDetailTab('acq')">Acquisition</button>
+                    <button type="button" class="detail-tab-button" data-tab="outcome" onclick="showDetailTab('outcome')">Outcome</button>
+                </div>
+                {# --- View Tab Content --- #}
+                <div class="view-mode">
+                    <div id="summary-tab" class="detail-tab-content active">
+                        {# ... Summary content using 'entry' dictionary ... #}
+                         <div class="summary-box">
+                            <div class="stat"><span class="stat-value">{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</span><span class="stat-label">SEEING (FWHM)</span></div>
+                            <div class="stat"><span class="stat-value">{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</span><span class="stat-label">GUIDING (RMS)</span></div>
+                            <div class="stat"><span class="stat-value">{{ entry.sky_sqm_observed | default('N/A') }}</span><span class="stat-label">SKY QUALITY (SQM)</span></div>
+                            <div class="stat">
+                                <span class="stat-value">
+                                    {% set mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'] %}
+                                    {% set has_mono_data = namespace(found=false) %}
+                                    {% for filt_key in mono_filters %}
+                                        {% if entry['filter_' ~ filt_key ~ '_subs'] or entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
+                                            {% set has_mono_data.found = true %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% if has_mono_data.found %}
+                                        Multiple
+                                    {% else %}
+                                        {{ entry.number_of_subs_light | default('N/A') }}x{{ entry.exposure_time_per_sub_sec | default('N/A') }}s
+                                    {% endif %}
+                                </span><span class="stat-label">EXPOSURES</span>
+                            </div>
+                        </div>
+                        <dl class="detail-grid">
+                            <dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd>
+                            <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
+                            {% if entry.session_image_file %}
+                                <dt style="grid-column: 1 / -1;">Session Image:</dt>
+                                <dd style="grid-column: 1 / -1; margin-top: 8px;">
+                                    {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
+                                    <a href="{{ url_for('get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" target="_blank" title="Click to view full size">
+                                        <img src="{{ url_for('get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" alt="Session Image" style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
+                                    </a>
+                                </dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                    <div id="sky-tab" class="detail-tab-content">
+                        {# ... Sky view content ... #}
+                        <dl class="detail-grid">
+                            <dt>Seeing (FWHM):</dt><dd>{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</dd>
+                            <dt>SQM:</dt><dd>{{ entry.sky_sqm_observed | default('N/A') }}</dd>
+                            <dt>Transparency Scale:</dt><dd>{{ entry.transparency_observed_scale | default('N/A') }}</dd>
+                            <dt>Moon Illum/Sep:</dt><dd>{{ entry.moon_illumination_session | default('N/A') }}% / {{ entry.moon_angular_separation_session | default('N/A') }}°</dd>
+                            <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
+                            <dt>Guiding Equipment:</dt><dd>{{ entry.guiding_equipment | default('N/A') }}</dd>
+                            <dt>Guiding RMS:</dt><dd>{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</dd>
+                            <dt>Weather Notes:</dt><dd><div class="notes-block">{{ entry.weather_notes | default('N/A') }}</div></dd>
+                        </dl>
+                    </div>
+                    <div id="acq-tab" class="detail-tab-content">
+                        {# ... Acquisition view content ... #}
+                        <dl class="detail-grid">
+                            <dt>Sub Exposure:</dt><dd>{{ entry.exposure_time_per_sub_sec | default('N/A') }}s</dd>
+                            <dt># Light Subs:</dt><dd>{{ entry.number_of_subs_light | default('N/A') }}</dd>
+                            <dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd>
+                            <dt>Gain / Offset:</dt><dd>{{ entry.gain_setting | default('N/A') }} / {{ entry.offset_setting | default('N/A') }}</dd>
+                            <dt>Acquisition Sw:</dt><dd>{{ entry.acquisition_software | default('N/A') }}</dd>
+                            <dt>Dither Settings:</dt><dd>{{ entry.dither_details | default('N/A') }}</dd>
+                            <dt>Binning:</dt><dd>{{ entry.binning_session | default('N/A') }}</dd>
+                            <dt>Camera Temp (Set/Avg):</dt><dd>{{ entry.camera_temp_setpoint_c | default('N/A') }}°C / {{ entry.camera_temp_actual_avg_c | default('N/A') }}°C</dd>
+                        </dl>
+                        {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
+                        {% set has_mono_data = namespace(found=false) %}
+                        {% for filt_key, _ in mono_filters %}
+                            {% if entry['filter_' ~ filt_key ~ '_subs'] or entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
+                                {% set has_mono_data.found = true %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if has_mono_data.found %}
+                            <div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div>
+                            <dl class="detail-grid">
+                            {% for filt_key, filt_name in mono_filters %}
+                                {% set subs = entry['filter_' ~ filt_key ~ '_subs'] %}
+                                {% set exp = entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
+                                {% if subs or exp %}
+                                    <dt>{{ filt_name }} ({{ filt_key }}):</dt>
+                                    <dd>{{ subs | default('N/A') }} subs x {{ exp | default('N/A') }}s</dd>
+                                {% endif %}
+                            {% endfor %}
+                            </dl>
+                        {% endif %}
+                    </div>
+                    <div id="outcome-tab" class="detail-tab-content">
+                        {# ... Outcome view content ... #}
+                        <dl class="detail-grid">
+                            <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('N/A') }}{% if entry.session_rating_subjective %} ★{% endif %}</dd>
+                            <dt>Darks:</dt><dd>{{ entry.darks_strategy | default('N/A') }}</dd>
+                            <dt>Flats:</dt><dd>{{ entry.flats_strategy | default('N/A') }}</dd>
+                            <dt>Bias/DarkFlats:</dt><dd>{{ entry.bias_darkflats_strategy | default('N/A') }}</dd>
+                            <dt>Notes:</dt><dd><div class="notes-block">{{ entry.notes | default('N/A') }}</div></dd>
+                        </dl>
+                    </div>
+                </div> {# End view-mode wrapper #}
+
+            {# --- Placeholder when NO session is selected (rendered by server) --- #}
+            {% else %}
+                <div class="detail-header view-mode"> {# Initially visible #}
+                    <h4 id="detail-title">No session selected</h4>
+                </div>
+                <p class="view-mode" style="color: #6c757d; margin-top: 20px;">Select a session from the list on the left to view details, or click 'Add New Session'.</p>
+            {% endif %}
+            {# --- END OF CONDITIONAL VIEW BLOCK --- #}
+
+
+            {# --- EDIT/ADD FORM (Always present in HTML, initially hidden) --- #}
+            <form id="journal-detail-form" class="edit-mode-form" method="POST" action="" enctype="multipart/form-data">
+                {# --- Form Header (Only visible when form is active) --- #}
+                <div class="detail-header">
+                    <h4 id="form-detail-title">Edit Session</h4> {# Title updated by JS #}
+                    <div class="action-button-group"> {# Save/Cancel always shown with form #}
+                        <button id="form-submit-button" type="submit" form="journal-detail-form" class="inline-button">Save Changes</button>
+                        <button id="form-cancel-button" type="button" class="inline-button" style="background-color:#6c757d;" onclick="cancelForm()">Cancel</button>
                     </div>
                 </div>
 
-                {# --- EDIT/ADD FORM (partially hidden/shown based on mode) --- #}
-                <form id="journal-detail-form" method="POST" action="" enctype="multipart/form-data">
-                    <input type="hidden" name="target_object_id" value="{{ object_name }}">
-                    {# session_id is set dynamically by JS or template for edit/add #}
-                    <input type="hidden" name="session_id" value="{{ entry.id if entry else '' }}">
+                {# --- Hidden fields --- #}
+                <input type="hidden" name="target_object_id" value="{{ object_name }}">
+                <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
 
-                    <div class="detail-tabs-container">
-                        <button type="button" class="detail-tab-button active" data-tab="summary" onclick="showDetailTab('summary')">Summary</button>
-                        <button type="button" class="detail-tab-button" data-tab="sky" onclick="showDetailTab('sky')">Sky & Equipment</button>
-                        <button type="button" class="detail-tab-button" data-tab="acq" onclick="showDetailTab('acq')">Acquisition</button>
-                        <button type="button" class="detail-tab-button" data-tab="outcome" onclick="showDetailTab('outcome')">Outcome</button>
+                {# --- Core Info Fields (Date, Location, Project) --- #}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="session_date">Session Date:</label>
+                        <input type="date" id="session_date" name="session_date" onchange="updateMoonData()" value="{{ today_date }}"> {# Default to today #}
                     </div>
-
-                    {# --- VIEW MODE CONTENT --- #}
-                    <div class="view-mode">
-                        <div id="summary-tab" class="detail-tab-content active">
-                             <div class="summary-box">
-                                <div class="stat"><span class="stat-value">{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</span><span class="stat-label">SEEING (FWHM)</span></div>
-                                <div class="stat"><span class="stat-value">{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</span><span class="stat-label">GUIDING (RMS)</span></div>
-                                <div class="stat"><span class="stat-value">{{ entry.sky_sqm_observed | default('N/A') }}</span><span class="stat-label">SKY QUALITY (SQM)</span></div>
-                                <div class="stat">
-                                    <span class="stat-value">
-                                        {# Logic to display mono vs single exposure count #}
-                                        {% set mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'] %}
-                                        {% set has_mono_data = namespace(found=false) %}
-                                        {% for filt_key in mono_filters %}
-                                            {% if entry['filter_' ~ filt_key ~ '_subs'] or entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
-                                                {% set has_mono_data.found = true %}
-                                            {% endif %}
-                                        {% endfor %}
-                                        {% if has_mono_data.found %}
-                                            Multiple
-                                        {% else %}
-                                            {{ entry.number_of_subs_light | default('N/A') }}x{{ entry.exposure_time_per_sub_sec | default('N/A') }}s
-                                        {% endif %}
-                                    </span><span class="stat-label">EXPOSURES</span>
-                                </div>
-                            </div>
-                            <dl class="detail-grid">
-                                <dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd>
-                                <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
-                                {% if entry.session_image_file %}
-                                    <dt style="grid-column: 1 / -1;">Session Image:</dt>
-                                    <dd style="grid-column: 1 / -1; margin-top: 8px;">
-                                        {# Ensure proper URL generation for single/multi user #}
-                                        {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
-                                        <a href="{{ url_for('get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" target="_blank" title="Click to view full size">
-                                            <img src="{{ url_for('get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" alt="Session Image" style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
-                                        </a>
-                                    </dd>
-                                {% endif %}
-                            </dl>
-                        </div>
-                        <div id="sky-tab" class="detail-tab-content">
-                            <dl class="detail-grid">
-                                <dt>Seeing (FWHM):</dt><dd>{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</dd>
-                                <dt>SQM:</dt><dd>{{ entry.sky_sqm_observed | default('N/A') }}</dd>
-                                <dt>Transparency Scale:</dt><dd>{{ entry.transparency_observed_scale | default('N/A') }}</dd>
-                                <dt>Moon Illum/Sep:</dt><dd>{{ entry.moon_illumination_session | default('N/A') }}% / {{ entry.moon_angular_separation_session | default('N/A') }}°</dd>
-                                <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
-                                <dt>Guiding Equipment:</dt><dd>{{ entry.guiding_equipment | default('N/A') }}</dd> {# Added #}
-                                <dt>Guiding RMS:</dt><dd>{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</dd> {# Moved #}
-                                <dt>Weather Notes:</dt><dd><div class="notes-block">{{ entry.weather_notes | default('N/A') }}</div></dd> {# Added #}
-                            </dl>
-                        </div>
-                        <div id="acq-tab" class="detail-tab-content">
-                            <dl class="detail-grid">
-                                <dt>Sub Exposure:</dt><dd>{{ entry.exposure_time_per_sub_sec | default('N/A') }}s</dd>
-                                <dt># Light Subs:</dt><dd>{{ entry.number_of_subs_light | default('N/A') }}</dd>
-                                <dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd>
-                                <dt>Gain / Offset:</dt><dd>{{ entry.gain_setting | default('N/A') }} / {{ entry.offset_setting | default('N/A') }}</dd>
-                                <dt>Acquisition Sw:</dt><dd>{{ entry.acquisition_software | default('N/A') }}</dd> {# Added #}
-                                <dt>Dither Settings:</dt><dd>{{ entry.dither_details | default('N/A') }}</dd> {# Added #}
-                                <dt>Binning:</dt><dd>{{ entry.binning_session | default('N/A') }}</dd> {# Added #}
-                                <dt>Camera Temp (Set/Avg):</dt><dd>{{ entry.camera_temp_setpoint_c | default('N/A') }}°C / {{ entry.camera_temp_actual_avg_c | default('N/A') }}°C</dd> {# Added #}
-                            </dl>
-                            {# Mono exposure details display #}
-                            {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
-                            {% set has_mono_data = namespace(found=false) %}
-                            {% for filt_key, _ in mono_filters %}
-                                {% if entry['filter_' ~ filt_key ~ '_subs'] or entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
-                                    {% set has_mono_data.found = true %}
-                                {% endif %}
+                    <div class="form-group">
+                        <label for="location_name">Location:</label>
+                        <select id="location_name" name="location_name" onchange="updateMoonData()">
+                            {% for loc in available_locations %}
+                                <option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}"
+                                        {{ 'selected' if loc.name == default_location else '' }}>
+                                    {{ loc.name }}
+                                </option>
                             {% endfor %}
-                            {% if has_mono_data.found %}
-                                <div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div>
-                                <dl class="detail-grid">
-                                {% for filt_key, filt_name in mono_filters %}
-                                    {% set subs = entry['filter_' ~ filt_key ~ '_subs'] %}
-                                    {% set exp = entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
-                                    {% if subs or exp %}
-                                        <dt>{{ filt_name }} ({{ filt_key }}):</dt>
-                                        <dd>{{ subs | default('N/A') }} subs x {{ exp | default('N/A') }}s</dd>
-                                    {% endif %}
-                                {% endfor %}
-                                </dl>
-                            {% endif %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group full-width">
+                    <label for="project_selection">Link to Project (Optional)</label>
+                    <select name="project_selection" id="project_selection" onchange="toggleNewProjectField()">
+                        <option value="standalone">-- Standalone Session --</option>
+                        {% for project in all_projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                        <option value="new_project">-- Create New Project --</option>
+                    </select>
+                </div>
+                <div class="form-group full-width" id="new_project_name_group" style="display: none;">
+                    <label for="new_project_name">New Project Name:</label>
+                    <input type="text" name="new_project_name" id="new_project_name" placeholder="e.g., M31 Galaxy - 2025">
+                </div>
+
+                {# --- Form Fields (Grouped conceptually, no visible tabs needed) --- #}
+                {# --- Sky Conditions --- #}
+                <div id="form-sky-tab">
+                    <div class="form-section-title">Sky Conditions (Observed)</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Seeing (FWHM, arcsec):</label>
+                            <input type="number" step="0.01" name="seeing_observed_fwhm">
                         </div>
-                        <div id="outcome-tab" class="detail-tab-content">
-                            <dl class="detail-grid">
-                                <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('N/A') }}{% if entry.session_rating_subjective %} ★{% endif %}</dd>
-                                <dt>Darks:</dt><dd>{{ entry.darks_strategy | default('N/A') }}</dd> {# Added #}
-                                <dt>Flats:</dt><dd>{{ entry.flats_strategy | default('N/A') }}</dd> {# Added #}
-                                <dt>Bias/DarkFlats:</dt><dd>{{ entry.bias_darkflats_strategy | default('N/A') }}</dd> {# Added #}
-                                <dt>Notes:</dt><dd><div class="notes-block">{{ entry.notes | default('N/A') }}</div></dd>
-                            </dl>
+                         <div class="form-group">
+                            <label>Transparency Scale:</label>
+                            <input type="text" name="transparency_observed_scale" placeholder="e.g., Good (4/5), Clear">
+                         </div>
+                    </div>
+                    <div class="form-row">
+                         <div class="form-group">
+                            <label>SQM Reading:</label>
+                            <input type="number" step="0.01" name="sky_sqm_observed">
+                        </div>
+                        <div class="form-group"> </div> {# Placeholder #}
+                    </div>
+                     <div class="form-group">
+                        <label>Weather Notes:</label>
+                        <textarea name="weather_notes"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Moon Illumination (%):</label>
+                            <input type="number" step="0.1" id="moon_illumination_session" name="moon_illumination_session" placeholder="Auto-fills on date/loc change">
+                        </div>
+                        <div class="form-group">
+                            <label>Moon Angular Separation (°):</label>
+                            <input type="number" step="0.1" id="moon_angular_separation_session" name="moon_angular_separation_session" placeholder="Auto-fills on date/loc change">
                         </div>
                     </div>
+                     <div class="form-section-title">Equipment & Guiding</div>
+                    <div class="form-group">
+                        <label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label>
+                        <select id="rig-selector-edit" onchange="document.getElementById('telescope_setup_notes').value = this.options[this.selectedIndex].text;">
+                            <option value="">-- Manually Enter Below --</option>
+                            {% for rig in available_rigs %}
+                                <option value="{{ rig.rig_name }}">{{ rig.rig_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Telescope Setup Notes:</label>
+                        <textarea id="telescope_setup_notes" name="telescope_setup_notes" rows="3"></textarea>
+                    </div>
+                     <div class="form-group">
+                        <label>Guiding Equipment:</label>
+                        <input type="text" name="guiding_equipment" placeholder="e.g., OAG + ASI174MM">
+                    </div>
+                     <div class="form-group">
+                        <label>Guiding RMS (avg, arcsec):</label>
+                        <input type="number" step="0.01" name="guiding_rms_avg_arcsec">
+                    </div>
+                </div>
 
-                    {# --- EDIT MODE FORM FIELDS (wrapped in a div for easy show/hide) --- #}
-{# --- EDIT MODE FORM FIELDS (wrapped in a div for easy show/hide) --- #}
-                    <div class="edit-mode">
-                        {# NOTE: Core Info (Date, Location, Project) stays outside the tabs #}
+                {# --- Acquisition Details --- #}
+                <div id="form-acq-tab">
+                    <div class="form-section-title">Acquisition Details</div>
+                     <div class="form-group">
+                        <label>Acquisition Software:</label>
+                        <input type="text" name="acquisition_software" placeholder="e.g., N.I.N.A.">
+                    </div>
+                     <div class="form-group">
+                        <label>Dither Settings:</label>
+                        <input type="text" name="dither_details" placeholder="e.g., Yes, 3px every 2 subs">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sub Exposure (sec):</label>
+                            <input type="number" name="exposure_time_per_sub_sec" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label># Light Subs:</label>
+                            <input type="number" name="number_of_subs_light" min="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                         <div class="form-group">
+                            <label>Gain:</label>
+                            <input type="number" name="gain_setting">
+                        </div>
+                        <div class="form-group">
+                            <label>Offset:</label>
+                            <input type="number" name="offset_setting">
+                        </div>
+                    </div>
+                     <div class="form-row">
+                         <div class="form-group">
+                            <label>Camera Temp Setpoint (°C):</label>
+                            <input type="number" step="0.1" name="camera_temp_setpoint_c">
+                        </div>
+                        <div class="form-group">
+                            <label>Camera Temp Actual Avg (°C):</label>
+                            <input type="number" step="0.1" name="camera_temp_actual_avg_c">
+                        </div>
+                     </div>
+                     <div class="form-group">
+                        <label>Binning:</label>
+                        <input type="text" name="binning_session" placeholder="e.g., 1x1">
+                    </div>
+                     <div class="form-group">
+                        <label>Filter Used (if broadband/single):</label>
+                        <input type="text" name="filter_used_session" placeholder="e.g., L-Pro, None">
+                    </div>
+                    <div class="form-section-title" style="margin-top:20px;">Monochrome Filter Exposures</div>
+                    {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
+                    {% for filt_key, filt_name in mono_filters %}
                         <div class="form-row">
-                             <div class="form-group">
-                                <label for="session_date">Session Date:</label>
-                                <input type="date" id="session_date" name="session_date" onchange="updateMoonData()" value=""> {# Value set by JS #}
+                            <div class="form-group" style="flex: 0 0 200px; align-self: center;">
+                                <label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label>
                             </div>
                             <div class="form-group">
-                                <label for="location_name">Location:</label>
-                                <select id="location_name" name="location_name" onchange="updateMoonData()">
-                                    {% for loc in available_locations %}
-                                        {# Use loc.name which comes directly from the DB query result #}
-                                        <option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}</option>
-                                    {% endfor %}
-                                </select>
+                                <label># Subs:</label>
+                                <input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="Count">
+                            </div>
+                            <div class="form-group">
+                                <label>Exp (sec/sub):</label>
+                                <input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds">
                             </div>
                         </div>
+                    {% endfor %}
+                </div>
+
+                {# --- Outcome Fields --- #}
+                <div id="form-outcome-tab">
+                    <div class="form-section-title">Calibration Strategy</div>
+                     <div class="form-group">
+                        <label>Darks:</label>
+                        <input type="text" name="darks_strategy" placeholder="e.g., Library match, Taken post-session">
+                    </div>
+                     <div class="form-group">
+                        <label>Flats:</label>
+                        <input type="text" name="flats_strategy" placeholder="e.g., Morning sky, Panel">
+                    </div>
+                     <div class="form-group">
+                        <label>Bias / Dark Flats:</label>
+                        <input type="text" name="bias_darkflats_strategy" placeholder="e.g., Library match">
+                    </div>
+                    <div class="form-section-title">Outcome & Reflections</div>
+                    <div class="form-group">
+                        <label>Session Rating (1-5 ★):</label>
+                        <input type="number" min="1" max="5" name="session_rating_subjective">
+                    </div>
+                    <div class="form-group">
+                        <label>General Notes, Problems, Learnings:</label>
+                        <textarea name="general_notes_problems_learnings"></textarea>
+                    </div>
+                    {# Image Upload #}
+                    {% if selected_session_data and selected_session_data.session_image_file %}
                         <div class="form-group full-width">
-                            <label for="project_selection">Link to Project (Optional)</label>
-                            <select name="project_selection" id="project_selection" onchange="toggleNewProjectField()">
-                                <option value="standalone">-- Standalone Session --</option>
-                                {% for project in all_projects %}
-                                    <option value="{{ project.id }}">{{ project.name }}</option>
-                                {% endfor %}
-                                <option value="new_project">-- Create New Project --</option>
-                            </select>
+                            <label>Current Image:</label>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span>
+                                <label style="color: #c0392b; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
+                                    <input type="checkbox" name="delete_session_image" value="1"> Delete Image
+                                </label>
+                            </div>
                         </div>
-                        <div class="form-group full-width" id="new_project_name_group" style="display: none;">
-                            <label for="new_project_name">New Project Name:</label>
-                            <input type="text" name="new_project_name" id="new_project_name" placeholder="e.g., M31 Galaxy - 2025">
-                        </div>
+                    {% endif %}
+                    <div class="form-group full-width">
+                        <label for="session_image">Upload New or Replace Image (optional, max 5MB)</label>
+                        <input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif">
+                    </div>
+                </div>
+            </form>
+            {# --- END OF FORM --- #}
 
-                        {# --- START Sky Tab Content --- #}
-                        <div id="sky-tab" class="detail-tab-content">
-                             <div class="form-section-title">Sky Conditions (Observed)</div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Seeing (FWHM, arcsec):</label>
-                                    <input type="number" step="0.01" name="seeing_observed_fwhm">
-                                </div>
-                                 <div class="form-group">
-                                    <label>Transparency Scale:</label>
-                                    <input type="text" name="transparency_observed_scale" placeholder="e.g., Good (4/5), Clear">
-                                 </div>
-                            </div>
-                            <div class="form-row">
-                                 <div class="form-group">
-                                    <label>SQM Reading:</label>
-                                    <input type="number" step="0.01" name="sky_sqm_observed">
-                                </div>
-                                <div class="form-group"> </div> {# Placeholder #}
-                            </div>
-                             <div class="form-group">
-                                <label>Weather Notes:</label>
-                                <textarea name="weather_notes"></textarea>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Moon Illumination (%):</label>
-                                    <input type="number" step="0.1" id="moon_illumination_session" name="moon_illumination_session" placeholder="Auto-fills on date/loc change">
-                                </div>
-                                <div class="form-group">
-                                    <label>Moon Angular Separation (°):</label>
-                                    <input type="number" step="0.1" id="moon_angular_separation_session" name="moon_angular_separation_session" placeholder="Auto-fills on date/loc change">
-                                </div>
-                            </div>
-                             <div class="form-section-title">Equipment & Guiding</div>
-                            <div class="form-group">
-                                <label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label> {# Changed ID to avoid conflict if Add form exists #}
-                                <select id="rig-selector-edit" onchange="document.getElementById('telescope_setup_notes').value = this.options[this.selectedIndex].text;">
-                                    <option value="">-- Manually Enter Below --</option>
-                                    {% for rig in available_rigs %}
-                                        <option value="{{ rig.rig_name }}">{{ rig.rig_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Telescope Setup Notes:</label>
-                                <textarea id="telescope_setup_notes" name="telescope_setup_notes" rows="3"></textarea>
-                            </div>
-                             <div class="form-group">
-                                <label>Guiding Equipment:</label>
-                                <input type="text" name="guiding_equipment" placeholder="e.g., OAG + ASI174MM">
-                            </div>
-                             <div class="form-group">
-                                <label>Guiding RMS (avg, arcsec):</label>
-                                <input type="number" step="0.01" name="guiding_rms_avg_arcsec">
-                            </div>
-                        </div> {# --- END Sky Tab Content --- #}
+        </div> {# End #session-detail-wrapper #}
+    </div> {# End .session-detail-column #}
+</div> {# End .journal-container #}
 
-                        {# --- START Acquisition Tab Content --- #}
-                        <div id="acq-tab" class="detail-tab-content">
-                            <div class="form-section-title">Acquisition Details</div>
-                             <div class="form-group">
-                                <label>Acquisition Software:</label>
-                                <input type="text" name="acquisition_software" placeholder="e.g., N.I.N.A.">
-                            </div>
-                             <div class="form-group">
-                                <label>Dither Settings:</label>
-                                <input type="text" name="dither_details" placeholder="e.g., Yes, 3px every 2 subs">
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Sub Exposure (sec):</label>
-                                    <input type="number" name="exposure_time_per_sub_sec" min="0">
-                                </div>
-                                <div class="form-group">
-                                    <label># Light Subs:</label>
-                                    <input type="number" name="number_of_subs_light" min="0">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                 <div class="form-group">
-                                    <label>Gain:</label>
-                                    <input type="number" name="gain_setting">
-                                </div>
-                                <div class="form-group">
-                                    <label>Offset:</label>
-                                    <input type="number" name="offset_setting">
-                                </div>
-                            </div>
-                             <div class="form-row">
-                                 <div class="form-group">
-                                    <label>Camera Temp Setpoint (°C):</label>
-                                    <input type="number" step="0.1" name="camera_temp_setpoint_c">
-                                </div>
-                                <div class="form-group">
-                                    <label>Camera Temp Actual Avg (°C):</label>
-                                    <input type="number" step="0.1" name="camera_temp_actual_avg_c">
-                                </div>
-                             </div>
-                             <div class="form-group">
-                                <label>Binning:</label>
-                                <input type="text" name="binning_session" placeholder="e.g., 1x1">
-                            </div>
-                             <div class="form-group">
-                                <label>Filter Used (if broadband/single):</label>
-                                <input type="text" name="filter_used_session" placeholder="e.g., L-Pro, None">
-                            </div>
-
-                             {# Mono Filters Section #}
-                            <div class="form-section-title" style="margin-top:20px;">Monochrome Filter Exposures</div>
-                            {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
-                            {% for filt_key, filt_name in mono_filters %}
-                                <div class="form-row">
-                                    <div class="form-group" style="flex: 0 0 200px; align-self: center;">
-                                        <label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label>
-                                    </div>
-                                    <div class="form-group">
-                                        <label># Subs:</label>
-                                        <input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="Count">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Exp (sec/sub):</label>
-                                        <input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds">
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </div> {# --- END Acquisition Tab Content --- #}
-
-                        {# --- START Outcome Tab Content --- #}
-                        <div id="outcome-tab" class="detail-tab-content">
-                            <div class="form-section-title">Calibration Strategy</div>
-                             <div class="form-group">
-                                <label>Darks:</label>
-                                <input type="text" name="darks_strategy" placeholder="e.g., Library match, Taken post-session">
-                            </div>
-                             <div class="form-group">
-                                <label>Flats:</label>
-                                <input type="text" name="flats_strategy" placeholder="e.g., Morning sky, Panel">
-                            </div>
-                             <div class="form-group">
-                                <label>Bias / Dark Flats:</label>
-                                <input type="text" name="bias_darkflats_strategy" placeholder="e.g., Library match">
-                            </div>
-
-                            <div class="form-section-title">Outcome & Reflections</div>
-                            <div class="form-group">
-                                <label>Session Rating (1-5 ★):</label>
-                                <input type="number" min="1" max="5" name="session_rating_subjective">
-                            </div>
-                            <div class="form-group">
-                                <label>General Notes, Problems, Learnings:</label>
-                                <textarea name="general_notes_problems_learnings"></textarea>
-                            </div>
-
-                             {# Image Upload/Delete Section #}
-                            {% if entry and entry.session_image_file %}
-                                <div class="form-group full-width">
-                                    <label>Current Image:</label>
-                                    <div style="display: flex; align-items: center; gap: 15px;">
-                                        <span style="font-family: monospace; font-size: 13px;">{{ entry.session_image_file }}</span>
-                                        <label style="color: #c0392b; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;">
-                                            <input type="checkbox" name="delete_session_image" value="1"> Delete Image
-                                        </label>
-                                    </div>
-                                </div>
-                            {% endif %}
-                            <div class="form-group full-width">
-                                <label for="session_image">Upload New or Replace Image (optional, max 5MB)</label>
-                                <input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif">
-                            </div>
-                        </div> {# --- END Outcome Tab Content --- #}
-
-                    </div> {# --- END Edit Mode Div --- #}
-                </form>
-
-            {% else %}
-                 {# ... (Placeholder when no session selected) ... #}
-            {% endif %}
-        </div>
-    </div>
-</div>
-
+{# --- JavaScript for managing view/edit/add modes --- #}
 <script>
-    // --- JavaScript Functions (showDetailTab, populateEditForm, etc. remain unchanged) ---
     function showDetailTab(tabName) {
-        // First hide all tab content within the current mode (view or edit)
-        const currentMode = document.getElementById('session-detail-wrapper').classList.contains('is-editing') || document.getElementById('session-detail-wrapper').classList.contains('is-adding') ? '.edit-mode' : '.view-mode';
-        document.querySelectorAll(`${currentMode} .detail-tab-content`).forEach(tab => tab.classList.remove('active'));
+        // Find the active mode (view or form)
+        const wrapper = document.getElementById('session-detail-wrapper');
+        const isEditingOrAdding = wrapper.classList.contains('is-editing') || wrapper.classList.contains('is-adding');
+        const modeSelector = isEditingOrAdding ? '.edit-mode-form' : '.view-mode';
 
-        // Deactivate all tab buttons
+        // Hide all tab content within the active mode
+        document.querySelectorAll(`${modeSelector} .detail-tab-content`).forEach(tab => tab.classList.remove('active'));
+
+        // Deactivate all tab buttons (only relevant in view mode)
         document.querySelectorAll('.detail-tab-button').forEach(button => button.classList.remove('active'));
 
-        // Activate the selected tab content within the current mode
-        const selectedTabContent = document.querySelector(`${currentMode} #${tabName}-tab`);
+        // Activate the selected tab content within the active mode
+        const selectedTabContent = document.querySelector(`${modeSelector} #${tabName}-tab`);
         if (selectedTabContent) {
             selectedTabContent.classList.add('active');
+        } else {
+             console.log(`Tab content not found for selector: ${modeSelector} #${tabName}-tab`);
         }
 
-        // Activate the selected tab button
+        // Activate the selected tab button (only relevant in view mode)
         const selectedTabButton = document.querySelector(`.detail-tab-button[data-tab="${tabName}"]`);
-        if (selectedTabButton) {
+        if (selectedTabButton && !isEditingOrAdding) {
             selectedTabButton.classList.add('active');
         }
     }
 
     function populateEditForm(data) {
-        // ... (Keep the existing populateEditForm function from the previous step) ...
-         if (!data) return;
+        if (!data) return;
         const form = document.getElementById('journal-detail-form');
-        // Existing fields...
         form.elements['seeing_observed_fwhm'].value = data.seeing_observed_fwhm || '';
         form.elements['sky_sqm_observed'].value = data.sky_sqm_observed || '';
         form.elements['moon_illumination_session'].value = data.moon_illumination_session || '';
@@ -447,142 +489,128 @@
         form.elements['gain_setting'].value = data.gain_setting || '';
         form.elements['offset_setting'].value = data.offset_setting || '';
         form.elements['session_rating_subjective'].value = data.session_rating_subjective || '';
-        form.elements['general_notes_problems_learnings'].value = data.notes || ''; // Note: form field name differs from DB
-        form.elements['transparency_observed_scale'].value = data.transparency_observed_scale || ''; // Added
-
-        // --- NEW FIELDS ---
+        form.elements['general_notes_problems_learnings'].value = data.notes || '';
+        form.elements['transparency_observed_scale'].value = data.transparency_observed_scale || '';
         form.elements['weather_notes'].value = data.weather_notes || '';
         form.elements['guiding_equipment'].value = data.guiding_equipment || '';
         form.elements['dither_details'].value = data.dither_details || '';
         form.elements['acquisition_software'].value = data.acquisition_software || '';
-        form.elements['camera_temp_setpoint_c'].value = data.camera_temp_setpoint_c !== null ? data.camera_temp_setpoint_c : ''; // Handle null from DB
-        form.elements['camera_temp_actual_avg_c'].value = data.camera_temp_actual_avg_c !== null ? data.camera_temp_actual_avg_c : ''; // Handle null from DB
+        form.elements['camera_temp_setpoint_c'].value = data.camera_temp_setpoint_c !== null ? data.camera_temp_setpoint_c : '';
+        form.elements['camera_temp_actual_avg_c'].value = data.camera_temp_actual_avg_c !== null ? data.camera_temp_actual_avg_c : '';
         form.elements['binning_session'].value = data.binning_session || '';
-        form.elements['darks_strategy'].value = data.darks_strategy || '';             // Added
-        form.elements['flats_strategy'].value = data.flats_strategy || '';             // Added
-        form.elements['bias_darkflats_strategy'].value = data.bias_darkflats_strategy || ''; // Added
-        // --- END NEW FIELDS ---
-
-        // Mono filters...
+        form.elements['darks_strategy'].value = data.darks_strategy || '';
+        form.elements['flats_strategy'].value = data.flats_strategy || '';
+        form.elements['bias_darkflats_strategy'].value = data.bias_darkflats_strategy || '';
         const monoFilters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'];
          monoFilters.forEach(filt => {
-            // Check if the key exists before accessing, default to empty string
             form.elements[`filter_${filt}_subs`].value = data.hasOwnProperty(`filter_${filt}_subs`) && data[`filter_${filt}_subs`] !== null ? data[`filter_${filt}_subs`] : '';
             form.elements[`filter_${filt}_exposure_sec`].value = data.hasOwnProperty(`filter_${filt}_exposure_sec`) && data[`filter_${filt}_exposure_sec`] !== null ? data[`filter_${filt}_exposure_sec`] : '';
         });
-
-        // Project selection...
-        if (data.project_id) {
-             form.elements['project_selection'].value = data.project_id;
-        } else {
-             form.elements['project_selection'].value = 'standalone';
-        }
-        toggleNewProjectField(); // Ensure correct display after setting value
+        if (data.project_id) { form.elements['project_selection'].value = data.project_id; }
+        else { form.elements['project_selection'].value = 'standalone'; }
+        toggleNewProjectField();
     }
 
-function setupAddMode() {
+    function setupAddMode() {
         const wrapper = document.getElementById('session-detail-wrapper');
-        const form = document.getElementById('journal-detail-form'); // Get the existing form element
-        const detailTitle = document.getElementById('detail-title');
+        const form = document.getElementById('journal-detail-form');
+        const formDetailTitle = document.getElementById('form-detail-title');
         const submitButton = document.getElementById('form-submit-button');
-        const cancelButton = submitButton.nextElementSibling; // Assuming cancel is next
+        const cancelButton = document.getElementById('form-cancel-button');
 
-        if (!wrapper || !form || !detailTitle || !submitButton || !cancelButton) {
+        if (!wrapper || !form || !formDetailTitle || !submitButton || !cancelButton) {
             console.error("Required elements for setupAddMode not found.");
             return;
         }
 
-        // --- Start modifying the EXISTING form ---
+        // Hide View mode content
+        document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
+        // Also hide the initial header/placeholder if they exist
+        const initialDetailHeader = wrapper.querySelector('.detail-header:not(form .detail-header)');
+        if(initialDetailHeader) initialDetailHeader.style.display = 'none';
+        const placeholder = wrapper.querySelector('p.view-mode');
+        if(placeholder) placeholder.style.display = 'none';
+
+        // Show Form
+        form.style.display = 'block';
         wrapper.classList.remove('is-editing');
-        wrapper.classList.add('is-adding'); // Add 'is-adding' class
+        wrapper.classList.add('is-adding'); // Add class to wrapper
 
-        // 1. Reset form fields to clear current values AND defaults defined in HTML
-        form.reset();
-
-        // 2. Set the correct action URL for adding
-        form.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}';
-
-        // 3. Explicitly clear fields that reset() might not fully clear or that need specific defaults
-        form.elements.session_id.value = ''; // Ensure no session ID is carried over
-        form.elements.session_date.value = '{{ today_date }}'; // Default to today's date
+        form.reset(); // Reset fields
+        form.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}'; // Set action URL
+        form.elements.session_id.value = ''; // Clear session ID
+        form.elements.session_date.value = '{{ today_date }}'; // Default date
         form.elements.location_name.value = '{{ default_location or (available_locations[0].name if available_locations else "") }}'; // Default location
-        form.elements['project_selection'].value = 'standalone'; // Default project selection
-        // Clear any potentially remaining image deletion checkbox state
-        const deleteCheckbox = form.elements['delete_session_image'];
-        if (deleteCheckbox) {
-            deleteCheckbox.checked = false;
-        }
-        // Clear file input visually (though reset() often does this)
-        const fileInput = form.elements['session_image'];
-        if(fileInput) {
-            fileInput.value = ''; // Clears the selected file
-        }
+        form.elements['project_selection'].value = 'standalone'; // Default project
 
+        // Clear image stuff
+        const deleteCheckbox = form.elements['delete_session_image']; if (deleteCheckbox) deleteCheckbox.checked = false;
+        const fileInput = form.elements['session_image']; if(fileInput) fileInput.value = '';
 
-        // 4. Update titles and buttons
-        detailTitle.textContent = 'Add New Session for {{ alt_name | default(object_name, True) }}';
+        // Update titles/buttons
+        formDetailTitle.textContent = 'Add New Session for {{ alt_name | default(object_name, True) }}';
         submitButton.textContent = 'Add Session';
-        submitButton.style.backgroundColor = '#28a745'; // Green for Add
-        cancelButton.onclick = () => window.location.reload(); // Make Cancel reload the page
+        submitButton.style.backgroundColor = '#28a745'; // Green
+        cancelButton.onclick = () => window.location.reload(); // Cancel reloads
 
-        // 5. Ensure correct UI state (show edit fields, hide view mode parts if necessary)
-        const viewModeElement = wrapper.querySelector('.view-mode');
-        if (viewModeElement) viewModeElement.style.display = 'none'; // Ensure view mode is hidden
-        const editModeElement = wrapper.querySelector('.edit-mode');
-        if (editModeElement) editModeElement.style.display = 'block'; // Ensure edit mode fields are visible
-
-        // 6. Manage tabs: Hide summary, show a default tab (e.g., sky)
-        const summaryTabButton = wrapper.querySelector('.detail-tab-button[data-tab="summary"]');
-        if(summaryTabButton) summaryTabButton.style.display = 'none'; // Hide summary button
-        showDetailTab('sky'); // Activate Sky tab by default for adding
-
-        // 7. Trigger initial calculations/updates for the new empty form
-        updateMoonData(); // Auto-fill moon data based on default date/location
-        toggleNewProjectField(); // Ensure project field visibility is correct based on default selection
+        updateMoonData(); // Trigger initial moon calc
+        toggleNewProjectField(); // Ensure project field is hidden initially
     }
 
     function setupEditMode() {
-        // ... (Keep the existing setupEditMode function) ...
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
-        wrapper.classList.add('is-editing');
+        const formDetailTitle = document.getElementById('form-detail-title');
+        const submitButton = document.getElementById('form-submit-button');
+        const cancelButton = document.getElementById('form-cancel-button');
+
+        if (!wrapper || !form || !formDetailTitle || !submitButton || !cancelButton) {
+             console.error("Required elements for setupEditMode not found.");
+             return;
+        }
+
+        // Hide View mode content
+        document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
+        const initialDetailHeader = wrapper.querySelector('.detail-header:not(form .detail-header)');
+        if(initialDetailHeader) initialDetailHeader.style.display = 'none';
+
+        // Show Form
+        form.style.display = 'block';
+        wrapper.classList.add('is-editing'); // Add class to wrapper
         wrapper.classList.remove('is-adding');
 
-         // Hide view mode content, show edit mode form fields
-        const viewModeElement = wrapper.querySelector('.view-mode');
-        if (viewModeElement) viewModeElement.style.display = 'none';
-        wrapper.querySelector('.edit-mode').style.display = 'block';
-
         if (window.selectedSessionData) {
-            document.getElementById('detail-title').textContent = 'Editing Session: ' + new Date(window.selectedSessionData.date_utc).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            // Update title and action
+            formDetailTitle.textContent = 'Editing Session: ' + new Date(window.selectedSessionData.date_utc).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
             form.action = `/journal/edit/${window.selectedSessionData.id}`;
-            // Set date and location first as they trigger moon data update
+            form.elements.session_id.value = window.selectedSessionData.id;
+
+            // Set date/location first, then populate the rest
             form.elements.session_date.value = window.selectedSessionData.date_utc.split('T')[0];
             form.elements.location_name.value = window.selectedSessionData.location_name;
-            // Now populate the rest, which might include moon data that was just fetched
-            populateEditForm(window.selectedSessionData);
+            populateEditForm(window.selectedSessionData); // Fill form fields
+            updateMoonData(); // Trigger moon update
         }
-         // Hide summary tab button, show edit fields, activate sky tab
-        wrapper.querySelector('.detail-tab-button[data-tab="summary"]').style.display = 'none';
-        showDetailTab('sky'); // Activate sky tab
-        updateMoonData(); // Trigger moon update after setting date/location
+
+        // Style buttons for Edit mode
+        submitButton.textContent = 'Save Changes';
+        submitButton.style.backgroundColor = '#007bff'; // Blue
+        cancelButton.onclick = cancelForm; // Use standard cancel
     }
 
     function cancelForm() {
-        // ... (Keep the existing cancelForm function) ...
+        // Simple reload discard changes and shows the initial view mode
         window.location.reload();
     }
 
     async function updateMoonData() {
-        // ... (Keep the existing updateMoonData function) ...
-         const dateInput = document.getElementById('session_date');
+        const dateInput = document.getElementById('session_date');
         const locationSelect = document.getElementById('location_name');
-        if (!dateInput || !locationSelect) return; // Exit if elements aren't found
+        if (!dateInput || !locationSelect) return;
 
         const date = dateInput.value;
         const selectedOption = locationSelect.options[locationSelect.selectedIndex];
         if (!date || !selectedOption || !selectedOption.dataset.lat) {
-            // Clear fields if date/location is invalid or not selected
              document.getElementById('moon_illumination_session').value = '';
              document.getElementById('moon_angular_separation_session').value = '';
             return;
@@ -591,13 +619,12 @@ function setupAddMode() {
         const lat = selectedOption.dataset.lat;
         const lon = selectedOption.dataset.lon;
         const tz = selectedOption.dataset.tz;
-        // Safely get RA/DEC - use template variables populated by Python
         const ra = '{{ object_main_details["RA (hours)"] | default("", True) }}';
         const dec = '{{ object_main_details["DEC (degrees)"] | default("", True) }}';
 
         if (!ra || !dec) {
              console.warn("RA/DEC not available for moon calculation.");
-             document.getElementById('moon_illumination_session').value = ''; // Clear if RA/DEC missing
+             document.getElementById('moon_illumination_session').value = '';
              document.getElementById('moon_angular_separation_session').value = '';
              return;
         }
@@ -612,18 +639,17 @@ function setupAddMode() {
                 document.getElementById('moon_angular_separation_session').value = data.angular_separation !== null ? data.angular_separation : '';
             } else {
                 console.error('Error fetching moon data:', data.message);
-                 document.getElementById('moon_illumination_session').value = ''; // Clear on API error
+                 document.getElementById('moon_illumination_session').value = '';
                  document.getElementById('moon_angular_separation_session').value = '';
              }
         } catch (error) {
             console.error('Failed to fetch moon data:', error);
-             document.getElementById('moon_illumination_session').value = ''; // Clear on fetch error
+             document.getElementById('moon_illumination_session').value = '';
              document.getElementById('moon_angular_separation_session').value = '';
         }
     }
 
     function toggleNewProjectField() {
-        // ... (Keep the existing toggleNewProjectField function) ...
         const projectSelect = document.getElementById('project_selection');
         const newProjectGroup = document.getElementById('new_project_name_group');
         if (projectSelect && newProjectGroup) {
@@ -631,5 +657,28 @@ function setupAddMode() {
         }
     }
 
+    // --- Ensure correct initial state on page load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const wrapper = document.getElementById('session-detail-wrapper');
+        const form = document.getElementById('journal-detail-form');
+        // If a session IS selected initially, hide the form by default.
+        // If NO session is selected, the form is already hidden by its style attribute.
+        if (wrapper && form && wrapper.querySelector('.view-mode .detail-header')) { // Check if view-mode header exists
+             form.style.display = 'none'; // Hide form if view is showing
+        } else if (form) {
+            // Ensure form is hidden if no session is selected (placeholder showing)
+             form.style.display = 'none';
+        }
+
+        // Trigger initial moon data calc for ADD mode defaults or EDIT mode data
+         if (wrapper && (wrapper.classList.contains('is-adding') || wrapper.classList.contains('is-editing'))) {
+            updateMoonData();
+        }
+
+        // Show initial tab for view mode if session selected
+        if(wrapper && wrapper.querySelector('.view-mode .detail-header')){
+            showDetailTab('summary');
+        }
+    });
 
 </script>
