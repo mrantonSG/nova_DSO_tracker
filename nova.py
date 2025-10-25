@@ -343,7 +343,7 @@ class JournalSession(Base):
     filter_SII_subs = Column(Integer, nullable=True);
     filter_SII_exposure_sec = Column(Integer, nullable=True)
     calculated_integration_time_minutes = Column(Float, nullable=True)
-    external_id = Column(String(64), nullable=True, unique=True)  # Added unique constraint
+    external_id = Column(String(64), nullable=True, index=True)
 
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
@@ -361,7 +361,7 @@ def ensure_db_initialized_unified():
     Create tables if missing, ensure schema patches (external_id column),
     and set SQLite pragmas before any queries or migrations run.
     """
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
     with engine.begin() as conn:
         # Ensure external_id exists on journal_sessions
         cols = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
@@ -867,31 +867,45 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
     if isinstance(data, list):
         data = {"projects": [], "sessions": data}
     else:
+        # Ensure 'projects' and 'sessions' keys exist, handle legacy 'entries' key
         data.setdefault("projects", [])
-        data.setdefault("sessions", data.get("entries", []))
+        data.setdefault("sessions", data.get("entries", [])) # Use 'entries' as fallback
 
     # --- 1. Migrate Projects ---
     for p in (data.get("projects") or []):
-        if p.get("project_id") and p.get("project_name"):
-            if not db.query(Project).filter_by(id=p["project_id"]).one_or_none():
-                db.add(Project(id=p["project_id"], user_id=user.id, name=p["project_name"]))
-    db.flush()
+        # Check if both project_id and project_name are present and non-empty
+        project_id_val = p.get("project_id")
+        project_name_val = p.get("project_name")
+        if project_id_val and str(project_id_val).strip() and project_name_val and str(project_name_val).strip():
+            # Check if project already exists by ID
+            if not db.query(Project).filter_by(id=str(project_id_val)).one_or_none():
+                # Check if a project with the same name already exists for the user
+                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=str(project_name_val)).one_or_none()
+                if not existing_by_name:
+                    db.add(Project(id=str(project_id_val), user_id=user.id, name=str(project_name_val)))
+                # else: print(f"[MIGRATION][PROJECT SKIP] Project '{project_name_val}' already exists for user {user.username}, skipping ID '{project_id_val}'.") # Optional warning
+        # else: print(f"[MIGRATION][PROJECT SKIP] Invalid project entry: {p}") # Optional warning
+    db.flush() # Flush after adding all valid projects
 
     # --- 2. Migrate Sessions with ALL fields ---
     for s in (data.get("sessions") or []):
+        # Get external ID, preferring 'session_id' then 'id'
         ext_id = s.get("session_id") or s.get("id")
+        # Get date, preferring 'session_date' then 'date'
         date_str = s.get("session_date") or s.get("date")
-        if not date_str: continue
+        if not date_str: continue # Skip if no date
 
+        # Try parsing date (ISO or YYYY-MM-DD)
         try:
             dt = datetime.fromisoformat(date_str).date()
         except:
             try:
                 dt = datetime.strptime(date_str, "%Y-%m-%d").date()
             except:
-                continue
+                print(f"[MIGRATION][SESSION SKIP] Invalid date format '{date_str}' for session with external_id '{ext_id}'. Skipping.")
+                continue # Skip if date parsing fails
 
-        # This dictionary now maps every key from your YAML to the database column
+        # Map all YAML keys to DB columns
         row_values = {
             "user_id": user.id,
             "project_id": s.get("project_id"),
@@ -938,36 +952,36 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
             "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
             "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
+            # Ensure external_id is stored as string if it exists
             "external_id": str(ext_id) if ext_id else None
         }
 
-        # Upsert logic - More Defensive
-        should_add = True
+        # *** START: Simplified Upsert Logic ***
         if ext_id:
-            # Check if it *already exists in the DB*
-            existing_in_db = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).one_or_none()
-            if existing_in_db:
-                 # It's already committed in the DB, just update it
-                for k, v in row_values.items():
-                    if v is not None:
-                        setattr(existing_in_db, k, v)
-                should_add = False # Don't try to add it again
-            else:
-                 # Check if we *just added* it in this same transaction (prevent double-add before commit)
-                 # This uses SQLAlchemy's identity map implicitly
-                 maybe_added_session = db.query(JournalSession).filter_by(user_id=user.id, external_id=str(ext_id)).with_for_update().one_or_none()
-                 if maybe_added_session in db.new:
-                     # Already staged for insert, maybe update if needed, but don't add again
-                     for k, v in row_values.items():
-                         if v is not None:
-                             setattr(maybe_added_session, k, v)
-                     should_add = False
+            # Try to find an existing session with this external_id for this user
+            existing_session = db.query(JournalSession).filter_by(
+                user_id=user.id,
+                external_id=str(ext_id)
+            ).one_or_none()
 
-        if should_add:
-             # Only add if it doesn't exist in DB and isn't already staged for insertion
+            if existing_session:
+                # UPDATE: Session found, update its fields
+                for k, v in row_values.items():
+                    # Only update if the new value is not None
+                    if v is not None:
+                        setattr(existing_session, k, v)
+                # No need to db.add() here
+            else:
+                # INSERT: Session not found, create a new one
+                new_session = JournalSession(**row_values)
+                db.add(new_session)
+        else:
+            # INSERT (No external ID provided): Always create a new session
             new_session = JournalSession(**row_values)
             db.add(new_session)
+        # *** END: Simplified Upsert Logic ***
 
+        # Removed db.flush() from here, let commit handle it later
 
 def _migrate_ui_prefs(db, user: DbUser, config: dict):
     """
