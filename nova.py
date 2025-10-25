@@ -2268,7 +2268,6 @@ def check_for_updates():
     except Exception as e:
         print(f"❌ [VERSION CHECK] An unexpected error occurred: {e}")
 
-
 def trigger_outlook_update_for_user(username):
     """
     Loads a user's config and starts Outlook cache workers for all their locations.
@@ -2277,10 +2276,25 @@ def trigger_outlook_update_for_user(username):
     try:
         user_cfg = build_user_config_from_db(username)
         locations = user_cfg.get('locations', {})
+
+        # --- START FIX: Determine sampling_interval correctly ---
+        sampling_interval = 15  # Default
+        if SINGLE_USER_MODE:
+            # In single-user mode, get it from the user's config (UiPref blob)
+            sampling_interval = user_cfg.get('sampling_interval_minutes', 15)
+        else:
+            # In multi-user mode, get it from environment variables (or default)
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        # --- END FIX ---
+
         for loc_name in locations.keys():
-            # We don't need to check for staleness here, we want to force the update.
-            # print(f"    -> Starting Outlook worker for location '{loc_name}'.")
-            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy(), g.sampling_interval))
+            # --- START FIX: Set status to 'starting' *before* starting thread ---
+            status_key = f"{username}_{loc_name}"
+            cache_worker_status[status_key] = "starting"
+            print(f"    -> Set status='starting' for {status_key}")
+            # --- END FIX ---
+
+            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy(), sampling_interval)) # Pass correct interval
             thread.start()
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
@@ -2998,7 +3012,6 @@ def telemetry_debug():
         'last_error': TELEMETRY_DEBUG_STATE.get('last_error'),
         'last_ts': TELEMETRY_DEBUG_STATE.get('last_ts')
     })
-
 @app.route('/get_outlook_data')
 def get_outlook_data():
     load_full_astro_context()
@@ -3040,7 +3053,16 @@ def get_outlook_data():
     cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
     status_key = f"{username}_{location_name}" # Key for checking background worker status
 
-    # --- Check for existing cache file ---
+    # --- START FIX: Check worker status FIRST ---
+    worker_status = cache_worker_status.get(status_key, "idle")
+    if worker_status in ["running", "starting"]:
+        # A worker is already running (or just started).
+        # Tell the client to wait, even if an old cache file exists.
+        print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
+        return jsonify({"status": worker_status, "results": []})
+    # --- END FIX ---
+
+    # --- Worker is idle. NOW check the cache file. ---
     if os.path.exists(cache_filename):
         try:
             # Check if the cache is stale (e.g., older than 1 day)
@@ -3048,27 +3070,20 @@ def get_outlook_data():
             is_stale = (datetime.now().timestamp() - cache_mtime) > 86400 # 86400 seconds = 1 day
 
             if not is_stale:
-                # Cache is fresh, read and return its content
+                # Cache is fresh AND no worker is running. Serve it.
                 with open(cache_filename, 'r') as f:
                     data = json.load(f)
                 return jsonify({"status": "complete", "results": data.get("opportunities", [])})
             else:
-                # Cache is stale, proceed to check worker status and potentially trigger an update
-                print(f"[OUTLOOK] Cache for {status_key} is stale. Checking worker status.")
+                # Cache is stale. Proceed to start a new worker.
+                print(f"[OUTLOOK] Cache for {status_key} is stale. Will start new worker.")
 
         except (json.JSONDecodeError, IOError, OSError) as e:
             # Error reading or parsing the file, treat as missing/corrupt
             print(f"❌ ERROR: Could not read/parse outlook cache '{cache_filename}': {e}")
-            # Proceed to check worker status
+            # Proceed to start a new worker
 
-    # --- Cache is missing, stale, or corrupt. Check background worker. ---
-    worker_status = cache_worker_status.get(status_key, "idle")
-
-    if worker_status in ["running", "starting"]:
-        # Worker is already active, tell the frontend to wait and poll again
-        return jsonify({"status": worker_status, "results": []})
-
-    # --- Worker is idle, completed (but cache was bad/stale), or errored. Start a new one. ---
+    # --- Cache is missing, stale, or corrupt, AND no worker is running. Start a new one. ---
     print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
     try:
         # Ensure user config is available (should be in 'g')
@@ -3099,7 +3114,6 @@ def get_outlook_data():
         traceback.print_exc()
         cache_worker_status[status_key] = "error" # Mark as error if thread start fails
         return jsonify({"status": "error", "message": "Failed to start background worker."}), 500
-
 @app.route('/api/latest_version')
 def get_latest_version():
     """An API endpoint for the frontend to check for updates."""
