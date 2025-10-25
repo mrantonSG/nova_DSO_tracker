@@ -4,7 +4,7 @@
 
 {% block head_extra %}
 
-<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8"></script>
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
