@@ -2103,30 +2103,56 @@ def migrate_journal_data():
     print("[MIGRATION] Check complete.")
 
 def get_hybrid_weather_forecast(lat, lon):
-    """
-    Fetch 8-day 'meteo' (base) and optionally merge 3-day 'astro'.
-    On failure:
-      - return the last successful cached result (if any)
-      - rate-limit error logs to avoid console spam
-    """
-    cache_key = f"hybrid_{lat}_{lon}"
-    now = datetime.now(UTC)
+    # --- ADD ROUNDING before generating key ---
+    rounded_lat = round(lat, 5)
+    rounded_lon = round(lon, 5)
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}" # Use rounded values
+    # --- End Add Rounding ---
+    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}") # Added Log
+
+    now = datetime.now(UTC) # Use timezone.utc or pytz.utc
     entry = weather_cache.get(cache_key) or {}
     last_good = entry.get('data')
     last_err_ts = entry.get('last_err_ts')
 
-    # serve unexpired cache fast-path
-    if entry and 'expires' in entry and now < entry['expires']:
-        return entry['data']
+    # --- Use timezone-aware comparison for expiry ---
+    if entry and 'expires' in entry:
+        expires_dt = entry['expires']
+        is_expired = False
+        try:
+             # Robust timezone comparison
+             if expires_dt.tzinfo is not None:
+                 if now >= expires_dt: is_expired = True
+             elif now.replace(tzinfo=None) >= expires_dt: # Compare naive if expiry is naive
+                 is_expired = True
+        except TypeError as te: # Handle comparison errors between aware/naive
+            print(f"[Weather Func] WARN: Timezone comparison error for key '{cache_key}': {te}")
+            is_expired = True # Treat as expired if comparison fails
+
+        if not is_expired:
+            # print(f"[Weather Func] Cache HIT for '{cache_key}'") # Optional log
+            return entry['data'] # Serve fresh cache
+        # else: print(f"[Weather Func] Cache EXPIRED for '{cache_key}'") # Optional log
+    # else: print(f"[Weather Func] Cache MISS for '{cache_key}'") # Optional log
+
 
     def _update_cache_ok(data, ttl_hours=3):
-        weather_cache[cache_key] = {'data': data, 'expires': now + timedelta(hours=ttl_hours), 'last_err_ts': None}
+        # --- Ensure expiry is timezone-aware (UTC) ---
+        expiry_time = datetime.now(UTC) + timedelta(hours=ttl_hours)
+        # --- END ---
+        weather_cache[cache_key] = {'data': data, 'expires': expiry_time, 'last_err_ts': None}
+        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}") # Log update
 
     def _rate_limited_error(msg):
         nonlocal last_err_ts
-        if not last_err_ts or (now - last_err_ts) > timedelta(minutes=15):
+        # --- Make timezone-aware for comparison ---
+        now_aware = datetime.now(UTC)
+        if not last_err_ts or (now_aware - last_err_ts) > timedelta(minutes=15):
             print(msg)
-            weather_cache.setdefault(cache_key, {})['last_err_ts'] = now
+            # --- Store aware datetime ---
+            weather_cache.setdefault(cache_key, {})['last_err_ts'] = now_aware
+        # --- END ---
+
 
     # --- Try base 'meteo' ---
     try:
@@ -2134,16 +2160,12 @@ def get_hybrid_weather_forecast(lat, lon):
         resp = requests.get(meteo_url, timeout=10)
         resp.raise_for_status()
         meteo_data = resp.json()
-        # Optional: quiet success log
-        # print("DEBUG: Successfully fetched 8-day 'meteo' forecast.")
     except Exception as e:
-        _rate_limited_error(f"ERROR: Could not fetch 'meteo' weather data: {e}")
-        # print(f"       Response text from server: {resp.text[:500]}")
-        return last_good or None
+        _rate_limited_error(f"[Weather Func] ERROR: Could not fetch 'meteo' for key '{cache_key}': {e}")
+        return last_good or None # Return last good or None on failure
 
     if not meteo_data or 'dataseries' not in meteo_data:
-        _rate_limited_error("DEBUG: Base 'meteo' forecast failed. Returning last good (if any).")
-        # print(f"       Response text from server: {resp.text[:500]}")
+        _rate_limited_error(f"[Weather Func] ERROR: Invalid 'meteo' data for key '{cache_key}'.")
         return last_good or None
 
     # index for merge
@@ -2160,73 +2182,53 @@ def get_hybrid_weather_forecast(lat, lon):
                 tp = ablk.get('timepoint')
                 if tp in base:
                     base[tp].update(ablk)
-            # Optional: quiet success log
-            # print("DEBUG: Successfully fetched 3-day 'astro' forecast for enhancement.")
     except Exception as e:
-        _rate_limited_error(f"WARNING: 'astro' merge skipped: {e}")
+        _rate_limited_error(f"[Weather Func] WARNING: 'astro' merge skipped for key '{cache_key}': {e}")
 
     final = {'init': meteo_data.get('init'), 'dataseries': list(base.values())}
-    _update_cache_ok(final, ttl_hours=3)
+    _update_cache_ok(final, ttl_hours=3) # Call the updated cache function
     return final
 
-
+# --- Check weather_cache_worker ---
+# Find this function (around line 3505)
 def weather_cache_worker():
-    """
-    A background worker thread that proactively refreshes the 7Timer! weather cache
-    for all active locations, preventing delays during user requests.
-    """
-    # Wait 60 seconds on initial startup to let the app finish booting
-    # and avoid conflicting with the main cache warmers.
-    print("[WEATHER WORKER] Initializing... waiting 60s for app to settle.")
-    time.sleep(60)
-
+    # ... (Keep existing startup wait) ...
     while True:
         print("[WEATHER WORKER] Starting background refresh cycle...")
         unique_locations = set()
-
-        # We must use an app context to access the database from a thread
         with app.app_context():
             db = None
             try:
                 db = get_db()
-                # Query all locations that are marked as 'active'
                 active_locs = db.query(Location).filter_by(active=True).all()
-
                 for loc in active_locs:
                     if loc.lat is not None and loc.lon is not None:
-                        # Add (lat, lon) tuples to a set to avoid duplicate lookups
-                        # Rounding to 4 decimal places (~11 meters) prevents
-                        # tiny float differences from causing duplicate API calls.
-                        unique_locations.add((round(loc.lat, 4), round(loc.lon, 4)))
-
+                        # --- ADD ROUNDING HERE when adding to the set ---
+                        unique_locations.add((round(loc.lat, 5), round(loc.lon, 5)))
+                        # --- END ADD ROUNDING ---
             except Exception as e:
                 print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
             finally:
-                if db:
-                    db.close()  # Always close the session
+                if db: db.close()
 
         print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
-
         refreshed_count = 0
-        for lat, lon in unique_locations:
+        for lat, lon in unique_locations: # These lat/lon are now rounded
             try:
-                # Call the existing function. It will fetch from 7Timer!
-                # and automatically update the in-memory 'weather_cache'.
-                get_hybrid_weather_forecast(lat, lon)
+                # --- Pass the rounded lat/lon to the function ---
+                # Although get_hybrid_weather_forecast now rounds internally,
+                # passing the rounded values makes the log message below accurate.
+                print(f"[Weather Worker] Refreshing for rounded lat={lat}, lon={lon}") # Log rounded values
+                get_hybrid_weather_forecast(lat, lon) # Call with potentially rounded values
+                # --- End Pass Rounded ---
                 refreshed_count += 1
-
-                # Be kind to the 7Timer! API, wait 5 seconds between requests
                 time.sleep(5)
-
             except Exception as e:
                 print(f"[WEATHER WORKER] ERROR: Failed to fetch for ({lat}, {lon}): {e}")
 
-        # Sleep for 2 hours before the next cycle.
-        # The cache TTL is 3 hours, so this ensures it's always fresh.
-        print(
-            f"[WEATHER WORKER] Refresh cycle complete ({refreshed_count}/{len(unique_locations)} successful). Sleeping for 2 hours.")
-        time.sleep(2 * 60 * 60)  # 2 hours * 60 min/hr * 60 sec/min
-
+        # ... (Keep existing sleep logic) ...
+        print(f"[WEATHER WORKER] Refresh cycle complete ({refreshed_count}/{len(unique_locations)} successful). Sleeping for 2 hours.")
+        time.sleep(2 * 60 * 60)
 
 def generate_session_id():
     """Generates a unique session ID."""
@@ -6253,34 +6255,26 @@ def get_plot_data(object_name):
         transit_time, date, timezone
       }
     """
-    # --- 1) Resolve object RA/DEC ---
+    # --- 1) Resolve object RA/DEC (Keep as is) ---
     data = get_ra_dec(object_name)
     if not data:
         return jsonify({"error": "Object data not found or invalid."}), 404
-
     ra = data.get('RA (hours)')
-    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))  # tolerate both keys
-
+    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))
     if ra is None or dec is None:
         return jsonify({"error": "RA/DEC missing for object."}), 404
+    ra = float(ra); dec = float(dec)
 
-    ra = float(ra)
-    dec = float(dec)
-
-    # --- 2) Read params with SAFE fallbacks (treat blank as missing) ---
+    # --- 2) Read params with SAFE fallbacks (Keep as is) ---
     plot_lat_str  = (request.args.get('plot_lat', '') or '').strip()
     plot_lon_str  = (request.args.get('plot_lon', '') or '').strip()
     plot_tz_name  = (request.args.get('plot_tz', '') or '').strip()
     plot_loc_name = (request.args.get('plot_loc_name', '') or '').strip()
-
-    # Fallbacks from g / config if blanks were passed
     try:
         lat = float(plot_lat_str) if plot_lat_str else float(getattr(g, "lat", 0.0))
         lon = float(plot_lon_str) if plot_lon_str else float(getattr(g, "lon", 0.0))
-        if not plot_tz_name:
-            plot_tz_name = getattr(g, "tz_name", "UTC")
-        if not plot_loc_name:
-            plot_loc_name = getattr(g, "location_name", None) or g.user_config.get("default_location", "")
+        if not plot_tz_name: plot_tz_name = getattr(g, "tz_name", "UTC")
+        if not plot_loc_name: plot_loc_name = getattr(g, "location_name", None) or g.user_config.get("default_location", "")
         local_tz = pytz.timezone(plot_tz_name)
     except Exception:
         return jsonify({"error": "Invalid location or timezone data."}), 400
@@ -6291,47 +6285,49 @@ def get_plot_data(object_name):
     year  = int(request.args.get('year',  now_local.year))
     local_date = f"{year:04d}-{month:02d}-{day:02d}"
 
-    # 1. Fetch the weather forecast for the location
-    weather_forecast_series = []  # Initialize empty list
-    cache_key = f"hybrid_{lat}_{lon}"
-    cached_entry = weather_cache.get(cache_key)  # Get cache entry if it exists
+    # --- Weather forecast section ---
+    weather_forecast_series = []
+    # --- ADD ROUNDING before generating key ---
+    rounded_lat = round(lat, 5)
+    rounded_lon = round(lon, 5)
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}" # Use rounded values
+    # --- End Add Rounding ---
+    print(f"[API Plot Data] Checking weather cache with key: '{cache_key}'") # Added Log
 
-    # Check if cache entry exists, is valid data, and hasn't expired
+    cached_entry = weather_cache.get(cache_key)
+
+    # Check cache entry (Keep as is - Your logic here looks correct)
     if cached_entry and 'data' in cached_entry and 'expires' in cached_entry:
-        now_utc = datetime.now(timezone.utc)  # Get current UTC time
-        # Use pytz-aware comparison if expires is timezone-aware, otherwise make now_utc naive
+        now_utc = datetime.now(timezone.utc)
         expires_dt = cached_entry['expires']
-        if expires_dt.tzinfo is not None:
-            if now_utc < expires_dt:
-                weather_data = cached_entry['data']  # Use cached data
-                print(f"[Weather API /get_plot_data] Using FRESH cache for {lat},{lon}")  # Optional log
-            else:
-                weather_data = None  # Cache expired
-                print(f"[Weather API /get_plot_data] Cache EXPIRED for {lat},{lon}")  # Optional log
+        is_expired = False
+        try: # Added try block for robust comparison
+            if expires_dt.tzinfo is not None:
+                if now_utc >= expires_dt: is_expired = True
+            elif now_utc.replace(tzinfo=None) >= expires_dt:
+                is_expired = True
+        except TypeError: is_expired = True # Aware vs naive compare fails
+
+        if not is_expired:
+            weather_data = cached_entry['data']
+            print(f"[API Plot Data] Using FRESH cache for key '{cache_key}'") # Added Log
         else:
-            # If cached expiry is naive, make current time naive for comparison
-            if now_utc.replace(tzinfo=None) < expires_dt:
-                weather_data = cached_entry['data']
-                print(f"[Weather API /get_plot_data] Using FRESH (naive) cache for {lat},{lon}")  # Optional log
-            else:
-                weather_data = None
-                print(f"[Weather API /get_plot_data] Cache EXPIRED (naive) for {lat},{lon}")  # Optional log
-
+            weather_data = None
+            print(f"[API Plot Data] Cache EXPIRED for key '{cache_key}'") # Added Log
     else:
-        weather_data = None  # Cache miss or invalid entry
-        print(f"[Weather API /get_plot_data] Cache MISS for {lat},{lon}")  # Optional log
-        # NOTE: We are NOT calling get_hybrid_weather_forecast() here anymore
-        # The background worker will eventually fill the cache.
+        weather_data = None
+        print(f"[API Plot Data] Cache MISS for key '{cache_key}'") # Added Log
 
-    # Process weather_data ONLY if it was successfully retrieved from cache
+    # --- Process weather_data ONLY ONCE ---
     if weather_data and isinstance(weather_data.get('dataseries'), list):
-        # ... (keep the existing try...except block that processes weather_data) ...
+        print(f"[API Plot Data] Processing 'dataseries' from cache...") # Added Log
         try:
             init_str = weather_data.get('init', '')
             init_time = datetime(
                 year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
                 hour=int(init_str[8:10]), tzinfo=timezone.utc
             )
+            count = 0 # Add counter
             for block in weather_data['dataseries']:
                 timepoint_hours = block.get('timepoint')
                 if timepoint_hours is None: continue
@@ -6342,70 +6338,34 @@ def get_plot_data(object_name):
                     "cloudcover": block.get("cloudcover"), "seeing": block.get("seeing"),
                     "transparency": block.get("transparency"),
                 })
+                count += 1 # Increment counter
+            print(f"[API Plot Data] Successfully processed {count} weather blocks from cache.") # Added Log
         except Exception as e:
-            print(f"Error processing cached 7Timer! data (tolerated): {e}")
-            weather_forecast_series = []  # Ensure it's empty on error
+            print(f"[API Plot Data] ERROR processing cached weather data: {e}") # Added Log
+            weather_forecast_series = []
+    # --- REMOVE THE DUPLICATE BLOCK THAT WAS HERE ---
 
-    # 2. Process the data if the fetch was successful
-    if weather_data and isinstance(weather_data.get('dataseries'), list):
-        try:
-            # The 'init' time is a string like "YYYYMMDDHH" (e.g., "2025100400")
-            init_str = weather_data.get('init', '')
-            init_time = datetime(
-                year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
-                hour=int(init_str[8:10]), tzinfo=timezone.utc
-            )
-
-            for block in weather_data['dataseries']:
-                # Use .get to avoid KeyError for fields not present in the 'meteo' product
-                timepoint_hours = block.get('timepoint')
-                if timepoint_hours is None:
-                    # Skip malformed entries
-                    continue
-
-                start_time = init_time + timedelta(hours=int(timepoint_hours))
-                end_time = start_time + timedelta(hours=3)  # 7Timer! uses 3-hour blocks
-
-                weather_forecast_series.append({
-                    "start": start_time.isoformat(),
-                    "end": end_time.isoformat(),
-                    "cloudcover": block.get("cloudcover"),       # present in astro & meteo
-                    "seeing": block.get("seeing"),               # present only in astro (first ~72h)
-                    "transparency": block.get("transparency"),   # present only in astro (first ~72h)
-                })
-        except Exception as e:
-            # Keep a single concise log; avoid spamming runtime when optional fields are missing
-            print(f"Error processing 7Timer! data (tolerated): {e}")
-
-
-
-    # --- 3) Build time grid and object/Moon series ---
+    # --- 3) Build time grid and object/Moon series (Keep as is) ---
     times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date, sampling_interval_minutes=5)
-
     location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     altaz_frame = AltAz(obstime=times_utc, location=location)
-
     sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
     altaz_obj = sky_coord.transform_to(altaz_frame)
     altitudes = altaz_obj.alt.deg
-    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0  # normalize to [0,360)
+    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0
 
-
-    # Horizon mask (per-location)
+    # Horizon mask (Keep as is)
     location_config   = g.user_config.get("locations", {}).get(plot_loc_name, {}) if isinstance(g.user_config, dict) else {}
     horizon_mask      = location_config.get("horizon_mask")
     altitude_threshold = g.user_config.get("altitude_threshold", 20)
-
     if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
         sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
         horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
     else:
-        # No custom mask => flat threshold
         horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
 
-    # Moon series (vector-safe path is fine, but loop is explicit & robust)
-    moon_altitudes = []
-    moon_azimuths = []
+    # Moon series (Keep as is)
+    moon_altitudes = []; moon_azimuths = []
     for t in times_utc:
         t_ast = Time(t)
         moon_icrs = get_body('moon', t_ast, location=location)
@@ -6413,17 +6373,18 @@ def get_plot_data(object_name):
         moon_altitudes.append(moon_altaz.alt.deg)
         moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
 
-    # Sun events and transit
+    # Sun events and transit (Keep as is)
     sun_events_curr = calculate_sun_events_cached(local_date, plot_tz_name, lat, lon)
     next_date_str   = (datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
     sun_events_next = calculate_sun_events_cached(next_date_str, plot_tz_name, lat, lon)
     transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
 
-    # --- 4) Force exactly 24h window: prepend/append sentinels ---
+    # --- 4) Force exactly 24h window (Keep as is) ---
     start_time = times_local[0]
     end_time   = start_time + timedelta(hours=24)
     final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
 
+    # Final plot data structure (Keep as is)
     plot_data = {
         "times": final_times_iso,
         "object_alt": [None] + list(altitudes) + [None],
@@ -6435,7 +6396,7 @@ def get_plot_data(object_name):
         "transit_time": transit_time_str,
         "date": local_date,
         "timezone": plot_tz_name,
-        "weather_forecast": weather_forecast_series
+        "weather_forecast": weather_forecast_series # This uses the processed list
     }
     return jsonify(plot_data)
 
