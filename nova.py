@@ -4967,10 +4967,10 @@ def get_object_data(object_name):
 @app.route('/')
 def index():
     load_full_astro_context()
-    if not (current_user.is_authenticated or SINGLE_USER_MODE):
+    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
         return redirect(url_for('login'))
 
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if SINGLE_USER_MODE else current_user.username if current_user.is_authenticated else "guest_user"
     db = get_db()
     try:
         user = db.query(DbUser).filter_by(username=username).one_or_none()
@@ -5429,15 +5429,18 @@ def get_moon_data_for_session():
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
     # --- 1. Determine User (No change) ---
+    if not (SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
+        # If none are true, *then* redirect to login
+        flash("Please log in to view object details.", "info")
+        return redirect(url_for('login'))
+
+    # Determine username based on the mode/status
     if SINGLE_USER_MODE:
         username = "default"
     elif current_user.is_authenticated:
         username = current_user.username
-    else:
-        # Guests generally shouldn't reach here if routes are protected
-        # but handle just in case, maybe redirect to login or show limited view
-        flash("Please log in to view object details.", "info")
-        return redirect(url_for('login')) # Or render a specific guest view
+    else:  # Must be a guest if we reached here
+        username = "guest_user"
 
     db = get_db()
     try:
