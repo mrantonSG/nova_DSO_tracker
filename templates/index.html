@@ -790,6 +790,7 @@ async function fetchData() {
             sortTable(currentSort.columnKey, false); // Apply the current sort order
             filterTable(); // Apply any active filters
             tbody.dataset.loading = 'false'; // Mark loading as complete
+            fetchSunEvents();
         }
     }
 
@@ -1042,7 +1043,7 @@ function setLocation() {
 
         // Directly trigger data refresh using the new location (which fetchData etc. will now read from sessionStorage)
         fetchData();
-        fetchSunEvents();
+        // fetchSunEvents();
         if (activeTab === 'journal') {
            populateJournalTable();
         } else if (activeTab === 'outlook') {
