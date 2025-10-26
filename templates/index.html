@@ -938,7 +938,7 @@ async function fetchData() {
       localStorage.setItem(tableType + "_filter_col_key_" + columnKey, inputElement.value);
     }
 
-    function showGraph(objectName, dateStr = null, targetTab = null) {
+    function showGraph(objectName, dateStr = null, targetTab = 'chart') {
         let url = '/graph_dashboard/' + encodeURIComponent(objectName);
         const params = new URLSearchParams();
         const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
@@ -1351,7 +1351,7 @@ function populateJournalTable() {
             let htmlRows = "";
             filteredData.forEach(target => {
                 htmlRows += `
-                    <tr class="clickable-row" onclick="showGraph('${target.object_name}', '${target.date}')">
+                    <tr class="clickable-row" onclick="showGraph('${target.object_name}', '${target.date}', 'chart')">
                         <td>${target.object_name}</td>
                         <td>${target.common_name}</td>
                         <td style="text-align:center;">${formatDateISOtoEuropean(target.date)}</td>
