@@ -2191,94 +2191,231 @@ def migrate_journal_data():
     print("[MIGRATION] Check complete.")
 
 
+def get_open_meteo_data(lat: float, lon: float) -> dict | None:
+    """
+    Fetches weather data from Open-Meteo with basic error handling.
+    Returns parsed JSON data on success, None on failure.
+    """
+    print(f"[Weather Fallback] Attempting fetch from Open-Meteo for lat={lat}, lon={lon}")
+    try:
+        # Request cloud cover at different levels, temperature, and relative humidity
+        # We get hourly data for the next 7 days
+        base_url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "hourly": "temperature_2m,relative_humidity_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high",
+            "forecast_days": 7,
+            "timezone": "UTC"  # Request data in UTC for easier processing
+        }
+
+        r = requests.get(base_url, params=params, timeout=10)  # 10-second timeout
+
+        # --- Check for HTTP errors ---
+        if r.status_code != 200:
+            print(f"[Weather Fallback] ERROR (Open-Meteo): Received non-200 status code {r.status_code}")
+            print(f"[Weather Fallback] Response text (first 200 chars): {r.text[:200]}")
+            return None
+
+        # --- Try to parse the JSON ---
+        data = r.json()
+
+        # --- Basic validation ---
+        if not data or 'hourly' not in data or 'time' not in data['hourly']:
+            print(f"[Weather Fallback] ERROR (Open-Meteo): Invalid data structure received.")
+            return None
+
+        print(f"[Weather Fallback] Successfully fetched data from Open-Meteo.")
+        return data
+
+    except requests.exceptions.RequestException as e:
+        # Handles timeouts, connection errors, etc.
+        print(f"[Weather Fallback] ERROR (Open-Meteo): Request failed. Error: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"[Weather Fallback] ERROR (Open-Meteo): Failed to decode JSON. Error: {e}")
+        print(f"[Weather Fallback] Response text (first 200 chars): {r.text[:200]}")
+        return None
+    except Exception as e:
+        # Catch any other unexpected errors
+        print(f"[Weather Fallback] ERROR (Open-Meteo): An unexpected error occurred. Error: {e}")
+        return None
+
+
 def get_hybrid_weather_forecast(lat, lon):
-    # --- ADD ROUNDING before generating key ---
+    # --- Rounding and Cache Key (No change) ---
     rounded_lat = round(lat, 5)
     rounded_lon = round(lon, 5)
-    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"  # Use rounded values
-    # --- End Add Rounding ---
-    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}")  # Added Log
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"
+    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}")
 
-    now = datetime.now(UTC)  # Use timezone.utc or pytz.utc
+    # --- Cache Check (No change) ---
+    now = datetime.now(UTC)
     entry = weather_cache.get(cache_key) or {}
     last_good = entry.get('data')
     last_err_ts = entry.get('last_err_ts')
-
-    # --- Use timezone-aware comparison for expiry ---
     if entry and 'expires' in entry:
         expires_dt = entry['expires']
         is_expired = False
         try:
-            # Robust timezone comparison
             if expires_dt.tzinfo is not None:
                 if now >= expires_dt: is_expired = True
-            elif now.replace(tzinfo=None) >= expires_dt:  # Compare naive if expiry is naive
+            elif now.replace(tzinfo=None) >= expires_dt:
                 is_expired = True
-        except TypeError as te:  # Handle comparison errors between aware/naive
+        except TypeError as te:
             print(f"[Weather Func] WARN: Timezone comparison error for key '{cache_key}': {te}")
-            is_expired = True  # Treat as expired if comparison fails
-
+            is_expired = True
         if not is_expired:
-            # print(f"[Weather Func] Cache HIT for '{cache_key}'") # Optional log
-            return entry['data']  # Serve fresh cache
-        # else: print(f"[Weather Func] Cache EXPIRED for '{cache_key}'") # Optional log
+            return entry['data']
 
-    # else: print(f"[Weather Func] Cache MISS for '{cache_key}'") # Optional log
-
+    # --- Helper Functions (No change) ---
     def _update_cache_ok(data, ttl_hours=3):
-        # --- Ensure expiry is timezone-aware (UTC) ---
         expiry_time = datetime.now(UTC) + timedelta(hours=ttl_hours)
-        # --- END ---
         weather_cache[cache_key] = {'data': data, 'expires': expiry_time, 'last_err_ts': None}
-        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}")  # Log update
+        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}")
 
     def _rate_limited_error(msg):
         nonlocal last_err_ts
-        # --- Make timezone-aware for comparison ---
         now_aware = datetime.now(UTC)
         if not last_err_ts or (now_aware - last_err_ts) > timedelta(minutes=15):
             print(msg)
-            # --- Store aware datetime ---
             weather_cache.setdefault(cache_key, {})['last_err_ts'] = now_aware
-        # --- END ---
 
-    # --- START: Robust fetching using the ...with_retries helper ---
+    # --- START: MODIFIED FETCH LOGIC WITH FALLBACK ---
 
-    # 1. Fetch 'meteo' data robustly with retries
-    # This calls the function you already added at line 187
-    meteo_data = get_weather_data_with_retries(lat, lon, product="meteo")
+    final_data_to_cache = None
 
-    if not meteo_data or 'dataseries' not in meteo_data:
+    # === 1. Try 7Timer! First ===
+    print(f"[Weather Func] Attempting primary source (7Timer!) for key '{cache_key}'")
+    meteo_data_7t = get_weather_data_with_retries(lat, lon, product="meteo")
+
+    if meteo_data_7t and 'dataseries' in meteo_data_7t:
+        print(f"[Weather Func] 7Timer! 'meteo' succeeded. Processing...")
+        # 7Timer! worked, process its data (including optional 'astro' merge)
+        base = {blk.get('timepoint'): dict(blk) for blk in meteo_data_7t['dataseries']
+                if isinstance(blk, dict) and 'timepoint' in blk}
+        try:
+            # Still try the 'astro' merge if 'meteo' worked
+            astro_data_7t = get_weather_data_with_retries(lat, lon, product="astro")
+            if astro_data_7t and astro_data_7t.get('dataseries'):
+                for ablk in astro_data_7t.get('dataseries', []):
+                    tp = ablk.get('timepoint')
+                    if tp in base: base[tp].update(ablk)
+            else:
+                print(f"[Weather Func] WARN: 7Timer! 'astro' data missing/invalid, merge skipped.")
+        except Exception as e:
+            _rate_limited_error(f"[Weather Func] WARN: 7Timer! 'astro' merge failed: {e}")
+
+        final_data_to_cache = {'init': meteo_data_7t.get('init'), 'dataseries': list(base.values())}
+        print(f"[Weather Func] Successfully processed data from 7Timer!.")
+
+    else:
+        # === 2. 7Timer! Failed, Try Open-Meteo Fallback ===
         _rate_limited_error(
-            f"[Weather Func] ERROR: Could not fetch valid 'meteo' data for key '{cache_key}' after retries.")
-        return last_good or None  # Return last good or None on failure
+            f"[Weather Func] Primary source (7Timer!) failed for key '{cache_key}'. Attempting fallback (Open-Meteo).")
 
-    # index for merge
-    base = {blk.get('timepoint'): dict(blk) for blk in meteo_data['dataseries']
-            if isinstance(blk, dict) and 'timepoint' in blk}
+        # Call the new Open-Meteo helper function (added in Step 1)
+        open_meteo_data = get_open_meteo_data(lat, lon)
 
-    # --- 2. Optional 'astro' merge (also robust with retries) ---
-    try:
-        # Fetch 'astro' data robustly with retries
-        # This also calls the function at line 187
-        astro_data = get_weather_data_with_retries(lat, lon, product="astro")
+        if open_meteo_data and 'hourly' in open_meteo_data:
+            print(f"[Weather Fallback] Open-Meteo succeeded. Translating data...")
+            # --- Translation Logic ---
+            try:
+                translated_dataseries = []
+                om_hourly = open_meteo_data['hourly']
+                times = om_hourly.get('time', [])
+                # Use UTC midnight as the pseudo 'init' time for calculating timepoints
+                # Find the first time point and set init to the start of that UTC day
+                init_time = None
+                if times:
+                    first_time = datetime.fromisoformat(times[0].replace('Z', '+00:00'))
+                    init_time = first_time.replace(hour=0, minute=0, second=0, microsecond=0)
+                    init_str = init_time.strftime("%Y%m%d%H")  # Format like 7Timer's init
+                else:
+                    init_str = datetime.now(UTC).strftime("%Y%m%d%H")  # Fallback init
+                    init_time = datetime.strptime(init_str, "%Y%m%d%H").replace(tzinfo=UTC)
 
-        if astro_data and astro_data.get('dataseries'):
-            for ablk in astro_data.get('dataseries', []):
-                tp = ablk.get('timepoint')
-                if tp in base:
-                    base[tp].update(ablk)
+                for i, time_str in enumerate(times):
+                    current_time = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                    # Calculate timepoint: hours elapsed since 'init_time' (UTC midnight)
+                    timepoint = int((current_time - init_time).total_seconds() / 3600)
+
+                    # Get cloud cover percentages, default to 0 if missing
+                    cc_low = om_hourly.get('cloud_cover_low', [0] * len(times))[i]
+                    cc_mid = om_hourly.get('cloud_cover_mid', [0] * len(times))[i]
+                    cc_high = om_hourly.get('cloud_cover_high', [0] * len(times))[i]
+
+                    # Combine cloud cover: Take the maximum percentage across layers
+                    # (This is a simple approach; more sophisticated weighting could be used)
+                    total_cloud_percent = max(cc_low or 0, cc_mid or 0, cc_high or 0)
+
+                    # --- Map 0-100% to 1-9 scale ---
+                    # Scale: 1(<5%), 2(5-15), 3(15-25), ..., 8(75-85), 9(>85%)
+                    if total_cloud_percent < 5:
+                        cloudcover_1_9 = 1
+                    elif total_cloud_percent < 15:
+                        cloudcover_1_9 = 2
+                    elif total_cloud_percent < 25:
+                        cloudcover_1_9 = 3
+                    elif total_cloud_percent < 35:
+                        cloudcover_1_9 = 4
+                    elif total_cloud_percent < 55:
+                        cloudcover_1_9 = 5  # Wider mid-range
+                    elif total_cloud_percent < 65:
+                        cloudcover_1_9 = 6
+                    elif total_cloud_percent < 75:
+                        cloudcover_1_9 = 7
+                    elif total_cloud_percent < 85:
+                        cloudcover_1_9 = 8
+                    else:
+                        cloudcover_1_9 = 9
+
+                    # Get other data (use get with default index access)
+                    temp = om_hourly.get('temperature_2m', [None] * len(times))[i]
+                    rh = om_hourly.get('relative_humidity_2m', [None] * len(times))[i]
+
+                    # Create the 7Timer!-like block
+                    block = {
+                        "timepoint": timepoint,
+                        "cloudcover": cloudcover_1_9,
+                        "temp2m": temp,
+                        "rh2m": rh,
+                        # --- Add Placeholders for missing 7Timer! fields ---
+                        "seeing": -9999,  # Indicate missing/not provided
+                        "transparency": -9999,  # Indicate missing/not provided
+                        "lifted_index": -9999,
+                        "wind10m": {"direction": "N/A", "speed": -9999},
+                        "prec_type": "none",
+                        "prec_amount": 0
+                    }
+                    translated_dataseries.append(block)
+
+                if translated_dataseries:
+                    final_data_to_cache = {'init': init_str, 'dataseries': translated_dataseries}
+                    print(f"[Weather Fallback] Successfully translated Open-Meteo data.")
+                else:
+                    _rate_limited_error(
+                        f"[Weather Fallback] ERROR: Open-Meteo translation resulted in empty dataseries.")
+
+            except Exception as e:
+                _rate_limited_error(f"[Weather Fallback] ERROR: Failed to translate Open-Meteo data: {e}")
+                # traceback.print_exc() # Uncomment for debugging translator errors
+
         else:
-            # This is just a warning, not a fatal error
-            print(f"[Weather Func] WARNING: 'astro' data was missing or invalid, skipping merge for key '{cache_key}'.")
+            # === 3. Both 7Timer! and Open-Meteo Failed ===
+            _rate_limited_error(f"[Weather Func] ERROR: Fallback (Open-Meteo) also failed for key '{cache_key}'.")
+            # final_data_to_cache remains None
 
-    except Exception as e:
-        _rate_limited_error(f"[Weather Func] WARNING: 'astro' merge logic failed for key '{cache_key}': {e}")
-    # --- END: Robust fetching ---
+    # --- END: MODIFIED FETCH LOGIC ---
 
-    final = {'init': meteo_data.get('init'), 'dataseries': list(base.values())}
-    _update_cache_ok(final, ttl_hours=3)  # Call the updated cache function
-    return final
+    # --- Cache Update or Return Stale ---
+    if final_data_to_cache is not None:
+        _update_cache_ok(final_data_to_cache, ttl_hours=3)  # Cache the successful result (from either source)
+        return final_data_to_cache
+    else:
+        # Both primary and fallback failed. Return last good data if available.
+        print(f"[Weather Func] All sources failed. Returning stale data (if available) for key '{cache_key}'.")
+        return last_good or None  # Return last good data or None if nothing ever worked
 
 # --- Check weather_cache_worker ---
 def weather_cache_worker():
