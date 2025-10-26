@@ -1504,8 +1504,6 @@ def run_one_time_yaml_migration():
     finally:
         db.close()
 
-initialize_instance_directory()
-run_one_time_yaml_migration()
 
 # =============================================================================
 # Flask and Flask-Login Setup
@@ -1674,6 +1672,36 @@ class _FileLock:
                 self._fh.close()
         except Exception:
             pass
+
+# =============================================================================
+# Automated Single-User Migration (with lock)
+# =============================================================================
+# We only run this automated migration if in SINGLE_USER_MODE.
+# In multi-user mode, the admin MUST run 'flask migrate-yaml-to-db' manually.
+if SINGLE_USER_MODE:
+    print("[MIGRATION] Single-User Mode: Attempting automated migration...")
+
+    # Use the existing _FileLock class (defined around line 1709)
+    # This ensures only ONE gunicorn worker runs the migration,
+    # preventing database lock errors.
+    lock_path = os.path.join(INSTANCE_PATH, "migration.lock")
+
+    try:
+        with _FileLock(lock_path):
+            print("[MIGRATION] Acquired migration lock.")
+            # Run the initialization and migration functions
+            initialize_instance_directory()
+            run_one_time_yaml_migration()
+            print("[MIGRATION] Migration check complete. Releasing lock.")
+
+    except Exception as e:
+        print(f"❌ FATAL ERROR during automated migration: {e}")
+        print("   -> This might be a file permission issue on 'instance/migration.lock'")
+        print("   -> The application may not start correctly.")
+
+else:
+    print("[MIGRATION] Multi-User Mode: Automated migration is disabled.")
+    print("   -> If this is a new setup, run 'docker compose run --rm nova flask migrate-yaml-to-db' to migrate data.")
 
 
 # --- Stellarium API URL Configuration ---
@@ -6858,6 +6886,20 @@ if not SINGLE_USER_MODE:
         db.session.add(admin_user)
         db.session.commit()
         print(f"✅ Admin user '{username}' created successfully!")
+
+    @app.cli.command("migrate-yaml-to-db")
+    def migrate_yaml_command():
+        """
+        Initializes instance directories and runs the one-time migration
+        from all YAML files to the app.db database.
+        """
+        print("--- [MIGRATION COMMAND] ---")
+        print("Step 1: Initializing instance directory...")
+        initialize_instance_directory()
+        print("Step 2: Running YAML to Database migration...")
+        run_one_time_yaml_migration()
+        print("--- [MIGRATION COMMAND] ---")
+        print("✅ Migration task complete.")
 
 @app.route('/api/internal/provision_user', methods=['POST'])
 def provision_user():
