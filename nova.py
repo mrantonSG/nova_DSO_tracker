@@ -2063,22 +2063,310 @@ def convert_to_native_python(val):
         return val.item()  # .item() is the key function here
     return val
 
-
 def recursively_clean_numpy_types(data):
     """
     Recursively traverses a dict or list and converts any NumPy
-    numeric types to native Python types.
+    numeric types to native Python types. Needed before jsonify.
     """
     if isinstance(data, dict):
-        for key, value in data.items():
-            data[key] = recursively_clean_numpy_types(value)
+        return {key: recursively_clean_numpy_types(value) for key, value in data.items()}
     elif isinstance(data, list):
-        for i, item in enumerate(data):
-            data[i] = recursively_clean_numpy_types(item)
+        return [recursively_clean_numpy_types(item) for item in data]
     elif isinstance(data, np.generic):
-        return data.item()  # This is the core conversion
-
+        return data.item()
     return data
+# --- End Helper Function ---
+
+@app.route('/api/get_plot_data/<path:object_name>')
+def get_plot_data(object_name):
+    load_full_astro_context() # Ensures g context is loaded if needed
+    """
+    API endpoint to provide all necessary data for client-side chart rendering.
+    Returns:
+      {
+        times: [ISO strings incl. sentinel first/last],
+        object_alt, object_az, moon_alt, moon_az, horizon_mask_alt: same length as times,
+        sun_events: { current:{sunset,astronomical_dusk,...}, next:{astronomical_dawn,sunrise,...} },
+        transit_time, date, timezone, weather_forecast: [...]
+      }
+    """
+    # --- 1) Resolve object RA/DEC ---
+    data = get_ra_dec(object_name) # Uses g.objects_map internally
+    if not data:
+        return jsonify({"error": "Object data not found or invalid."}), 404
+    ra = data.get('RA (hours)')
+    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))
+    if ra is None or dec is None:
+        return jsonify({"error": "RA/DEC missing for object."}), 404
+    try:
+        ra = float(ra); dec = float(dec)
+    except (ValueError, TypeError):
+         return jsonify({"error": "Invalid RA/DEC format for object."}), 400
+
+    # --- 2) Read params with SAFE fallbacks ---
+    # Use g context as the primary fallback source now
+    default_lat = getattr(g, "lat", None)
+    default_lon = getattr(g, "lon", None)
+    default_tz = getattr(g, "tz_name", "UTC")
+    default_loc_name = getattr(g, "selected_location", "") # Use g.selected_location
+
+    plot_lat_str  = request.args.get('plot_lat', '').strip()
+    plot_lon_str  = request.args.get('plot_lon', '').strip()
+    plot_tz_name  = request.args.get('plot_tz', '').strip()
+    plot_loc_name = request.args.get('plot_loc_name', '').strip()
+
+    try:
+        lat = float(plot_lat_str) if plot_lat_str else default_lat
+        lon = float(plot_lon_str) if plot_lon_str else default_lon
+        tz_name = plot_tz_name if plot_tz_name else default_tz
+        # Use requested loc name if provided, else use the default determined by g
+        loc_name = plot_loc_name if plot_loc_name else default_loc_name
+
+        if lat is None or lon is None:
+            raise ValueError("Could not determine latitude or longitude.")
+        if not tz_name:
+            tz_name = "UTC" # Final fallback
+
+        local_tz = pytz.timezone(tz_name)
+    except Exception as e:
+        print(f"[API Plot Data] Error parsing location parameters: {e}")
+        return jsonify({"error": f"Invalid location or timezone data: {e}"}), 400
+
+    # Determine date (remains the same)
+    now_local = datetime.now(local_tz)
+    day   = int(request.args.get('day',   now_local.day))
+    month = int(request.args.get('month', now_local.month))
+    year  = int(request.args.get('year',  now_local.year))
+    try:
+        local_date_obj = datetime(year, month, day)
+        local_date = local_date_obj.strftime('%Y-%m-%d')
+    except ValueError:
+        print(f"[API Plot Data] Error: Invalid date components ({year}-{month}-{day}). Using current date.")
+        local_date_obj = now_local
+        local_date = now_local.strftime('%Y-%m-%d')
+
+
+    # --- 3) Build time grid and object series ---
+    # Determine sampling interval based on mode (from g context)
+    sampling_interval = getattr(g, 'sampling_interval', 15)
+
+    times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval_minutes=5) # Always use 5 min for chart
+    location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    altaz_frame = AltAz(obstime=times_utc, location=location)
+    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+    altaz_obj = sky_coord.transform_to(altaz_frame)
+    altitudes = altaz_obj.alt.deg
+    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0
+
+    # --- 4) Weather forecast section ---
+    weather_forecast_series = []
+    # Round lat/lon for cache key consistency
+    rounded_lat = round(lat, 5)
+    rounded_lon = round(lon, 5)
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"
+    print(f"[API Plot Data] Checking weather cache with key: '{cache_key}'")
+
+    cached_entry = weather_cache.get(cache_key)
+    weather_data = None # Initialize weather_data
+
+    # --- Check Cache ---
+    if cached_entry and 'data' in cached_entry and 'expires' in cached_entry:
+        now_utc = datetime.now(timezone.utc)
+        expires_dt = cached_entry['expires']
+        is_expired = False
+        try: # Robust comparison
+            if expires_dt.tzinfo is not None:
+                if now_utc >= expires_dt: is_expired = True
+            elif now_utc.replace(tzinfo=None) >= expires_dt:
+                is_expired = True
+        except TypeError: is_expired = True # Aware vs naive compare fails
+
+        if not is_expired:
+            weather_data = cached_entry['data'] # Use fresh cache data
+            print(f"[API Plot Data] Using FRESH cache for key '{cache_key}'")
+        else:
+            print(f"[API Plot Data] Cache EXPIRED for key '{cache_key}'. Will attempt live fetch.")
+            # Cache is expired, weather_data remains None, proceed to live fetch
+    else:
+        print(f"[API Plot Data] Cache MISS for key '{cache_key}'. Will attempt live fetch.")
+        # Cache miss, weather_data remains None, proceed to live fetch
+
+    # --- Live Fetch on Cache Miss/Expiry ---
+    if weather_data is None:
+        print(f"[API Plot Data] Attempting live weather fetch for key '{cache_key}'...")
+        # Call the robust function (which includes the fallback and handles caching internally)
+        # Use the lat/lon determined for *this specific API request*
+        try:
+            # Add a try/except around the fetch itself within the API route
+            weather_data = get_hybrid_weather_forecast(lat, lon)
+        except Exception as fetch_err:
+            print(f"[API Plot Data] CRITICAL ERROR during live weather fetch: {fetch_err}")
+            weather_data = None # Ensure weather_data is None if fetch crashes
+
+        if weather_data:
+            print(f"[API Plot Data] Live fetch successful for key '{cache_key}'.")
+            # get_hybrid_weather_forecast already updated the cache if successful
+        else:
+            print(f"[API Plot Data] Live fetch FAILED for key '{cache_key}'. No weather data available.")
+            # If live fetch also fails, weather_data remains None
+
+    # --- Process weather_data (if available) ---
+    if weather_data and isinstance(weather_data.get('dataseries'), list):
+        print(f"[API Plot Data] Processing 'dataseries'...")
+        try:
+            init_str = weather_data.get('init', '')
+            # --- Robust init_time parsing ---
+            try:
+                # Attempt parsing assuming UTC directly
+                init_time = datetime.strptime(init_str, "%Y%m%d%H").replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                 # Fallback if init_str is invalid/missing
+                 print(f"[API Plot Data] WARN: Invalid or missing 'init' string '{init_str}'. Using current UTC hour as base.")
+                 now_utc_hr = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+                 init_time = now_utc_hr
+                 init_str = now_utc_hr.strftime("%Y%m%d%H")
+            # --- End robust init_time parsing ---
+
+            count = 0
+            for block in weather_data['dataseries']:
+                timepoint_hours = block.get('timepoint')
+                if timepoint_hours is None: continue
+                try:
+                    # Calculate start time based on init_time and timepoint
+                    start_time = init_time + timedelta(hours=int(timepoint_hours))
+                    # Assume 3-hour blocks if end time isn't explicitly defined (common for 7Timer)
+                    # OpenMeteo translation *should* provide hourly, adjust end time logic if needed based on source
+                    # For now, stick to 3hr assumption for simplicity, as JS groups it anyway
+                    end_time = start_time + timedelta(hours=3)
+
+                    seeing_val = block.get("seeing")
+                    transparency_val = block.get("transparency")
+
+                    processed_block = {
+                        "start": start_time.isoformat(),
+                        "end": end_time.isoformat(),
+                        "cloudcover": block.get("cloudcover"),
+                        # Include only if valid number (not None, not placeholder -9999)
+                        "seeing": seeing_val if seeing_val is not None and seeing_val != -9999 else None,
+                        "transparency": transparency_val if transparency_val is not None and transparency_val != -9999 else None,
+                    }
+                    # Filter out keys with None values before appending
+                    weather_forecast_series.append({k: v for k, v in processed_block.items() if v is not None})
+                    count += 1
+                except (ValueError, TypeError) as time_err:
+                    print(f"[API Plot Data] WARN: Skipping weather block due to timepoint/timedelta error: {time_err} - Block: {block}")
+                    continue # Skip this block if timepoint is bad
+
+            print(f"[API Plot Data] Successfully processed {count} weather blocks.")
+        except Exception as e:
+            print(f"[API Plot Data] ERROR processing weather data structure: {e}")
+            import traceback
+            traceback.print_exc() # Print full traceback for weather processing errors
+            weather_forecast_series = [] # Clear on error during processing
+    else:
+         print(f"[API Plot Data] No valid weather data available to process.")
+         weather_forecast_series = []
+
+    # --- 5) Horizon mask (use g context for user config) ---
+    location_config   = {}
+    # Safely access g.user_config and g.locations
+    try:
+        user_cfg = getattr(g, 'user_config', {}) or {}
+        locations_cfg = user_cfg.get("locations", {}) or {}
+        location_config = locations_cfg.get(loc_name, {}) # Use determined loc_name
+    except Exception as e:
+        print(f"[API Plot Data] WARN: Could not load user/location config from g context: {e}")
+
+    horizon_mask = location_config.get("horizon_mask")
+
+    # Determine altitude threshold correctly (User Pref -> Location Pref -> Default 20)
+    altitude_threshold = 20 # Default
+    try:
+        user_cfg = getattr(g, 'user_config', {}) or {}
+        altitude_threshold = user_cfg.get("altitude_threshold", 20)
+    except Exception: pass # Keep default if g doesn't exist/is bad
+    if location_config.get("altitude_threshold") is not None: # Location override
+        altitude_threshold = location_config.get("altitude_threshold")
+
+    # Horizon mask altitude calculation
+    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
+        try:
+            # Ensure points are sorted by azimuth before interpolation
+            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
+        except Exception as hm_err:
+            print(f"[API Plot Data] ERROR calculating horizon mask altitudes: {hm_err}")
+            horizon_mask_altitudes = [altitude_threshold] * len(azimuths) # Fallback on error
+    else:
+        # If no mask, use the determined altitude_threshold
+        horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
+
+    # --- 6) Moon series ---
+    moon_altitudes = []; moon_azimuths = []
+    try:
+        # Check if times_utc is valid before proceeding
+        if not times_utc or len(times_utc) == 0:
+             raise ValueError("times_utc array is empty or invalid for Moon calculation.")
+
+        for t in times_utc:
+            t_ast = Time(t)
+            moon_icrs = get_body('moon', t_ast, location=location)
+            moon_altaz = moon_icrs.transform_to(AltAz(obstime=t_ast, location=location))
+            moon_altitudes.append(moon_altaz.alt.deg)
+            moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
+    except Exception as moon_err:
+         print(f"[API Plot Data] ERROR calculating Moon series: {moon_err}")
+         # Fill with None if moon calc fails, matching length of object alt/az
+         moon_altitudes = [None] * len(altitudes)
+         moon_azimuths = [None] * len(altitudes)
+
+
+    # --- 7) Sun events and transit ---
+    try:
+        sun_events_curr = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+        next_date_str   = (local_date_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+        sun_events_next = calculate_sun_events_cached(next_date_str, tz_name, lat, lon)
+        transit_time_str = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+    except Exception as sun_err:
+        print(f"[API Plot Data] ERROR calculating Sun events/transit: {sun_err}")
+        sun_events_curr = {}
+        sun_events_next = {}
+        transit_time_str = "Error"
+
+
+    # --- 8) Force exactly 24h window ---
+    # Ensure times_local has data before accessing index 0
+    if not times_local:
+         print("[API Plot Data] ERROR: times_local array is empty. Cannot generate plot.")
+         return jsonify({"error": "Could not generate time series for plot."}), 500
+    start_time = times_local[0]
+    end_time   = start_time + timedelta(hours=24)
+    final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
+
+    # --- Final plot data structure ---
+    plot_data = {
+        "times": final_times_iso,
+        "object_alt": [None] + list(altitudes) + [None],
+        "object_az":  [None] + list(azimuths)  + [None],
+        "moon_alt":   [None] + moon_altitudes  + [None], # Use potentially None-filled list
+        "moon_az":    [None] + moon_azimuths   + [None], # Use potentially None-filled list
+        "horizon_mask_alt": [None] + horizon_mask_altitudes + [None],
+        "sun_events": {"current": sun_events_curr, "next": sun_events_next},
+        "transit_time": transit_time_str,
+        "date": local_date,
+        "timezone": tz_name,
+        "weather_forecast": weather_forecast_series
+    }
+
+    # Clean up any potential NumPy types before sending JSON
+    try:
+        plot_data = recursively_clean_numpy_types(plot_data)
+    except Exception as clean_err:
+         print(f"[API Plot Data] ERROR cleaning data for JSON: {clean_err}")
+         # Attempt to return partially cleaned data or an error
+         return jsonify({"error": "Failed to serialize plot data."}), 500
+
+    return jsonify(plot_data)
 
 def python_format_date_eu(value_iso_str):
     """Jinja filter to convert YYYY-MM-DD string to DD.MM.YYYY string."""
@@ -6522,164 +6810,6 @@ def get_yearly_plot_data(object_name):
         "object_alt": obj_altitudes,
         "moon_alt": moon_altitudes
     })
-
-@app.route('/api/get_plot_data/<path:object_name>')
-def get_plot_data(object_name):
-    load_full_astro_context()
-    """
-    API endpoint to provide all necessary data for client-side chart rendering.
-    Returns:
-      {
-        times: [ISO strings incl. sentinel first/last],
-        object_alt, object_az, moon_alt, moon_az, horizon_mask_alt: same length as times,
-        sun_events: { current:{sunset,astronomical_dusk,...}, next:{astronomical_dawn,sunrise,...} },
-        transit_time, date, timezone
-      }
-    """
-    # --- 1) Resolve object RA/DEC (Keep as is) ---
-    data = get_ra_dec(object_name)
-    if not data:
-        return jsonify({"error": "Object data not found or invalid."}), 404
-    ra = data.get('RA (hours)')
-    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))
-    if ra is None or dec is None:
-        return jsonify({"error": "RA/DEC missing for object."}), 404
-    ra = float(ra); dec = float(dec)
-
-    # --- 2) Read params with SAFE fallbacks (Keep as is) ---
-    plot_lat_str  = (request.args.get('plot_lat', '') or '').strip()
-    plot_lon_str  = (request.args.get('plot_lon', '') or '').strip()
-    plot_tz_name  = (request.args.get('plot_tz', '') or '').strip()
-    plot_loc_name = (request.args.get('plot_loc_name', '') or '').strip()
-    try:
-        lat = float(plot_lat_str) if plot_lat_str else float(getattr(g, "lat", 0.0))
-        lon = float(plot_lon_str) if plot_lon_str else float(getattr(g, "lon", 0.0))
-        if not plot_tz_name: plot_tz_name = getattr(g, "tz_name", "UTC")
-        if not plot_loc_name: plot_loc_name = getattr(g, "location_name", None) or g.user_config.get("default_location", "")
-        local_tz = pytz.timezone(plot_tz_name)
-    except Exception:
-        return jsonify({"error": "Invalid location or timezone data."}), 400
-
-    now_local = datetime.now(local_tz)
-    day   = int(request.args.get('day',   now_local.day))
-    month = int(request.args.get('month', now_local.month))
-    year  = int(request.args.get('year',  now_local.year))
-    local_date = f"{year:04d}-{month:02d}-{day:02d}"
-
-    # --- Weather forecast section ---
-    weather_forecast_series = []
-    # --- ADD ROUNDING before generating key ---
-    rounded_lat = round(lat, 5)
-    rounded_lon = round(lon, 5)
-    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}" # Use rounded values
-    # --- End Add Rounding ---
-    print(f"[API Plot Data] Checking weather cache with key: '{cache_key}'") # Added Log
-
-    cached_entry = weather_cache.get(cache_key)
-
-    # Check cache entry (Keep as is - Your logic here looks correct)
-    if cached_entry and 'data' in cached_entry and 'expires' in cached_entry:
-        now_utc = datetime.now(timezone.utc)
-        expires_dt = cached_entry['expires']
-        is_expired = False
-        try: # Added try block for robust comparison
-            if expires_dt.tzinfo is not None:
-                if now_utc >= expires_dt: is_expired = True
-            elif now_utc.replace(tzinfo=None) >= expires_dt:
-                is_expired = True
-        except TypeError: is_expired = True # Aware vs naive compare fails
-
-        if not is_expired:
-            weather_data = cached_entry['data']
-            print(f"[API Plot Data] Using FRESH cache for key '{cache_key}'") # Added Log
-        else:
-            weather_data = None
-            print(f"[API Plot Data] Cache EXPIRED for key '{cache_key}'") # Added Log
-    else:
-        weather_data = None
-        print(f"[API Plot Data] Cache MISS for key '{cache_key}'") # Added Log
-
-    # --- Process weather_data ONLY ONCE ---
-    if weather_data and isinstance(weather_data.get('dataseries'), list):
-        print(f"[API Plot Data] Processing 'dataseries' from cache...") # Added Log
-        try:
-            init_str = weather_data.get('init', '')
-            init_time = datetime(
-                year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
-                hour=int(init_str[8:10]), tzinfo=timezone.utc
-            )
-            count = 0 # Add counter
-            for block in weather_data['dataseries']:
-                timepoint_hours = block.get('timepoint')
-                if timepoint_hours is None: continue
-                start_time = init_time + timedelta(hours=int(timepoint_hours))
-                end_time = start_time + timedelta(hours=3)
-                weather_forecast_series.append({
-                    "start": start_time.isoformat(), "end": end_time.isoformat(),
-                    "cloudcover": block.get("cloudcover"), "seeing": block.get("seeing"),
-                    "transparency": block.get("transparency"),
-                })
-                count += 1 # Increment counter
-            print(f"[API Plot Data] Successfully processed {count} weather blocks from cache.") # Added Log
-        except Exception as e:
-            print(f"[API Plot Data] ERROR processing cached weather data: {e}") # Added Log
-            weather_forecast_series = []
-    # --- REMOVE THE DUPLICATE BLOCK THAT WAS HERE ---
-
-    # --- 3) Build time grid and object/Moon series (Keep as is) ---
-    times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date, sampling_interval_minutes=5)
-    location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_obj = sky_coord.transform_to(altaz_frame)
-    altitudes = altaz_obj.alt.deg
-    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0
-
-    # Horizon mask (Keep as is)
-    location_config   = g.user_config.get("locations", {}).get(plot_loc_name, {}) if isinstance(g.user_config, dict) else {}
-    horizon_mask      = location_config.get("horizon_mask")
-    altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-        horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
-    else:
-        horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
-
-    # Moon series (Keep as is)
-    moon_altitudes = []; moon_azimuths = []
-    for t in times_utc:
-        t_ast = Time(t)
-        moon_icrs = get_body('moon', t_ast, location=location)
-        moon_altaz = moon_icrs.transform_to(AltAz(obstime=t_ast, location=location))
-        moon_altitudes.append(moon_altaz.alt.deg)
-        moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
-
-    # Sun events and transit (Keep as is)
-    sun_events_curr = calculate_sun_events_cached(local_date, plot_tz_name, lat, lon)
-    next_date_str   = (datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
-    sun_events_next = calculate_sun_events_cached(next_date_str, plot_tz_name, lat, lon)
-    transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
-
-    # --- 4) Force exactly 24h window (Keep as is) ---
-    start_time = times_local[0]
-    end_time   = start_time + timedelta(hours=24)
-    final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
-
-    # Final plot data structure (Keep as is)
-    plot_data = {
-        "times": final_times_iso,
-        "object_alt": [None] + list(altitudes) + [None],
-        "object_az":  [None] + list(azimuths)  + [None],
-        "moon_alt":   [None] + moon_altitudes  + [None],
-        "moon_az":    [None] + moon_azimuths   + [None],
-        "horizon_mask_alt": [None] + horizon_mask_altitudes + [None],
-        "sun_events": {"current": sun_events_curr, "next": sun_events_next},
-        "transit_time": transit_time_str,
-        "date": local_date,
-        "timezone": plot_tz_name,
-        "weather_forecast": weather_forecast_series # This uses the processed list
-    }
-    return jsonify(plot_data)
 
 # =============================================================================
 # Main Entry Point
