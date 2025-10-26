@@ -77,7 +77,7 @@
                     {% for session_item in group.sessions %}
                         {# Use session_item dictionary keys directly #}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
-                            onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}"'>
+                            onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}&tab=journal"'>
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("N/A") }}<br><small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else 'N/A' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
