@@ -5,7 +5,74 @@ const weatherOverlayPlugin = {
   beforeDatasetsDraw(chart) {
     const info = chart.__weather;
     if (!info || !info.hasWeather || !Array.isArray(info.forecast) || info.forecast.length === 0) return;
-    const { forecast, cloudInfo, seeingInfo } = info;
+    const { forecast: originalForecast, cloudInfo, seeingInfo } = info;
+
+    // 1. Check if ANY block has valid seeing data (not null/undefined/-9999)
+    const hasValidSeeingData = originalForecast.some(b =>
+        b.seeing != null && b.seeing !== -9999
+    );
+
+    // 2. Group hourly forecast into 3-hour blocks for display
+    const groupedForecast = [];
+    if (originalForecast.length > 0) {
+        // Sort just in case, though it should be sorted by time already
+        originalForecast.sort((a, b) => a.start - b.start);
+
+        let currentGroupStart = originalForecast[0].start;
+        let groupEnd = currentGroupStart + (3 * 60 * 60 * 1000); // 3 hours in ms
+        let blocksInGroup = [];
+
+        for (const block of originalForecast) {
+            // If block starts after the current group ends, finalize the previous group
+            if (block.start >= groupEnd) {
+                if (blocksInGroup.length > 0) {
+                    // Find the most frequent cloudcover value (mode) in the group
+                    const cloudCounts = blocksInGroup.reduce((acc, b) => {
+                        acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
+                        return acc;
+                    }, {});
+                    const dominantCloudcover = Object.keys(cloudCounts).reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
+
+                    // Add the grouped block
+                    groupedForecast.push({
+                        start: currentGroupStart,
+                        end: groupEnd,
+                        cloudcover: parseInt(dominantCloudcover), // Ensure it's a number
+                        // We don't average seeing - the row visibility handles it
+                    });
+                }
+                // Start a new group
+                currentGroupStart = block.start;
+                // Ensure group boundaries align nicely if possible, but handle gaps
+                const hoursSinceEpoch = Math.floor(block.start / (60 * 60 * 1000));
+                const startHourOfBlock = hoursSinceEpoch % 24;
+                const startHourOfGroup = Math.floor(startHourOfBlock / 3) * 3;
+                // Recalculate group start/end based on 3-hour intervals (0, 3, 6, ...)
+                const baseTime = new Date(block.start).setUTCHours(0,0,0,0); // Get start of day in UTC ms
+                currentGroupStart = baseTime + startHourOfGroup * 3600 * 1000;
+                groupEnd = currentGroupStart + (3 * 60 * 60 * 1000);
+                blocksInGroup = [];
+            }
+             // Add block to the current group if it starts within the time window
+             if (block.start >= currentGroupStart && block.start < groupEnd) {
+                blocksInGroup.push(block);
+             }
+        }
+
+        // Add the last group if it has blocks
+        if (blocksInGroup.length > 0) {
+            const cloudCounts = blocksInGroup.reduce((acc, b) => {
+                acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
+                return acc;
+            }, {});
+            const dominantCloudcover = Object.keys(cloudCounts).reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
+            groupedForecast.push({
+                start: currentGroupStart,
+                end: groupEnd, // Use the calculated end
+                cloudcover: parseInt(dominantCloudcover),
+            });
+        }
+    }
     const { ctx, chartArea, scales } = chart;
     const x = scales.x;
     if (!x || !chartArea) return;
@@ -13,7 +80,8 @@ const weatherOverlayPlugin = {
     const rowH = 18; // px per row
     const gap = 2;   // px between rows
     const pad = 1;   // inner padding for blocks
-    const totalH = rowH * 2 + gap;
+    const numRows = hasValidSeeingData ? 2 : 1;
+    const totalH = rowH * numRows + (hasValidSeeingData ? gap : 0);
     const topY = chartArea.top - (totalH + 6);
 
     ctx.save();
@@ -71,7 +139,7 @@ const weatherOverlayPlugin = {
     const xMinPx = x.getPixelForValue(x.min);
     const xMaxPx = x.getPixelForValue(x.max);
 
-    forecast.forEach(b => {
+    groupedForecast.forEach(b => {
       let x0 = x.getPixelForValue(b.start);
       let x1 = x.getPixelForValue(b.end);
       if (!Number.isFinite(x0) || !Number.isFinite(x1)) return;
@@ -82,10 +150,26 @@ const weatherOverlayPlugin = {
       const ci = cloudInfo[b.cloudcover] || { label: 'Clouds', color: 'rgba(0,0,0,0.08)' };
       drawBlock(topY, x0, x1, ci.label, ci.color);
 
-      if (b.seeing) {
-        const si = seeingInfo[b.seeing] || { label: 'Seeing', color: 'rgba(0,0,0,0.08)' };
-        drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
-      }
+        if (hasValidSeeingData) {
+              // IMPORTANT: Since we grouped cloud cover, 'b.seeing' might not be relevant
+              // for the whole block. We'll just draw a placeholder label or ideally
+              // you'd modify the grouping logic to also determine a representative 'seeing'.
+              // For simplicity now, let's just draw the row without text if we don't have
+              // a representative value easily. Or find the middle block's seeing value.
+
+              // Let's find an original block roughly in the middle of this group
+              const midTime = b.start + (1.5 * 60 * 60 * 1000); // Middle of the 3hr block
+              const originalBlockNearMid = originalForecast.find(ob => ob.start <= midTime && ob.end > midTime);
+              const seeingValueToShow = originalBlockNearMid ? originalBlockNearMid.seeing : null;
+
+              if (seeingValueToShow != null && seeingValueToShow !== -9999) {
+                  const si = seeingInfo[seeingValueToShow] || { label: 'Seeing?', color: 'rgba(0,0,0,0.08)' };
+                  drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
+              } else {
+                  // Optional: Draw an empty grey block if no representative seeing found for this specific group
+                   drawBlock(topY + rowH + gap, x0, x1, '', 'rgba(0,0,0,0.08)');
+              }
+          }
     });
     ctx.restore();
   }
