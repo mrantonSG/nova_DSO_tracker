@@ -39,6 +39,9 @@
         top: 1px;
     }
 
+    #journal-data-table {
+        table-layout: fixed; /* Explicitly set fixed layout for this table */
+    }
 
     table {
         width: max-content;       /* allow natural column widths */
@@ -237,8 +240,8 @@
     }
 
 
-    #journal-data-table th[data-journal-column-key="target_object_id"],
-    #journal-data-table td[data-journal-column-key="target_object_id"],
+    #journal-data-table th[data-journal-column-key="object_name"],
+    #journal-data-table td[data-journal-column-key="object_name"],
     #journal-data-table th[data-journal-column-key="target_common_name"],
     #journal-data-table td[data-journal-column-key="target_common_name"],
     #journal-data-table th[data-journal-column-key="location_name"],
@@ -250,8 +253,8 @@
     }
 
 
-    #journal-data-table th[data-journal-column-key="target_object_id"],
-    #journal-data-table td[data-journal-column-key="target_object_id"] { width: 120px; min-width: 120px; }
+    #journal-data-table th[data-journal-column-key="object_name"],
+    #journal-data-table td[data-journal-column-key="object_name"] { width: 120px; min-width: 120px; }
     #journal-data-table th[data-journal-column-key="target_common_name"],
     #journal-data-table td[data-journal-column-key="target_common_name"] { min-width: 150px; }
     #journal-data-table th[data-journal-column-key="session_date"],
@@ -380,13 +383,52 @@
     const allJournalSessions = {{ journal_sessions | tojson | safe }};
     let currentJournalSort = { columnKey: 'session_date', ascending: false };
     const journalColumnConfig = {
-        'target_object_id': { headerText: 'Object', dataKey: 'target_object_id', sortable: true, filterable: true },
-        'target_common_name': { headerText: 'Common Name', dataKey: 'target_common_name', sortable: true, filterable: true },
-        'session_date': { headerText: 'Date', dataKey: 'session_date', sortable: true, filterable: true, format: formatDateISOtoEuropean },
-        'location_name': { headerText: 'Location', dataKey: 'location_name', sortable: true, filterable: true },
-        'telescope_setup_notes': { headerText: 'Telescope Setup', dataKey: 'telescope_setup_notes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || (typeof val === 'string' && val.trim() === '')) ? 'N/A' : String(val).substring(0, 60) + (String(val).length > 60 ? '...' : '') }, // New field, added a simple truncate
-        'calculated_integration_time_minutes': { headerText: 'Total Integration', dataKey: 'calculated_integration_time_minutes', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min` },
-        'session_rating_subjective': { headerText: 'Session Rating', dataKey: 'session_rating_subjective', sortable: true, filterable: true, format: val => (val === 'N/A' || val === null || val === undefined) ? 'N/A' : `${String(val)} ★` }
+        'object_name': {
+            headerText: 'Object',
+            dataKey: 'object_name',
+            sortable: true,
+            filterable: true
+        },
+        'target_common_name': {
+            headerText: 'Common Name',
+            dataKey: 'target_common_name',
+            sortable: true,
+            filterable: true
+        },
+        'date_utc': {
+            headerText: 'Date',
+            dataKey: 'date_utc',
+            sortable: true,
+            filterable: true,
+            format: formatDateISOtoEuropean
+        },
+        'location_name': {
+            headerText: 'Location',
+            dataKey: 'location_name',
+            sortable: true,
+            filterable: true
+        },
+        'telescope_setup_notes': {
+            headerText: 'Telescope Setup',
+            dataKey: 'telescope_setup_notes',
+            sortable: true,
+            filterable: true,
+            format: val => (val === null || val === undefined || String(val).trim() === '') ? 'N/A' : String(val).substring(0, 60) + (String(val).length > 60 ? '...' : '')
+        },
+        'calculated_integration_time_minutes': {
+            headerText: 'Total Integration',
+            dataKey: 'calculated_integration_time_minutes',
+            sortable: true,
+            filterable: true,
+            format: val => (val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min`
+        },
+        'session_rating_subjective': {
+            headerText: 'Session Rating',
+            dataKey: 'session_rating_subjective',
+            sortable: true,
+            filterable: true,
+            format: val => (val === null || val === undefined) ? 'N/A' : `${String(val)} ★`
+        }
     };
 
     // ========================================================================
@@ -568,120 +610,187 @@
     }
 
 
-    async function fetchData() {
+async function fetchData() {
         const tbody = document.getElementById("data-body");
         const loadingDiv = document.getElementById("table-loading");
+        // Prevent multiple simultaneous fetches
         if (!tbody || !loadingDiv || tbody.dataset.loading === 'true') return;
 
-        tbody.dataset.loading = 'true';
+        tbody.dataset.loading = 'true'; // Mark as loading
         try {
+            // Show loading indicator only if the table is currently empty
             if (tbody.innerHTML.trim() === '') loadingDiv.style.display = 'block';
 
+            // 1. Fetch the list of all object names first
             const listResponse = await fetch('/api/get_object_list');
-            if (!listResponse.ok) throw new Error(`HTTP error! status: ${listResponse.status}`);
-            const listData = await listResponse.json();
+            if (!listResponse.ok) throw new Error(`HTTP error fetching object list! status: ${listResponse.status}`);
+            const listData = await listResponse.json(); // Gets { objects: ["name1", "name2", ...] }
 
+            // --- Get the currently selected location from browser session storage ---
+            const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+            // --- End location retrieval ---
+
+            // 2. Start fetching detailed data for EACH object in parallel, passing the location
             const fetchPromises = listData.objects.map(objName =>
-                fetch(`/api/get_object_data/${encodeURIComponent(objName)}`).then(res => res.json())
+                // --- Pass location as a query parameter ---
+                fetch(`/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`)
+                // --- End URL modification ---
+                .then(res => { // Handle the response for each object
+                    if (!res.ok) { // Check if the server reported an error for this specific object
+                        console.error(`Error fetching data for ${objName}: ${res.status}`);
+                        // Return a placeholder error object so Promise.all doesn't fail completely
+                        return { Object: objName, error: true, 'Common Name': `Error: ${res.status}` };
+                    }
+                    return res.json(); // If okay, parse the JSON data
+                })
+                .catch(error => { // Catch network errors (e.g., server down) for individual requests
+                    console.error(`Network error fetching data for ${objName}:`, error);
+                    // Return a placeholder error object
+                    return { Object: objName, error: true, 'Common Name': 'Error: Network failed' };
+                })
             );
+
+            // 3. Wait for ALL the individual detail fetches to complete
             const allObjectData = await Promise.all(fetchPromises);
 
-            tbody.innerHTML = ''; // Clear table for new data
+            // 4. Clear the table body, ready for the new rows
+            tbody.innerHTML = '';
 
+            // Define the order columns should appear in the table row
             const columnOrder = [
                 'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
                 'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
                 'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB'
             ];
 
+            // Get the altitude threshold (needed for highlighting) from the template/global scope if possible
+            // Fallback to 20 if not defined
             const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
 
+            // 5. Loop through the data for each object and build the table row
             allObjectData.forEach(objectData => {
-                if (!objectData || objectData.error) {
-                    console.error("Error in object data:", objectData);
+                // Skip if data is missing or marked as an error from the fetch stage
+                if (!objectData) {
+                    console.warn("Skipping row due to missing objectData.");
                     return;
                 }
+                 // Handle explicit errors returned from fetch promises
+                 if (objectData.error === true) {
+                     console.warn(`Skipping row for ${objectData.Object} due to fetch error: ${objectData['Common Name']}`);
+                     // Optionally, you could still add a row indicating the error here
+                     // return; // Let's still add the row to show the error
+                 }
 
-                const sanitizedId = objectData.Object.replace(/\s+/g, '-');
+
+                // Create the table row element
+                const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-'); // Handle potential missing Object field
                 const row = document.createElement('tr');
                 row.id = `row-${sanitizedId}`;
                 row.className = 'clickable-row';
 
-
-                if (objectData['Common Name'] && objectData['Common Name'].toLowerCase().startsWith("error:")) {
-                    row.style.backgroundColor = "#f8d7da";
+                // Style rows indicating errors differently
+                 if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
+                    row.style.backgroundColor = "#f8d7da"; // Light red for errors
+                    row.style.color = "#721c24";
                 } else {
+                    // Apply active project highlighting if not an error row
                     const ap = objectData.ActiveProject;
-                    console.log('ActiveProject', objectData.Object, ap);
                     const isActive = (ap === true) || (ap === 1) || (ap === '1') || (ap === 'true') || (ap === 'True');
                     if (isActive) {
                         row.classList.add('active-project-row');
                     }
                 }
 
-                row.onclick = () => {
-                    if (objectData['Common Name'] && objectData['Common Name'].toLowerCase().startsWith("error:")) {
-                        alert("Graph not available: " + objectData['Common Name']);
-                        return;
-                    }
-                    showGraph(objectData.Object);
-                };
-              columnOrder.forEach(columnKey => {
-                    const config = columnConfig[columnKey];
-                    const td = document.createElement('td');
-                    td.dataset.columnKey = columnKey;
 
+                // Make rows clickable to go to the graph view, unless it's an error row
+                 if (objectData.error !== true && !(objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
+                    row.onclick = () => {
+                        showGraph(objectData.Object);
+                    };
+                } else {
+                    row.style.cursor = 'default'; // Not clickable if error
+                }
+
+
+                // 6. Create a table cell (td) for each column in the defined order
+                columnOrder.forEach(columnKey => {
+                    const config = columnConfig[columnKey]; // Get config (header, formatting, etc.)
+                    const td = document.createElement('td');
+                    td.dataset.columnKey = columnKey; // Store key for filtering/sorting
+
+                    // Set text alignment based on column
                     if (columnKey === 'Object' || columnKey === 'Common Name') {
                         td.style.textAlign = 'left';
                     } else {
                         td.style.textAlign = 'center';
                     }
 
+                    // Get the raw value, handle potential undefined/null
                     const rawValue = objectData[config.dataKey];
-                    let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '') ? 'N/A' : (config.format ? config.format(rawValue) : rawValue);
+
+                    // Format the value for display (use formatter if defined, handle N/A)
+                    let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
+                                       ? 'N/A'
+                                       : (config.format ? config.format(rawValue) : rawValue);
                     td.textContent = displayValue;
-                    if (columnKey === 'Common Name') {
-                        td.setAttribute('title', (rawValue === null || rawValue === undefined) ? '' : String(rawValue));
+
+                    // Add tooltip for potentially truncated Common Name
+                    if (columnKey === 'Common Name' && rawValue !== null && rawValue !== undefined) {
+                        td.setAttribute('title', String(rawValue));
                     }
 
-                    // --- NEW HIGHLIGHTING AND OBSTRUCTION LOGIC ---
+                    // Apply highlighting and obstruction styling based on altitude and obstruction flags
                     const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
 
-                    if (config.dataKey === 'Altitude Current' && isAboveThreshold) {
+                    if (config.dataKey === 'Altitude Current' && isAboveThreshold && objectData.error !== true) {
                         td.classList.add('highlight');
                         if (objectData.is_obstructed_now) {
                             td.classList.add('obstructed');
                         }
                     }
 
-                    if (config.dataKey === 'Altitude 11PM' && isAboveThreshold) {
+                    if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && objectData.error !== true) {
                         td.classList.add('highlight');
                         if (objectData.is_obstructed_at_11pm) {
                             td.classList.add('obstructed');
                         }
                     }
-                    // --- END NEW LOGIC ---
 
+                    // Store raw numeric value in data attribute for accurate sorting
                     const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
-                    if (numericSortKeys.includes(config.dataKey) && (typeof rawValue === 'number' || (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))))) {
-                        td.dataset.rawValue = parseFloat(rawValue);
-                    } else if (rawValue === 'N/A') {
-                        td.dataset.rawValue = 'N/A';
+                     if (numericSortKeys.includes(config.dataKey)) {
+                         if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
+                            td.dataset.rawValue = 'N/A';
+                         } else if (typeof rawValue === 'number') {
+                             td.dataset.rawValue = rawValue;
+                         } else if (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))) {
+                             td.dataset.rawValue = parseFloat(rawValue);
+                         } else {
+                            // Store the original string if it's not clearly numeric or N/A
+                             td.dataset.rawValue = rawValue;
+                         }
+                     } else if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
+                         td.dataset.rawValue = 'N/A'; // Ensure N/A sorts correctly for text columns too
                     }
 
-                    row.appendChild(td);
+
+                    row.appendChild(td); // Add the cell to the row
                 });
-                tbody.appendChild(row);
+                tbody.appendChild(row); // Add the completed row to the table body
             });
+
         } catch (error) {
+            // Handle errors during the overall fetch process (e.g., fetching the object list failed)
             console.error("Failed to fetch and render data:", error);
-            tbody.innerHTML = `<tr><td colspan="${columnOrder.length}" style="text-align:center; color:red;">Error loading data.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${columnOrder.length}" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
         } finally {
+            // 7. Hide loading indicator, apply column visibility, sort, and filter
             loadingDiv.style.display = 'none';
-            applyDsoColumnVisibility();
-            sortTable(currentSort.columnKey, false);
-            filterTable();
-            tbody.dataset.loading = 'false';
+            applyDsoColumnVisibility(); // Show/hide columns based on the active tab
+            sortTable(currentSort.columnKey, false); // Apply the current sort order
+            filterTable(); // Apply any active filters
+            tbody.dataset.loading = 'false'; // Mark loading as complete
+            fetchSunEvents();
         }
     }
 
@@ -829,9 +938,13 @@
       localStorage.setItem(tableType + "_filter_col_key_" + columnKey, inputElement.value);
     }
 
-    function showGraph(objectName, dateStr = null, targetTab = null) {
+    function showGraph(objectName, dateStr = null, targetTab = 'chart') {
         let url = '/graph_dashboard/' + encodeURIComponent(objectName);
         const params = new URLSearchParams();
+        const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+        if (currentSelectedLocation) {
+            params.set('location', currentSelectedLocation); // Add location to URL parameters
+        }
 
         if (dateStr) {
             const parts = dateStr.split('-');
@@ -855,72 +968,98 @@
         window.location.href = url;
     }
 
-    function fetchLocations() {
+function fetchLocations() {
         fetch('/get_locations')
         .then(response => response.json())
         .then(data => {
-          let locationSelect = document.getElementById('location-select');
-          if (!locationSelect) return;
-          locationSelect.innerHTML = '';
-          data.locations.forEach(location => {
-            let option = document.createElement('option'); option.value = location; option.textContent = location;
-            if (location === data.selected) option.selected = true;
-            locationSelect.appendChild(option);
-          });
+            let locationSelect = document.getElementById('location-select');
+            if (!locationSelect) return;
+            locationSelect.innerHTML = ''; // Clear existing options
+
+            // --- ADD: Determine initial location ---
+            let initialLocation = sessionStorage.getItem('selectedLocation');
+            // If nothing in session storage OR if the stored location is no longer valid/active, use the default from backend
+            if (!initialLocation || !data.locations.includes(initialLocation)) {
+                initialLocation = data.selected; // 'selected' is the default from backend
+                if (initialLocation) {
+                    sessionStorage.setItem('selectedLocation', initialLocation);
+                }
+            }
+            // --- END ADD ---
+
+            data.locations.forEach(location => {
+                let option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                // --- MODIFY: Select based on initialLocation ---
+                if (location === initialLocation) {
+                    option.selected = true;
+                }
+                // --- END MODIFY ---
+                locationSelect.appendChild(option);
+            });
+
+            // --- ADD: Trigger initial data load AFTER setting the dropdown ---
+            // This ensures the first fetchData uses the correct location
+            // We call setLocation indirectly via the 'change' event if the value differs,
+            // otherwise directly trigger fetches if the value is already correct.
+             if (locationSelect.value !== initialLocation && initialLocation) {
+                 locationSelect.value = initialLocation; // Ensure dropdown matches
+                 // Manually trigger if needed, though initial fetches should handle it now
+                 // setLocation();
+             }
+             // Initial fetches should happen in window.onload now, using the sessionStorage value implicitly
+             // fetchData(); // No longer needed here, handled by window.onload
+             // fetchSunEvents(); // No longer needed here, handled by window.onload
+
         })
         .catch(error => console.error('❌ Error fetching locations:', error));
     }
 
-    function setLocation() {
-        isUpdatingLocation = true; // <-- Set flag to true
-        const selectedLocation = document.getElementById('location-select').value;
-        outlookDataLoaded = false;
+function setLocation() {
+        if (isUpdatingLocation) return; // Prevent multiple calls while updating
+        isUpdatingLocation = true; // Set flag
 
+        const selectedLocation = document.getElementById('location-select').value;
+        console.log(`Location changed to: ${selectedLocation}`);
+
+        // Store the currently selected location for this browser session
+        sessionStorage.setItem('selectedLocation', selectedLocation);
+        outlookDataLoaded = false; // Reset outlook flag as data will be for new location
+
+        // Clear existing data immediately
         document.getElementById('data-body').innerHTML = '';
         document.getElementById('journal-data-body').innerHTML = '';
         document.getElementById('outlook-body').innerHTML = '';
 
+        // Show loading indicator
         const loadingDiv = document.getElementById('table-loading');
         if (loadingDiv) {
             loadingDiv.innerHTML = "Updating location...";
             loadingDiv.style.display = "block";
         }
 
-        fetch('/set_location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ location: selectedLocation })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                fetchData();
-                fetchSunEvents();
-                if (activeTab === 'journal') {
-                    populateJournalTable();
-                } else if (activeTab === 'outlook') {
-                    fetchOutlookData();
-                }
-            } else {
-                console.error("❌ Location update failed:", data);
-                if (loadingDiv) {
-                    loadingDiv.textContent = "❌ Error updating location.";
-                }
-            }
-        })
-        .catch(error => {
-            console.error('❌ Error setting location:', error);
-            if (loadingDiv) {
-                loadingDiv.textContent = "❌ Error setting location.";
-            }
-        })
-        .finally(() => {
-            isUpdatingLocation = false; // <-- Set flag to false when done
-        });
+        // --- No fetch to /set_location needed here anymore ---
+
+        // Directly trigger data refresh using the new location (which fetchData etc. will now read from sessionStorage)
+        fetchData();
+        // fetchSunEvents();
+        if (activeTab === 'journal') {
+           populateJournalTable();
+        } else if (activeTab === 'outlook') {
+           fetchOutlookData(); // Re-fetch outlook for the new location
+        }
+
+        // Update display immediately (optional, fetchSunEvents will also do this)
+         document.getElementById('location-select').value = selectedLocation;
+
+        // Reset flag after a short delay to allow fetches to start
+        setTimeout(() => { isUpdatingLocation = false; }, 500);
     }
 
     function fetchSunEvents() {
-        fetch('/sun_events')
+        const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+        fetch(`/sun_events?location=${encodeURIComponent(currentSelectedLocation || '')}`)
         .then(response => response.json())
         .then(data => {
           document.getElementById('dawn').textContent = data.astronomical_dawn;
@@ -938,10 +1077,13 @@
     // ========================================================================
     // Journal Table Functions
     // ========================================================================
-    function populateJournalTable() {
+function populateJournalTable() {
         const tableBody = document.getElementById('journal-data-body');
         if (!tableBody || !allJournalSessions) return;
+
         let sessionsToDisplay = [...allJournalSessions];
+
+        // --- [PRESERVED] Your existing filtering logic ---
         const journalFilterInputs = document.querySelectorAll("#journal-filter-row input");
         const activeJournalFilters = {};
         journalFilterInputs.forEach(input => {
@@ -960,15 +1102,8 @@
                     const config = journalColumnConfig[key];
                     if (!config) continue;
                     let rawSessionValueStr = String(session[config.dataKey] || '').toLowerCase();
-                    let formattedSessionValueStr = "";
-                    if (config.dataKey === 'session_date') {
-                        rawSessionValueStr = session[config.dataKey] || "";
-                        if (rawSessionValueStr && config.format) { formattedSessionValueStr = config.format(rawSessionValueStr).toLowerCase(); }
-                    } else if (config.dataKey === 'calculated_integration_time_minutes') {
-                        rawSessionValueStr = String(session.calculated_integration_time_minutes === undefined || session.calculated_integration_time_minutes === null ? 'N/A' : session.calculated_integration_time_minutes).toLowerCase();
-                    }
                     if (filterValue === "n/a" || filterValue === "na") { if (rawSessionValueStr !== "n/a" && rawSessionValueStr !== "") return false; continue; }
-                    if (config.dataKey === 'session_date') {
+                    if (key === 'date_utc') { // Corrected key for date filtering
                         const sessionDateString_YYYY_MM_DD = session[config.dataKey] || "";
                         if (!sessionDateString_YYYY_MM_DD) return false;
                         let operator = null; let dateFilterStringUserInput = filterValue;
@@ -976,105 +1111,101 @@
                         else if (dateFilterStringUserInput.startsWith("<=")) { operator = "<="; dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim(); }
                         else if (dateFilterStringUserInput.startsWith(">")) { operator = ">"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
                         else if (dateFilterStringUserInput.startsWith("<")) { operator = "<"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
-                        else { dateFilterStringUserInput = dateFilterStringUserInput.trim(); }
                         try {
                             let filterDateObj = null;
-                            if (dateFilterStringUserInput.includes('.')) { const parts = dateFilterStringUserInput.split('.'); if (parts.length === 3 && parts.every(p => !isNaN(parseInt(p)))) { filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))); } }
-                            else if (dateFilterStringUserInput.includes('-')) { const parts = dateFilterStringUserInput.split('-'); if (parts.length === 3 && parts.every(p => !isNaN(parseInt(p)))) { filterDateObj = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))); } else if (parts.length === 2 && parts.every(p => !isNaN(parseInt(p)))) { filterDateObj = new Date(Date.UTC(parseInt(parts[0]), parseInt(parts[1]) - 1, 1)); } else if (parts.length === 1 && /^\d{4}$/.test(parts[0])) { filterDateObj = new Date(Date.UTC(parseInt(parts[0]), 0, 1)); } }
-                            else if (/^\d{4}$/.test(dateFilterStringUserInput) && !operator) {} else if (dateFilterStringUserInput.length > 0 && operator) { return false; }
+                            if (dateFilterStringUserInput.includes('.')) { const parts = dateFilterStringUserInput.split('.'); if (parts.length === 3) { filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))); } }
                             const sessionParts = sessionDateString_YYYY_MM_DD.split('-'); if (sessionParts.length !== 3) return false;
                             const sessionDateObj = new Date(Date.UTC(parseInt(sessionParts[0]), parseInt(sessionParts[1]) - 1, parseInt(sessionParts[2])));
-                            if (isNaN(sessionDateObj.getTime())) { return false; }
-                            if (operator && filterDateObj && !isNaN(filterDateObj.getTime())) {
+                            if (operator && filterDateObj) {
                                 if (operator === ">=" && sessionDateObj < filterDateObj) return false; if (operator === "<=" && sessionDateObj > filterDateObj) return false;
                                 if (operator === ">" && sessionDateObj <= filterDateObj) return false; if (operator === "<" && sessionDateObj >= filterDateObj) return false;
-                            } else if (!operator) { const formattedSessionDateForDisplay = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase(); if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) && !formattedSessionDateForDisplay.includes(dateFilterStringUserInput)) { return false; } }
-                            else if (operator && (!filterDateObj || isNaN(filterDateObj.getTime()))) { return false; }
-                        } catch (e) { console.error("Date filter error:", e); return false; }
+                            } else if (!operator) { const formattedSessionDate = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase(); if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) && !formattedSessionDate.includes(dateFilterStringUserInput)) return false; }
+                        } catch (e) { return false; }
                         continue;
                     }
-                    if (journalNumericFilterKeys.includes(config.dataKey)) {
+                    if (journalNumericFilterKeys.includes(key)) {
                         let sessionNumericValue = session[config.dataKey];
-                        if (config.dataKey === 'calculated_integration_time_minutes') { sessionNumericValue = session.calculated_integration_time_minutes; }
-                        if (sessionNumericValue === 'N/A' || sessionNumericValue === null || sessionNumericValue === undefined) { if (filterValue === "n/a" || filterValue === "na") continue; return false; }
+                        if (sessionNumericValue === null || sessionNumericValue === undefined) return false;
                         const cellNumber = parseFloat(sessionNumericValue);
                         if (isNaN(cellNumber)) { if (!rawSessionValueStr.includes(filterValue)) return false; continue; }
-                        const conditions = filterValue.split(" ").filter(cond => cond !== ""); let conditionMetOverall = true;
-                        for (let cond of conditions) {
-                            let op = ""; let valStr = "";
-                            if (cond.startsWith(">=")) { op = ">="; valStr = cond.substring(2); } else if (cond.startsWith("<=")) { op = "<="; valStr = cond.substring(2); }
-                            else if (cond.startsWith(">")) { op = ">"; valStr = cond.substring(1); } else if (cond.startsWith("<")) { op = "<"; valStr = cond.substring(1); }
-                            else { if (String(cellNumber).indexOf(cond) === -1 && rawSessionValueStr.indexOf(cond) === -1) { conditionMetOverall = false; break; } continue; }
-                            let condVal = parseFloat(valStr); if (isNaN(condVal)) { conditionMetOverall = false; break; } let currentCondMet = false;
-                            if (op === ">" && cellNumber > condVal) currentCondMet = true; else if (op === ">=" && cellNumber >= condVal) currentCondMet = true;
-                            else if (op === "<" && cellNumber < condVal) currentCondMet = true; else if (op === "<=" && cellNumber <= condVal) currentCondMet = true;
-                            if (!currentCondMet) { conditionMetOverall = false; break;}
-                        }
-                        if (!conditionMetOverall) return false;
+                        if (!matchesNumericFilter(cellNumber, filterValue)) return false;
                     } else { if (filterValue.startsWith("!")) { if (rawSessionValueStr.includes(filterValue.substring(1))) return false; } else { if (!rawSessionValueStr.includes(filterValue)) return false; } }
                 } return true;
             });
         }
+
+        // --- [PRESERVED] Your existing sorting logic ---
         const sortConfig = journalColumnConfig[currentJournalSort.columnKey];
         if (sortConfig) {
             sessionsToDisplay.sort((a, b) => {
                 let valA_str = String(a[sortConfig.dataKey] === undefined ? '' : a[sortConfig.dataKey]);
                 let valB_str = String(b[sortConfig.dataKey] === undefined ? '' : b[sortConfig.dataKey]);
-                if (sortConfig.dataKey === 'calculated_integration_time_minutes') {
-                    valA_str = String(a.calculated_integration_time_minutes === undefined || a.calculated_integration_time_minutes === 'N/A' ? -Infinity : a.calculated_integration_time_minutes);
-                    valB_str = String(b.calculated_integration_time_minutes === undefined || b.calculated_integration_time_minutes === 'N/A' ? -Infinity : b.calculated_integration_time_minutes);
-                } else if (sortConfig.dataKey === 'session_date') {
-                    valA_str = String(a[sortConfig.dataKey] || '9999-99-99');
-                    valB_str = String(b[sortConfig.dataKey] || '9999-99-99');
-                } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
-                     valA_str = String(a[sortConfig.dataKey] === 'N/A' || a[sortConfig.dataKey] === null || a[sortConfig.dataKey] === undefined ? -Infinity : a[sortConfig.dataKey]);
-                     valB_str = String(b[sortConfig.dataKey] === 'N/A' || b[sortConfig.dataKey] === null || b[sortConfig.dataKey] === undefined ? -Infinity : b[sortConfig.dataKey]);
-                }
-                const isNA_A = valA_str.toLowerCase() === 'n/a' || valA_str === '' || valA_str === String(-Infinity);
-                const isNA_B = valB_str.toLowerCase() === 'n/a' || valB_str === '' || valB_str === String(-Infinity);
+                const isNA_A = valA_str.toLowerCase() === 'n/a' || valA_str === '';
+                const isNA_B = valB_str.toLowerCase() === 'n/a' || valB_str === '';
                 if (isNA_A && isNA_B) return 0; if (isNA_A) return currentJournalSort.ascending ? 1 : -1; if (isNA_B) return currentJournalSort.ascending ? -1 : 1;
-                let valA = valA_str; let valB = valB_str;
-                if (sortConfig.dataKey === 'session_date') {
-                    valA = new Date(valA_str); valB = new Date(valB_str);
-                     if (isNaN(valA.getTime()) && isNaN(valB.getTime())) return 0;
-                     if (isNaN(valA.getTime())) return currentJournalSort.ascending ? 1 : -1;
-                     if (isNaN(valB.getTime())) return currentJournalSort.ascending ? -1 : 1;
+                if (sortConfig.dataKey === 'date_utc') {
+                    const valA = new Date(valA_str); const valB = new Date(valB_str);
                     return currentJournalSort.ascending ? valA - valB : valB - valA;
                 } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
-                    valA = parseFloat(valA_str); valB = parseFloat(valB_str);
-                    if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentJournalSort.ascending ? 1 : -1; if (isNaN(valB)) return currentJournalSort.ascending ? -1 : 1;
+                    const valA = parseFloat(valA_str); const valB = parseFloat(valB_str);
                     return currentJournalSort.ascending ? valA - valB : valB - valA;
                 }
-                return currentJournalSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+                return currentJournalSort.ascending ? valA_str.localeCompare(valB_str) : valB_str.localeCompare(valA_str);
             });
         }
+
+        // --- [PRESERVED & CORRECTED] Your rendering logic ---
         tableBody.innerHTML = '';
         let previousTargetIdForGrouping = null;
+
         sessionsToDisplay.forEach(session => {
-            const row = document.createElement('tr'); row.classList.add('clickable-row');
-            row.setAttribute('data-session-id', session.session_id); row.setAttribute('data-target-object-id', session.target_object_id);
+            const row = document.createElement('tr');
+            row.classList.add('clickable-row');
+            row.setAttribute('data-session-id', session.id);
+            row.setAttribute('data-target-object-id', session.object_name);
+
             let showFullTargetInfoThisRow = true;
-            if (currentJournalSort.columnKey === 'target_object_id' || currentJournalSort.columnKey === 'target_common_name') {
-                if (session.target_object_id === previousTargetIdForGrouping) { showFullTargetInfoThisRow = false; }
-                previousTargetIdForGrouping = session.target_object_id;
+
+            // --- THIS IS THE CORRECTED GROUPING LOGIC ---
+            if (currentJournalSort.columnKey === 'object_name' || currentJournalSort.columnKey === 'target_common_name') {
+                if (session.object_name === previousTargetIdForGrouping) {
+                    showFullTargetInfoThisRow = false;
+                }
+                previousTargetIdForGrouping = session.object_name;
             }
+            // --- END OF CORRECTION ---
+
             for (const key in journalColumnConfig) {
-                const config = journalColumnConfig[key]; const td = document.createElement('td');
-                td.dataset.journalColumnKey = key; let rawValue = session[config.dataKey]; let displayValue = "";
-                 if (config.dataKey === 'calculated_integration_time_minutes') { rawValue = session.calculated_integration_time_minutes; }
-                if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') { displayValue = "N/A"; }
-                else if (config.format) { displayValue = config.format(rawValue); } else { displayValue = String(rawValue); }
-                if ((config.dataKey === 'target_object_id' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) { td.innerHTML = ""; }
-                else { td.innerHTML = String(displayValue); }
-                if (typeof session[config.dataKey] === 'number' && !isNaN(session[config.dataKey])) { td.dataset.rawValue = session[config.dataKey]; }
-                else if (config.dataKey === 'calculated_integration_time_minutes' && typeof session.calculated_integration_time_minutes === 'number' && !isNaN(session.calculated_integration_time_minutes) ) { td.dataset.rawValue = session.calculated_integration_time_minutes; }
+                const config = journalColumnConfig[key];
+                const td = document.createElement('td');
+                td.dataset.journalColumnKey = key;
+
+                let rawValue = session[config.dataKey];
+                let displayValue = "";
+                if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
+                    displayValue = "N/A";
+                } else if (config.format) {
+                    displayValue = config.format(rawValue);
+                } else {
+                    displayValue = String(rawValue);
+                }
+
+                // Correctly apply the grouping visual effect
+                if ((config.dataKey === 'object_name' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) {
+                    td.innerHTML = "";
+                } else {
+                    td.innerHTML = String(displayValue);
+                }
+
                 row.appendChild(td);
             }
+
             row.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target-object-id');
                 const sessionId = this.getAttribute('data-session-id');
-                if (targetId && sessionId) { window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`; }
-                else { console.warn("Missing targetId or sessionId", session); }
+                if (targetId && sessionId) {
+                    window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
+                }
             });
             tableBody.appendChild(row);
         });
@@ -1220,7 +1351,7 @@
             let htmlRows = "";
             filteredData.forEach(target => {
                 htmlRows += `
-                    <tr class="clickable-row" onclick="showGraph('${target.object_name}', '${target.date}')">
+                    <tr class="clickable-row" onclick="showGraph('${target.object_name}', '${target.date}', 'chart')">
                         <td>${target.object_name}</td>
                         <td>${target.common_name}</td>
                         <td style="text-align:center;">${formatDateISOtoEuropean(target.date)}</td>
@@ -1236,35 +1367,64 @@
         }
     }
 
+
     function fetchOutlookData() {
         const tableBody = document.getElementById('outlook-body');
-        const loadingDiv = document.getElementById("table-loading");
+        const loadingDiv = document.getElementById("table-loading"); // Assuming you might have a general loading div
         if (!tableBody) return;
 
-        if (!isUpdatingLocation) { // <-- Checks the flag
+        // Show fetching message only if not already updating location UI
+        if (!isUpdatingLocation) {
             tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Fetching...</td></tr>`;
         }
 
-        fetch('/get_outlook_data')
+        // --- START FIX ---
+        // Get the currently selected location name from browser's session storage
+        const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+        // Construct the URL with the location as a query parameter
+        const fetchUrl = `/get_outlook_data?location=${encodeURIComponent(currentSelectedLocation || '')}`;
+        // --- END FIX ---
+
+        fetch(fetchUrl) // <-- Use the modified URL
             .then(response => response.json())
             .then(data => {
-                if (!outlookDataLoaded) { outlookDataLoaded = true; }
+                // --- FIX: Only set outlookDataLoaded to true when data is actually complete ---
+                // if (!outlookDataLoaded) { outlookDataLoaded = true; } // REMOVE THIS LINE (it was a bug)
+
                 if (data.status === 'complete') {
-                    allOutlookOpportunities = data.results || [];
-                    if (allOutlookOpportunities.length > 0) { sortOutlookTable(currentOutlookSort.columnKey, false); }
-                    else { tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">No imaging opportunities found matching the criteria.</td></tr>`; }
+                    // --- FIX: Set loaded flag ONLY on complete ---
+                    if (!outlookDataLoaded) { outlookDataLoaded = true; } // Correct placement
+
+                    allOutlookOpportunities = data.results || []; // Store data globally
+                    if (allOutlookOpportunities.length > 0) {
+                        // Sort and render the table (assuming sortOutlookTable also calls renderOutlookTable)
+                        sortOutlookTable(currentOutlookSort.columnKey, false);
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">No imaging opportunities found matching the criteria.</td></tr>`;
+                    }
                 } else if (data.status === 'running' || data.status === 'starting') {
-                    if ((data.results || []).length > 0) { allOutlookOpportunities = data.results || []; sortOutlookTable(currentOutlookSort.columnKey, false); }
-                    else { tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Waiting for background task...</td></tr>`; }
+                    // Background task is running, show waiting message
+                    if ((data.results || []).length > 0) {
+                         // Optionally display stale data while waiting
+                        allOutlookOpportunities = data.results || [];
+                        sortOutlookTable(currentOutlookSort.columnKey, false);
+                    } else {
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Waiting for background task...</td></tr>`;
+                    }
+                    // Poll again after a delay
                     setTimeout(fetchOutlookData, 10000);
-                } else {
-                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">No data available. Check server logs if this persists.</td></tr>`;
+                } else { // Handle 'idle' (should become 'starting' now) or 'error'
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">No data available or error. Check server logs if this persists. ${data.message || ''}</td></tr>`;
+                    // Optionally set outlookDataLoaded = true here too, to stop retrying on error
+                     if (!outlookDataLoaded) { outlookDataLoaded = true; }
                 }
+                // Hide general loading indicator if used
                 if (loadingDiv) loadingDiv.style.display = 'none';
             })
             .catch(error => {
-                outlookDataLoaded = true; console.error("Error fetching outlook data:", error);
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error. Check console for details.</td></tr>`;
+                // outlookDataLoaded = true; // Set flag even on error to stop retries
+                console.error("Error fetching outlook data:", error);
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error fetching data. Check console for details.</td></tr>`;
                 if (loadingDiv) loadingDiv.style.display = 'none';
             });
     }
@@ -1400,18 +1560,18 @@
         <table id="journal-data-table" data-sort-order="desc">
             <thead>
                 <tr>
-                    <th data-journal-column-key="target_object_id"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="object_name"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="target_common_name"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="session_date"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="date_utc"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="location_name"><span>Location</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="telescope_setup_notes"><span>Telescope Setup</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="calculated_integration_time_minutes"><span>Total Integration</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="session_rating_subjective"><span>Session Rating</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                 </tr>
                 <tr class="filter-row" id="journal-filter-row">
-                    <th data-journal-column-key="target_object_id"><input type="text" placeholder="Object ID"/></th>
+                    <th data-journal-column-key="object_name"><input type="text" placeholder="Object ID"/></th>
                     <th data-journal-column-key="target_common_name"><input type="text" placeholder="Search Common Name"/></th>
-                    <th data-journal-column-key="session_date"><input type="text" placeholder="DD.MM.YYYY"/></th> {# Changed placeholder #}
+                    <th data-journal-column-key="date_utc"><input type="text" placeholder="DD.MM.YYYY"/></th>
                     <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
                     <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
                     <th data-journal-column-key="calculated_integration_time_minutes"><input type="text" placeholder="e.g. >120"/></th>

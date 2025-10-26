@@ -14,11 +14,11 @@ CONFIG_DIR = os.path.join(APP_ROOT, "instance", "configs")
 def get_rig_config_path(username, is_single_user_mode):
     """Returns the absolute path to the user's rig config file."""
     if is_single_user_mode:
-        filename = "rig_config_default.yaml"
+        filename = "rigs_default.yaml"
     else:
-        filename = f"rig_config_{username}.yaml"
+        filename = f"rigs_{username}.yaml"
 
-    # This now correctly points to /instance/configs/rig_config_...
+    # This now correctly points to /instance/configs/rigs_...
     return os.path.join(CONFIG_DIR, filename)
 
 

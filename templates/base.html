@@ -6,9 +6,26 @@
     <title>{% block title %}Nova DSO Tracker{% endblock %}</title>
 
     <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+
     <style>
-      .header-container {
+        @font-face {
+          font-family: 'Roboto';
+          font-style: normal;
+          font-weight: 400; /* Regular */
+          font-display: swap; /* Helps rendering speed */
+          /* Adjust the path if your static setup is different */
+          src: url('{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}') format('woff2');
+        }
+
+        @font-face {
+          font-family: 'Roboto';
+          font-style: normal;
+          font-weight: 700; /* Bold */
+          font-display: swap;
+          src: url('{{ url_for('static', filename='fonts/roboto-v49-latin-700.woff2') }}') format('woff2');
+        }
+
+        .header-container {
         display: flex;
         align-items: baseline;
       }
@@ -22,6 +39,8 @@
       }
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
 
     {% block head_extra %}{% endblock %}
   </head>

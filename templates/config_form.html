@@ -393,14 +393,7 @@
       <a href="{{ url_for('index') }}" class="dlback-button">Back to Tracker</a>
     </div>
     <div id="message-container" style="height: 24px; flex-grow: 1; text-align: center;">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <p class="{{ 'error' if category == 'error' else 'message' }} flash-transient" style="margin: 0;">{{ message }}</p>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-    </div>
+        </div>
 <div class="right-group">
       <form method="post" action="{{ url_for('fetch_all_details') }}" id="fetch-details-form">
         <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
@@ -458,29 +451,29 @@
                 <div>
                   <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
                   <input type="number" name="min_observable_minutes" id="min_observable_minutes"
-                         value="{{ config.get('imaging_criteria', {}).get('min_observable_minutes', 60) }}" min="0" max="600">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_observable_minutes', 60) }}" min="0" max="600">
                 </div>
                 <div>
                   <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
                   <input type="number" name="min_max_altitude" id="min_max_altitude"
-                         value="{{ config.get('imaging_criteria', {}).get('min_max_altitude', 30) }}" min="0" max="90">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_max_altitude', 30) }}" min="0" max="90">
                 </div>
               </div>
               <div class="inline-fields">
                 <div>
                   <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
                   <input type="number" name="max_moon_illumination" id="max_moon_illumination"
-                         value="{{ config.get('imaging_criteria', {}).get('max_moon_illumination', 20) }}" min="0" max="100">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('max_moon_illumination', 20) }}" min="0" max="100">
                 </div>
                 <div>
                   <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
                   <input type="number" name="min_angular_separation" id="min_angular_separation"
-                         value="{{ config.get('imaging_criteria', {}).get('min_angular_distance', 30) }}" min="0" max="180">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('min_angular_separation', 30) }}" min="0" max="180">
                 </div>
                 <div>
                   <label class="verylong-label" for="search_horizon_months">Search months:</label>
                   <input type="number" name="search_horizon_months" id="search_horizon_months"
-                         value="{{ config.get('imaging_criteria', {}).get('search_horizon_months', 6) }}" min="1" max="24">
+                         value="{{ (config.imaging_criteria | default({}, true)).get('search_horizon_months', 6) }}" min="1" max="12">
                 </div>
               </div>
               {% if SINGLE_USER_MODE %}
@@ -618,7 +611,7 @@
                         <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
                         <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
                         <div></div>
-                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ loc_val.get('comments', '')|length }} / 500</small>
+                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ (loc_val.get('comments') or '')|length }} / 500</small>
                     </div>
                 </div>
             </div>
@@ -872,7 +865,7 @@
         else if (type === 'reducer_extender') componentListKey = 'reducers_extenders';
         else return console.error("Unknown component type:", type);
 
-        const component = rigsData.components[componentListKey].find(c => c.id === id);
+        const component = rigsData.components[componentListKey].find(c => c.id == id);
         if (!component) return console.error("Could not find component with ID:", id);
 
         const formType = type === 'reducer_extender' ? 'reducer' : type;
@@ -1060,7 +1053,8 @@
             if (selectedSeeing === 'none') return;
 
             const rigId = item.dataset.rigId;
-            const rig = rigsData.rigs.find(r => r.rig_id === rigId);
+            const rigIdNum = parseInt(rigId, 10);
+            const rig = rigsData.rigs.find(r => r.rig_id === rigIdNum);
             if (rig && rig.image_scale) {
                 const imageScale = rig.image_scale;
                 const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
@@ -1100,7 +1094,6 @@
         if (confirm(confirmationMessage)) {
             const button = document.getElementById('fetch-details-button');
             if (button) { button.disabled = true; button.innerText = 'Processing...'; }
-            document.getElementById('message-container').innerHTML = `<p class="progress-message">Fetching details... The page will reload when complete.</p>`;
             formElement.submit();
         }
     }
@@ -1154,8 +1147,8 @@
         }
 
         function manageActiveLocationLimit() {
-            const checkboxes = document.querySelectorAll('.active-location-checkbox');
-            const checkedCount = document.querySelectorAll('.active-location-checkbox:checked').length;
+            const checkboxes = document.querySelectorAll('.locations-list .active-location-checkbox');
+            const checkedCount = document.querySelectorAll('.locations-list .active-location-checkbox:checked').length;
             const counterEl = document.getElementById('active-location-counter');
 
             if(counterEl) {
@@ -1229,14 +1222,6 @@
             });
         }
 
-        // --- Message Fader ---
-        setTimeout(() => {
-            document.querySelectorAll(".flash-transient").forEach(el => {
-                el.style.transition = "opacity 0.5s ease"; el.style.opacity = "0";
-                setTimeout(() => el.remove(), 500);
-            });
-        }, 3000);
-
         // --- Fetch Details Logic ---
         const fetchDetailsForm = document.getElementById('fetch-details-form');
         if (fetchDetailsForm) fetchDetailsForm.addEventListener('submit', function(e) { e.preventDefault(); confirmAndFetchDetails(this); });
@@ -1258,9 +1243,14 @@
                   document.getElementById('new_dec').value = data.data["DEC (degrees)"];
                   document.getElementById('new_constellation').value = data.data["Constellation"] || '';
                   ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}</p>`;
+                  resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
                   return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
                 }).then(r => r.json()).then(extra => {
+                  // --- FIX: Update message to remove "Fetching details..." ---
+                  const commonName = document.getElementById('new_name').value;
+                  resultDiv.innerHTML = `<p class="message">Found: ${commonName}. Details loaded.</p>`;
+                  // --- END FIX ---
+
                   if (extra.status === 'success') {
                       document.getElementById('new_type').value = extra.data.Type || '';
                       document.getElementById('new_magnitude').value = extra.data.Magnitude || '';

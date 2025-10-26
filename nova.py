@@ -24,12 +24,10 @@ from dotenv import load_dotenv
 import calendar
 import json
 import numpy as np
-from yaml.constructor import ConstructorError
 import threading
 import glob
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import datetime, timedelta, timezone, UTC, date
 import traceback
-import uuid
 import io
 import zipfile
 import pytz
@@ -43,15 +41,10 @@ from modules.config_validation import validate_config
 import uuid
 from pathlib import Path
 import platform
-
-import matplotlib
-matplotlib.use('Agg')  # Use a non-GUI backend for headless servers
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-
+from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from flask import session, get_flashed_messages
+from flask import session
 from flask import Flask, send_from_directory, has_request_context
 
 from astroquery.simbad import Simbad
@@ -61,9 +54,8 @@ import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session, selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 import getpass
 import jwt
 
@@ -82,14 +74,1440 @@ from modules.astro_calculations import (
 
 from modules import nova_data_fetcher
 from modules import rig_config
-from modules.rig_config import calculate_rig_data, get_rig_config_path
-from modules.rig_config import save_rig_config, load_rig_config
+
+# === DB: Unified SQLAlchemy setup ============================================
+from sqlalchemy import (
+    create_engine, Column, Integer, Float, String, Boolean, Date,
+    ForeignKey, Text, UniqueConstraint
+)
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
+
+APP_VERSION = "3.8.0"
+
+INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
+os.makedirs(INSTANCE_PATH, exist_ok=True)
+DB_PATH = os.path.join(INSTANCE_PATH, 'app.db')
+DB_URI = f"sqlite:///{DB_PATH}"
+
+engine = create_engine(DB_URI, echo=False, future=True)
+SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
+Base = declarative_base()
+
+def get_or_create_db_user(db_session, username: str) -> 'DbUser':
+    """
+    Finds a user in the `DbUser` table by username or creates them if they don't exist.
+    This is the bridge between the authentication DB and the application DB.
+
+    Returns:
+        The SQLAlchemy DbUser object for the given username.
+    """
+    if not username:
+        return None
+
+    # Try to find the user in our application database
+    user = db_session.query(DbUser).filter_by(username=username).one_or_none()
+
+    if user:
+        # The user already exists, just return them
+        return user
+    else:
+        # User exists in WordPress/users.db but not here. Create them now.
+        print(f"[PROVISIONING] User '{username}' not found in app.db. Creating new record.")
+        new_user = DbUser(username=username)
+        db_session.add(new_user)
+        try:
+            db_session.commit()
+            print(f"   -> Successfully provisioned '{username}' in app database.")
+            # We need to re-fetch to get the fully loaded object with its new ID
+            return db_session.query(DbUser).filter_by(username=username).one()
+        except Exception as e:
+            db_session.rollback()
+            print(f"   -> FAILED to provision '{username}'. Error: {e}")
+            return None
+
+def get_db():
+    """Use inside request context or background tasks."""
+    return SessionLocal()
+
+# === DEFINE VARS NEEDED BY INIT FUNCTION ===
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
+CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
+
+
+def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | None:
+    """
+    Fetches weather data from a single URL with robust error handling.
+    Returns a dictionary on success, None on any failure.
+    """
+    try:
+        # Use a reasonable timeout (e.g., 10 seconds)
+        r = requests.get(url, timeout=10)
+
+        # --- 1. Check for HTTP errors (like 500, 502, 404, etc.) ---
+        if r.status_code != 200:
+            print(f"[Weather Func] ERROR: Received non-200 status code {r.status_code} for lat={lat}, lon={lon}")
+            # Log the error page content for debugging
+            print(f"[Weather Func] Response text (first 200 chars): {r.text[:200]}")
+            return None
+
+        # --- 2. Try to parse the JSON ---
+        # r.json() will automatically handle content-type and raise JSONDecodeError
+        data = r.json()
+        return data
+
+    except requests.exceptions.JSONDecodeError as e:
+        # This is the exact error from your logs!
+        print(f"[Weather Func] ERROR: Failed to decode JSON for lat={lat}, lon={lon}. Error: {e}")
+        # Log the problematic text that isn't JSON
+        print(f"[Weather Func] Response text (first 200 chars): {r.text[:200]}")
+        return None
+
+    except requests.exceptions.RequestException as e:
+        # This handles timeouts, DNS errors, connection errors, etc.
+        print(f"[Weather Func] ERROR: Request failed for lat={lat}, lon={lon}. Error: {e}")
+        return None
+
+    except Exception as e:
+        # Catch any other unexpected errors
+        print(f"[Weather Func] ERROR: An unexpected error occurred for lat={lat}, lon={lon}. Error: {e}")
+        return None
+
+
+def get_weather_data_with_retries(lat: float, lon: float, product: str = "meteo") -> dict | None:
+    """
+    Attempts to fetch weather data from 7Timer! with retries and exponential backoff.
+    Builds the URL and calls the single-attempt helper function.
+    """
+
+    # --- Build the 7Timer! URL ---
+    # This is the standard URL for the 'meteo' product.
+    base_url = "http://www.7timer.info/bin/meteo.php"
+    url = f"{base_url}?lon={lon}&lat={lat}&product={product}&ac=0&unit=metric&output=json"
+
+    retries = 3
+    delay_seconds = 5  # Start with a 5-second delay
+
+    for i in range(retries):
+        # Call our new, robust function from above
+        data = get_weather_data_single_attempt(url, lat, lon)
+
+        if data is not None:
+            # Success!
+            print(f"[Weather Func] Successfully fetched data for lat={lat}, lon={lon} on attempt {i + 1}")
+            return data
+
+        # If data is None, it failed. Log and retry (if not the last attempt).
+        if i < retries - 1:
+            print(
+                f"[Weather Func] WARN: Attempt {i + 1}/{retries} failed for lat={lat}, lon={lon}. Retrying in {delay_seconds}s...")
+            time.sleep(delay_seconds)
+            delay_seconds *= 2  # Exponential backoff (5s, 10s)
+
+    print(f"[Weather Func] ERROR: All {retries} attempts failed for lat={lat}, lon={lon}.")
+    return None
+
+def initialize_instance_directory():
+    """
+    Checks if the instance directory and default configs exist.
+    If not, it creates them from the templates. This makes the app
+    work correctly on first run after a fresh git clone.
+    """
+    # Use the module-level TEMPLATE_DIR
+
+    # The user-specific config directory
+    config_dir = os.path.join(INSTANCE_PATH, "configs")
+
+    # Only run this if the user's config directory doesn't exist
+    config_file_path = os.path.join(config_dir, 'config_default.yaml')
+    if not os.path.exists(config_file_path):
+        print("First run detected. Initializing instance directory...")
+        try:
+            # Create all necessary directories
+            os.makedirs(CONFIG_DIR, exist_ok=True)
+            os.makedirs(CACHE_DIR, exist_ok=True)
+            os.makedirs(BACKUP_DIR, exist_ok=True)
+
+            # List of (template_filename, final_filename) pairs
+            files_to_create = [
+                ('config_default.yaml', 'config_default.yaml'),
+                ('journal_default.yaml', 'journal_default.yaml'),
+                ('rigs_default.yaml', 'rigs_default.yaml'),
+                ('config_guest_user.yaml', 'config_guest_user.yaml'),
+                # Add a journal for the guest user too
+                ('journal_default.yaml', 'journal_guest_user.yaml'),
+            ]
+
+            for template_name, final_name in files_to_create:
+                src_path = os.path.join(TEMPLATE_DIR, template_name)
+                dest_path = os.path.join(config_dir, final_name)
+
+                if os.path.exists(src_path):
+                    shutil.copy(src_path, dest_path)
+                    print(f"   -> Created '{final_name}' from template.")
+                else:
+                    print(f"   -> WARNING: Template file '{template_name}' not found. Cannot create '{final_name}'.")
+
+            print("✅ Initialization complete.")
+        except Exception as e:
+            print(f"❌ FATAL ERROR during first-run initialization: {e}")
+            # You might want the app to exit if this fails
+            # import sys
+            # sys.exit(1)
+
+
+# --- MODELS ------------------------------------------------------------------
+class DbUser(Base):
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True)
+    username = Column(String(80), unique=True, nullable=False, index=True)
+    password_hash = Column(String(256), nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")
+    objects = relationship("AstroObject", back_populates="user", cascade="all, delete-orphan")
+    components = relationship("Component", back_populates="user", cascade="all, delete-orphan")
+    rigs = relationship("Rig", back_populates="user", cascade="all, delete-orphan")
+    sessions = relationship("JournalSession", back_populates="user", cascade="all, delete-orphan")
+    ui_prefs = relationship("UiPref", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+class Project(Base):
+    __tablename__ = 'projects'
+    # The project_id from YAML will be our primary key. It's a string (UUID).
+    id = Column(String(64), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    name = Column(String(256), nullable=False)
+
+    user = relationship("DbUser")
+    sessions = relationship("JournalSession", back_populates="project")
+
+    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_project_name'),)
+
+
+
+class Location(Base):
+    __tablename__ = 'locations'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    name = Column(String(128), nullable=False)
+    lat = Column(Float, nullable=False)
+    lon = Column(Float, nullable=False)
+    timezone = Column(String(64), nullable=False)
+    altitude_threshold = Column(Float, nullable=True)
+    is_default = Column(Boolean, nullable=False, default=False)
+    active = Column(Boolean, nullable=False, default=True)
+    comments = Column(String(500), nullable=True)
+    user = relationship("DbUser", back_populates="locations")
+    horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
+    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_location_name'),)
+
+class HorizonPoint(Base):
+    __tablename__ = 'horizon_points'
+    id = Column(Integer, primary_key=True)
+    location_id = Column(Integer, ForeignKey('locations.id', ondelete="CASCADE"), index=True)
+    az_deg = Column(Float, nullable=False)
+    alt_min_deg = Column(Float, nullable=False)
+    location = relationship("Location", back_populates="horizon_points")
+
+class AstroObject(Base):
+    __tablename__ = 'astro_objects'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    object_name = Column(String(256), nullable=False)
+    common_name = Column(String(256), nullable=True)
+    ra_hours = Column(Float, nullable=False)
+    dec_deg = Column(Float, nullable=False)
+    type = Column(String(128), nullable=True)
+    constellation = Column(String(64), nullable=True)
+    magnitude = Column(String(32), nullable=True)
+    size = Column(String(64), nullable=True)
+    sb = Column(String(64), nullable=True)
+    active_project = Column(Boolean, nullable=False, default=False)
+    project_name = Column(String(256), nullable=True)
+    user = relationship("DbUser", back_populates="objects")
+
+    __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
+
+class Component(Base):
+    __tablename__ = 'components'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    kind = Column(String(32), nullable=False)           # 'telescope' | 'camera' | 'reducer_extender'
+    name = Column(String(256), nullable=False)
+    aperture_mm = Column(Float, nullable=True)
+    focal_length_mm = Column(Float, nullable=True)
+    sensor_width_mm = Column(Float, nullable=True)
+    sensor_height_mm = Column(Float, nullable=True)
+    pixel_size_um = Column(Float, nullable=True)
+    factor = Column(Float, nullable=True)
+    user = relationship("DbUser", back_populates="components")
+    rigs_using = relationship("Rig", back_populates="telescope", foreign_keys="Rig.telescope_id")
+
+class Rig(Base):
+    __tablename__ = 'rigs'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    rig_name = Column(String(256), nullable=False)
+    telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    reducer_extender_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    effective_focal_length = Column(Float, nullable=True)
+    f_ratio = Column(Float, nullable=True)
+    image_scale = Column(Float, nullable=True)
+    fov_w_arcmin = Column(Float, nullable=True)
+    user = relationship("DbUser", back_populates="rigs")
+    telescope = relationship("Component", foreign_keys=[telescope_id])
+    camera = relationship("Component", foreign_keys=[camera_id])
+    reducer_extender = relationship("Component", foreign_keys=[reducer_extender_id])
+    __table_args__ = (UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),)
+
+
+class JournalSession(Base):
+    __tablename__ = 'journal_sessions'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    project_id = Column(String(64), ForeignKey('projects.id', ondelete="SET NULL"), nullable=True, index=True)
+    date_utc = Column(Date, nullable=False)
+    object_name = Column(String(256), nullable=True)
+    notes = Column(Text, nullable=True)
+    session_image_file = Column(String(256), nullable=True)
+
+    # --- NEW & CORRECTED COLUMNS START HERE ---
+    location_name = Column(String(128), nullable=True)
+    seeing_observed_fwhm = Column(Float, nullable=True)
+    sky_sqm_observed = Column(Float, nullable=True)
+    moon_illumination_session = Column(Integer, nullable=True)
+    moon_angular_separation_session = Column(Float, nullable=True)
+    weather_notes = Column(Text, nullable=True)
+    telescope_setup_notes = Column(Text, nullable=True)
+    filter_used_session = Column(String(128), nullable=True)
+    guiding_rms_avg_arcsec = Column(Float, nullable=True)
+    guiding_equipment = Column(String(256), nullable=True)
+    dither_details = Column(String(256), nullable=True)
+    acquisition_software = Column(String(128), nullable=True)
+    gain_setting = Column(Integer, nullable=True)
+    offset_setting = Column(Integer, nullable=True)
+    camera_temp_setpoint_c = Column(Float, nullable=True)
+    camera_temp_actual_avg_c = Column(Float, nullable=True)
+    binning_session = Column(String(16), nullable=True)
+    darks_strategy = Column(Text, nullable=True)
+    flats_strategy = Column(Text, nullable=True)
+    bias_darkflats_strategy = Column(Text, nullable=True)
+    session_rating_subjective = Column(Integer, nullable=True)
+    transparency_observed_scale = Column(String(64), nullable=True)
+    # --- END OF NEW COLUMNS ---
+
+    number_of_subs_light = Column(Integer, nullable=True)
+    exposure_time_per_sub_sec = Column(Integer, nullable=True)
+    filter_L_subs = Column(Integer, nullable=True);
+    filter_L_exposure_sec = Column(Integer, nullable=True)
+    filter_R_subs = Column(Integer, nullable=True);
+    filter_R_exposure_sec = Column(Integer, nullable=True)
+    filter_G_subs = Column(Integer, nullable=True);
+    filter_G_exposure_sec = Column(Integer, nullable=True)
+    filter_B_subs = Column(Integer, nullable=True);
+    filter_B_exposure_sec = Column(Integer, nullable=True)
+    filter_Ha_subs = Column(Integer, nullable=True);
+    filter_Ha_exposure_sec = Column(Integer, nullable=True)
+    filter_OIII_subs = Column(Integer, nullable=True);
+    filter_OIII_exposure_sec = Column(Integer, nullable=True)
+    filter_SII_subs = Column(Integer, nullable=True);
+    filter_SII_exposure_sec = Column(Integer, nullable=True)
+    calculated_integration_time_minutes = Column(Float, nullable=True)
+    external_id = Column(String(64), nullable=True, index=True)
+
+    user = relationship("DbUser", back_populates="sessions")
+    project = relationship("Project", back_populates="sessions")
+
+class UiPref(Base):
+    __tablename__ = 'ui_prefs'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    json_blob = Column(Text, nullable=True)
+    user = relationship("DbUser", back_populates="ui_prefs")
+
+# --- Create tables if needed (non-destructive) -------------------------------
+def ensure_db_initialized_unified():
+    """
+    Create tables if missing, ensure schema patches (external_id column),
+    and set SQLite pragmas before any queries or migrations run.
+    """
+    Base.metadata.create_all(bind=engine, checkfirst=True)
+    with engine.begin() as conn:
+        # Ensure external_id exists on journal_sessions
+        cols = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
+        colnames = {row[1] for row in cols}  # (cid, name, type, notnull, dflt_value, pk)
+        if "external_id" not in colnames:
+            conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
+            print("[DB PATCH] Added missing column journal_sessions.external_id")
+            try:
+                conn.exec_driver_sql(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
+                )
+            except Exception:
+                pass
+        # Pragmas for better concurrency / durability
+        conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+        conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+
+# --- Ensure DB schema and patches are applied before any migration/backfill ---
+ensure_db_initialized_unified()
+
+# --- Early paths & helpers for migration (must exist before first call) ----
+def _mkdirp(path: str):
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception as e:
+        print(f"[INIT] WARN could not create directory '{path}': {e}")
+
+# Ensure config/backup directories exist before migration runs
+CONFIG_DIR = globals().get("CONFIG_DIR") or os.path.join(INSTANCE_PATH, "configs")
+BACKUP_DIR = globals().get("BACKUP_DIR") or os.path.join(INSTANCE_PATH, "backups")
+_mkdirp(CONFIG_DIR)
+_mkdirp(BACKUP_DIR)
+
+
+# === YAML → DB one-time migration ===========================================
+def _timestamped_copy(src_dir: str):
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    dst = os.path.join(BACKUP_DIR, f"yaml_backup_{ts}")
+    try:
+        shutil.copytree(src_dir, dst)
+        print(f"[MIGRATION] YAML backup saved to {dst}")
+    except Exception as e:
+        print(f"[MIGRATION] WARNING: could not backup YAMLs: {e}")
+
+
+def _read_yaml(path: str) -> tuple[dict | None, str | None]:
+    """
+    Safely reads and parses a YAML file, returning data and any error.
+
+    Returns:
+        A tuple of (data, error_message).
+        - On success: (dict, None)
+        - If file not found: ({}, None) -> Non-fatal, treated as empty.
+        - On parsing/other error: (None, str) -> Fatal error with a message.
+    """
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            # Successfully parse the file. An empty file will correctly result in `None`.
+            data = yaml.safe_load(f) or {}
+            return (data, None)
+
+    except FileNotFoundError:
+        # This is a normal, non-fatal condition. The user just doesn't have this file.
+        return ({}, None)
+
+    except yaml.YAMLError as e:
+        # This is a FATAL syntax error in the YAML file.
+        # We return None for the data to signal a hard failure.
+        error_msg = f"Invalid YAML syntax in '{os.path.basename(path)}': {e}"
+        print(f"[MIGRATION] {error_msg}")
+        return (None, error_msg)
+
+    except Exception as e:
+        # Catch any other unexpected errors during file reading.
+        error_msg = f"Cannot read file '{os.path.basename(path)}': {e}"
+        print(f"[MIGRATION] {error_msg}")
+        return (None, error_msg)
+
+def _select_rigs_yaml(username: str) -> dict:
+    """Prefer per-user rigs_<user>.yaml; only use rigs_default.yaml for the 'default' account."""
+    user_path = os.path.join(CONFIG_DIR, f"rigs_{username}.yaml")
+    default_path = os.path.join(CONFIG_DIR, "rigs_default.yaml")
+    try:
+        if os.path.exists(user_path):
+            doc = _read_yaml(user_path) or {}
+            try:
+                n = len((doc.get("rigs") or []))
+            except Exception:
+                n = 0
+            print(f"[MIGRATION] Rigs for '{username}': {n} entries (source: {os.path.basename(user_path)})")
+            return doc
+        if username == "default" and os.path.exists(default_path):
+            doc = _read_yaml(default_path) or {}
+            try:
+                n = len((doc.get("rigs") or []))
+            except Exception:
+                n = 0
+            print(f"[MIGRATION] Rigs for 'default': {n} entries (source: rigs_default.yaml)")
+            return doc
+    except Exception as e:
+        print(f"[MIGRATION] WARN reading rigs YAML for '{username}': {e}")
+    print(f"[MIGRATION] Rigs for '{username}': 0 entries (source: none)")
+    return {}
+
+def _iter_candidate_users():
+    names = set()
+    for p in glob.glob(os.path.join(CONFIG_DIR, "config_*.yaml")):
+        names.add(Path(p).stem.replace("config_", ""))
+    for p in glob.glob(os.path.join(CONFIG_DIR, "journal_*.yaml")):
+        names.add(Path(p).stem.replace("journal_", ""))
+    names.update(["default", "guest_user"])
+    return sorted(n for n in names if n)
+
+def _upsert_user(db, username: str) -> DbUser:
+    u = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not u:
+        u = DbUser(username=username, active=True)
+        db.add(u)
+        db.flush()
+    return u
+
+def _migrate_locations(db, user: DbUser, config: dict):
+    """
+    Idempotent import of locations:
+      - Upsert per (user_id, name)
+      - Replace horizon points on update
+      - Ensure only default_location has is_default=True
+    """
+    locs = (config or {}).get("locations", {}) or {}
+    default_name = (config or {}).get("default_location")
+
+    # First, clear default flags for this user's locations. We'll set the correct one below.
+    db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
+    db.flush()
+
+    for name, loc in locs.items():
+        try:
+            lat = float(loc.get("lat"))
+            lon = float(loc.get("lon"))
+            tz = loc.get("timezone", "UTC")
+            alt_thr_val = loc.get("altitude_threshold")
+            alt_thr = float(alt_thr_val) if alt_thr_val is not None else None
+            new_is_default = (name == default_name)
+
+            existing = db.query(Location).filter_by(user_id=user.id, name=name).one_or_none()
+            if existing:
+                # --- UPDATE existing row
+                existing.lat = lat
+                existing.lon = lon
+                existing.timezone = tz
+                existing.altitude_threshold = alt_thr
+                existing.is_default = new_is_default
+                existing.active = loc.get("active", True)
+
+                # Replace horizon points
+                db.query(HorizonPoint).filter_by(location_id=existing.id).delete()
+                hm = loc.get("horizon_mask")
+                if isinstance(hm, list):
+                    for pair in hm:
+                        try:
+                            az, altmin = float(pair[0]), float(pair[1])
+                            db.add(HorizonPoint(location_id=existing.id, az_deg=az, alt_min_deg=altmin))
+                        except Exception:
+                            pass
+            else:
+                # --- INSERT new row
+                row = Location(
+                    user_id=user.id,
+                    name=name,
+                    lat=lat,
+                    lon=lon,
+                    timezone=tz,
+                    altitude_threshold=alt_thr,
+                    is_default=new_is_default,
+                    active=loc.get("active", True)
+                )
+                db.add(row); db.flush()
+
+                hm = loc.get("horizon_mask")
+                if isinstance(hm, list):
+                    for pair in hm:
+                        try:
+                            az, altmin = float(pair[0]), float(pair[1])
+                            db.add(HorizonPoint(location_id=row.id, az_deg=az, alt_min_deg=altmin))
+                        except Exception:
+                            pass
+        except Exception as e:
+            print(f"[MIGRATION] Skip/repair location '{name}': {e}")
+
+def _migrate_objects(db, user: DbUser, config: dict):
+    """
+    Idempotently migrates astronomical objects from a YAML configuration dictionary to the database.
+
+    This function performs an "upsert" (update or insert) for each object based on its
+    unique name for a given user. It prevents duplicates, handles various legacy key names,
+    and automatically calculates the constellation if it's missing but coordinates are present.
+
+    Args:
+        db: The SQLAlchemy session object.
+        user (DbUser): The user account to which these objects will be associated.
+        config (dict): The user's configuration dictionary, expected to contain an 'objects' list.
+    """
+    # Safely get the list of objects, defaulting to an empty list if missing.
+    objs = (config or {}).get("objects", []) or []
+
+    for o in objs:
+        try:
+            # --- 1. Robustly Parse Object Data from Dictionary ---
+            # Use .get() with fallbacks to handle different key names found in older YAML files.
+            ra_val = o.get("RA") if o.get("RA") is not None else o.get("RA (hours)")
+            dec_val = o.get("DEC") if o.get("DEC") is not None else o.get("DEC (degrees)")
+
+            # The canonical object identifier is crucial. Skip if it's missing or blank.
+            raw_obj_name = o.get("Object") or o.get("object") or o.get("object_name")
+            if not raw_obj_name or not str(raw_obj_name).strip():
+                print(f"[MIGRATION][OBJECT SKIP] Entry is missing an 'Object' identifier: {o}")
+                continue
+            # Sanitize the name to ensure consistency (e.g., " M31 " becomes "M31").
+            object_name = " ".join(str(raw_obj_name).strip().split())
+
+            common_name = o.get("Common Name") or o.get("Name") or o.get("common_name")
+            obj_type = o.get("Type") or o.get("type")
+            constellation = o.get("Constellation") or o.get("constellation")
+            magnitude = o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude")
+            size = o.get("Size") if o.get("Size") is not None else o.get("size")
+            sb = o.get("SB") if o.get("SB") is not None else o.get("sb")
+            active_project = bool(o.get("ActiveProject") or o.get("active_project") or False)
+            project_name = o.get("Project") or o.get("project_name")
+
+            ra_f = float(ra_val) if ra_val is not None else None
+            dec_f = float(dec_val) if dec_val is not None else None
+
+            # --- 2. Enrich Data: Calculate Constellation if Missing ---
+            # This integrates the logic from the old `backfill_missing_fields` function.
+            if (not constellation) and (ra_f is not None) and (dec_f is not None):
+                try:
+                    # Create a coordinate object and use Astropy to find its constellation.
+                    coords = SkyCoord(ra=ra_f * u.hourangle, dec=dec_f * u.deg)
+                    constellation = get_constellation(coords)
+                except Exception:
+                    constellation = None # Avoid crashing if coordinates are invalid.
+
+            # --- 3. Perform the Idempotent "Upsert" ---
+            # Query for an existing object with the same name for this user (case-insensitive).
+            existing = db.query(AstroObject).filter(
+                AstroObject.user_id == user.id,
+                AstroObject.object_name.collate('NOCASE') == object_name
+            ).one_or_none()
+
+            if existing:
+                # UPDATE PATH: The object already exists, so we update its fields.
+                # This overwrites existing data with what's in the YAML, ensuring the
+                # migration reflects the source of truth.
+                existing.common_name = common_name
+                existing.ra_hours = ra_f
+                existing.dec_deg = dec_f
+                existing.type = obj_type
+                existing.constellation = constellation
+                existing.magnitude = str(magnitude) if magnitude is not None else None
+                existing.size = str(size) if size is not None else None
+                existing.sb = str(sb) if sb is not None else None
+                existing.active_project = active_project
+                existing.project_name = project_name
+            else:
+                # INSERT PATH: The object is new, so we create a new database record.
+                new_object = AstroObject(
+                    user_id=user.id,
+                    object_name=object_name,
+                    common_name=common_name,
+                    ra_hours=ra_f,
+                    dec_deg=dec_f,
+                    type=obj_type,
+                    constellation=constellation,
+                    magnitude=str(magnitude) if magnitude is not None else None,
+                    size=str(size) if size is not None else None,
+                    sb=str(sb) if sb is not None else None,
+                    active_project=active_project,
+                    project_name=project_name,
+                )
+                db.add(new_object)
+
+        except Exception as e:
+            # If one object entry is malformed, log the error and continue with the rest.
+            print(f"[MIGRATION] Could not process object entry '{o}'. Error: {e}")
+
+
+def _try_float(v):
+    try:
+        return float(v) if v is not None else None
+    except:
+        return None
+
+def _as_int(v):
+    try:
+        return int(str(v)) if v is not None else None
+    except:
+        return None
+
+def _norm_name(s: str | None) -> str | None:
+    """
+    Normalize names for consistent lookups:
+    - strip outer whitespace
+    - collapse internal whitespace to single spaces
+    - casefold for case-insensitive matching
+    """
+    if not s:
+        return None
+    s2 = " ".join(str(s).strip().split())
+    return s2.casefold()
+
+def _compute_rig_metrics_from_components(telescope: Component | None,
+                                          camera: Component | None,
+                                          reducer: Component | None):
+    """
+    Compute (effective_focal_length_mm, f_ratio, image_scale_arcsec_per_px, fov_w_arcmin)
+    based on Component columns.
+    telescope: uses focal_length_mm and aperture_mm
+    camera: uses pixel_size_um and sensor_width_mm
+    reducer: uses factor (e.g., 0.8 for reducer, 2.0 for extender)
+    """
+    try:
+        if not telescope or not camera:
+            return (None, None, None, None)
+        fl = telescope.focal_length_mm
+        ap = telescope.aperture_mm
+        px = camera.pixel_size_um
+        sw = camera.sensor_width_mm
+        fac = reducer.factor if (reducer and reducer.factor is not None) else 1.0
+        if fl is None or ap is None:
+            return (None, None, None, None)
+        efl = fl * fac if fl is not None else None
+        f_ratio = (efl / ap) if (efl and ap) else None
+        image_scale = (206.265 * px / efl) if (efl and px) else None
+        fov_w_arcmin = (degrees(2 * atan((sw / 2.0) / efl)) * 60.0) if (sw and efl) else None
+        return (efl, f_ratio, image_scale, fov_w_arcmin)
+    except Exception:
+        return (None, None, None, None)
+
+
+def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: str):
+    """
+    Idempotent import for components and rigs that unifies all logic.
+    - UPSERTS components by (user_id, kind, normalized_name), preventing duplicates.
+    - Creates components on-the-fly if referenced by a rig but not explicitly defined.
+    - UPSERTS rigs by (user_id, rig_name).
+    - Skips creating rigs if a valid telescope or camera cannot be found/created.
+    - Removes the need for post-migration deduplication or cleanup.
+    """
+    if not isinstance(rigs_yaml, dict):
+        return
+
+    comps = rigs_yaml.get("components", {}) or {}
+    rig_list = rigs_yaml.get("rigs", []) or []
+
+    # --- Internal Helper Functions ---
+
+    def _coerce_float(x):
+        try:
+            return float(x) if x is not None else None
+        except (ValueError, TypeError):
+            return None
+
+    # This helper function is already correct from our previous step.
+    def _get_or_create_component(kind: str, name: str, **fields) -> Component | None:
+        if not kind or not name:
+            return None
+        trimmed_name = " ".join(str(name).strip().split())
+        existing_row = db.query(Component).filter(
+            Component.user_id == user.id,
+            Component.kind == kind,
+            Component.name.collate('NOCASE') == trimmed_name
+        ).one_or_none()
+        if existing_row:
+            if existing_row.aperture_mm is None: existing_row.aperture_mm = _coerce_float(fields.get("aperture_mm"))
+            if existing_row.focal_length_mm is None: existing_row.focal_length_mm = _coerce_float(
+                fields.get("focal_length_mm"))
+            if existing_row.sensor_width_mm is None: existing_row.sensor_width_mm = _coerce_float(
+                fields.get("sensor_width_mm"))
+            if existing_row.sensor_height_mm is None: existing_row.sensor_height_mm = _coerce_float(
+                fields.get("sensor_height_mm"))
+            if existing_row.pixel_size_um is None: existing_row.pixel_size_um = _coerce_float(
+                fields.get("pixel_size_um"))
+            if existing_row.factor is None: existing_row.factor = _coerce_float(fields.get("factor"))
+            db.flush()
+            return existing_row
+        new_row = Component(
+            user_id=user.id, kind=kind, name=trimmed_name,
+            aperture_mm=_coerce_float(fields.get("aperture_mm")),
+            focal_length_mm=_coerce_float(fields.get("focal_length_mm")),
+            sensor_width_mm=_coerce_float(fields.get("sensor_width_mm")),
+            sensor_height_mm=_coerce_float(fields.get("sensor_height_mm")),
+            pixel_size_um=_coerce_float(fields.get("pixel_size_um")),
+            factor=_coerce_float(fields.get("factor")),
+        )
+        db.add(new_row)
+        db.flush()
+        return new_row
+
+    # Use a string-keyed dictionary for the legacy IDs.
+    legacy_id_to_component_id: dict[str, int] = {}
+    name_to_component_id: dict[tuple[str, str | None], int] = {}
+
+    def _remember_component(row: Component | None, kind: str, name: str, legacy_id):
+        if row is None or legacy_id is None: return
+        # ❗ FIX: Store the legacy_id as a string, removing the int() conversion.
+        legacy_id_to_component_id[str(legacy_id)] = row.id
+        if name:
+            name_to_component_id[(kind, _norm_name(name))] = row.id
+
+    def _get_alias(d: dict, key: str, *aliases):
+        if key in d and d.get(key) is not None: return d.get(key)
+        for a in aliases:
+            if a in d and d.get(a) is not None: return d.get(a)
+        return None
+
+    # --- 1. Process Components Section ---
+    for t in comps.get("telescopes", []):
+        row = _get_or_create_component("telescope", _get_alias(t, "name"), aperture_mm=_get_alias(t, "aperture_mm"),
+                                       focal_length_mm=_get_alias(t, "focal_length_mm"))
+        _remember_component(row, "telescope", _get_alias(t, "name"), t.get("id"))
+    for c in comps.get("cameras", []):
+        row = _get_or_create_component("camera", _get_alias(c, "name"),
+                                       sensor_width_mm=_get_alias(c, "sensor_width_mm"),
+                                       sensor_height_mm=_get_alias(c, "sensor_height_mm"),
+                                       pixel_size_um=_get_alias(c, "pixel_size_um"))
+        _remember_component(row, "camera", _get_alias(c, "name"), c.get("id"))
+    for r in comps.get("reducers_extenders", []):
+        row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), factor=_get_alias(r, "factor"))
+        _remember_component(row, "reducer_extender", _get_alias(r, "name"), r.get("id"))
+
+    def _resolve_component_id(kind: str, legacy_id, name) -> int | None:
+        if legacy_id is not None:
+            # ❗ FIX: Look up the ID as a string, removing the int() conversion.
+            legacy_id_str = str(legacy_id)
+            if legacy_id_str in legacy_id_to_component_id:
+                return legacy_id_to_component_id[legacy_id_str]
+
+        if name:
+            norm_key = (kind, _norm_name(name))
+            if norm_key in name_to_component_id:
+                return name_to_component_id[norm_key]
+            row = _get_or_create_component(kind, str(name))
+            if row:
+                name_to_component_id[norm_key] = row.id
+                return row.id
+        return None
+
+    # --- 2. Process Rigs Section ---
+    for r in rig_list:
+        try:
+            rig_name = _get_alias(r, "rig_name", "name")
+            if not rig_name: continue
+
+            tel_name = _get_alias(r, "telescope", "telescope_name")
+            cam_name = _get_alias(r, "camera", "camera_name")
+            red_name = _get_alias(r, "reducer_extender", "reducer_extender_name")
+
+            if (not tel_name or not cam_name) and isinstance(rig_name, str) and '+' in rig_name:
+                parts = [p.strip() for p in rig_name.split('+')]
+                if len(parts) >= 2:
+                    tel_name = tel_name or parts[0]
+                    cam_name = cam_name or parts[-1]
+                    if len(parts) == 3:
+                        red_name = red_name or parts[1]
+
+            tel_id = _resolve_component_id("telescope", r.get("telescope_id"), tel_name)
+            cam_id = _resolve_component_id("camera", r.get("camera_id"), cam_name)
+            red_id = _resolve_component_id("reducer_extender", r.get("reducer_extender_id"), red_name)
+
+            if not (tel_id and cam_id):
+                print(
+                    f"[MIGRATION][RIG SKIP] Rig '{rig_name}' for user '{username}' is missing a valid telescope or camera link. Skipping.")
+                continue
+
+            eff_fl, f_ratio, scale, fov_w = (_coerce_float(r.get(k)) for k in
+                                             ["effective_focal_length", "f_ratio", "image_scale", "fov_w_arcmin"])
+            if any(v is None for v in [eff_fl, f_ratio, scale, fov_w]):
+                tel_obj, cam_obj = db.get(Component, tel_id), db.get(Component, cam_id)
+                red_obj = db.get(Component, red_id) if red_id else None
+                ce_fl, cf_ratio, c_scale, c_fovw = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
+                eff_fl, f_ratio, scale, fov_w = (ce_fl if eff_fl is None else eff_fl,
+                                                 cf_ratio if f_ratio is None else f_ratio,
+                                                 c_scale if scale is None else scale,
+                                                 c_fovw if fov_w is None else fov_w)
+
+            existing_rig = db.query(Rig).filter_by(user_id=user.id, rig_name=rig_name).one_or_none()
+            if existing_rig:
+                existing_rig.telescope_id, existing_rig.camera_id, existing_rig.reducer_extender_id = tel_id, cam_id, red_id
+                existing_rig.effective_focal_length, existing_rig.f_ratio, existing_rig.image_scale, existing_rig.fov_w_arcmin = eff_fl, f_ratio, scale, fov_w
+            else:
+                db.add(Rig(user_id=user.id, rig_name=rig_name, telescope_id=tel_id, camera_id=cam_id,
+                           reducer_extender_id=red_id, effective_focal_length=eff_fl, f_ratio=f_ratio,
+                           image_scale=scale, fov_w_arcmin=fov_w))
+            db.flush()
+
+        except Exception as e:
+            print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
+
+
+def _migrate_journal(db, user: DbUser, journal_yaml: dict):
+    data = journal_yaml or {}
+    # Normalize old list-based journals to the new dict structure
+    if isinstance(data, list):
+        data = {"projects": [], "sessions": data}
+    else:
+        # Ensure 'projects' and 'sessions' keys exist, handle legacy 'entries' key
+        data.setdefault("projects", [])
+        data.setdefault("sessions", data.get("entries", [])) # Use 'entries' as fallback
+
+    # --- 1. Migrate Projects ---
+    for p in (data.get("projects") or []):
+        # Check if both project_id and project_name are present and non-empty
+        project_id_val = p.get("project_id")
+        project_name_val = p.get("project_name")
+        if project_id_val and str(project_id_val).strip() and project_name_val and str(project_name_val).strip():
+            # Check if project already exists by ID
+            if not db.query(Project).filter_by(id=str(project_id_val)).one_or_none():
+                # Check if a project with the same name already exists for the user
+                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=str(project_name_val)).one_or_none()
+                if not existing_by_name:
+                    db.add(Project(id=str(project_id_val), user_id=user.id, name=str(project_name_val)))
+                # else: print(f"[MIGRATION][PROJECT SKIP] Project '{project_name_val}' already exists for user {user.username}, skipping ID '{project_id_val}'.") # Optional warning
+        # else: print(f"[MIGRATION][PROJECT SKIP] Invalid project entry: {p}") # Optional warning
+    db.flush() # Flush after adding all valid projects
+
+    # --- 2. Migrate Sessions with ALL fields ---
+    for s in (data.get("sessions") or []):
+        # Get external ID, preferring 'session_id' then 'id'
+        ext_id = s.get("session_id") or s.get("id")
+        # Get date, preferring 'session_date' then 'date'
+        date_str = s.get("session_date") or s.get("date")
+        if not date_str: continue # Skip if no date
+
+        # Try parsing date (ISO or YYYY-MM-DD)
+        try:
+            dt = datetime.fromisoformat(date_str).date()
+        except:
+            try:
+                dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except:
+                print(f"[MIGRATION][SESSION SKIP] Invalid date format '{date_str}' for session with external_id '{ext_id}'. Skipping.")
+                continue # Skip if date parsing fails
+
+        # Map all YAML keys to DB columns
+        row_values = {
+            "user_id": user.id,
+            "project_id": s.get("project_id"),
+            "date_utc": dt,
+            "object_name": s.get("target_object_id") or s.get("object_name"),
+            "notes": s.get("general_notes_problems_learnings"),
+            "session_image_file": s.get("session_image_file"),
+            "location_name": s.get("location_name"),
+            "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
+            "sky_sqm_observed": _try_float(s.get("sky_sqm_observed")),
+            "moon_illumination_session": _as_int(s.get("moon_illumination_session")),
+            "moon_angular_separation_session": _try_float(s.get("moon_angular_separation_session")),
+            "weather_notes": s.get("weather_notes"),
+            "telescope_setup_notes": s.get("telescope_setup_notes"),
+            "filter_used_session": s.get("filter_used_session"),
+            "guiding_rms_avg_arcsec": _try_float(s.get("guiding_rms_avg_arcsec")),
+            "guiding_equipment": s.get("guiding_equipment"),
+            "dither_details": s.get("dither_details"),
+            "acquisition_software": s.get("acquisition_software"),
+            "gain_setting": _as_int(s.get("gain_setting")),
+            "offset_setting": _as_int(s.get("offset_setting")),
+            "camera_temp_setpoint_c": _try_float(s.get("camera_temp_setpoint_c")),
+            "camera_temp_actual_avg_c": _try_float(s.get("camera_temp_actual_avg_c")),
+            "binning_session": s.get("binning_session"),
+            "darks_strategy": s.get("darks_strategy"),
+            "flats_strategy": s.get("flats_strategy"),
+            "bias_darkflats_strategy": s.get("bias_darkflats_strategy"),
+            "session_rating_subjective": _as_int(s.get("session_rating_subjective")),
+            "transparency_observed_scale": s.get("transparency_observed_scale"),
+            "number_of_subs_light": _as_int(s.get("number_of_subs_light")),
+            "exposure_time_per_sub_sec": _as_int(s.get("exposure_time_per_sub_sec")),
+            "filter_L_subs": _as_int(s.get("filter_L_subs")),
+            "filter_L_exposure_sec": _as_int(s.get("filter_L_exposure_sec")),
+            "filter_R_subs": _as_int(s.get("filter_R_subs")),
+            "filter_R_exposure_sec": _as_int(s.get("filter_R_exposure_sec")),
+            "filter_G_subs": _as_int(s.get("filter_G_subs")),
+            "filter_G_exposure_sec": _as_int(s.get("filter_G_exposure_sec")),
+            "filter_B_subs": _as_int(s.get("filter_B_subs")),
+            "filter_B_exposure_sec": _as_int(s.get("filter_B_exposure_sec")),
+            "filter_Ha_subs": _as_int(s.get("filter_Ha_subs")),
+            "filter_Ha_exposure_sec": _as_int(s.get("filter_Ha_exposure_sec")),
+            "filter_OIII_subs": _as_int(s.get("filter_OIII_subs")),
+            "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
+            "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
+            "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
+            "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
+            # Ensure external_id is stored as string if it exists
+            "external_id": str(ext_id) if ext_id else None
+        }
+
+        # *** START: Simplified Upsert Logic ***
+        if ext_id:
+            # Try to find an existing session with this external_id for this user
+            existing_session = db.query(JournalSession).filter_by(
+                user_id=user.id,
+                external_id=str(ext_id)
+            ).one_or_none()
+
+            if existing_session:
+                # UPDATE: Session found, update its fields
+                for k, v in row_values.items():
+                    # Only update if the new value is not None
+                    if v is not None:
+                        setattr(existing_session, k, v)
+                # No need to db.add() here
+            else:
+                # INSERT: Session not found, create a new one
+                new_session = JournalSession(**row_values)
+                db.add(new_session)
+        else:
+            # INSERT (No external ID provided): Always create a new session
+            new_session = JournalSession(**row_values)
+            db.add(new_session)
+        # *** END: Simplified Upsert Logic ***
+
+        # Removed db.flush() from here, let commit handle it later
+
+def _migrate_ui_prefs(db, user: DbUser, config: dict):
+    """
+    Saves all general, user-specific settings from the config YAML
+    into a single JSON blob in the ui_prefs table.
+    """
+    # Gather all the top-level settings we want to save
+    settings_to_save = {
+        "altitude_threshold": config.get("altitude_threshold"),
+        "default_location": config.get("default_location"),
+        "imaging_criteria": config.get("imaging_criteria"),
+        "sampling_interval_minutes": config.get("sampling_interval_minutes"),
+        "telemetry": config.get("telemetry"),
+        "rig_sort": (config.get("ui") or {}).get("rig_sort")
+    }
+
+    # Only create a record if there's at least one setting to save
+    if any(v is not None for v in settings_to_save.values()):
+        # Upsert logic: find existing pref or create a new one
+        existing_pref = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+
+        blob = json.dumps(settings_to_save, ensure_ascii=False)
+
+        if existing_pref:
+            existing_pref.json_blob = blob
+        else:
+            new_pref = UiPref(user_id=user.id, json_blob=blob)
+            db.add(new_pref)
+
+
+def build_user_config_from_db(username: str) -> dict:
+    """
+    Builds a complete, YAML-like user config dictionary from the database tables.
+    This is the new single source of truth for runtime configuration.
+    """
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            return {}
+
+        # --- 1. Load the general settings from the UiPref table ---
+        user_config = {}
+        prefs = db.query(UiPref).filter_by(user_id=u.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                user_config = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                print(f"[CONFIG BUILD] WARNING: Could not parse UI prefs JSON for user '{username}'")
+
+        # --- 2. Load Locations (your existing logic is perfect) ---
+        loc_rows = db.query(Location).filter_by(user_id=u.id).all()
+        locations = {}
+        for l in loc_rows:
+            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            locations[l.name] = {
+                "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold, "horizon_mask": mask,
+                "active": l.active,
+                "is_default": l.is_default
+            }
+        user_config["locations"] = locations
+
+        # --- 3. Load Objects (your existing logic is perfect) ---
+        obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
+        objects = []
+        for o in obj_rows:
+            row = {
+                "Object": o.object_name,
+                "Name": o.common_name,  # For compatibility with config_form.html
+                "Common Name": o.common_name,  # For compatibility with the index page
+                "RA": o.ra_hours,
+                "DEC": o.dec_deg,
+                # ... (the rest of the fields are the same)
+                "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
+                "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude,
+                "Size": o.size, "SB": o.sb, "ActiveProject": o.active_project, "Project": o.project_name
+            }
+            objects.append(row)
+        user_config["objects"] = objects
+
+        return user_config
+    finally:
+        db.close()
+
+# === YAML Portability: Export / Import ======================================
+def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
+    """
+    Write three YAML files (config_*.yaml, rigs_default.yaml, journal_*.yaml) in out_dir.
+    """
+    db = get_db()
+    try:
+        out_dir = out_dir or CONFIG_DIR
+        os.makedirs(out_dir, exist_ok=True)
+
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            return False
+
+        # CONFIG (locations + objects + defaults)
+        locs = db.query(Location).filter_by(user_id=u.id).all()
+        default_loc = next((l.name for l in locs if l.is_default), None)
+        cfg = {
+            "default_location": default_loc,
+            "locations": {
+                l.name: {
+                    "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                    "altitude_threshold": l.altitude_threshold,
+                    "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+                } for l in locs
+            },
+            "objects": [
+                {
+                    "Object": o.object_name, "Common Name": o.common_name,
+                    "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
+                    "Type": o.type, "Constellation": o.constellation,
+                    "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                    "ActiveProject": o.active_project, "Project": o.project_name
+                } for o in db.query(AstroObject).filter_by(user_id=u.id).all()
+            ]
+        }
+        cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
+        _atomic_write_yaml(os.path.join(out_dir, cfg_file), cfg)
+
+        # RIGS/COMPONENTS
+        comps = db.query(Component).filter_by(user_id=u.id).all()
+        rigs = db.query(Rig).filter_by(user_id=u.id).all()
+        def bykind(k): return [c for c in comps if c.kind == k]
+        rigs_doc = {
+            "components": {
+                "telescopes": [
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm}
+                    for c in bykind("telescope")
+                ],
+                "cameras": [
+                    {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um}
+                    for c in bykind("camera")
+                ],
+                "reducers_extenders": [
+                    {"id": c.id, "name": c.name, "factor": c.factor}
+                    for c in bykind("reducer_extender")
+                ],
+            },
+            "rigs": [
+                {
+                    "rig_name": r.rig_name,
+                    "telescope_id": r.telescope_id,
+                    "camera_id": r.camera_id,
+                    "reducer_extender_id": r.reducer_extender_id,
+                    "effective_focal_length": r.effective_focal_length,
+                    "f_ratio": r.f_ratio,
+                    "image_scale": r.image_scale,
+                    "fov_w_arcmin": r.fov_w_arcmin
+                } for r in rigs
+            ]
+        }
+        rig_file = "rigs_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"rigs_{username}.yaml"
+        _atomic_write_yaml(os.path.join(out_dir, rig_file), rigs_doc)
+        try:
+            print(f"[EXPORT] Rigs for '{username}' written to {rig_file} (count={len(rigs)})")
+        except Exception:
+            pass
+
+        # JOURNAL
+        sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
+        jdoc = {
+            "projects": [],
+            "sessions": [
+                {
+                    "date": s.date_utc.isoformat(), "object_name": s.object_name, "notes": s.notes,
+                    "number_of_subs_light": s.number_of_subs_light,
+                    "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
+                    "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
+                    "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
+                    "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
+                    "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
+                    "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
+                    "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
+                    "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
+                    "calculated_integration_time_minutes": s.calculated_integration_time_minutes
+                } for s in sessions
+            ]
+        }
+        jfile = "journal_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
+        _atomic_write_yaml(os.path.join(out_dir, jfile), jdoc)
+        return True
+    finally:
+        db.close()
+
+def import_user_from_yaml(username: str,
+                          config_path: str,
+                          rigs_path: str,
+                          journal_path: str,
+                          clear_existing: bool = False) -> bool:
+    """
+    Upsert from YAML into DB. Optionally clears existing user data first.
+    """
+    db = get_db()
+    try:
+        user = _upsert_user(db, username)
+        if clear_existing:
+            # cascades remove all
+            db.delete(user); db.flush()
+            user = _upsert_user(db, username)
+
+        cfg_tuple = _read_yaml(config_path);
+        rigs_tuple = _read_yaml(rigs_path);
+        jrn_tuple = _read_yaml(journal_path)
+
+        # Extract the data dictionary (first element) from each tuple
+        cfg_data = cfg_tuple[0]
+        rigs_data = rigs_tuple[0]
+        jrn_data = jrn_tuple[0]
+
+        # Pass the extracted dictionaries to the migration functions
+        _migrate_locations(db, user, cfg_data)
+        _migrate_objects(db, user, cfg_data)
+        _migrate_components_and_rigs(db, user, rigs_data, username)
+        _migrate_journal(db, user, jrn_data)
+        _migrate_ui_prefs(db, user, cfg_data)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        traceback.print_exc()
+        return False
+    finally:
+        db.close()
+
+
+def repair_journals(dry_run: bool = False):
+    """
+    Deduplicate journal_sessions and backfill missing object_name from YAML if possible.
+
+    Dedupe key:
+      (user_id, date_utc, object_name, notes, number_of_subs_light, exposure_time_per_sub_sec,
+       filter_*_subs, filter_*_exposure_sec, calculated_integration_time_minutes)
+
+    Keep the first row (lowest id) for each identical key; delete the rest.
+    Then try to backfill object_name from the user's YAML by date if missing.
+    """
+    db = get_db()
+    try:
+        changes = []
+        users = db.query(DbUser).all()
+        for u in users:
+            rows = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.id.asc()).all()
+            seen = {}
+            to_delete = []
+
+            def sig(r: JournalSession):
+                # tuple signature for exact duplicates
+                return (
+                    r.date_utc.isoformat() if r.date_utc else "",
+                    (r.object_name or "").strip(),
+                    (r.notes or "").strip(),
+                    r.number_of_subs_light,
+                    r.exposure_time_per_sub_sec,
+                    r.filter_L_subs, r.filter_L_exposure_sec,
+                    r.filter_R_subs, r.filter_R_exposure_sec,
+                    r.filter_G_subs, r.filter_G_exposure_sec,
+                    r.filter_B_subs, r.filter_B_exposure_sec,
+                    r.filter_Ha_subs, r.filter_Ha_exposure_sec,
+                    r.filter_OIII_subs, r.filter_OIII_exposure_sec,
+                    r.filter_SII_subs, r.filter_SII_exposure_sec,
+                    r.calculated_integration_time_minutes,
+                )
+
+            for r in rows:
+                key = sig(r)
+                if key in seen:
+                    to_delete.append(r)
+                else:
+                    seen[key] = r
+
+            if to_delete:
+                changes.append(f"[JOURNAL REPAIR] user={u.username} deleting {len(to_delete)} exact duplicates")
+                if not dry_run:
+                    for r in to_delete:
+                        db.delete(r)
+
+            # Backfill missing object_name where possible from YAML (by date)
+            # YAML path: per user -> journal_<username>.yaml, single-user -> journal_default.yaml
+            s_mode = bool(globals().get("SINGLE_USER_MODE", True))
+            jfile = os.path.join(CONFIG_DIR, "journal_default.yaml" if (s_mode and u.username == "default") else f"journal_{u.username}.yaml")
+            by_date = {}
+            if os.path.exists(jfile):
+                try:
+                    y = _read_yaml(jfile)
+                    if isinstance(y, dict):
+                        for s in (y.get("sessions") or []):
+                            # find a name variant
+                            name = None
+                            for k in ("object_name", "Object", "object", "target", "Name", "name"):
+                                v = s.get(k)
+                                if isinstance(v, str) and v.strip():
+                                    name = v.strip(); break
+                            d = s.get("date")
+                            if isinstance(d, str) and name:
+                                by_date.setdefault(d, []).append(name)
+                except Exception as e:
+                    print(f"[JOURNAL REPAIR] WARN cannot read YAML for '{u.username}': {e}")
+
+            filled = 0
+            if by_date:
+                for r in db.query(JournalSession).filter_by(user_id=u.id).all():
+                    if not r.object_name and r.date_utc:
+                        names = by_date.get(r.date_utc.isoformat())
+                        if names:
+                            # pick the first available name for that date
+                            r.object_name = names[0]
+                            filled += 1
+                if filled:
+                    changes.append(f"[JOURNAL REPAIR] user={u.username} backfilled object_name for {filled} sessions")
+
+        if dry_run:
+            for line in changes:
+                print(line)
+            print("[JOURNAL REPAIR] Dry-run complete; no DB changes.")
+            db.rollback()
+        else:
+            db.commit()
+            for line in changes:
+                print(line)
+            print("[JOURNAL REPAIR] Commit complete.")
+    except Exception as e:
+        db.rollback()
+        print(f"[JOURNAL REPAIR] ERROR: {e}")
+    finally:
+        db.close()
+
+def _select_rigs_yaml_path(username: str) -> str:
+    """Returns the path to the correct rigs YAML file for a user."""
+    user_path = os.path.join(CONFIG_DIR, f"rigs_{username}.yaml")
+    default_path = os.path.join(CONFIG_DIR, "rigs_default.yaml")
+    if os.path.exists(user_path):
+        return user_path
+    # Only the 'default' user should fall back to rigs_default.yaml
+    if username == "default" and os.path.exists(default_path):
+        return default_path
+    # For any other user, return their specific (potentially non-existent) path.
+    return user_path
+
+
+def run_one_time_yaml_migration():
+    """
+    Drives the one-time migration from YAML files to the app.db database.
+
+    This function uses the separate users.db as the source of truth for which users
+    to migrate, ensuring consistency with the external authentication system.
+    """
+    db = get_db()
+    try:
+        _INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
+        _ENV_FILE = os.path.join(_INSTANCE_PATH, ".env")
+        load_dotenv(dotenv_path=_ENV_FILE, override=True)
+        # Safety Check: Prevent re-running on an already populated database
+        if db.query(DbUser).first() and db.query(Location).first():
+            print("[MIGRATION] Database (app.db) already appears to be populated. Skipping YAML migration.")
+            return
+
+        print("[MIGRATION] Starting one-time migration from YAML files to the database...")
+
+        # Backup Existing Configuration Directory
+        _mkdirp(BACKUP_DIR)
+        _timestamped_copy(CONFIG_DIR)
+
+        usernames_to_migrate = set()
+        # FIX: Read SINGLE_USER_MODE directly from environment/config here
+        is_single_user_mode_for_migration = config('SINGLE_USER_MODE', default='True') == 'True'
+
+        if is_single_user_mode_for_migration:
+            print("[MIGRATION] Single-User Mode: Migrating only the 'default' user.")
+            usernames_to_migrate.add("default")
+        else:
+            # Multi-User Mode: Get users from the authentication DB
+            auth_db_path = os.path.join(INSTANCE_PATH, "users.db")
+            if os.path.exists(auth_db_path):
+                print(
+                    f"[MIGRATION] Multi-User Mode: Reading user list from authentication database: {os.path.basename(auth_db_path)}")
+                AuthBase = declarative_base()
+
+                class AuthUser(AuthBase):
+                    __tablename__ = 'user';
+                    id = Column(Integer, primary_key=True);
+                    username = Column(String)
+
+                auth_engine = create_engine(f'sqlite:///{auth_db_path}');
+                AuthSession = sessionmaker(bind=auth_engine);
+                auth_session = AuthSession()
+                try:
+                    all_auth_users = auth_session.query(AuthUser).all()
+                    usernames_to_migrate.update(u.username for u in all_auth_users)
+                    print(f"   -> Found {len(all_auth_users)} users in users.db.")
+                finally:
+                    auth_session.close()
+            else:
+                print(
+                    "[MIGRATION] WARNING: Multi-User Mode but users.db not found. Migrating based on YAML files only.")
+                usernames_to_migrate.update(_iter_candidate_users())
+
+            # Always include default and guest in multi-user mode as well
+            usernames_to_migrate.update(["guest_user"])
+            print("[MIGRATION] Excluding 'default' user's YAML data from multi-user migration.")
+
+        # --- Iterate Through Each User and Migrate Their Data ---
+        for username in sorted(list(usernames_to_migrate)):
+            print(f"--- Processing migration for user: '{username}' ---")
+
+            s_mode = bool(globals().get("SINGLE_USER_MODE", True))
+            cfg_path = os.path.join(CONFIG_DIR, "config_default.yaml" if (
+                        s_mode and username == "default") else f"config_{username}.yaml")
+
+            cfg_user, error = _read_yaml(cfg_path)
+
+            if cfg_user is None:
+                print(f"[MIGRATION] FATAL ERROR for user '{username}'. The primary config file is corrupt.")
+                print(f"   └─ Details: {error}")
+                print(f"   └─ Skipping all migration for this user. Please fix the YAML file.")
+                continue
+
+            # Load other, non-critical files
+            rigs_path = _select_rigs_yaml_path(username)
+            rigs_yaml, _ = _read_yaml(rigs_path)
+
+            jrn_path = os.path.join(CONFIG_DIR, "journal_default.yaml" if (
+                        s_mode and username == "default") else f"journal_{username}.yaml")
+            jrn_yaml, _ = _read_yaml(jrn_path)
+
+            # Get or Create the User Record in app.db
+            user = _upsert_user(db, username)
+            db.flush()
+
+            # Execute the Migration Steps for this user
+            _migrate_locations(db, user, cfg_user)
+            _migrate_objects(db, user, cfg_user)
+            _migrate_components_and_rigs(db, user, rigs_yaml, username)
+            _migrate_journal(db, user, jrn_yaml)
+            _migrate_ui_prefs(db, user, cfg_user)
+
+            db.commit()
+            print(f"--- Successfully committed data for user: '{username}' ---")
+
+        print(f"[MIGRATION] YAML to Database migration completed.")
+
+    except Exception as e:
+        db.rollback()
+        print(f"[MIGRATION] FATAL UNEXPECTED ERROR during migration.")
+        print(traceback.format_exc())
+    finally:
+        db.close()
+
 
 # =============================================================================
 # Flask and Flask-Login Setup
 # =============================================================================
-
-APP_VERSION = "3.7.0"
 
 # One-time init flag for startup telemetry in Flask >= 3
 _telemetry_startup_once = threading.Event()
@@ -107,7 +1525,7 @@ FIRST_RUN_ENV_CREATED = False
 
 INSTANCE_PATH = os.path.join(os.path.dirname(__file__), "instance")
 # Directory where master template files live (used across the module)
-TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
+
 ENV_FILE = os.path.join(INSTANCE_PATH, ".env")
 load_dotenv(dotenv_path=ENV_FILE)
 
@@ -170,7 +1588,6 @@ MAX_ACTIVE_LOCATIONS = 5
 
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
 
-CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
 UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, 'uploads')
@@ -256,54 +1673,36 @@ class _FileLock:
         except Exception:
             pass
 
-def initialize_instance_directory():
-    """
-    Checks if the instance directory and default configs exist.
-    If not, it creates them from the templates. This makes the app
-    work correctly on first run after a fresh git clone.
-    """
-    # Use the module-level TEMPLATE_DIR
+# =============================================================================
+# Automated Single-User Migration (with lock)
+# =============================================================================
+# We only run this automated migration if in SINGLE_USER_MODE.
+# In multi-user mode, the admin MUST run 'flask migrate-yaml-to-db' manually.
+if SINGLE_USER_MODE:
+    print("[MIGRATION] Single-User Mode: Attempting automated migration...")
 
-    # The user-specific config directory
-    config_dir = os.path.join(INSTANCE_PATH, "configs")
+    # Use the existing _FileLock class (defined around line 1709)
+    # This ensures only ONE gunicorn worker runs the migration,
+    # preventing database lock errors.
+    lock_path = os.path.join(INSTANCE_PATH, "migration.lock")
 
-    # Only run this if the user's config directory doesn't exist
-    if not os.path.exists(config_dir):
-        print("First run detected. Initializing instance directory...")
-        try:
-            # Create all necessary directories
-            os.makedirs(CONFIG_DIR, exist_ok=True)
-            os.makedirs(CACHE_DIR, exist_ok=True)
-            os.makedirs(BACKUP_DIR, exist_ok=True)
+    try:
+        with _FileLock(lock_path):
+            print("[MIGRATION] Acquired migration lock.")
+            # Run the initialization and migration functions
+            initialize_instance_directory()
+            run_one_time_yaml_migration()
+            print("[MIGRATION] Migration check complete. Releasing lock.")
 
-            # List of (template_filename, final_filename) pairs
-            files_to_create = [
-                ('config_default.yaml', 'config_default.yaml'),
-                ('journal_default.yaml', 'journal_default.yaml'),
-                ('rigs_default.yaml', 'rigs_default.yaml'),
-                ('config_guest_user.yaml', 'config_guest_user.yaml'),
-                # Add a journal for the guest user too
-                ('journal_default.yaml', 'journal_guest_user.yaml'),
-            ]
+    except Exception as e:
+        print(f"❌ FATAL ERROR during automated migration: {e}")
+        print("   -> This might be a file permission issue on 'instance/migration.lock'")
+        print("   -> The application may not start correctly.")
 
-            for template_name, final_name in files_to_create:
-                src_path = os.path.join(TEMPLATE_DIR, template_name)
-                dest_path = os.path.join(config_dir, final_name)
+else:
+    print("[MIGRATION] Multi-User Mode: Automated migration is disabled.")
+    print("   -> If this is a new setup, run 'docker compose run --rm nova flask migrate-yaml-to-db' to migrate data.")
 
-                if os.path.exists(src_path):
-                    shutil.copy(src_path, dest_path)
-                    print(f"   -> Created '{final_name}' from template.")
-                else:
-                    print(f"   -> WARNING: Template file '{template_name}' not found. Cannot create '{final_name}'.")
-
-            print("✅ Initialization complete.")
-        except Exception as e:
-            print(f"❌ FATAL ERROR during first-run initialization: {e}")
-            # You might want the app to exit if this fails
-            # import sys
-            # sys.exit(1)
-
-initialize_instance_directory()
 
 # --- Stellarium API URL Configuration ---
 # Default URL for running directly on the host
@@ -454,6 +1853,161 @@ def load_user(user_id):
     return db.session.get(User, uid)
 
 
+@app.before_request
+def load_global_request_context():
+    # 1. Skip all expensive logic for static files
+    if request.endpoint in ('static', 'favicon'):
+        return
+
+    # 2. Handle Single-User-Mode login bypass
+    if SINGLE_USER_MODE and not current_user.is_authenticated:
+        login_user(User("default", "default"))
+
+    # 3. Determine username
+    username = None
+    if SINGLE_USER_MODE:
+        username = "default"
+        g.is_guest = False
+    elif hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+        username = current_user.username
+        g.is_guest = False
+    else:
+        username = "guest_user"
+        g.is_guest = True
+
+    if not username:
+        g.db_user = None
+        return
+
+    # 4. Get DB user and UI preferences (FAST queries)
+    db = get_db()
+    try:
+        # Get or create the user in app.db
+        app_db_user = get_or_create_db_user(db, username)
+        g.db_user = app_db_user
+
+        if not app_db_user:
+            return
+
+        # --- Load UI Prefs (general settings) ---
+        g.user_config = {}
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                g.user_config = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass  # g.user_config remains {}
+
+        # 5. Load effective settings (depends on g.user_config)
+        load_effective_settings()
+
+    except Exception as e:
+        # Handle exceptions, maybe log them
+        print(f"Error in slim load_global_request_context: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()
+
+def load_full_astro_context():
+    """
+    Loads heavy astro data (locations, objects) into the global 'g' context.
+    Assumes g.db_user and g.user_config are already populated.
+    """
+    # If this is already loaded for this request, don't do it again
+    if hasattr(g, 'locations'):
+        return
+
+    # If there's no user, there's nothing to load
+    if not hasattr(g, 'db_user') or not g.db_user:
+        g.locations, g.active_locations, g.objects_list, g.objects_map = {}, {}, [], {}
+        g.lat, g.lon, g.tz_name, g.selected_location = None, None, "UTC", None
+        g.altitude_threshold = 20
+        g.times_local, g.times_utc = [], []
+        return
+
+    db = get_db()
+    try:
+        # --- Load Locations with Horizon Points (Fixes N+1 query) ---
+        loc_rows = db.query(Location).options(
+            selectinload(Location.horizon_points)  # Eagerly load horizon points
+        ).filter_by(user_id=g.db_user.id).all()
+
+        g.locations = {}
+        g.active_locations = {}
+        default_loc_name = g.user_config.get("default_location")
+        validated_location = default_loc_name
+
+        for l in loc_rows:
+            # The l.horizon_points access is now free, no new query
+            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            loc_data = {
+                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
+                "horizon_mask": mask, "active": l.active, "comments": l.comments
+            }
+            g.locations[l.name] = loc_data
+            if l.active:
+                g.active_locations[l.name] = loc_data
+
+        # Validate default location
+        if not default_loc_name or default_loc_name not in g.active_locations:
+            validated_location = next(iter(g.active_locations), None)
+
+        g.selected_location = validated_location
+
+        # Set safe defaults
+        g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        if g.selected_location:
+            loc_cfg = g.locations.get(g.selected_location, {})
+            g.lat = loc_cfg.get("lat")
+            g.lon = loc_cfg.get("lon")
+            g.tz_name = loc_cfg.get("timezone", "UTC")
+        else:
+            g.lat, g.lon, g.tz_name = None, None, "UTC"
+
+        # --- Load Objects ---
+        obj_rows = db.query(AstroObject).filter_by(user_id=g.db_user.id).all()
+        g.objects_list = []  # List for iteration
+        g.objects_map = {}  # <<< NEW: Dictionary for fast lookups
+        g.alternative_names = {}
+        g.projects = {}
+        g.objects = []
+
+        for o in obj_rows:
+            obj_data = {
+                "Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours,
+                "DEC (degrees)": o.dec_deg, "Type": o.type, "Constellation": o.constellation,
+                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                "ActiveProject": o.active_project, "Project": o.project_name,
+                # Add legacy keys for compatibility
+                "Name": o.common_name, "RA": o.ra_hours, "DEC": o.dec_deg
+            }
+            g.objects_list.append(obj_data)
+            g.objects.append(o.object_name)
+            if o.object_name:
+                obj_key = o.object_name.lower()
+                g.objects_map[obj_key] = obj_data  # <<< Add to map
+                g.alternative_names[obj_key] = o.common_name
+                g.projects[obj_key] = o.project_name
+
+        # Add objects list to user_config dict for compatibility
+        g.user_config["objects"] = g.objects_list
+        g.user_config["locations"] = g.locations
+
+        # --- Precompute time arrays ---
+        if g.tz_name:
+            local_tz = pytz.timezone(g.tz_name)
+            local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
+            g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
+        else:
+            g.times_local, g.times_utc = [], []
+
+    except Exception as e:
+        print(f"Error in load_full_astro_context: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()
+
 # --- Guard against stale _user_id left in session when switching from single-user to multi-user mode ---
 @app.before_request
 def _fix_mode_switch_sessions():
@@ -473,6 +2027,7 @@ def _fix_mode_switch_sessions():
             # never block a request due to cleanup logic
             pass
 
+
 def load_effective_settings():
     """
     Determines the effective settings for telemetry and calculation precision
@@ -480,7 +2035,7 @@ def load_effective_settings():
     """
     if SINGLE_USER_MODE:
         # In single-user mode, read from the user's config file.
-        g.sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+        g.sampling_interval = g.user_config.get('sampling_interval_minutes') or 15
         g.telemetry_enabled = g.user_config.get('telemetry', {}).get('enabled', True)
     else:
         # In multi-user mode, read from the .env file with hardcoded defaults.
@@ -536,22 +2091,310 @@ def convert_to_native_python(val):
         return val.item()  # .item() is the key function here
     return val
 
-
 def recursively_clean_numpy_types(data):
     """
     Recursively traverses a dict or list and converts any NumPy
-    numeric types to native Python types.
+    numeric types to native Python types. Needed before jsonify.
     """
     if isinstance(data, dict):
-        for key, value in data.items():
-            data[key] = recursively_clean_numpy_types(value)
+        return {key: recursively_clean_numpy_types(value) for key, value in data.items()}
     elif isinstance(data, list):
-        for i, item in enumerate(data):
-            data[i] = recursively_clean_numpy_types(item)
+        return [recursively_clean_numpy_types(item) for item in data]
     elif isinstance(data, np.generic):
-        return data.item()  # This is the core conversion
-
+        return data.item()
     return data
+# --- End Helper Function ---
+
+@app.route('/api/get_plot_data/<path:object_name>')
+def get_plot_data(object_name):
+    load_full_astro_context() # Ensures g context is loaded if needed
+    """
+    API endpoint to provide all necessary data for client-side chart rendering.
+    Returns:
+      {
+        times: [ISO strings incl. sentinel first/last],
+        object_alt, object_az, moon_alt, moon_az, horizon_mask_alt: same length as times,
+        sun_events: { current:{sunset,astronomical_dusk,...}, next:{astronomical_dawn,sunrise,...} },
+        transit_time, date, timezone, weather_forecast: [...]
+      }
+    """
+    # --- 1) Resolve object RA/DEC ---
+    data = get_ra_dec(object_name) # Uses g.objects_map internally
+    if not data:
+        return jsonify({"error": "Object data not found or invalid."}), 404
+    ra = data.get('RA (hours)')
+    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))
+    if ra is None or dec is None:
+        return jsonify({"error": "RA/DEC missing for object."}), 404
+    try:
+        ra = float(ra); dec = float(dec)
+    except (ValueError, TypeError):
+         return jsonify({"error": "Invalid RA/DEC format for object."}), 400
+
+    # --- 2) Read params with SAFE fallbacks ---
+    # Use g context as the primary fallback source now
+    default_lat = getattr(g, "lat", None)
+    default_lon = getattr(g, "lon", None)
+    default_tz = getattr(g, "tz_name", "UTC")
+    default_loc_name = getattr(g, "selected_location", "") # Use g.selected_location
+
+    plot_lat_str  = request.args.get('plot_lat', '').strip()
+    plot_lon_str  = request.args.get('plot_lon', '').strip()
+    plot_tz_name  = request.args.get('plot_tz', '').strip()
+    plot_loc_name = request.args.get('plot_loc_name', '').strip()
+
+    try:
+        lat = float(plot_lat_str) if plot_lat_str else default_lat
+        lon = float(plot_lon_str) if plot_lon_str else default_lon
+        tz_name = plot_tz_name if plot_tz_name else default_tz
+        # Use requested loc name if provided, else use the default determined by g
+        loc_name = plot_loc_name if plot_loc_name else default_loc_name
+
+        if lat is None or lon is None:
+            raise ValueError("Could not determine latitude or longitude.")
+        if not tz_name:
+            tz_name = "UTC" # Final fallback
+
+        local_tz = pytz.timezone(tz_name)
+    except Exception as e:
+        print(f"[API Plot Data] Error parsing location parameters: {e}")
+        return jsonify({"error": f"Invalid location or timezone data: {e}"}), 400
+
+    # Determine date (remains the same)
+    now_local = datetime.now(local_tz)
+    day   = int(request.args.get('day',   now_local.day))
+    month = int(request.args.get('month', now_local.month))
+    year  = int(request.args.get('year',  now_local.year))
+    try:
+        local_date_obj = datetime(year, month, day)
+        local_date = local_date_obj.strftime('%Y-%m-%d')
+    except ValueError:
+        print(f"[API Plot Data] Error: Invalid date components ({year}-{month}-{day}). Using current date.")
+        local_date_obj = now_local
+        local_date = now_local.strftime('%Y-%m-%d')
+
+
+    # --- 3) Build time grid and object series ---
+    # Determine sampling interval based on mode (from g context)
+    sampling_interval = getattr(g, 'sampling_interval', 15)
+
+    times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval_minutes=5) # Always use 5 min for chart
+    location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+    altaz_frame = AltAz(obstime=times_utc, location=location)
+    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+    altaz_obj = sky_coord.transform_to(altaz_frame)
+    altitudes = altaz_obj.alt.deg
+    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0
+
+    # --- 4) Weather forecast section ---
+    weather_forecast_series = []
+    # Round lat/lon for cache key consistency
+    rounded_lat = round(lat, 5)
+    rounded_lon = round(lon, 5)
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"
+    print(f"[API Plot Data] Checking weather cache with key: '{cache_key}'")
+
+    cached_entry = weather_cache.get(cache_key)
+    weather_data = None # Initialize weather_data
+
+    # --- Check Cache ---
+    if cached_entry and 'data' in cached_entry and 'expires' in cached_entry:
+        now_utc = datetime.now(timezone.utc)
+        expires_dt = cached_entry['expires']
+        is_expired = False
+        try: # Robust comparison
+            if expires_dt.tzinfo is not None:
+                if now_utc >= expires_dt: is_expired = True
+            elif now_utc.replace(tzinfo=None) >= expires_dt:
+                is_expired = True
+        except TypeError: is_expired = True # Aware vs naive compare fails
+
+        if not is_expired:
+            weather_data = cached_entry['data'] # Use fresh cache data
+            print(f"[API Plot Data] Using FRESH cache for key '{cache_key}'")
+        else:
+            print(f"[API Plot Data] Cache EXPIRED for key '{cache_key}'. Will attempt live fetch.")
+            # Cache is expired, weather_data remains None, proceed to live fetch
+    else:
+        print(f"[API Plot Data] Cache MISS for key '{cache_key}'. Will attempt live fetch.")
+        # Cache miss, weather_data remains None, proceed to live fetch
+
+    # --- Live Fetch on Cache Miss/Expiry ---
+    if weather_data is None:
+        print(f"[API Plot Data] Attempting live weather fetch for key '{cache_key}'...")
+        # Call the robust function (which includes the fallback and handles caching internally)
+        # Use the lat/lon determined for *this specific API request*
+        try:
+            # Add a try/except around the fetch itself within the API route
+            weather_data = get_hybrid_weather_forecast(lat, lon)
+        except Exception as fetch_err:
+            print(f"[API Plot Data] CRITICAL ERROR during live weather fetch: {fetch_err}")
+            weather_data = None # Ensure weather_data is None if fetch crashes
+
+        if weather_data:
+            print(f"[API Plot Data] Live fetch successful for key '{cache_key}'.")
+            # get_hybrid_weather_forecast already updated the cache if successful
+        else:
+            print(f"[API Plot Data] Live fetch FAILED for key '{cache_key}'. No weather data available.")
+            # If live fetch also fails, weather_data remains None
+
+    # --- Process weather_data (if available) ---
+    if weather_data and isinstance(weather_data.get('dataseries'), list):
+        print(f"[API Plot Data] Processing 'dataseries'...")
+        try:
+            init_str = weather_data.get('init', '')
+            # --- Robust init_time parsing ---
+            try:
+                # Attempt parsing assuming UTC directly
+                init_time = datetime.strptime(init_str, "%Y%m%d%H").replace(tzinfo=timezone.utc)
+            except (ValueError, TypeError):
+                 # Fallback if init_str is invalid/missing
+                 print(f"[API Plot Data] WARN: Invalid or missing 'init' string '{init_str}'. Using current UTC hour as base.")
+                 now_utc_hr = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+                 init_time = now_utc_hr
+                 init_str = now_utc_hr.strftime("%Y%m%d%H")
+            # --- End robust init_time parsing ---
+
+            count = 0
+            for block in weather_data['dataseries']:
+                timepoint_hours = block.get('timepoint')
+                if timepoint_hours is None: continue
+                try:
+                    # Calculate start time based on init_time and timepoint
+                    start_time = init_time + timedelta(hours=int(timepoint_hours))
+                    # Assume 3-hour blocks if end time isn't explicitly defined (common for 7Timer)
+                    # OpenMeteo translation *should* provide hourly, adjust end time logic if needed based on source
+                    # For now, stick to 3hr assumption for simplicity, as JS groups it anyway
+                    end_time = start_time + timedelta(hours=3)
+
+                    seeing_val = block.get("seeing")
+                    transparency_val = block.get("transparency")
+
+                    processed_block = {
+                        "start": start_time.isoformat(),
+                        "end": end_time.isoformat(),
+                        "cloudcover": block.get("cloudcover"),
+                        # Include only if valid number (not None, not placeholder -9999)
+                        "seeing": seeing_val if seeing_val is not None and seeing_val != -9999 else None,
+                        "transparency": transparency_val if transparency_val is not None and transparency_val != -9999 else None,
+                    }
+                    # Filter out keys with None values before appending
+                    weather_forecast_series.append({k: v for k, v in processed_block.items() if v is not None})
+                    count += 1
+                except (ValueError, TypeError) as time_err:
+                    print(f"[API Plot Data] WARN: Skipping weather block due to timepoint/timedelta error: {time_err} - Block: {block}")
+                    continue # Skip this block if timepoint is bad
+
+            print(f"[API Plot Data] Successfully processed {count} weather blocks.")
+        except Exception as e:
+            print(f"[API Plot Data] ERROR processing weather data structure: {e}")
+            import traceback
+            traceback.print_exc() # Print full traceback for weather processing errors
+            weather_forecast_series = [] # Clear on error during processing
+    else:
+         print(f"[API Plot Data] No valid weather data available to process.")
+         weather_forecast_series = []
+
+    # --- 5) Horizon mask (use g context for user config) ---
+    location_config   = {}
+    # Safely access g.user_config and g.locations
+    try:
+        user_cfg = getattr(g, 'user_config', {}) or {}
+        locations_cfg = user_cfg.get("locations", {}) or {}
+        location_config = locations_cfg.get(loc_name, {}) # Use determined loc_name
+    except Exception as e:
+        print(f"[API Plot Data] WARN: Could not load user/location config from g context: {e}")
+
+    horizon_mask = location_config.get("horizon_mask")
+
+    # Determine altitude threshold correctly (User Pref -> Location Pref -> Default 20)
+    altitude_threshold = 20 # Default
+    try:
+        user_cfg = getattr(g, 'user_config', {}) or {}
+        altitude_threshold = user_cfg.get("altitude_threshold", 20)
+    except Exception: pass # Keep default if g doesn't exist/is bad
+    if location_config.get("altitude_threshold") is not None: # Location override
+        altitude_threshold = location_config.get("altitude_threshold")
+
+    # Horizon mask altitude calculation
+    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
+        try:
+            # Ensure points are sorted by azimuth before interpolation
+            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
+        except Exception as hm_err:
+            print(f"[API Plot Data] ERROR calculating horizon mask altitudes: {hm_err}")
+            horizon_mask_altitudes = [altitude_threshold] * len(azimuths) # Fallback on error
+    else:
+        # If no mask, use the determined altitude_threshold
+        horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
+
+    # --- 6) Moon series ---
+    moon_altitudes = []; moon_azimuths = []
+    try:
+        # Check if times_utc is valid before proceeding
+        if not times_utc or len(times_utc) == 0:
+             raise ValueError("times_utc array is empty or invalid for Moon calculation.")
+
+        for t in times_utc:
+            t_ast = Time(t)
+            moon_icrs = get_body('moon', t_ast, location=location)
+            moon_altaz = moon_icrs.transform_to(AltAz(obstime=t_ast, location=location))
+            moon_altitudes.append(moon_altaz.alt.deg)
+            moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
+    except Exception as moon_err:
+         print(f"[API Plot Data] ERROR calculating Moon series: {moon_err}")
+         # Fill with None if moon calc fails, matching length of object alt/az
+         moon_altitudes = [None] * len(altitudes)
+         moon_azimuths = [None] * len(altitudes)
+
+
+    # --- 7) Sun events and transit ---
+    try:
+        sun_events_curr = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+        next_date_str   = (local_date_obj + timedelta(days=1)).strftime('%Y-%m-%d')
+        sun_events_next = calculate_sun_events_cached(next_date_str, tz_name, lat, lon)
+        transit_time_str = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+    except Exception as sun_err:
+        print(f"[API Plot Data] ERROR calculating Sun events/transit: {sun_err}")
+        sun_events_curr = {}
+        sun_events_next = {}
+        transit_time_str = "Error"
+
+
+    # --- 8) Force exactly 24h window ---
+    # Ensure times_local has data before accessing index 0
+    if not times_local:
+         print("[API Plot Data] ERROR: times_local array is empty. Cannot generate plot.")
+         return jsonify({"error": "Could not generate time series for plot."}), 500
+    start_time = times_local[0]
+    end_time   = start_time + timedelta(hours=24)
+    final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
+
+    # --- Final plot data structure ---
+    plot_data = {
+        "times": final_times_iso,
+        "object_alt": [None] + list(altitudes) + [None],
+        "object_az":  [None] + list(azimuths)  + [None],
+        "moon_alt":   [None] + moon_altitudes  + [None], # Use potentially None-filled list
+        "moon_az":    [None] + moon_azimuths   + [None], # Use potentially None-filled list
+        "horizon_mask_alt": [None] + horizon_mask_altitudes + [None],
+        "sun_events": {"current": sun_events_curr, "next": sun_events_next},
+        "transit_time": transit_time_str,
+        "date": local_date,
+        "timezone": tz_name,
+        "weather_forecast": weather_forecast_series
+    }
+
+    # Clean up any potential NumPy types before sending JSON
+    try:
+        plot_data = recursively_clean_numpy_types(plot_data)
+    except Exception as clean_err:
+         print(f"[API Plot Data] ERROR cleaning data for JSON: {clean_err}")
+         # Attempt to return partially cleaned data or an error
+         return jsonify({"error": "Failed to serialize plot data."}), 500
+
+    return jsonify(plot_data)
 
 def python_format_date_eu(value_iso_str):
     """Jinja filter to convert YYYY-MM-DD string to DD.MM.YYYY string."""
@@ -575,85 +2418,6 @@ def python_format_date_eu(value_iso_str):
 
 app.jinja_env.filters['date_eu'] = python_format_date_eu
 
-
-def load_journal(username):
-    """
-    Loads journal data, ensuring it conforms to the new {projects, sessions} structure.
-    Automatically migrates old journal files.
-    """
-    if SINGLE_USER_MODE:
-        filename = "journal_default.yaml"
-    else:
-        filename = f"journal_{username}.yaml"
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    if not SINGLE_USER_MODE and not os.path.exists(filepath):
-        try:
-            default_template_path = os.path.join(TEMPLATE_DIR, 'journal_default.yaml')
-            shutil.copy(default_template_path, filepath)
-            print(f"   -> Successfully created {filename}.")
-        except Exception as e:
-            print(f"   -> ❌ ERROR: Could not create journal for '{username}': {e}")
-            return {"projects": [], "sessions": []}
-
-    last_modified = os.path.getmtime(filepath) if os.path.exists(filepath) else 0
-    if filepath in journal_cache and last_modified <= journal_mtime.get(filepath, 0):
-        return journal_cache[filepath]
-
-    if not os.path.exists(filepath):
-        return {"projects": [], "sessions": []}
-
-    try:
-        with open(filepath, "r", encoding="utf-8") as file:
-            data = yaml.safe_load(file) or {}
-
-        # --- NEW MIGRATION LOGIC ---
-        # If 'projects' key is missing, it's an old format.
-        if 'projects' not in data:
-            print(f"-> Migrating old journal format for '{filename}'.")
-            # Old format might just be a dict with 'sessions' or an empty dict
-            sessions_list = data.get('sessions', []) if isinstance(data, dict) else []
-            migrated_data = {
-                'projects': [],
-                'sessions': sessions_list
-            }
-            data = migrated_data
-            # We don't save it back immediately, but the next save will fix it.
-
-        # Ensure both keys exist even if the file was just empty
-        if 'projects' not in data:
-            data['projects'] = []
-        if 'sessions' not in data:
-            data['sessions'] = []
-
-        journal_cache[filepath] = data
-        journal_mtime[filepath] = last_modified
-        return data
-    except Exception as e:
-        print(f"❌ ERROR: Failed to load journal '{filename}': {e}")
-        return {"projects": [], "sessions": []}
-
-def save_journal(username, journal_data):
-    """
-    Saves journal data safely (schema guard + backup + atomic write).
-    """
-    if (not isinstance(journal_data, dict) or
-            "sessions" not in journal_data or
-            not isinstance(journal_data.get("sessions"), list)):
-        print(f"❌ CRITICAL SAVE ABORTED for journal of user '{username}': invalid/malformed journal data.")
-        return
-
-    filename = "journal_default.yaml" if SINGLE_USER_MODE else f"journal_{username}.yaml"
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    try:
-        with _FileLock(filepath):
-            if os.path.exists(filepath):
-                _backup_with_rotation(filepath, keep=10)
-            _atomic_write_yaml(filepath, journal_data)
-        print(f" Journal saved to '{filename}' successfully (atomic).")
-    except Exception as e:
-        print(f"❌ ERROR: Failed to save journal '{filename}': {e}")
 
 def sort_rigs_list(rigs_list, sort_key='name-asc'):
     """Sorts a list of rig dictionaries based on a given key."""
@@ -742,70 +2506,272 @@ def migrate_journal_data():
             print(f"    -> ERROR: Could not process {journal_file}: {e}")
     print("[MIGRATION] Check complete.")
 
+
+def get_open_meteo_data(lat: float, lon: float) -> dict | None:
+    """
+    Fetches weather data from Open-Meteo with basic error handling.
+    Returns parsed JSON data on success, None on failure.
+    """
+    print(f"[Weather Fallback] Attempting fetch from Open-Meteo for lat={lat}, lon={lon}")
+    try:
+        # Request cloud cover at different levels, temperature, and relative humidity
+        # We get hourly data for the next 7 days
+        base_url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat,
+            "longitude": lon,
+            "hourly": "temperature_2m,relative_humidity_2m,cloud_cover_low,cloud_cover_mid,cloud_cover_high",
+            "forecast_days": 7,
+            "timezone": "UTC"  # Request data in UTC for easier processing
+        }
+
+        r = requests.get(base_url, params=params, timeout=10)  # 10-second timeout
+
+        # --- Check for HTTP errors ---
+        if r.status_code != 200:
+            print(f"[Weather Fallback] ERROR (Open-Meteo): Received non-200 status code {r.status_code}")
+            print(f"[Weather Fallback] Response text (first 200 chars): {r.text[:200]}")
+            return None
+
+        # --- Try to parse the JSON ---
+        data = r.json()
+
+        # --- Basic validation ---
+        if not data or 'hourly' not in data or 'time' not in data['hourly']:
+            print(f"[Weather Fallback] ERROR (Open-Meteo): Invalid data structure received.")
+            return None
+
+        print(f"[Weather Fallback] Successfully fetched data from Open-Meteo.")
+        return data
+
+    except requests.exceptions.RequestException as e:
+        # Handles timeouts, connection errors, etc.
+        print(f"[Weather Fallback] ERROR (Open-Meteo): Request failed. Error: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"[Weather Fallback] ERROR (Open-Meteo): Failed to decode JSON. Error: {e}")
+        print(f"[Weather Fallback] Response text (first 200 chars): {r.text[:200]}")
+        return None
+    except Exception as e:
+        # Catch any other unexpected errors
+        print(f"[Weather Fallback] ERROR (Open-Meteo): An unexpected error occurred. Error: {e}")
+        return None
+
+
 def get_hybrid_weather_forecast(lat, lon):
-    """
-    Fetch 8-day 'meteo' (base) and optionally merge 3-day 'astro'.
-    On failure:
-      - return the last successful cached result (if any)
-      - rate-limit error logs to avoid console spam
-    """
-    cache_key = f"hybrid_{lat}_{lon}"
+    # --- Rounding and Cache Key (No change) ---
+    rounded_lat = round(lat, 5)
+    rounded_lon = round(lon, 5)
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"
+    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}")
+
+    # --- Cache Check (No change) ---
     now = datetime.now(UTC)
     entry = weather_cache.get(cache_key) or {}
     last_good = entry.get('data')
     last_err_ts = entry.get('last_err_ts')
+    if entry and 'expires' in entry:
+        expires_dt = entry['expires']
+        is_expired = False
+        try:
+            if expires_dt.tzinfo is not None:
+                if now >= expires_dt: is_expired = True
+            elif now.replace(tzinfo=None) >= expires_dt:
+                is_expired = True
+        except TypeError as te:
+            print(f"[Weather Func] WARN: Timezone comparison error for key '{cache_key}': {te}")
+            is_expired = True
+        if not is_expired:
+            return entry['data']
 
-    # serve unexpired cache fast-path
-    if entry and 'expires' in entry and now < entry['expires']:
-        return entry['data']
-
+    # --- Helper Functions (No change) ---
     def _update_cache_ok(data, ttl_hours=3):
-        weather_cache[cache_key] = {'data': data, 'expires': now + timedelta(hours=ttl_hours), 'last_err_ts': None}
+        expiry_time = datetime.now(UTC) + timedelta(hours=ttl_hours)
+        weather_cache[cache_key] = {'data': data, 'expires': expiry_time, 'last_err_ts': None}
+        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}")
 
     def _rate_limited_error(msg):
         nonlocal last_err_ts
-        if not last_err_ts or (now - last_err_ts) > timedelta(minutes=15):
+        now_aware = datetime.now(UTC)
+        if not last_err_ts or (now_aware - last_err_ts) > timedelta(minutes=15):
             print(msg)
-            weather_cache.setdefault(cache_key, {})['last_err_ts'] = now
+            weather_cache.setdefault(cache_key, {})['last_err_ts'] = now_aware
 
-    # --- Try base 'meteo' ---
-    try:
-        meteo_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=meteo&output=json&unit=metric"
-        resp = requests.get(meteo_url, timeout=10)
-        resp.raise_for_status()
-        meteo_data = resp.json()
-        # Optional: quiet success log
-        # print("DEBUG: Successfully fetched 8-day 'meteo' forecast.")
-    except Exception as e:
-        _rate_limited_error(f"ERROR: Could not fetch 'meteo' weather data: {e}")
-        return last_good or None
+    # --- START: MODIFIED FETCH LOGIC WITH FALLBACK ---
 
-    if not meteo_data or 'dataseries' not in meteo_data:
-        _rate_limited_error("DEBUG: Base 'meteo' forecast failed. Returning last good (if any).")
-        return last_good or None
+    final_data_to_cache = None
 
-    # index for merge
-    base = {blk.get('timepoint'): dict(blk) for blk in meteo_data['dataseries']
-            if isinstance(blk, dict) and 'timepoint' in blk}
+    # === 1. Try 7Timer! First ===
+    print(f"[Weather Func] Attempting primary source (7Timer!) for key '{cache_key}'")
+    meteo_data_7t = get_weather_data_with_retries(lat, lon, product="meteo")
 
-    # --- Optional 'astro' merge ---
-    try:
-        astro_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
-        resp = requests.get(astro_url, timeout=10)
-        if resp.ok:
-            astro_data = resp.json()
-            for ablk in astro_data.get('dataseries', []):
-                tp = ablk.get('timepoint')
-                if tp in base:
-                    base[tp].update(ablk)
-            # Optional: quiet success log
-            # print("DEBUG: Successfully fetched 3-day 'astro' forecast for enhancement.")
-    except Exception as e:
-        _rate_limited_error(f"WARNING: 'astro' merge skipped: {e}")
+    if meteo_data_7t and 'dataseries' in meteo_data_7t:
+        print(f"[Weather Func] 7Timer! 'meteo' succeeded. Processing...")
+        # 7Timer! worked, process its data (including optional 'astro' merge)
+        base = {blk.get('timepoint'): dict(blk) for blk in meteo_data_7t['dataseries']
+                if isinstance(blk, dict) and 'timepoint' in blk}
+        try:
+            # Still try the 'astro' merge if 'meteo' worked
+            astro_data_7t = get_weather_data_with_retries(lat, lon, product="astro")
+            if astro_data_7t and astro_data_7t.get('dataseries'):
+                for ablk in astro_data_7t.get('dataseries', []):
+                    tp = ablk.get('timepoint')
+                    if tp in base: base[tp].update(ablk)
+            else:
+                print(f"[Weather Func] WARN: 7Timer! 'astro' data missing/invalid, merge skipped.")
+        except Exception as e:
+            _rate_limited_error(f"[Weather Func] WARN: 7Timer! 'astro' merge failed: {e}")
 
-    final = {'init': meteo_data.get('init'), 'dataseries': list(base.values())}
-    _update_cache_ok(final, ttl_hours=3)
-    return final
+        final_data_to_cache = {'init': meteo_data_7t.get('init'), 'dataseries': list(base.values())}
+        print(f"[Weather Func] Successfully processed data from 7Timer!.")
+
+    else:
+        # === 2. 7Timer! Failed, Try Open-Meteo Fallback ===
+        _rate_limited_error(
+            f"[Weather Func] Primary source (7Timer!) failed for key '{cache_key}'. Attempting fallback (Open-Meteo).")
+
+        # Call the new Open-Meteo helper function (added in Step 1)
+        open_meteo_data = get_open_meteo_data(lat, lon)
+
+        if open_meteo_data and 'hourly' in open_meteo_data:
+            print(f"[Weather Fallback] Open-Meteo succeeded. Translating data...")
+            # --- Translation Logic ---
+            try:
+                translated_dataseries = []
+                om_hourly = open_meteo_data['hourly']
+                times = om_hourly.get('time', [])
+                # Use UTC midnight as the pseudo 'init' time for calculating timepoints
+                # Find the first time point and set init to the start of that UTC day
+                init_time = None
+                if times:
+                    first_time = datetime.fromisoformat(times[0].replace('Z', '+00:00'))
+                    init_time = first_time.replace(hour=0, minute=0, second=0, microsecond=0)
+                    init_str = init_time.strftime("%Y%m%d%H")  # Format like 7Timer's init
+                else:
+                    init_str = datetime.now(UTC).strftime("%Y%m%d%H")  # Fallback init
+                    init_time = datetime.strptime(init_str, "%Y%m%d%H").replace(tzinfo=UTC)
+
+                for i, time_str in enumerate(times):
+                    current_time = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                    # Calculate timepoint: hours elapsed since 'init_time' (UTC midnight)
+                    timepoint = int((current_time - init_time).total_seconds() / 3600)
+
+                    # Get cloud cover percentages, default to 0 if missing
+                    cc_low = om_hourly.get('cloud_cover_low', [0] * len(times))[i]
+                    cc_mid = om_hourly.get('cloud_cover_mid', [0] * len(times))[i]
+                    cc_high = om_hourly.get('cloud_cover_high', [0] * len(times))[i]
+
+                    # Combine cloud cover: Take the maximum percentage across layers
+                    # (This is a simple approach; more sophisticated weighting could be used)
+                    total_cloud_percent = max(cc_low or 0, cc_mid or 0, cc_high or 0)
+
+                    # --- Map 0-100% to 1-9 scale ---
+                    # Scale: 1(<5%), 2(5-15), 3(15-25), ..., 8(75-85), 9(>85%)
+                    if total_cloud_percent < 5:
+                        cloudcover_1_9 = 1
+                    elif total_cloud_percent < 15:
+                        cloudcover_1_9 = 2
+                    elif total_cloud_percent < 25:
+                        cloudcover_1_9 = 3
+                    elif total_cloud_percent < 35:
+                        cloudcover_1_9 = 4
+                    elif total_cloud_percent < 55:
+                        cloudcover_1_9 = 5  # Wider mid-range
+                    elif total_cloud_percent < 65:
+                        cloudcover_1_9 = 6
+                    elif total_cloud_percent < 75:
+                        cloudcover_1_9 = 7
+                    elif total_cloud_percent < 85:
+                        cloudcover_1_9 = 8
+                    else:
+                        cloudcover_1_9 = 9
+
+                    # Get other data (use get with default index access)
+                    temp = om_hourly.get('temperature_2m', [None] * len(times))[i]
+                    rh = om_hourly.get('relative_humidity_2m', [None] * len(times))[i]
+
+                    # Create the 7Timer!-like block
+                    block = {
+                        "timepoint": timepoint,
+                        "cloudcover": cloudcover_1_9,
+                        "temp2m": temp,
+                        "rh2m": rh,
+                        # --- Add Placeholders for missing 7Timer! fields ---
+                        "seeing": -9999,  # Indicate missing/not provided
+                        "transparency": -9999,  # Indicate missing/not provided
+                        "lifted_index": -9999,
+                        "wind10m": {"direction": "N/A", "speed": -9999},
+                        "prec_type": "none",
+                        "prec_amount": 0
+                    }
+                    translated_dataseries.append(block)
+
+                if translated_dataseries:
+                    final_data_to_cache = {'init': init_str, 'dataseries': translated_dataseries}
+                    print(f"[Weather Fallback] Successfully translated Open-Meteo data.")
+                else:
+                    _rate_limited_error(
+                        f"[Weather Fallback] ERROR: Open-Meteo translation resulted in empty dataseries.")
+
+            except Exception as e:
+                _rate_limited_error(f"[Weather Fallback] ERROR: Failed to translate Open-Meteo data: {e}")
+                # traceback.print_exc() # Uncomment for debugging translator errors
+
+        else:
+            # === 3. Both 7Timer! and Open-Meteo Failed ===
+            _rate_limited_error(f"[Weather Func] ERROR: Fallback (Open-Meteo) also failed for key '{cache_key}'.")
+            # final_data_to_cache remains None
+
+    # --- END: MODIFIED FETCH LOGIC ---
+
+    # --- Cache Update or Return Stale ---
+    if final_data_to_cache is not None:
+        _update_cache_ok(final_data_to_cache, ttl_hours=3)  # Cache the successful result (from either source)
+        return final_data_to_cache
+    else:
+        # Both primary and fallback failed. Return last good data if available.
+        print(f"[Weather Func] All sources failed. Returning stale data (if available) for key '{cache_key}'.")
+        return last_good or None  # Return last good data or None if nothing ever worked
+
+# --- Check weather_cache_worker ---
+def weather_cache_worker():
+    # ... (Keep existing startup wait) ...
+    while True:
+        print("[WEATHER WORKER] Starting background refresh cycle...")
+        unique_locations = set()
+        with app.app_context():
+            db = None
+            try:
+                db = get_db()
+                active_locs = db.query(Location).filter_by(active=True).all()
+                for loc in active_locs:
+                    if loc.lat is not None and loc.lon is not None:
+                        # --- ADD ROUNDING HERE when adding to the set ---
+                        unique_locations.add((round(loc.lat, 5), round(loc.lon, 5)))
+                        # --- END ADD ROUNDING ---
+            except Exception as e:
+                print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
+            finally:
+                if db: db.close()
+
+        print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
+        refreshed_count = 0
+        for lat, lon in unique_locations: # These lat/lon are now rounded
+            try:
+                # --- Pass the rounded lat/lon to the function ---
+                # Although get_hybrid_weather_forecast now rounds internally,
+                # passing the rounded values makes the log message below accurate.
+                print(f"[Weather Worker] Refreshing for rounded lat={lat}, lon={lon}") # Log rounded values
+                get_hybrid_weather_forecast(lat, lon) # Call with potentially rounded values
+                # --- End Pass Rounded ---
+                refreshed_count += 1
+                time.sleep(5)
+            except Exception as e:
+                print(f"[WEATHER WORKER] ERROR: Failed to fetch for ({lat}, {lon}): {e}")
+
+        # ... (Keep existing sleep logic) ...
+        print(f"[WEATHER WORKER] Refresh cycle complete ({refreshed_count}/{len(unique_locations)} successful). Sleeping for 2 hours.")
+        time.sleep(2 * 60 * 60)
 
 def generate_session_id():
     """Generates a unique session ID."""
@@ -845,26 +2811,40 @@ def check_for_updates():
     except Exception as e:
         print(f"❌ [VERSION CHECK] An unexpected error occurred: {e}")
 
-
 def trigger_outlook_update_for_user(username):
     """
     Loads a user's config and starts Outlook cache workers for all their locations.
     """
     print(f"[TRIGGER] Firing Outlook cache update for user '{username}' due to a project note change.")
     try:
-        user_cfg = load_user_config(username)
+        user_cfg = build_user_config_from_db(username)
         locations = user_cfg.get('locations', {})
+
+        # --- START FIX: Determine sampling_interval correctly ---
+        sampling_interval = 15  # Default
+        if SINGLE_USER_MODE:
+            # In single-user mode, get it from the user's config (UiPref blob)
+            sampling_interval = user_cfg.get('sampling_interval_minutes', 15)
+        else:
+            # In multi-user mode, get it from environment variables (or default)
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+        # --- END FIX ---
+
         for loc_name in locations.keys():
-            # We don't need to check for staleness here, we want to force the update.
-            # print(f"    -> Starting Outlook worker for location '{loc_name}'.")
-            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy(), g.sampling_interval))
+            # --- START FIX: Set status to 'starting' *before* starting thread ---
+            status_key = f"{username}_{loc_name}"
+            cache_worker_status[status_key] = "starting"
+            print(f"    -> Set status='starting' for {status_key}")
+            # --- END FIX ---
+
+            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy(), sampling_interval)) # Pass correct interval
             thread.start()
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
 
 def trigger_startup_cache_workers():
     """
-    REVISED FOR DATABASE: Gets users from the DB to warm caches.
+    REVISED FOR DATABASE: Gets users from the DB to warm caches for ACTIVE locations only.
     """
     print("[STARTUP] Checking all caches for freshness...")
 
@@ -873,37 +2853,67 @@ def trigger_startup_cache_workers():
         if SINGLE_USER_MODE:
             usernames_to_check = ["default"]
         else:
-            # Query the User table to get all registered usernames
+            # Pull usernames from the unified DB (DbUser)
             try:
-                all_db_users = db.session.execute(db.select(User)).scalars().all()
-                usernames_to_check = [user.username for user in all_db_users]
+                _db = get_db()
+                try:
+                    # Query only active users from the DbUser table
+                    all_db_users = _db.query(DbUser).filter(DbUser.active == True).all()
+                    usernames_to_check = [u.username for u in all_db_users]
+                finally:
+                    _db.close()
             except Exception as e:
-                print(f"⚠️ [STARTUP] Could not query users from database, may need initialization. Error: {e}")
-                usernames_to_check = [] # Continue with no users if DB isn't ready
+                print(f"⚠️ [STARTUP] Could not query unified DB users. Error: {e}")
+                usernames_to_check = [] # Fallback to empty list on error
 
-        # The rest of this function remains the same
+        # Prepare tasks only for active locations
         all_tasks = []
         for username in set(usernames_to_check):
             try:
                 print(f"--- Preparing tasks for user: {username} ---")
-                config = load_user_config(username)
-                if not config:
-                    print(f"    -> No config found for user '{username}', skipping.")
+                # Build the user's config dictionary directly from the database
+                config = build_user_config_from_db(username)
+                if not config or not config.get("locations"):
+                    print(f"    -> No locations in DB for user '{username}', skipping.")
                     continue
 
                 locations = config.get("locations", {})
-                default_location = config.get("default_location")
+                default_location_name = config.get("default_location")
 
-                if default_location and default_location in locations:
-                    all_tasks.insert(0, (username, default_location, config.copy()))
+                # --- NEW FILTERING LOGIC ---
+                active_location_names = []
+                default_active_location = None
+                for loc_name, loc_details in locations.items():
+                    # Use .get('active', True) to default to active if the flag isn't set (older configs)
+                    # We check the 'active' flag from the config dict built from the DB
+                    if loc_details.get('active', True):
+                        active_location_names.append(loc_name)
+                        if loc_name == default_location_name:
+                            default_active_location = loc_name
+                # --- END NEW FILTERING LOGIC ---
 
-                for loc_name in locations.keys():
-                    if loc_name != default_location:
-                        all_tasks.append((username, loc_name, config.copy()))
+                if not active_location_names:
+                    print(f"    -> No ACTIVE locations found for user '{username}', skipping cache warming.")
+                    continue
+
+                # Prioritize the default location if it's active
+                if default_active_location:
+                    # Add the default location first
+                    all_tasks.insert(0, (username, default_active_location, config.copy()))
+                    # Add remaining active locations
+                    for loc_name in active_location_names:
+                        if loc_name != default_active_location:
+                            all_tasks.append((username, loc_name, config.copy()))
+                else:
+                    # If default isn't active (or doesn't exist), just add all active ones
+                     for loc_name in active_location_names:
+                         all_tasks.append((username, loc_name, config.copy()))
 
             except Exception as e:
                 print(f"❌ [STARTUP] ERROR: Could not prepare startup tasks for user '{username}': {e}")
+                traceback.print_exc() # Print traceback for detailed debugging
 
+        # Function to run tasks sequentially with a delay
         def run_tasks_sequentially(tasks):
             if not tasks:
                 print("[STARTUP] All cache workers have completed.")
@@ -911,162 +2921,198 @@ def trigger_startup_cache_workers():
 
             username, loc_name, cfg = tasks.pop(0)
             print(f"[STARTUP] Now processing task for user '{username}' at location '{loc_name}'.")
-            # Determine the sampling interval to pass to the thread
-            if SINGLE_USER_MODE:
-                sampling_interval = cfg.get('sampling_interval_minutes', 15)
-            else:
-                sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
             # Determine the sampling interval to pass to the thread
+            sampling_interval = 15 # Default
             if SINGLE_USER_MODE:
-                sampling_interval = cfg.get('sampling_interval_minutes', 15)
+                # In single-user mode, get it from the user's config (UiPref blob)
+                sampling_interval = cfg.get('sampling_interval_minutes') or 15
             else:
+                # In multi-user mode, get it from environment variables (or default)
                 sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
+            # Start the cache warming thread for the main data cache
+            # This thread will subsequently trigger the outlook cache update
             worker_thread = threading.Thread(target=warm_main_cache, args=(username, loc_name, cfg, sampling_interval))
             worker_thread.start()
+
+            # Schedule the next task after a delay (e.g., 15 seconds)
             threading.Timer(15.0, run_tasks_sequentially, args=[tasks]).start()
 
-        print(f"[STARTUP] Found a total of {len(all_tasks)} user/location tasks to process.")
+        print(f"[STARTUP] Found a total of {len(all_tasks)} active user/location tasks to process.")
         if all_tasks:
+            # Start the sequential processing
             run_tasks_sequentially(all_tasks)
+        else:
+            print("[STARTUP] No active locations found across all users. No cache warming needed.")
 
 def update_outlook_cache(username, location_name, user_config, sampling_interval):
     """
-    NEW LOGIC: Finds ALL good imaging opportunities for PROJECT objects only
-    and saves them sorted by date.
+    Finds ALL good imaging opportunities for PROJECT objects only for the specified
+    user and location, saving them sorted by date.
+    Relies ONLY on passed arguments, not the global 'g' object.
     """
-    with app.app_context():
-        # Create a unique key for the status dictionary
-        status_key = f"{username}_{location_name}"
+    status_key = f"{username}_{location_name}"
+    cache_filename = os.path.join(CACHE_DIR,
+                                  f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
-        # print(f"[OUTLOOK WORKER] Starting for user '{username}' at location '{location_name}'.")
+    with app.app_context(): # Keep app context for potential future DB needs, but avoid using 'g'
+        print(f"--- [OUTLOOK WORKER {status_key}] Starting ---")
         cache_worker_status[status_key] = "running"
-        cache_filename = os.path.join(CACHE_DIR,
-                                      f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
         try:
-            g.user_config = user_config
-            g.locations = user_config.get("locations", {})
-            loc_cfg = g.locations.get(location_name, {})
-            g.lat, g.lon, g.tz_name = loc_cfg.get("lat"), loc_cfg.get("lon"), loc_cfg.get("timezone", "UTC")
-            g.objects_list = g.user_config.get("objects", [])
-
-            lat, lon, tz_name = g.lat, g.lon, g.tz_name
+            # --- Extract Location Data from ARGUMENTS ---
+            all_locations_from_config = user_config.get("locations", {})
+            loc_cfg = all_locations_from_config.get(location_name)
+            if not loc_cfg: raise ValueError(f"Location '{location_name}' not found.")
+            lat = loc_cfg.get("lat"); lon = loc_cfg.get("lon"); tz_name = loc_cfg.get("timezone", "UTC")
+            horizon_mask = loc_cfg.get("horizon_mask")
+            if lat is None or lon is None: raise ValueError(f"Missing lat/lon for '{location_name}'.")
+            print(f"[OUTLOOK WORKER {status_key}] Using Loc: lat={lat}, lon={lon}, tz={tz_name}")
             altitude_threshold = user_config.get("altitude_threshold", 20)
-            if not all([lat, lon, tz_name]): raise ValueError(f"Missing lat/lon/tz for '{location_name}'")
 
-            criteria = {**{"min_observable_minutes": 60, "min_max_altitude": 30},
-                        **user_config.get("imaging_criteria", {})}
+            # --- Extract Imaging Criteria from ARGUMENTS ---
+            def _get_criteria_from_config(cfg):
+                defaults = { "min_observable_minutes": 60, "min_max_altitude": 30, "max_moon_illumination": 20, "min_angular_separation": 30, "search_horizon_months": 6 }
+                raw = (cfg or {}).get("imaging_criteria") or {}; out = dict(defaults)
+                if isinstance(raw, dict):
+                    def _update_key(key, cast_func):
+                        if key in raw and raw[key] is not None:
+                            try: out[key] = cast_func(str(raw[key]))
+                            except: pass
+                    _update_key("min_observable_minutes", int); _update_key("min_max_altitude", float); _update_key("max_moon_illumination", int); _update_key("min_angular_separation", int); _update_key("search_horizon_months", int)
+                out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0)); out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0))); out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100))); out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0))); out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
+                return out
+            criteria = _get_criteria_from_config(user_config)
 
+            # --- Extract Objects List from ARGUMENTS ---
             all_objects_from_config = user_config.get("objects", [])
-            project_objects = [
-                obj for obj in all_objects_from_config
-                if obj.get("ActiveProject")
-            ]
-            # print(f"[OUTLOOK WORKER] Found {len(project_objects)} objects with active projects for user '{username}'.")
 
+            # --- START FIX: Build object map for this thread ---
+            local_objects_map = {
+                str(o.get("Object", "")).lower(): o
+                for o in all_objects_from_config if isinstance(o, dict) and o.get("Object")
+            }
+            # --- END FIX ---
+
+            # --- Filter Active Projects ---
+            project_objects = []
+            if isinstance(all_objects_from_config, list):
+                for obj in all_objects_from_config:
+                    if isinstance(obj, dict):
+                        ap_val = obj.get("ActiveProject")
+                        is_active = (ap_val is True or str(ap_val).lower() in ['true', '1', 'yes'])
+                        if is_active: project_objects.append(obj)
+
+            active_object_names = [o.get('Object', 'Unnamed') for o in project_objects]
+            print(f"[OUTLOOK WORKER {status_key}] Found {len(project_objects)} active projects: {active_object_names}")
+
+            if not project_objects:
+                print(f"[OUTLOOK WORKER {status_key}] No active projects. Writing empty cache.")
+                cache_content = {"metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username}, "opportunities": []}
+                with open(cache_filename, 'w') as f: json.dump(cache_content, f)
+                cache_worker_status[status_key] = "complete"
+                print(f"--- [OUTLOOK WORKER {status_key}] Finished (no active projects) ---")
+                return # Exit early
+
+            # --- Calculation Loop ---
             all_good_opportunities = []
             local_tz = pytz.timezone(tz_name)
             start_date = datetime.now(local_tz).date()
-            dates_to_check = [start_date + timedelta(days=i) for i in range(30)]
+            dates_to_check = [start_date + timedelta(days=i) for i in range(criteria["search_horizon_months"] * 30)]
 
             for obj_config_entry in project_objects:
+                object_name_from_config = obj_config_entry.get("Object", "Unknown")
                 try:
                     time.sleep(0.01)
-                    object_name_from_config = obj_config_entry.get("Object")
-                    if not object_name_from_config: continue
 
-                    obj_details = get_ra_dec(object_name_from_config)
-                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get(
-                        "DEC (degrees)")
-                    if not all([object_name, ra, dec]): continue
+                    # --- START FIX: Call get_ra_dec with the local map ---
+                    obj_details = get_ra_dec(object_name_from_config, objects_map=local_objects_map)
+                    # --- END FIX ---
 
-                    # --- NEW: Loop through dates and collect ALL good nights ---
+                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get("DEC (degrees)")
+                    if not all([object_name, ra is not None, dec is not None]):
+                        print(f"[OUTLOOK WORKER {status_key}] Skipping {object_name_from_config}: Missing RA/DEC or lookup failed.")
+                        continue
+
                     for d in dates_to_check:
                         date_str = d.strftime('%Y-%m-%d')
-                        # Respect per-azimuth horizon mask (houses/trees etc.)
-                        try:
-                            horizon_mask = (g.locations.get(location_name, {}).get("horizon_mask")
-                                            if isinstance(g.locations, dict) else None)
-                        except Exception:
-                            horizon_mask = None
-                        obs_duration, max_altitude, _, _ = calculate_observable_duration_vectorized(
-                            ra, dec, lat, lon,
-                            date_str, tz_name,
-                            altitude_threshold, sampling_interval,
-                            horizon_mask=horizon_mask
+
+                        obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
+                            ra, dec, lat, lon, date_str, tz_name,
+                            altitude_threshold, sampling_interval, horizon_mask=horizon_mask
                         )
 
-                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
-                                criteria["min_observable_minutes"]:
-                            continue
+                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < criteria["min_observable_minutes"]: continue
 
-                        # Perform scoring (same as before)
-                        moon_phase = ephem.Moon(
-                            local_tz.localize(datetime.combine(d, datetime.now().time())).astimezone(pytz.utc)).phase
+                        moon_phase = ephem.Moon(local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(pytz.utc)).phase
+                        if moon_phase > criteria["max_moon_illumination"]: continue
+
                         sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
                         dusk = sun_events.get("astronomical_dusk", "20:00")
-                        dusk_dt = local_tz.localize(datetime.combine(d, datetime.strptime(dusk, "%H:%M").time()))
+                        try: dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
+                        except ValueError: dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
+                        dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
                         location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-                        frame = AltAz(obstime=Time(dusk_dt.astimezone(pytz.utc)), location=location_obj)
+                        time_obj = Time(dusk_dt.astimezone(pytz.utc))
+                        frame = AltAz(obstime=time_obj, location=location_obj)
                         obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-                        moon_coord = get_body('moon', Time(dusk_dt.astimezone(pytz.utc)), location=location_obj)
-                        separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
-                        score_alt = min((max_altitude - 20) / 70, 1) if max_altitude > 20 else 0
+                        moon_coord = get_body('moon', time_obj, location=location_obj)
+                        try:
+                           separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+                           if separation < criteria["min_angular_separation"]: continue
+                        except Exception as sep_e:
+                           print(f"[OUTLOOK WORKER {status_key}] WARN Sep calc fail for {object_name} on {date_str}: {sep_e}")
+                           continue
+
+                        score_alt = max(0, min((max_altitude - 20) / 70, 1))
                         score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
                         score_moon_illum = 1 - min(moon_phase / 100, 1)
-                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
-                                                                                                     1)
-                        composite_score = 100 * (
-                                    0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
+                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180, 1)
+                        composite_score = 100 * (0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
 
-                        # --- NEW: If score is good, add it to the list ---
-                        if composite_score > 75:  # Set a threshold for what constitutes a "good" opportunity
+                        if composite_score > 75:
                             stars = int(round((composite_score / 100) * 4)) + 1
+                            # --- Ensure native Python floats are stored ---
+                            opportunity_score = float(composite_score)
+                            opportunity_max_alt = float(max_altitude)
+                            # --- End ensure native floats ---
                             good_night_opportunity = {
-                                "object_name": object_name,
-                                "common_name": obj_details.get("Common Name", object_name),
-                                "date": date_str,  # Note the key is now 'date'
-                                "score": composite_score,
-                                "rating": "★" * stars + "☆" * (5 - stars),
-                                "rating_num": stars,
-                                "max_alt": round(max_altitude, 1),
+                                "object_name": object_name, "common_name": obj_details.get("Common Name", object_name),
+                                "date": date_str, "score": opportunity_score, "rating": "★" * stars + "☆" * (5 - stars),
+                                "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
                                 "obs_dur": int(obs_duration.total_seconds() / 60),
-                                "project": obj_config_entry.get("Project", "none"),
-                                "type": obj_details.get("Type", "N/A"),
-                                "constellation": obj_details.get("Constellation", "N/A"),
-                                "magnitude": obj_details.get("Magnitude", "N/A"),
-                                "size": obj_details.get("Size", "N/A"),
-                                "sb": obj_details.get("SB", "N/A")
+                                "project": obj_config_entry.get("Project", "none"), "type": obj_details.get("Type", "N/A"),
+                                "constellation": obj_details.get("Constellation", "N/A"), "magnitude": obj_details.get("Magnitude", "N/A"),
+                                "size": obj_details.get("Size", "N/A"), "sb": obj_details.get("SB", "N/A")
                             }
                             all_good_opportunities.append(good_night_opportunity)
 
                 except Exception as e:
-                    import traceback
-                    print(
-                        f"[OUTLOOK WORKER] WARNING: Skipping object '{obj_config_entry.get('Object', 'Unknown')}' due to an error: {e}")
-                    traceback.print_exc()
+                    print(f"❌ [OUTLOOK WORKER {status_key}] ERROR processing object '{object_name_from_config}': {e}")
+                    # traceback.print_exc() # Uncomment for more detail if needed
                     continue
+            # --- End Calculation Loop ---
 
-            # --- NEW: Sort the final list of all opportunities by date ---
+            print(f"[OUTLOOK WORKER {status_key}] Found {len(all_good_opportunities)} total opportunities.")
+
             opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
-
             cache_content = {
                 "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username},
                 "opportunities": opportunities_sorted_by_date
             }
 
-            with open(cache_filename, 'w') as f:
-                json.dump(cache_content, f)
-            # print(f"[OUTLOOK WORKER] Successfully updated cache file: {cache_filename}")
+            _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
+            with open(cache_filename, 'w') as f: json.dump(cache_content, f)
+            print(f"[OUTLOOK WORKER {status_key}] Successfully updated cache: {cache_filename}")
             cache_worker_status[status_key] = "complete"
 
         except Exception as e:
-            import traceback
-            print(f"❌ [OUTLOOK WORKER] FATAL ERROR for user '{username}' at location '{location_name}': {e}")
+            print(f"❌❌ [OUTLOOK WORKER {status_key}] FATAL ERROR: {e}")
             traceback.print_exc()
             cache_worker_status[status_key] = "error"
+        finally:
+             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
 def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
@@ -1171,6 +3217,10 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         traceback.print_exc()
 
 def sort_rigs(rigs, sort_key: str):
+    # FIX: Add a fallback for None to prevent the AttributeError
+    if not sort_key:
+        sort_key = 'name-asc'  # A sensible default if no preference is set
+
     key, _, direction = sort_key.partition('-')
     reverse = (direction == 'desc')
 
@@ -1200,13 +3250,12 @@ def sort_rigs(rigs, sort_key: str):
         # default to name
         return (r.get('rig_name') or '').lower()
 
-    # sort with None-safe behavior (None => bottom)
+    # sort with None-safe behavior (None values are sorted to the bottom)
     def none_safe(x):
         v = getter(x)
         return (v is None, v)
 
     return sorted(rigs, key=none_safe, reverse=reverse)
-
 
 # --- Anonymous telemetry helpers ---
 def is_docker_env():
@@ -1247,65 +3296,36 @@ def telemetry_mark_sent(state_dir: Path):
     except Exception:
         pass
 
+
 def build_telemetry_payload(user_config, browser_user_agent: str = ''):
-    # --- Add anonymized counts (numbers only, never contents) ---
-    cfg = user_config or {}
-    def _len_any(x):
-        if isinstance(x, dict):
-            return len(x)
-        if isinstance(x, list):
-            return len(x)
-        # support sets/tuples just in case
-        try:
-            return len(x)
-        except Exception:
-            return 0
-
-    def pick_first(*candidates):
-        for c in candidates:
-            if c is not None and c != {} and c != []:
-                return c
-        return None
-
-    objects_count = _len_any(cfg.get("objects"))
-
-    # Rigs: prefer canonical rig file used by the UI; fall back to possible in-config locations
+    # === START REFACTOR ===
+    # Get counts directly from the database, which is the single source of truth.
     try:
+        db = get_db()  # Get a DB session
         username_eff = "default" if SINGLE_USER_MODE else (
             current_user.username if getattr(current_user, "is_authenticated", False) else "default"
         )
-        rd = rig_config.load_rig_config(username_eff, SINGLE_USER_MODE) or {}
-        rigs_count = _len_any(rd.get("rigs"))
-    except Exception:
-        # Fallbacks if rig config couldn't be loaded
-        rigs_container = pick_first(
-            cfg.get("rigs"),
-            cfg.get("rig_list"),
-            cfg.get("available_rigs"),
-            (cfg.get("equipment") or {}).get("rigs"),
-            (cfg.get("user") or {}).get("rigs"),
-        )
-        rigs_count = _len_any(rigs_container)
+        # Get the user from the app.db
+        user = db.query(DbUser).filter_by(username=username_eff).one_or_none()
 
-    # Locations: use container variants resolved above
-    locations_container = pick_first(
-        cfg.get("locations"),
-        cfg.get("sites"),
-        (cfg.get("user") or {}).get("locations"),
-        (cfg.get("observing") or {}).get("locations"),
-    )
-    locations_count = _len_any(locations_container)
-    # Journals: load via canonical loader (journal lives in nova.py), fallback to config keys if needed
-    try:
-        username_eff = "default" if SINGLE_USER_MODE else (
-            current_user.username if getattr(current_user, "is_authenticated", False) else "default"
-        )
-        jd = load_journal(username_eff) or {}
-        sessions = jd.get("sessions") or []
-        journals_count = _len_any(sessions)
-    except Exception:
-        # Fallback for older in-config layouts
-        journals_count = _len_any(cfg.get("journals")) or _len_any(cfg.get("journal_entries"))
+        if user:
+            # Query the DB for the *actual* counts
+            rigs_count = db.query(Rig).filter_by(user_id=user.id).count()
+            objects_count = db.query(AstroObject).filter_by(user_id=user.id).count()
+            locations_count = db.query(Location).filter_by(user_id=user.id).count()
+            journals_count = db.query(JournalSession).filter_by(user_id=user.id).count()
+        else:
+            # Fallback if user not found for some reason
+            rigs_count, objects_count, locations_count, journals_count = 0, 0, 0, 0
+
+    except Exception as e:
+        print(f"[TELEMETRY] DB count query failed: {e}")
+        rigs_count, objects_count, locations_count, journals_count = 0, 0, 0, 0
+    finally:
+        if 'db' in locals() and db:
+            db.close()
+    # === END REFACTOR ===
+
     instance_id, enabled = ensure_instance_id(user_config)
     mode = 'single' if SINGLE_USER_MODE else 'multi'
     return {
@@ -1394,7 +3414,10 @@ def _start_telemetry_scheduler_once():
     try:
         username = "default" if SINGLE_USER_MODE else "default"
         try:
-            cfg = load_user_config(username)
+            # === START REFACTOR ===
+            # Use the DB-backed function instead of the deleted YAML function
+            cfg = build_user_config_from_db(username)
+            # === END REFACTOR ===
         except Exception:
             cfg = {}
         # Send immediately on restart (explicitly allowed)
@@ -1407,7 +3430,10 @@ def _start_telemetry_scheduler_once():
                 try:
                     time.sleep(24 * 60 * 60)
                     try:
-                        daily_cfg = load_user_config(username)
+                        # === START REFACTOR ===
+                        # Use the DB-backed function here as well
+                        daily_cfg = build_user_config_from_db(username)
+                        # === END REFACTOR ===
                     except Exception:
                         daily_cfg = cfg or {}
                     # print("[TELEMETRY] Daily ping: attempting send (force=False)")
@@ -1419,6 +3445,7 @@ def _start_telemetry_scheduler_once():
         threading.Thread(target=_daily_loop, daemon=True).start()
     except Exception as e:
         print(f"[TELEMETRY] Scheduler init error: {e}")
+
 
 def to_yaml_filter(data):
     """Jinja2 filter to convert a Python object to a YAML string for form display."""
@@ -1465,7 +3492,7 @@ def _telemetry_bootstrap_hook():
                     username = current_user.username if getattr(current_user, "is_authenticated", False) else "guest_user"
 
                 try:
-                    cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+                    cfg = g.user_config if hasattr(g, 'user_config') else {}
                 except Exception:
                     cfg = {}
 
@@ -1485,6 +3512,27 @@ if FIRST_RUN_ENV_CREATED:
             print(f"[TELEMETRY] first-run timer init failed: {_e}")
     threading.Timer(1.0, _telemetry_first_run_timer).start()
 
+def safe_float(value_str):
+    """Safely converts a string to a float, returning None if empty or invalid."""
+    if value_str is None or str(value_str).strip() == "":
+        return None
+    try:
+        return float(value_str)
+    except (ValueError, TypeError):
+        print(f"Warning: Could not convert '{value_str}' to float.")
+        return None
+
+
+def safe_int(value_str):
+    """Safely converts a string to an integer, returning None if empty or invalid."""
+    if value_str is None or str(value_str).strip() == "":
+        return None
+    try:
+        # Convert to float first to handle inputs like "10.0"
+        return int(float(value_str))
+    except (ValueError, TypeError):
+        print(f"Warning: Could not convert '{value_str}' to int.")
+        return None
 
 # --- Telemetry diagnostics route ---
 @app.route('/telemetry/debug', methods=['GET'])
@@ -1495,7 +3543,7 @@ def telemetry_debug():
     except Exception:
         username = "default"
     try:
-        cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+        cfg = g.user_config if hasattr(g, 'user_config') else {}
     except Exception:
         cfg = {}
     enabled = bool(cfg.get('telemetry', {}).get('enabled', True))
@@ -1507,40 +3555,108 @@ def telemetry_debug():
         'last_error': TELEMETRY_DEBUG_STATE.get('last_error'),
         'last_ts': TELEMETRY_DEBUG_STATE.get('last_ts')
     })
-
 @app.route('/get_outlook_data')
 def get_outlook_data():
-    # --- NEW: Check for guest user first ---
+    load_full_astro_context()
+    # --- Check for guest user first ---
     if hasattr(g, 'is_guest') and g.is_guest:
-        # Guests have no projects, so their outlook is always empty.
         return jsonify({"status": "complete", "results": []})
 
-    # --- Original logic for logged-in users continues below ---
+    # --- Determine username ---
     if SINGLE_USER_MODE:
         username = "default"
     elif current_user.is_authenticated:
         username = current_user.username
     else:
-        # Handle cases where no user is logged in in multi-user mode
         return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
-    location_name = g.selected_location
-    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+    # --- START FIX: Determine Location to Use ---
+    # Check for a location override from the request query parameter
+    requested_location_name = request.args.get('location')
+    # Start with the user's saved default location from the global 'g' object
+    location_name_to_use = g.selected_location
 
+    # If a location name was provided in the URL AND it's a valid location for the user...
+    if requested_location_name and requested_location_name in g.locations:
+        # ...use the requested location instead of the default.
+        location_name_to_use = requested_location_name
+        # print(f"[Outlook] Using requested location: {location_name_to_use}") # Optional debug
+    # else:
+        # print(f"[Outlook] Using default location: {location_name_to_use}") # Optional debug
+
+    # Safety check: If no location could be determined (e.g., user has no locations configured)
+    if not location_name_to_use:
+        return jsonify({"status": "error", "message": "No valid location selected or configured."}), 400
+
+    # Use the finally determined location name for the rest of the function
+    location_name = location_name_to_use
+    # --- END FIX ---
+
+    # Construct cache filename using the determined username and location name
+    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+    status_key = f"{username}_{location_name}" # Key for checking background worker status
+
+    # --- START FIX: Check worker status FIRST ---
+    worker_status = cache_worker_status.get(status_key, "idle")
+    if worker_status in ["running", "starting"]:
+        # A worker is already running (or just started).
+        # Tell the client to wait, even if an old cache file exists.
+        print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
+        return jsonify({"status": worker_status, "results": []})
+    # --- END FIX ---
+
+    # --- Worker is idle. NOW check the cache file. ---
     if os.path.exists(cache_filename):
         try:
-            with open(cache_filename, 'r') as f:
-                data = json.load(f)
-            return jsonify({"status": "complete", "results": data.get("opportunities", [])})
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"❌ ERROR: Could not read or parse outlook cache file '{cache_filename}': {e}")
-            return jsonify({"status": "error", "results": []})
-    else:
-        # Create the unique key to check the worker's status
-        status_key = f"{username}_{location_name}"
-        worker_status = cache_worker_status.get(status_key, "idle")
-        return jsonify({"status": worker_status, "results": []})
+            # Check if the cache is stale (e.g., older than 1 day)
+            cache_mtime = os.path.getmtime(cache_filename)
+            is_stale = (datetime.now().timestamp() - cache_mtime) > 86400 # 86400 seconds = 1 day
 
+            if not is_stale:
+                # Cache is fresh AND no worker is running. Serve it.
+                with open(cache_filename, 'r') as f:
+                    data = json.load(f)
+                return jsonify({"status": "complete", "results": data.get("opportunities", [])})
+            else:
+                # Cache is stale. Proceed to start a new worker.
+                print(f"[OUTLOOK] Cache for {status_key} is stale. Will start new worker.")
+
+        except (json.JSONDecodeError, IOError, OSError) as e:
+            # Error reading or parsing the file, treat as missing/corrupt
+            print(f"❌ ERROR: Could not read/parse outlook cache '{cache_filename}': {e}")
+            # Proceed to start a new worker
+
+    # --- Cache is missing, stale, or corrupt, AND no worker is running. Start a new one. ---
+    print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
+    try:
+        # Ensure user config is available (should be in 'g')
+        if not hasattr(g, 'user_config') or not g.user_config:
+             return jsonify({"status": "error", "message": "User configuration not loaded."}), 500
+
+        # Determine sampling interval based on mode
+        sampling_interval = 15 # Default
+        if SINGLE_USER_MODE:
+            sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
+        else:
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+        # Start the background thread, passing necessary data
+        # CRITICAL: Pass user_config.copy() to avoid issues with 'g' context in the thread
+        thread = threading.Thread(target=update_outlook_cache,
+                                  args=(username, location_name, g.user_config.copy(), sampling_interval))
+        thread.start()
+
+        # Mark status as 'starting' immediately to prevent duplicate workers
+        cache_worker_status[status_key] = "starting"
+
+        # Tell the client we've started, and to poll again later
+        return jsonify({"status": "starting", "results": []})
+
+    except Exception as e:
+        print(f"❌ ERROR: Failed to start outlook worker thread for {status_key}: {e}")
+        traceback.print_exc()
+        cache_worker_status[status_key] = "error" # Mark as error if thread start fails
+        return jsonify({"status": "error", "message": "Failed to start background worker."}), 500
 @app.route('/api/latest_version')
 def get_latest_version():
     """An API endpoint for the frontend to check for updates."""
@@ -1550,1010 +3666,542 @@ def get_latest_version():
 @login_required
 def add_component():
     username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+        user = db.query(DbUser).filter_by(username=username).one()
+        form = request.form
+        form_kind = form.get('component_type')
+        kind_map = {
+            'telescopes': 'telescope',
+            'cameras': 'camera',
+            'reducers_extenders': 'reducer_extender'
+        }
+        kind = kind_map.get(form_kind)
 
-        component_id = request.form.get('component_id')
-        component_type_plural = request.form.get('component_type')  # This will be 'telescopes', 'cameras', etc.
-        component_name = request.form.get('name')
-
-        if not component_type_plural or not component_name:
-            flash("Component type and name are required.", "error")
+        if not kind:
+            db.rollback()
+            flash(f"Error: Unknown component type '{form_kind}'", "error")
             return redirect(url_for('config_form'))
 
-        # Check if this is an UPDATE or an ADD
-        if component_id:
-            # --- This is an UPDATE ---
-            component_to_update = next(
-                (c for c in rig_data['components'][component_type_plural] if c['id'] == component_id), None)
-            if not component_to_update:
-                flash('Component to update not found.', 'error')
-                return redirect(url_for('config_form'))
+        new_comp = Component(user_id=user.id, kind=kind, name=form.get('name'))
+        if kind == 'telescope':
+            new_comp.aperture_mm = float(form.get('aperture_mm'))
+            new_comp.focal_length_mm = float(form.get('focal_length_mm'))
+        elif kind == 'camera':
+            new_comp.sensor_width_mm = float(form.get('sensor_width_mm'))
+            new_comp.sensor_height_mm = float(form.get('sensor_height_mm'))
+            new_comp.pixel_size_um = float(form.get('pixel_size_um'))
+        elif kind == 'reducer_extender':
+            new_comp.factor = float(form.get('factor'))
 
-            # Update the fields
-            component_to_update['name'] = component_name
-            if component_type_plural == 'telescopes':
-                component_to_update['aperture_mm'] = float(request.form.get('aperture_mm'))
-                component_to_update['focal_length_mm'] = float(request.form.get('focal_length_mm'))
-            elif component_type_plural == 'cameras':
-                component_to_update['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
-                component_to_update['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
-                component_to_update['pixel_size_um'] = float(request.form.get('pixel_size_um'))
-            elif component_type_plural == 'reducers_extenders':
-                component_to_update['factor'] = float(request.form.get('factor'))
-
-            flash(f"Component '{component_name}' updated successfully.", "success")
-
-        else:
-            # --- This is an ADD ---
-            new_component = {"id": uuid.uuid4().hex, "name": component_name}
-            if component_type_plural == 'telescopes':
-                new_component['aperture_mm'] = float(request.form.get('aperture_mm'))
-                new_component['focal_length_mm'] = float(request.form.get('focal_length_mm'))
-            elif component_type_plural == 'cameras':
-                new_component['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
-                new_component['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
-                new_component['pixel_size_um'] = float(request.form.get('pixel_size_um'))
-            elif component_type_plural == 'reducers_extenders':
-                new_component['factor'] = float(request.form.get('factor'))
-
-            rig_data['components'][component_type_plural].append(new_component)
-            flash(f"Component '{component_name}' added successfully.", "success")
-
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-        rig_data_cache.clear()
-
-    except (ValueError, TypeError) as e:
-        flash(f"Invalid data provided. Please ensure all numbers are valid. Error: {e}", "error")
+        db.add(new_comp)
+        db.commit()
+        flash(f"Component '{new_comp.name}' added successfully.", "success")
     except Exception as e:
-        flash(f"An unexpected error occurred: {e}", "error")
-
+        db.rollback()
+        flash(f"Error adding component: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
-
 
 @app.route('/update_component', methods=['POST'])
 @login_required
 def update_component():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
+        form = request.form
+        comp_id = int(form.get('component_id'))
+        comp = db.get(Component, comp_id)
 
-        component_id = request.form.get('component_id')
-        # The form sends the PLURAL key (e.g., 'telescopes') in this field
-        component_type_plural = request.form.get('component_type')
-
-        if not all([component_id, component_type_plural]):
-            flash('Missing component data for update.', 'error')
+        # Security check: ensure component belongs to the current user
+        if comp.user.username != ("default" if SINGLE_USER_MODE else current_user.username):
+            flash("Authorization error.", "error")
             return redirect(url_for('config_form'))
 
-        # Find the component to update using the plural key
-        component_to_update = next(
-            (c for c in rig_data['components'][component_type_plural] if c['id'] == component_id), None)
+        comp.name = form.get('name')
+        if comp.kind == 'telescope':
+            comp.aperture_mm = float(form.get('aperture_mm'))
+            comp.focal_length_mm = float(form.get('focal_length_mm'))
+        elif comp.kind == 'camera':
+            comp.sensor_width_mm = float(form.get('sensor_width_mm'))
+            comp.sensor_height_mm = float(form.get('sensor_height_mm'))
+            comp.pixel_size_um = float(form.get('pixel_size_um'))
+        elif comp.kind == 'reducer_extender':
+            comp.factor = float(form.get('factor'))
 
-        if not component_to_update:
-            flash('Component not found for update.', 'error')
-            return redirect(url_for('config_form'))
-
-        # Update common field
-        component_to_update['name'] = request.form.get('name')
-
-        # Update specific fields based on the plural type
-        if component_type_plural == 'telescopes':
-            component_to_update['aperture_mm'] = float(request.form.get('aperture_mm'))
-            component_to_update['focal_length_mm'] = float(request.form.get('focal_length_mm'))
-        elif component_type_plural == 'cameras':
-            component_to_update['sensor_width_mm'] = float(request.form.get('sensor_width_mm'))
-            component_to_update['sensor_height_mm'] = float(request.form.get('sensor_height_mm'))
-            component_to_update['pixel_size_um'] = float(request.form.get('pixel_size_um'))
-        elif component_type_plural == 'reducers_extenders':
-            component_to_update['factor'] = float(request.form.get('factor'))
-
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-        rig_data_cache.clear()
-
-        # Create a user-friendly name for the flash message
-        display_type = component_type_plural.replace('_', ' ').replace('reducers', 'reducer').rstrip('s').title()
-        flash(f"{display_type} '{component_to_update['name']}' updated successfully.", "success")
-
-    except (ValueError, TypeError) as e:
-        flash(f"Invalid data for update. Please ensure all numbers are valid. Error: {e}", "error")
+        db.commit()
+        flash(f"Component '{comp.name}' updated successfully.", "success")
     except Exception as e:
-        flash(f"An unexpected error occurred during update: {e}", "error")
-
+        db.rollback()
+        flash(f"Error updating component: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
 
 @app.route('/add_rig', methods=['POST'])
 @login_required
 def add_rig():
     username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
-        rig_name = request.form.get('rig_name')
-        telescope_id = request.form.get('telescope_id')
-        camera_id = request.form.get('camera_id')
-        reducer_extender_id = request.form.get('reducer_extender_id')
-        rig_id = request.form.get('rig_id') # Will be empty for new rigs
+        user = db.query(DbUser).filter_by(username=username).one()
+        form = request.form
+        rig_id = form.get('rig_id')
 
-        if not rig_name or not telescope_id or not camera_id:
-            flash("Rig Name, Telescope, and Camera are all required.", "error")
-            return redirect(url_for('config_form'))
+        tel_id = int(form.get('telescope_id'))
+        cam_id = int(form.get('camera_id'))
+        red_id_str = form.get('reducer_extender_id')
+        red_id = int(red_id_str) if red_id_str else None
 
-        rig_details = {
-            "rig_name": rig_name,
-            "telescope_id": telescope_id,
-            "camera_id": camera_id,
-            "reducer_extender_id": reducer_extender_id if reducer_extender_id else None
-        }
+        if rig_id: # Update
+            rig = db.get(Rig, int(rig_id))
+            rig.rig_name = form.get('rig_name')
+            rig.telescope_id, rig.camera_id, rig.reducer_extender_id = tel_id, cam_id, red_id
+            flash(f"Rig '{rig.rig_name}' updated successfully.", "success")
+        else: # Add
+            new_rig = Rig(
+                user_id=user.id, rig_name=form.get('rig_name'),
+                telescope_id=tel_id, camera_id=cam_id, reducer_extender_id=red_id
+            )
+            db.add(new_rig)
+            flash(f"Rig '{new_rig.rig_name}' created successfully.", "success")
 
-        if rig_id:  # This is an UPDATE
-            found = False
-            for i, rig in enumerate(rig_data['rigs']):
-                if rig.get('rig_id') == rig_id:
-                    rig_data['rigs'][i].update(rig_details)
-                    found = True
-                    break
-            if found:
-                flash(f"Rig '{rig_name}' updated successfully.", "success")
-            else:
-                flash(f"Error: Rig with ID {rig_id} not found for update.", "error")
-        else:  # This is an ADD
-            rig_details["rig_id"] = uuid.uuid4().hex
-            rig_data['rigs'].append(rig_details)
-            flash(f"Rig '{rig_name}' created successfully.", "success")
-
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-        rig_data_cache.clear()
-
+        db.commit()
     except Exception as e:
-        flash(f"An unexpected error occurred while creating/updating the rig: {e}", "error")
-
+        db.rollback()
+        flash(f"Error saving rig: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
 
 @app.route('/delete_component', methods=['POST'])
 @login_required
 def delete_component():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        component_id = request.form.get('component_id')
-        component_type = request.form.get('component_type') # e.g., 'telescopes'
-        if not component_id or not component_type:
-            flash("Missing component ID or type for deletion.", "error")
-            return redirect(url_for('config_form'))
+        comp_id = int(request.form.get('component_id'))
+        # Check if component is in use by any rig for this user
+        in_use = db.query(Rig).filter(
+            (Rig.telescope_id == comp_id) |
+            (Rig.camera_id == comp_id) |
+            (Rig.reducer_extender_id == comp_id)
+        ).first()
 
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
-
-        # Check for dependencies in rigs
-        is_in_use = False
-        for rig in rig_data.get('rigs', []):
-            if component_id in [rig.get('telescope_id'), rig.get('camera_id'), rig.get('reducer_extender_id')]:
-                is_in_use = True
-                break
-
-        if is_in_use:
-            flash(f"Cannot delete component: It is currently used in at least one rig.", "error")
-            return redirect(url_for('config_form'))
-
-        # If not in use, proceed with deletion
-        component_list = rig_data.get('components', {}).get(component_type, [])
-        original_len = len(component_list)
-        rig_data['components'][component_type] = [c for c in component_list if c.get('id') != component_id]
-
-        if len(rig_data['components'][component_type]) < original_len:
-            rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-            rig_data_cache.clear()
-            flash("Component deleted successfully.", "success")
+        if in_use:
+            flash("Cannot delete component: It is used in at least one rig.", "error")
         else:
-            flash("Component not found for deletion.", "error")
-
+            comp_to_delete = db.get(Component, comp_id)
+            db.delete(comp_to_delete)
+            db.commit()
+            flash("Component deleted successfully.", "success")
     except Exception as e:
-        flash(f"An error occurred during component deletion: {e}", "error")
-
+        db.rollback()
+        flash(f"Error deleting component: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
-
 
 @app.route('/delete_rig', methods=['POST'])
 @login_required
 def delete_rig():
-    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        rig_id = request.form.get('rig_id')
-        if not rig_id:
-            flash("Missing rig ID for deletion.", "error")
-            return redirect(url_for('config_form'))
-
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE)
-        rigs_list = rig_data.get('rigs', [])
-        original_len = len(rigs_list)
-        rig_data['rigs'] = [r for r in rigs_list if r.get('rig_id') != rig_id]
-
-        if len(rig_data['rigs']) < original_len:
-            rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-            rig_data_cache.clear()
-            flash("Rig deleted successfully.", "success")
-        else:
-            flash("Rig not found for deletion.", "error")
-
+        rig_id = int(request.form.get('rig_id'))
+        rig_to_delete = db.get(Rig, rig_id)
+        db.delete(rig_to_delete)
+        db.commit()
+        flash("Rig deleted successfully.", "success")
     except Exception as e:
-        flash(f"An error occurred during rig deletion: {e}", "error")
-
+        db.rollback()
+        flash(f"Error deleting rig: {e}", "error")
+    finally:
+        db.close()
     return redirect(url_for('config_form'))
+
 
 @app.route('/set_rig_sort_preference', methods=['POST'])
 @login_required
 def set_rig_sort_preference():
-    """Save the user's rig sort preference (e.g., 'name-asc') into their config YAML."""
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        data = request.get_json(force=True) or {}
-        sort_value = data.get('sort', 'name-asc')
+        user = db.query(DbUser).filter_by(username=username).one()
+        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        if not prefs:
+            prefs = UiPref(user_id=user.id, json_blob='{}')
+            db.add(prefs)
 
-        username = "default" if SINGLE_USER_MODE else current_user.username
+        try:
+            settings = json.loads(prefs.json_blob or '{}')
+        except json.JSONDecodeError:
+            settings = {}
 
-        # Load existing config
-        rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
+        sort_value = request.get_json(force=True).get('sort', 'name-asc')
+        settings['rig_sort'] = sort_value
+        prefs.json_blob = json.dumps(settings)
 
-        # Ensure ui_preferences section exists
-        if 'ui_preferences' not in rig_data:
-            rig_data['ui_preferences'] = {}
-
-        # Save the new sort order
-        rig_data['ui_preferences']['sort_order'] = sort_value
-
-        # Persist the updated config
-        rig_config.save_rig_config(username, rig_data, SINGLE_USER_MODE)
-
+        db.commit()
         return jsonify({"status": "ok", "sort_order": sort_value})
     except Exception as e:
-        print(f"[set_rig_sort_preference] Error: {e}")
+        db.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
 
 @app.route('/get_rig_data')
 @login_required
 def get_rig_data():
-    """Return components + rigs with calculated fields, sorted per the user's saved preference.
-       Also includes `sort_preference` so the frontend can sync its dropdown/state."""
     username = "default" if SINGLE_USER_MODE else current_user.username
-
-    # Load full rig config (components, rigs, ui_preferences, etc.)
-    rig_data = rig_config.load_rig_config(username, SINGLE_USER_MODE) or {}
-
-    # Ensure expected keys exist
-    rig_data.setdefault('components', {
-        'telescopes': [],
-        'cameras': [],
-        'reducers_extenders': []
-    })
-    rig_data.setdefault('rigs', [])
-    rig_data.setdefault('ui_preferences', {})
-
-    # Calculate derived fields for each rig (image scale, f/ratio, FOV, etc.)
+    db = get_db()
     try:
-        components = rig_data.get('components', {})
-        for rig in rig_data['rigs']:
+        user = db.query(DbUser).filter_by(username=username).one()
+
+        # Fetch all components for the user
+        components = db.query(Component).filter_by(user_id=user.id).all()
+        telescopes = [c for c in components if c.kind == 'telescope']
+        cameras = [c for c in components if c.kind == 'camera']
+        reducers = [c for c in components if c.kind == 'reducer_extender']
+
+        # Fetch all rigs and their related components eagerly
+        rigs_from_db = db.query(Rig).filter_by(user_id=user.id).all()
+
+        # Assemble the data structure for the frontend
+        components_dict = {
+            "telescopes": [{"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm} for c in telescopes],
+            "cameras": [{"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm, "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um} for c in cameras],
+            "reducers_extenders": [{"id": c.id, "name": c.name, "factor": c.factor} for c in reducers]
+        }
+
+        rigs_list = []
+        for r in rigs_from_db:
+            # Use the already fetched components to calculate rig data
+            tel_obj = next((c for c in telescopes if c.id == r.telescope_id), None)
+            cam_obj = next((c for c in cameras if c.id == r.camera_id), None)
+            red_obj = next((c for c in reducers if c.id == r.reducer_extender_id), None)
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
+            fov_h = (degrees(2 * atan((cam_obj.sensor_height_mm / 2.0) / efl)) * 60.0) if cam_obj and cam_obj.sensor_height_mm and efl else None
+
+            rigs_list.append({
+                "rig_id": r.id, "rig_name": r.rig_name,
+                "telescope_id": r.telescope_id, "camera_id": r.camera_id, "reducer_extender_id": r.reducer_extender_id,
+                "effective_focal_length": efl, "f_ratio": f_ratio,
+                "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
+            })
+
+        # Get sorting preference from UiPref
+        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        sort_preference = 'name-asc'
+        if prefs and prefs.json_blob:
             try:
-                calc = rig_config.calculate_rig_data(rig, components)
-                if isinstance(calc, dict):
-                    rig.update(calc)
-            except Exception as e:
-                # Non-fatal: keep going for other rigs
-                print(f"[get_rig_data] Warning: could not calculate fields for rig '{rig.get('rig_name','?')}': {e}")
-    except Exception as e:
-        print(f"[get_rig_data] Warning during rig calculations: {e}")
+                sort_preference = json.loads(prefs.json_blob).get('rig_sort', 'name-asc')
+            except json.JSONDecodeError: pass
 
-    # Resolve the user's saved sort preference (default to name-asc)
-    sort_preference = rig_data.get('ui_preferences', {}).get('sort_order') or 'name-asc'
+        sorted_rigs = sort_rigs(rigs_list, sort_preference)
 
-    # Sort rigs using your helper if present; otherwise use a safe local fallback
-    def _fallback_sort(rigs, sort_key: str):
-        key, _, direction = sort_key.partition('-')
-        reverse = (direction == 'desc')
+        return jsonify({
+            "components": components_dict,
+            "rigs": sorted_rigs,
+            "sort_preference": sort_preference
+        })
+    finally:
+        db.close()
 
-        def to_num(v):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-
-        def getter(r):
-            if key == 'name':
-                return (r.get('rig_name') or '').lower()
-            if key == 'fl':
-                return to_num(r.get('effective_focal_length'))
-            if key == 'fr':
-                return to_num(r.get('f_ratio'))
-            if key == 'scale':
-                return to_num(r.get('image_scale'))
-            if key == 'fovw':
-                return to_num(r.get('fov_w_arcmin'))
-            if key == 'recent':
-                ts = r.get('updated_at') or r.get('created_at') or ''
-                try:
-                    # ISO 8601 with optional Z
-                    return datetime.fromisoformat(ts.replace('Z', '+00:00'))
-                except Exception:
-                    # fall back to id so sort is at least stable
-                    return r.get('rig_id') or ''
-            # default by name
-            return (r.get('rig_name') or '').lower()
-
-        # None-safe key: Nones sink to bottom
-        def none_safe(x):
-            v = getter(x)
-            return (v is None, v)
-
-        return sorted(rigs, key=none_safe, reverse=reverse)
-
-    try:
-        # Prefer your existing helper if it exists
-        sorted_rigs = sort_rigs_list(rig_data['rigs'], sort_preference)  # type: ignore[name-defined]
-    except NameError:
-        # Fallback if sort_rigs_list isn't available in this context
-        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
-    except Exception as e:
-        print(f"[get_rig_data] Warning: sort helper failed ({e}); using fallback.")
-        sorted_rigs = _fallback_sort(rig_data['rigs'], sort_preference)
-
-    rig_data['rigs'] = sorted_rigs
-
-    # Expose the effective preference explicitly so the frontend can sync its UI
-    rig_data['sort_preference'] = sort_preference
-
-    return jsonify(rig_data)
 
 @app.route('/journal')
-@login_required # Or handle SINGLE_USER_MODE appropriately if guests can see a default journal
+@login_required
 def journal_list_view():
-    if SINGLE_USER_MODE:
-        username = "default"
-        # If you want g.is_guest to be available in journal_list.html for SINGLE_USER_MODE
-        # ensure it's set correctly or just pass a specific variable.
-        # For SINGLE_USER_MODE, the user is effectively always "logged in".
-        is_guest_for_template = False
-    elif current_user.is_authenticated:
-        username = current_user.username
-        is_guest_for_template = False
-    else:
-        # This case should ideally not be hit if @login_required is effective.
-        # If you allow guests to see a specific journal, handle 'guest_user' here.
-        # For now, let's assume they get redirected to login.
-        # If you reach here due to some other logic, provide default.
-        flash("Please log in to view the journal.", "info")
-        return redirect(url_for('login'))
-
-    journal_data = load_journal(username)
-    sessions = journal_data.get('sessions', [])
-
-    # Optionally sort sessions by date descending before passing to template
+    load_full_astro_context()
+    db = get_db()
     try:
-        sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
-    except Exception as e:
-        print(f"Warning: Could not sort journal sessions by date: {e}")
+        # 1. Use the pre-loaded g.db_user (from the consolidated before_request)
+        if not g.db_user:
+            flash("User session error, please log in again.", "error")
+            return redirect(url_for('login'))
 
-    return render_template('journal_list.html',
-                           journal_sessions=sessions,
-                           is_guest=is_guest_for_template # Pass if your base.html or journal_list.html needs it
-                           )
+        user_id = g.db_user.id
 
+        # 2. Query only for the sessions for this user
+        sessions = db.query(JournalSession).filter_by(user_id=user_id).order_by(JournalSession.date_utc.desc()).all()
 
-def safe_float(value_str):
-    if value_str is None or str(value_str).strip() == "":  # Check for None and empty string
-        return None
-    try:
-        return float(value_str)
-    except ValueError:
-        print(f"Warning: Could not convert '{value_str}' to float.")
-        return None
+        # 3. Use the pre-loaded g.alternative_names map for common names
+        #    This avoids a second DB query for AstroObject.
+        #    The map is { "m31": "Andromeda Galaxy", ... }
+        object_names_lookup = g.alternative_names or {}
 
+        # 4. Add the common name to each session object for the template
+        for s in sessions:
+            # Safely look up the common name using the lowercase object name
+            s.target_common_name = object_names_lookup.get(
+                s.object_name.lower() if s.object_name else '',
+                s.object_name  # Fallback to the object_name itself if not found
+            )
 
-def safe_int(value_str):
-    if value_str is None or str(value_str).strip() == "":  # Check for None and empty string
-        return None
-    try:
-        # First try float conversion to handle inputs like "10.0" for an int field, then convert to int
-        return int(float(value_str))
-    except ValueError:
-        print(f"Warning: Could not convert '{value_str}' to int.")
-        return None
-
+        return render_template('journal_list.html', journal_sessions=sessions)
+    finally:
+        db.close()
 
 @app.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        if not current_user.is_authenticated:
-            flash("Please log in to add a journal entry.", "warning")
-            return redirect(url_for('login'))
-        username = current_user.username
+    load_full_astro_context()
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
 
-    if request.method == 'POST':
-        try:
-            journal_data = load_journal(username)
-            if not isinstance(journal_data.get('sessions'), list):
-                journal_data['sessions'] = []
-
-            user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
-            today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
-
-            # THIS IS THE FULL, CORRECTED LIST OF ALL FORM FIELDS
-            new_session_data = {
-                "session_id": generate_session_id(),
-                "session_date": request.form.get("session_date") or today_date_in_user_tz,
-                "target_object_id": request.form.get("target_object_id", "").strip(),
-                "location_name": request.form.get("location_name", "").strip(),
-                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
-                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
-                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
-                "weather_notes": request.form.get("weather_notes", "").strip(),
-                "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
-                "filter_used_session": request.form.get("filter_used_session", "").strip(),
-                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
-                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
-                "dither_details": request.form.get("dither_details", "").strip(),
-                "acquisition_software": request.form.get("acquisition_software", "").strip(),
-                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
-                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
-                "gain_setting": safe_int(request.form.get("gain_setting")),
-                "offset_setting": safe_int(request.form.get("offset_setting")),
-                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
-                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
-                "binning_session": request.form.get("binning_session", "").strip(),
-                "darks_strategy": request.form.get("darks_strategy", "").strip(),
-                "flats_strategy": request.form.get("flats_strategy", "").strip(),
-                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
-                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
-                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
-                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
-                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
-                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
-                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
-                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
-                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
-                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
-                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
-                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
-                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
-                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
-                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
-                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
-                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
-                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
-                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
-            }
-
-            final_session_entry = {}
-            for k, v in new_session_data.items():
-                is_empty_str_for_non_special_field = isinstance(v, str) and v.strip() == "" and k not in [
-                    "target_object_id", "location_name"]
-                is_none_for_non_special_field = v is None and k not in ["target_object_id", "location_name"]
-                if not (is_empty_str_for_non_special_field or is_none_for_non_special_field):
-                    final_session_entry[k] = v
-            if "session_id" not in final_session_entry:
-                final_session_entry["session_id"] = new_session_data["session_id"]
-            if "session_date" not in final_session_entry or not final_session_entry["session_date"]:
-                final_session_entry["session_date"] = datetime.now().strftime('%Y-%m-%d')
-            total_integration_seconds = 0
-            has_any_integration_data = False
-
-            try:
-                num_subs = int(str(final_session_entry.get('number_of_subs_light', 0)))
-                exp_time = int(str(final_session_entry.get('exposure_time_per_sub_sec', 0)))
-                if num_subs > 0 and exp_time > 0:
-                    total_integration_seconds += (num_subs * exp_time)
-                    has_any_integration_data = True
-            except (ValueError, TypeError):
-                pass
-
-            mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-            for filt in mono_filters:
-                try:
-                    subs_val = int(str(final_session_entry.get(f'filter_{filt}_subs', 0)))
-                    exp_val = int(str(final_session_entry.get(f'filter_{filt}_exposure_sec', 0)))
-                    if subs_val > 0 and exp_val > 0:
-                        total_integration_seconds += (subs_val * exp_val)
-                        has_any_integration_data = True
-                except (ValueError, TypeError):
-                    pass
-
-            if has_any_integration_data:
-                final_session_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
-            else:
-                final_session_entry['calculated_integration_time_minutes'] = 'N/A'
-
+        if request.method == 'POST':
+            # --- Handle Project Creation/Selection ---
+            project_id_for_session = None
             project_selection = request.form.get("project_selection")
             new_project_name = request.form.get("new_project_name", "").strip()
-            project_id_for_session = None
 
             if project_selection == "new_project" and new_project_name:
-                # User is creating a new project
-                new_project_id = uuid.uuid4().hex
-                new_project = {
-                    "project_id": new_project_id,
-                    "project_name": new_project_name
-                }
-                journal_data.setdefault('projects', []).append(new_project)
-                project_id_for_session = new_project_id
-                print(f"Created new project '{new_project_name}' with ID {new_project_id}")
-
+                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
+                db.add(new_project)
+                db.flush()
+                project_id_for_session = new_project.id
             elif project_selection and project_selection not in ["standalone", "new_project"]:
-                # User selected an existing project
                 project_id_for_session = project_selection
 
-            # Add the project_id to the session data dictionary
-            # Use `final_session_entry` for the add function, and `final_updated_entry` for the edit function.
-            final_session_entry['project_id'] = project_id_for_session
+            # --- Create New Session Object with ALL fields from the form ---
+            new_session = JournalSession(
+                user_id=user.id,
+                project_id=project_id_for_session,
+                date_utc=datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date(),
+                object_name=request.form.get("target_object_id", "").strip(),
+                notes=request.form.get("general_notes_problems_learnings", "").strip(),
+                seeing_observed_fwhm=safe_float(request.form.get("seeing_observed_fwhm")),
+                sky_sqm_observed=safe_float(request.form.get("sky_sqm_observed")),
+                moon_illumination_session=safe_int(request.form.get("moon_illumination_session")),
+                moon_angular_separation_session=safe_float(request.form.get("moon_angular_separation_session")),
+                telescope_setup_notes=request.form.get("telescope_setup_notes", "").strip(),
+                guiding_rms_avg_arcsec=safe_float(request.form.get("guiding_rms_avg_arcsec")),
+                exposure_time_per_sub_sec=safe_int(request.form.get("exposure_time_per_sub_sec")),
+                number_of_subs_light=safe_int(request.form.get("number_of_subs_light")),
+                filter_used_session=request.form.get("filter_used_session", "").strip(),
+                gain_setting=safe_int(request.form.get("gain_setting")),
+                offset_setting=safe_int(request.form.get("offset_setting")),
+                session_rating_subjective=safe_int(request.form.get("session_rating_subjective")),
+                filter_L_subs=safe_int(request.form.get("filter_L_subs")), filter_L_exposure_sec=safe_int(request.form.get("filter_L_exposure_sec")),
+                filter_R_subs=safe_int(request.form.get("filter_R_subs")), filter_R_exposure_sec=safe_int(request.form.get("filter_R_exposure_sec")),
+                filter_G_subs=safe_int(request.form.get("filter_G_subs")), filter_G_exposure_sec=safe_int(request.form.get("filter_G_exposure_sec")),
+                filter_B_subs=safe_int(request.form.get("filter_B_subs")), filter_B_exposure_sec=safe_int(request.form.get("filter_B_exposure_sec")),
+                filter_Ha_subs=safe_int(request.form.get("filter_Ha_subs")), filter_Ha_exposure_sec=safe_int(request.form.get("filter_Ha_exposure_sec")),
+                filter_OIII_subs=safe_int(request.form.get("filter_OIII_subs")), filter_OIII_exposure_sec=safe_int(request.form.get("filter_OIII_exposure_sec")),
+                filter_SII_subs=safe_int(request.form.get("filter_SII_subs")), filter_SII_exposure_sec=safe_int(request.form.get("filter_SII_exposure_sec")),
+                external_id=generate_session_id(),
+                weather_notes=request.form.get("weather_notes", "").strip() or None,
+                guiding_equipment=request.form.get("guiding_equipment", "").strip() or None,
+                dither_details=request.form.get("dither_details", "").strip() or None,
+                acquisition_software=request.form.get("acquisition_software", "").strip() or None,
+                camera_temp_setpoint_c=safe_float(request.form.get("camera_temp_setpoint_c")),
+                camera_temp_actual_avg_c=safe_float(request.form.get("camera_temp_actual_avg_c")),
+                binning_session=request.form.get("binning_session", "").strip() or None,
+                darks_strategy=request.form.get("darks_strategy", "").strip() or None,  # Added calibration
+                flats_strategy=request.form.get("flats_strategy", "").strip() or None,  # Added calibration
+                bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None,
+                transparency_observed_scale=request.form.get("transparency_observed_scale", "").strip() or None
+                # Added calibration
+            )
+
+            total_seconds = (new_session.number_of_subs_light or 0) * (new_session.exposure_time_per_sub_sec or 0) + \
+                            (new_session.filter_L_subs or 0) * (new_session.filter_L_exposure_sec or 0) + \
+                            (new_session.filter_R_subs or 0) * (new_session.filter_R_exposure_sec or 0) + \
+                            (new_session.filter_G_subs or 0) * (new_session.filter_G_exposure_sec or 0) + \
+                            (new_session.filter_B_subs or 0) * (new_session.filter_B_exposure_sec or 0) + \
+                            (new_session.filter_Ha_subs or 0) * (new_session.filter_Ha_exposure_sec or 0) + \
+                            (new_session.filter_OIII_subs or 0) * (new_session.filter_OIII_exposure_sec or 0) + \
+                            (new_session.filter_SII_subs or 0) * (new_session.filter_SII_exposure_sec or 0)
+            new_session.calculated_integration_time_minutes = round(total_seconds / 60.0, 1) if total_seconds > 0 else None
+
+            db.add(new_session)
+            db.flush()
 
             if 'session_image' in request.files:
                 file = request.files['session_image']
-                # Check if a file was selected and it has an allowed extension
                 if file and file.filename != '' and allowed_file(file.filename):
-                    # Check file size (max 5 MB) before saving
-                    if len(file.read()) > 5 * 1024 * 1024:
-                        flash("Image upload failed: File is larger than 5MB.", "error")
-                        return redirect(
-                            url_for('journal_add_for_target', object_name=request.form.get("target_object_id")))
-                    else:
-                        file.seek(0)  # IMPORTANT: Go back to the start of the file after reading its size
+                    file_extension = file.filename.rsplit('.', 1)[1].lower()
+                    new_filename = f"{new_session.id}.{file_extension}"
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    os.makedirs(user_upload_dir, exist_ok=True)
+                    file.save(os.path.join(user_upload_dir, new_filename))
+                    new_session.session_image_file = new_filename
 
-                        # Create a unique filename based on the session ID
-                        file_extension = file.filename.rsplit('.', 1)[1].lower()
-                        new_filename = f"{final_session_entry['session_id']}.{file_extension}"
-
-                        # Create the user's personal upload folder if it doesn't exist
-                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                        os.makedirs(user_upload_dir, exist_ok=True)
-
-                        # Save the file
-                        file.save(os.path.join(user_upload_dir, new_filename))
-
-                        # Store the new filename in the journal data
-                        final_session_entry['session_image_file'] = new_filename
-
-            journal_data['sessions'].append(final_session_entry)
-            journal_data = _cleanup_orphan_projects(journal_data)
-            save_journal(username, journal_data)
-
+            db.commit()
             flash("New journal entry added successfully!", "success")
+            return redirect(url_for('graph_dashboard', object_name=new_session.object_name, session_id=new_session.id))
 
-            target_object_id_for_redirect = final_session_entry.get("target_object_id")
-            new_session_id_for_redirect = final_session_entry.get("session_id")
+        # --- GET Request Logic (this part remains the same) ---
+        available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
+        entry_for_form = {
+            "target_object_id": request.args.get('target', ''),
+            "session_date": datetime.now(pytz.timezone(g.tz_name or 'UTC')).strftime('%Y-%m-%d'),
+            "location_name": g.selected_location or ''
+        }
+        cancel_url = url_for('index')
+        if entry_for_form["target_object_id"]:
+            cancel_url = url_for('graph_dashboard', object_name=entry_for_form["target_object_id"])
 
-            if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
-                return redirect(url_for('graph_dashboard', object_name=target_object_id_for_redirect,
-                                        session_id=new_session_id_for_redirect))
-            else:
-                return redirect(url_for('index'))
-
-        except Exception as e:
-            flash(f"Error adding journal entry: {e}", "error")
-            print(f"❌ ERROR in journal_add POST: {e}")
-            return redirect(url_for('journal_add'))
-
-    # --- GET request logic ---
-    available_rigs = []
-    rig_data = load_rig_config(username, SINGLE_USER_MODE)
-    if rig_data and rig_data.get('rigs'):
-        components = rig_data.get('components', {})
-        telescopes = {t['id']: t['name'] for t in components.get('telescopes', [])}
-        cameras = {c['id']: c['name'] for c in components.get('cameras', [])}
-        reducers = {r['id']: r['name'] for r in components.get('reducers_extenders', [])}
-
-        for rig in rig_data['rigs']:
-            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
-            cam_name = cameras.get(rig['camera_id'], 'N/A')
-
-            resolved_parts = [tele_name]
-            if rig.get('reducer_extender_id'):
-                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
-                resolved_parts.append(reducer_name)
-            resolved_parts.append(cam_name)
-
-            available_rigs.append({
-                'rig_name': rig['rig_name'],
-                'resolved_string': ' + '.join(resolved_parts)
-            })
-
-    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
-    available_locations = g.locations if hasattr(g, 'locations') else {}
-    default_loc = g.selected_location if hasattr(g, 'selected_location') else ""
-    preselected_target_id = request.args.get('target', None)
-    entry_for_form = {}
-
-    if preselected_target_id:
-        entry_for_form["target_object_id"] = preselected_target_id
-    if not entry_for_form.get("location_name") and default_loc:
-        entry_for_form["location_name"] = default_loc
-
-    user_tz = pytz.timezone(g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC')
-    today_date_in_user_tz = datetime.now(user_tz).strftime('%Y-%m-%d')
-
-    if not entry_for_form.get("session_date"):
-        entry_for_form["session_date"] = today_date_in_user_tz
-
-    cancel_url_for_add = url_for('index')
-    if preselected_target_id:
-        cancel_url_for_add = url_for('graph_dashboard', object_name=preselected_target_id)
-    # --- Apply per-user rig sort preference for the journal form ---
-    try:
-        username_effective = "default" if SINGLE_USER_MODE else current_user.username
-        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
-        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
-
-        def _to_num(v):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-
-        _key, _, _direction = _sort_pref.partition('-')
-        _reverse = (_direction == 'desc')
-
-        def _getattr_or_dict(x, attr, key):
-            if isinstance(x, dict):
-                return x.get(key)
-            return getattr(x, attr, None)
-
-        def _get(r):
-            if _key == 'name':
-                v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
-                return str(v).lower()
-            if _key == 'fl':
-                return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
-            if _key == 'fr':
-                return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
-            if _key == 'scale':
-                return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
-            if _key == 'fovw':
-                return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
-            if _key == 'recent':
-                ts = (
-                        _getattr_or_dict(r, 'updated_at', 'updated_at')
-                        or _getattr_or_dict(r, 'created_at', 'created_at')
-                        or ''
-                )
-                try:
-                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
-                except Exception:
-                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
-            # default: name
-            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''
-            return str(v).lower()
-
-        def _none_safe(x):
-            v = _get(x)
-            return (v is None, v)
-
-        # IMPORTANT: this variable name must match what you pass to the template
-        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
-
-    except Exception as _e:
-        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
-    # --- end rig sort preference ---
-    return render_template('journal_form.html',
-                           form_title="Add New Imaging Session",
-                           form_action_url=url_for('journal_add'),
-                           submit_button_text="Add Session",
-                           available_objects=available_objects,
-                           available_locations=available_locations,
-                           available_rigs=available_rigs,
-                           entry=entry_for_form,
-                           cancel_url=cancel_url_for_add
-                           )
+        return render_template('journal_form.html',
+                               form_title="Add New Imaging Session",
+                               form_action_url=url_for('journal_add'),
+                               submit_button_text="Add Session",
+                               available_objects=available_objects,
+                               available_locations=available_locations,
+                               available_rigs=available_rigs,
+                               entry=entry_for_form,
+                               cancel_url=cancel_url)
+    finally:
+        db.close()
 
 
-@app.route('/journal/edit/<session_id>', methods=['GET', 'POST'])
+@app.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
 @login_required
-def journal_edit(session_id):  # REMOVED: final_session_entry=None
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        if not current_user.is_authenticated:
-            flash("Please log in to edit journal entries.", "warning")
-            return redirect(url_for('login'))
-        username = current_user.username
+def journal_edit(session_id):
+    load_full_astro_context()
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        session_to_edit = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
-    journal_data = load_journal(username)
-    sessions = journal_data.get('sessions', [])
-    session_to_edit = None
-    session_index = -1
+        if not session_to_edit:
+            flash("Journal entry not found or you do not have permission to edit it.", "error")
+            return redirect(url_for('journal_list_view'))
 
-    for index, session_item in enumerate(sessions):
-        if session_item.get('session_id') == session_id:
-            session_to_edit = session_item
-            session_index = index
-            break
+        if request.method == 'POST':
+            # --- Update ALL fields from the form ---
+            session_to_edit.date_utc = datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date()
+            session_to_edit.object_name = request.form.get("target_object_id", "").strip()
+            session_to_edit.notes = request.form.get("general_notes_problems_learnings", "").strip()
+            session_to_edit.seeing_observed_fwhm = safe_float(request.form.get("seeing_observed_fwhm"))
+            session_to_edit.sky_sqm_observed = safe_float(request.form.get("sky_sqm_observed"))
+            session_to_edit.moon_illumination_session = safe_int(request.form.get("moon_illumination_session"))
+            session_to_edit.moon_angular_separation_session = safe_float(
+                request.form.get("moon_angular_separation_session"))
+            session_to_edit.telescope_setup_notes = request.form.get("telescope_setup_notes", "").strip()
+            session_to_edit.guiding_rms_avg_arcsec = safe_float(request.form.get("guiding_rms_avg_arcsec"))
+            session_to_edit.exposure_time_per_sub_sec = safe_int(request.form.get("exposure_time_per_sub_sec"))
+            session_to_edit.number_of_subs_light = safe_int(request.form.get("number_of_subs_light"))
+            session_to_edit.filter_used_session = request.form.get("filter_used_session", "").strip()
+            session_to_edit.gain_setting = safe_int(request.form.get("gain_setting"))
+            session_to_edit.offset_setting = safe_int(request.form.get("offset_setting"))
+            session_to_edit.session_rating_subjective = safe_int(request.form.get("session_rating_subjective"))
+            session_to_edit.filter_L_subs = safe_int(request.form.get("filter_L_subs"));
+            session_to_edit.filter_L_exposure_sec = safe_int(request.form.get("filter_L_exposure_sec"))
+            session_to_edit.filter_R_subs = safe_int(request.form.get("filter_R_subs"));
+            session_to_edit.filter_R_exposure_sec = safe_int(request.form.get("filter_R_exposure_sec"))
+            session_to_edit.filter_G_subs = safe_int(request.form.get("filter_G_subs"));
+            session_to_edit.filter_G_exposure_sec = safe_int(request.form.get("filter_G_exposure_sec"))
+            session_to_edit.filter_B_subs = safe_int(request.form.get("filter_B_subs"));
+            session_to_edit.filter_B_exposure_sec = safe_int(request.form.get("filter_B_exposure_sec"))
+            session_to_edit.filter_Ha_subs = safe_int(request.form.get("filter_Ha_subs"));
+            session_to_edit.filter_Ha_exposure_sec = safe_int(request.form.get("filter_Ha_exposure_sec"))
+            session_to_edit.filter_OIII_subs = safe_int(request.form.get("filter_OIII_subs"));
+            session_to_edit.filter_OIII_exposure_sec = safe_int(request.form.get("filter_OIII_exposure_sec"))
+            session_to_edit.filter_SII_subs = safe_int(request.form.get("filter_SII_subs"));
+            session_to_edit.filter_SII_exposure_sec = safe_int(request.form.get("filter_SII_exposure_sec"))
+            session_to_edit.weather_notes = request.form.get("weather_notes", "").strip() or None
+            session_to_edit.guiding_equipment = request.form.get("guiding_equipment", "").strip() or None
+            session_to_edit.dither_details = request.form.get("dither_details", "").strip() or None
+            session_to_edit.acquisition_software = request.form.get("acquisition_software", "").strip() or None
+            session_to_edit.camera_temp_setpoint_c = safe_float(request.form.get("camera_temp_setpoint_c"))
+            session_to_edit.camera_temp_actual_avg_c = safe_float(request.form.get("camera_temp_actual_avg_c"))
+            session_to_edit.binning_session = request.form.get("binning_session", "").strip() or None
+            session_to_edit.darks_strategy = request.form.get("darks_strategy", "").strip() or None  # Added calibration
+            session_to_edit.flats_strategy = request.form.get("flats_strategy", "").strip() or None  # Added calibration
+            session_to_edit.bias_darkflats_strategy = request.form.get("bias_darkflats_strategy",
+                                                                       "").strip() or None  # Added calibration
+            session_to_edit.transparency_observed_scale = request.form.get("transparency_observed_scale",
+                                                                           "").strip() or None
 
-    if session_index == -1 or not session_to_edit:
-        flash(f"Journal entry with ID {session_id} not found.", "error")
-        return redirect(url_for('journal_list_view'))
+            total_seconds = (session_to_edit.number_of_subs_light or 0) * (
+                        session_to_edit.exposure_time_per_sub_sec or 0) + \
+                            (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
+                            (session_to_edit.filter_R_subs or 0) * (session_to_edit.filter_R_exposure_sec or 0) + \
+                            (session_to_edit.filter_G_subs or 0) * (session_to_edit.filter_G_exposure_sec or 0) + \
+                            (session_to_edit.filter_B_subs or 0) * (session_to_edit.filter_B_exposure_sec or 0) + \
+                            (session_to_edit.filter_Ha_subs or 0) * (session_to_edit.filter_Ha_exposure_sec or 0) + \
+                            (session_to_edit.filter_OIII_subs or 0) * (session_to_edit.filter_OIII_exposure_sec or 0) + \
+                            (session_to_edit.filter_SII_subs or 0) * (session_to_edit.filter_SII_exposure_sec or 0)
+            session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
+                                                                        1) if total_seconds > 0 else None
 
-    if request.method == 'POST':
-        try:
-            # This is the full logic for updating the entry
-            updated_session_data = {
-                "session_id": session_id,
-                "session_date": request.form.get("session_date") or session_to_edit.get("session_date"),
-                "target_object_id": request.form.get("target_object_id", "").strip(),
-                "location_name": request.form.get("location_name", "").strip(),
-                "seeing_observed_fwhm": safe_float(request.form.get("seeing_observed_fwhm")),
-                "transparency_observed_scale": request.form.get("transparency_observed_scale", "").strip(),
-                "sky_sqm_observed": safe_float(request.form.get("sky_sqm_observed")),
-                "weather_notes": request.form.get("weather_notes", "").strip(),
-                "telescope_setup_notes": request.form.get("telescope_setup_notes", "").strip(),
-                "filter_used_session": request.form.get("filter_used_session", "").strip(),
-                "guiding_rms_avg_arcsec": safe_float(request.form.get("guiding_rms_avg_arcsec")),
-                "guiding_equipment": request.form.get("guiding_equipment", "").strip(),
-                "dither_details": request.form.get("dither_details", "").strip(),
-                "acquisition_software": request.form.get("acquisition_software", "").strip(),
-                "exposure_time_per_sub_sec": safe_int(request.form.get("exposure_time_per_sub_sec")),
-                "number_of_subs_light": safe_int(request.form.get("number_of_subs_light")),
-                "gain_setting": safe_int(request.form.get("gain_setting")),
-                "offset_setting": safe_int(request.form.get("offset_setting")),
-                "camera_temp_setpoint_c": safe_float(request.form.get("camera_temp_setpoint_c")),
-                "camera_temp_actual_avg_c": safe_float(request.form.get("camera_temp_actual_avg_c")),
-                "binning_session": request.form.get("binning_session", "").strip(),
-                "darks_strategy": request.form.get("darks_strategy", "").strip(),
-                "flats_strategy": request.form.get("flats_strategy", "").strip(),
-                "bias_darkflats_strategy": request.form.get("bias_darkflats_strategy", "").strip(),
-                "session_rating_subjective": safe_int(request.form.get("session_rating_subjective")),
-                "moon_illumination_session": safe_int(request.form.get("moon_illumination_session")),
-                "moon_angular_separation_session": safe_float(request.form.get("moon_angular_separation_session")),
-                "filter_L_subs": safe_int(request.form.get("filter_L_subs")),
-                "filter_L_exposure_sec": safe_int(request.form.get("filter_L_exposure_sec")),
-                "filter_R_subs": safe_int(request.form.get("filter_R_subs")),
-                "filter_R_exposure_sec": safe_int(request.form.get("filter_R_exposure_sec")),
-                "filter_G_subs": safe_int(request.form.get("filter_G_subs")),
-                "filter_G_exposure_sec": safe_int(request.form.get("filter_G_exposure_sec")),
-                "filter_B_subs": safe_int(request.form.get("filter_B_subs")),
-                "filter_B_exposure_sec": safe_int(request.form.get("filter_B_exposure_sec")),
-                "filter_Ha_subs": safe_int(request.form.get("filter_Ha_subs")),
-                "filter_Ha_exposure_sec": safe_int(request.form.get("filter_Ha_exposure_sec")),
-                "filter_OIII_subs": safe_int(request.form.get("filter_OIII_subs")),
-                "filter_OIII_exposure_sec": safe_int(request.form.get("filter_OIII_exposure_sec")),
-                "filter_SII_subs": safe_int(request.form.get("filter_SII_subs")),
-                "filter_SII_exposure_sec": safe_int(request.form.get("filter_SII_exposure_sec")),
-                "general_notes_problems_learnings": request.form.get("general_notes_problems_learnings", "").strip()
-            }
+            if request.form.get('delete_session_image') == '1' and session_to_edit.session_image_file:
+                image_path = os.path.join(UPLOAD_FOLDER, username, session_to_edit.session_image_file)
+                if os.path.exists(image_path): os.remove(image_path)
+                session_to_edit.session_image_file = None
 
-            final_updated_entry = {k: v for k, v in updated_session_data.items() if v is not None and v != ""}
-            final_updated_entry['session_id'] = session_id  # Ensure session_id is always present
-
-            # --- Integration Time Calculation ---
-            total_integration_seconds = 0
-            has_any_integration_data = False
-            try:
-                num_subs = int(str(final_updated_entry.get('number_of_subs_light', 0)))
-                exp_time = int(str(final_updated_entry.get('exposure_time_per_sub_sec', 0)))
-                if num_subs > 0 and exp_time > 0:
-                    total_integration_seconds += (num_subs * exp_time)
-                    has_any_integration_data = True
-            except (ValueError, TypeError):
-                pass
-            mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
-            for filt in mono_filters:
-                try:
-                    subs_val = int(str(final_updated_entry.get(f'filter_{filt}_subs', 0)))
-                    exp_val = int(str(final_updated_entry.get(f'filter_{filt}_exposure_sec', 0)))
-                    if subs_val > 0 and exp_val > 0:
-                        total_integration_seconds += (subs_val * exp_val)
-                        has_any_integration_data = True
-                except (ValueError, TypeError):
-                    pass
-            if has_any_integration_data:
-                final_updated_entry['calculated_integration_time_minutes'] = round(total_integration_seconds / 60.0, 0)
-            else:
-                final_updated_entry['calculated_integration_time_minutes'] = 'N/A'
-
-            # --- Image Deletion Logic ---
-            if request.form.get('delete_session_image') == '1':
-                if session_to_edit.get('session_image_file'):
-                    image_filename = session_to_edit['session_image_file']
-                    image_path = os.path.join(UPLOAD_FOLDER, username, image_filename)
-                    try:
-                        os.remove(image_path)
-                        print(f"Deleted image file: {image_path}")
-                    except OSError as e:
-                        print(f"Error deleting image file {image_path}: {e}")
-                final_updated_entry.pop('session_image_file', None)
-                flash("Session image deleted.", "success")
-
-            # --- Project Handling Logic (CORRECTED) ---
-            project_selection = request.form.get("project_selection")
-            new_project_name = request.form.get("new_project_name", "").strip()
-            project_id_for_session = None
-            if project_selection == "new_project" and new_project_name:
-                new_project_id = uuid.uuid4().hex
-                new_project = {"project_id": new_project_id, "project_name": new_project_name}
-                journal_data.setdefault('projects', []).append(new_project)
-                project_id_for_session = new_project_id
-                print(f"Created new project '{new_project_name}' with ID {new_project_id}")
-            elif project_selection and project_selection not in ["standalone", "new_project"]:
-                project_id_for_session = project_selection
-
-            # THIS IS THE FIX: Use `final_updated_entry`
-            final_updated_entry['project_id'] = project_id_for_session
-
-            # --- Image Upload Logic ---
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 if file and file.filename != '' and allowed_file(file.filename):
-                    if len(file.read()) > 5 * 1024 * 1024:
-                        flash("Image upload failed: File is larger than 5MB.", "error")
-                        return redirect(url_for('graph_dashboard', object_name=request.form.get("target_object_id"),
-                                                session_id=session_id))
-                    else:
-                        file.seek(0)
-                        file_extension = file.filename.rsplit('.', 1)[1].lower()
-                        new_filename = f"{session_id}.{file_extension}"
-                        user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
-                        os.makedirs(user_upload_dir, exist_ok=True)
-                        file.save(os.path.join(user_upload_dir, new_filename))
-                        final_updated_entry['session_image_file'] = new_filename
+                    file_extension = file.filename.rsplit('.', 1)[1].lower()
+                    new_filename = f"{session_to_edit.id}.{file_extension}"
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    os.makedirs(user_upload_dir, exist_ok=True)
+                    file.save(os.path.join(user_upload_dir, new_filename))
+                    session_to_edit.session_image_file = new_filename
 
-            # --- Save and Redirect ---
-            sessions[session_index] = final_updated_entry
-            journal_data['sessions'] = sessions
-            journal_data = _cleanup_orphan_projects(journal_data)
-            save_journal(username, journal_data)
+            db.commit()
+            flash("Journal entry updated successfully!", "success")
+            return redirect(
+                url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_to_edit.id))
 
-            flash(f"Journal entry updated successfully!", "success")
+        # --- GET Request Logic ---
+        available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
 
-            target_object_id_for_redirect = final_updated_entry.get("target_object_id")
-            if target_object_id_for_redirect and target_object_id_for_redirect.strip() != "":
-                return redirect(
-                    url_for('graph_dashboard', object_name=target_object_id_for_redirect, session_id=session_id))
-            else:
-                return redirect(url_for('index'))
+        entry_dict = {c.name: getattr(session_to_edit, c.name) for c in session_to_edit.__table__.columns}
+        if isinstance(entry_dict.get('date_utc'), (datetime, date)):
+            entry_dict['session_date'] = entry_dict['date_utc'].strftime('%Y-%m-%d')
+        entry_dict['target_object_id'] = entry_dict.get('object_name')
 
-        except Exception as e:
-            flash(f"Error updating journal entry: {e}", "error")
-            print(f"❌ ERROR in journal_edit POST for session {session_id}: {e}")
-            traceback.print_exc()
-            return redirect(url_for('journal_edit', session_id=session_id))
+        cancel_url = url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_to_edit.id)
 
-    # --- GET request logic (for loading the form) ---
-    available_rigs = []
-    rig_data = load_rig_config(username, SINGLE_USER_MODE)
-    if rig_data and rig_data.get('rigs'):
-        components = rig_data.get('components', {})
-        telescopes = {t['id']: t['name'] for t in components.get('telescopes', [])}
-        cameras = {c['id']: c['name'] for c in components.get('cameras', [])}
-        reducers = {r['id']: r['name'] for r in components.get('reducers_extenders', [])}
-        for rig in rig_data['rigs']:
-            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
-            cam_name = cameras.get(rig['camera_id'], 'N/A')
-            resolved_parts = [tele_name]
-            if rig.get('reducer_extender_id'):
-                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
-                resolved_parts.append(reducer_name)
-            resolved_parts.append(cam_name)
-            available_rigs.append({'rig_name': rig['rig_name'], 'resolved_string': ' + '.join(resolved_parts)})
+        return render_template('journal_form.html',
+                               form_title="Edit Imaging Session",
+                               form_action_url=url_for('journal_edit', session_id=session_id),
+                               submit_button_text="Save Changes",
+                               entry=entry_dict,
+                               available_objects=available_objects,
+                               available_locations=available_locations,
+                               available_rigs=available_rigs,
+                               cancel_url=cancel_url)
+    finally:
+        db.close()
 
-    available_objects = g.user_config.get("objects", []) if hasattr(g, 'user_config') else []
-    available_locations = g.locations if hasattr(g, 'locations') else {}
-    target_object_id_for_cancel = session_to_edit.get("target_object_id")
-    cancel_url_for_edit = url_for('index')
-
-    if target_object_id_for_cancel and target_object_id_for_cancel.strip() != "":
-        cancel_url_for_edit = url_for('graph_dashboard', object_name=target_object_id_for_cancel, session_id=session_id)
-    elif session_id:
-        cancel_url_for_edit = url_for('journal_list_view')
-
-    try:
-        username_effective = "default" if SINGLE_USER_MODE else current_user.username
-        _user_cfg = rig_config.load_rig_config(username_effective, SINGLE_USER_MODE) or {}
-        _sort_pref = (_user_cfg.get('ui_preferences', {}) or {}).get('sort_order') or 'name-asc'
-
-        def _to_num(v):
-            try:
-                return float(v)
-            except (TypeError, ValueError):
-                return None
-
-        _key, _, _direction = _sort_pref.partition('-')
-        _reverse = (_direction == 'desc')
-
-        def _getattr_or_dict(x, attr, key):
-            if isinstance(x, dict): return x.get(key)
-            return getattr(x, attr, None)
-
-        def _get(r):
-            if _key == 'name': v = _getattr_or_dict(r, 'rig_name', 'rig_name') or ''; return str(v).lower()
-            if _key == 'fl': return _to_num(_getattr_or_dict(r, 'effective_focal_length', 'effective_focal_length'))
-            if _key == 'fr': return _to_num(_getattr_or_dict(r, 'f_ratio', 'f_ratio'))
-            if _key == 'scale': return _to_num(_getattr_or_dict(r, 'image_scale', 'image_scale'))
-            if _key == 'fovw': return _to_num(_getattr_or_dict(r, 'fov_w_arcmin', 'fov_w_arcmin'))
-            if _key == 'recent':
-                ts = (_getattr_or_dict(r, 'updated_at', 'updated_at') or _getattr_or_dict(r, 'created_at',
-                                                                                          'created_at') or '')
-                try:
-                    return datetime.fromisoformat(str(ts).replace('Z', '+00:00'))
-                except Exception:
-                    return _getattr_or_dict(r, 'rig_id', 'rig_id') or ''
-            v = _getattr_or_dict(r, 'rig_name', 'rig_name') or '';
-            return str(v).lower()
-
-        def _none_safe(x):
-            v = _get(x); return (v is None, v)
-
-        available_rigs = sorted(available_rigs, key=_none_safe, reverse=_reverse)
-    except Exception as _e:
-        print(f"[journal_form] Warning: could not apply rig sort preference: {_e}")
-
-    return render_template('journal_form.html',
-                           form_title=f"Edit Imaging Session",
-                           form_action_url=url_for('journal_edit', session_id=session_id),
-                           submit_button_text="Save Changes",
-                           entry=session_to_edit,
-                           available_objects=available_objects,
-                           available_locations=available_locations,
-                           available_rigs=available_rigs,
-                           cancel_url=cancel_url_for_edit)
-
-@app.route('/journal/delete/<session_id>', methods=['POST'])
-@login_required  # Or your custom logic for SINGLE_USER_MODE access
+@app.route('/journal/delete/<int:session_id>', methods=['POST'])
+@login_required
 def journal_delete(session_id):
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        if not current_user.is_authenticated:  # Should be caught by @login_required
-            flash("Please log in to delete journal entries.", "warning")
-            return redirect(url_for('login'))  # Or your login route name
-        username = current_user.username
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        session_to_delete = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
-    journal_data = load_journal(username)
-    sessions = journal_data.get('sessions', [])
+        if session_to_delete:
+            object_name_redirect = session_to_delete.object_name
+            # Delete associated image file
+            if session_to_delete.session_image_file:
+                image_path = os.path.join(UPLOAD_FOLDER, username, session_to_delete.session_image_file)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
 
-    session_to_delete = None
-    target_object_id_of_deleted_session = None  # Variable to store the target ID
-
-    for session_item in sessions:  # Changed loop variable to avoid conflict if 'session' is used by Flask
-        if session_item.get('session_id') == session_id:
-            session_to_delete = session_item
-            target_object_id_of_deleted_session = session_item.get('target_object_id')
-            break
-
-    if session_to_delete:
-        try:
-            sessions.remove(session_to_delete)  # Remove the session from the list
-            journal_data['sessions'] = sessions  # Assign the modified list back to the main data
-            journal_data = _cleanup_orphan_projects(journal_data)
-            save_journal(username, journal_data)  # Save the updated journal data
-
-            flash_message_target = target_object_id_of_deleted_session if target_object_id_of_deleted_session else "N/A"
-            # Provide a more specific flash message, perhaps using a few chars of the ID if target is missing
-            flash_id_snippet = session_id[:8] + "..." if session_id and len(session_id) > 8 else session_id
-            flash(f"Journal entry for '{flash_message_target}' (ID: {flash_id_snippet}) deleted successfully.",
-                  "success")
-
-            # --- CORRECTED REDIRECT LOGIC after successful delete ---
-            if target_object_id_of_deleted_session and target_object_id_of_deleted_session.strip() != "":
-                print(f"Redirecting after delete to graph_dashboard for object: {target_object_id_of_deleted_session}")
-                return redirect(url_for('graph_dashboard', object_name=target_object_id_of_deleted_session))
+            db.delete(session_to_delete)
+            db.commit()
+            flash("Journal entry deleted successfully.", "success")
+            if object_name_redirect:
+                return redirect(url_for('graph_dashboard', object_name=object_name_redirect))
             else:
-                # Fallback if target_object_id was somehow missing or empty from the deleted session
-                print(
-                    f"Redirecting after delete to main journal list (target_object_id was missing for deleted session).")
-                return redirect(url_for('journal_list_view'))  # Or url_for('index') if you prefer
-            # --- END OF CORRECTED REDIRECT LOGIC ---
-
-        except Exception as e:  # Catch potential errors during remove or save
-            flash(f"Error processing deletion for session ID {session_id}: {e}", "error")
-            print(f"ERROR during deletion/save for session {session_id}: {e}")
-            # If error during save, redirect back to where the user was, if possible, or a safe page.
-            # Re-fetching target_object_id here as it might be lost if session_to_delete was modified
-            # This is a basic fallback; more sophisticated state restoration might be needed for complex cases.
-            if target_object_id_of_deleted_session and target_object_id_of_deleted_session.strip() != "":
-                return redirect(url_for('graph_dashboard', object_name=target_object_id_of_deleted_session,
-                                        session_id=session_id))  # Back to object page, session might still appear if save failed
-            else:
-                return redirect(url_for('journal_list_view'))  # General fallback
-
-    else:  # This else is for 'if session_to_delete:' (i.e., session was not found)
-        flash(f"Journal entry with ID {session_id} not found for deletion.", "error")
-        # If the session was not found at all, redirecting to journal_list_view or index is appropriate.
-        return redirect(url_for('journal_list_view'))
-
+                return redirect(url_for('journal_list_view'))
+        else:
+            flash("Journal entry not found or you do not have permission to delete it.", "error")
+            return redirect(url_for('journal_list_view'))
+    finally:
+        db.close()
 
 def _cleanup_orphan_projects(journal_data):
     """
@@ -2644,173 +4292,6 @@ def trigger_update():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
-
-def load_user_config(username):
-    """
-    Loads user configuration from a YAML file.
-    - Uses caching for performance.
-    - If a user's config is not found in multi-user mode, it creates one
-      by copying the default template.
-    - If the file contains unsafe NumPy tags, it will automatically repair it.
-    """
-    global config_cache, config_mtime
-    if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
-    else:
-        filename = f"config_{username}.yaml"
-
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    # --- NEW: Create config from template if it doesn't exist for a multi-user ---
-    if not SINGLE_USER_MODE and not os.path.exists(filepath):
-        print(f"-> Config for user '{username}' not found. Creating from default template.")
-        try:
-            default_template_path = os.path.join(TEMPLATE_DIR, 'config_default.yaml')
-            shutil.copy(default_template_path, filepath)
-            print(f"   -> Successfully created {filename}.")
-        except Exception as e:
-            print(f"   -> ❌ ERROR: Could not create config for '{username}': {e}")
-            return {}  # Return empty on failure to prevent a crash
-
-    # --- Caching and loading logic continues below ---
-    if filepath in config_cache and os.path.exists(filepath) and os.path.getmtime(filepath) <= config_mtime.get(
-            filepath, 0):
-        return config_cache[filepath]
-
-    if not os.path.exists(filepath):
-        print(f"⚠️ Config file '{filename}' not found in '{CONFIG_DIR}'. Using default empty config.")
-        return {}
-
-    try:
-        with open(filepath, "r", encoding='utf-8') as file:
-            config_data = yaml.safe_load(file) or {}
-        print(f"[LOAD CONFIG] Successfully loaded '{filename}' using safe_load.")
-        # --- Auto-restore if obviously broken/empty ---
-        try:
-            broken = (not isinstance(config_data, dict)) or (len(config_data) == 0) or \
-                     (not isinstance(config_data.get("locations"), dict)) or (
-                                 len(config_data.get("locations") or {}) == 0)
-        except Exception:
-            broken = True
-
-        if broken:
-            print(f"⚠️ [LOAD CONFIG] '{filename}' appears empty/invalid. Attempting restore from latest backup...")
-            try:
-                backups = sorted(Path(BACKUP_DIR).glob(f"{Path(filepath).stem}_*.yaml"),
-                                 key=lambda p: p.stat().st_mtime, reverse=True)
-                for b in backups:
-                    try:
-                        recovered = yaml.safe_load(open(b, "r", encoding="utf-8")) or {}
-                        if isinstance(recovered, dict) and isinstance(recovered.get("locations"), dict) and len(
-                                recovered["locations"]) > 0:
-                            with _FileLock(filepath):
-                                _atomic_write_yaml(filepath, recovered)
-                            config_data = recovered
-                            print(f"   -> Restored from {b.name}")
-                            break
-                    except Exception:
-                        continue
-            except Exception as e:
-                print(f"   -> Restore failed: {e}")
-
-    except ConstructorError as e:
-        if 'numpy' in str(e):
-            print(f"⚠️ [CONFIG REPAIR] Unsafe NumPy tag detected in '{filename}'. Attempting automatic repair...")
-            try:
-                backup_dir = os.path.join(INSTANCE_PATH, "backups")
-                os.makedirs(backup_dir, exist_ok=True)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_path = os.path.join(backup_dir,
-                                           f"{os.path.basename(filename)}_corrupted_backup_{timestamp}.yaml")
-                shutil.copy(filepath, backup_path)
-                print(f"    -> Backed up corrupted file to '{backup_path}'")
-
-                with open(filepath, "r", encoding='utf-8') as file:
-                    corrupted_data = yaml.load(file, Loader=yaml.UnsafeLoader)
-
-                cleaned_data = recursively_clean_numpy_types(corrupted_data)
-                print("    -> Successfully cleaned data in memory.")
-
-                save_user_config(username, cleaned_data)
-                print(f"    -> Repaired and saved clean data to '{filename}'.")
-                config_data = cleaned_data
-
-            except Exception as repair_e:
-                print(f"❌ [CONFIG REPAIR] Automatic repair failed: {repair_e}")
-                return {}
-        else:
-            print(f"❌ ERROR: Unrecoverable YAML error in '{filename}': {e}")
-            return {}
-
-    except Exception as e:
-        print(f"❌ ERROR: A critical error occurred while loading config '{filename}': {e}")
-        return {}
-
-    config_cache[filepath] = config_data
-    config_mtime[filepath] = os.path.getmtime(filepath)
-    return config_data
-
-def save_user_config(username, config_data, *, require_objects=True, require_locations=True):
-    """
-    Safe, validated, atomic save with backup + rotation.
-    Guards against empty/invalid locations/objects; conservative merge avoids
-    dropping keys on partial form posts.
-    """
-    config_data = dict(config_data or {})
-
-    # Invariants
-    locs = config_data.get("locations")
-    objs = config_data.get("objects")
-    if require_locations and (not isinstance(locs, dict) or len(locs) == 0):
-        print(f"❌ ABORT SAVE for '{username}': empty or missing 'locations'.")
-        return False
-    if require_objects and (objs is not None) and (not isinstance(objs, list) or any(not isinstance(o, dict) for o in objs)):
-        print(f"❌ ABORT SAVE for '{username}': 'objects' invalid (must be a list of dicts).")
-        return False
-
-    # Validate schema
-    try:
-        ok, errors = validate_config(config_data)
-        if not ok:
-            print(f"❌ ABORT SAVE for '{username}': validation failed: {errors}")
-            return False
-    except Exception as e:
-        print(f"❌ ABORT SAVE for '{username}': validator error: {e}")
-        return False
-
-    # Resolve path
-    filename = "config_default.yaml" if SINGLE_USER_MODE else f"config_{username}.yaml"
-    filepath = os.path.join(CONFIG_DIR, filename)
-
-    # Conservative merge with existing (prevents partial form posts from nuking keys)
-    try:
-        if os.path.exists(filepath):
-            existing = yaml.safe_load(open(filepath, "r", encoding="utf-8")) or {}
-            merged = dict(existing)
-            for k in ("altitude_threshold", "default_location", "sampling_interval_minutes",
-                      "telemetry", "imaging_criteria", "objects", "locations", "rigs", "ui_preferences"):
-                if k in config_data:
-                    merged[k] = config_data[k]
-            config_data = merged
-    except Exception as e:
-        print(f"[SAVE] merge warning (using new data as-is): {e}")
-
-    # Backup + atomic write
-    with _FileLock(filepath):
-        try:
-            if os.path.exists(filepath):
-                _backup_with_rotation(filepath, keep=10)
-            _atomic_write_yaml(filepath, config_data)
-            config_cache[filepath] = config_data
-            try:
-                config_mtime[filepath] = os.path.getmtime(filepath)
-            except Exception:
-                pass
-            print(f"[SAVE] '{filename}' saved safely.")
-            return True
-        except Exception as e:
-            print(f"❌ SAVE FAILED for '{username}': {e}")
-            return False
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -2921,106 +4402,22 @@ def proxy_focus():
         print(f"[PROXY FOCUS ERROR] Unexpected error: {e}")  # Log the actual error
         return jsonify({"status": "error", "message": message}), 500
 
-# START: Complete block for nova.py function `load_config_for_request`
-@app.before_request
-def load_config_for_request():
-    if SINGLE_USER_MODE:
-        g.user_config = load_user_config("default")
-        g.is_guest = False
-    elif current_user.is_authenticated:
-        g.user_config = load_user_config(current_user.username)
-        g.is_guest = False
-    else:
-        g.user_config = load_user_config("guest_user")
-        g.is_guest = True
-
-    # Differentiate between all locations and active locations
-    g.locations = g.user_config.get("locations", {})
-    g.active_locations = {
-        name: details for name, details in g.locations.items()
-        if details.get('active', True) # Defaults to active for old configs without the key
-    }
-
-    default_loc_name = g.user_config.get("default_location")
-    validated_location = default_loc_name
-
-    # Check against ACTIVE locations for the default
-    if not default_loc_name or default_loc_name not in g.active_locations:
-        if g.active_locations:
-            first_active_loc = next(iter(g.active_locations))
-            validated_location = first_active_loc
-            print(f"⚠️ WARNING: Default location '{default_loc_name}' not found or is inactive. "
-                  f"Falling back to first available active location: '{validated_location}'.")
-        else:
-            validated_location = None
-            print(f"⚠️ WARNING: No active locations are defined in the configuration.")
-
-    g.selected_location = validated_location
-    g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
-
-    if g.selected_location:
-        # Get details from the full locations dictionary
-        loc_cfg = g.locations.get(g.selected_location, {})
-        g.lat = loc_cfg.get("lat")
-        g.lon = loc_cfg.get("lon")
-        g.tz_name = loc_cfg.get("timezone", "UTC")
-    else:
-        # No valid location, set safe defaults to prevent crashes
-        g.lat = None
-        g.lon = None
-        g.tz_name = "UTC"
-
-    g.objects_list = g.user_config.get("objects", [])
-    g.alternative_names = {
-        obj.get("Object").lower(): obj.get("Name")
-        for obj in g.objects_list
-    }
-    g.projects = {
-        obj.get("Object").lower(): obj.get("Project")
-        for obj in g.objects_list
-    }
-    g.objects = [ obj.get("Object") for obj in g.objects_list ]
-
-    load_effective_settings()
 
 @app.before_request
 def ensure_telemetry_defaults():
     """
-    Ensure telemetry defaults safely, without ever overwriting unrelated config
-    and without persisting instance_id into YAML.
+    Ensures telemetry defaults IN MEMORY for the current request,
+    without writing back to any files.
     """
     try:
-        # Proceed only if a valid user config dict is already loaded into g
-        if not (hasattr(g, 'user_config') and isinstance(g.user_config, dict)):
-            return
-
-        changed = False
-        telemetry_config = g.user_config.setdefault('telemetry', {})
-
-        # Default for 'enabled'
-        if 'enabled' not in telemetry_config:
-            telemetry_config['enabled'] = True
-            changed = True
-
-        # Never persist instance_id in YAML; use .env at send-time
-        if 'instance_id' in telemetry_config:
-            telemetry_config.pop('instance_id', None)
-            # no need to mark changed; we remove a field we don't store
-
-        # Save only if we actually added the enabled default
-        if changed:
-            username = "default" if SINGLE_USER_MODE else (
-                current_user.username if getattr(current_user, 'is_authenticated', False) else "guest_user"
-            )
-            print("[CONFIG] Telemetry defaults were missing. Updating config file (enabled).")
-            save_user_config(username, g.user_config)
-
-        # Optionally expose the env-based ID in-memory if other code wants it
-        g.telemetry_instance_id = os.environ.get('INSTANCE_ID') or secrets.token_hex(16)
-
+        if hasattr(g, 'user_config') and isinstance(g.user_config, dict):
+            # Use setdefault to add the 'telemetry' key if it's missing.
+            # This modifies the g.user_config dictionary for this request only.
+            telemetry_config = g.user_config.setdefault('telemetry', {})
+            # Now ensure the 'enabled' key has a default value.
+            telemetry_config.setdefault('enabled', True)
     except Exception as e:
         print(f"❌ ERROR in ensure_telemetry_defaults: {e}")
-
 
 @app.before_request
 def telemetry_startup_ping_once():
@@ -3029,43 +4426,10 @@ def telemetry_startup_ping_once():
         _telemetry_startup_once.set()
         try:
             username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
-            cfg = g.user_config if hasattr(g, 'user_config') else load_user_config(username)
+            cfg = g.user_config if hasattr(g, 'user_config') else {}
             send_telemetry_async(cfg, browser_user_agent='')
         except Exception:
             pass
-
-@app.route('/fetch_all_details', methods=['POST'])
-@login_required
-def fetch_all_details():
-    """Fetches missing details for all objects in the user's config."""
-    if SINGLE_USER_MODE:
-        username = "default"
-    else:
-        username = current_user.username
-
-    print(f"[FETCH ALL] Triggered for user: {username}")
-    try:
-        config_data = load_user_config(username)  # Load current config
-
-        # check_and_fill_object_data modifies config_data in place
-        # and returns True if changes were made and need saving
-        config_modified = check_and_fill_object_data(config_data)
-
-        if config_modified:
-            # Save the potentially modified config
-            save_user_config(username, config_data)
-            flash("Fetched and saved missing object details.", "success")
-            print("[FETCH ALL] Data fetched and config saved.")
-        else:
-            flash("No missing data found or no updates needed.", "info")
-            print("[FETCH ALL] No missing data needed fetching.")
-
-    except Exception as e:
-        print(f"[FETCH ALL ERROR] Failed during fetch all process: {e}")
-        flash(f"An error occurred during data fetching: {e}", "error")
-
-    # Redirect back to the config form to show updated data/messages
-    return redirect(url_for('config_form'))
 
 @app.route('/set_location', methods=['POST'])
 def set_location_api():
@@ -3078,9 +4442,49 @@ def set_location_api():
     g.user_config['default_location'] = location_name
     g.selected_location = location_name
 
-    # Save to appropriate config file
-    username = current_user.username if current_user.is_authenticated else 'guest_user'
-    save_user_config(username, g.user_config)
+    # Save to database
+    username = "default" if SINGLE_USER_MODE else (
+        current_user.username if current_user.is_authenticated else 'guest_user')
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if user:
+            prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+            if not prefs:
+                prefs = UiPref(user_id=user.id, json_blob='{}')
+                db.add(prefs)
+
+            try:
+                settings = json.loads(prefs.json_blob or '{}')
+            except json.JSONDecodeError:
+                settings = {}
+
+            settings['default_location'] = location_name
+            prefs.json_blob = json.dumps(settings)
+            db.commit()
+        else:
+            # User not found, but we can't save. Log it.
+            print(f"[set_location] ERROR: Could not find user '{username}' to save default location.")
+    except Exception as e:
+        db.rollback()
+        print(f"[set_location] ERROR: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
+    # Proactively warm the weather cache for the new location in the background.
+    try:
+        new_loc_details = g.locations.get(location_name, {})
+        new_lat = new_loc_details.get("lat")
+        new_lon = new_loc_details.get("lon")
+        if new_lat is not None and new_lon is not None:
+            # Run the weather fetch in a separate thread so it doesn't block
+            # the current request. We don't need its return value here.
+            thread = threading.Thread(target=get_hybrid_weather_forecast, args=(new_lat, new_lon))
+            thread.start()
+            print(f"[CACHE WARMING] Triggered background weather fetch for new location: {location_name}")
+    except Exception as e:
+        print(f"[CACHE WARMING] Failed to trigger background weather fetch: {e}")
 
     return jsonify({"status": "success", "message": f"Location set to {location_name}"})
 
@@ -3093,56 +4497,159 @@ def favicon():
 def inject_version():
     return dict(version=APP_VERSION)
 
+
 @app.route('/download_config')
-@login_required # This was missing, it's good practice to add it
+@login_required
 def download_config():
-    if SINGLE_USER_MODE:
-        filename = "config_default.yaml"
-    else:
-        filename = f"config_{current_user.username}.yaml"
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            flash("User not found.", "error")
+            return redirect(url_for('config_form'))
 
-    # FIX: Use the CONFIG_DIR variable for a reliable path
-    filepath = os.path.join(CONFIG_DIR, filename)
+        # --- 1. Load base settings from UiPref ---
+        config_doc = {}
+        prefs = db.query(UiPref).filter_by(user_id=u.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                config_doc = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass  # Start with empty doc if JSON is corrupt
 
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True)
-    else:
-        flash("Configuration file not found.", "error")
+        # --- 2. Load Locations ---
+        locs = db.query(Location).filter_by(user_id=u.id).all()
+        default_loc_name = next((l.name for l in locs if l.is_default), None)
+        config_doc["default_location"] = default_loc_name
+        config_doc["locations"] = {
+            l.name: {
+                "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold,
+                "active": l.active,
+                "comments": l.comments,
+                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            } for l in locs
+        }
+
+        # --- 3. Load Objects ---
+        config_doc["objects"] = [
+            {
+                "Object": o.object_name,
+                "Name": o.common_name,  # "Name" is used by the form
+                "Common Name": o.common_name,  # "Common Name" is used by the index page
+                "RA": o.ra_hours, "DEC": o.dec_deg,
+                "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,  # Redundant for compatibility
+                "Type": o.type, "Constellation": o.constellation,
+                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                "ActiveProject": o.active_project, "Project": o.project_name
+            } for o in db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
+        ]
+
+        # --- 4. Create in-memory file ---
+        yaml_string = yaml.dump(config_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
+        str_io = io.BytesIO(yaml_string.encode('utf-8'))
+
+        # Determine filename
+        if SINGLE_USER_MODE:
+            download_name = "config_default.yaml"
+        else:
+            download_name = f"config_{username}.yaml"
+
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error generating config file: {e}", "error")
+        traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('config_form'))
+    finally:
+        db.close()
+
 
 @app.route('/download_journal')
-@login_required # Or your custom logic for SINGLE_USER_MODE
+@login_required
 def download_journal():
-    if SINGLE_USER_MODE:
-        filename = "journal_default.yaml"
-        # Ensure the user is effectively logged in for single user mode if needed by send_file context
-    else:
-        if not current_user.is_authenticated: # Should be caught by @login_required
-            flash("Please log in to download your journal.", "warning")
-            return redirect(url_for('login'))
-        username = current_user.username
-        filename = f"journal_{username}.yaml"
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            flash("User not found.", "error")
+            return redirect(url_for('config_form'))
 
-    # Construct the full path to the file
-    # Assuming your journal YAML files are in the same directory as app.py (instance path or app root)
-    # If they are in a subdirectory e.g. 'user_data/', adjust the path.
-    # For consistency with how load_journal/save_journal build paths:
-    filepath = os.path.join(CONFIG_DIR, filename)
+        # --- 1. Load Projects ---
+        projects = db.query(Project).filter_by(user_id=u.id).order_by(Project.name).all()
+        projects_list = [
+            {"project_id": p.id, "project_name": p.name} for p in projects
+        ]
 
+        # --- 2. Load Sessions ---
+        sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
+        sessions_list = []
+        for s in sessions:
+            sessions_list.append({
+                "session_id": s.external_id or s.id,
+                "project_id": s.project_id,
+                "session_date": s.date_utc.isoformat(),
+                "target_object_id": s.object_name,
+                "general_notes_problems_learnings": s.notes,
+                "session_image_file": s.session_image_file,
+                "location_name": s.location_name,
+                "seeing_observed_fwhm": s.seeing_observed_fwhm,
+                "sky_sqm_observed": s.sky_sqm_observed,
+                "moon_illumination_session": s.moon_illumination_session,
+                "moon_angular_separation_session": s.moon_angular_separation_session,
+                "weather_notes": s.weather_notes,
+                "telescope_setup_notes": s.telescope_setup_notes,
+                "filter_used_session": s.filter_used_session,
+                "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
+                "guiding_equipment": s.guiding_equipment,
+                "dither_details": s.dither_details,
+                "acquisition_software": s.acquisition_software,
+                "gain_setting": s.gain_setting,
+                "offset_setting": s.offset_setting,
+                "camera_temp_setpoint_c": s.camera_temp_setpoint_c,
+                "camera_temp_actual_avg_c": s.camera_temp_actual_avg_c,
+                "binning_session": s.binning_session,
+                "darks_strategy": s.darks_strategy,
+                "flats_strategy": s.flats_strategy,
+                "bias_darkflats_strategy": s.bias_darkflats_strategy,
+                "session_rating_subjective": s.session_rating_subjective,
+                "transparency_observed_scale": s.transparency_observed_scale,
+                "number_of_subs_light": s.number_of_subs_light,
+                "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
+                "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
+                "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
+                "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
+                "filter_B_subs": s.filter_B_subs, "filter_B_exposure_sec": s.filter_B_exposure_sec,
+                "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
+                "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
+                "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
+                "calculated_integration_time_minutes": s.calculated_integration_time_minutes
+            })
 
-    if os.path.exists(filepath):
-        try:
-            return send_file(filepath, as_attachment=True, download_name=filename)
-        except Exception as e:
-            print(f"Error sending journal file: {e}")
-            flash("Error downloading journal file.", "error")
-            return redirect(url_for('config_form')) # Or some other appropriate page
-    else:
-        flash(f"Journal file '{filename}' not found.", "error")
-        # If no journal exists, you could offer to download an empty template,
-        # but for now, just an error is fine.
-        return redirect(url_for('config_form')) # Redirect back to config form
+        journal_doc = {"projects": projects_list, "sessions": sessions_list}
 
+        # --- 3. Create in-memory file ---
+        yaml_string = yaml.dump(journal_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
+        str_io = io.BytesIO(yaml_string.encode('utf-8'))
+
+        # Determine filename
+        if SINGLE_USER_MODE:
+            download_name = "journal_default.yaml"
+        else:
+            download_name = f"journal_{username}.yaml"
+
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error generating journal file: {e}", "error")
+        traceback.print_exc()  # Log the full error to the console
+        return redirect(url_for('config_form'))
+    finally:
+        db.close()
 
 def validate_journal_data(journal_data):
     """
@@ -3166,6 +4673,7 @@ def validate_journal_data(journal_data):
         # Add more checks per session if desired (e.g., session_date format)
     return True, "Journal data seems structurally valid."
 
+
 @app.route('/import_journal', methods=['POST'])
 @login_required
 def import_journal():
@@ -3184,37 +4692,35 @@ def import_journal():
             new_journal_data = yaml.safe_load(contents)
 
             if new_journal_data is None:
-                new_journal_data = {"sessions": []}
+                new_journal_data = {"projects": [], "sessions": []}  # Handle empty file
 
+            # You can keep your validation function if you like
             is_valid, message = validate_journal_data(new_journal_data)
             if not is_valid:
                 flash(f"Invalid journal file structure: {message}", "error")
                 return redirect(url_for('config_form'))
 
-            if SINGLE_USER_MODE:
-                username = "default"
-                journal_filename = "journal_default.yaml"
-            else:
-                if not current_user.is_authenticated:
-                    flash("Please log in to import a journal.", "warning")
-                    return redirect(url_for('login'))
-                username = current_user.username
-                journal_filename = f"journal_{username}.yaml"
+            username = "default" if SINGLE_USER_MODE else current_user.username
 
-            journal_filepath = os.path.join(CONFIG_DIR, journal_filename)
+            # === START REFACTOR ===
+            # Import directly into the database
+            db = get_db()
+            try:
+                user = _upsert_user(db, username)  # Get or create the user in app.db
 
-            if os.path.exists(journal_filepath):
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_filename = f"{journal_filename}_backup_{timestamp}.yaml"
-                backup_path = os.path.join(BACKUP_DIR, backup_filename)
-                try:
-                    shutil.copy(journal_filepath, backup_path)
-                    print(f"[IMPORT JOURNAL] Backed up current journal to {backup_path}")
-                except Exception as backup_e:
-                    print(f"Warning: Could not back up existing journal: {backup_e}")
+                # Use the migration helper to load data directly into the DB
+                _migrate_journal(db, user, new_journal_data)
 
-            save_journal(username, new_journal_data)
-            flash("Journal imported successfully! Your old journal (if any) has been backed up.", "success")
+                db.commit()
+                flash("Journal imported and synced to database successfully!", "success")
+            except Exception as e:
+                db.rollback()
+                print(f"[IMPORT_JOURNAL] DB Error: {e}")
+                raise e  # Re-throw to be caught by the outer block
+            finally:
+                db.close()
+            # === END REFACTOR ===
+
             return redirect(url_for('config_form'))
 
         except yaml.YAMLError as ye:
@@ -3229,10 +4735,18 @@ def import_journal():
         flash("Invalid file type. Please upload a .yaml journal file.", "error")
         return redirect(url_for('config_form'))
 
-
 @app.route('/import_config', methods=['POST'])
 @login_required
 def import_config():
+    if SINGLE_USER_MODE:
+        username = "default"
+    elif current_user.is_authenticated:
+        username = current_user.username
+    else:
+        # This case should ideally not be reached due to @login_required
+        flash("Authentication error during import.", "error")
+        return redirect(url_for('login'))
+
     try:
         if 'file' not in request.files:
             flash("No file selected for import.", "error")
@@ -3252,41 +4766,38 @@ def import_config():
             flash(error_message, "error")
             return redirect(url_for('config_form'))
 
-        if SINGLE_USER_MODE:
-            username_for_backup = "default"
-            config_filename = "config_default.yaml"
-        else:
-            if not current_user.is_authenticated:
-                flash("You must be logged in to import a configuration.", "error")
-                return redirect(url_for('login'))
-            username_for_backup = current_user.username
-            config_filename = f"config_{username_for_backup}.yaml"
+        # === START REFACTOR ===
+        # Import directly into the database
+        db = get_db()
+        try:
+            user = _upsert_user(db, username)  # Get or create the user in app.db
 
-        config_path = os.path.join(CONFIG_DIR, config_filename)
+            # We re-use the exact same logic from your one-time migration
+            # This is robust and efficient.
+            _migrate_locations(db, user, new_config)
+            _migrate_objects(db, user, new_config)
+            _migrate_ui_prefs(db, user, new_config)
 
-        if os.path.exists(config_path):
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            backup_filename = f"{username_for_backup}_backup_{timestamp}.yaml"
-            backup_path = os.path.join(BACKUP_DIR, backup_filename)
-            shutil.copy(config_path, backup_path)
-            print(f"[IMPORT] Backed up current config to {backup_path}")
+            db.commit()
+            flash("Config imported and synced to database successfully!", "success")
+        except Exception as e:
+            db.rollback()
+            print(f"[IMPORT_CONFIG] DB Error: {e}")
+            raise e  # Re-throw to be caught by the outer block
+        finally:
+            db.close()
+        # === END REFACTOR ===
 
-        if os.path.exists(config_path):
-            _backup_with_rotation(config_path, keep=10)
-        with _FileLock(config_path):
-            _atomic_write_yaml(config_path, new_config)
-        print(f"[IMPORT] Overwrote {config_path} successfully with new config (atomic).")
-
-        flash("Config imported successfully! Your old config (if any) has been backed up.", "success")
-
+        # Trigger background cache update for any new locations
         user_config_for_thread = new_config.copy()
         for loc_name in user_config_for_thread.get('locations', {}).keys():
-            cache_filename = f"outlook_cache_{username_for_backup}_{loc_name.lower().replace(' ', '_')}.json"
+            cache_filename = f"outlook_cache_{username}_{loc_name.lower().replace(' ', '_')}.json"
             cache_filepath = os.path.join(CACHE_DIR, cache_filename)
             if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
                 thread = threading.Thread(target=update_outlook_cache,
-                                          args=(username_for_backup, loc_name, user_config_for_thread))
+                                          args=(username, loc_name, user_config_for_thread,
+                                                g.sampling_interval))  # Pass sampling_interval
                 thread.start()
 
         return redirect(url_for('config_form'))
@@ -3304,586 +4815,92 @@ def import_config():
 # Astronomical Calculations
 # =============================================================================
 
-
-def get_ra_dec(object_name):
+def get_ra_dec(object_name, objects_map=None): # <-- ADD objects_map=None parameter
+    """
+    Looks up RA/DEC and other details for an object.
+    Prioritizes the provided objects_map (if given), then falls back to g.objects_map (in request context),
+    then queries SIMBAD.
+    """
     obj_key = object_name.lower()
-    objects_config = g.user_config.get("objects", [])
-    obj_entry = next((item for item in objects_config if item["Object"].lower() == obj_key), None)
 
-    default_type = "N/A"
-    default_magnitude = "N/A"
-    default_size = "N/A"
-    default_sb = "N/A"
-    default_project = "none"
-    default_constellation = "N/A"
+    # --- Use the provided map first, then g, then None ---
+    obj_map_to_use = objects_map # Use the one passed in (e.g., from the worker thread)
+    if obj_map_to_use is None and has_request_context():
+        # Fallback to g ONLY if in a request context and no map was passed
+        obj_map_to_use = getattr(g, 'objects_map', None)
 
+    obj_entry = obj_map_to_use.get(obj_key) if obj_map_to_use else None # Use the determined map
+
+    # --- Define defaults ---
+    # (Defaults remain the same)
+    default_type = "N/A"; default_magnitude = "N/A"; default_size = "N/A"; default_sb = "N/A";
+    default_project = "none"; default_constellation = "N/A"; default_active_project = False
+
+    # --- Path 1: Object found in config (using obj_map_to_use) ---
     if obj_entry:
-        ra_str = obj_entry.get("RA")
-        dec_str = obj_entry.get("DEC")
-        constellation_val = obj_entry.get("Constellation", default_constellation)  # Get existing constellation
+        # (Logic inside Path 1 remains the same, using obj_entry)
+        ra_str = obj_entry.get("RA"); dec_str = obj_entry.get("DEC")
+        constellation_val = obj_entry.get("Constellation", default_constellation)
         type_val = obj_entry.get("Type", default_type)
         magnitude_val = obj_entry.get("Magnitude", default_magnitude)
         size_val = obj_entry.get("Size", default_size)
         sb_val = obj_entry.get("SB", default_sb)
         project_val = obj_entry.get("Project", default_project)
-        common_name_val = obj_entry.get("Name", object_name)
+        common_name_val = obj_entry.get("Name", object_name) # Uses "Name" for config form compatibility
+        active_project_val = obj_entry.get("ActiveProject", default_active_project)
 
         if ra_str is not None and dec_str is not None:
             try:
-                ra_hours_float = float(ra_str)
-                dec_degrees_float = float(dec_str)
-
+                ra_hours_float = float(ra_str); dec_degrees_float = float(dec_str)
                 if constellation_val in [None, "N/A", ""]:
                     try:
-                        coords = SkyCoord(ra=ra_hours_float*u.hourangle, dec=dec_degrees_float*u.deg)
+                        coords = SkyCoord(ra=ra_hours_float * u.hourangle, dec=dec_degrees_float * u.deg)
                         constellation_val = get_constellation(coords, short_name=True)
-                    except Exception as e:
-                        print(f"Constellation calculation failed for {object_name}: {e}")
-                        constellation_val = "N/A"
-
+                    except Exception: constellation_val = "N/A"
                 return {
-                    "Object": object_name,
-                    "Constellation": constellation_val,  # Add to return dictionary
-                    "Common Name": common_name_val,
-                    "RA (hours)": ra_hours_float,
-                    "DEC (degrees)": dec_degrees_float,
-                    "Project": project_val,
-                    "Type": type_val if type_val else default_type,
-                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
-                    "Size": size_val if size_val else default_size,
-                    "SB": sb_val if sb_val else default_sb,
+                    "Object": object_name, "Constellation": constellation_val, "Common Name": common_name_val,
+                    "RA (hours)": ra_hours_float, "DEC (degrees)": dec_degrees_float, "Project": project_val,
+                    "Type": type_val or default_type, "Magnitude": magnitude_val or default_magnitude,
+                    "Size": size_val or default_size, "SB": sb_val or default_sb, "ActiveProject": active_project_val
                 }
-            except ValueError as ve:
-                print(f"[ERROR] Failed to parse RA/DEC for {object_name} from config: {ve}")
-                return {
-                    "Object": object_name,
-                    "Constellation": "N/A",
-                    "Common Name": f"Error: Invalid RA/DEC in config",
-                    "RA (hours)": None, "DEC (degrees)": None,
-                    "Project": project_val, "Type": type_val if type_val else default_type,
-                    "Magnitude": magnitude_val if magnitude_val else default_magnitude,
-                    "Size": size_val if size_val else default_size,
-                    "SB": sb_val if sb_val else default_sb,
+            except ValueError:
+                return { # Return error but keep other config data
+                    "Object": object_name, "Constellation": "N/A", "Common Name": "Error: Invalid RA/DEC in config",
+                    "RA (hours)": None, "DEC (degrees)": None, "Project": project_val, "Type": type_val,
+                    "Magnitude": magnitude_val, "Size": size_val, "SB": sb_val, "ActiveProject": active_project_val
                 }
-        else:  # RA/DEC are missing in config for an existing obj_entry
-            print(f"[SIMBAD] RA/DEC missing for {object_name} in config. Querying SIMBAD...")
-            # Fall through to SIMBAD lookup logic below
-            pass  # Explicitly falling through
+        # Fall through to SIMBAD if coordinates missing in config
 
-    # This block handles:
-    # 1. Object not in config at all.
-    # 2. Object in config but RA/DEC were missing (due to the 'pass' above).
-    if not obj_entry or (obj_entry and (obj_entry.get("RA") is None or obj_entry.get("DEC") is None)):
-        if not obj_entry:  # Case: Object not found in config
-            print(f"[INFO] Object {object_name} not found in config. Attempting SIMBAD lookup.")
-        # These values would be from config if obj_entry existed
-        common_name_to_use = obj_entry.get("Name", object_name) if obj_entry else object_name
-        project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
-        type_to_use = obj_entry.get("Type", default_type) if obj_entry else default_type
-        mag_to_use = obj_entry.get("Magnitude", default_magnitude) if obj_entry else default_magnitude
-        size_to_use = obj_entry.get("Size", default_size) if obj_entry else default_size
-        sb_to_use = obj_entry.get("SB", default_sb) if obj_entry else default_sb
-
-        try:
-            custom_simbad = Simbad()
-            custom_simbad.ROW_LIMIT = 1
-            custom_simbad.TIMEOUT = 60
-            # Explicitly request fields. 'ra' and 'dec' are for J2000 sexagesimal.
-            # 'main_id' for a common identifier, 'otype' for object type.
-            custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
-
-            result = custom_simbad.query_object(object_name)
-
-            if result is None or len(result) == 0:
-                raise ValueError(f"No results for object '{object_name}' in SIMBAD.")
-
-            # Crucial Debugging Line:
-            # print(f"[SIMBAD DEBUG] Columns for {object_name}: {result.colnames}")
-
-            ra_col, dec_col = None, None
-            if 'RA' in result.colnames:
-                ra_col = 'RA'
-            elif 'ra' in result.colnames:
-                ra_col = 'ra'  # Check for lowercase
-            else:
-                raise ValueError(
-                    f"SIMBAD result for '{object_name}' is missing RA column. Available: {result.colnames}")
-
-            if 'DEC' in result.colnames:
-                dec_col = 'DEC'
-            elif 'dec' in result.colnames:
-                dec_col = 'dec'  # Check for lowercase
-            else:
-                raise ValueError(
-                    f"SIMBAD result for '{object_name}' is missing DEC column. Available: {result.colnames}")
-
-            ra_value_simbad = str(result[ra_col][0])
-            dec_value_simbad = str(result[dec_col][0])
-
-            ra_hours_simbad = hms_to_hours(ra_value_simbad)
-            dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
-
-            simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames and result['MAIN_ID'][
-                0] else common_name_to_use
-            simbad_otype = str(result['OTYPE'][0]) if 'OTYPE' in result.colnames and result['OTYPE'][0] else type_to_use
-
-            try:
-                coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
-                constellation_simbad = get_constellation(coords, short_name=True)
-            except Exception:
-                constellation_simbad = "N/A"
-
-            # If the object was in config but RA/DEC were missing, update the in-memory entry
-            if obj_entry:
-                obj_entry["RA"] = ra_hours_simbad
-                obj_entry["DEC"] = dec_degrees_simbad
-                if obj_entry.get("Name") in [None, "",
-                                             object_name] and simbad_main_id != object_name:  # Update common name if generic
-                    obj_entry["Name"] = simbad_main_id
-                if obj_entry.get("Type") in [None, "", "N/A"] and simbad_otype != "N/A":  # Update type if generic
-                    obj_entry["Type"] = simbad_otype
-
-            return {
-                "Object": object_name,
-                "Constellation": constellation_simbad,
-                "Common Name": simbad_main_id if not obj_entry or obj_entry.get("Name") in [None,
-                                                                                            ""] else obj_entry.get(
-                    "Name"),
-                "RA (hours)": ra_hours_simbad,
-                "DEC (degrees)": dec_degrees_simbad,
-                "Project": project_to_use,
-                "Type": simbad_otype if not obj_entry or obj_entry.get("Type") in [None, "", "N/A"] else obj_entry.get(
-                    "Type"),
-                "Magnitude": mag_to_use,  # These are not fetched by this basic SIMBAD query
-                "Size": size_to_use,
-                "SB": sb_to_use,
-            }
-
-        except Exception as ex:
-            # Provide more detailed error including exception type
-            error_message = f"Error: SIMBAD lookup failed ({type(ex).__name__}): {str(ex)}"
-            print(f"[ERROR] {error_message} for {object_name}")
-            return {
-                "Object": object_name,
-                "Constellation": "N/A",
-                "Common Name": error_message,
-                "RA (hours)": None, "DEC (degrees)": None,
-                "Project": project_to_use, "Type": type_to_use,  # Use defaults or config values if obj_entry existed
-                "Magnitude": mag_to_use, "Size": size_to_use, "SB": sb_to_use,
-            }
-
-    print(f"[WARN] get_ra_dec: Unhandled case for object {object_name}")
-    return {
-        "Object": object_name, "Common Name": "Error: Could not determine RA/DEC",
-        "RA (hours)": None, "DEC (degrees)": None,
-        "Project": default_project, "Type": default_type,
-        "Magnitude": default_magnitude, "Size": default_size, "SB": default_sb,
-    }
-
-def plot_altitude_curve(object_name, alt_name, ra, dec, lat, lon, local_date, tz_name, selected_location):
-    times_local, times_utc = get_common_time_arrays(tz_name, local_date)
-    times_local_naive = [t.replace(tzinfo=None) for t in times_local]
-
-    now_local = datetime.now(pytz.timezone(g.tz_name))
-    local_tz = pytz.timezone(tz_name)
-
-    # Convert tz-aware local times to naive for plotting.
-    times_local_naive = [t.replace(tzinfo=None) for t in times_local]
-
-    # Calculate altitude and azimuth for the object.
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg, height=0 * u.m)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-    altaz = sky_coord.transform_to(altaz_frame)
-    altitudes = altaz.alt.deg
-    azimuths = altaz.az.deg
-
-    # Calculate Moon altitude and azimuth.
-    moon_altitudes = []
-    moon_azimuths = []
-    for t_utc in times_utc:
-        frame = AltAz(obstime=t_utc, location=location)
-        moon_coord = get_body('moon', t_utc, location=location)
-        moon_altaz = moon_coord.transform_to(frame)
-        moon_altitudes.append(moon_altaz.alt.deg)
-        moon_azimuths.append(moon_altaz.az.deg)
-
-    # Get sun events.
-    sun_events_curr = calculate_sun_events_cached(local_date,g.tz_name, g.lat, g.lon)
-    previous_date = (datetime.strptime(local_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
-    sun_events_prev = calculate_sun_events_cached(previous_date,g.tz_name, g.lat, g.lon)
-
-    # Prepare sun event datetimes.
-    event_datetimes = {}
-    base_prev = local_tz.localize(datetime.strptime(previous_date, '%Y-%m-%d'))
-    for event, t_str in sun_events_prev.items():
-        try:
-            hour, minute = map(int, t_str.split(':'))
-        except Exception:
-            continue
-        event_dt = base_prev.replace(hour=hour, minute=minute)
-        event_datetimes[f'prev_{event}'] = event_dt
-    base_curr = local_tz.localize(datetime.strptime(local_date, '%Y-%m-%d'))
-    for event, t_str in sun_events_curr.items():
-        try:
-            hour, minute = map(int, t_str.split(':'))
-        except Exception:
-            continue
-        event_dt = base_curr.replace(hour=hour, minute=minute)
-        event_datetimes[f'curr_{event}'] = event_dt
-
-    event_datetimes_naive = {k: v.replace(tzinfo=None) for k, v in event_datetimes.items()}
-
-    # Create figure and primary axis.
-    fig, ax = plt.subplots(figsize=(11, 6))
-    ax.plot(times_local_naive, altitudes, '-', linewidth=3, color='tab:blue', label=f'{object_name} Altitude')
-
-    #create light gray background
-    ax.set_facecolor("lightgray")
-
-    # Plot Moon altitude as dashed yellow.
-    ax.plot(times_local_naive, moon_altitudes, '-', color='gold', linewidth=2.5, label='Moon Altitude')
-
-    # Plot Horizon
-    ax.axhline(y=0, color='black', linewidth=2, linestyle='-', label='Horizon')
-
-    ax.set_xlabel(f'Time (Local - {selected_location})')
-    ax.set_ylabel('Altitude (°)', color='k')
-    ax.tick_params(axis='y', labelcolor='k')
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-    ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
-    plt.xticks(rotation=45)
-
-    # Fix altitude axis to range from -90 to +90 degrees.
-    ax.set_ylim(-90, 90)
-
-    # Add a two-line title.
-    ax.set_title(f"Altitude and Azimuth for {object_name} ({alt_name}) on {local_date}", loc='left')
-
-    # Create secondary axis for azimuth.
-    ax2 = ax.twinx()
-    ax2.plot(times_local_naive, azimuths, '--', linewidth=1.5, color='tab:darkcyan', label=f'{object_name} Azimuth')
-    ax2.set_ylabel('Azimuth (°)', color='k')
-    ax2.tick_params(axis='y', labelcolor='k')
-    ax2.set_ylim(0, 360)
-    ax2.spines['right'].set_color('k')
-    ax2.spines['right'].set_linewidth(1.5)
-
-    # Add Moon azimuth.
-    ax2.plot(times_local_naive, moon_azimuths, '--', linewidth=1.5, color='darkorange', label='Moon Azimuth')
-
-    # Set x-axis limits.
-    plot_start = times_local_naive[0]
-    plot_end = plot_start + timedelta(hours=24)
-    ax.set_xlim(plot_start, plot_end)
-
-    # Define key times correctly
-    midnight = datetime.combine(datetime.strptime(local_date, '%Y-%m-%d'), datetime.min.time())
-    noon = midnight + timedelta(hours=12)
-    previous_midnight = midnight - timedelta(days=1)
-
-    # Define plot_start and plot_end assuming times_local_naive covers the selected day.
-    # Define 24-hour plot window
-    plot_start = times_local_naive[0]
-    plot_end = plot_start + timedelta(hours=24)
-
-# --- Corrected Background Shading and Event Line Logic ---
-    ax.set_facecolor("lightgray") # Set default background
-
-    # Define plot start and end clearly (assuming times_local_naive covers the desired 24h)
-    plot_start = times_local_naive[0]
-    plot_end = times_local_naive[-1] # Use the actual end time from your array
-
-    # Calculate sun events for current and next day
-    sun_events_curr = calculate_sun_events_cached(local_date, g.tz_name, g.lat, g.lon)
-    next_date_obj = datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)
-    next_date_str = next_date_obj.strftime('%Y-%m-%d')
-    sun_events_next = calculate_sun_events_cached(next_date_str, g.tz_name, g.lat, g.lon)
-
-    # --- Prepare Event Datetimes with Correct Date Assignment ---
-    event_datetimes = {}
-    curr_date_obj = datetime.strptime(local_date, '%Y-%m-%d')
-
-    # Helper function to parse and localize time strings safely
-    def get_event_datetime(base_date_obj, event_time_str, tz):
-        if not event_time_str or ':' not in event_time_str:
-            return None # Handle missing or invalid time
-        try:
-            event_time = datetime.strptime(event_time_str, "%H:%M").time()
-            dt_naive = datetime.combine(base_date_obj, event_time)
-            return tz.localize(dt_naive)
-        except ValueError:
-            return None # Handle parsing errors
-
-    # Get key times (handle potential missing events)
-    astro_dusk_curr_str = sun_events_curr.get("astronomical_dusk")
-    astro_dawn_next_str = sun_events_next.get("astronomical_dawn")
-    sunrise_curr_str = sun_events_curr.get("sunrise") # Needed for dusk check
-    sunset_curr_str = sun_events_curr.get("sunset")
-    sunrise_next_str = sun_events_next.get("sunrise") # Use next day's sunrise for line
-
-    # Determine Astronomical Dusk Datetime (Correcting for post-midnight)
-    astro_dusk_naive = None
-    if astro_dusk_curr_str and ':' in astro_dusk_curr_str:
-        try:
-            astro_dusk_time = datetime.strptime(astro_dusk_curr_str, "%H:%M").time()
-            # Use sunrise as a reference: if dusk is before sunrise, it's on the next calendar day
-            sunrise_curr_time = datetime.strptime(sunrise_curr_str, "%H:%M").time() if sunrise_curr_str and ':' in sunrise_curr_str else datetime.time(6, 0) # Default if sunrise missing
-
-            dusk_date_base = next_date_obj if astro_dusk_time < sunrise_curr_time else curr_date_obj
-
-            astro_dusk_dt_naive = datetime.combine(dusk_date_base, astro_dusk_time)
-            astro_dusk_localized = local_tz.localize(astro_dusk_dt_naive)
-            astro_dusk_naive = astro_dusk_localized.replace(tzinfo=None)
-            event_datetimes["Astronomical dusk"] = astro_dusk_naive
-        except ValueError:
-            print(f"Warning: Could not parse astronomical dusk time: {astro_dusk_curr_str}")
-            astro_dusk_naive = None # Ensure it's None if parsing fails
-
-    # Determine Astronomical Dawn Datetime (Next Day)
-    astro_dawn_next_naive = None
-    astro_dawn_next_localized = get_event_datetime(next_date_obj, astro_dawn_next_str, local_tz)
-    if astro_dawn_next_localized:
-        astro_dawn_next_naive = astro_dawn_next_localized.replace(tzinfo=None)
-        event_datetimes["Astronomical dawn"] = astro_dawn_next_naive
-
-    # --- Shade Night Time ---
-    # Shade only if both dusk and dawn times are valid and dusk < dawn
-    if astro_dusk_naive and astro_dawn_next_naive and astro_dusk_naive < astro_dawn_next_naive:
-         # Clip shading to plot boundaries
-         shade_start = max(plot_start, astro_dusk_naive)
-         shade_end = min(plot_end, astro_dawn_next_naive)
-         # Only shade if the clipped interval is valid
-         if shade_start < shade_end:
-              ax.axvspan(shade_start, shade_end, facecolor="white", alpha=1.0, zorder=0) # zorder=0 to draw below plot lines
-
-
-    # --- Add other event times for vertical lines ---
-    sunset_curr_localized = get_event_datetime(curr_date_obj, sunset_curr_str, local_tz)
-    if sunset_curr_localized:
-        event_datetimes["Sunset"] = sunset_curr_localized.replace(tzinfo=None)
-
-    sunrise_next_localized = get_event_datetime(next_date_obj, sunrise_next_str, local_tz)
-    if sunrise_next_localized:
-         event_datetimes["Sunrise"] = sunrise_next_localized.replace(tzinfo=None)
-
-    # --- Draw Vertical Lines ---
-    for event, dt_naive in event_datetimes.items():
-        if dt_naive and plot_start <= dt_naive <= plot_end: # Check dt_naive exists
-            ax.axvline(x=dt_naive, color='black', linestyle='-', linewidth=1, alpha=0.7, zorder=1) # zorder=1 to draw above shading
-            try:
-                # Position text slightly after the line, ensuring it stays within bounds
-                text_time = dt_naive + timedelta(minutes=5)
-                if text_time > plot_end: # Prevent text going off the right edge
-                    text_time = dt_naive - timedelta(minutes=5)
-                    ha = 'right'
-                else:
-                    ha = 'left'
-
-                label_x = mdates.date2num(text_time)
-                ymin, ymax = ax.get_ylim()
-                label_y = ymin + 0.05 * (ymax - ymin) # Position near bottom
-                ax.text(label_x, label_y, event, rotation=90,
-                        verticalalignment='bottom', horizontalalignment=ha,
-                        fontsize=9, color='dimgray', zorder=2) # zorder=2 to draw above lines
-            except Exception as e:
-                 print(f"Error plotting text for event {event}: {e}") # Catch potential errors during plotting
-
+    # --- Path 2: Object not in config OR missing coords -> Query SIMBAD ---
+    # (SIMBAD lookup logic remains the same)
+    project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
+    active_project_to_use = obj_entry.get("ActiveProject", default_active_project) if obj_entry else default_active_project
     try:
-        transit_time_str = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
-        if transit_time_str and transit_time_str != "N/A":
-            transit_hour, transit_minute = map(int, transit_time_str.split(':'))
-            plot_date_obj = datetime.strptime(local_date, '%Y-%m-%d').date()
-
-            # --- KEY LOGIC CHANGE ---
-            # If transit is after midnight (e.g., 00:24), assign it to the next calendar day
-            # so it correctly falls within the 'night of' the selected date on the plot.
-            effective_date = plot_date_obj
-            if transit_hour < 12:  # Simple check for any time between 00:00 and 11:59
-                effective_date += timedelta(days=1)
-
-            transit_dt_naive = datetime.combine(effective_date, datetime.min.time()) + timedelta(hours=transit_hour,
-                                                                                                 minutes=transit_minute)
-
-            # Draw the vertical line and text (this part is now correct)
-            ax.axvline(x=transit_dt_naive, color='crimson', linestyle='--', linewidth=1.5, label='Meridian Transit')
-
-            ax.text(mdates.date2num(transit_dt_naive), -88, f" {transit_time_str} ",
-                    color='crimson',
-                    ha='center', va='bottom',
-                    fontsize=8,
-                    rotation=90,
-                    fontweight='bold',
-                    bbox=dict(facecolor='white', alpha=0.9, edgecolor='none', pad=1.5))
-    except Exception as e:
-        print(f"WARNING: Could not plot meridian line for {object_name}. Reason: {e}")
-
-
-    lines, labels = ax.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-
-    # Combine all labels and handles, then use a dictionary to automatically remove duplicates
-    all_labels = labels + labels2
-    all_lines = lines + lines2
-    unique_entries = dict(zip(all_labels, all_lines))
-
-    # Create the legend from the unique (de-duplicated) entries
-    ax.legend(unique_entries.values(), unique_entries.keys(), loc='upper left', bbox_to_anchor=(1.05, 1.0),
-              borderaxespad=0.)
-
-    ax.grid(True, linestyle=':', color='dimgray', alpha=1.0)
-
-    plt.tight_layout()
-
-    filename = f"static/{sanitize_object_name(object_name).replace(' ', '_')}_{selected_location.replace(' ', '_')}_altitude_plot.png"
-    plt.savefig(filename)
-    plt.close(fig)
-    return filename
-
-
-def plot_yearly_altitude_curve(
-        object_name, alt_name, ra, dec, lat, lon, tz_name, selected_location, year=2025
-):
-
-    local_tz = pytz.timezone(tz_name)
-
-    dates = []
-    obj_altitudes = []
-    moon_altitudes = []
-
-    # Create an EarthLocation object once, for efficiency
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-
-    # Loop over each day of the year (Jan 1 through Dec 31)
-    start_date = datetime(year, 1, 1)
-    end_date = datetime(year + 1, 1, 1)  # up to but not including Jan 1 next year
-    delta = timedelta(days=2) #every second day for performance reasons
-
-    current_date = start_date
-    while current_date < end_date:
-        # Local midnight
-        local_midnight = local_tz.localize(
-            current_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        )
-        # Convert local midnight to UTC for astropy
-        midnight_utc = local_midnight.astimezone(pytz.utc)
-        midnight_time_astropy = Time(midnight_utc.strftime('%Y-%m-%dT%H:%M:%S'), scale='utc')
-
-        # Compute object altitude at local midnight
-        altaz_frame = AltAz(obstime=midnight_time_astropy, location=location)
-        obj_altaz = sky_coord.transform_to(altaz_frame)
-        obj_alt = obj_altaz.alt.deg
-
-        # Compute Moon altitude at local midnight
-        moon_coord = get_body('moon', midnight_time_astropy, location=location)
-        moon_altaz = moon_coord.transform_to(altaz_frame)
-        moon_alt = moon_altaz.alt.deg
-
-        dates.append(local_midnight.replace(tzinfo=None))  # naive for plotting
-        obj_altitudes.append(obj_alt)
-        moon_altitudes.append(moon_alt)
-
-        current_date += delta
-
-    fig, ax = plt.subplots(figsize=(11, 6))
-
-    # Plot the object altitude
-    ax.plot(dates, obj_altitudes, label=f"{object_name} Alt.", color='tab:blue', linewidth=3)
-
-    # Plot the Moon altitude
-    ax.plot(dates, moon_altitudes, label="Moon Alt.", color='gold', linestyle='-', linewidth=1.5)
-
-    ax.set_xlabel(f"Date ({year})", fontsize=9)
-    ax.set_ylabel("Altitude (°)", fontsize=9)
-    ax.set_title(f"Yearly Altitude at Local Midnight for {object_name} ({alt_name}) - {selected_location}", fontsize=12, loc='left')
-
-    # Format x-axis for months
-    ax.xaxis.set_major_locator(mdates.MonthLocator())
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%b'))
-    plt.xticks(rotation=45)
-
-    # Plot horizon
-    ax.axhline(y=0, color='black', linestyle='-', linewidth=2, label='Horizon', zorder=10)
-
-    ax.set_ylim(-90, 90)
-    ax.grid(True)
-    ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
-    plt.tight_layout()
-
-    # Build the filename
-    from os.path import join
-    filename = f"{sanitize_object_name(object_name)}_{selected_location}_yearly_alt_{year}.png"
-    filepath = join("static", filename)
-    plt.savefig(filepath)
-    plt.close(fig)
-
-    return filepath
-
-
-def plot_monthly_altitude_curve(
-        object_name, alt_name, ra, dec, lat, lon, tz_name, selected_location, year=2025, month=1
-):
-
-    local_tz = pytz.timezone(tz_name)
-    # Determine the number of days in the month
-    num_days = calendar.monthrange(year, month)[1]
-
-    dates = []
-    obj_altitudes = []
-    moon_altitudes = []
-
-    location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-
-    # Loop over every day in the month
-    for day in range(1, num_days + 1):
-        current_date = datetime(year, month, day)
-        local_midnight = local_tz.localize(current_date.replace(hour=0, minute=0, second=0, microsecond=0))
-        midnight_utc = local_midnight.astimezone(pytz.utc)
-        time_astropy = Time(midnight_utc.strftime('%Y-%m-%dT%H:%M:%S'), scale='utc')
-
-        altaz_frame = AltAz(obstime=time_astropy, location=location)
-        obj_alt = sky_coord.transform_to(altaz_frame).alt.deg
-
-        # Calculate Moon altitude
-        moon_coord = get_body('moon', time_astropy, location=location)
-        moon_alt = moon_coord.transform_to(altaz_frame).alt.deg
-
-        dates.append(local_midnight.replace(tzinfo=None))  # Naive time for plotting
-        obj_altitudes.append(obj_alt)
-        moon_altitudes.append(moon_alt)
-
-    # Plotting
-    fig, ax = plt.subplots(figsize=(11, 6))
-    ax.plot(dates, obj_altitudes, label=f"{object_name} Altitude", color='tab:blue', linewidth=3)
-    ax.plot(dates, moon_altitudes, label="Moon Altitude", color='gold', linestyle='-', linewidth=1.5)
-
-    ax.set_xlabel(f"Day of {year}-{month:02d}", fontsize=9)
-    ax.set_ylabel("Altitude (°)", fontsize=9)
-    ax.set_title(f"Monthly Altitude at Local Midnight for {object_name} ({alt_name}) - {selected_location}", fontsize=12, loc='left')
-
-    # Format the x-axis to show the day of the month
-    ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d'))
-    plt.xticks(rotation=45)
-
-    # Plot horizon
-    ax.axhline(y=0, color='black', linestyle='-', linewidth=2, label='Horizon', zorder=10)
-
-    ax.set_ylim(-90, 90)
-    ax.grid(True)
-    ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1))
-    plt.tight_layout()
-
-    # Save the plot to a file
-    from os.path import join
-    filename = f"{sanitize_object_name(object_name)}_{selected_location}_monthly_alt_{year}_{month:02d}.png"
-    filepath = join("static", filename)
-    plt.savefig(filepath)
-    plt.close(fig)
-
-    return filepath
+        custom_simbad = Simbad(); custom_simbad.ROW_LIMIT = 1; custom_simbad.TIMEOUT = 60
+        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+        result = custom_simbad.query_object(object_name)
+        if result is None or len(result) == 0: raise ValueError(f"No results for '{object_name}' in SIMBAD.")
+        ra_col = 'RA' if 'RA' in result.colnames else 'ra'; dec_col = 'DEC' if 'DEC' in result.colnames else 'dec'
+        ra_value_simbad = str(result[ra_col][0]); dec_value_simbad = str(result[dec_col][0])
+        ra_hours_simbad = hms_to_hours(ra_value_simbad); dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
+        simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
+        try:
+            coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
+            constellation_simbad = get_constellation(coords, short_name=True)
+        except Exception: constellation_simbad = "N/A"
+        return {
+            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
+            "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
+            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
+    except Exception as ex:
+        return { # Return error structure
+            "Object": object_name, "Constellation": "N/A",
+            "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
+            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
 
 # =============================================================================
 # Protected Routes
@@ -3891,9 +4908,45 @@ def plot_monthly_altitude_curve(
 
 @app.route('/get_locations')
 def get_locations():
-    """Returns only ACTIVE locations for the main UI dropdown."""
-    # The g.active_locations dictionary is prepared by the before_request hook.
-    return jsonify({"locations": list(g.active_locations.keys()), "selected": g.selected_location})
+    """Returns only ACTIVE locations for the main UI dropdown and the user's default."""
+    # Determine username based on mode and authentication status
+    username = "default" if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else "guest_user")
+    db = get_db()
+    try:
+        # Find the user record in the application database
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            # If the user doesn't exist in app.db, return empty lists
+            return jsonify({"locations": [], "selected": None})
+
+        # Query the database for locations belonging to this user that are marked as active
+        active_locs = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        # Extract just the names for the dropdown list
+        active_loc_names = [loc.name for loc in active_locs]
+
+        # Determine which location should be pre-selected in the dropdown
+        selected = None
+        # Find if any of the active locations is also marked as the default
+        default_loc = next((loc.name for loc in active_locs if loc.is_default), None)
+
+        if default_loc:
+            # If an active default location exists, use it
+            selected = default_loc
+        elif active_loc_names:
+            # Otherwise, if there are any active locations, use the first one in the list
+            selected = active_loc_names[0]
+        # If there are no active locations, 'selected' remains None
+
+        # Return the list of active location names and the name of the location to be selected
+        return jsonify({"locations": active_loc_names, "selected": selected})
+    except Exception as e:
+        # Log any unexpected errors during database access
+        print(f"Error in get_locations for user '{username}': {e}")
+        # Return an error response or an empty list in case of failure
+        return jsonify({"locations": [], "selected": None, "error": str(e)}), 500
+    finally:
+        # Ensure the database session is closed regardless of success or failure
+        db.close()
 
 @app.route('/search_object', methods=['POST'])
 @login_required
@@ -4105,62 +5158,149 @@ def fetch_object_details():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+# This helper function (which I sent before) is still needed.
+def _parse_float_from_request(value, field_name="field"):
+    """Helper to convert request values to float, raising a clear ValueError."""
+    if value is None:
+        raise ValueError(f"{field_name} is required and cannot be empty.")
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        raise ValueError(f"Invalid non-numeric value '{value}' received for {field_name}.")
+
 @app.route('/confirm_object', methods=['POST'])
 @login_required
 def confirm_object():
     req = request.get_json()
-    object_name = req.get('object')
-    common_name = req.get('name')
-    ra = req.get('ra')
-    dec = req.get('dec')
-    project = req.get('project', 'none')
-    constellation = req.get('constellation')
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
 
-    # --- FIX: Use the helper function to clean data before saving ---
-    obj_type = convert_to_native_python(req.get('type'))
-    magnitude = convert_to_native_python(req.get('magnitude'))
-    size = convert_to_native_python(req.get('size'))
-    sb = convert_to_native_python(req.get('sb'))
+        # --- FIX: Validate inputs before using them ---
+        object_name = req.get('object')
+        if not object_name or not object_name.strip():
+            raise ValueError("Object ID is required and cannot be empty.")
 
-    if not object_name or not common_name:
-        return jsonify({"status": "error", "message": "Object ID and name are required."}), 400
-    if ra is None or dec is None:
-        return jsonify({"status": "error", "message": "RA and DEC are required for the object."}), 400
+        common_name = req.get('name')
+        if not common_name or not common_name.strip():
+            raise ValueError("Name is required and cannot be empty.")
 
-    config_data = load_user_config(current_user.username)
-    objects_list = config_data.setdefault('objects', [])
+        # Use our new helper to safely get float values
+        ra_float = _parse_float_from_request(req.get('ra'), "RA")
+        dec_float = _parse_float_from_request(req.get('dec'), "DEC")
+        # --- END FIX ---
 
-    existing = next((obj for obj in objects_list if obj["Object"].lower() == object_name.lower()), None)
-    if existing:
-        existing["Name"] = common_name
-        existing["Project"] = project
-        existing["RA"] = ra
-        existing["DEC"] = dec
-        existing["Type"] = obj_type if obj_type is not None else existing.get("Type", "")
-        existing["Magnitude"] = magnitude if magnitude is not None else existing.get("Magnitude", "")
-        existing["Size"] = size if size is not None else existing.get("Size", "")
-        existing["Constellation"] = constellation if constellation is not None else existing.get("Constellation", "N/A")
-        existing["SB"] = sb if sb is not None else existing.get("SB", "")
-    else:
-        new_obj = {
-            "Object": object_name,
-            "Name": common_name,
-            "Project": project,
-            "RA": ra,
-            "DEC": dec,
-            "Constellation": constellation if constellation is not None else "N/A",
-            "Type": obj_type if obj_type is not None else "",
-            "Magnitude": magnitude if magnitude is not None else "",
-            "Size": size if size is not None else "",
-            "SB": sb if sb is not None else ""
-        }
-        objects_list.append(new_obj)
+        # Check if object already exists for this user
+        existing = db.query(AstroObject).filter_by(user_id=app_db_user.id, object_name=object_name).one_or_none()
 
-    save_user_config(current_user.username, config_data)
-    return jsonify({"status": "success"})
+        # Get other fields (these can be empty/None)
+        project_name = req.get('project', 'none')
+        constellation = req.get('constellation')
+        obj_type = convert_to_native_python(req.get('type'))
+        magnitude = str(convert_to_native_python(req.get('magnitude')) or '')
+        size = str(convert_to_native_python(req.get('size')) or '')
+        sb = str(convert_to_native_python(req.get('sb')) or '')
+
+        if existing:
+            # Update existing object's details
+            existing.common_name = common_name
+            existing.ra_hours = ra_float
+            existing.dec_deg = dec_float
+            existing.project_name = project_name
+            existing.constellation = constellation
+            existing.type = obj_type
+            existing.magnitude = magnitude
+            existing.size = size
+            existing.sb = sb
+        else:
+            # Create a new object record
+            new_obj = AstroObject(
+                user_id=app_db_user.id,
+                object_name=object_name,
+                common_name=common_name,
+                ra_hours=ra_float,
+                dec_deg=dec_float,
+                project_name=project_name,
+                constellation=constellation,
+                type=obj_type,
+                magnitude=magnitude,
+                size=size,
+                sb=sb
+            )
+            db.add(new_obj)
+
+        db.commit()
+        return jsonify({"status": "success"})
+
+    except ValueError as ve:  # --- FIX: Catch our specific validation errors
+        db.rollback()
+        # Send a 400 Bad Request with a clear message
+        return jsonify({"status": "error", "message": str(ve)}), 400
+    except Exception as e:
+        db.rollback()
+        # Send a 500 for unexpected server errors
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
+@app.route('/fetch_all_details', methods=['POST'])
+@login_required
+def fetch_all_details():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        app_db_user = db.query(DbUser).filter_by(username=username).one()
+        objects_to_check = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+
+        modified = False
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+        for obj in objects_to_check:
+            needs_update = (
+                obj.type in refetch_triggers or
+                obj.magnitude in refetch_triggers or
+                obj.size in refetch_triggers or
+                obj.sb in refetch_triggers or
+                obj.constellation in refetch_triggers
+            )
+            if needs_update:
+                try:
+                    # Auto-calculate Constellation if missing
+                    if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
+                        coords = SkyCoord(ra=obj.ra_hours*u.hourangle, dec=obj.dec_deg*u.deg)
+                        obj.constellation = get_constellation(coords, short_name=True)
+                        modified = True
+
+                    # Fetch other details from external API
+                    fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
+                    if fetched_data.get("object_type"): obj.type = fetched_data["object_type"]
+                    if fetched_data.get("magnitude"): obj.magnitude = str(fetched_data["magnitude"])
+                    if fetched_data.get("size_arcmin"): obj.size = str(fetched_data["size_arcmin"])
+                    if fetched_data.get("surface_brightness"): obj.sb = str(fetched_data["surface_brightness"])
+                    modified = True
+                    time.sleep(0.5) # Be kind to external APIs
+                except Exception as e:
+                    print(f"Failed to fetch details for {obj.object_name}: {e}")
+
+        if modified:
+            db.commit()
+            flash("Fetched and saved missing object details.", "success")
+        else:
+            flash("No missing data found or no updates needed.", "info")
+
+    except Exception as e:
+        db.rollback()
+        flash(f"An error occurred during data fetching: {e}", "error")
+    finally:
+        db.close()
+
+    return redirect(url_for('config_form'))
 
 @app.route('/api/get_object_list')
 def get_object_list():
+    load_full_astro_context()
     """
     A new, very fast endpoint that just returns the list of object names.
     """
@@ -4170,226 +5310,344 @@ def get_object_list():
 
 @app.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):
-    """
-    A new endpoint that does the heavy calculation for only ONE object.
-    This contains the logic from your old /data endpoint.
-    """
-    local_tz = pytz.timezone(g.tz_name)
-    current_datetime_local = datetime.now(local_tz)
-
-    today_str = current_datetime_local.strftime('%Y-%m-%d')
-    dawn_today_str = calculate_sun_events_cached(today_str, g.tz_name, g.lat, g.lon).get("astronomical_dawn")
-    local_date = today_str
-    if dawn_today_str:
-        try:
-            dawn_today_dt = local_tz.localize(
-                datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
-            if current_datetime_local < dawn_today_dt:
-                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-        except (ValueError, TypeError):
-            pass
-
-    # --- NEW: Load horizon mask for the current location ---
-    current_location_config = g.locations.get(g.selected_location, {})
-    horizon_mask = current_location_config.get("horizon_mask")
-    # --- END NEW ---
-
-    altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
-    obj_details = get_ra_dec(object_name)
-
-    if not obj_details or obj_details.get("RA (hours)") is None:
-        # If the lookup fails, get the specific error message.
-        error_message = (obj_details.get("Common Name") if obj_details else "Object data not found in config.")
-
-        # Create a full payload with error information.
-        error_payload = {
-            'Object': object_name,
-            'Common Name': f"Error: {error_message}",
-            'Altitude Current': "N/A", 'Azimuth Current': "N/A", 'Trend': "–",
-            'Altitude 11PM': "N/A", 'Azimuth 11PM': "N/A",
-            'Transit Time': "N/A",
-            'Observable Duration (min)': "N/A",
-            'Max Altitude (°)': "N/A",
-            'Angular Separation (°)': "N/A",
-            'Project': "N/A",
-            'Time': datetime.now(pytz.timezone(g.tz_name)).strftime('%Y-%m-%d %H:%M:%S'),
-            'error': True  # Add a specific flag for frontend styling if needed
-        }
-        return jsonify(error_payload)
-
-    ra = obj_details["RA (hours)"]
-    dec = obj_details["DEC (degrees)"]
-    cache_key = f"{object_name.lower()}_{local_date}_{g.selected_location}"
-
-    # We will force a recalculation for now to test the new logic.
-    # Later, we can make the cache smarter.
-    # if cache_key in nightly_curves_cache:
-    #    del nightly_curves_cache[cache_key]
-
-    if cache_key not in nightly_curves_cache:
-        times_local, times_utc = get_common_time_arrays(g.tz_name, local_date, sampling_interval)
-        location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-        sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-        altaz_frame = AltAz(obstime=times_utc, location=location)
-        altitudes = sky_coord.transform_to(altaz_frame).alt.deg
-        azimuths = sky_coord.transform_to(altaz_frame).az.deg
-        transit_time = calculate_transit_time(ra, dec, g.lat, g.lon, g.tz_name, local_date)
-
-        # --- MODIFIED: Pass the horizon_mask to the calculation function ---
-        obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
-            ra, dec, g.lat, g.lon, local_date, g.tz_name, altitude_threshold, sampling_interval,
-            horizon_mask=horizon_mask
-        )
-        # --- END MODIFIED ---
-
-        fixed_time_utc_str = get_utc_time_for_local_11pm(g.tz_name)
-        alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, g.lat, g.lon, fixed_time_utc_str)
-        is_obstructed_at_11pm = False  # <-- THIS LINE WAS MISSING
-        if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-            required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
-
-            if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
-                is_obstructed_at_11pm = True
-        nightly_curves_cache[cache_key] = {
-            "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
-            "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
-            "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
-            "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
-            "is_obstructed_at_11pm": is_obstructed_at_11pm
-        }
-
-    cached_night_data = nightly_curves_cache[cache_key]
-    now_utc = datetime.now(pytz.utc)
-    time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
-    current_index = np.argmin(time_diffs)
-    current_alt = cached_night_data["altitudes"][current_index]
-    current_az = cached_night_data["azimuths"][current_index]
-
-    next_alt = cached_night_data["altitudes"][min(current_index + 1, len(cached_night_data["altitudes"]) - 1)]
-    trend = '–'
-    if abs(next_alt - current_alt) > 0.01:
-        trend = '↑' if next_alt > current_alt else '↓'
-
-    is_obstructed_now = False
-    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-        # We have a mask, let's check the current position against it
-        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-        required_altitude = interpolate_horizon(current_az, sorted_mask, altitude_threshold)
-
-        # If the object is above the simple threshold but below the mask's required altitude
-        if current_alt >= altitude_threshold and current_alt < required_altitude:
-            is_obstructed_now = True
-
-    time_obj = Time(datetime.now(pytz.utc))
-    location = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-    moon_coord = get_body('moon', time_obj, location)
-    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    frame = AltAz(obstime=time_obj, location=location)
-    angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
-    is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
-    active_flag = False
-    try:
-        cfg_objs = (g.user_config.get('objects') or []) if hasattr(g, 'user_config') else []
-        for _o in cfg_objs:
-            if str(_o.get('Object', '')).lower() == str(object_name).lower():
-                active_flag = bool(_o.get('ActiveProject', obj_details.get('ActiveProject', False)))
-                break
-    except Exception:
-        active_flag = bool(obj_details.get('ActiveProject', False))
-    single_object_data = {
-        'Object': obj_details['Object'], 'Common Name': obj_details['Common Name'],
-        'Altitude Current': f"{current_alt:.2f}", 'Azimuth Current': f"{current_az:.2f}", 'Trend': trend,
-        'Altitude 11PM': cached_night_data['alt_11pm'], 'Azimuth 11PM': cached_night_data['az_11pm'],
-        'Transit Time': cached_night_data['transit_time'],
-        'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
-        'Max Altitude (°)': cached_night_data['max_altitude'], 'Angular Separation (°)': round(angular_sep),
-        'Project': obj_details.get('Project', "none"), 'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-        'Constellation': obj_details.get('Constellation', 'N/A'), 'Type': obj_details.get('Type', 'N/A'),
-        'Magnitude': obj_details.get('Magnitude', 'N/A'), 'Size': obj_details.get('Size', 'N/A'),
-        'SB': obj_details.get('SB', 'N/A'),
-        'is_obstructed_now': is_obstructed_now,
-        'is_obstructed_at_11pm': is_obstructed_at_11pm,
-        'ActiveProject': active_flag
-    }
-    return jsonify(single_object_data)
-@app.route('/')
-def index():
+    # --- 1. Determine User (No change needed here) ---
     if SINGLE_USER_MODE:
         username = "default"
-        # g.is_guest is likely set to False by your before_request that logs in a dummy user
     elif current_user.is_authenticated:
         username = current_user.username
+    elif request.args.get('location'): # Allow guest if location provided
+         username = "guest_user"
     else:
-        # If guests can view the index page but have no specific journal,
-        # or if you have a 'journal_guest.yaml'.
-        # For now, assuming a guest might get an empty journal or one named 'guest_user'.
-        # Your @app.before_request loads config for 'guest_user' if not authenticated,
-        # so we can try to load a journal for 'guest_user'.
-        username = "guest_user"
+        # Deny guest if no location specified (cannot determine defaults)
+        return jsonify({
+             'Object': object_name, 'Common Name': "Error: Authentication required.", 'error': True
+         }), 401
 
-    journal_data = load_journal(username)  # Your function to load journal YAML
-    sessions = journal_data.get('sessions', [])
 
-    # --- Add target_common_name and calculated_integration_time to each session ---
-    # This assumes g.user_config is populated by your @app.before_request
-    # and contains the 'objects' list.
-    objects_from_config = []
-    if hasattr(g, 'user_config') and g.user_config and "objects" in g.user_config:
-        objects_from_config = g.user_config.get("objects", [])
-
-    object_names_lookup = {
-        obj.get("Object"): obj.get("Name", obj.get("Object"))  # Fallback to Object ID if Name is missing
-        for obj in objects_from_config if obj.get("Object")  # Ensure obj has an "Object" key
-    }
-    for session_entry in sessions:
-        target_id = session_entry.get('target_object_id')
-        if target_id:
-            # Look up the common name, default to 'N/A' if not found
-            common_name = object_names_lookup.get(target_id, 'N/A')
-            session_entry['target_common_name'] = common_name
-        else:
-            session_entry['target_common_name'] = 'N/A'
-
-    # Sort sessions by date descending by default for the journal tab initial view
+    db = get_db()
     try:
-        sessions.sort(key=lambda s: s.get('session_date', '1900-01-01'), reverse=True)
+        # --- 2. Get User Record (No change needed here) ---
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+             return jsonify({
+                 'Object': object_name, 'Common Name': "Error: User not found.", 'error': True
+             }), 404
+
+        # --- 3. Determine Location to Use (Modified: Query DB directly) ---
+        requested_location_name = request.args.get('location')
+        selected_location = None
+        current_location_config = {}
+
+        if requested_location_name:
+            # Try to load the specific location requested
+            selected_location = db.query(Location).filter_by(user_id=user.id, name=requested_location_name).options(selectinload(Location.horizon_points)).one_or_none()
+            if not selected_location:
+                 return jsonify({'Object': object_name, 'Common Name': "Error: Requested location not found.", 'error': True }), 404
+        else:
+            # Fallback to the user's default location
+            selected_location = db.query(Location).filter_by(user_id=user.id, is_default=True).options(selectinload(Location.horizon_points)).one_or_none()
+            # If no default, try the first active one
+            if not selected_location:
+                selected_location = db.query(Location).filter_by(user_id=user.id, active=True).options(selectinload(Location.horizon_points)).order_by(Location.id).first()
+
+        if not selected_location:
+             return jsonify({'Object': object_name, 'Common Name': "Error: No valid location configured or selected.", 'error': True }), 400
+
+        # Extract details from the selected location object
+        lat = selected_location.lat
+        lon = selected_location.lon
+        tz_name = selected_location.timezone
+        selected_location_name = selected_location.name
+        # Build the config-like dict for horizon mask etc.
+        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(selected_location.horizon_points, key=lambda p: p.az_deg)]
+        current_location_config = {
+            "lat": lat, "lon": lon, "timezone": tz_name,
+            "altitude_threshold": selected_location.altitude_threshold,
+            "horizon_mask": horizon_mask
+            # Add other fields if needed by calculations below
+        }
+        # --- End Location Determination ---
+
+        # --- 4. Query ONLY the specific object ---
+        obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
+
+        # Handle case where object isn't found for this user
+        if not obj_record:
+            # Optionally try SIMBAD as a fallback *here* if desired,
+            # or just return not found. Let's return not found for now.
+             return jsonify({
+                 'Object': object_name, 'Common Name': f"Error: Object '{object_name}' not found in your config.",
+                 'error': True
+             }), 404
+
+        # Extract necessary details
+        ra = obj_record.ra_hours
+        dec = obj_record.dec_deg
+        if ra is None or dec is None:
+             return jsonify({
+                 'Object': object_name, 'Common Name': f"Error: RA/DEC missing for '{object_name}'.",
+                 'error': True
+             }), 400
+
+        # --- 5. Perform Calculations (Largely unchanged, but uses specific object/location) ---
+        local_tz = pytz.timezone(tz_name)
+        current_datetime_local = datetime.now(local_tz)
+        today_str = current_datetime_local.strftime('%Y-%m-%d')
+        dawn_today_str = calculate_sun_events_cached(today_str, tz_name, lat, lon).get("astronomical_dawn")
+        local_date = today_str
+        if dawn_today_str:
+            try:
+                dawn_today_dt = local_tz.localize(
+                    datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
+                if current_datetime_local < dawn_today_dt:
+                    local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+            except (ValueError, TypeError): pass
+
+        # Load UI Prefs specifically for altitude_threshold and sampling_interval
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        user_prefs_dict = {}
+        if prefs_record and prefs_record.json_blob:
+            try: user_prefs_dict = json.loads(prefs_record.json_blob)
+            except: pass
+        altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
+        # Use location-specific threshold if available
+        if selected_location.altitude_threshold is not None:
+             altitude_threshold = selected_location.altitude_threshold
+
+        # Determine sampling interval based on mode
+        sampling_interval = 15 # Default
+        if SINGLE_USER_MODE:
+            sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
+        else:
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+
+        cache_key = f"{object_name.lower()}_{local_date}_{selected_location_name.lower().replace(' ', '_')}"
+
+        # Calculate or retrieve cached nightly data (logic remains similar)
+        if cache_key not in nightly_curves_cache:
+            times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+            location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            altaz_frame = AltAz(obstime=times_utc, location=location)
+            altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+            azimuths = sky_coord.transform_to(altaz_frame).az.deg
+            transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+            obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
+                horizon_mask=horizon_mask # Pass the specific mask
+            )
+            fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+            is_obstructed_at_11pm = False
+            if horizon_mask and len(horizon_mask) > 1:
+                sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+                if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                    is_obstructed_at_11pm = True
+
+            nightly_curves_cache[cache_key] = {
+                "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths, "transit_time": transit_time,
+                "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
+                "is_obstructed_at_11pm": is_obstructed_at_11pm
+            }
+
+        cached_night_data = nightly_curves_cache[cache_key]
+
+        # Calculate current position and trend (logic remains similar)
+        now_utc = datetime.now(pytz.utc)
+        time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
+        current_index = np.argmin(time_diffs)
+        current_alt = cached_night_data["altitudes"][current_index]
+        current_az = cached_night_data["azimuths"][current_index]
+        next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
+        next_alt = cached_night_data["altitudes"][next_index]
+        trend = '–'
+        if abs(next_alt - current_alt) > 0.01: trend = '↑' if next_alt > current_alt else '↓'
+
+        # Check obstruction now
+        is_obstructed_now = False
+        if horizon_mask and len(horizon_mask) > 1:
+            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            required_altitude_now = interpolate_horizon(current_az, sorted_mask, altitude_threshold)
+            if current_alt >= altitude_threshold and current_alt < required_altitude_now:
+                is_obstructed_now = True
+
+        # Calculate Moon separation (logic remains similar)
+        time_obj = Time(datetime.now(pytz.utc))
+        location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body('moon', time_obj, location_for_moon)
+        obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        frame = AltAz(obstime=time_obj, location=location_for_moon)
+        angular_sep = obj_coord_sky.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+
+        is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
+
+        # --- 6. Assemble JSON using the single object record ---
+        single_object_data = {
+            'Object': obj_record.object_name,
+            'Common Name': obj_record.common_name,
+            'Altitude Current': f"{current_alt:.2f}",
+            'Azimuth Current': f"{current_az:.2f}",
+            'Trend': trend,
+            'Altitude 11PM': cached_night_data['alt_11pm'],
+            'Azimuth 11PM': cached_night_data['az_11pm'],
+            'Transit Time': cached_night_data['transit_time'],
+            'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
+            'Max Altitude (°)': cached_night_data['max_altitude'],
+            'Angular Separation (°)': round(angular_sep),
+            'Project': obj_record.project_name or "none",
+            'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
+            'Constellation': obj_record.constellation or 'N/A',
+            'Type': obj_record.type or 'N/A',
+            'Magnitude': obj_record.magnitude or 'N/A',
+            'Size': obj_record.size or 'N/A',
+            'SB': obj_record.sb or 'N/A',
+            'is_obstructed_now': is_obstructed_now,
+            'is_obstructed_at_11pm': is_obstructed_at_11pm,
+            'ActiveProject': obj_record.active_project or False,
+            'error': False
+        }
+        return jsonify(single_object_data)
+
     except Exception as e:
-        print(f"Warning: Could not sort journal sessions by date in index route: {e}")
+        print(f"ERROR in get_object_data for '{object_name}': {e}")
+        traceback.print_exc()
+        # Return a generic error structure
+        return jsonify({
+            'Object': object_name, 'Common Name': "Error processing request.", 'error': True
+        }), 500
+    finally:
+        db.close()
+@app.route('/')
+def index():
+    load_full_astro_context()
+    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return redirect(url_for('login'))
 
-    return render_template('index.html',
-                           journal_sessions=sessions
-                           # Pass any other variables your index.html template already expects.
-                           # For example, if your base.html or index.html uses 'is_guest':
-                           # is_guest = g.is_guest if hasattr(g, 'is_guest') else (not current_user.is_authenticated and not SINGLE_USER_MODE)
-                           )
+    username = "default" if SINGLE_USER_MODE else current_user.username if current_user.is_authenticated else "guest_user"
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            # Handle case where user is authenticated but not yet in app.db
+            return render_template('index.html', journal_sessions=[])
 
+        sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
+        objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
+        object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
+
+        # --- THIS IS THE CRITICAL FIX ---
+        # Convert the list of objects into a list of JSON-safe dictionaries
+        sessions_for_template = []
+        for session in sessions:
+            # Create a dictionary from the database object's columns
+            session_dict = {c.name: getattr(session, c.name) for c in session.__table__.columns}
+
+            # Convert the date object to an ISO string for JavaScript
+            if isinstance(session_dict.get('date_utc'), (datetime, date)):
+                session_dict['date_utc'] = session_dict['date_utc'].isoformat()
+
+            # Add the common name for convenience in the template
+            session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
+
+            sessions_for_template.append(session_dict)
+        # --- END OF FIX ---
+
+        local_tz = pytz.timezone(g.tz_name or 'UTC')
+        now_local = datetime.now(local_tz)
+
+        return render_template('index.html',
+                               journal_sessions=sessions_for_template,  # Pass the new list of dictionaries
+                               selected_day=now_local.day,
+                               selected_month=now_local.month,
+                               selected_year=now_local.year)
+    finally:
+        db.close()
 
 @app.route('/sun_events')
 def sun_events():
-    local_tz = pytz.timezone(g.tz_name)
+    """
+    API endpoint to calculate and return sun event times (dusk, dawn, etc.)
+    and the current moon phase for a specific location. Uses the location
+    specified in the 'location' query parameter or falls back to the
+    user's default location.
+    """
+    load_full_astro_context()
+    # --- Determine location to use ---
+    requested_location_name = request.args.get('location')
+    lat, lon, tz_name = g.lat, g.lon, g.tz_name # Defaults from flask global 'g'
+
+    # Prioritize the location passed in the query parameter
+    if requested_location_name and requested_location_name in g.locations:
+        loc_cfg = g.locations[requested_location_name]
+        lat = loc_cfg.get("lat")
+        lon = loc_cfg.get("lon")
+        tz_name = loc_cfg.get("timezone", "UTC")
+        # print(f"[API Sun Events] Using requested location: {requested_location_name}") # Optional debug print
+    elif g.selected_location and g.selected_location in g.locations:
+         # Fallback to default location if request param is missing/invalid but default exists
+         loc_cfg = g.locations[g.selected_location]
+         lat = loc_cfg.get("lat", g.lat) # Use default g value if key missing in specific config
+         lon = loc_cfg.get("lon", g.lon)
+         tz_name = loc_cfg.get("timezone", g.tz_name or "UTC") # Use g.tz_name as fallback if timezone missing
+         # print(f"[API Sun Events] Using default location: {g.selected_location}") # Optional debug print
+    else:
+         # print(f"[API Sun Events] Warning: No location specified or default found.") # Optional debug print
+         # lat, lon, tz_name remain the initial g values (which might be None)
+         pass # Proceed, error handled below
+
+    # If after checks, we don't have valid coordinates, return an error immediately
+    if lat is None or lon is None:
+        # print("[API Sun Events] Error: Invalid coordinates (lat or lon is None).") # Optional debug print
+        return jsonify({
+            "date": datetime.now().strftime('%Y-%m-%d'),
+            "time": datetime.now().strftime('%H:%M'),
+            "phase": 0, # Default phase
+            "error": "No location set or location has invalid coordinates."
+        }), 400 # Bad request status
+    # --- END Location Determination ---
+
+    # --- Use the determined (valid) lat, lon, tz_name variables below ---
+    try:
+        local_tz = pytz.timezone(tz_name) # Use determined tz_name
+    except pytz.UnknownTimeZoneError:
+        # Handle invalid timezone string
+        # print(f"[API Sun Events] Error: Invalid timezone '{tz_name}'. Falling back to UTC.") # Optional debug print
+        tz_name = "UTC"
+        local_tz = pytz.utc
+
     now_local = datetime.now(local_tz)
     local_date = now_local.strftime('%Y-%m-%d')
 
-    # Calculate sun events
-    events = calculate_sun_events_cached(local_date, g.tz_name, g.lat, g.lon)
+    # Calculate sun events using determined variables
+    events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
 
-    # Calculate moon phase
-    moon = ephem.Moon()
-    observer = ephem.Observer()
-    observer.lat = str(g.lat)
-    observer.lon = str(g.lon)
-    observer.date = now_local.astimezone(pytz.utc)
-    moon.compute(observer)
+    # Calculate moon phase using determined variables
+    try:
+        moon = ephem.Moon()
+        observer = ephem.Observer()
+        observer.lat = str(lat) # Use determined lat (ephem needs string)
+        observer.lon = str(lon) # Use determined lon (ephem needs string)
+        observer.date = now_local.astimezone(pytz.utc) # Use current time converted to UTC
+        moon.compute(observer)
+        moon_phase = round(moon.phase, 1)
+    except Exception as e:
+        # Handle potential errors during ephem calculation
+        print(f"[API Sun Events] Error calculating moon phase: {e}") # Log error
+        moon_phase = "N/A" # Indicate error in response
 
-    # Add all data to the response
+    # Add all data to the response JSON
     events["date"] = local_date
     events["time"] = now_local.strftime('%H:%M')
-    events["phase"] = round(moon.phase, 1)
+    events["phase"] = moon_phase # Use calculated (or N/A) phase
+    # Add error field if moon phase calculation failed
+    if moon_phase == "N/A":
+        events["error"] = events.get("error","") + " Moon phase calculation failed."
 
     return jsonify(events)
-
 
 @app.route("/telemetry/ping", methods=["POST"])
 def telemetry_ping():
@@ -4402,7 +5660,10 @@ def telemetry_ping():
         username = "default"
 
     try:
-        cfg = g.user_config if hasattr(g, "user_config") else load_user_config(username)
+        # === START REFACTOR ===
+        # Use the g.user_config, which is already loaded from the DB
+        cfg = g.user_config if hasattr(g, "user_config") else {}
+        # === END REFACTOR ===
     except Exception:
         cfg = {}
 
@@ -4425,7 +5686,7 @@ def telemetry_ping():
     # DO NOT force a send here; avoid doubling the startup/daily sends.
     # Only trigger a send if the 24h gate says it's okay right now.
     try:
-        state_dir = Path(os.environ.get('NOVA_STATE_DIR', './cache'))
+        state_dir = Path(os.environ.get('NOVA_STATE_DIR', CACHE_DIR))
         if telemetry_should_send(state_dir):
             send_telemetry_async(cfg, browser_user_agent=ua_final, force=False)
         # else: silently skip; scheduler or next allowed window will send
@@ -4434,464 +5695,243 @@ def telemetry_ping():
 
     return jsonify({"status": "ok"}), 200
 
-
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
+    load_full_astro_context()
     error = None
     message = None
-    updated = False
-    username_for_save = "default" if SINGLE_USER_MODE else current_user.username
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        # Get the primary user object from our application DB
+        app_db_user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not app_db_user:
+            flash(f"Could not find user '{username}' in the database.", "error")
+            return redirect(url_for('index'))
 
-    if request.method == 'POST':
-        try:
+        # --- POST Request: Handle Form Submissions ---
+        if request.method == 'POST':
+            # --- General Settings Tab ---
             if 'submit_general' in request.form:
-                new_altitude_threshold = request.form.get('altitude_threshold')
-                new_default_location = request.form.get('default_location', g.user_config.get("default_location", ""))
+                # Load or create the user's preferences record
+                prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+                if not prefs:
+                    prefs = UiPref(user_id=app_db_user.id, json_blob='{}')
+                    db.add(prefs)
 
+                # Safely parse existing JSON, update it, and write it back
                 try:
-                    threshold_value = int(new_altitude_threshold)
-                    if threshold_value < 0 or threshold_value > 90:
-                        raise ValueError("Altitude threshold must be between 0 and 90 degrees.")
-                    g.user_config['altitude_threshold'] = threshold_value
-                except (ValueError, TypeError) as ve:
-                    error = str(ve)
+                    settings = json.loads(prefs.json_blob or '{}')
+                except json.JSONDecodeError:
+                    settings = {}
 
-                g.user_config['default_location'] = new_default_location
+                # Update settings from the form
+                settings['altitude_threshold'] = int(request.form.get('altitude_threshold', 20))
+                settings['default_location'] = request.form.get('default_location', settings.get('default_location'))
 
                 if SINGLE_USER_MODE:
-                    g.user_config['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
-                    telemetry_enabled = bool(request.form.get('telemetry_enabled'))
-                    tcfg = g.user_config.setdefault('telemetry', {})
-                    tcfg['enabled'] = telemetry_enabled
+                    settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
+                    settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
 
-                imaging = g.user_config.setdefault("imaging_criteria", {})
-                try:
-                    imaging["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
-                    imaging["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
-                    imaging["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
-                    imaging["min_angular_separation"] = int(request.form.get("min_angular_separation", 30))
-                    imaging["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
-                except (ValueError, TypeError) as ve:
-                    error = (error + "; " if error else "") + f"Invalid imaging criteria: {ve}"
+                # Update imaging criteria
+                imaging_criteria = settings.setdefault("imaging_criteria", {})
+                imaging_criteria["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
+                imaging_criteria["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
+                imaging_criteria["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
+                imaging_criteria["min_angular_separation"] = int(request.form.get("min_angular_separation", 30))
+                imaging_criteria["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
 
-                message = "Settings updated."
-                updated = True
+                prefs.json_blob = json.dumps(settings)
+                message = "General settings updated."
 
+            # --- Add New Location ---
             elif 'submit_new_location' in request.form:
-                new_location_name = request.form.get("new_location")
-                new_lat = request.form.get("new_lat")
-                new_lon = request.form.get("new_lon")
-                new_timezone = request.form.get("new_timezone")
-                new_active = request.form.get("new_active") == "on"
-                new_horizon_mask_str = request.form.get("new_horizon_mask", "").strip()
-                new_comments = request.form.get("new_comments", "").strip()[:500]
-
-                active_count = sum(1 for loc in g.user_config.get("locations", {}).values() if loc.get('active', True))
-
-                if new_active and active_count >= MAX_ACTIVE_LOCATIONS:
-                    error = f"Cannot add as active: You have reached the limit of {MAX_ACTIVE_LOCATIONS} active locations."
-                elif not all([new_location_name, new_lat, new_lon, new_timezone]):
-                    error = "Name, Latitude, Longitude, and Timezone are required to add a new location."
+                new_name = request.form.get("new_location").strip()
+                # Check for existing location with the same name for this user
+                existing = db.query(Location).filter_by(user_id=app_db_user.id, name=new_name).first()
+                if existing:
+                     error = f"A location named '{new_name}' already exists."
+                elif not all([new_name, request.form.get("new_lat"), request.form.get("new_lon"), request.form.get("new_timezone")]):
+                    error = "Name, Latitude, Longitude, and Timezone are required."
                 else:
-                    try:
-                        lat_val = float(new_lat)
-                        lon_val = float(new_lon)
-                        if new_timezone not in pytz.all_timezones:
-                            raise ValueError("Invalid timezone provided.")
-
-                        new_loc_data = {
-                            "lat": lat_val, "lon": lon_val, "timezone": new_timezone,
-                            "active": new_active, "comments": new_comments
-                        }
-
-                        if new_horizon_mask_str:
-                            try:
-                                mask_data = yaml.safe_load(new_horizon_mask_str)
-                                if isinstance(mask_data, list):
-                                    new_loc_data['horizon_mask'] = mask_data
-                                else:
-                                    flash("Warning: Horizon Mask was not a valid list and was ignored.", "warning")
-                            except yaml.YAMLError:
-                                flash("Warning: Invalid format for Horizon Mask, it was not saved.", "warning")
-
-                        g.user_config.setdefault('locations', {})[new_location_name] = new_loc_data
-                        message = "New location added successfully."
-                        updated = True
-
-                        if new_active:
-                            thread = threading.Thread(target=update_outlook_cache,
-                                                      args=(username_for_save, new_location_name, g.user_config.copy(),
-                                                            g.sampling_interval))
-                            thread.start()
-
-                    except (ValueError, TypeError) as ve:
-                        error = f"Invalid input for new location: {ve}"
-
-            elif 'submit_locations' in request.form:
-                updated_locations = {}
-                active_count = 0
-
-                for loc_key, loc_data in g.user_config.get("locations", {}).items():
-                    if request.form.get(f"delete_loc_{loc_key}") == "on":
-                        continue
-
-                    is_active = request.form.get(f"active_{loc_key}") == "on"
-                    if is_active:
-                        active_count += 1
-
-                    try:
-                        new_lat = float(request.form.get(f"lat_{loc_key}"))
-                        new_lon = float(request.form.get(f"lon_{loc_key}"))
-                        new_timezone = request.form.get(f"timezone_{loc_key}")
-                        if new_timezone not in pytz.all_timezones:
-                            raise ValueError(f"Invalid timezone for {loc_key}")
-
-                        comments = request.form.get(f"comments_{loc_key}", "").strip()[:500]
-
-                        updated_loc_data = {
-                            "lat": new_lat, "lon": new_lon, "timezone": new_timezone,
-                            "active": is_active, "comments": comments
-                        }
-
-                        horizon_mask_str = request.form.get(f"horizon_mask_{loc_key}", "").strip()
-                        if horizon_mask_str:
-                            mask_data = yaml.safe_load(horizon_mask_str)
+                    new_loc = Location(
+                        user_id=app_db_user.id,
+                        name=new_name,
+                        lat=float(request.form.get("new_lat")),
+                        lon=float(request.form.get("new_lon")),
+                        timezone=request.form.get("new_timezone"),
+                        active=request.form.get("new_active") == "on",
+                        comments=request.form.get("new_comments", "").strip()[:500]
+                    )
+                    db.add(new_loc)
+                    db.flush() # So new_loc gets an ID
+                    # Add horizon mask points if provided
+                    mask_str = request.form.get("new_horizon_mask", "").strip()
+                    if mask_str:
+                        try:
+                            mask_data = yaml.safe_load(mask_str)
                             if isinstance(mask_data, list):
-                                updated_loc_data['horizon_mask'] = mask_data
+                                for point in mask_data:
+                                    db.add(HorizonPoint(location_id=new_loc.id, az_deg=float(point[0]), alt_min_deg=float(point[1])))
+                        except (yaml.YAMLError, ValueError, TypeError):
+                             flash("Warning: Horizon Mask was invalid and was ignored.", "warning")
+                    message = "New location added."
 
-                        updated_locations[loc_key] = updated_loc_data
-                    except (ValueError, TypeError) as ve:
-                        error = (error + "; " if error else "") + f"Invalid data for {loc_key}: {ve}"
-
-                if not error:
-                    if active_count > MAX_ACTIVE_LOCATIONS:
-                        error = f"Update failed: You cannot have more than {MAX_ACTIVE_LOCATIONS} active locations."
-                    else:
-                        g.user_config['locations'] = updated_locations
-                        message = "Locations updated."
-                        updated = True
-
-            elif 'submit_objects' in request.form:
-                # This block remains unchanged but is included for completeness
-                new_objects_list = []
-                original_objects_list = g.user_config.get("objects", [])
-                made_changes_this_block = False
-
-                for existing_obj_data in original_objects_list:
-                    object_key = existing_obj_data.get("Object")
-                    if not object_key or request.form.get(f"delete_{object_key}") == "on":
-                        made_changes_this_block = True
+            # --- Update Existing Locations ---
+            elif 'submit_locations' in request.form:
+                locs_to_update = db.query(Location).filter_by(user_id=app_db_user.id).all()
+                for loc in locs_to_update:
+                    if request.form.get(f"delete_loc_{loc.name}") == "on":
+                        db.delete(loc)
                         continue
+                    # Update fields from form
+                    loc.lat = float(request.form.get(f"lat_{loc.name}"))
+                    loc.lon = float(request.form.get(f"lon_{loc.name}"))
+                    loc.timezone = request.form.get(f"timezone_{loc.name}")
+                    loc.active = request.form.get(f"active_{loc.name}") == "on"
+                    loc.comments = request.form.get(f"comments_{loc.name}", "").strip()[:500]
+                    # Update horizon mask
+                    db.query(HorizonPoint).filter_by(location_id=loc.id).delete()
+                    mask_str = request.form.get(f"horizon_mask_{loc.name}", "").strip()
+                    if mask_str:
+                        try:
+                            mask_data = yaml.safe_load(mask_str)
+                            if isinstance(mask_data, list):
+                                for point in mask_data:
+                                    db.add(HorizonPoint(location_id=loc.id, az_deg=float(point[0]), alt_min_deg=float(point[1])))
+                        except Exception:
+                            flash(f"Warning: Horizon Mask for '{loc.name}' was invalid and ignored.", "warning")
 
-                    updated_obj_data = existing_obj_data.copy()
-                    form_fields = ["Name", "RA", "DEC", "Project", "Type", "Constellation", "Magnitude", "Size", "SB"]
+                message = "Locations updated."
 
-                    for field in form_fields:
-                        form_key = f"{field.lower().replace(' (′)', '').replace(' ', '_')}_{object_key}"
-                        new_value = request.form.get(form_key, updated_obj_data.get(field))
-                        if updated_obj_data.get(field) != new_value:
-                            updated_obj_data[field] = new_value
-                            made_changes_this_block = True
+            # --- Update Existing Objects ---
+            elif 'submit_objects' in request.form:
+                objs_to_update = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+                for obj in objs_to_update:
+                    if request.form.get(f"delete_{obj.object_name}") == "on":
+                        db.delete(obj)
+                        continue
+                    # Update fields from form
+                    obj.common_name = request.form.get(f"name_{obj.object_name}")
+                    obj.ra_hours = float(request.form.get(f"ra_{obj.object_name}"))
+                    obj.dec_deg = float(request.form.get(f"dec_{obj.object_name}"))
+                    obj.project_name = request.form.get(f"project_{obj.object_name}")
+                    obj.type = request.form.get(f"type_{obj.object_name}")
+                    obj.magnitude = request.form.get(f"magnitude_{obj.object_name}")
+                    obj.size = request.form.get(f"size_{obj.object_name}")
+                    obj.sb = request.form.get(f"sb_{obj.object_name}")
+                message = "Objects updated."
 
-                    new_objects_list.append(updated_obj_data)
-
-                if made_changes_this_block:
-                    g.user_config['objects'] = new_objects_list
-                    updated = True
-                    message = "Objects updated."
-
-            if updated and not error:
-                save_user_config(username_for_save, g.user_config)
+            # --- Final Commit and Redirect ---
+            if not error:
+                db.commit()
                 flash(f"{message or 'Configuration'} updated successfully.", "success")
                 return redirect(url_for('config_form'))
-
-            if error:
+            else:
+                db.rollback()
                 flash(error, "error")
 
-        except Exception as e:
-            flash(f"An unexpected error occurred: {e}", "error")
-            traceback.print_exc()
+        # --- GET Request: Populate Template Context from DB ---
+        # Build a config-like dictionary for the template to use
+        config_for_template = {}
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+        if prefs and prefs.json_blob:
+            try:
+                config_for_template = json.loads(prefs.json_blob)
+            except json.JSONDecodeError:
+                pass # Use empty dict on parse error
 
-    return render_template('config_form.html', config=g.user_config, locations=g.locations)
+        # Load locations for the template
+        locations_for_template = {}
+        db_locations = db.query(Location).filter_by(user_id=app_db_user.id).order_by(Location.name).all()
+        for loc in db_locations:
+            locations_for_template[loc.name] = {
+                "lat": loc.lat,
+                "lon": loc.lon,
+                "timezone": loc.timezone,
+                "active": loc.active,
+                "comments": loc.comments,
+                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(loc.horizon_points, key=lambda p: p.az_deg)]
+            }
+            if loc.is_default:
+                config_for_template['default_location'] = loc.name
 
+        # Load objects for the template
+        db_objects = db.query(AstroObject).filter_by(user_id=app_db_user.id).order_by(AstroObject.object_name).all()
+        config_for_template['objects'] = [{
+            "Object": o.object_name,
+            "Name": o.common_name,
+            "RA": o.ra_hours,
+            "DEC": o.dec_deg,
+            "Project": o.project_name,
+            "Constellation": o.constellation,
+            "Type": o.type,
+            "Magnitude": o.magnitude,
+            "Size": o.size,
+            "SB": o.sb
+        } for o in db_objects]
 
-@app.before_request
-def precompute_time_arrays():
-    if current_user.is_authenticated and g.tz_name:
-        local_tz = pytz.timezone(g.tz_name)
-        local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
-        g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date)
+        return render_template('config_form.html', config=config_for_template, locations=locations_for_template)
 
+    except Exception as e:
+        db.rollback()
+        flash(f"A database error occurred: {e}", "error")
+        traceback.print_exc()
+        return redirect(url_for('index'))
+    finally:
+        db.close()
 
 @app.route('/update_project', methods=['POST'])
 @login_required
 def update_project():
     data = request.get_json()
     object_name = data.get('object')
-    new_project = data.get('project')
-
-    if not object_name:
-        return jsonify({"status": "error", "error": "Object name is missing."}), 400
-
+    new_project_notes = data.get('project')
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        # Load the current configuration for the user.
-        config = load_user_config(current_user.username)
-        found = False
-        # Locate the object in the objects list.
-        for obj in config.get("objects", []):
-            if obj.get("Object").lower() == object_name.lower():
-                obj["Project"] = new_project
-                found = True
-                break
-        if not found:
-            return jsonify({"status": "error", "error": "Object not found in configuration."}), 404
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj_to_update = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
-        # Save the updated configuration.
-        save_user_config(current_user.username, config)
-
-        trigger_outlook_update_for_user(current_user.username)
-
-        # Optionally update the persistent cache.
-        key = object_name.lower()
-
-        return jsonify({"status": "success"})
-    except Exception as exception_value:
-        return jsonify({"status": "error", "error": str(exception_value)}), 500
+        if obj_to_update:
+            obj_to_update.project_name = new_project_notes
+            db.commit()
+            trigger_outlook_update_for_user(username)
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"status": "error", "error": "Object not found."}), 404
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "error": str(e)}), 500
+    finally:
+        db.close()
 
 @app.route('/update_project_active', methods=['POST'])
 @login_required
 def update_project_active():
+    data = request.get_json()
+    object_name = data.get('object')
+    is_active = data.get('active')
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
     try:
-        payload = request.get_json(force=True) or {}
-        object_name = payload.get('object')
-        active = payload.get('active')
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj_to_update = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
-        if object_name is None or active is None:
-            return jsonify({"status": "error", "error": "Missing object or active flag."}), 400
-
-        username = "default" if SINGLE_USER_MODE else current_user.username
-        config = load_user_config(username)
-
-        found = False
-        for obj in config.get('objects', []):
-            if str(obj.get('Object', '')).lower() == str(object_name).lower():
-                obj['ActiveProject'] = bool(active)
-                found = True
-                break
-
-        if not found:
-            return jsonify({"status": "error", "error": "Object not found in configuration."}), 404
-
-        save_user_config(username, config)
-        # Refresh downstream views/caches (safe no-op if helper not present)
-        try:
+        if obj_to_update:
+            obj_to_update.active_project = bool(is_active)
+            db.commit()
             trigger_outlook_update_for_user(username)
-        except Exception:
-            pass
-        return jsonify({"status": "success", "active": bool(active)})
-
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
-
-
-@app.before_request
-def bypass_login_in_single_user():
-    if SINGLE_USER_MODE and not current_user.is_authenticated:
-        # Create a dummy user.
-        dummy_user = User("default", "default")
-        # Log in the dummy user.
-        login_user(dummy_user)
-
-
-@app.route('/plot_yearly_altitude/<path:object_name>')
-def plot_yearly_altitude(object_name):
-    # --- Determine Year for the plot from request.args ---
-    current_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'  # For default year
-    now_for_defaults = datetime.now(pytz.timezone(current_tz_name))
-    try:
-        year = int(request.args.get('year', now_for_defaults.year))
-        # Year validation can be added if necessary
-    except ValueError:
-        year = now_for_defaults.year
-        # Optionally flash a message or log if invalid year provided
-
-    # --- Get Object Details ---
-    object_details_for_plot = get_ra_dec(object_name)
-    if not object_details_for_plot or object_details_for_plot.get('RA (hours)') is None:
-        print(f"ERROR: /plot_yearly_altitude - Could not get RA/DEC for object: {object_name}")
-        return jsonify({'error': f'Data for object {object_name} not found.'}), 404
-
-    ra_hours = object_details_for_plot['RA (hours)']
-    dec_degrees = object_details_for_plot['DEC (degrees)']
-    alt_name_for_plot = object_details_for_plot.get("Common Name", object_name)
-
-    # --- Determine Location details for the plot ---
-    default_lat = g.lat if hasattr(g, 'lat') else 0.0
-    default_lon = g.lon if hasattr(g, 'lon') else 0.0
-    default_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
-    default_location_name = g.selected_location if hasattr(g,
-                                                           'selected_location') and g.selected_location else 'Default Location'
-
-    plot_lat_str = request.args.get('plot_lat')
-    plot_lon_str = request.args.get('plot_lon')
-    plot_lat = float(plot_lat_str) if plot_lat_str is not None else None
-    plot_lon = float(plot_lon_str) if plot_lon_str is not None else None
-    plot_tz_name = request.args.get('plot_tz', type=str)
-    plot_location_display_name = request.args.get('plot_loc_name', type=str)
-
-    final_lat = plot_lat if plot_lat is not None else default_lat
-    final_lon = plot_lon if plot_lon is not None else default_lon
-    final_tz_name = plot_tz_name if plot_tz_name else default_tz_name
-    final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
-
-    # print(f"DEBUG: /plot_yearly_altitude - Plotting for obj='{object_name}', loc='{final_location_name}', year={year}")
-
-    # Call your actual Matplotlib plotting function for yearly view
-    filepath = plot_yearly_altitude_curve(  # Your function that generates the image
-        object_name=object_name,
-        alt_name=alt_name_for_plot,
-        ra=ra_hours,
-        dec=dec_degrees,
-        lat=final_lat,
-        lon=final_lon,
-        tz_name=final_tz_name,
-        selected_location=final_location_name,  # For graph title/filename
-        year=year
-    )
-
-    if os.path.exists(filepath):
-        return send_file(filepath, mimetype='image/png')
-    else:
-        print(f"ERROR: /plot_yearly_altitude - Plot file not found for '{object_name}' at path: {filepath}")
-        return jsonify({'error': f'Yearly plot image {os.path.basename(filepath)} not found.'}), 404
-
-@app.route('/plot_monthly_altitude/<path:object_name>')
-def plot_monthly_altitude(object_name):
-    # --- Determine Year and Month for the plot from request.args ---
-    current_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
-    now_for_defaults = datetime.now(pytz.timezone(current_tz_name))
-    try:
-        year = int(request.args.get('year', now_for_defaults.year))
-        month = int(request.args.get('month', now_for_defaults.month))
-        # Basic validation
-        if not (1 <= month <= 12):
-            month = now_for_defaults.month
-        # Year validation can be added if necessary (e.g., range)
-    except ValueError:
-        year = now_for_defaults.year
-        month = now_for_defaults.month
-        # Optionally flash a message or log if invalid year/month provided
-
-    # --- Get Object Details ---
-    object_details_for_plot = get_ra_dec(object_name)
-    if not object_details_for_plot or object_details_for_plot.get('RA (hours)') is None:
-        print(f"ERROR: /plot_monthly_altitude - Could not get RA/DEC for object: {object_name}")
-        return jsonify({'error': f'Data for object {object_name} not found.'}), 404
-
-    ra_hours = object_details_for_plot['RA (hours)']
-    dec_degrees = object_details_for_plot['DEC (degrees)']
-    alt_name_for_plot = object_details_for_plot.get("Common Name", object_name)
-
-    # --- Determine Location details for the plot ---
-    default_lat = g.lat if hasattr(g, 'lat') else 0.0
-    default_lon = g.lon if hasattr(g, 'lon') else 0.0
-    default_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
-    default_location_name = g.selected_location if hasattr(g,
-                                                           'selected_location') and g.selected_location else 'Default Location'
-
-    plot_lat_str = request.args.get('plot_lat')
-    plot_lon_str = request.args.get('plot_lon')
-    plot_lat = float(plot_lat_str) if plot_lat_str is not None else None
-    plot_lon = float(plot_lon_str) if plot_lon_str is not None else None
-    plot_tz_name = request.args.get('plot_tz', type=str)
-    plot_location_display_name = request.args.get('plot_loc_name', type=str)
-
-    final_lat = plot_lat if plot_lat is not None else default_lat
-    final_lon = plot_lon if plot_lon is not None else default_lon
-    final_tz_name = plot_tz_name if plot_tz_name else default_tz_name
-    final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
-
-    print(
-        f"DEBUG: /plot_monthly_altitude - Plotting for obj='{object_name}', loc='{final_location_name}', year={year}, month={month}")
-
-    # Call your actual Matplotlib plotting function for monthly view
-    filepath = plot_monthly_altitude_curve(  # Your function that generates the image
-        object_name=object_name,
-        alt_name=alt_name_for_plot,
-        ra=ra_hours,
-        dec=dec_degrees,
-        lat=final_lat,
-        lon=final_lon,
-        tz_name=final_tz_name,
-        selected_location=final_location_name,  # For graph title/filename
-        year=year,
-        month=month
-    )
-
-    if os.path.exists(filepath):
-        return send_file(filepath, mimetype='image/png')
-    else:
-        print(f"ERROR: /plot_monthly_altitude - Plot file not found for '{object_name}' at path: {filepath}")
-        return jsonify({'error': f'Monthly plot image {os.path.basename(filepath)} not found.'}), 404
-
-
-@app.route('/plot/<object_name>')
-def plot_altitude(object_name):
-    # print("DEBUG: request.args =", request.args)
-    data = get_ra_dec(object_name)
-    if data:
-        if data['RA (hours)'] is None or data['DEC (degrees)'] is None:
-            return jsonify({"error": f"Graph not available: {data.get('Project', 'No data')}"}), 400
-        project = data.get('Project', "none")
-        alt_name = data.get("Common Name", object_name)
-
-        now_local = datetime.now(pytz.timezone(g.tz_name))
-        day_str = request.args.get('day')
-        month_str = request.args.get('month')
-        year_str = request.args.get('year')
-
-        try:
-            day = int(day_str) if day_str and day_str.strip() != "" else now_local.day
-        except ValueError:
-            day = now_local.day
-
-        try:
-            month = int(month_str) if month_str and month_str.strip() != "" else now_local.month
-        except ValueError:
-            month = now_local.month
-
-        try:
-            year = int(year_str) if year_str and year_str.strip() != "" else now_local.year
-        except ValueError:
-            year = now_local.year
-
-        local_date = f"{year}-{month:02d}-{day:02d}"
-        # print("DEBUG: Plotting for date:", local_date)  # Debug print
-
-        filepath = plot_altitude_curve(
-            object_name,
-            alt_name,
-            data['RA (hours)'],
-            data['DEC (degrees)'],
-            g.lat, g.lon,
-            local_date,
-            g.tz_name,
-            g.selected_location
-        )
-        if os.path.exists(filepath):
-            return render_template('graph.html',
-                                   object_name=object_name,
-                                   project=project,
-                                   filename=os.path.basename(filepath),
-                                   timestamp=datetime.now().timestamp(),
-                                   date=local_date,
-                                   location=g.selected_location,
-                                   selected_month=month,
-                                   selected_year=year)
+            return jsonify({"status": "success", "active": obj_to_update.active_project})
         else:
-            return jsonify({'error': 'Plot not found'}), 404
-    return jsonify({"error": "Object not found"}), 404
+            return jsonify({"status": "error", "error": "Object not found."}), 404
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "error": str(e)}), 500
+    finally:
+        db.close()
+
 
 def get_object_list_from_config():
     """Helper function to get the list of objects from the current user's config."""
@@ -4945,309 +5985,284 @@ def get_moon_data_for_session():
 
 @app.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
-    # --- Initialize effective context with global defaults/URL args ---
-    effective_location_name = g.selected_location if hasattr(g,
-                                                             'selected_location') and g.selected_location else "Unknown"
-    effective_lat = g.lat if hasattr(g, 'lat') else 0.0
-    effective_lon = g.lon if hasattr(g, 'lon') else 0.0
-    effective_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
+    # --- 1. Determine User (No change) ---
+    if not (SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
+        # If none are true, *then* redirect to login
+        flash("Please log in to view object details.", "info")
+        return redirect(url_for('login'))
 
-    now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
-    effective_day = now_at_effective_location.day
-    effective_month = now_at_effective_location.month
-    effective_year = now_at_effective_location.year
-
-    if request.args.get('day'):
-        try:
-            effective_day = int(request.args.get('day'))
-        except ValueError:
-            pass
-    if request.args.get('month'):
-        try:
-            effective_month = int(request.args.get('month'))
-        except ValueError:
-            pass
-    if request.args.get('year'):
-        try:
-            effective_year = int(request.args.get('year'))
-        except ValueError:
-            pass
-
-    # --- Journal Data Logic (CORRECTED INITIALIZATION) ---
-    object_specific_sessions, selected_session_data = [], None
-    requested_session_id = request.args.get('session_id')
-    grouped_sessions = []  # <-- FIX: Initialize here, outside the 'if'
-    all_projects = []  # <-- FIX: Initialize here, outside the 'if'
-
+    # Determine username based on the mode/status
     if SINGLE_USER_MODE:
-        username_for_journal = "default"
+        username = "default"
     elif current_user.is_authenticated:
-        username_for_journal = current_user.username
-    else:
-        username_for_journal = "guest_user"
+        username = current_user.username
+    else:  # Must be a guest if we reached here
+        username = "guest_user"
 
-    if username_for_journal:
-        journal_data = load_journal(username_for_journal)
-        all_projects = journal_data.get('projects', [])
-        all_projects.sort(key=lambda p: p.get('project_name', '').lower())
-        all_user_sessions = journal_data.get('sessions', [])
+    db = get_db()
+    try:
+        # --- 2. Get User Record (No change) ---
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            flash(f"User '{username}' not found.", "error")
+            return redirect(url_for('index'))
 
-        # Filter sessions for the current object and sort them by date
-        object_specific_sessions = sorted(
-            [s for s in all_user_sessions if s.get('target_object_id') == object_name],
-            key=lambda s: s.get('session_date', '1900-01-01'),
-            reverse=True
-        )
+        # --- 3. Determine Effective Location (Query DB directly) ---
+        effective_location_name = "Unknown"
+        effective_lat, effective_lon, effective_tz_name = None, None, 'UTC'
+        requested_location_name_from_url = request.args.get('location')
+        selected_location_db = None
 
-        # --- GROUPING LOGIC ---
-        projects_map = {p['project_id']: p['project_name'] for p in all_projects}
-        grouped_sessions_dict = {}
+        if requested_location_name_from_url:
+            selected_location_db = db.query(Location).filter_by(user_id=user.id, name=requested_location_name_from_url).one_or_none()
+            if selected_location_db:
+                print(f"[Graph View] Using location from URL: {requested_location_name_from_url}")
+            else:
+                flash(f"Requested location '{requested_location_name_from_url}' not found, using default.", "warning")
 
-        for session in object_specific_sessions:
-            project_id = session.get('project_id')  # Will be None for standalone sessions
-            if project_id not in grouped_sessions_dict:
-                grouped_sessions_dict[project_id] = []
-            grouped_sessions_dict[project_id].append(session)
+        if not selected_location_db: # If URL param missing, invalid, or no URL param
+            selected_location_db = db.query(Location).filter_by(user_id=user.id, is_default=True).one_or_none()
+            if not selected_location_db: # If no default, try first active
+                selected_location_db = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.id).first()
 
-        # Convert dictionary to a sorted list for the template
-        temp_grouped_list = []
-        # Add named projects first
-        # Inside the grouping logic in graph_dashboard
-        for project_id, sessions_in_group in grouped_sessions_dict.items():
-            if project_id:
-                # --- NEW: Calculate total integration time ---
-                total_minutes = 0
-                for session in sessions_in_group:
-                    try:
-                        # Safely get and convert time, treating 'N/A' or errors as 0
-                        minutes = float(session.get('calculated_integration_time_minutes', 0))
-                        total_minutes += minutes
-                    except (ValueError, TypeError):
-                        continue  # Skip if value is not a valid number
-
-                temp_grouped_list.append({
-                    'is_project': True,
-                    'project_name': projects_map.get(project_id, 'Unknown Project'),
-                    'sessions': sessions_in_group,
-                    'total_integration_time': total_minutes  # <-- ADD THIS
-                })
-
-        # Sort projects alphabetically by name
-        temp_grouped_list.sort(key=lambda g: g['project_name'])
-
-        # Add standalone sessions at the very end
-        if None in grouped_sessions_dict:
-            grouped_sessions.extend(temp_grouped_list)  # Add sorted projects first
-            grouped_sessions.append({
-                'is_project': False,
-                'project_name': 'Standalone Sessions',
-                'sessions': grouped_sessions_dict[None]
-            })
+        if selected_location_db:
+            effective_location_name = selected_location_db.name
+            effective_lat = selected_location_db.lat
+            effective_lon = selected_location_db.lon
+            effective_tz_name = selected_location_db.timezone
+            if not requested_location_name_from_url: # Only print if we fell back
+                 print(f"[Graph View] Using default/first location: {effective_location_name}")
         else:
-            grouped_sessions = temp_grouped_list  # Case where only projects exist
+             # Critical error - no location found at all
+             flash("Error: No valid location configured or selected for this user.", "error")
+             return redirect(url_for('index'))
 
-        # --- Logic to find the selected session and override date/location ---
+        try:
+            now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
+        except pytz.UnknownTimeZoneError:
+            flash(f"Warning: Invalid timezone '{effective_tz_name}', using UTC.", "warning")
+            effective_tz_name = 'UTC'
+            now_at_effective_location = datetime.now(pytz.utc)
+        # --- End Location Determination ---
+
+        # --- 4. Query ONLY the specific object ---
+        obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
+
+        if not obj_record:
+            flash(f"Object '{object_name}' not found in your configuration.", "error")
+            return redirect(url_for('index'))
+
+        # Convert the single object record to a dictionary format similar to get_ra_dec's output
+        object_main_details = {
+            "Object": obj_record.object_name,
+            "Common Name": obj_record.common_name,
+            "RA (hours)": obj_record.ra_hours,
+            "DEC (degrees)": obj_record.dec_deg,
+            "Type": obj_record.type,
+            "Constellation": obj_record.constellation,
+            "Magnitude": obj_record.magnitude,
+            "Size": obj_record.size,
+            "SB": obj_record.sb,
+            "ActiveProject": obj_record.active_project,
+            "Project": obj_record.project_name,
+            # Add legacy keys if needed by template
+            "Name": obj_record.common_name,
+            "RA": obj_record.ra_hours,
+            "DEC": obj_record.dec_deg
+        }
+
+        # Check if basic details are missing (RA/DEC) - should ideally not happen if DB has constraints
+        if obj_record.ra_hours is None or obj_record.dec_deg is None:
+             # You *could* trigger a SIMBAD lookup here if desired, using get_ra_dec
+             # simbad_details = get_ra_dec(object_name) # Call ONLY if needed
+             # object_main_details.update(simbad_details) # Merge SIMBAD results
+             flash(f"Warning: RA/DEC missing for object '{object_name}' in database.", "warning")
+             # Decide if you want to proceed or redirect
+
+        # --- 5. Handle Journal Data (Deferred loading logic - no change needed here) ---
+        requested_session_id = request.args.get('session_id')
+        selected_session_data = None
+        selected_session_data_dict = None
+        # Adjust date/location based on selected session *after* loading the object record
         if requested_session_id:
-            selected_session_data = next(
-                (s for s in object_specific_sessions if s.get('session_id') == requested_session_id), None)
-            if selected_session_data:
-                session_date_str = selected_session_data.get('session_date')
-                if session_date_str:
-                    try:
-                        session_date_obj = datetime.strptime(session_date_str, '%Y-%m-%d')
-                        effective_day, effective_month, effective_year = session_date_obj.day, session_date_obj.month, session_date_obj.year
-                    except ValueError:
-                        flash("Invalid date in session. Using current/URL date.", "warning")
-                session_loc_name = selected_session_data.get('location_name')
-                if session_loc_name:
-                    session_loc_details = g.user_config.get("locations", {}).get(session_loc_name)
-                    if session_loc_details:
-                        effective_lat, effective_lon, effective_tz_name = session_loc_details.get('lat',
-                                                                                                  effective_lat), session_loc_details.get(
-                            'lon', effective_lon), session_loc_details.get('timezone', effective_tz_name)
-                        effective_location_name = session_loc_name
-                    else:
-                        flash(f"Location '{session_loc_name}' from session not in config. Using default.", "warning")
-            elif requested_session_id:
-                flash(f"Requested session ID '{requested_session_id}' not found for this object.", "info")
+             selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id, user_id=user.id).one_or_none()
+             if selected_session_data:
+                selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in selected_session_data.__table__.columns}
+                if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
+                    selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
+                    # Override effective date/location ONLY if session provides them
+                    if selected_session_data.date_utc:
+                        effective_day, effective_month, effective_year = selected_session_data.date_utc.day, selected_session_data.date_utc.month, selected_session_data.date_utc.year
+                    session_loc_name = getattr(selected_session_data, 'location_name', None)
+                    if session_loc_name:
+                        session_loc_details = db.query(Location).filter_by(user_id=user.id, name=session_loc_name).one_or_none()
+                        if session_loc_details:
+                            effective_lat, effective_lon, effective_tz_name = session_loc_details.lat, session_loc_details.lon, session_loc_details.timezone
+                            effective_location_name = session_loc_name
+                        else: flash(f"Location '{session_loc_name}' from session not found.", "warning")
+             elif requested_session_id:
+                  flash(f"Requested session ID '{requested_session_id}' not found.", "info")
 
-    try:
-        if not (1 <= effective_month <= 12): effective_month = now_at_effective_location.month
-        max_days_in_month = calendar.monthrange(effective_year, effective_month)[1]
-        if not (1 <= effective_day <= max_days_in_month):
-            effective_day = now_at_effective_location.day if effective_month == now_at_effective_location.month and effective_year == now_at_effective_location.year else 1
-        effective_date_obj = datetime(effective_year, effective_month, effective_day)
-        effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
-    except ValueError:
-        effective_date_obj, effective_date_str = now_at_effective_location.date(), now_at_effective_location.date().strftime(
-            '%Y-%m-%d')
-        effective_day, effective_month, effective_year = effective_date_obj.day, effective_date_obj.month, effective_date_obj.year
-        flash("Invalid date components, defaulting to today.", "warning")
+        # Query all sessions for this object and group them by project
+        all_projects_for_user = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
+        object_specific_sessions_db = db.query(JournalSession).filter_by(user_id=user.id,
+                                                                         object_name=object_name).order_by(
+            JournalSession.date_utc.desc()).all()
 
-    sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name, effective_lat,
-                                                                effective_lon)
-    try:
-        effective_local_tz = pytz.timezone(effective_tz_name)
-        dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
-        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
-        dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
-        moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 1)
+        # Convert sessions to dictionaries and prepare for grouping
+        object_specific_sessions_list = []
+        for s in object_specific_sessions_db:
+            session_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
+            object_specific_sessions_list.append(session_dict)
+
+        projects_map = {p.id: p.name for p in all_projects_for_user}
+        grouped_sessions_dict = {}
+        for session in object_specific_sessions_list:  # Use the dict list
+            project_id = session.get('project_id')
+            grouped_sessions_dict.setdefault(project_id, []).append(session)
+
+        grouped_sessions_for_template = []  # Use a distinct name
+        sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
+                                    key=lambda pid: projects_map.get(pid, ''))
+        # Add sessions grouped by Project
+        for project_id in sorted_project_ids:
+            sessions_in_group = grouped_sessions_dict[project_id]
+            total_minutes = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_in_group)
+            grouped_sessions_for_template.append({
+                'is_project': True, 'project_name': projects_map.get(project_id, 'Unknown Project'),
+                'sessions': sessions_in_group, 'total_integration_time': total_minutes
+            })
+        # Add Standalone sessions (those with project_id=None)
+        if None in grouped_sessions_dict:
+            sessions_none_project = grouped_sessions_dict[None]
+            total_minutes_none = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_none_project)
+            grouped_sessions_for_template.append({
+                'is_project': False, 'project_name': 'Standalone Sessions',
+                'sessions': sessions_none_project, 'total_integration_time': total_minutes_none
+            })
+        # --- 6. Calculate Effective Date and Sun/Moon Data (No change) ---
+        effective_day_req = request.args.get('day')
+        effective_month_req = request.args.get('month')
+        effective_year_req = request.args.get('year')
+
+        # Use request args if provided AND no session override happened
+        if effective_day_req and not selected_session_data_dict: effective_day = int(effective_day_req)
+        elif not selected_session_data_dict: effective_day = now_at_effective_location.day
+
+        if effective_month_req and not selected_session_data_dict: effective_month = int(effective_month_req)
+        elif not selected_session_data_dict: effective_month = now_at_effective_location.month
+
+        if effective_year_req and not selected_session_data_dict: effective_year = int(effective_year_req)
+        elif not selected_session_data_dict: effective_year = now_at_effective_location.year
+
+        try:
+            effective_date_obj = datetime(effective_year, effective_month, effective_day)
+            effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
+        except ValueError:
+            effective_date_obj = now_at_effective_location.date()
+            effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
+            flash("Invalid date components provided, defaulting to current date.", "warning")
+
+        sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name,
+                                                                    effective_lat, effective_lon)
+        try:
+            effective_local_tz = pytz.timezone(effective_tz_name)
+            dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
+            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+            dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
+            moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 1)
+        except Exception:
+            moon_phase_for_effective_date = "N/A"
+
+        # --- 7. Load Rigs (Query separately, only needed data) ---
+        rigs_from_db = db.query(Rig).options(
+            selectinload(Rig.telescope), # Eager load components
+            selectinload(Rig.camera),
+            selectinload(Rig.reducer_extender)
+        ).filter_by(user_id=user.id).all()
+        final_rigs_for_template = []
+        for rig in rigs_from_db:
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera, rig.reducer_extender)
+            fov_h = None
+            if rig.camera and rig.camera.sensor_height_mm and efl:
+                 try: fov_h = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
+                 except: pass # Ignore math errors if efl is zero etc.
+
+            final_rigs_for_template.append({
+                "rig_id": rig.id, "rig_name": rig.rig_name,
+                "effective_focal_length": efl, "f_ratio": f_ratio,
+                "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
+            })
+
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        sort_preference = 'name-asc'
+        if prefs_record and prefs_record.json_blob:
+             try: sort_preference = json.loads(prefs_record.json_blob).get('rig_sort', 'name-asc')
+             except: pass
+        sorted_rigs = sort_rigs(final_rigs_for_template, sort_preference)
+
+        # --- 8. Load Other Template Data (Projects, Locations for dropdowns) ---
+        # These are generally smaller lists, loading them fully might be acceptable
+        all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
+        # Only load *active* locations for dropdowns
+        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        # Get default location name again for context if needed (already found above)
+        default_location_name = effective_location_name if selected_location_db and selected_location_db.is_default else None
+        if not default_location_name: # Find default if not already set
+             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
+             if default_loc_obj: default_location_name = default_loc_obj.name
+
+        # --- 9. Render Template ---
+        return render_template('graph_view.html',
+                               # Pass the single object's details
+                               object_name=object_name,
+                               alt_name=object_main_details.get("Common Name", object_name),
+                               object_main_details=object_main_details,
+                               # Rigs
+                               available_rigs=sorted_rigs,
+                               # Date/Time/Location context for the view
+                               selected_day=effective_date_obj.day,
+                               selected_month=effective_date_obj.month,
+                               selected_year=effective_date_obj.year,
+                               header_location_name=effective_location_name,
+                               header_date_display=effective_date_obj.strftime('%d.%m.%Y'),
+                               header_moon_phase=moon_phase_for_effective_date,
+                               header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                               header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                               # Notes/Active Status (from the single object)
+                               project_notes_from_config=object_main_details.get("Project", ""), # Use empty string default
+                               is_project_active=object_main_details.get('ActiveProject', False),
+                               # Journal Data (pass placeholders/flags for async loading)
+                               grouped_sessions=grouped_sessions_for_template,  # Pass the calculated groups
+                               object_specific_sessions=object_specific_sessions_list,  # Pass the flat list too
+                               selected_session_data=selected_session_data, # Pass if loaded
+                               selected_session_data_dict=selected_session_data_dict, # Pass dict if loaded
+                               current_session_id=requested_session_id if selected_session_data else None,
+                               # Data for client-side chart JS
+                               graph_lat_param=effective_lat,
+                               graph_lon_param=effective_lon,
+                               graph_tz_name_param=effective_tz_name,
+                               # Other data needed for forms/UI elements
+                               all_projects=all_projects,
+                               available_locations=available_locations,
+                               default_location=default_location_name,
+                               stellarium_api_url_base=STELLARIUM_API_URL_BASE,
+                               today_date=datetime.now().strftime('%Y-%m-%d')
+                               # REMOVED available_objects (full list no longer needed here)
+                               )
+
     except Exception as e:
-        print(f"Error calculating moon phase for header: {e}")
-        moon_phase_for_effective_date = "N/A"
-
-    username_for_rigs = "default" if SINGLE_USER_MODE else (
-        current_user.username if current_user.is_authenticated else "guest_user")
-    full_rig_config = rig_config.load_rig_config(username_for_rigs, SINGLE_USER_MODE)
-    final_rigs_for_template = []
-    if full_rig_config and full_rig_config.get('rigs'):
-        all_components = full_rig_config.get('components', {})
-        telescopes = {t['id']: t['name'] for t in all_components.get('telescopes', [])}
-        cameras = {c['id']: c['name'] for c in all_components.get('cameras', [])}
-        reducers = {r['id']: r['name'] for r in all_components.get('reducers_extenders', [])}
-        for rig in full_rig_config.get('rigs', []):
-            calculated_data = calculate_rig_data(rig, all_components)
-            rig.update(calculated_data)
-            tele_name = telescopes.get(rig['telescope_id'], 'N/A')
-            cam_name = cameras.get(rig['camera_id'], 'N/A')
-            resolved_parts = [tele_name]
-            if rig.get('reducer_extender_id'):
-                reducer_name = reducers.get(rig['reducer_extender_id'], 'N/A')
-                resolved_parts.append(reducer_name)
-            resolved_parts.append(cam_name)
-            rig['resolved_string'] = ' + '.join(resolved_parts)
-            final_rigs_for_template.append(rig)
-    sort_preference = full_rig_config.get('ui_preferences', {}).get('sort_order', 'name-asc')
-    sorted_rigs = sort_rigs_list(final_rigs_for_template, sort_preference)
-
-    object_main_details = get_ra_dec(object_name)
-    if not object_main_details or object_main_details.get("RA (hours)") is None:
-        flash(f"Details for '{object_name}' could not be found.", "error")
+        db.rollback() # Rollback any potential partial changes
+        print(f"ERROR rendering graph dashboard for '{object_name}': {e}")
+        traceback.print_exc()
+        flash(f"An error occurred while loading the details for {object_name}.", "error")
         return redirect(url_for('index'))
-    is_project_active = False
-    try:
-        for _o in (g.user_config.get('objects') or []):
-            if str(_o.get('Object', '')).lower() == str(object_name).lower():
-                is_project_active = bool(_o.get('ActiveProject', False))
-                break
-    except Exception:
-        pass
+    finally:
+        db.close() # Ensure session is closed
 
-    return render_template('graph_view.html',
-                           object_name=object_name,
-                           alt_name=object_main_details.get("Common Name", object_name),
-                           object_main_details=object_main_details,
-                           available_rigs=sorted_rigs,
-                           selected_day=effective_day,
-                           selected_month=effective_month,
-                           selected_year=effective_year,
-                           header_location_name=effective_location_name,
-                           header_date_display=effective_date_obj.strftime('%d.%m.%Y'),
-                           header_moon_phase=moon_phase_for_effective_date,
-                           header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
-                           header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                           project_notes_from_config=object_main_details.get("Project", "N/A"),
-                           is_project_active=is_project_active,
-                           grouped_sessions=grouped_sessions,
-                           object_specific_sessions=object_specific_sessions,
-                           selected_session_data=selected_session_data,
-                           current_session_id=requested_session_id if selected_session_data else None,
-                           graph_lat_param=effective_lat,
-                           graph_lon_param=effective_lon,
-                           graph_tz_name_param=effective_tz_name,
-                           available_objects=get_object_list_from_config(),
-                           all_projects=all_projects,
-                           available_locations=g.locations,
-                           default_location=g.user_config.get('default_location'),
-                           stellarium_api_url_base=STELLARIUM_API_URL_BASE,
-                           today_date=datetime.now().strftime('%Y-%m-%d'))
-
-@app.route('/plot_day/<path:object_name>')
-def plot_day(object_name):
-    # --- Determine Date for the plot from request.args ---
-    # Get timezone from global context 'g', default to UTC if not available
-    current_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
-    now_for_defaults = datetime.now(pytz.timezone(current_tz_name))
-
-    try:
-        day = int(request.args.get('day', now_for_defaults.day))
-        month = int(request.args.get('month', now_for_defaults.month))
-        year = int(request.args.get('year', now_for_defaults.year))
-
-        # Basic validation for month and day
-        if not (1 <= month <= 12): month = now_for_defaults.month
-        # Use calendar.monthrange to get the actual number of days in the selected month and year
-        max_days_in_month = calendar.monthrange(year, month)[1]
-        if not (1 <= day <= max_days_in_month):
-            # If current month/year, default to current day, else default to 1st day of selected month
-            day = now_for_defaults.day if month == now_for_defaults.month and year == now_for_defaults.year else 1
-
-        local_date_for_plot = f"{year}-{month:02d}-{day:02d}"
-    except ValueError:  # Handles cases like non-integer input for day/month/year
-        local_date_for_plot = now_for_defaults.strftime('%Y-%m-%d')
-        # If date parsing fails, you might want to log this or ensure defaults are robustly set
-        # For now, this ensures local_date_for_plot always has a value.
-
-    # --- Get Object Details ---
-    object_details_for_plot = get_ra_dec(object_name)  # Your existing function
-    if not object_details_for_plot or object_details_for_plot.get('RA (hours)') is None:
-        print(f"ERROR: /plot_day - Could not get RA/DEC for object: {object_name}")
-        # Consider returning a standard "image not available" placeholder or a 404 HTTP error
-        return jsonify({'error': f'Data for object {object_name} not found.'}), 404
-
-    ra_hours = object_details_for_plot['RA (hours)']
-    dec_degrees = object_details_for_plot['DEC (degrees)']
-    alt_name_for_plot = object_details_for_plot.get("Common Name", object_name)
-
-    # --- Determine Location details for the plot ---
-    # These g values are set by @app.before_request based on user's general/global selection
-    default_lat = g.lat if hasattr(g, 'lat') else 0.0  # Provide a float default
-    default_lon = g.lon if hasattr(g, 'lon') else 0.0  # Provide a float default
-    default_tz_name = g.tz_name if hasattr(g, 'tz_name') and g.tz_name else 'UTC'
-    default_location_name = g.selected_location if hasattr(g,
-                                                           'selected_location') and g.selected_location else 'Default Location'
-
-    # Try to get plot-specific location parameters from the URL query string
-    plot_lat_str = request.args.get('plot_lat')
-    plot_lon_str = request.args.get('plot_lon')
-
-    plot_lat = float(plot_lat_str) if plot_lat_str is not None else None
-    plot_lon = float(plot_lon_str) if plot_lon_str is not None else None
-    plot_tz_name = request.args.get('plot_tz', type=str)  # Will be None if not provided
-    plot_location_display_name = request.args.get('plot_loc_name', type=str)  # Will be None if not provided
-
-    # Use provided plot parameters if they exist and are valid, otherwise use defaults from g
-    final_lat = plot_lat if plot_lat is not None else default_lat
-    final_lon = plot_lon if plot_lon is not None else default_lon
-    final_tz_name = plot_tz_name if plot_tz_name else default_tz_name  # Use default if None or empty
-    final_location_name = plot_location_display_name if plot_location_display_name else default_location_name
-
-    print(
-        f"DEBUG: /plot_day - Plotting for obj='{object_name}', loc='{final_location_name}', lat={final_lat}, lon={final_lon}, tz='{final_tz_name}', date='{local_date_for_plot}'")
-
-    # Call your actual Matplotlib plotting function
-    filepath = plot_altitude_curve(  # This is your function that generates the image
-        object_name=object_name,
-        alt_name=alt_name_for_plot,  # Common name for the graph title
-        ra=ra_hours,
-        dec=dec_degrees,
-        lat=final_lat,  # Pass the final determined latitude
-        lon=final_lon,  # Pass the final determined longitude
-        local_date=local_date_for_plot,  # Date for the plot
-        tz_name=final_tz_name,  # Pass the final determined timezone name
-        selected_location=final_location_name  # Pass the final location name (for graph title/filename)
-    )
-
-    if os.path.exists(filepath):
-        return send_file(filepath, mimetype='image/png')
-    else:
-        print(
-            f"ERROR: /plot_day - Plot file not found or could not be generated for '{object_name}' at path: {filepath}")
-        # You could return a placeholder "error image" or a 404 HTTP error
-        return jsonify({'error': f'Plot image {os.path.basename(filepath)} not found on server.'}), 404
-
-@app.route('/get_date_info/<object_name>')
+@app.route('/get_date_info/<path:object_name>')
 def get_date_info(object_name):
+    load_full_astro_context()
     tz = pytz.timezone(g.tz_name)
     now = datetime.now(tz)  # current time in user's local timezone
 
@@ -5272,16 +6287,47 @@ def get_date_info(object_name):
 
 @app.route('/get_imaging_opportunities/<path:object_name>')
 def get_imaging_opportunities(object_name):
-    # Load object data from config or SIMBAD.
+    load_full_astro_context()
+    # Load object RA/DEC (this uses 'g' context correctly)
     data = get_ra_dec(object_name)
     if not data or data.get("RA (hours)") is None or data.get("DEC (degrees)") is None:
-        return jsonify({"status": "error", "message": "Object has no valid RA/DEC."}), 400
+        error_msg = data.get("Common Name", "Object data not found or invalid RA/DEC.")
+        return jsonify({"status": "error", "message": error_msg}), 400
 
     ra = data["RA (hours)"]
     dec = data["DEC (degrees)"]
     alt_name = data.get("Common Name", object_name)
 
-    # Get imaging criteria.
+    # --- START FIX: Read location from query parameters ---
+    # Try to get lat, lon, tz from the URL query string.
+    # Fall back to the values in the global 'g' object if parameters are missing.
+    try:
+        lat_str = request.args.get('plot_lat')
+        lon_str = request.args.get('plot_lon')
+        tz_name_req = request.args.get('plot_tz')
+
+        # Use request args if provided and valid, otherwise fallback to g
+        lat = float(lat_str) if lat_str else g.lat
+        lon = float(lon_str) if lon_str else g.lon
+        tz_name = tz_name_req if tz_name_req else g.tz_name
+
+        # Validate that we ended up with valid numeric lat/lon
+        if lat is None or lon is None:
+             raise ValueError("Latitude or Longitude could not be determined.")
+        # Validate timezone
+        if not tz_name:
+             raise ValueError("Timezone could not be determined.")
+        local_tz = pytz.timezone(tz_name) # This will raise UnknownTimeZoneError if invalid
+
+    except (ValueError, TypeError, pytz.UnknownTimeZoneError) as e:
+        # Handle errors if lat/lon aren't numbers or tz is invalid
+        print(f"❌ ERROR: Invalid location data in get_imaging_opportunities: {e}")
+        return jsonify({"status": "error", "message": f"Invalid location data provided: {e}"}), 400
+    # --- END FIX ---
+
+    # --- Use the determined lat, lon, tz_name, local_tz variables below ---
+
+    # Get imaging criteria (this uses 'g' context correctly)
     criteria = get_imaging_criteria()
     min_obs = criteria["min_observable_minutes"]
     min_alt = criteria["min_max_altitude"]
@@ -5289,77 +6335,98 @@ def get_imaging_opportunities(object_name):
     min_sep = criteria["min_angular_separation"]
     months = criteria.get("search_horizon_months", 6)
 
-    local_tz = pytz.timezone(g.tz_name)
+    # Use the determined local_tz for date calculations
     today = datetime.now(local_tz).date()
     end_date = today + timedelta(days=months * 30)
     dates = [today + timedelta(days=i) for i in range((end_date - today).days)]
 
-    # Local cache for sun events so each date is calculated only once.
     sun_events_cache = {}
-
     final_results = []
+
+    # Get altitude threshold and sampling interval (from 'g')
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    sampling_interval = (g.user_config.get('sampling_interval_minutes') or 15) if SINGLE_USER_MODE else int(
+        os.environ.get('CALCULATION_PRECISION', 15))
+
+    # --- Get Horizon Mask for the specific location ---
+    # We need the location *name* to look up the mask.
+    # It's tricky because the graph view only sends lat/lon/tz.
+    # We'll approximate by finding a location in g.locations that matches lat/lon/tz.
+    # This isn't perfect if multiple locations share coords but is the best we can do without passing the name.
+    horizon_mask = None
+    try:
+        if hasattr(g, 'locations') and isinstance(g.locations, dict):
+            for loc_name, loc_details in g.locations.items():
+                # Compare floats with a small tolerance
+                if (abs(loc_details.get('lat', 999) - lat) < 0.001 and
+                    abs(loc_details.get('lon', 999) - lon) < 0.001 and
+                    loc_details.get('timezone') == tz_name):
+                    horizon_mask = loc_details.get('horizon_mask')
+                    # print(f"[Opportunities] Found matching location '{loc_name}' for horizon mask.") # Debug
+                    break # Use the first match
+            # if not horizon_mask: print("[Opportunities] No matching location found for horizon mask.") # Debug
+    except Exception as e:
+        print(f"Warning: Error accessing horizon mask - {e}")
+    # --- End Horizon Mask Lookup ---
+
 
     for d in dates:
         date_str = d.strftime('%Y-%m-%d')
-        # Check cache first. If not there, compute and store.
+        # Check cache or compute sun events using determined lat, lon, tz_name
         if date_str not in sun_events_cache:
-            sun_events_cache[date_str] = calculate_sun_events_cached(date_str, g.tz_name, g.lat, g.lon)
+            sun_events_cache[date_str] = calculate_sun_events_cached(date_str, tz_name, lat, lon)
         sun_events = sun_events_cache[date_str]
+        dusk = sun_events.get("astronomical_dusk", "20:00") # Default dusk if not found
 
-        # Use the sun events to get, for example, the dusk time.
-        dusk = sun_events.get("astronomical_dusk", "20:00")
-
-        # Calculate observable duration and maximum altitude.
-        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        # Calculate observable duration using determined lat, lon, tz_name, threshold, interval, AND horizon_mask
         obs_duration, max_altitude, obs_from, obs_to = calculate_observable_duration_vectorized(
-            ra, dec, g.lat, g.lon, date_str, g.tz_name, altitude_threshold
+            ra, dec, lat, lon, date_str, tz_name,
+            altitude_threshold, sampling_interval,
+            horizon_mask=horizon_mask # Pass the looked-up mask
         )
-        # Apply thresholds.
-        if obs_duration.total_seconds() / 60 < min_obs:
-            continue
-        if max_altitude < min_alt:
+
+        # Apply basic thresholds
+        if obs_duration.total_seconds() / 60 < min_obs or max_altitude < min_alt:
             continue
 
-        # Get the moon phase.
-        local_time = local_tz.localize(datetime.combine(d, datetime.now().time()))
-        moon_phase = ephem.Moon(local_time.astimezone(pytz.utc)).phase
+        # Calculate Moon phase using determined local_tz
+        time_for_moon_phase = local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))) # Use local noon
+        moon_phase = ephem.Moon(time_for_moon_phase.astimezone(pytz.utc)).phase
         if moon_phase > max_moon:
             continue
 
-        # Compute angular separation at dusk.
+        # Calculate separation using determined local_tz, lat, lon
         try:
             dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
-        except Exception:
-            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
-        dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
-        dusk_utc = dusk_dt.astimezone(pytz.utc)
+        except ValueError:
+            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time() # Fallback dusk time
+        dusk_dt_local = local_tz.localize(datetime.combine(d, dusk_time_obj))
+        dusk_utc = dusk_dt_local.astimezone(pytz.utc)
 
-        location_obj = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
-        frame = AltAz(obstime=Time(dusk_utc), location=location_obj)
+        location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg) # Use determined lat, lon
+        time_for_sep = Time(dusk_utc)
+        frame = AltAz(obstime=time_for_sep, location=location_obj)
         obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-        moon_coord = get_body('moon', Time(dusk_utc), location=location_obj)
-        obj_altaz = obj_coord.transform_to(frame)
-        moon_altaz = moon_coord.transform_to(frame)
-        separation = obj_altaz.separation(moon_altaz).deg
-        if separation < min_sep:
-            continue
+        moon_coord = get_body('moon', time_for_sep, location=location_obj)
+        try:
+            separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+            if separation < min_sep:
+                continue
+        except Exception as sep_err:
+             print(f"Warning: Could not calculate separation for {object_name} on {date_str}: {sep_err}")
+             continue # Skip if separation calc fails
 
-        # Calculate individual scores.
-        MIN_ALTITUDE = 20  # degrees threshold for a "good" altitude
-        score_alt = 0 if max_altitude < MIN_ALTITUDE else min((max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE), 1)
-        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)  # maximum 12 hours
+        # Scoring logic (remains the same)
+        MIN_ALTITUDE = 20
+        score_alt = max(0, min((max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE), 1))
+        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
         score_moon_illum = 1 - min(moon_phase / 100, 1)
-        score_moon_sep = min(separation / 180, 1)
-        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * score_moon_sep
-
-        # Composite score using equal weights (adjust weights as desired).
-        composite_score = 100 * (
-                0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic
-        )
-        # Map composite score to stars (1 to 5 stars).
+        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180, 1)
+        composite_score = 100 * (0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
         stars = int(round((composite_score / 100) * 4)) + 1
         star_string = "★" * stars + "☆" * (5 - stars)
 
+        # Append results
         final_results.append({
             "date": date_str,
             "obs_minutes": int(obs_duration.total_seconds() / 60),
@@ -5371,8 +6438,8 @@ def get_imaging_opportunities(object_name):
             "rating": star_string
         })
 
+    # Return success response
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
-
 
 @app.route('/generate_ics/<object_name>')
 def generate_ics(object_name):
@@ -5466,14 +6533,81 @@ def generate_ics(object_name):
 @login_required
 def download_rig_config():
     username = "default" if SINGLE_USER_MODE else current_user.username
-    # Use the new central function to get the correct path
-    filepath = rig_config.get_rig_config_path(username, SINGLE_USER_MODE)
+    db = get_db()
+    try:
+        u = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not u:
+            flash("User not found.", "error")
+            return redirect(url_for('config_form'))
 
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True, download_name=os.path.basename(filepath))
-    else:
-        flash("Rigs configuration file not found.", "error")
+        # --- Generate rigs doc from DB ---
+        comps = db.query(Component).filter_by(user_id=u.id).all()
+        rigs = db.query(Rig).filter_by(user_id=u.id).order_by(Rig.rig_name).all()
+
+        def bykind(k):
+            return [c for c in comps if c.kind == k]
+
+        rigs_doc = {
+            "components": {
+                "telescopes": [
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm}
+                    for c in bykind("telescope")
+                ],
+                "cameras": [
+                    {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um}
+                    for c in bykind("camera")
+                ],
+                "reducers_extenders": [
+                    {"id": c.id, "name": c.name, "factor": c.factor}
+                    for c in bykind("reducer_extender")
+                ],
+            },
+            "rigs": []  # We will populate this next
+        }
+
+        # --- Calculate metrics for each rig ---
+        final_rigs_list = []
+        for r in rigs:
+            tel_obj = next((c for c in comps if c.id == r.telescope_id), None)
+            cam_obj = next((c for c in comps if c.id == r.camera_id), None)
+            red_obj = next((c for c in comps if c.id == r.reducer_extender_id), None)
+
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
+
+            final_rigs_list.append({
+                "rig_id": r.id,
+                "rig_name": r.rig_name,
+                "telescope_id": r.telescope_id,
+                "camera_id": r.camera_id,
+                "reducer_extender_id": r.reducer_extender_id,
+                "effective_focal_length": efl,
+                "f_ratio": f_ratio,
+                "image_scale": scale,
+                "fov_w_arcmin": fov_w
+            })
+
+        rigs_doc["rigs"] = final_rigs_list  # Add the populated list to the doc
+
+        # --- Create in-memory file ---
+        yaml_string = yaml.dump(rigs_doc, sort_keys=False, allow_unicode=True)
+        str_io = io.BytesIO(yaml_string.encode('utf-8'))
+
+        # Determine filename
+        if SINGLE_USER_MODE:
+            download_name = "rigs_default.yaml"
+        else:
+            download_name = f"rigs_{username}.yaml"
+
+        return send_file(str_io, as_attachment=True, download_name=download_name, mimetype='text/yaml')
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error generating rig config: {e}", "error")
+        traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('config_form'))
+    finally:
+        db.close()
 
 @app.route('/download_journal_photos')
 @login_required
@@ -5577,6 +6711,8 @@ def import_journal_photos():
         flash(f"An unexpected error occurred during import: {e}", "error")
 
     return redirect(url_for('config_form'))
+
+
 @app.route('/import_rig_config', methods=['POST'])
 @login_required
 def import_rig_config():
@@ -5597,20 +6733,25 @@ def import_rig_config():
 
             username = "default" if SINGLE_USER_MODE else current_user.username
 
-            # Use the new central function to get the correct path
-            rigs_filepath = rig_config.get_rig_config_path(username, SINGLE_USER_MODE)
+            # === START REFACTOR ===
+            # Import directly into the database
+            db = get_db()
+            try:
+                user = _upsert_user(db, username)  # Get or create the user in app.db
 
-            if os.path.exists(rigs_filepath):
-                backup_dir = os.path.join(os.path.dirname(rigs_filepath), "backups")
-                os.makedirs(backup_dir, exist_ok=True)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                backup_path = os.path.join(backup_dir, f"{os.path.basename(rigs_filepath)}_backup_{timestamp}.yaml")
-                shutil.copy(rigs_filepath, backup_path)
+                # Use the migration helper to load data directly into the DB
+                _migrate_components_and_rigs(db, user, new_rigs_data, username)
 
-            # Use save_rig_config which now also uses the central path function
-            rig_config.save_rig_config(username, new_rigs_data, SINGLE_USER_MODE)
+                db.commit()
+                flash("Rigs configuration imported and synced to database successfully!", "success")
+            except Exception as e:
+                db.rollback()
+                print(f"[IMPORT_RIGS] DB Error: {e}")
+                raise e  # Re-throw to be caught by the outer block
+            finally:
+                db.close()
+            # === END REFACTOR ===
 
-            flash("Rigs configuration imported successfully.", "success")
         except (yaml.YAMLError, Exception) as e:
             flash(f"Error importing rigs file: {e}", "error")
 
@@ -5621,6 +6762,7 @@ def import_rig_config():
 
 @app.route('/api/get_monthly_plot_data/<path:object_name>')
 def get_monthly_plot_data(object_name):
+    load_full_astro_context()
     # This function provides data for the monthly chart view.
     data = get_ra_dec(object_name)
     if not data or data.get('RA (hours)') is None:
@@ -5661,6 +6803,7 @@ def get_monthly_plot_data(object_name):
 
 @app.route('/api/get_yearly_plot_data/<path:object_name>')
 def get_yearly_plot_data(object_name):
+    load_full_astro_context()
     # This function provides data for the yearly chart view.
     data = get_ra_dec(object_name)
     if not data or data.get('RA (hours)') is None:
@@ -5696,153 +6839,6 @@ def get_yearly_plot_data(object_name):
         "moon_alt": moon_altitudes
     })
 
-@app.route('/api/get_plot_data/<path:object_name>')
-def get_plot_data(object_name):
-    """
-    API endpoint to provide all necessary data for client-side chart rendering.
-    Returns:
-      {
-        times: [ISO strings incl. sentinel first/last],
-        object_alt, object_az, moon_alt, moon_az, horizon_mask_alt: same length as times,
-        sun_events: { current:{sunset,astronomical_dusk,...}, next:{astronomical_dawn,sunrise,...} },
-        transit_time, date, timezone
-      }
-    """
-    # --- 1) Resolve object RA/DEC ---
-    data = get_ra_dec(object_name)
-    if not data:
-        return jsonify({"error": "Object data not found or invalid."}), 404
-
-    ra = data.get('RA (hours)')
-    dec = data.get('DEC (deg)', data.get('DEC (degrees)'))  # tolerate both keys
-
-    if ra is None or dec is None:
-        return jsonify({"error": "RA/DEC missing for object."}), 404
-
-    ra = float(ra)
-    dec = float(dec)
-
-    # --- 2) Read params with SAFE fallbacks (treat blank as missing) ---
-    plot_lat_str  = (request.args.get('plot_lat', '') or '').strip()
-    plot_lon_str  = (request.args.get('plot_lon', '') or '').strip()
-    plot_tz_name  = (request.args.get('plot_tz', '') or '').strip()
-    plot_loc_name = (request.args.get('plot_loc_name', '') or '').strip()
-
-    # Fallbacks from g / config if blanks were passed
-    try:
-        lat = float(plot_lat_str) if plot_lat_str else float(getattr(g, "lat", 0.0))
-        lon = float(plot_lon_str) if plot_lon_str else float(getattr(g, "lon", 0.0))
-        if not plot_tz_name:
-            plot_tz_name = getattr(g, "tz_name", "UTC")
-        if not plot_loc_name:
-            plot_loc_name = getattr(g, "location_name", None) or g.user_config.get("default_location", "")
-        local_tz = pytz.timezone(plot_tz_name)
-    except Exception:
-        return jsonify({"error": "Invalid location or timezone data."}), 400
-
-    now_local = datetime.now(local_tz)
-    day   = int(request.args.get('day',   now_local.day))
-    month = int(request.args.get('month', now_local.month))
-    year  = int(request.args.get('year',  now_local.year))
-    local_date = f"{year:04d}-{month:02d}-{day:02d}"
-
-    # 1. Fetch the weather forecast for the location
-    weather_data = get_hybrid_weather_forecast(lat, lon)
-    weather_forecast_series = []
-
-    # 2. Process the data if the fetch was successful
-    if weather_data and isinstance(weather_data.get('dataseries'), list):
-        try:
-            # The 'init' time is a string like "YYYYMMDDHH" (e.g., "2025100400")
-            init_str = weather_data.get('init', '')
-            init_time = datetime(
-                year=int(init_str[0:4]), month=int(init_str[4:6]), day=int(init_str[6:8]),
-                hour=int(init_str[8:10]), tzinfo=timezone.utc
-            )
-
-            for block in weather_data['dataseries']:
-                # Use .get to avoid KeyError for fields not present in the 'meteo' product
-                timepoint_hours = block.get('timepoint')
-                if timepoint_hours is None:
-                    # Skip malformed entries
-                    continue
-
-                start_time = init_time + timedelta(hours=int(timepoint_hours))
-                end_time = start_time + timedelta(hours=3)  # 7Timer! uses 3-hour blocks
-
-                weather_forecast_series.append({
-                    "start": start_time.isoformat(),
-                    "end": end_time.isoformat(),
-                    "cloudcover": block.get("cloudcover"),       # present in astro & meteo
-                    "seeing": block.get("seeing"),               # present only in astro (first ~72h)
-                    "transparency": block.get("transparency"),   # present only in astro (first ~72h)
-                })
-        except Exception as e:
-            # Keep a single concise log; avoid spamming runtime when optional fields are missing
-            print(f"Error processing 7Timer! data (tolerated): {e}")
-
-
-
-    # --- 3) Build time grid and object/Moon series ---
-    times_local, times_utc = get_common_time_arrays(plot_tz_name, local_date, sampling_interval_minutes=5)
-
-    location   = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-    altaz_frame = AltAz(obstime=times_utc, location=location)
-
-    sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-    altaz_obj = sky_coord.transform_to(altaz_frame)
-    altitudes = altaz_obj.alt.deg
-    azimuths  = (altaz_obj.az.deg + 360.0) % 360.0  # normalize to [0,360)
-
-
-    # Horizon mask (per-location)
-    location_config   = g.user_config.get("locations", {}).get(plot_loc_name, {}) if isinstance(g.user_config, dict) else {}
-    horizon_mask      = location_config.get("horizon_mask")
-    altitude_threshold = g.user_config.get("altitude_threshold", 20)
-
-    if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
-        sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
-        horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
-    else:
-        # No custom mask => flat threshold
-        horizon_mask_altitudes = [altitude_threshold] * len(azimuths)
-
-    # Moon series (vector-safe path is fine, but loop is explicit & robust)
-    moon_altitudes = []
-    moon_azimuths = []
-    for t in times_utc:
-        t_ast = Time(t)
-        moon_icrs = get_body('moon', t_ast, location=location)
-        moon_altaz = moon_icrs.transform_to(AltAz(obstime=t_ast, location=location))
-        moon_altitudes.append(moon_altaz.alt.deg)
-        moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
-
-    # Sun events and transit
-    sun_events_curr = calculate_sun_events_cached(local_date, plot_tz_name, lat, lon)
-    next_date_str   = (datetime.strptime(local_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
-    sun_events_next = calculate_sun_events_cached(next_date_str, plot_tz_name, lat, lon)
-    transit_time_str = calculate_transit_time(ra, dec, lat, lon, plot_tz_name, local_date)
-
-    # --- 4) Force exactly 24h window: prepend/append sentinels ---
-    start_time = times_local[0]
-    end_time   = start_time + timedelta(hours=24)
-    final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
-
-    plot_data = {
-        "times": final_times_iso,
-        "object_alt": [None] + list(altitudes) + [None],
-        "object_az":  [None] + list(azimuths)  + [None],
-        "moon_alt":   [None] + moon_altitudes  + [None],
-        "moon_az":    [None] + moon_azimuths   + [None],
-        "horizon_mask_alt": [None] + horizon_mask_altitudes + [None],
-        "sun_events": {"current": sun_events_curr, "next": sun_events_next},
-        "transit_time": transit_time_str,
-        "date": local_date,
-        "timezone": plot_tz_name,
-        "weather_forecast": weather_forecast_series
-    }
-    return jsonify(plot_data)
-
 # =============================================================================
 # Main Entry Point
 # =============================================================================
@@ -5854,6 +6850,17 @@ import logging
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
+
+# Start the background thread to check for updates
+print("[STARTUP] Starting background update check thread...")
+update_thread = threading.Thread(target=check_for_updates)
+update_thread.daemon = True
+update_thread.start()
+
+print("[STARTUP] Starting background weather worker thread...")
+weather_thread = threading.Thread(target=weather_cache_worker)
+weather_thread.daemon = True
+weather_thread.start()
 
 if not SINGLE_USER_MODE:
     @app.cli.command("init-db")
@@ -5879,6 +6886,20 @@ if not SINGLE_USER_MODE:
         db.session.add(admin_user)
         db.session.commit()
         print(f"✅ Admin user '{username}' created successfully!")
+
+    @app.cli.command("migrate-yaml-to-db")
+    def migrate_yaml_command():
+        """
+        Initializes instance directories and runs the one-time migration
+        from all YAML files to the app.db database.
+        """
+        print("--- [MIGRATION COMMAND] ---")
+        print("Step 1: Initializing instance directory...")
+        initialize_instance_directory()
+        print("Step 2: Running YAML to Database migration...")
+        run_one_time_yaml_migration()
+        print("--- [MIGRATION COMMAND] ---")
+        print("✅ Migration task complete.")
 
 @app.route('/api/internal/provision_user', methods=['POST'])
 def provision_user():
@@ -5911,11 +6932,6 @@ def provision_user():
             db.session.add(new_user)
             db.session.commit()
             print(f"✅ User '{username}' provisioned in database via API.")
-            try:
-                load_user_config(username)
-                load_journal(username)
-            except Exception as e:
-                print(f"❌ ERROR: Could not create YAML files for '{username}': {e}")
             return jsonify({"status": "success", "message": f"User {username} provisioned"}), 201
 
 def disable_user(username: str) -> bool:
@@ -6008,9 +7024,7 @@ def get_uploaded_image(username, filename):
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
-    update_thread = threading.Thread(target=check_for_updates)
-    update_thread.daemon = True
-    update_thread.start()
+
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
 
@@ -6022,3 +7036,97 @@ if __name__ == '__main__':
         port=5001
     )
 
+
+#
+# --- YAML Portability Routes -----------------------------------------------
+@app.route("/tools/export/<username>", methods=["GET"])
+@login_required
+def export_yaml_for_user(username):
+    # Only allow exporting self in multi-user; admin can export anyone (basic guard, adjust as needed)
+    if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
+        flash("Not authorized to export another user's data.", "error")
+        return redirect(url_for("index"))
+    ok = export_user_to_yaml(username, out_dir=CONFIG_DIR)
+    if not ok:
+        flash("Export failed (no such user or empty data).", "error")
+        return redirect(url_for("index"))
+    # Package into a ZIP so users get all three files at once
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    zip_name = f"nova_export_{username}_{ts}.zip"
+    zip_path = os.path.join(INSTANCE_PATH, zip_name)
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+        cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
+        jrn_file = "journal_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"journal_{username}.yaml"
+        rigs_file = "rigs_default.yaml"
+        for fn in [cfg_file, jrn_file, rigs_file]:
+            full = os.path.join(CONFIG_DIR, fn)
+            if os.path.exists(full):
+                zf.write(full, arcname=fn)
+    return send_file(zip_path, as_attachment=True, download_name=zip_name)
+
+@app.route("/tools/import", methods=["POST"])
+@login_required
+def import_yaml_for_user():
+    """
+    Expect multipart form-data with fields:
+      - username (optional in single-user; otherwise required)
+      - config_file
+      - rigs_file
+      - journal_file
+      - clear_existing = 'true'|'false'
+    """
+    username = request.form.get("username") or ("default" if SINGLE_USER_MODE else None)
+    if not username:
+        flash("Username is required in multi-user mode.", "error")
+        return redirect(url_for("index"))
+
+    # Basic guard: only allow importing for self unless admin
+    if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
+        flash("Not authorized to import for another user.", "error")
+        return redirect(url_for("index"))
+
+    try:
+        cfg = request.files.get("config_file")
+        rigs = request.files.get("rigs_file")
+        jrn = request.files.get("journal_file")
+        if not (cfg and rigs and jrn):
+            flash("Please provide config, rigs, and journal YAML files.", "error")
+            return redirect(url_for("index"))
+
+        # Persist to temp paths
+        tmp_dir = os.path.join(INSTANCE_PATH, "tmp_import")
+        os.makedirs(tmp_dir, exist_ok=True)
+        cfg_path = os.path.join(tmp_dir, f"cfg_{uuid.uuid4().hex}.yaml")
+        rigs_path = os.path.join(tmp_dir, f"rigs_{uuid.uuid4().hex}.yaml")
+        jrn_path = os.path.join(tmp_dir, f"jrn_{uuid.uuid4().hex}.yaml")
+        cfg.save(cfg_path); rigs.save(rigs_path); jrn.save(jrn_path)
+
+        clear_existing = (request.form.get("clear_existing", "false").lower() == "true")
+        ok = import_user_from_yaml(username, cfg_path, rigs_path, jrn_path, clear_existing=clear_existing)
+
+        # Cleanup temp
+        for p in [cfg_path, rigs_path, jrn_path]:
+            try: os.remove(p)
+            except Exception: pass
+
+        if ok:
+            flash("Import completed successfully!", "success")
+        else:
+            flash("Import failed. See server logs for details.", "error")
+    except Exception as e:
+        print(f"[IMPORT] ERROR: {e}")
+        flash("Import crashed. Check logs.", "error")
+    return redirect(url_for("index"))
+# Admin-only repair route for deduplication and backfill
+@app.route("/tools/repair_db", methods=["POST"])
+@login_required
+def repair_db_now():
+    if not SINGLE_USER_MODE and current_user.username != "admin":
+        flash("Not authorized.", "error")
+        return redirect(url_for("index"))
+    try:
+        repair_journals(dry_run=False)
+        flash("Database repair completed.", "success")
+    except Exception as e:
+        flash(f"Repair failed: {e}", "error")
+    return redirect(url_for("index"))
