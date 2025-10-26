@@ -24,7 +24,6 @@ from dotenv import load_dotenv
 import calendar
 import json
 import numpy as np
-from yaml.constructor import ConstructorError
 import threading
 import glob
 from datetime import datetime, timedelta, timezone, UTC, date
@@ -42,10 +41,7 @@ from modules.config_validation import validate_config
 import uuid
 from pathlib import Path
 import platform
-
 from math import atan, degrees
-
-
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
@@ -136,6 +132,79 @@ def get_db():
 # === DEFINE VARS NEEDED BY INIT FUNCTION ===
 TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "config_templates")
 CACHE_DIR = os.path.join(INSTANCE_PATH, "cache")
+
+
+def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | None:
+    """
+    Fetches weather data from a single URL with robust error handling.
+    Returns a dictionary on success, None on any failure.
+    """
+    try:
+        # Use a reasonable timeout (e.g., 10 seconds)
+        r = requests.get(url, timeout=10)
+
+        # --- 1. Check for HTTP errors (like 500, 502, 404, etc.) ---
+        if r.status_code != 200:
+            print(f"[Weather Func] ERROR: Received non-200 status code {r.status_code} for lat={lat}, lon={lon}")
+            # Log the error page content for debugging
+            print(f"[Weather Func] Response text (first 200 chars): {r.text[:200]}")
+            return None
+
+        # --- 2. Try to parse the JSON ---
+        # r.json() will automatically handle content-type and raise JSONDecodeError
+        data = r.json()
+        return data
+
+    except requests.exceptions.JSONDecodeError as e:
+        # This is the exact error from your logs!
+        print(f"[Weather Func] ERROR: Failed to decode JSON for lat={lat}, lon={lon}. Error: {e}")
+        # Log the problematic text that isn't JSON
+        print(f"[Weather Func] Response text (first 200 chars): {r.text[:200]}")
+        return None
+
+    except requests.exceptions.RequestException as e:
+        # This handles timeouts, DNS errors, connection errors, etc.
+        print(f"[Weather Func] ERROR: Request failed for lat={lat}, lon={lon}. Error: {e}")
+        return None
+
+    except Exception as e:
+        # Catch any other unexpected errors
+        print(f"[Weather Func] ERROR: An unexpected error occurred for lat={lat}, lon={lon}. Error: {e}")
+        return None
+
+
+def get_weather_data_with_retries(lat: float, lon: float, product: str = "meteo") -> dict | None:
+    """
+    Attempts to fetch weather data from 7Timer! with retries and exponential backoff.
+    Builds the URL and calls the single-attempt helper function.
+    """
+
+    # --- Build the 7Timer! URL ---
+    # This is the standard URL for the 'meteo' product.
+    base_url = "http://www.7timer.info/bin/meteo.php"
+    url = f"{base_url}?lon={lon}&lat={lat}&product={product}&ac=0&unit=metric&output=json"
+
+    retries = 3
+    delay_seconds = 5  # Start with a 5-second delay
+
+    for i in range(retries):
+        # Call our new, robust function from above
+        data = get_weather_data_single_attempt(url, lat, lon)
+
+        if data is not None:
+            # Success!
+            print(f"[Weather Func] Successfully fetched data for lat={lat}, lon={lon} on attempt {i + 1}")
+            return data
+
+        # If data is None, it failed. Log and retry (if not the last attempt).
+        if i < retries - 1:
+            print(
+                f"[Weather Func] WARN: Attempt {i + 1}/{retries} failed for lat={lat}, lon={lon}. Retrying in {delay_seconds}s...")
+            time.sleep(delay_seconds)
+            delay_seconds *= 2  # Exponential backoff (5s, 10s)
+
+    print(f"[Weather Func] ERROR: All {retries} attempts failed for lat={lat}, lon={lon}.")
+    return None
 
 def initialize_instance_directory():
     """
@@ -2121,15 +2190,16 @@ def migrate_journal_data():
             print(f"    -> ERROR: Could not process {journal_file}: {e}")
     print("[MIGRATION] Check complete.")
 
+
 def get_hybrid_weather_forecast(lat, lon):
     # --- ADD ROUNDING before generating key ---
     rounded_lat = round(lat, 5)
     rounded_lon = round(lon, 5)
-    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}" # Use rounded values
+    cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"  # Use rounded values
     # --- End Add Rounding ---
-    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}") # Added Log
+    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}")  # Added Log
 
-    now = datetime.now(UTC) # Use timezone.utc or pytz.utc
+    now = datetime.now(UTC)  # Use timezone.utc or pytz.utc
     entry = weather_cache.get(cache_key) or {}
     last_good = entry.get('data')
     last_err_ts = entry.get('last_err_ts')
@@ -2139,28 +2209,28 @@ def get_hybrid_weather_forecast(lat, lon):
         expires_dt = entry['expires']
         is_expired = False
         try:
-             # Robust timezone comparison
-             if expires_dt.tzinfo is not None:
-                 if now >= expires_dt: is_expired = True
-             elif now.replace(tzinfo=None) >= expires_dt: # Compare naive if expiry is naive
-                 is_expired = True
-        except TypeError as te: # Handle comparison errors between aware/naive
+            # Robust timezone comparison
+            if expires_dt.tzinfo is not None:
+                if now >= expires_dt: is_expired = True
+            elif now.replace(tzinfo=None) >= expires_dt:  # Compare naive if expiry is naive
+                is_expired = True
+        except TypeError as te:  # Handle comparison errors between aware/naive
             print(f"[Weather Func] WARN: Timezone comparison error for key '{cache_key}': {te}")
-            is_expired = True # Treat as expired if comparison fails
+            is_expired = True  # Treat as expired if comparison fails
 
         if not is_expired:
             # print(f"[Weather Func] Cache HIT for '{cache_key}'") # Optional log
-            return entry['data'] # Serve fresh cache
+            return entry['data']  # Serve fresh cache
         # else: print(f"[Weather Func] Cache EXPIRED for '{cache_key}'") # Optional log
-    # else: print(f"[Weather Func] Cache MISS for '{cache_key}'") # Optional log
 
+    # else: print(f"[Weather Func] Cache MISS for '{cache_key}'") # Optional log
 
     def _update_cache_ok(data, ttl_hours=3):
         # --- Ensure expiry is timezone-aware (UTC) ---
         expiry_time = datetime.now(UTC) + timedelta(hours=ttl_hours)
         # --- END ---
         weather_cache[cache_key] = {'data': data, 'expires': expiry_time, 'last_err_ts': None}
-        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}") # Log update
+        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}")  # Log update
 
     def _rate_limited_error(msg):
         nonlocal last_err_ts
@@ -2171,57 +2241,46 @@ def get_hybrid_weather_forecast(lat, lon):
             # --- Store aware datetime ---
             weather_cache.setdefault(cache_key, {})['last_err_ts'] = now_aware
         # --- END ---
-        # (This is where the bad code was removed from)
 
-    # --- Try base 'meteo' ---
-    # (This block is now in the correct place)
-    try:
-        meteo_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=meteo&output=json&unit=metric"
-        resp = requests.get(meteo_url, timeout=10)
-        resp.raise_for_status()
-        try:
-            meteo_data = resp.json()  # Try to parse JSON normally
-        except requests.exceptions.JSONDecodeError:
-            # This happens if 7timer sends a text/html header for valid JSON
-            print(f"[Weather Func] WARN: 7timer (meteo) sent wrong content-type. Parsing text body manually.")
-            meteo_data = json.loads(resp.text)  # Manually parse the text
-    except Exception as e:
-        _rate_limited_error(f"[Weather Func] ERROR: Could not fetch 'meteo' for key '{cache_key}': {e}")
-        return last_good or None  # Return last good or None on failure
+    # --- START: Robust fetching using the ...with_retries helper ---
+
+    # 1. Fetch 'meteo' data robustly with retries
+    # This calls the function you already added at line 187
+    meteo_data = get_weather_data_with_retries(lat, lon, product="meteo")
 
     if not meteo_data or 'dataseries' not in meteo_data:
-        _rate_limited_error(f"[Weather Func] ERROR: Invalid 'meteo' data for key '{cache_key}'.")
-        return last_good or None
+        _rate_limited_error(
+            f"[Weather Func] ERROR: Could not fetch valid 'meteo' data for key '{cache_key}' after retries.")
+        return last_good or None  # Return last good or None on failure
 
     # index for merge
     base = {blk.get('timepoint'): dict(blk) for blk in meteo_data['dataseries']
             if isinstance(blk, dict) and 'timepoint' in blk}
 
-    # --- Optional 'astro' merge ---
+    # --- 2. Optional 'astro' merge (also robust with retries) ---
     try:
-        astro_url = f"http://www.7timer.info/bin/api.pl?lon={lon}&lat={lat}&product=astro&output=json&unit=metric"
-        resp = requests.get(astro_url, timeout=10)
-        if resp.ok:
-            try:
-                astro_data = resp.json()  # Try to parse JSON normally
-            except requests.exceptions.JSONDecodeError:
-                # This happens if 7timer sends a text/html header for valid JSON
-                print(f"[Weather Func] WARN: 7timer (astro) sent wrong content-type. Parsing text body manually.")
-                astro_data = json.loads(resp.text)  # Manually parse the text
+        # Fetch 'astro' data robustly with retries
+        # This also calls the function at line 187
+        astro_data = get_weather_data_with_retries(lat, lon, product="astro")
 
+        if astro_data and astro_data.get('dataseries'):
             for ablk in astro_data.get('dataseries', []):
                 tp = ablk.get('timepoint')
                 if tp in base:
                     base[tp].update(ablk)
+        else:
+            # This is just a warning, not a fatal error
+            print(f"[Weather Func] WARNING: 'astro' data was missing or invalid, skipping merge for key '{cache_key}'.")
+
     except Exception as e:
-        _rate_limited_error(f"[Weather Func] WARNING: 'astro' merge skipped for key '{cache_key}': {e}")
+        _rate_limited_error(f"[Weather Func] WARNING: 'astro' merge logic failed for key '{cache_key}': {e}")
+    # --- END: Robust fetching ---
 
     final = {'init': meteo_data.get('init'), 'dataseries': list(base.values())}
-    _update_cache_ok(final, ttl_hours=3) # Call the updated cache function
+    _update_cache_ok(final, ttl_hours=3)  # Call the updated cache function
     return final
 
 # --- Check weather_cache_worker ---
-# Find this function (around line 3505)
 def weather_cache_worker():
     # ... (Keep existing startup wait) ...
     while True:
@@ -5748,7 +5807,7 @@ def graph_dashboard(object_name):
     finally:
         db.close() # Ensure session is closed
 
-@app.route('/get_date_info/<object_name>')
+@app.route('/get_date_info/<path:object_name>')
 def get_date_info(object_name):
     load_full_astro_context()
     tz = pytz.timezone(g.tz_name)
