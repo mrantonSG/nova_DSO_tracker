@@ -654,7 +654,7 @@ function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = 
 function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
 function changeView(view) {
     const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = NOVA_GRAPH_DATA.objectName;
-    fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`).then(response => response.json()).then(data => { document.getElementById("date-display").innerText = formatDateISOtoEuropean(data.date); document.getElementById("phase-display").innerText = data.phase + "%"; document.getElementById("dusk-display").innerText = data.astronomical_dusk; document.getElementById("dawn-display").innerText = data.astronomical_dawn; });
+    fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`).then(response => response.json()).then(data => { document.getElementById("phase-display").innerText = data.phase + "%"; document.getElementById("dusk-display").innerText = data.astronomical_dusk; document.getElementById("dawn-display").innerText = data.astronomical_dawn; });
     if (view === 'day') renderClientSideChart();
     else renderMonthlyYearlyChart(view);
 }
@@ -714,7 +714,7 @@ window.addEventListener('load', () => {
     const q = new URLSearchParams(location.search);
     if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
     const dateEl = document.getElementById("date-display");
-    if (dateEl && dateEl.innerText.includes("-")) dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
+    // if (dateEl && dateEl.innerText.includes("-")) dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
     const dayInput = document.getElementById("day-select"), monthSelect = document.getElementById("month-select"), yearInput = document.getElementById("year-select");
     function updateDayLimit() { const year = parseInt(yearInput.value), month = parseInt(monthSelect.value), daysInMonth = new Date(year, month, 0).getDate(); if (parseInt(dayInput.value) > daysInMonth) dayInput.value = daysInMonth; dayInput.max = daysInMonth; }
     monthSelect.addEventListener("change", updateDayLimit);
