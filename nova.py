@@ -82,7 +82,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
-APP_VERSION = "3.8.0"
+APP_VERSION = "3.8.1"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -5559,11 +5559,19 @@ def index():
         local_tz = pytz.timezone(g.tz_name or 'UTC')
         now_local = datetime.now(local_tz)
 
+        # --- START FIX: Determine "Observing Night" Date ---
+        # If it's before noon, we're still on the "night of" the previous day.
+        if now_local.hour < 12:
+            observing_date_for_calcs = now_local.date() - timedelta(days=1)
+        else:
+            observing_date_for_calcs = now_local.date()
+        # --- END FIX ---
+
         return render_template('index.html',
                                journal_sessions=sessions_for_template,  # Pass the new list of dictionaries
-                               selected_day=now_local.day,
-                               selected_month=now_local.month,
-                               selected_year=now_local.year)
+                               selected_day=observing_date_for_calcs.day,
+                               selected_month=observing_date_for_calcs.month,
+                               selected_year=observing_date_for_calcs.year)
     finally:
         db.close()
 
@@ -6043,6 +6051,11 @@ def graph_dashboard(object_name):
             flash(f"Warning: Invalid timezone '{effective_tz_name}', using UTC.", "warning")
             effective_tz_name = 'UTC'
             now_at_effective_location = datetime.now(pytz.utc)
+
+        if now_at_effective_location.hour < 12:
+            observing_date_for_calcs = now_at_effective_location.date() - timedelta(days=1)
+        else:
+            observing_date_for_calcs = now_at_effective_location.date()
         # --- End Location Determination ---
 
         # --- 4. Query ONLY the specific object ---
@@ -6146,14 +6159,20 @@ def graph_dashboard(object_name):
         effective_year_req = request.args.get('year')
 
         # Use request args if provided AND no session override happened
-        if effective_day_req and not selected_session_data_dict: effective_day = int(effective_day_req)
-        elif not selected_session_data_dict: effective_day = now_at_effective_location.day
+        if effective_day_req and not selected_session_data_dict:
+            effective_day = int(effective_day_req)
+        elif not selected_session_data_dict:
+            effective_day = observing_date_for_calcs.day
 
-        if effective_month_req and not selected_session_data_dict: effective_month = int(effective_month_req)
-        elif not selected_session_data_dict: effective_month = now_at_effective_location.month
+        if effective_month_req and not selected_session_data_dict:
+            effective_month = int(effective_month_req)
+        elif not selected_session_data_dict:
+            effective_month = observing_date_for_calcs.month
 
-        if effective_year_req and not selected_session_data_dict: effective_year = int(effective_year_req)
-        elif not selected_session_data_dict: effective_year = now_at_effective_location.year
+        if effective_year_req and not selected_session_data_dict:
+            effective_year = int(effective_year_req)
+        elif not selected_session_data_dict:
+            effective_year = observing_date_for_calcs.year
 
         try:
             effective_date_obj = datetime(effective_year, effective_month, effective_day)
@@ -6162,6 +6181,8 @@ def graph_dashboard(object_name):
             effective_date_obj = now_at_effective_location.date()
             effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
             flash("Invalid date components provided, defaulting to current date.", "warning")
+
+        next_day_obj = effective_date_obj + timedelta(days=1)
 
         sun_events_for_effective_date = calculate_sun_events_cached(effective_date_str, effective_tz_name,
                                                                     effective_lat, effective_lon)
@@ -6225,7 +6246,7 @@ def graph_dashboard(object_name):
                                selected_month=effective_date_obj.month,
                                selected_year=effective_date_obj.year,
                                header_location_name=effective_location_name,
-                               header_date_display=effective_date_obj.strftime('%d.%m.%Y'),
+                               header_date_display=f"{effective_date_obj.strftime('%d.%m.%Y')} - {next_day_obj.strftime('%d.%m.%Y')}",
                                header_moon_phase=moon_phase_for_effective_date,
                                header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                                header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
