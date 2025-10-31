@@ -234,7 +234,8 @@ async function renderClientSideChart() {
     const plotLon = NOVA_GRAPH_DATA.plotLon;
     const plotTz = NOVA_GRAPH_DATA.plotTz;
     const plotLocName = NOVA_GRAPH_DATA.plotLocName;
-    const apiUrl = `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}&plot_loc_name=${encodeURIComponent(plotLocName)}`;
+    const isOffline = !navigator.onLine;
+    const apiUrl = `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}&plot_loc_name=${encodeURIComponent(plotLocName)}&offline=${isOffline}`;
     console.log("Fetching Chart Data from API URL:", apiUrl);
 
     try {
