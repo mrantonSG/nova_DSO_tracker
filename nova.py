@@ -2811,22 +2811,40 @@ def check_for_updates():
         response.raise_for_status()  # Raise an exception for bad status codes
 
         data = response.json()
-        latest_version = data.get("tag_name", "").lower().lstrip('v') # Get version and remove leading 'v'
-        current_version = APP_VERSION
+        latest_version_str = data.get("tag_name", "").lower().lstrip('v')  # Get version and remove leading 'v'
+        current_version_str = APP_VERSION
 
-        if latest_version and latest_version != current_version:
-            print(f"[VERSION CHECK] New version found: {latest_version}")
+        if not latest_version_str or not current_version_str:
+            print("[VERSION CHECK] Could not determine current or latest version string.")
+            return
+
+        # --- START OF MODIFICATION ---
+
+        # Convert version strings to comparable tuples of integers
+        # e.g., "3.8.2" -> (3, 8, 2)
+        # This will handle "3.10.0" > "3.9.0" correctly.
+        current_version_tuple = tuple(map(int, current_version_str.split('.')))
+        latest_version_tuple = tuple(map(int, latest_version_str.split('.')))
+
+        # Compare the versions
+        if latest_version_tuple > current_version_tuple:
+            # --- END OF MODIFICATION --- (Original was: if latest_version and latest_version != current_version:)
+
+            print(f"[VERSION CHECK] New version found: {latest_version_str}")
             LATEST_VERSION_INFO = {
-                "new_version": latest_version,
+                "new_version": latest_version_str,
                 "url": data.get("html_url")
             }
         else:
-            print("[VERSION CHECK] You are running the latest version.")
+            print(f"[VERSION CHECK] You are running the latest version (or a newer dev version).")
+            LATEST_VERSION_INFO = {}  # Ensure info is cleared if no new version
 
     except requests.exceptions.RequestException as e:
         print(f"❌ [VERSION CHECK] Could not connect to GitHub API: {e}")
     except Exception as e:
-        print(f"❌ [VERSION CHECK] An unexpected error occurred: {e}")
+        # This will also catch errors from tuple(map(int,...)) if versions are not like "1.2.3"
+        print(f"❌ [VERSION CHECK] An unexpected error occurred (e.g., parsing versions): {e}")
+        LATEST_VERSION_INFO = {}  # Clear on error
 
 def trigger_outlook_update_for_user(username):
     """
