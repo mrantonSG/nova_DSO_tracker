@@ -947,14 +947,17 @@ async function fetchData() {
                 const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
                 if (filterTypes.length > 0) { let typeMatch = false; for (const typeTerm of filterTypes) { if (cellText === typeTerm || cellText.includes(typeTerm)) { typeMatch = true; break; } } if (!typeMatch) { showRow = false; break; } }
             } else {
-                // --- MODIFIED TO ADD NEW COLUMN ---
                 const numericFilterKeys = [
                     'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                     'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
                     'Magnitude', 'Size', 'SB', 'Max Altitude'
                 ];
-                // --- END MODIFICATION ---
-                if (config && numericFilterKeys.includes(config.dataKey)) {
+
+                // --- THIS IS THE FIX ---
+                // We must check if the columnKeyInFilter is in the array,
+                // NOT the config.dataKey.
+                if (config && numericFilterKeys.includes(columnKeyInFilter)) {
+                // --- END OF FIX ---
                     if (cellText === "n/a") { showRow = false; break; }
                     const cellNumber = parseFloat(cellText.replace(/[^0-9.\-]/g, ""));
                     if (isNaN(cellNumber)) {
