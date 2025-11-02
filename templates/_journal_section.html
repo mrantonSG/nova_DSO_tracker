@@ -207,7 +207,7 @@
                             <dt>Darks:</dt><dd>{{ entry.darks_strategy | default('N/A') }}</dd>
                             <dt>Flats:</dt><dd>{{ entry.flats_strategy | default('N/A') }}</dd>
                             <dt>Bias/DarkFlats:</dt><dd>{{ entry.bias_darkflats_strategy | default('N/A') }}</dd>
-                            <dt>Notes:</dt><dd><div class="notes-block">{{ entry.notes | default('N/A') }}</div></dd>
+                            <dt>Notes:</dt><dd><div class="notes-block">{{ entry.notes | default('N/A') | safe }}</div></dd>
                         </dl>
                     </div>
                 </div> {# End view-mode wrapper #}
@@ -419,7 +419,10 @@
                     </div>
                     <div class="form-group">
                         <label>General Notes, Problems, Learnings:</label>
-                        <textarea name="general_notes_problems_learnings"></textarea>
+                        <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
+
+                        <trix-editor input="journal-notes-hidden" id="journal-notes-editor"
+                                     style="min-height: 120px; height: auto; background-color: #fff;"></trix-editor>
                     </div>
                     {# Image Upload #}
                     {% if selected_session_data and selected_session_data.session_image_file %}
@@ -489,7 +492,13 @@
         form.elements['gain_setting'].value = data.gain_setting || '';
         form.elements['offset_setting'].value = data.offset_setting || '';
         form.elements['session_rating_subjective'].value = data.session_rating_subjective || '';
-        form.elements['general_notes_problems_learnings'].value = data.notes || '';
+        const journalEditor = document.getElementById('journal-notes-editor');
+        if (journalEditor && journalEditor.editor) {
+            journalEditor.editor.loadHTML(data.notes || '');
+        } else {
+            // Fallback in case editor isn't ready
+            document.getElementById('journal-notes-hidden').value = data.notes || '';
+        }
         form.elements['transparency_observed_scale'].value = data.transparency_observed_scale || '';
         form.elements['weather_notes'].value = data.weather_notes || '';
         form.elements['guiding_equipment'].value = data.guiding_equipment || '';
@@ -537,6 +546,10 @@
         wrapper.classList.add('is-adding'); // Add class to wrapper
 
         form.reset(); // Reset fields
+        const journalEditor = document.getElementById('journal-notes-editor');
+        if (journalEditor && journalEditor.editor) {
+            journalEditor.editor.loadHTML('');
+        }
         form.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}'; // Set action URL
         form.elements.session_id.value = ''; // Clear session ID
         form.elements.session_date.value = '{{ today_date }}'; // Default date
