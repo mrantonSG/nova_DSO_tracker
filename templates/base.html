@@ -41,7 +41,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
-
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
+    <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js"></script>
     {% block head_extra %}{% endblock %}
   </head>
   <body>
