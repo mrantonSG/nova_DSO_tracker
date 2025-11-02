@@ -5332,23 +5332,22 @@ def get_object_data(object_name):
         username = "default"
     elif current_user.is_authenticated:
         username = current_user.username
-    elif request.args.get('location'): # Allow guest if location provided
-         username = "guest_user"
+    elif request.args.get('location'):  # Allow guest if location provided
+        username = "guest_user"
     else:
         # Deny guest if no location specified (cannot determine defaults)
         return jsonify({
-             'Object': object_name, 'Common Name': "Error: Authentication required.", 'error': True
-         }), 401
-
+            'Object': object_name, 'Common Name': "Error: Authentication required.", 'error': True
+        }), 401
 
     db = get_db()
     try:
         # --- 2. Get User Record (No change needed here) ---
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if not user:
-             return jsonify({
-                 'Object': object_name, 'Common Name': "Error: User not found.", 'error': True
-             }), 404
+            return jsonify({
+                'Object': object_name, 'Common Name': "Error: User not found.", 'error': True
+            }), 404
 
         # --- 3. Determine Location to Use (Modified: Query DB directly) ---
         requested_location_name = request.args.get('location')
@@ -5357,18 +5356,23 @@ def get_object_data(object_name):
 
         if requested_location_name:
             # Try to load the specific location requested
-            selected_location = db.query(Location).filter_by(user_id=user.id, name=requested_location_name).options(selectinload(Location.horizon_points)).one_or_none()
+            selected_location = db.query(Location).filter_by(user_id=user.id, name=requested_location_name).options(
+                selectinload(Location.horizon_points)).one_or_none()
             if not selected_location:
-                 return jsonify({'Object': object_name, 'Common Name': "Error: Requested location not found.", 'error': True }), 404
+                return jsonify(
+                    {'Object': object_name, 'Common Name': "Error: Requested location not found.", 'error': True}), 404
         else:
             # Fallback to the user's default location
-            selected_location = db.query(Location).filter_by(user_id=user.id, is_default=True).options(selectinload(Location.horizon_points)).one_or_none()
+            selected_location = db.query(Location).filter_by(user_id=user.id, is_default=True).options(
+                selectinload(Location.horizon_points)).one_or_none()
             # If no default, try the first active one
             if not selected_location:
-                selected_location = db.query(Location).filter_by(user_id=user.id, active=True).options(selectinload(Location.horizon_points)).order_by(Location.id).first()
+                selected_location = db.query(Location).filter_by(user_id=user.id, active=True).options(
+                    selectinload(Location.horizon_points)).order_by(Location.id).first()
 
         if not selected_location:
-             return jsonify({'Object': object_name, 'Common Name': "Error: No valid location configured or selected.", 'error': True }), 400
+            return jsonify({'Object': object_name, 'Common Name': "Error: No valid location configured or selected.",
+                            'error': True}), 400
 
         # Extract details from the selected location object
         lat = selected_location.lat
@@ -5376,7 +5380,8 @@ def get_object_data(object_name):
         tz_name = selected_location.timezone
         selected_location_name = selected_location.name
         # Build the config-like dict for horizon mask etc.
-        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(selected_location.horizon_points, key=lambda p: p.az_deg)]
+        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in
+                        sorted(selected_location.horizon_points, key=lambda p: p.az_deg)]
         current_location_config = {
             "lat": lat, "lon": lon, "timezone": tz_name,
             "altitude_threshold": selected_location.altitude_threshold,
@@ -5392,19 +5397,19 @@ def get_object_data(object_name):
         if not obj_record:
             # Optionally try SIMBAD as a fallback *here* if desired,
             # or just return not found. Let's return not found for now.
-             return jsonify({
-                 'Object': object_name, 'Common Name': f"Error: Object '{object_name}' not found in your config.",
-                 'error': True
-             }), 404
+            return jsonify({
+                'Object': object_name, 'Common Name': f"Error: Object '{object_name}' not found in your config.",
+                'error': True
+            }), 404
 
         # Extract necessary details
         ra = obj_record.ra_hours
         dec = obj_record.dec_deg
         if ra is None or dec is None:
-             return jsonify({
-                 'Object': object_name, 'Common Name': f"Error: RA/DEC missing for '{object_name}'.",
-                 'error': True
-             }), 400
+            return jsonify({
+                'Object': object_name, 'Common Name': f"Error: RA/DEC missing for '{object_name}'.",
+                'error': True
+            }), 400
 
         # --- 5. Perform Calculations (Largely unchanged, but uses specific object/location) ---
         local_tz = pytz.timezone(tz_name)
@@ -5418,26 +5423,28 @@ def get_object_data(object_name):
                     datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
                 if current_datetime_local < dawn_today_dt:
                     local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-            except (ValueError, TypeError): pass
+            except (ValueError, TypeError):
+                pass
 
         # Load UI Prefs specifically for altitude_threshold and sampling_interval
         prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
         user_prefs_dict = {}
         if prefs_record and prefs_record.json_blob:
-            try: user_prefs_dict = json.loads(prefs_record.json_blob)
-            except: pass
+            try:
+                user_prefs_dict = json.loads(prefs_record.json_blob)
+            except:
+                pass
         altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
         # Use location-specific threshold if available
         if selected_location.altitude_threshold is not None:
-             altitude_threshold = selected_location.altitude_threshold
+            altitude_threshold = selected_location.altitude_threshold
 
         # Determine sampling interval based on mode
-        sampling_interval = 15 # Default
+        sampling_interval = 15  # Default
         if SINGLE_USER_MODE:
             sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
-
 
         cache_key = f"{object_name.lower()}_{local_date}_{selected_location_name.lower().replace(' ', '_')}"
 
@@ -5452,7 +5459,7 @@ def get_object_data(object_name):
             transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
             obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
                 ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
-                horizon_mask=horizon_mask # Pass the specific mask
+                horizon_mask=horizon_mask  # Pass the specific mask
             )
             fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
             alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
@@ -5502,6 +5509,17 @@ def get_object_data(object_name):
 
         is_obstructed_at_11pm = cached_night_data.get('is_obstructed_at_11pm', False)
 
+        # --- START OF NEW CALCULATIONS ---
+        # 1. Calculate Best Month from RA
+        # (RA 0h -> Oct, RA 2h -> Nov, ... RA 22h -> Sep)
+        RA_to_Month_Opposition = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"]
+        best_month_idx = int(ra / 2) % 12  # Simple floor(ra/2)
+        best_month_str = RA_to_Month_Opposition[best_month_idx]
+
+        # 2. Calculate Max Culmination Altitude from Dec and Lat
+        max_culmination_alt = 90.0 - abs(lat - dec)
+        # --- END OF NEW CALCULATIONS ---
+
         # --- 6. Assemble JSON using the single object record ---
         single_object_data = {
             'Object': obj_record.object_name,
@@ -5525,6 +5543,12 @@ def get_object_data(object_name):
             'is_obstructed_now': is_obstructed_now,
             'is_obstructed_at_11pm': is_obstructed_at_11pm,
             'ActiveProject': obj_record.active_project or False,
+
+            # --- ADD NEW KEYS TO RESPONSE ---
+            'best_month_ra': best_month_str,
+            'max_culmination_alt': max_culmination_alt,
+            # --- END OF ADDED KEYS ---
+
             'error': False
         }
         return jsonify(single_object_data)
