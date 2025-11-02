@@ -82,7 +82,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 
-APP_VERSION = "3.8.1"
+APP_VERSION = "3.8.2"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
