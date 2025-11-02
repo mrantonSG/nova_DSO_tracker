@@ -791,6 +791,68 @@ window.addEventListener('load', () => {
     const savedTab = localStorage.getItem('activeGraphTab') || 'chart';
 
     changeView('day');
+    // Trix Editor File Upload Handler
+    try {
+        const trixEditor = document.querySelector("#project-field-editor");
+
+        if (trixEditor) {
+            trixEditor.addEventListener("trix-attachment-add", function(event) {
+                if (event.attachment.file) {
+                    // This is the function that will upload the file
+                    uploadTrixFile(event.attachment);
+                }
+            });
+
+            function uploadTrixFile(attachment) {
+                // 1. Create FormData
+                const formData = new FormData();
+                formData.append("file", attachment.file);
+
+                // 2. Start the upload
+                fetch("/upload_editor_image", {
+                    method: "POST",
+                    body: formData,
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        // --- START: Improved Error Handling ---
+                        // Try to parse error as JSON, but fall back to plain text
+                        return response.json()
+                            .then(data => {
+                                // We got a JSON error response (e.g., "File type not allowed")
+                                throw new Error(data.error || "Upload failed: Server returned an error");
+                            })
+                            .catch(() => {
+                                // Failed to parse JSON, it's probably an HTML error page
+                                // (e.g., 413 Payload Too Large, 401 Unauthorized, or 500)
+                                throw new Error(`Upload failed: Server responded with status ${response.status} ${response.statusText}`);
+                            });
+                        // --- END: Improved Error Handling ---
+                    }
+                    return response.json(); // Get the success JSON
+                })
+                .then(data => {
+                    if (data.url) {
+                        // 3. Success! Tell Trix the URL of the uploaded file
+                        attachment.setAttributes({
+                            url: data.url,
+                            href: data.url
+                        });
+                    } else {
+                        throw new Error("Invalid success response from server.");
+                    }
+                })
+                .catch(error => {
+                    // 4. Failure. Alert the user and remove the attachment
+                    console.error("Trix upload failed:", error);
+                    alert("File upload failed: " + error.message);
+                    attachment.remove(); // Removes the file from the editor
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Could not set up Trix editor file uploads:", e);
+    }
     const lockBox = document.getElementById('lock-to-object');
     if (lockBox) lockBox.checked = true;
     const q = new URLSearchParams(location.search);

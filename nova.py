@@ -7097,6 +7097,57 @@ def deprovision_user():
         ok = disable_user(username)
         return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
 
+
+@app.route('/upload_editor_image', methods=['POST'])
+@login_required
+def upload_editor_image():
+    """
+    Handles file uploads from the Trix editor.
+    Saves the file to the user's upload directory and returns
+    a JSON response with the file's public URL.
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in request."}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file."}), 400
+
+    # Determine username
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    if file and allowed_file(file.filename):
+        try:
+            # Get the file extension
+            file_extension = file.filename.rsplit('.', 1)[1].lower()
+
+            # Generate a new, unique filename
+            # e.g., "note_img_a1b2c3d4.jpg"
+            new_filename = f"note_img_{uuid.uuid4().hex[:12]}.{file_extension}"
+
+            # Create the user's upload directory if it doesn't exist
+            user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            os.makedirs(user_upload_dir, exist_ok=True)
+
+            # Save the file
+            save_path = os.path.join(user_upload_dir, new_filename)
+            file.save(save_path)
+
+            # Create the public URL for the image
+            # This must match the `get_uploaded_image` route
+            public_url = url_for('get_uploaded_image', username=username, filename=new_filename, _external=True)
+
+            # Trix expects a JSON response with a 'url' key
+            return jsonify({"url": public_url})
+
+        except Exception as e:
+            print(f"Error uploading editor image: {e}")
+            return jsonify({"error": f"Server error during upload: {e}"}), 500
+
+    return jsonify({"error": "File type not allowed."}), 400
 @app.route('/uploads/<path:username>/<path:filename>')
 @login_required
 def get_uploaded_image(username, filename):
@@ -7124,7 +7175,58 @@ if __name__ == '__main__':
     )
 
 
-#
+@app.route('/upload_editor_image', methods=['POST'])
+@login_required
+def upload_editor_image():
+    """
+    Handles file uploads from the Trix editor.
+    Saves the file to the user's upload directory and returns
+    a JSON response with the file's public URL.
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in request."}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file."}), 400
+
+    # Determine username
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    if file and allowed_file(file.filename):
+        try:
+            # Get the file extension
+            file_extension = file.filename.rsplit('.', 1)[1].lower()
+
+            # Generate a new, unique filename
+            # e.g., "note_img_a1b2c3d4.jpg"
+            new_filename = f"note_img_{uuid.uuid4().hex[:12]}.{file_extension}"
+
+            # Create the user's upload directory if it doesn't exist
+            user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            os.makedirs(user_upload_dir, exist_ok=True)
+
+            # Save the file
+            save_path = os.path.join(user_upload_dir, new_filename)
+            file.save(save_path)
+
+            # Create the public URL for the image
+            # This must match the `get_uploaded_image` route
+            public_url = url_for('get_uploaded_image', username=username, filename=new_filename, _external=True)
+
+            # Trix expects a JSON response with a 'url' key
+            return jsonify({"url": public_url})
+
+        except Exception as e:
+            print(f"Error uploading editor image: {e}")
+            return jsonify({"error": f"Server error during upload: {e}"}), 500
+
+    return jsonify({"error": "File type not allowed."}), 400
+
+
 # --- YAML Portability Routes -----------------------------------------------
 @app.route("/tools/export/<username>", methods=["GET"])
 @login_required
