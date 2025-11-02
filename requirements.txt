@@ -66,6 +66,7 @@ six==1.17.0
 soupsieve==2.6
 SQLAlchemy==2.0.43
 TatSu==5.13.1
+tinycss2
 types-python-dateutil==2.9.0.20250809
 typing_extensions==4.12.2
 tzdata==2025.1

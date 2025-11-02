@@ -802,7 +802,16 @@ window.addEventListener('load', () => {
                     uploadTrixFile(event.attachment);
                 }
             });
-
+            // This handler is for the JOURNAL NOTES editor
+            const journalEditor = document.querySelector("#journal-notes-editor");
+            if (journalEditor) {
+                journalEditor.addEventListener("trix-attachment-add", function(event) {
+                    if (event.attachment.file) {
+                        // It can call the *exact same* upload function
+                        uploadTrixFile(event.attachment);
+                    }
+                });
+            }
             function uploadTrixFile(attachment) {
                 // 1. Create FormData
                 const formData = new FormData();

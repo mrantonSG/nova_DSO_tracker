@@ -82,6 +82,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 
 APP_VERSION = "3.8.3"
 
@@ -4005,7 +4006,7 @@ def journal_add():
                 project_id=project_id_for_session,
                 date_utc=datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date(),
                 object_name=request.form.get("target_object_id", "").strip(),
-                notes=request.form.get("general_notes_problems_learnings", "").strip(),
+                notes=request.form.get("general_notes_problems_learnings"),
                 seeing_observed_fwhm=safe_float(request.form.get("seeing_observed_fwhm")),
                 sky_sqm_observed=safe_float(request.form.get("sky_sqm_observed")),
                 moon_illumination_session=safe_int(request.form.get("moon_illumination_session")),
@@ -4111,7 +4112,7 @@ def journal_edit(session_id):
             # --- Update ALL fields from the form ---
             session_to_edit.date_utc = datetime.strptime(request.form.get("session_date"), '%Y-%m-%d').date()
             session_to_edit.object_name = request.form.get("target_object_id", "").strip()
-            session_to_edit.notes = request.form.get("general_notes_problems_learnings", "").strip()
+            session_to_edit.notes = request.form.get("general_notes_problems_learnings")
             session_to_edit.seeing_observed_fwhm = safe_float(request.form.get("seeing_observed_fwhm"))
             session_to_edit.sky_sqm_observed = safe_float(request.form.get("sky_sqm_observed"))
             session_to_edit.moon_illumination_session = safe_int(request.form.get("moon_illumination_session"))
@@ -6173,6 +6174,40 @@ def graph_dashboard(object_name):
             if selected_session_data:
                 selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
                                               selected_session_data.__table__.columns}
+
+                # --- START: Rich Text for Journal Notes ---
+                raw_journal_notes = selected_session_data_dict.get('notes') or ""
+
+                # 1. Upgrade plain text to HTML (for old notes)
+                if not raw_journal_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+                    escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
+                    sanitized_notes = escaped_text.replace("\n", "<br>")
+                else:
+                    # 2. Sanitize existing HTML
+                    SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
+                    SAFE_ATTRS = {
+                        'img': ['src', 'alt', 'width', 'height', 'style'],
+                        'a': ['href'],
+                        '*': ['style']
+                    }
+
+                    # --- THIS IS THE NEW PART ---
+                    # Define which CSS properties are safe
+                    SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
+                                'margin-right']
+                    css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+
+                    sanitized_notes = bleach.clean(
+                        raw_journal_notes,
+                        tags=SAFE_TAGS,
+                        attributes=SAFE_ATTRS,
+                        css_sanitizer=css_sanitizer  # <-- Pass the sanitizer here
+                    )
+                    # --- END OF NEW PART ---
+
+                # 3. Put the safe, upgraded HTML back into the dictionary
+                selected_session_data_dict['notes'] = sanitized_notes
+                # --- END: Rich Text for Journal Notes ---
                 if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
                     selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
                     if selected_session_data.date_utc:
