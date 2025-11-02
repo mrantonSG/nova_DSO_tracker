@@ -959,8 +959,11 @@
 
     <div class="content-section project-notes-section">
         <h3>Project Notes</h3>
-        <textarea id="project-field" name="project_notes_from_config"
-                  title="General notes for this object from your main configuration. Editable on the Configuration page.">{{ project_notes_from_config }}</textarea>
+        <input type="hidden" id="project-field-hidden" name="project_notes_from_config"
+               value="{{ project_notes_from_config | e }}">
+
+        <trix-editor input="project-field-hidden" id="project-field-editor"
+                     style="min-height: 150px; height: auto;"></trix-editor>
         <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
         <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
             <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>

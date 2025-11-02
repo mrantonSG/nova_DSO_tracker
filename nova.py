@@ -81,8 +81,9 @@ from sqlalchemy import (
     ForeignKey, Text, UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
+import bleach
 
-APP_VERSION = "3.8.2"
+APP_VERSION = "3.8.3"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -5949,12 +5950,17 @@ def config_form():
     finally:
         db.close()
 
+
 @app.route('/update_project', methods=['POST'])
 @login_required
 def update_project():
     data = request.get_json()
     object_name = data.get('object')
-    new_project_notes = data.get('project')
+
+    # --- MODIFIED: The 'project' key now contains HTML ---
+    new_project_notes_html = data.get('project')
+    # --- END MODIFICATION ---
+
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
@@ -5962,7 +5968,10 @@ def update_project():
         obj_to_update = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
         if obj_to_update:
-            obj_to_update.project_name = new_project_notes
+            # --- MODIFIED: Save the raw HTML ---
+            obj_to_update.project_name = new_project_notes_html
+            # --- END MODIFICATION ---
+
             db.commit()
             trigger_outlook_update_for_user(username)
             return jsonify({"status": "success"})
@@ -6054,11 +6063,9 @@ def get_moon_data_for_session():
 def graph_dashboard(object_name):
     # --- 1. Determine User (No change) ---
     if not (SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
-        # If none are true, *then* redirect to login
         flash("Please log in to view object details.", "info")
         return redirect(url_for('login'))
 
-    # Determine username based on the mode/status
     if SINGLE_USER_MODE:
         username = "default"
     elif current_user.is_authenticated:
@@ -6074,35 +6081,36 @@ def graph_dashboard(object_name):
             flash(f"User '{username}' not found.", "error")
             return redirect(url_for('index'))
 
-        # --- 3. Determine Effective Location (Query DB directly) ---
+        # --- 3. Determine Effective Location (No change) ---
         effective_location_name = "Unknown"
         effective_lat, effective_lon, effective_tz_name = None, None, 'UTC'
         requested_location_name_from_url = request.args.get('location')
         selected_location_db = None
 
         if requested_location_name_from_url:
-            selected_location_db = db.query(Location).filter_by(user_id=user.id, name=requested_location_name_from_url).one_or_none()
+            selected_location_db = db.query(Location).filter_by(user_id=user.id,
+                                                                name=requested_location_name_from_url).one_or_none()
             if selected_location_db:
                 print(f"[Graph View] Using location from URL: {requested_location_name_from_url}")
             else:
                 flash(f"Requested location '{requested_location_name_from_url}' not found, using default.", "warning")
 
-        if not selected_location_db: # If URL param missing, invalid, or no URL param
+        if not selected_location_db:  # If URL param missing, invalid, or no URL param
             selected_location_db = db.query(Location).filter_by(user_id=user.id, is_default=True).one_or_none()
-            if not selected_location_db: # If no default, try first active
-                selected_location_db = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.id).first()
+            if not selected_location_db:  # If no default, try first active
+                selected_location_db = db.query(Location).filter_by(user_id=user.id, active=True).order_by(
+                    Location.id).first()
 
         if selected_location_db:
             effective_location_name = selected_location_db.name
             effective_lat = selected_location_db.lat
             effective_lon = selected_location_db.lon
             effective_tz_name = selected_location_db.timezone
-            if not requested_location_name_from_url: # Only print if we fell back
-                 print(f"[Graph View] Using default/first location: {effective_location_name}")
+            if not requested_location_name_from_url:  # Only print if we fell back
+                print(f"[Graph View] Using default/first location: {effective_location_name}")
         else:
-             # Critical error - no location found at all
-             flash("Error: No valid location configured or selected for this user.", "error")
-             return redirect(url_for('index'))
+            flash("Error: No valid location configured or selected for this user.", "error")
+            return redirect(url_for('index'))
 
         try:
             now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
@@ -6115,73 +6123,77 @@ def graph_dashboard(object_name):
             observing_date_for_calcs = now_at_effective_location.date() - timedelta(days=1)
         else:
             observing_date_for_calcs = now_at_effective_location.date()
-        # --- End Location Determination ---
 
-        # --- 4. Query ONLY the specific object ---
+        # --- 4. Query ONLY the specific object (No change) ---
         obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
         if not obj_record:
             flash(f"Object '{object_name}' not found in your configuration.", "error")
             return redirect(url_for('index'))
 
-        # Convert the single object record to a dictionary format similar to get_ra_dec's output
+        # --- START: Rich Text Migration Logic ---
+
+        raw_project_notes = obj_record.project_name or ""
+
+        # This is our "upgrader". It checks if the text looks like plain text.
+        # If it is plain text, it converts its line breaks to HTML <br> tags.
+        # This makes old notes look correct in the new editor.
+        if not raw_project_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+            # It looks like plain text. Convert it.
+            # 1. Escape any existing HTML (e.g., if user typed "<" by accident)
+            escaped_text = bleach.clean(raw_project_notes, tags=[], strip=True)
+            # 2. Convert newlines to <br> tags (this is the key step)
+            project_notes_for_editor = escaped_text.replace("\n", "<br>")
+        else:
+            # It's already HTML, just use it as-is for the editor
+            project_notes_for_editor = raw_project_notes
+
+        # --- END: Rich Text Migration Logic ---
+
         object_main_details = {
-            "Object": obj_record.object_name,
-            "Common Name": obj_record.common_name,
-            "RA (hours)": obj_record.ra_hours,
-            "DEC (degrees)": obj_record.dec_deg,
-            "Type": obj_record.type,
-            "Constellation": obj_record.constellation,
-            "Magnitude": obj_record.magnitude,
-            "Size": obj_record.size,
-            "SB": obj_record.sb,
-            "ActiveProject": obj_record.active_project,
-            "Project": obj_record.project_name,
-            # Add legacy keys if needed by template
-            "Name": obj_record.common_name,
-            "RA": obj_record.ra_hours,
-            "DEC": obj_record.dec_deg
+            "Object": obj_record.object_name, "Common Name": obj_record.common_name,
+            "RA (hours)": obj_record.ra_hours, "DEC (degrees)": obj_record.dec_deg,
+            "Type": obj_record.type, "Constellation": obj_record.constellation,
+            "Magnitude": obj_record.magnitude, "Size": obj_record.size, "SB": obj_record.sb,
+            "ActiveProject": obj_record.active_project, "Project": obj_record.project_name,
+            "Name": obj_record.common_name, "RA": obj_record.ra_hours, "DEC": obj_record.dec_deg
         }
 
-        # Check if basic details are missing (RA/DEC) - should ideally not happen if DB has constraints
         if obj_record.ra_hours is None or obj_record.dec_deg is None:
-             # You *could* trigger a SIMBAD lookup here if desired, using get_ra_dec
-             # simbad_details = get_ra_dec(object_name) # Call ONLY if needed
-             # object_main_details.update(simbad_details) # Merge SIMBAD results
-             flash(f"Warning: RA/DEC missing for object '{object_name}' in database.", "warning")
-             # Decide if you want to proceed or redirect
+            flash(f"Warning: RA/DEC missing for object '{object_name}' in database.", "warning")
 
-        # --- 5. Handle Journal Data (Deferred loading logic - no change needed here) ---
+        # --- 5. Handle Journal Data (No change) ---
         requested_session_id = request.args.get('session_id')
         selected_session_data = None
         selected_session_data_dict = None
-        # Adjust date/location based on selected session *after* loading the object record
+
         if requested_session_id:
-             selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id, user_id=user.id).one_or_none()
-             if selected_session_data:
-                selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in selected_session_data.__table__.columns}
+            selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id,
+                                                                       user_id=user.id).one_or_none()
+            if selected_session_data:
+                selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
+                                              selected_session_data.__table__.columns}
                 if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
                     selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
-                    # Override effective date/location ONLY if session provides them
                     if selected_session_data.date_utc:
                         effective_day, effective_month, effective_year = selected_session_data.date_utc.day, selected_session_data.date_utc.month, selected_session_data.date_utc.year
                     session_loc_name = getattr(selected_session_data, 'location_name', None)
                     if session_loc_name:
-                        session_loc_details = db.query(Location).filter_by(user_id=user.id, name=session_loc_name).one_or_none()
+                        session_loc_details = db.query(Location).filter_by(user_id=user.id,
+                                                                           name=session_loc_name).one_or_none()
                         if session_loc_details:
                             effective_lat, effective_lon, effective_tz_name = session_loc_details.lat, session_loc_details.lon, session_loc_details.timezone
                             effective_location_name = session_loc_name
-                        else: flash(f"Location '{session_loc_name}' from session not found.", "warning")
-             elif requested_session_id:
-                  flash(f"Requested session ID '{requested_session_id}' not found.", "info")
+                        else:
+                            flash(f"Location '{session_loc_name}' from session not found.", "warning")
+            elif requested_session_id:
+                flash(f"Requested session ID '{requested_session_id}' not found.", "info")
 
-        # Query all sessions for this object and group them by project
         all_projects_for_user = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
         object_specific_sessions_db = db.query(JournalSession).filter_by(user_id=user.id,
                                                                          object_name=object_name).order_by(
             JournalSession.date_utc.desc()).all()
 
-        # Convert sessions to dictionaries and prepare for grouping
         object_specific_sessions_list = []
         for s in object_specific_sessions_db:
             session_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
@@ -6196,7 +6208,6 @@ def graph_dashboard(object_name):
         grouped_sessions_for_template = []  # Use a distinct name
         sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
                                     key=lambda pid: projects_map.get(pid, ''))
-        # Add sessions grouped by Project
         for project_id in sorted_project_ids:
             sessions_in_group = grouped_sessions_dict[project_id]
             total_minutes = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_in_group)
@@ -6204,7 +6215,6 @@ def graph_dashboard(object_name):
                 'is_project': True, 'project_name': projects_map.get(project_id, 'Unknown Project'),
                 'sessions': sessions_in_group, 'total_integration_time': total_minutes
             })
-        # Add Standalone sessions (those with project_id=None)
         if None in grouped_sessions_dict:
             sessions_none_project = grouped_sessions_dict[None]
             total_minutes_none = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_none_project)
@@ -6212,12 +6222,12 @@ def graph_dashboard(object_name):
                 'is_project': False, 'project_name': 'Standalone Sessions',
                 'sessions': sessions_none_project, 'total_integration_time': total_minutes_none
             })
+
         # --- 6. Calculate Effective Date and Sun/Moon Data (No change) ---
         effective_day_req = request.args.get('day')
         effective_month_req = request.args.get('month')
         effective_year_req = request.args.get('year')
 
-        # Use request args if provided AND no session override happened
         if effective_day_req and not selected_session_data_dict:
             effective_day = int(effective_day_req)
         elif not selected_session_data_dict:
@@ -6254,19 +6264,22 @@ def graph_dashboard(object_name):
         except Exception:
             moon_phase_for_effective_date = "N/A"
 
-        # --- 7. Load Rigs (Query separately, only needed data) ---
+        # --- 7. Load Rigs (No change) ---
         rigs_from_db = db.query(Rig).options(
-            selectinload(Rig.telescope), # Eager load components
+            selectinload(Rig.telescope),  # Eager load components
             selectinload(Rig.camera),
             selectinload(Rig.reducer_extender)
         ).filter_by(user_id=user.id).all()
         final_rigs_for_template = []
         for rig in rigs_from_db:
-            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera, rig.reducer_extender)
+            efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(rig.telescope, rig.camera,
+                                                                              rig.reducer_extender)
             fov_h = None
             if rig.camera and rig.camera.sensor_height_mm and efl:
-                 try: fov_h = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
-                 except: pass # Ignore math errors if efl is zero etc.
+                try:
+                    fov_h = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
+                except:
+                    pass  # Ignore math errors if efl is zero etc.
 
             final_rigs_for_template.append({
                 "rig_id": rig.id, "rig_name": rig.rig_name,
@@ -6277,30 +6290,26 @@ def graph_dashboard(object_name):
         prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
         sort_preference = 'name-asc'
         if prefs_record and prefs_record.json_blob:
-             try: sort_preference = json.loads(prefs_record.json_blob).get('rig_sort', 'name-asc')
-             except: pass
+            try:
+                sort_preference = json.loads(prefs_record.json_blob).get('rig_sort', 'name-asc')
+            except:
+                pass
         sorted_rigs = sort_rigs(final_rigs_for_template, sort_preference)
 
-        # --- 8. Load Other Template Data (Projects, Locations for dropdowns) ---
-        # These are generally smaller lists, loading them fully might be acceptable
+        # --- 8. Load Other Template Data (No change) ---
         all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
-        # Only load *active* locations for dropdowns
         available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
-        # Get default location name again for context if needed (already found above)
         default_location_name = effective_location_name if selected_location_db and selected_location_db.is_default else None
-        if not default_location_name: # Find default if not already set
-             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
-             if default_loc_obj: default_location_name = default_loc_obj.name
+        if not default_location_name:  # Find default if not already set
+            default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
+            if default_loc_obj: default_location_name = default_loc_obj.name
 
         # --- 9. Render Template ---
         return render_template('graph_view.html',
-                               # Pass the single object's details
                                object_name=object_name,
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
-                               # Rigs
                                available_rigs=sorted_rigs,
-                               # Date/Time/Location context for the view
                                selected_day=effective_date_obj.day,
                                selected_month=effective_date_obj.month,
                                selected_year=effective_date_obj.year,
@@ -6309,37 +6318,35 @@ def graph_dashboard(object_name):
                                header_moon_phase=moon_phase_for_effective_date,
                                header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                                header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-                               # Notes/Active Status (from the single object)
-                               project_notes_from_config=object_main_details.get("Project", ""), # Use empty string default
+
+                               # --- MODIFIED: Pass the new editor-ready HTML ---
+                               project_notes_from_config=project_notes_for_editor,
+                               # --- END MODIFICATION ---
+
                                is_project_active=object_main_details.get('ActiveProject', False),
-                               # Journal Data (pass placeholders/flags for async loading)
-                               grouped_sessions=grouped_sessions_for_template,  # Pass the calculated groups
-                               object_specific_sessions=object_specific_sessions_list,  # Pass the flat list too
-                               selected_session_data=selected_session_data, # Pass if loaded
-                               selected_session_data_dict=selected_session_data_dict, # Pass dict if loaded
+                               grouped_sessions=grouped_sessions_for_template,
+                               object_specific_sessions=object_specific_sessions_list,
+                               selected_session_data=selected_session_data,
+                               selected_session_data_dict=selected_session_data_dict,
                                current_session_id=requested_session_id if selected_session_data else None,
-                               # Data for client-side chart JS
                                graph_lat_param=effective_lat,
                                graph_lon_param=effective_lon,
                                graph_tz_name_param=effective_tz_name,
-                               # Other data needed for forms/UI elements
                                all_projects=all_projects,
                                available_locations=available_locations,
                                default_location=default_location_name,
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
                                today_date=datetime.now().strftime('%Y-%m-%d')
-                               # REMOVED available_objects (full list no longer needed here)
                                )
 
     except Exception as e:
-        db.rollback() # Rollback any potential partial changes
+        db.rollback()  # Rollback any potential partial changes
         print(f"ERROR rendering graph dashboard for '{object_name}': {e}")
         traceback.print_exc()
         flash(f"An error occurred while loading the details for {object_name}.", "error")
         return redirect(url_for('index'))
     finally:
-        db.close() # Ensure session is closed
-
+        db.close()  # Ensure session is closed
 @app.route('/get_date_info/<path:object_name>')
 def get_date_info(object_name):
     load_full_astro_context()
