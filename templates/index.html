@@ -100,6 +100,15 @@
         text-align: center;
     }
 
+    /* --- ADDED FOR NEW COLUMNS --- */
+    th[data-column-key="Best Month"], td[data-column-key="Best Month"],
+    th[data-column-key="Max Altitude"], td[data-column-key="Max Altitude"] {
+        width: 100px;
+        min-width: 100px;
+        text-align: center;
+    }
+    /* --- END OF ADD --- */
+
     td.highlight.obstructed {
         background-color: #ffeeba !important; /* A light yellow/orange */
         color: #856404; /* A darker text color for readability */
@@ -376,7 +385,11 @@
         'Type':             { header: 'Type<br><span class="subtext">&nbsp;</span>', dataKey: 'Type', type: 'properties', filterable: true, sortable: true },
         'Magnitude':        { header: 'Magnitude<br><span class="subtext">&nbsp;</span>', dataKey: 'Magnitude', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
         'Size':             { header: "Size (')<br><span class='subtext'>&nbsp;</span>", dataKey: 'Size', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
-        'SB':               { header: 'SB<br><span class="subtext">&nbsp;</span>', dataKey: 'SB', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) }
+        'SB':               { header: 'SB<br><span class="subtext">&nbsp;</span>', dataKey: 'SB', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
+        /* --- ADDED FOR NEW COLUMNS --- */
+        'Best Month':       { header: 'Best Month<br><span class="subtext">(Opp.)</span>', dataKey: 'best_month_ra', type: 'properties', filterable: true, sortable: true },
+        'Max Altitude':     { header: 'Max Alt<br><span class="subtext">(Culm.)</span>', dataKey: 'max_culmination_alt', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(1)}°` }
+        /* --- END OF ADD --- */
     };
 
     // --- Journal Table Configuration ---
@@ -657,11 +670,15 @@ async function fetchData() {
             tbody.innerHTML = '';
 
             // Define the order columns should appear in the table row
+            // --- MODIFIED TO ADD NEW COLUMNS ---
             const columnOrder = [
                 'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
                 'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
-                'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB'
+                'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
+                'Best Month', 'Max Altitude'
             ];
+            // --- END MODIFICATION ---
+
 
             // Get the altitude threshold (needed for highlighting) from the template/global scope if possible
             // Fallback to 20 if not defined
@@ -715,6 +732,13 @@ async function fetchData() {
                 // 6. Create a table cell (td) for each column in the defined order
                 columnOrder.forEach(columnKey => {
                     const config = columnConfig[columnKey]; // Get config (header, formatting, etc.)
+                    // --- FIX: Handle missing config for new columns gracefully ---
+                    if (!config) {
+                        console.warn(`Missing columnConfig for key: ${columnKey}`);
+                        return; // Skip this cell if config is missing
+                    }
+                    // --- END FIX ---
+
                     const td = document.createElement('td');
                     td.dataset.columnKey = columnKey; // Store key for filtering/sorting
 
@@ -757,7 +781,14 @@ async function fetchData() {
                     }
 
                     // Store raw numeric value in data attribute for accurate sorting
-                    const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
+                    // --- MODIFIED TO ADD NEW COLUMNS ---
+                    const numericSortKeys = [
+                        'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                        'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                        'Magnitude', 'Size', 'SB', 'Max Altitude'
+                    ];
+                    // --- END MODIFICATION ---
+
                      if (numericSortKeys.includes(config.dataKey)) {
                          if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
                             td.dataset.rawValue = 'N/A';
@@ -868,7 +899,13 @@ async function fetchData() {
             const isNA_A = valA_str === 'N/A' || valA_str === ''; const isNA_B = valB_str === 'N/A' || valB_str === '';
             if (isNA_A && isNA_B) return 0; if (isNA_A) return currentSort.ascending ? 1 : -1; if (isNA_B) return currentSort.ascending ? -1 : 1;
             let valA = valA_str; let valB = valB_str;
-            const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
+            // --- MODIFIED TO ADD NEW COLUMN ---
+            const numericSortKeys = [
+                'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                'Magnitude', 'Size', 'SB', 'Max Altitude'
+            ];
+            // --- END MODIFICATION ---
             if (config && numericSortKeys.includes(config.dataKey)) { valA = parseFloat(valA_str); valB = parseFloat(valB_str); }
             else if (currentSort.columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) { valA = parseTimeToMinutes(valA_str); valB = parseTimeToMinutes(valB_str); }
             if (typeof valA === 'number' && typeof valB === 'number') { if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentSort.ascending ? 1 : -1; if (isNaN(valB)) return currentSort.ascending ? -1 : 1; return currentSort.ascending ? valA - valB : valB - valA; }
@@ -910,7 +947,13 @@ async function fetchData() {
                 const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
                 if (filterTypes.length > 0) { let typeMatch = false; for (const typeTerm of filterTypes) { if (cellText === typeTerm || cellText.includes(typeTerm)) { typeMatch = true; break; } } if (!typeMatch) { showRow = false; break; } }
             } else {
-                const numericFilterKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM', 'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)', 'Magnitude', 'Size', 'SB'];
+                // --- MODIFIED TO ADD NEW COLUMN ---
+                const numericFilterKeys = [
+                    'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                    'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                    'Magnitude', 'Size', 'SB', 'Max Altitude'
+                ];
+                // --- END MODIFICATION ---
                 if (config && numericFilterKeys.includes(config.dataKey)) {
                     if (cellText === "n/a") { showRow = false; break; }
                     const cellNumber = parseFloat(cellText.replace(/[^0-9.\-]/g, ""));
@@ -1150,7 +1193,7 @@ function populateJournalTable() {
                     const valA = parseFloat(valA_str); const valB = parseFloat(valB_str);
                     return currentJournalSort.ascending ? valA - valB : valB - valA;
                 }
-                return currentJournalSort.ascending ? valA_str.localeCompare(valB_str) : valB_str.localeCompare(valA_str);
+                return currentJournalSort.ascending ? valA_str.localeCompare(valB_str) : valB_str.localeCompare(String(valB_str));
             });
         }
 
@@ -1240,7 +1283,7 @@ function populateJournalTable() {
 
     // ========================================================================
     // window.onload Event Handler
-
+    // ========================================================================
     window.onload = () => {
       // --- START: New Timer Logic ---
       let timeToNextUpdate = 60;
@@ -1337,6 +1380,7 @@ function populateJournalTable() {
        filterJournalTable();
        updateRemoveFiltersButtonVisibility();
     };
+
     function renderOutlookTable() {
         const tableBody = document.getElementById('outlook-body');
         if (!tableBody) return;
@@ -1561,6 +1605,8 @@ function populateJournalTable() {
               <th data-column-key="Magnitude" class="col-properties sortable"><span>Magnitude</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="Size" class="col-properties sortable"><span>Size (')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
               <th data-column-key="SB" class="col-properties sortable"><span>SB</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Best Month" class="col-properties sortable"><span>Best Month</span><span class="subtext">(Opp.)</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Max Altitude" class="col-properties sortable"><span>Max Alt</span><span class="subtext">(Culm.)</span><span class="sort-indicator"></span></th>
             </tr>
             <tr class="filter-row"> {# Filter Row for DSO Table #}
               <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="Search Object" /></th>
@@ -1579,6 +1625,8 @@ function populateJournalTable() {
               <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
               <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
               <th data-column-key="SB" class="col-properties"><input type="text" placeholder="SB e.g. <22" /></th>
+              <th data-column-key="Best Month" class="col-properties"><input type="text" placeholder="e.g. Dec" /></th>
+              <th data-column-key="Max Altitude" class="col-properties"><input type="text" placeholder="e.g. >80" /></th>
             </tr>
           </thead>
           <tbody id="data-body"></tbody>
