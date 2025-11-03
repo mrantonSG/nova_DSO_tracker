@@ -84,7 +84,20 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 
-APP_VERSION = "3.8.3"
+import tempfile
+try:
+    import fcntl  # POSIX-only; no-op lock on Windows if import fails
+    _HAS_FCNTL = True
+except Exception:
+    _HAS_FCNTL = False
+
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
+
+
+APP_VERSION = "3.9.0"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -438,75 +451,102 @@ class UiPref(Base):
     json_blob = Column(Text, nullable=True)
     user = relationship("DbUser", back_populates="ui_prefs")
 
+class _FileLock:
+    """Simple advisory lock; no-ops if fcntl is unavailable."""
+    def __init__(self, path: str):
+        self.path = path
+        self._fh = None
+    def __enter__(self):
+        try:
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            self._fh = open(self.path + ".lock", "a+")
+            if _HAS_FCNTL:
+                fcntl.flock(self._fh, fcntl.LOCK_EX)
+        except Exception:
+            pass
+        return self
+    def __exit__(self, exc_type, exc, tb):
+        try:
+            if self._fh:
+                if _HAS_FCNTL:
+                    fcntl.flock(self._fh, fcntl.LOCK_UN)
+                self._fh.close()
+        except Exception:
+            pass
 
 def ensure_db_initialized_unified():
     """
     Create tables if missing, ensure schema patches (external_id column),
     and set SQLite pragmas before any queries or migrations run.
     """
-    Base.metadata.create_all(bind=engine, checkfirst=True)
-    with engine.begin() as conn:
-        # --- Get table info for journal_sessions ---
-        cols_journal = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
-        colnames_journal = {row[1] for row in cols_journal}  # (cid, name, type, notnull, dflt_value, pk)
-        if "external_id" not in colnames_journal:
-            conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
-            print("[DB PATCH] Added missing column journal_sessions.external_id")
-            try:
-                conn.exec_driver_sql(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
-                )
-            except Exception:
-                pass
+    lock_path = os.path.join(INSTANCE_PATH, "schema_patch.lock")
+    with _FileLock(lock_path):
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        with engine.begin() as conn:
+            # --- Get table info for journal_sessions ---
+            cols_journal = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
+            colnames_journal = {row[1] for row in cols_journal}  # (cid, name, type, notnull, dflt_value, pk)
+            if "external_id" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
+                print("[DB PATCH] Added missing column journal_sessions.external_id")
+                try:
+                    conn.exec_driver_sql(
+                        "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
+                    )
+                except Exception:
+                    pass
 
-        # --- Add new columns to 'components' table ---
-        cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
-        colnames_components = {row[1] for row in cols_components}
+            # --- Add new columns to 'components' table ---
+            cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
+            colnames_components = {row[1] for row in cols_components}
 
-        if "is_shared" not in colnames_components:
-            conn.exec_driver_sql("ALTER TABLE components ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
-            print("[DB PATCH] Added missing column components.is_shared")
+            if "is_shared" not in colnames_components:
+                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+                print("[DB PATCH] Added missing column components.is_shared")
 
-        if "original_user_id" not in colnames_components:
-            conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_user_id INTEGER;")
-            print("[DB PATCH] Added missing column components.original_user_id")
+            if "original_user_id" not in colnames_components:
+                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_user_id INTEGER;")
+                print("[DB PATCH] Added missing column components.original_user_id")
 
-        # --- ADD THIS BLOCK ---
-        if "original_item_id" not in colnames_components:
-            conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_item_id INTEGER;")
-            print("[DB PATCH] Added missing column components.original_item_id")
-        # --- END OF BLOCK ---
+            # --- ADD THIS BLOCK ---
+            if "original_item_id" not in colnames_components:
+                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_item_id INTEGER;")
+                print("[DB PATCH] Added missing column components.original_item_id")
+            # --- END OF BLOCK ---
 
-        # --- Add new columns to 'astro_objects' table ---
-        cols_objects = conn.exec_driver_sql("PRAGMA table_info(astro_objects);").fetchall()
-        colnames_objects = {row[1] for row in cols_objects}
+            # --- Add new columns to 'astro_objects' table ---
+            cols_objects = conn.exec_driver_sql("PRAGMA table_info(astro_objects);").fetchall()
+            colnames_objects = {row[1] for row in cols_objects}
 
-        project_name_col_info = next((col for col in cols_objects if col[1] == 'project_name'), None)
-        if project_name_col_info and 'TEXT' not in project_name_col_info[2].upper():
-            print(
-                f"[DB PATCH] Note: astro_objects.project_name type is {project_name_col_info[2]}. Model updated to TEXT.")
+            project_name_col_info = next((col for col in cols_objects if col[1] == 'project_name'), None)
+            if project_name_col_info and 'TEXT' not in project_name_col_info[2].upper():
+                print(
+                    f"[DB PATCH] Note: astro_objects.project_name type is {project_name_col_info[2]}. Model updated to TEXT.")
 
-        if "is_shared" not in colnames_objects:
-            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
-            print("[DB PATCH] Added missing column astro_objects.is_shared")
+            if "is_shared" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+                print("[DB PATCH] Added missing column astro_objects.is_shared")
 
-        if "shared_notes" not in colnames_objects:
-            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN shared_notes TEXT;")
-            print("[DB PATCH] Added missing column astro_objects.shared_notes")
+            if "shared_notes" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN shared_notes TEXT;")
+                print("[DB PATCH] Added missing column astro_objects.shared_notes")
 
-        if "original_user_id" not in colnames_objects:
-            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_user_id INTEGER;")
-            print("[DB PATCH] Added missing column astro_objects.original_user_id")
+            if "original_user_id" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_user_id INTEGER;")
+                print("[DB PATCH] Added missing column astro_objects.original_user_id")
 
-        # --- ADD THIS BLOCK ---
-        if "original_item_id" not in colnames_objects:
-            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_item_id INTEGER;")
-            print("[DB PATCH] Added missing column astro_objects.original_item_id")
-        # --- END OF BLOCK ---
+            # --- ADD THIS BLOCK ---
+            if "original_item_id" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_item_id INTEGER;")
+                print("[DB PATCH] Added missing column astro_objects.original_item_id")
+            # --- END OF BLOCK ---
 
-        # Pragmas
-        conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
-        conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            # Pragmas
+            conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+            conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
 
 # --- Ensure DB schema and patches are applied before any migration/backfill ---
 ensure_db_initialized_unified()
@@ -3142,6 +3182,7 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
         finally:
              print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
+
 def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
     Warms the main data cache on startup and then triggers the Outlook cache
@@ -3149,10 +3190,29 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
     # print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
     try:
-        local_tz = pytz.timezone(user_config["locations"][location_name]["timezone"])
+        # --- 1. DETERMINE LOCATION VARS (AND FIX BAD TIMEZONE) ---
+        try:
+            tz_name = user_config["locations"][location_name]["timezone"]
+            local_tz = pytz.timezone(tz_name)
+        except pytz.exceptions.UnknownTimeZoneError:
+            print(
+                f"❌ [CACHE WARMER] WARN: Invalid timezone '{tz_name}' for user '{username}' at location '{location_name}'. Falling back to UTC.")
+            local_tz = pytz.timezone("UTC")
+            tz_name = "UTC"  # <-- This is the fix
+
+        # --- 2. GET LOCATION & DATE VARS (NOW OUTSIDE THE LOOP) ---
+        # These are now read only ONCE, using the corrected tz_name
         observing_date_for_calcs = datetime.now(local_tz) - timedelta(hours=12)
         local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
+        lat = float(user_config["locations"][location_name]["lat"])
+        lon = float(user_config["locations"][location_name]["lon"])
+        altitude_threshold = user_config.get("altitude_threshold", 20)
+        try:
+            horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
+        except Exception:
+            horizon_mask = None
 
+        # --- 3. PROCESS ALL OBJECTS (LOOP) ---
         for obj_entry in user_config.get("objects", []):
             time.sleep(0.01)
             obj_name = obj_entry.get("Object")
@@ -3164,24 +3224,21 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
 
             ra = float(obj_entry.get("RA", 0))
             dec = float(obj_entry.get("DEC", 0))
-            lat = float(user_config["locations"][location_name]["lat"])
-            lon = float(user_config["locations"][location_name]["lon"])
-            tz_name = user_config["locations"][location_name]["timezone"]
 
-            altitude_threshold = user_config.get("altitude_threshold", 20)
+            # --- THE BUG IS REMOVED ---
+            # lat, lon, and tz_name are NO LONGER read here
+            # --- END OF BUG FIX ---
 
+            # This call is now safe because tz_name is the corrected one from step 1
             times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+
             location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
             sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
             altaz_frame = AltAz(obstime=times_utc, location=location)
             altitudes = sky_coord.transform_to(altaz_frame).alt.deg
             azimuths = sky_coord.transform_to(altaz_frame).az.deg
             transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
-            # Apply horizon mask from location (if any)
-            try:
-                horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
-            except Exception:
-                horizon_mask = None
+
             obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
                 ra, dec, lat, lon,
                 local_date, tz_name,
@@ -3207,12 +3264,9 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
                 "is_obstructed_at_11pm": is_obstructed_at_11pm
             }
 
-        # print(f"[CACHE WARMER] Main data cache warming complete for '{location_name}'.")
-
-        # --- NEW: Now, sequentially trigger the Outlook worker for this location ---
-        # print(f"[CACHE WARMER] Now triggering Outlook cache update for '{location_name}'.")
-        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
-
+        # --- 4. TRIGGER OUTLOOK CACHE (Unchanged) ---
+        cache_filename = os.path.join(CACHE_DIR,
+                                      f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
 
         needs_update = False
         if not os.path.exists(cache_filename):
@@ -3234,7 +3288,6 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
                 print(f"    -> Outlook cache for '{location_name}' is corrupted. Triggering update.")
 
         if needs_update:
-            # Pass username to the thread's target function
             thread = threading.Thread(target=update_outlook_cache,
                                       args=(username, location_name, user_config.copy(), sampling_interval))
             thread.start()
@@ -7045,24 +7098,48 @@ def get_yearly_plot_data(object_name):
 # Main Entry Point
 # =============================================================================
 if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-    migrate_journal_data()
-    trigger_startup_cache_workers() # This runs second
+    # Use a lock to protect a "flag file" check
+    startup_lock_path = os.path.join(INSTANCE_PATH, "startup.lock")
+    tasks_ran_flag_path = os.path.join(INSTANCE_PATH, "startup.done")
 
-import logging
+    with _FileLock(startup_lock_path):
+        # This 'with' block now acts as a mutex, ensuring only one
+        # worker at a time can perform this check.
 
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+        if not os.path.exists(tasks_ran_flag_path):
+            # This worker is the first one. Run the tasks.
+            print("[STARTUP] Acquired lock, startup flag not found. Running one-time init tasks...")
 
-# Start the background thread to check for updates
-print("[STARTUP] Starting background update check thread...")
-update_thread = threading.Thread(target=check_for_updates)
-update_thread.daemon = True
-update_thread.start()
+            migrate_journal_data()
+            trigger_startup_cache_workers()  # This runs second
 
-print("[STARTUP] Starting background weather worker thread...")
-weather_thread = threading.Thread(target=weather_cache_worker)
-weather_thread.daemon = True
-weather_thread.start()
+            # --- MOVED FROM OUTSIDE ---
+            # Start the background thread to check for updates
+            print("[STARTUP] Starting background update check thread...")
+            update_thread = threading.Thread(target=check_for_updates)
+            update_thread.daemon = True
+            update_thread.start()
+
+            # --- MOVED FROM OUTSIDE ---
+            print("[STARTUP] Starting background weather worker thread...")
+            weather_thread = threading.Thread(target=weather_cache_worker)
+            weather_thread.daemon = True
+            weather_thread.start()
+            # --- END MOVED BLOCKS ---
+
+            # Create the flag file *before* releasing the lock
+            try:
+                with open(tasks_ran_flag_path, 'w') as f:
+                    f.write(datetime.now(timezone.utc).isoformat())
+            except Exception as e:
+                print(f"[STARTUP] CRITICAL: Could not write startup flag file! Error: {e}")
+
+            print("[STARTUP] One-time init complete. Created flag. Releasing lock.")
+
+        else:
+            # The flag file already exists, so another worker has
+            # already started the tasks. Skip.
+            print("[STARTUP] Startup flag file found. Skipping init tasks.")
 
 if not SINGLE_USER_MODE:
     @app.cli.command("init-db")
