@@ -887,7 +887,6 @@
     <button class="tab-button" data-tab="framing" onclick="showTab('framing')">Framing & Notes</button>
     <button class="tab-button" data-tab="opportunities" onclick="showTab('opportunities')">Opportunities</button>
     <button class="tab-button" data-tab="simbad" onclick="showTab('simbad')">SIMBAD</button>
-    <button class="tab-button" data-tab="starchart" onclick="showTab('starchart')">Star Chart</button>
 </div>
 
 <div id="chart-tab" class="tab-content active">
@@ -987,17 +986,6 @@
     <div id="simbadContainer">
         <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
     </div>
-</div>
-
-<div id="starchart-tab" class="tab-content">
-    <style>
-        #aladin-star-chart {
-            filter: invert(100%);
-        }
-    </style>
-
-    <div id="aladin-star-chart" style="width:100%; height:800px;">
-        </div>
 </div>
 
 <div id="framing-modal" class="modal">
@@ -1176,7 +1164,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
 let simbadLoaded = false; // Flag for SIMBAD iframe
-let starChartLoaded = false; // Flag for Star Chart
 
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1194,10 +1181,6 @@ function showTab(tabName) {
     if (tabName === 'simbad' && !simbadLoaded) {
         loadSimbadInfo();
     }
-    if (tabName === 'starchart' && !starChartLoaded) {
-        loadStarChart();
-    }
-}
 
 function loadSimbadInfo() {
     if (simbadLoaded) return;
@@ -1215,28 +1198,6 @@ function loadSimbadInfo() {
     const objectName = {{ object_name|tojson }};
     iframe.src = `https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=${encodeURIComponent(objectName)}&submit=SIMBAD+search`;
     simbadLoaded = true;
-}
-function loadStarChart() {
-    if (starChartLoaded) return;
-
-    // Get the object name from the template
-    const objectName = {{ object_name | tojson }};
-
-    // Initialize Aladin Lite
-    let aladin = A.aladin('#aladin-star-chart', {
-        target: objectName,        // Center on our object
-        fov: 30,                   // Set a 30-degree field of view
-        survey: 'P/DSS2/color',    // Use a basic sky survey
-
-        // --- These options create the chart look ---
-        showGrid: true,               // Show RA/Dec grid
-        showConstellationLines: true, // Show constellation stick figures
-        showConstellationLabels: true,// Show constellation names
-        showNames: true,              // Show bright star names
-        showSimbad: true              // Show deep-sky objects
-    });
-
-    starChartLoaded = true;
 }
 
 async function loadImagingOpportunities() {
