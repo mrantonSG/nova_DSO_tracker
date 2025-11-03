@@ -5947,12 +5947,17 @@ def config_form():
             # --- Add New Location ---
             elif 'submit_new_location' in request.form:
                 new_name = request.form.get("new_location").strip()
+                new_tz = request.form.get("new_timezone")  # Get the timezone
+
                 existing = db.query(Location).filter_by(user_id=app_db_user.id, name=new_name).first()
                 if existing:
                     error = f"A location named '{new_name}' already exists."
-                elif not all([new_name, request.form.get("new_lat"), request.form.get("new_lon"),
-                              request.form.get("new_timezone")]):
+                elif not all([new_name, request.form.get("new_lat"), request.form.get("new_lon"), new_tz]):
                     error = "Name, Latitude, Longitude, and Timezone are required."
+
+                elif new_tz not in pytz.all_timezones:
+                    error = f"Invalid timezone: '{new_tz}'. Please select a valid option from the list."
+
                 else:
                     new_loc = Location(
                         user_id=app_db_user.id, name=new_name,
@@ -5981,6 +5986,12 @@ def config_form():
                     if request.form.get(f"delete_loc_{loc.name}") == "on":
                         db.delete(loc);
                         continue
+
+                    tz_name_from_form = request.form.get(f"timezone_{loc.name}")
+                    if tz_name_from_form not in pytz.all_timezones:
+                        error = f"Invalid timezone for {loc.name}: '{tz_name_from_form}'. Please select a valid option."
+                        break  # Stop processing immediately on the first error
+
                     loc.lat = float(request.form.get(f"lat_{loc.name}"))
                     loc.lon = float(request.form.get(f"lon_{loc.name}"))
                     loc.timezone = request.form.get(f"timezone_{loc.name}")
@@ -6074,7 +6085,7 @@ def config_form():
                 "original_user_id": o.original_user_id
             })
 
-        return render_template('config_form.html', config=config_for_template, locations=locations_for_template)
+        return render_template('config_form.html', config=config_for_template, locations=locations_for_template, all_timezones=pytz.all_timezones)
 
     except Exception as e:
         db.rollback()
