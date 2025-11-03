@@ -4,6 +4,8 @@
 
 {% block head_extra %}
   <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
+  <link rel_layout="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <meta charset="UTF-8">
   <title>Configuration Form</title>
   <style>
@@ -591,7 +593,11 @@
 {% endblock %}
 </head>
 <body>
-
+<datalist id="timezone-list">
+  {% for tz in all_timezones %}
+  <option value="{{ tz }}"></option>
+  {% endfor %}
+</datalist>
 {% block body %}
 
   <div class="info-container-main">
@@ -746,7 +752,12 @@
               </div>
               <div>
                 <label class="long-label" for="new_timezone">Timezone:</label>
-                <input type="text" name="new_timezone" id="new_timezone" placeholder="America/New_York">
+                <select name="new_timezone" id="new_timezone">
+                    <option value="">Type to search...</option>
+                    {% for tz in all_timezones %}
+                    <option value="{{ tz }}">{{ tz }}</option>
+                    {% endfor %}
+                </select>
               </div>
               <div>
                   <label class="short-label" for="new_active">Active:</label>
@@ -791,7 +802,11 @@
                 </div>
                 <div>
                   <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
-                  <input type="text" name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}" value="{{ loc_val.timezone }}">
+                  <select name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}">
+                    {% for tz in all_timezones %}
+                    <option value="{{ tz }}" {% if tz == loc_val.timezone %}selected{% endif %}>{{ tz }}</option>
+                    {% endfor %}
+                </select>
                 </div>
                 <div>
                     <label class="short-label" for="active_{{ loc_key }}">Active:</label>
