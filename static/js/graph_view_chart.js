@@ -25,39 +25,43 @@ const weatherOverlayPlugin = {
         b.seeing != null && b.seeing !== -9999
     );
 
-    // --- NEW: Grouping logic now handles 1-hour or 3-hour blocks ---
+    // --- UPDATED: Force 3-hour grouping ---
     const groupedForecast = [];
     if (originalForecast.length > 0) {
         originalForecast.sort((a, b) => a.start - b.start);
 
-        let currentGroupStart = originalForecast[0].start;
-        // Find the duration of the first block (in ms) to determine grid size (1hr or 3hr)
-        const blockDurationMs = originalForecast[0].end - originalForecast[0].start;
-        // Default to 3hr if duration is weird, otherwise use detected duration
-        const groupDurationMs = (blockDurationMs <= 3600 * 1000 * 1.5) ? 3600 * 1000 : 3 * 3600 * 1000;
+        // --- THIS IS THE FIX: We now ALWAYS group into 3-hour blocks ---
+        const groupDurationMs = 3 * 3600 * 1000; // 3 hours in ms
+        const groupIntervalHours = 3;
+        // --- END FIX ---
 
-        let groupEnd = currentGroupStart + groupDurationMs;
-        let blocksInGroup = [];
-
-        // Find the start hour of the very first block (0, 3, 6... or 0, 1, 2...)
+        // Find the start hour of the very first block (0, 3, 6...)
         const firstBlockStartHour = new Date(originalForecast[0].start).getUTCHours();
-        const groupIntervalHours = groupDurationMs / (3600 * 1000); // 1 or 3
         const firstGroupStartHour = Math.floor(firstBlockStartHour / groupIntervalHours) * groupIntervalHours;
         const baseTimeMs = new Date(originalForecast[0].start).setUTCHours(0,0,0,0);
 
-        currentGroupStart = baseTimeMs + firstGroupStartHour * 3600 * 1000;
-        groupEnd = currentGroupStart + groupDurationMs;
+        let currentGroupStart = baseTimeMs + firstGroupStartHour * 3600 * 1000;
+        let groupEnd = currentGroupStart + groupDurationMs;
+        let blocksInGroup = [];
 
         for (const block of originalForecast) {
+            // If block starts at or after the current group ends, finalize the previous group
             if (block.start >= groupEnd) {
                 if (blocksInGroup.length > 0) {
                     this.finalizeGroup(groupedForecast, blocksInGroup, currentGroupStart, groupEnd);
                 }
-                // Start a new group
+                // Start a new group *at* the end of the last one
                 currentGroupStart = groupEnd;
                 groupEnd = currentGroupStart + groupDurationMs;
                 blocksInGroup = [];
+
+                // Handle gaps: keep advancing groups until we find the one this block belongs in
+                while(block.start >= groupEnd) {
+                    currentGroupStart = groupEnd;
+                    groupEnd = currentGroupStart + groupDurationMs;
+                }
             }
+             // Add block to the current group if it starts within the time window
              if (block.start >= currentGroupStart && block.start < groupEnd) {
                 blocksInGroup.push(block);
              }
@@ -67,7 +71,7 @@ const weatherOverlayPlugin = {
             this.finalizeGroup(groupedForecast, blocksInGroup, currentGroupStart, groupEnd);
         }
     }
-    // --- END NEW GROUPING LOGIC ---
+    // --- END UPDATED GROUPING LOGIC ---
 
     const { ctx, chartArea, scales } = chart;
     const x = scales.x;
@@ -156,7 +160,7 @@ const weatherOverlayPlugin = {
     ctx.restore();
   },
 
-  // --- NEW HELPER FUNCTIONS ---
+  // --- HELPER FUNCTIONS ---
   drawMessage(chart, text) {
       const { ctx, chartArea } = chart;
       if (!chartArea) return;
@@ -173,12 +177,19 @@ const weatherOverlayPlugin = {
   finalizeGroup(groupedForecast, blocksInGroup, groupStart, groupEnd) {
       // Find the most frequent cloudcover value (mode) in the group
       const cloudCounts = blocksInGroup.reduce((acc, b) => {
-          acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
+          if (b.cloudcover != null) { // Only count valid cloud values
+              acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
+          }
           return acc;
       }, {});
-      const dominantCloudcover = Object.keys(cloudCounts).reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
+      // Default to 9 (Overcast) if no valid cloud data in group
+      let dominantCloudcover = 9;
+      const validClouds = Object.keys(cloudCounts);
+      if (validClouds.length > 0) {
+          dominantCloudcover = validClouds.reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
+      }
 
-      // --- NEW: Find dominant seeing value ---
+      // Find dominant seeing value
       let dominantSeeing = -9999;
       const seeingCounts = blocksInGroup.reduce((acc, b) => {
           const s = b.seeing;
@@ -196,7 +207,7 @@ const weatherOverlayPlugin = {
           start: groupStart,
           end: groupEnd,
           cloudcover: parseInt(dominantCloudcover),
-          seeing: parseInt(dominantSeeing) // Add the dominant seeing
+          seeing: parseInt(dominantSeeing)
       });
   }
 };
