@@ -37,7 +37,7 @@
     .block {
       border: 0px solid #ddd;
       background: #ecf1f1;
-      padding: 8px;
+      padding: 15px;
       margin-bottom: 10px;
       border-radius: 4px;
     }
@@ -223,6 +223,14 @@
         margin-left: 0;
       }
     }
+    #object-filter-bar {
+      padding: 10px 15px;
+      background: #f9f9f9; /* Lighter background like other filter headers */
+    }
+    #object-filter-bar .inline-fields {
+      margin-bottom: 0; /* Remove extra bottom margin */
+      gap: 20px;
+    }
     .objects-list .inline-fields input[type="checkbox"],
     .block .inline-fields input[type="checkbox"] {
       transform: scale(1.5);
@@ -315,7 +323,7 @@
     .data-table .imported-button {
         padding: 5px 10px;
         font-size: 13px;
-        background-color: #28a745;
+        background-color: #778899;
         color: white;
         border: none;
         border-radius: 5px;
@@ -901,6 +909,28 @@
       </div>
       <div id="object_result"></div>
       <hr>
+
+      <div class="block" id="object-filter-bar">
+        <div class="inline-fields">
+          <div>
+            <label class="short-label" for="object-filter-id">Filter ID:</label>
+            <input type="text" id="object-filter-id" onkeyup="filterObjectsList()" placeholder="e.g., M42">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-name">Name:</label>
+            <input type="text" id="object-filter-name" onkeyup="filterObjectsList()" placeholder="e.g., Orion">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-con">Con:</label>
+            <input type="text" id="object-filter-con" onkeyup="filterObjectsList()" placeholder="e.g., Cyg">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-type">Type:</label>
+            <input type="text" id="object-filter-type" onkeyup="filterObjectsList()" placeholder="e.g., PN">
+          </div>
+        </div>
+      </div>
+
       <form method="post">
         <div class="objects-list">
         {% for obj in config.objects %}
@@ -918,9 +948,6 @@
                   <div>
                     <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
                     <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
-                  </div>
-                  <div>
-                    <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
                   </div>
                 </div>
                 <div class="inline-fields second-row-fields">
@@ -956,10 +983,18 @@
                     <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
                   </div>
                 </div>
+                  <div class="inline-fields second-row-fields">
+                    <div>
+                        <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+                    </div>
+                    <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
+                        <button type="button" class="action-button update-single-object-btn" data-object-id="{{ obj.Object | e }}">Update</button>
+                        <span class="update-status-msg" data-object-id="{{ obj.Object | e }}" style="font-style: italic; color: #28a745; font-size: 13px; white-space: nowrap;"></span>
+                    </div>
                 </div>
 
-              <div>
-                <div class="form-group trix-group">
+
+        </div> <div><div class="form-group trix-group">
                     <label for="project_{{ obj.Object }}_editor">Private Notes:</label>
                     <input type="hidden" id="project_{{ obj.Object }}_hidden" name="project_{{ obj.Object }}" value="{{ obj.Project | default('', True) | e }}">
                     <trix-editor input="project_{{ obj.Object }}_hidden" id="project_{{ obj.Object }}_editor" placeholder="Personal notes... (not shared)"></trix-editor>
@@ -1631,6 +1666,42 @@
         });
     }
 
+    function filterObjectsList() {
+        // 1. Get filter values
+        const filterId = document.getElementById('object-filter-id').value.toLowerCase();
+        const filterName = document.getElementById('object-filter-name').value.toLowerCase();
+        const filterCon = document.getElementById('object-filter-con').value.toLowerCase();
+        const filterType = document.getElementById('object-filter-type').value.toLowerCase();
+
+        // 2. Get all object blocks
+        const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
+
+        // 3. Loop through each block and check
+        objectBlocks.forEach(block => {
+            let show = true;
+
+            // Find the values within this block
+            const objectIdEl = block.querySelector('.object-id strong');
+            const nameInputEl = block.querySelector('input[id^="name_"]');
+            const conInputEl = block.querySelector('input[id^="constellation_"]');
+            const typeInputEl = block.querySelector('input[id^="type_"]');
+
+            const objectId = objectIdEl ? objectIdEl.textContent.toLowerCase() : '';
+            const name = nameInputEl ? nameInputEl.value.toLowerCase() : '';
+            const con = conInputEl ? conInputEl.value.toLowerCase() : '';
+            const type = typeInputEl ? typeInputEl.value.toLowerCase() : '';
+
+            // 4. Apply filters
+            if (filterId && !objectId.includes(filterId)) show = false;
+            if (show && filterName && !name.includes(filterName)) show = false;
+            if (show && filterCon && !con.includes(filterCon)) show = false;
+            if (show && filterType && !type.includes(filterType)) show = false;
+
+            // 5. Show or hide the block
+            block.style.display = show ? '' : 'none';
+        });
+    }
+
     function confirmAndFetchDetails(formElement) {
         const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
         let estimatedTime = numObjects * 0.6;
@@ -1945,6 +2016,96 @@
                 });
             }
         }
+        document.querySelector('.objects-list').addEventListener('click', function(e) {
+
+            // Listen for clicks specifically on our new update button
+            if (e.target.classList.contains('update-single-object-btn')) {
+                const button = e.target;
+                const objectId = button.dataset.objectId;
+
+                // Show immediate feedback
+                button.disabled = true;
+                button.textContent = 'Updating...';
+                const statusMsg = document.querySelector(`.update-status-msg[data-object-id="${objectId}"]`);
+                if (statusMsg) {
+                    statusMsg.textContent = '';
+                    statusMsg.style.color = '#28a745'; // Reset color
+                }
+
+                // --- Get Trix Editor Content Correctly ---
+                // We must get HTML directly from the editor, not the hidden input
+                const projectEditorEl = document.getElementById(`project_${objectId}_editor`);
+                const projectHtml = projectEditorEl ? projectEditorEl.editor.getDocument().toString() : '';
+
+                let sharedNotesHtml = '';
+                let isShared = false;
+
+                // Check if shared fields exist (for multi-user mode)
+                const sharedEditorEl = document.getElementById(`shared_notes_${objectId}_editor`);
+                if (sharedEditorEl) {
+                    sharedNotesHtml = sharedEditorEl.editor.getDocument().toString();
+                }
+                const isSharedCheckbox = document.getElementById(`is_shared_${objectId}`);
+                if (isSharedCheckbox) {
+                    isShared = isSharedCheckbox.checked;
+                }
+
+                // Collect all data for this specific object
+                const payload = {
+                    object_id: objectId,
+                    name: document.getElementById(`name_${objectId}`).value,
+                    ra: document.getElementById(`ra_${objectId}`).value,
+                    dec: document.getElementById(`dec_${objectId}`).value,
+                    constellation: document.getElementById(`constellation_${objectId}`).value,
+                    type: document.getElementById(`type_${objectId}`).value,
+                    magnitude: document.getElementById(`magnitude_${objectId}`).value,
+                    size: document.getElementById(`size_${objectId}`).value,
+                    sb: document.getElementById(`sb_${objectId}`).value,
+                    project_notes: projectHtml,
+                    shared_notes: sharedNotesHtml,
+                    is_shared: isShared
+                };
+
+                // Send the data to our new endpoint
+                fetch("{{ url_for('update_object') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message || 'Server error'); });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (statusMsg) statusMsg.textContent = 'Saved!';
+                        setTimeout(() => { if (statusMsg) statusMsg.textContent = ''; }, 2000);
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error('Update failed:', err);
+                    if (statusMsg) {
+                        statusMsg.textContent = 'Error!';
+                        statusMsg.style.color = '#dc3545'; // Red color for error
+                    }
+                    alert(`Error updating ${objectId}: ${err.message}`);
+                    setTimeout(() => {
+                        if (statusMsg) {
+                            statusMsg.textContent = '';
+                            statusMsg.style.color = '#28a745'; // Reset to green
+                        }
+                    }, 4000);
+                })
+                .finally(() => {
+                    button.disabled = false;
+                    button.textContent = 'Update';
+                });
+            }
+        });
         setupImport('import-config-btn', 'config-upload', "{{ url_for('import_config') }}", 'configuration');
         setupImport('import-journal-btn', 'journal-upload', "{{ url_for('import_journal') }}", 'journal');
         setupImport('import-rigs-btn', 'rigs-upload', "{{ url_for('import_rig_config') }}", 'rigs file');

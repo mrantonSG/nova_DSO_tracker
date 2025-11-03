@@ -3909,9 +3909,25 @@ def get_rig_data():
 
         # Assemble the data structure for the frontend
         components_dict = {
-            "telescopes": [{"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm} for c in telescopes],
-            "cameras": [{"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm, "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um} for c in cameras],
-            "reducers_extenders": [{"id": c.id, "name": c.name, "factor": c.factor} for c in reducers]
+            "telescopes": [
+                {
+                    "id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm,
+                    "is_shared": c.is_shared, "original_user_id": c.original_user_id  # <-- ADDED
+                } for c in telescopes
+            ],
+            "cameras": [
+                {
+                    "id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
+                    "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um,
+                    "is_shared": c.is_shared, "original_user_id": c.original_user_id  # <-- ADDED
+                } for c in cameras
+            ],
+            "reducers_extenders": [
+                {
+                    "id": c.id, "name": c.name, "factor": c.factor,
+                    "is_shared": c.is_shared, "original_user_id": c.original_user_id  # <-- ADDED
+                } for c in reducers
+            ]
         }
 
         rigs_list = []
@@ -5302,6 +5318,56 @@ def confirm_object():
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
+
+
+@app.route('/api/update_object', methods=['POST'])
+@login_required
+def update_object():
+    """
+    API endpoint to update a single AstroObject from the config form.
+    Expects a JSON payload with all object fields.
+    """
+    db = get_db()
+    try:
+        data = request.get_json()
+        object_name = data.get('object_id')
+        username = "default" if SINGLE_USER_MODE else current_user.username
+
+        user = db.query(DbUser).filter_by(username=username).one()
+        obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
+
+        if not obj:
+            return jsonify({"status": "error", "message": "Object not found"}), 404
+
+        # Update all fields from the payload
+        obj.common_name = data.get('name')
+        obj.ra_hours = float(data.get('ra'))
+        obj.dec_deg = float(data.get('dec'))
+        obj.type = data.get('type')
+        obj.magnitude = data.get('magnitude')
+        obj.size = data.get('size')
+        obj.sb = data.get('sb')
+
+        # Update notes (JS sends the raw HTML from Trix)
+        obj.project_name = data.get('project_notes')
+
+        if not SINGLE_USER_MODE:
+            # Only update sharing if it's not an imported item
+            if not obj.original_user_id:
+                obj.is_shared = data.get('is_shared')
+                obj.shared_notes = data.get('shared_notes')
+
+        db.commit()
+        return jsonify({"status": "success", "message": f"Object '{object_name}' updated."})
+
+    except Exception as e:
+        db.rollback()
+        print(f"--- ERROR in /api/update_object ---")
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
 
 @app.route('/fetch_all_details', methods=['POST'])
 @login_required
