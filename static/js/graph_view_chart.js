@@ -1,78 +1,74 @@
 
 let currentTimeUpdateInterval = null;
+
 const weatherOverlayPlugin = {
   id: 'weatherOverlay',
   beforeDatasetsDraw(chart) {
     const info = chart.__weather;
-    if (!info || !info.hasWeather || !Array.isArray(info.forecast) || info.forecast.length === 0) return;
+    // --- NEW: Handle loading and error states ---
+    if (!info) return; // Info object not even created yet
+
+    if (info.isLoading) {
+        this.drawMessage(chart, 'Loading weather...');
+        return;
+    }
+    if (info.error) {
+        this.drawMessage(chart, info.error);
+        return;
+    }
+    // --- END NEW ---
+
+    if (!info.hasWeather || !Array.isArray(info.forecast) || info.forecast.length === 0) return;
     const { forecast: originalForecast, cloudInfo, seeingInfo } = info;
 
-    // 1. Check if ANY block has valid seeing data (not null/undefined/-9999)
     const hasValidSeeingData = originalForecast.some(b =>
         b.seeing != null && b.seeing !== -9999
     );
 
-    // 2. Group hourly forecast into 3-hour blocks for display
+    // --- NEW: Grouping logic now handles 1-hour or 3-hour blocks ---
     const groupedForecast = [];
     if (originalForecast.length > 0) {
-        // Sort just in case, though it should be sorted by time already
         originalForecast.sort((a, b) => a.start - b.start);
 
         let currentGroupStart = originalForecast[0].start;
-        let groupEnd = currentGroupStart + (3 * 60 * 60 * 1000); // 3 hours in ms
+        // Find the duration of the first block (in ms) to determine grid size (1hr or 3hr)
+        const blockDurationMs = originalForecast[0].end - originalForecast[0].start;
+        // Default to 3hr if duration is weird, otherwise use detected duration
+        const groupDurationMs = (blockDurationMs <= 3600 * 1000 * 1.5) ? 3600 * 1000 : 3 * 3600 * 1000;
+
+        let groupEnd = currentGroupStart + groupDurationMs;
         let blocksInGroup = [];
 
+        // Find the start hour of the very first block (0, 3, 6... or 0, 1, 2...)
+        const firstBlockStartHour = new Date(originalForecast[0].start).getUTCHours();
+        const groupIntervalHours = groupDurationMs / (3600 * 1000); // 1 or 3
+        const firstGroupStartHour = Math.floor(firstBlockStartHour / groupIntervalHours) * groupIntervalHours;
+        const baseTimeMs = new Date(originalForecast[0].start).setUTCHours(0,0,0,0);
+
+        currentGroupStart = baseTimeMs + firstGroupStartHour * 3600 * 1000;
+        groupEnd = currentGroupStart + groupDurationMs;
+
         for (const block of originalForecast) {
-            // If block starts after the current group ends, finalize the previous group
             if (block.start >= groupEnd) {
                 if (blocksInGroup.length > 0) {
-                    // Find the most frequent cloudcover value (mode) in the group
-                    const cloudCounts = blocksInGroup.reduce((acc, b) => {
-                        acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
-                        return acc;
-                    }, {});
-                    const dominantCloudcover = Object.keys(cloudCounts).reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
-
-                    // Add the grouped block
-                    groupedForecast.push({
-                        start: currentGroupStart,
-                        end: groupEnd,
-                        cloudcover: parseInt(dominantCloudcover), // Ensure it's a number
-                        // We don't average seeing - the row visibility handles it
-                    });
+                    this.finalizeGroup(groupedForecast, blocksInGroup, currentGroupStart, groupEnd);
                 }
                 // Start a new group
-                currentGroupStart = block.start;
-                // Ensure group boundaries align nicely if possible, but handle gaps
-                const hoursSinceEpoch = Math.floor(block.start / (60 * 60 * 1000));
-                const startHourOfBlock = hoursSinceEpoch % 24;
-                const startHourOfGroup = Math.floor(startHourOfBlock / 3) * 3;
-                // Recalculate group start/end based on 3-hour intervals (0, 3, 6, ...)
-                const baseTime = new Date(block.start).setUTCHours(0,0,0,0); // Get start of day in UTC ms
-                currentGroupStart = baseTime + startHourOfGroup * 3600 * 1000;
-                groupEnd = currentGroupStart + (3 * 60 * 60 * 1000);
+                currentGroupStart = groupEnd;
+                groupEnd = currentGroupStart + groupDurationMs;
                 blocksInGroup = [];
             }
-             // Add block to the current group if it starts within the time window
              if (block.start >= currentGroupStart && block.start < groupEnd) {
                 blocksInGroup.push(block);
              }
         }
-
-        // Add the last group if it has blocks
+        // Add the last group
         if (blocksInGroup.length > 0) {
-            const cloudCounts = blocksInGroup.reduce((acc, b) => {
-                acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
-                return acc;
-            }, {});
-            const dominantCloudcover = Object.keys(cloudCounts).reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
-            groupedForecast.push({
-                start: currentGroupStart,
-                end: groupEnd, // Use the calculated end
-                cloudcover: parseInt(dominantCloudcover),
-            });
+            this.finalizeGroup(groupedForecast, blocksInGroup, currentGroupStart, groupEnd);
         }
     }
+    // --- END NEW GROUPING LOGIC ---
+
     const { ctx, chartArea, scales } = chart;
     const x = scales.x;
     if (!x || !chartArea) return;
@@ -91,21 +87,17 @@ const weatherOverlayPlugin = {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Helper to get contrasting text color
     const getTextColorForBackground = (rgbaColor) => {
         if (!rgbaColor || !rgbaColor.startsWith('rgba')) return '#333';
         try {
             const [r, g, b] = rgbaColor.match(/\d+/g).map(Number);
-            // Calculate perceived brightness (luminance)
             const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
-            // Return white for dark backgrounds, dark grey for light ones
             return luminance < 128 ? '#FFFFFF' : '#333';
         } catch (e) {
-            return '#333'; // Fallback
+            return '#333';
         }
     };
 
-    // Text fitting helper
     const fitText = (text, maxPx) => {
       if (!text) return '';
       if (ctx.measureText(text).width <= maxPx) return text;
@@ -122,6 +114,8 @@ const weatherOverlayPlugin = {
     const drawBlock = (y, x0, x1, label, fill) => {
       const left = Math.round(Math.min(x0, x1));
       const width = Math.max(1, Math.round(Math.abs(x1 - x0)));
+      if (width < 1) return; // Don't draw tiny blocks
+
       ctx.fillStyle = fill;
       ctx.fillRect(left + pad, y + pad, width - 2 * pad, rowH - 2 * pad);
       ctx.strokeStyle = 'rgba(0,0,0,0.1)';
@@ -129,9 +123,9 @@ const weatherOverlayPlugin = {
       ctx.strokeRect(left + pad + 0.5, y + pad + 0.5, width - 2 * pad - 1, rowH - 2 * pad - 1);
 
       const maxTextW = Math.max(0, width - 8);
-      const txt = fitText(label, maxTextW);
+      if (maxTextW < 5) return; // Don't draw text if too small
 
-      // Use the helper to set the text color dynamically
+      const txt = fitText(label, maxTextW);
       ctx.fillStyle = getTextColorForBackground(fill);
       ctx.fillText(txt, left + width / 2, y + rowH / 2);
     };
@@ -151,27 +145,59 @@ const weatherOverlayPlugin = {
       drawBlock(topY, x0, x1, ci.label, ci.color);
 
         if (hasValidSeeingData) {
-              // IMPORTANT: Since we grouped cloud cover, 'b.seeing' might not be relevant
-              // for the whole block. We'll just draw a placeholder label or ideally
-              // you'd modify the grouping logic to also determine a representative 'seeing'.
-              // For simplicity now, let's just draw the row without text if we don't have
-              // a representative value easily. Or find the middle block's seeing value.
-
-              // Let's find an original block roughly in the middle of this group
-              const midTime = b.start + (1.5 * 60 * 60 * 1000); // Middle of the 3hr block
-              const originalBlockNearMid = originalForecast.find(ob => ob.start <= midTime && ob.end > midTime);
-              const seeingValueToShow = originalBlockNearMid ? originalBlockNearMid.seeing : null;
-
-              if (seeingValueToShow != null && seeingValueToShow !== -9999) {
-                  const si = seeingInfo[seeingValueToShow] || { label: 'Seeing?', color: 'rgba(0,0,0,0.08)' };
+              if (b.seeing != null && b.seeing !== -9999) {
+                  const si = seeingInfo[b.seeing] || { label: 'Seeing?', color: 'rgba(0,0,0,0.08)' };
                   drawBlock(topY + rowH + gap, x0, x1, si.label, si.color);
               } else {
-                  // Optional: Draw an empty grey block if no representative seeing found for this specific group
                    drawBlock(topY + rowH + gap, x0, x1, '', 'rgba(0,0,0,0.08)');
               }
           }
     });
     ctx.restore();
+  },
+
+  // --- NEW HELPER FUNCTIONS ---
+  drawMessage(chart, text) {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const topY = chartArea.top - (18 * 2 + 2 + 6); // Same position as weather bars
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'italic 12px system-ui, Arial';
+      ctx.fillText(text, chartArea.left + chartArea.width / 2, topY + (18 + 2)); // Centered in the bar area
+      ctx.restore();
+  },
+
+  finalizeGroup(groupedForecast, blocksInGroup, groupStart, groupEnd) {
+      // Find the most frequent cloudcover value (mode) in the group
+      const cloudCounts = blocksInGroup.reduce((acc, b) => {
+          acc[b.cloudcover] = (acc[b.cloudcover] || 0) + 1;
+          return acc;
+      }, {});
+      const dominantCloudcover = Object.keys(cloudCounts).reduce((a, b) => cloudCounts[a] > cloudCounts[b] ? a : b);
+
+      // --- NEW: Find dominant seeing value ---
+      let dominantSeeing = -9999;
+      const seeingCounts = blocksInGroup.reduce((acc, b) => {
+          const s = b.seeing;
+          if (s != null && s !== -9999) { // Only count valid seeing values
+              acc[s] = (acc[s] || 0) + 1;
+          }
+          return acc;
+      }, {});
+      const validSeeings = Object.keys(seeingCounts);
+      if (validSeeings.length > 0) {
+          dominantSeeing = validSeeings.reduce((a, b) => seeingCounts[a] > seeingCounts[b] ? a : b);
+      }
+
+      groupedForecast.push({
+          start: groupStart,
+          end: groupEnd,
+          cloudcover: parseInt(dominantCloudcover),
+          seeing: parseInt(dominantSeeing) // Add the dominant seeing
+      });
   }
 };
 
@@ -222,6 +248,77 @@ function getDateTimeMs(baseDateISO, timeStr) {
     const base = luxon.DateTime.fromISO(baseDateISO, {zone: plotTz}).startOf('day');
     return base.set({hour, minute, second: 0, millisecond: 0}).toMillis();
 }
+
+async function fetchAndUpdateWeather(chartInstance, lat, lon, tz, isOffline) {
+    if (isOffline || !navigator.onLine) {
+        console.log("Weather fetch skipped (offline).");
+        if (chartInstance) {
+            chartInstance.__weather.isLoading = false;
+            chartInstance.__weather.error = 'Weather data unavailable (offline)';
+            chartInstance.update('none');
+        }
+        return;
+    }
+    if (!chartInstance) {
+        console.log("Weather fetch skipped (no chart).");
+        return;
+    }
+
+    console.log("Fetching weather data asynchronously...");
+    try {
+        const apiUrl = `/api/get_weather_forecast?lat=${lat}&lon=${lon}&tz=${encodeURIComponent(tz)}`;
+        const resp = await fetch(apiUrl);
+        if (!resp.ok) throw new Error(`Weather API failed: ${resp.status}`);
+
+        const data = await resp.json();
+
+        const toMs = (val) => {
+            if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
+            if (typeof val === 'string') {
+                const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
+                // Weather API returns UTC ISO strings, parse as such, convert to local tz, get millis
+                if (hasOffset) return luxon.DateTime.fromISO(val, { zone: 'utc' }).toMillis();
+                else return luxon.DateTime.fromISO(val, { zone: plotTz }).toMillis();
+            }
+            return null;
+        }
+
+        const hasWeather = Array.isArray(data.weather_forecast) && data.weather_forecast.length > 0;
+        const forecastForOverlay = hasWeather ? data.weather_forecast.map(b => ({
+            start: toMs(b.start),
+            end: toMs(b.end),
+            cloudcover: b.cloudcover,
+            seeing: b.seeing
+        })) : [];
+
+        const drawableForecast = forecastForOverlay.filter(b => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start);
+        const hasDrawableWeather = drawableForecast.length > 0;
+
+        // Get the original cloud/seeing info maps from the chart object
+        const { cloudInfo, seeingInfo } = chartInstance.__weather || {};
+
+        // Update the chart's internal weather data
+        chartInstance.__weather = {
+            hasWeather: hasDrawableWeather,
+            forecast: drawableForecast,
+            cloudInfo: cloudInfo, // Persist original maps
+            seeingInfo: seeingInfo, // Persist original maps
+            isLoading: false,
+            error: hasDrawableWeather ? null : 'Weather data unavailable'
+        };
+
+        // Redraw the chart to show the weather overlay
+        chartInstance.update('none'); // Use 'none' to avoid animation
+        console.log("Weather data fetched and chart updated.");
+
+    } catch (err) {
+        console.error('Could not fetch or apply weather data:', err);
+        chartInstance.__weather.isLoading = false;
+        chartInstance.__weather.error = 'Weather data unavailable';
+        chartInstance.update('none');
+    }
+}
+
 
 async function renderClientSideChart() {
     const chartLoadingDiv = document.getElementById('chart-loading');
@@ -301,17 +398,14 @@ annotations.currentTimeLine = {
             7: {label: 'See: Poor', color: 'rgba(255, 69, 0, 0.3)'},
             8: {label: 'See: Bad', color: 'rgba(255, 0, 0, 0.3)'}
         };
-        const hasWeather = Array.isArray(data.weather_forecast) && data.weather_forecast.length > 0;
-        // Normalize weather block times to ms (Chart time scale handles multiple types, but we ensure consistency)
-        const forecastForOverlay = hasWeather ? data.weather_forecast.map(b => ({
-            start: toMs(b.start),
-            end: toMs(b.end),
-            cloudcover: b.cloudcover,
-            seeing: b.seeing
-        })) : [];
-        // Filter to blocks that actually have drawable start/end values
-        const drawableForecast = forecastForOverlay.filter(b => Number.isFinite(b.start) && Number.isFinite(b.end) && b.end > b.start);
-        const hasDrawableWeather = drawableForecast.length > 0;
+
+        // --- MODIFIED: Weather is now fetched async, so we start with an empty array ---
+        const hasWeather = false;
+        const forecastForOverlay = [];
+        const drawableForecast = [];
+        const hasDrawableWeather = false;
+        // --- END MODIFICATION ---
+
         function wallTimeMs(baseDateTime, timeStr) {
             if (!timeStr || !timeStr.includes(':')) return null;
             const [h, m] = timeStr.split(':').map(Number);
@@ -354,13 +448,13 @@ annotations.currentTimeLine = {
                     { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
                 ]
             },
-            plugins: hasDrawableWeather ? [nightShade, weatherOverlayPlugin] : [nightShade],
+            plugins: [nightShade, weatherOverlayPlugin], // Always include weather plugin
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 aspectRatio: 2,
                 adapters: {date: {zone: plotTz}},
-                layout: { padding: { top: hasDrawableWeather ? 46 : 0 } },
+                layout: { padding: { top: 46 } }, // Always reserve space
                 plugins: {
                     annotation: {annotations},
                     legend: {position: 'right'},
@@ -401,8 +495,22 @@ annotations.currentTimeLine = {
                 }
             }
         });
-        window.altitudeChart.__weather = { hasWeather: hasDrawableWeather, forecast: drawableForecast, cloudInfo, seeingInfo };
+
+        // --- NEW: Initialize weather object and start async fetch ---
+        window.altitudeChart.__weather = {
+            hasWeather: false,
+            forecast: [],
+            cloudInfo,
+            seeingInfo,
+            isLoading: true, // Set loading flag
+            error: null
+        };
         startCurrentTimeUpdater(window.altitudeChart);
+
+        // Asynchronously fetch and apply weather data
+        fetchAndUpdateWeather(window.altitudeChart, plotLat, plotLon, plotTz, isOffline);
+        // --- END NEW ---
+
     } catch (err) {
         console.error('Could not render chart:', err);
         const canvas = document.getElementById('altitudeChartCanvas'), ctx = canvas.getContext('2d');
