@@ -110,7 +110,7 @@
     }
     .inline-fields {
       display: flex;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;        /* allow wrapping instead of forcing one long row */
       align-items: flex-start;
       gap: 15px;
       margin: 0 0 10px 0;
@@ -218,6 +218,11 @@
     .second-row-fields {
       margin-left: 117px;
     }
+    @media (max-width: 1200px) {
+      .second-row-fields {
+        margin-left: 0;
+      }
+    }
     .objects-list .inline-fields input[type="checkbox"],
     .block .inline-fields input[type="checkbox"] {
       transform: scale(1.5);
@@ -253,7 +258,115 @@
         position: relative;
         top: 1px;
     }
+    /* --- Styles for Shared Items Tab --- */
+    #shared-tab-content .table-wrapper {
+        overflow-x: auto;
+    }
+    .data-table {
+        width: 100%;
+        min-width: 600px;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px 10px;
+        font-size: 14px;
+        text-align: left;
+        word-wrap: break-word;
+    }
+    .data-table th {
+        background-color: #f2f2f2;
+        font-weight: 600;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .data-table .filter-row th {
+        padding: 6px 8px;
+    }
+    .data-table .filter-row input,
+    .data-table .filter-row select {
+        width: 95%;
+        box-sizing: border-box;
+        padding: 5px;
+        font-size: 13px;
+        font-family: 'Roboto', sans-serif;
+    }
+    .data-table .action-cell {
+        width: 120px;
+        text-align: center;
+    }
+    .data-table .notes-cell {
+        width: 100px;
+        text-align: center;
+    }
+    .data-table .notes-button {
+        padding: 4px 8px;
+        font-size: 12px;
+        background-color: #778899;
+    }
+    .data-table .notes-button:hover {
+        background-color: #5a6875;
+    }
+    .data-table .import-button {
+        padding: 5px 10px;
+        font-size: 13px;
+    }
+    .data-table .imported-button {
+        padding: 5px 10px;
+        font-size: 13px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: default;
+    }
 
+    /* --- Modal Styles --- */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 2000;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+    }
+    .modal-backdrop.is-visible {
+        display: block;
+        opacity: 1;
+    }
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px 25px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .modal-content h3 {
+        margin-top: 0;
+    }
+    .modal-notes-content {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px 15px;
+        min-height: 100px;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+    .modal-notes-content p { margin-top: 0; }
+    .modal-close-btn {
+        margin-top: 15px;
+        float: right;
+    }
 
     .container { display: flex; gap: 2em; flex-wrap: wrap; }
     .column { background-color: #f9f9f9; padding: 1.5em; border-radius: 8px; flex: 1; min-width: 350px;}
@@ -377,6 +490,91 @@
     .form-group select.form-control {
         justify-self: start;
     }
+    /* --- Styles for Trix Editor in Config --- */
+    .form-group trix-editor {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        padding: 0.7em;
+        min-height: 100px; /* Keep a minimum height */
+        height: 150px;     /* Set a default height */
+        overflow-y: auto;  /* Allow scrolling within the editor */
+    }
+    .form-group.trix-group {
+        display: block;
+        grid-template-columns: none;
+    }
+    .form-group.trix-group label {
+        display: block;
+        margin-bottom: 5px;
+        grid-column: 1 / -1;
+    }
+    .form-group.trix-group trix-editor {
+        grid-column: 1 / -1;
+    }
+
+    /* --- Styles for Sharing UI --- */
+    .share-control {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .share-control label {
+        margin: 0;
+        font-weight: bold;
+        font-size: 15px;
+    }
+    .share-control input[type="checkbox"] {
+        transform: scale(1.3);
+    }
+    /* --- Responsive Object Layout (fields + notes) --- */
+    .object-grid-container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr); /* default: single column, safe on laptops */
+        gap: 20px;
+        align-items: flex-start;
+    }
+    .object-grid-container > div {
+        /* Applies to both the left and right columns */
+        display: flex;
+        flex-direction: column;
+        gap: 15px; /* Spacing between note editors and field groups */
+        min-width: 0; /* Prevent overflow in flex/grid layouts */
+    }
+
+    /* Make Trix labels consistent */
+    .object-grid-container .form-group.trix-group {
+        margin: 0;
+    }
+    .object-grid-container .form-group.trix-group label {
+        grid-column: 1 / -1; /* Full width label */
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+        font-size: 14px;
+    }
+    .object-grid-container .share-control {
+        margin: 0;
+        padding: 5px 8px;
+        background: #f0f0f0; /* Slightly different background for the control */
+        border-radius: 4px;
+    }
+
+    /* On very wide screens, use a two-column layout (fields | notes) */
+    @media (min-width: 1400px) {
+        .object-grid-container {
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); /* Left column slightly wider */
+        }
+    }
+    .shared-indicator {
+        font-size: 12px;
+        font-weight: bold;
+        color: #1a689e;
+        background: #e1f0f5;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
     #telemetry_enabled { transform: scale(1.2); transform-origin: center left; }
     #sampling_interval {
       font-size: 15px;
@@ -432,6 +630,9 @@
     <button class="tab-button" data-tab="locations">Locations</button>
     <button class="tab-button" data-tab="objects">Objects</button>
     <button class="tab-button" data-tab="rigs">Rigs</button>
+    {% if not SINGLE_USER_MODE %}
+    <button class="tab-button" data-tab="shared">Shared Items</button>
+    {% endif %}
   </div>
 
     <div id="general-tab-content">
@@ -625,111 +826,156 @@
 <div id="objects-tab-content">
     <div class="config-section">
       <h2>Objects Configuration</h2>
-      <h3>Add New Object</h3>
-      <div class="object-add-container">
-        <div class="row">
+    <h3>Add New Object</h3>
+      <div class="object-add-container object-grid-container block">
           <div>
-            <label class="long-label" for="new_object">Object ID:</label>
-            <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
+            <div class="row">
+              <div>
+                <label class="long-label" for="new_object">Object ID:</label>
+                <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
+              </div>
+              <div>
+                <label class="long-label" for="new_name">Name:</label>
+                <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label class="long-label" for="new_ra">RA:</label>
+                <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
+              </div>
+              <div>
+                <label class="long-label" for="new_dec">DEC:</label>
+                <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
+              </div>
+            </div>
+
+            <div class="inline-fields add-object-details-indent">
+              <div>
+                <label class="short-label" for="new_constellation">Con:</label>
+                <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
+              </div>
+              <div>
+                <label class="short-label" for="new_type">Type:</label>
+                <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
+              </div>
+              <div>
+                <label class="short-label" for="new_magnitude">Mag:</label>
+                <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
+              </div>
+              <div>
+                <label class="short-label" for="new_size">Size:</label>
+                <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
+              </div>
+              <div>
+                <label class="short-label" for="new_sb">SB:</label>
+                <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
+              </div>
+            </div>
+            <div>
+                <button id="submit_new_object" type="button" class="action-button">Search</button>
+                <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
+                <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
+            </div>
           </div>
+
           <div>
-            <label class="long-label" for="new_name">Name:</label>
-            <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+            <div class="form-group trix-group">
+                <label for="new_project_editor">Private Notes:</label>
+                <input type="hidden" id="new_project_hidden" name="new_project">
+                <trix-editor input="new_project_hidden" id="new_project_editor" placeholder="Personal notes, framing ideas... (not shared)"></trix-editor>
+            </div>
+
+            {% if not SINGLE_USER_MODE %}
+            <div class="form-group trix-group">
+                <label for="new_shared_notes_editor">Shared Notes:</label>
+                <input type="hidden" id="new_shared_notes_hidden" name="new_shared_notes">
+                <trix-editor input="new_shared_notes_hidden" id="new_shared_notes_editor" placeholder="Public notes, acquisition advice... (will be shared)"></trix-editor>
+            </div>
+            <div class="share-control">
+                <input type="checkbox" name="new_is_shared" id="new_is_shared">
+                <label for="new_is_shared">Share this object with other users</label>
+            </div>
+            {% endif %}
           </div>
-        </div>
-        <div class="row">
-          <div>
-            <label class="long-label" for="new_ra">RA:</label>
-            <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
-          </div>
-          <div>
-            <label class="long-label" for="new_dec">DEC:</label>
-            <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
-          </div>
-        </div>
-        <div class="inline-fields">
-          <div>
-            <label class="long-label" for="new_project">Notes:</label>
-            <textarea name="new_project" id="new_project" class="wide" placeholder="Enter project details..."></textarea>
-          </div>
-        </div>
-        <div class="inline-fields add-object-details-indent">
-          <div>
-            <label class="short-label" for="new_constellation">Con:</label>
-            <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
-          </div>
-          <div>
-            <label class="short-label" for="new_type">Type:</label>
-            <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
-          </div>
-          <div>
-            <label class="short-label" for="new_magnitude">Mag:</label>
-            <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
-          </div>
-          <div>
-            <label class="short-label" for="new_size">Size:</label>
-            <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
-          </div>
-          <div>
-            <label class="short-label" for="new_sb">SB:</label>
-            <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
-          </div>
-        </div>
-        <button id="submit_new_object" type="button" class="action-button">Search</button>
-        <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
-        <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
       </div>
       <div id="object_result"></div>
       <hr>
       <form method="post">
         <div class="objects-list">
-          {% for obj in config.objects %}
-            <div class="block">
-              <div class="inline-fields">
-                <div class="object-id">
-                  <strong>{{ obj.Object }}</strong>
+        {% for obj in config.objects %}
+            <div class="block object-grid-container">
+              <div>
+                <div class="inline-fields">
+                  <div class="object-id">
+                    <strong>{{ obj.Object }}</strong>
+                    {% if obj.original_user_id %}
+                      <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="Imported from another user">Imported</span>
+                    {% elif obj.is_shared %}
+                      <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="You are sharing this item">Shared</span>
+                    {% endif %}
+                  </div>
+                  <div>
+                    <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                    <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+                  </div>
                 </div>
-                <div>
-                  <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
-                  <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+                <div class="inline-fields second-row-fields">
+                  <div>
+                    <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
+                    <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
+                    <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
+                  </div>
                 </div>
-                <div>
-                  <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
-                  <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
+
+                <div class="inline-fields second-row-fields">
+                  <div>
+                    <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
+                    <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
+                  </div>
+                  <div>
+                    <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
+                    <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
+                    <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
+                    <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
+                  </div>
+                  <div>
+                    <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
+                    <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
+                  </div>
                 </div>
-                <div>
-                  <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
-                  <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
                 </div>
-                <div>
-                  <label class="short-label" for="project_{{ obj.Object }}">Notes:</label>
-                  <textarea name="project_{{ obj.Object }}" id="project_{{ obj.Object }}" class="project_field">{{ obj.Project }}</textarea>
+
+              <div>
+                <div class="form-group trix-group">
+                    <label for="project_{{ obj.Object }}_editor">Private Notes:</label>
+                    <input type="hidden" id="project_{{ obj.Object }}_hidden" name="project_{{ obj.Object }}" value="{{ obj.Project | default('', True) | e }}">
+                    <trix-editor input="project_{{ obj.Object }}_hidden" id="project_{{ obj.Object }}_editor" placeholder="Personal notes... (not shared)"></trix-editor>
                 </div>
-                <div>
-                  <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+
+                {% if not SINGLE_USER_MODE %}
+                <div class="form-group trix-group">
+                    <label for="shared_notes_{{ obj.Object }}_editor">Shared Notes:</label>
+                    <input type="hidden" id="shared_notes_{{ obj.Object }}_hidden" name="shared_notes_{{ obj.Object }}" value="{{ obj.shared_notes | default('', True) | e }}">
+                    <trix-editor input="shared_notes_{{ obj.Object }}_hidden" id="shared_notes_{{ obj.Object }}_editor" placeholder="Public notes... (will be shared)"></trix-editor>
                 </div>
-              </div>
-              <div class="inline-fields second-row-fields">
-                <div>
-                  <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
-                  <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}" readonly>
+                <div class="share-control">
+                    <input type="checkbox" name="is_shared_{{ obj.Object }}" id="is_shared_{{ obj.Object }}" {% if obj.is_shared %}checked{% endif %} {% if obj.original_user_id %}disabled{% endif %}>
+                    <label for="is_shared_{{ obj.Object }}">Share this object with other users</label>
                 </div>
-                <div>
-                  <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
-                  <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
-                </div>
-                <div>
-                  <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
-                  <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Magnitude|default('') }}">
-                </div>
-                <div>
-                  <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
-                  <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.Size|default('') }}">
-                </div>
-                <div>
-                  <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
-                  <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01" value="{{ obj.SB|default('') }}">
-                </div>
+                {% endif %}
               </div>
             </div>
           {% endfor %}
@@ -752,6 +998,12 @@
                     <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
                     <div class="form-group"><label for="aperture">Aperture (mm):</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
                     <div class="form-group"><label for="focal_length">Focal Length (mm):</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
+                    {% if not SINGLE_USER_MODE %}
+                    <div class="share-control">
+                        <input type="checkbox" name="is_shared" id="tele_is_shared">
+                        <label for="tele_is_shared">Share this component</label>
+                    </div>
+                    {% endif %}
                     <button type="submit">Add Telescope</button>
                 </form>
                 <hr>
@@ -768,6 +1020,12 @@
                     <div class="form-group"><label for="sensor_w">Sensor Width (mm):</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
                     <div class="form-group"><label for="sensor_h">Sensor Height (mm):</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
                     <div class="form-group"><label for="pixel_s">Pixel Size (μm):</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
+                    {% if not SINGLE_USER_MODE %}
+                    <div class="share-control">
+                        <input type="checkbox" name="is_shared" id="cam_is_shared">
+                        <label for="cam_is_shared">Share this component</label>
+                    </div>
+                    {% endif %}
                     <button type="submit">Add Camera</button>
                 </form>
                 <hr>
@@ -782,6 +1040,12 @@
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
                     <div class="form-group"><label for="factor">Factor:</label><input type="number" step="any" name="factor" id="factor" required placeholder="e.g., 0.7 for reducer"></div>
+                    {% if not SINGLE_USER_MODE %}
+                    <div class="share-control">
+                        <input type="checkbox" name="is_shared" id="red_is_shared">
+                        <label for="red_is_shared">Share this component</label>
+                    </div>
+                    {% endif %}
                     <button type="submit">Add Reducer/Extender</button>
                 </form>
                 <hr>
@@ -839,7 +1103,8 @@
                     <option value="fovw-asc">FOV Width (low→high)</option>
                     <option value="fovw-desc">FOV Width (high→low)</option>
                     <option value="recent-desc">Recently Added (newest first)</option>
-                    <option value="recent-asc">Recently Added (oldest first)</option>
+                    <option value="recent-asc">Recently Added (oldest first)</GIST:
+                    </option>
                 </select>
             </div>
             <h3>Existing Rigs (<span id="rig-count">0</span>)</h3>
@@ -847,7 +1112,92 @@
         </div>
     </div>
   </div>
+<div id="shared-tab-content">
+      <div class="config-section">
+          <h2>Shared Items from Other Users</h2>
+          <p>Here you can find Objects and Components shared by other users in the system. Click "Import" to add a copy to your own configuration.</p>
 
+          <h3 style="margin-top: 30px;">Shared Objects</h3>
+          <div class="table-wrapper">
+              <table class="data-table" id="shared-objects-table">
+                  <thead>
+                      <tr>
+                          <th style="width: 20%;">Object ID</th>
+                          <th style="width: 25%;">Common Name</th>
+                          <th>Type</th>
+                          <th>Constellation</th>
+                          <th style="width: 15%;">Shared By</th>
+                          <th class="notes-cell">Notes</th>
+                          <th class="action-cell">Action</th>
+                      </tr>
+                      <tr class="filter-row">
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="object_name" placeholder="Filter ID..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="common_name" placeholder="Filter name..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="type" placeholder="Filter type..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="constellation" placeholder="Filter con..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="shared_by_user" placeholder="Filter user..."></th>
+                          <th></th>
+                          <th style="text-align: center;">
+                              <select onchange="filterSharedTables()" data-table="objects" data-col="status" style="width: 95%;">
+                                  <option value="all">All</option>
+                                  <option value="unimported">Not Imported</option>
+                                  <option value="imported">Imported</option>
+                              </select>
+                          </th>
+                      </tr>
+                  </thead>
+                  <tbody id="shared-objects-body">
+                      <tr><td colspan="7" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                  </tbody>
+              </table>
+          </div>
+
+          <h3 style="margin-top: 30px;">Shared Components</h3>
+          <div class="table-wrapper">
+              <table class="data-table" id="shared-components-table">
+                  <thead>
+                      <tr>
+                          <th style="width: 40%;">Component Name</th>
+                          <th style="width: 20%;">Type</th>
+                          <th style="width: 20%;">Shared By</th>
+                          <th class="action-cell">Action</th>
+                      </tr>
+                      <tr class="filter-row">
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="name" placeholder="Filter name..."></th>
+                          <th>
+                              <select onchange="filterSharedTables()" data-table="components" data-col="kind" style="width: 95%;">
+                                  <option value="all">All Types</option>
+                                  <option value="telescope">Telescope</option>
+                                  <option value="camera">Camera</option>
+                                  <option value="reducer_extender">Reducer/Extender</option>
+                              </select>
+                          </th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="shared_by_user" placeholder="Filter user..."></th>
+                          <th style="text-align: center;">
+                              <select onchange="filterSharedTables()" data-table="components" data-col="status" style="width: 95%;">
+                                  <option value="all">All</option>
+                                  <option value="unimported">Not Imported</option>
+                                  <option value="imported">Imported</option>
+                              </select>
+                          </th>
+                      </tr>
+                  </thead>
+                  <tbody id="shared-components-body">
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                  </tbody>
+              </table>
+          </div>
+      </div>
+  </div>
+
+  <div id="notes-modal" class="modal-backdrop" onclick="closeNotesModal()">
+      <div class="modal-content" onclick="event.stopPropagation()">
+          <h3 id="notes-modal-title">Shared Notes</h3>
+          <div id="notes-modal-content" class="modal-notes-content">
+              </div>
+          <button class="inline-button modal-close-btn" onclick="closeNotesModal()">Close</button>
+      </div>
+  </div>
   <br>
 
 <script>
@@ -884,6 +1234,20 @@
         } else if (type === 'reducer_extender') {
             form.querySelector('input[name="factor"]').value = component.factor;
         }
+
+        // --- START: New Share Logic ---
+        const shareCheckbox = form.querySelector('input[name="is_shared"]');
+        if (shareCheckbox) {
+            shareCheckbox.checked = component.is_shared || false;
+            // Disable sharing if it's an imported item
+            if (component.original_user_id) {
+                shareCheckbox.disabled = true;
+                shareCheckbox.checked = false; // Can't re-share an imported item
+            } else {
+                shareCheckbox.disabled = false;
+            }
+        }
+        // --- END: New Share Logic ---
 
         form.querySelector('button[type="submit"]').textContent = 'Update Component';
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -972,9 +1336,16 @@
         }
         const rigsSorted = sortRigs(rigs, currentSort);
 
+        // --- Helper to create shared/imported indicator ---
+        const createIndicator = (c) => {
+            if (c.original_user_id) return ' <span class="shared-indicator" title="Imported item">Imported</span>';
+            if (c.is_shared) return ' <span class="shared-indicator" title="You are sharing this item">Shared</span>';
+            return '';
+        };
+
         document.getElementById('telescope-list').innerHTML = telescopes.map(t => `
             <li>
-                <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)</div>
+                <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
                     <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
@@ -986,7 +1357,7 @@
 
         document.getElementById('camera-list').innerHTML = cameras.map(c => `
             <li>
-                <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)</div>
+                <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
                     <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
@@ -998,7 +1369,7 @@
 
         document.getElementById('reducer-list').innerHTML = reducers_extenders.map(r => `
             <li>
-                <div class="item-info">${r.name} (${r.factor}x)</div>
+                <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
                     <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
@@ -1082,6 +1453,181 @@
                     infoContainer.appendChild(binningEl);
                 }
             }
+        });
+    }
+    function fetchSharedItems() {
+        fetch('/api/get_shared_items')
+            .then(response => response.json())
+            .then(data => {
+                const objectsBody = document.getElementById('shared-objects-body');
+                const componentsBody = document.getElementById('shared-components-body');
+
+                const importedObjectIds = new Set(data.imported_object_ids || []);
+                const importedComponentIds = new Set(data.imported_component_ids || []);
+
+                if (data.objects && data.objects.length > 0) {
+                    objectsBody.innerHTML = data.objects.map(obj => {
+                        const isImported = importedObjectIds.has(obj.id);
+                        const status = isImported ? 'imported' : 'unimported';
+                        const actionButton = isImported
+                            ? `<button class="imported-button" disabled>Imported</button>`
+                            : `<button class="action-button import-button" onclick="importSharedItem(${obj.id}, 'object', this)">Import</button>`;
+
+                        const dataAttrs = `
+                            data-id="${obj.id}"
+                            data-status="${status}"
+                            data-object_name="${obj.object_name}"
+                            data-common_name="${obj.common_name}"
+                            data-type="${obj.type || ''}"
+                            data-constellation="${obj.constellation || ''}"
+                            data-shared_by_user="${obj.shared_by_user}"
+                        `;
+
+                        // --- START OF FIX ---
+                        // We move data-notes="..." from the <span> directly onto the <button>
+                        // and change the onclick to pass this.dataset.notes.
+                        return `
+                        <tr ${dataAttrs}>
+                            <td><strong>${obj.object_name}</strong></td>
+                            <td>${obj.common_name}</td>
+                            <td>${obj.type || 'N/A'}</td>
+                            <td>${obj.constellation || 'N/A'}</td>
+                            <td>${obj.shared_by_user}</td>
+                            <td class="notes-cell">
+                                <button class="action-button notes-button"
+                                        data-notes="${(obj.shared_notes || '').replace(/"/g, '&quot;')}"
+                                        onclick="showSharedNotes('${obj.object_name}', this.dataset.notes)">
+                                    View
+                                </button>
+                            </td>
+                            <td class="action-cell">${actionButton}</td>
+                        </tr>`;
+                        // --- END OF FIX ---
+                    }).join('');
+                } else {
+                    objectsBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
+                }
+
+                if (data.components && data.components.length > 0) {
+                    componentsBody.innerHTML = data.components.map(comp => {
+                        const isImported = importedComponentIds.has(comp.id);
+                        const status = isImported ? 'imported' : 'unimported';
+                        const actionButton = isImported
+                            ? `<button class="imported-button" disabled>Imported</button>`
+                            : `<button class="action-button import-button" onclick="importSharedItem(${comp.id}, 'component', this)">Import</button>`;
+
+                        const dataAttrs = `
+                            data-id="${comp.id}"
+                            data-status="${status}"
+                            data-name="${comp.name}"
+                            data-kind="${comp.kind}"
+                            data-shared_by_user="${comp.shared_by_user}"
+                        `;
+
+                        return `
+                        <tr ${dataAttrs}>
+                            <td><strong>${comp.name}</strong></td>
+                            <td>${comp.kind}</td>
+                            <td>${comp.shared_by_user}</td>
+                            <td class="action-cell">${actionButton}</td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared components found from other users.</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching shared items:", error);
+                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
+                document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
+            });
+    }
+
+    function importSharedItem(itemId, itemType, button) {
+        if (!confirm(`Are you sure you want to import this ${itemType}?`)) {
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = 'Importing...';
+
+        fetch('/api/import_item', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: itemId, type: itemType })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                button.textContent = 'Imported';
+                button.className = 'imported-button'; // Change class
+
+                // Update the row's status for filtering
+                const row = button.closest('tr');
+                if(row) row.dataset.status = 'imported';
+            } else {
+                alert(`Error: ${data.message}`);
+                button.disabled = false;
+                button.textContent = 'Import';
+            }
+        })
+        .catch(error => {
+            console.error('Import failed:', error);
+            alert('Import failed. See console for details.');
+            button.disabled = false;
+            button.textContent = 'Import';
+        });
+    }
+
+    function showSharedNotes(objectName, notesHtml) {
+        document.getElementById('notes-modal-title').textContent = `Shared Notes for ${objectName}`;
+        document.getElementById('notes-modal-content').innerHTML = notesHtml; // Notes are pre-sanitized by the backend
+        document.getElementById('notes-modal').classList.add('is-visible');
+    }
+
+    function closeNotesModal() {
+        document.getElementById('notes-modal').classList.remove('is-visible');
+    }
+
+    function filterSharedTables() {
+        ['objects', 'components'].forEach(type => {
+            const tableId = `shared-${type}-table`;
+            const bodyId = `shared-${type}-body`;
+            const table = document.getElementById(tableId);
+            const body = document.getElementById(bodyId);
+            if (!table || !body) return;
+
+            // 1. Get all filter values from the header
+            const filters = {};
+            table.querySelectorAll('.filter-row [data-col]').forEach(input => {
+                filters[input.dataset.col] = input.value.toLowerCase();
+            });
+
+            // 2. Loop through all data rows in the body
+            body.querySelectorAll('tr[data-id]').forEach(row => {
+                let show = true;
+
+                // Check each filter against the row's data
+                for (const col in filters) {
+                    const filterVal = filters[col];
+                    if (filterVal === 'all') continue; // Skip 'all' dropdowns
+
+                    const rowVal = (row.dataset[col] || '').toLowerCase();
+
+                    if (col === 'status') {
+                        if (filterVal === 'imported' && rowVal !== 'imported') show = false;
+                        if (filterVal === 'unimported' && rowVal !== 'unimported') show = false;
+                    } else {
+                        if (!rowVal.includes(filterVal)) {
+                            show = false;
+                        }
+                    }
+                    if (!show) break; // Stop checking if one filter fails
+                }
+
+                row.style.display = show ? '' : 'none';
+            });
         });
     }
 
@@ -1194,7 +1740,8 @@
             general: document.getElementById('general-tab-content'),
             locations: document.getElementById('locations-tab-content'),
             objects: document.getElementById('objects-tab-content'),
-            rigs: document.getElementById('rigs-tab-content')
+            rigs: document.getElementById('rigs-tab-content'),
+            shared: document.getElementById('shared-tab-content')
         };
         let activeTab = localStorage.getItem('activeConfigTab') || 'general';
 
@@ -1203,11 +1750,65 @@
             tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === activeTab));
             if (contentPanels[activeTab]) contentPanels[activeTab].style.display = 'block';
             if (activeTab === 'rigs') fetchRigsData();
+            // --- MODIFIED THIS LINE ---
+            if (activeTab === 'shared') { fetchSharedItems(); }
             localStorage.setItem('activeConfigTab', activeTab);
         }
         tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
         updateTabDisplay();
+        // --- NEW: Trix Editor File Upload Handler ---
+        // This function handles file attachments for ALL Trix editors on the page
+        function handleTrixAttachmentAdd(event) {
+            // Check if it's a file attachment
+            if (!event.attachment.file) {
+                return; // Not a file, do nothing
+            }
 
+            // Get the file from the event
+            const file = event.attachment.file;
+
+            // 1. Create FormData to send the file
+            const formData = new FormData();
+            formData.append("file", file);
+
+            // Set the "in-progress" message in the editor
+            event.attachment.setUploadProgress(0); // Show progress bar at 0%
+
+            // 2. Use fetch to POST to your Python endpoint
+            fetch("{{ url_for('upload_editor_image') }}", {
+                method: "POST",
+                body: formData
+                // Note: If you use Flask-WTF CSRF, you'd add headers here
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.url) {
+                    // 3. Success! Tell Trix the public URL of the uploaded image
+                    // This replaces the "in-progress" message with the actual image
+                    event.attachment.setAttributes({
+                        url: data.url,
+                        href: data.url // href makes the image clickable
+                    });
+                    event.attachment.setUploadProgress(100); // Mark as complete
+                } else if (data.error) {
+                    // 4. Handle a server-side error (e.g., file type not allowed)
+                    console.error("Trix upload error:", data.error);
+                    event.attachment.remove(); // Remove the failed attachment
+                    alert("Image upload failed: " + data.error);
+                }
+            })
+            .catch(error => {
+                // 5. Handle a network or fetch error
+                console.error("Trix upload network error:", error);
+                event.attachment.remove(); // Remove the failed attachment
+                alert("Image upload failed: Network error. See console for details.");
+            });
+        }
+
+        // Listen for the 'trix-attachment-add' event on the *entire document*.
+        // This one listener will handle all Trix editors on the page (new and existing).
+        document.addEventListener("trix-attachment-add", handleTrixAttachmentAdd);
+        // --- END: Trix Editor File Upload Handler ---
         // --- Rigs Setup ---
         const seeingSelect = document.getElementById('seeing-select');
         if (seeingSelect) seeingSelect.addEventListener('change', updateSamplingInfo);
@@ -1268,7 +1869,7 @@
                   submitNewObjectBtn.style.display = 'none';
 
                   // Automatically unlock all fields for manual entry
-                  ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project', 'new_object'].forEach(id => {
+                  ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
                       document.getElementById(id).readOnly = false;
                   });
                   // --- END OF FIX ---
@@ -1279,25 +1880,26 @@
             confirmAddObjectBtn.addEventListener('click', e => {
                 e.preventDefault();
 
-                // --- NEW: Parse RA/DEC inputs before creating payload ---
                 const raInput = document.getElementById('new_ra').value;
                 const decInput = document.getElementById('new_dec').value;
-
                 const raDecimal = parseRAToDecimal(raInput);
                 const decDecimal = parseDecToDecimal(decInput);
-                // --- END NEW ---
 
                 const payload = {
                     object: document.getElementById('new_object').value,
                     name: document.getElementById('new_name').value,
-                    ra: raDecimal, // <-- Use the parsed decimal value
-                    dec: decDecimal, // <-- Use the parsed decimal value
-                    project: document.getElementById('new_project').value,
+                    ra: raDecimal,
+                    dec: decDecimal,
+                    // --- MODIFIED LINE ---
+                    project: document.getElementById('new_project_hidden').value, // Get from new Trix input
+                    // --- END MODIFICATION ---
                     type: document.getElementById('new_type').value,
                     magnitude: document.getElementById('new_magnitude').value,
                     size: document.getElementById('new_size').value,
                     constellation: document.getElementById('new_constellation').value,
-                    sb: document.getElementById('new_sb').value
+                    sb: document.getElementById('new_sb').value,
+                    shared_notes: document.getElementById('new_shared_notes_hidden').value,
+                    is_shared: document.getElementById('new_is_shared').checked
                 };
 
                 fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -1310,7 +1912,7 @@
         if (editObjectBtn) {
             editObjectBtn.addEventListener('click', e => {
                 e.preventDefault();
-                ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project', 'new_object'].forEach(id => {
+                ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
                     document.getElementById(id).readOnly = false;
                 });
             });

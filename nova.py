@@ -264,9 +264,13 @@ class DbUser(Base):
     username = Column(String(80), unique=True, nullable=False, index=True)
     password_hash = Column(String(256), nullable=True)
     active = Column(Boolean, nullable=False, default=True)
+
+    # --- Relationships ---
     locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")
-    objects = relationship("AstroObject", back_populates="user", cascade="all, delete-orphan")
-    components = relationship("Component", back_populates="user", cascade="all, delete-orphan")
+    objects = relationship("AstroObject", foreign_keys="AstroObject.user_id", back_populates="user",
+                           cascade="all, delete-orphan")
+    components = relationship("Component", foreign_keys="Component.user_id", back_populates="user",
+                              cascade="all, delete-orphan")
     rigs = relationship("Rig", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("JournalSession", back_populates="user", cascade="all, delete-orphan")
     ui_prefs = relationship("UiPref", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -323,16 +327,20 @@ class AstroObject(Base):
     size = Column(String(64), nullable=True)
     sb = Column(String(64), nullable=True)
     active_project = Column(Boolean, nullable=False, default=False)
-    project_name = Column(String(256), nullable=True)
-    user = relationship("DbUser", back_populates="objects")
-
+    project_name = Column(Text, nullable=True)
+    is_shared = Column(Boolean, nullable=False, default=False, index=True)
+    shared_notes = Column(Text, nullable=True)
+    original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True)
+    user = relationship("DbUser", foreign_keys=[user_id], back_populates="objects")
+    original_item_id = Column(Integer, nullable=True, index=True)
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
+
 
 class Component(Base):
     __tablename__ = 'components'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
-    kind = Column(String(32), nullable=False)           # 'telescope' | 'camera' | 'reducer_extender'
+    kind = Column(String(32), nullable=False)  # 'telescope' | 'camera' | 'reducer_extender'
     name = Column(String(256), nullable=False)
     aperture_mm = Column(Float, nullable=True)
     focal_length_mm = Column(Float, nullable=True)
@@ -340,8 +348,12 @@ class Component(Base):
     sensor_height_mm = Column(Float, nullable=True)
     pixel_size_um = Column(Float, nullable=True)
     factor = Column(Float, nullable=True)
-    user = relationship("DbUser", back_populates="components")
+    is_shared = Column(Boolean, nullable=False, default=False, index=True)
+    original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True)
+    original_item_id = Column(Integer, nullable=True, index=True)
+    user = relationship("DbUser", foreign_keys=[user_id], back_populates="components")
     rigs_using = relationship("Rig", back_populates="telescope", foreign_keys="Rig.telescope_id")
+
 
 class Rig(Base):
     __tablename__ = 'rigs'
@@ -426,7 +438,7 @@ class UiPref(Base):
     json_blob = Column(Text, nullable=True)
     user = relationship("DbUser", back_populates="ui_prefs")
 
-# --- Create tables if needed (non-destructive) -------------------------------
+
 def ensure_db_initialized_unified():
     """
     Create tables if missing, ensure schema patches (external_id column),
@@ -434,10 +446,10 @@ def ensure_db_initialized_unified():
     """
     Base.metadata.create_all(bind=engine, checkfirst=True)
     with engine.begin() as conn:
-        # Ensure external_id exists on journal_sessions
-        cols = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
-        colnames = {row[1] for row in cols}  # (cid, name, type, notnull, dflt_value, pk)
-        if "external_id" not in colnames:
+        # --- Get table info for journal_sessions ---
+        cols_journal = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
+        colnames_journal = {row[1] for row in cols_journal}  # (cid, name, type, notnull, dflt_value, pk)
+        if "external_id" not in colnames_journal:
             conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
             print("[DB PATCH] Added missing column journal_sessions.external_id")
             try:
@@ -446,7 +458,53 @@ def ensure_db_initialized_unified():
                 )
             except Exception:
                 pass
-        # Pragmas for better concurrency / durability
+
+        # --- Add new columns to 'components' table ---
+        cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
+        colnames_components = {row[1] for row in cols_components}
+
+        if "is_shared" not in colnames_components:
+            conn.exec_driver_sql("ALTER TABLE components ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+            print("[DB PATCH] Added missing column components.is_shared")
+
+        if "original_user_id" not in colnames_components:
+            conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_user_id INTEGER;")
+            print("[DB PATCH] Added missing column components.original_user_id")
+
+        # --- ADD THIS BLOCK ---
+        if "original_item_id" not in colnames_components:
+            conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_item_id INTEGER;")
+            print("[DB PATCH] Added missing column components.original_item_id")
+        # --- END OF BLOCK ---
+
+        # --- Add new columns to 'astro_objects' table ---
+        cols_objects = conn.exec_driver_sql("PRAGMA table_info(astro_objects);").fetchall()
+        colnames_objects = {row[1] for row in cols_objects}
+
+        project_name_col_info = next((col for col in cols_objects if col[1] == 'project_name'), None)
+        if project_name_col_info and 'TEXT' not in project_name_col_info[2].upper():
+            print(
+                f"[DB PATCH] Note: astro_objects.project_name type is {project_name_col_info[2]}. Model updated to TEXT.")
+
+        if "is_shared" not in colnames_objects:
+            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+            print("[DB PATCH] Added missing column astro_objects.is_shared")
+
+        if "shared_notes" not in colnames_objects:
+            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN shared_notes TEXT;")
+            print("[DB PATCH] Added missing column astro_objects.shared_notes")
+
+        if "original_user_id" not in colnames_objects:
+            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_user_id INTEGER;")
+            print("[DB PATCH] Added missing column astro_objects.original_user_id")
+
+        # --- ADD THIS BLOCK ---
+        if "original_item_id" not in colnames_objects:
+            conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_item_id INTEGER;")
+            print("[DB PATCH] Added missing column astro_objects.original_item_id")
+        # --- END OF BLOCK ---
+
+        # Pragmas
         conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
         conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
 
@@ -3632,6 +3690,7 @@ def get_latest_version():
     """An API endpoint for the frontend to check for updates."""
     return jsonify(LATEST_VERSION_INFO)
 
+
 @app.route('/add_component', methods=['POST'])
 @login_required
 def add_component():
@@ -3654,6 +3713,11 @@ def add_component():
             return redirect(url_for('config_form'))
 
         new_comp = Component(user_id=user.id, kind=kind, name=form.get('name'))
+
+        # --- ADD THIS LINE ---
+        new_comp.is_shared = request.form.get("is_shared") == "on"
+        # --- END OF ADDITION ---
+
         if kind == 'telescope':
             new_comp.aperture_mm = float(form.get('aperture_mm'))
             new_comp.focal_length_mm = float(form.get('focal_length_mm'))
@@ -3674,6 +3738,7 @@ def add_component():
         db.close()
     return redirect(url_for('config_form'))
 
+
 @app.route('/update_component', methods=['POST'])
 @login_required
 def update_component():
@@ -3689,6 +3754,13 @@ def update_component():
             return redirect(url_for('config_form'))
 
         comp.name = form.get('name')
+
+        # --- ADD THIS LOGIC ---
+        # Only allow updating 'is_shared' if it's not an imported item
+        if not comp.original_user_id:
+            comp.is_shared = request.form.get("is_shared") == "on"
+        # --- END OF ADDITION ---
+
         if comp.kind == 'telescope':
             comp.aperture_mm = float(form.get('aperture_mm'))
             comp.focal_length_mm = float(form.get('focal_length_mm'))
@@ -5148,7 +5220,6 @@ def confirm_object():
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one()
 
-        # --- FIX: Validate inputs before using them ---
         object_name = req.get('object')
         if not object_name or not object_name.strip():
             raise ValueError("Object ID is required and cannot be empty.")
@@ -5157,60 +5228,77 @@ def confirm_object():
         if not common_name or not common_name.strip():
             raise ValueError("Name is required and cannot be empty.")
 
-        # Use our new helper to safely get float values
         ra_float = _parse_float_from_request(req.get('ra'), "RA")
         dec_float = _parse_float_from_request(req.get('dec'), "DEC")
-        # --- END FIX ---
 
-        # Check if object already exists for this user
+        # --- START: Rich Text Logic for Notes ---
+        # Get raw HTML for both private and shared notes
+        raw_private_notes = req.get('project', '') or ""
+        raw_shared_notes = req.get('shared_notes', '') or ""
+
+        # Check if private notes are plain text and upgrade
+        if not raw_private_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+            escaped_text = bleach.clean(raw_private_notes, tags=[], strip=True)
+            private_notes_html = escaped_text.replace("\n", "<br>")
+        else:
+            private_notes_html = raw_private_notes # Already HTML
+
+        # Check if shared notes are plain text and upgrade
+        if not raw_shared_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+            escaped_text = bleach.clean(raw_shared_notes, tags=[], strip=True)
+            shared_notes_html = escaped_text.replace("\n", "<br>")
+        else:
+            shared_notes_html = raw_shared_notes # Already HTML
+        # --- END: Rich Text Logic ---
+
         existing = db.query(AstroObject).filter_by(user_id=app_db_user.id, object_name=object_name).one_or_none()
 
-        # Get other fields (these can be empty/None)
-        project_name = req.get('project', 'none')
+        # Get other fields
         constellation = req.get('constellation')
         obj_type = convert_to_native_python(req.get('type'))
         magnitude = str(convert_to_native_python(req.get('magnitude')) or '')
         size = str(convert_to_native_python(req.get('size')) or '')
         sb = str(convert_to_native_python(req.get('sb')) or '')
+        is_shared = req.get('is_shared') == True
 
         if existing:
-            # Update existing object's details
             existing.common_name = common_name
             existing.ra_hours = ra_float
             existing.dec_deg = dec_float
-            existing.project_name = project_name
+            existing.project_name = private_notes_html
             existing.constellation = constellation
             existing.type = obj_type
             existing.magnitude = magnitude
             existing.size = size
             existing.sb = sb
+            existing.shared_notes = shared_notes_html
+            existing.is_shared = is_shared
         else:
-            # Create a new object record
             new_obj = AstroObject(
                 user_id=app_db_user.id,
                 object_name=object_name,
                 common_name=common_name,
                 ra_hours=ra_float,
                 dec_deg=dec_float,
-                project_name=project_name,
+                project_name=private_notes_html,
                 constellation=constellation,
                 type=obj_type,
                 magnitude=magnitude,
                 size=size,
-                sb=sb
+                sb=sb,
+                shared_notes=shared_notes_html,
+                is_shared=is_shared
             )
             db.add(new_obj)
 
         db.commit()
         return jsonify({"status": "success"})
 
-    except ValueError as ve:  # --- FIX: Catch our specific validation errors
+    except ValueError as ve:
         db.rollback()
-        # Send a 400 Bad Request with a clear message
         return jsonify({"status": "error", "message": str(ve)}), 400
     except Exception as e:
         db.rollback()
-        # Send a 500 for unexpected server errors
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
@@ -5697,6 +5785,7 @@ def telemetry_ping():
 
     return jsonify({"status": "ok"}), 200
 
+
 @app.route('/config_form', methods=['GET', 'POST'])
 @login_required
 def config_form():
@@ -5706,78 +5795,64 @@ def config_form():
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
-        # Get the primary user object from our application DB
         app_db_user = db.query(DbUser).filter_by(username=username).one_or_none()
         if not app_db_user:
             flash(f"Could not find user '{username}' in the database.", "error")
             return redirect(url_for('index'))
 
-        # --- POST Request: Handle Form Submissions ---
         if request.method == 'POST':
             # --- General Settings Tab ---
             if 'submit_general' in request.form:
-                # Load or create the user's preferences record
                 prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
                 if not prefs:
                     prefs = UiPref(user_id=app_db_user.id, json_blob='{}')
                     db.add(prefs)
-
-                # Safely parse existing JSON, update it, and write it back
                 try:
                     settings = json.loads(prefs.json_blob or '{}')
                 except json.JSONDecodeError:
                     settings = {}
-
-                # Update settings from the form
                 settings['altitude_threshold'] = int(request.form.get('altitude_threshold', 20))
                 settings['default_location'] = request.form.get('default_location', settings.get('default_location'))
-
                 if SINGLE_USER_MODE:
                     settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
                     settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
-
-                # Update imaging criteria
                 imaging_criteria = settings.setdefault("imaging_criteria", {})
                 imaging_criteria["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
                 imaging_criteria["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
                 imaging_criteria["max_moon_illumination"] = int(request.form.get("max_moon_illumination", 20))
                 imaging_criteria["min_angular_separation"] = int(request.form.get("min_angular_separation", 30))
                 imaging_criteria["search_horizon_months"] = int(request.form.get("search_horizon_months", 6))
-
                 prefs.json_blob = json.dumps(settings)
                 message = "General settings updated."
 
             # --- Add New Location ---
             elif 'submit_new_location' in request.form:
                 new_name = request.form.get("new_location").strip()
-                # Check for existing location with the same name for this user
                 existing = db.query(Location).filter_by(user_id=app_db_user.id, name=new_name).first()
                 if existing:
-                     error = f"A location named '{new_name}' already exists."
-                elif not all([new_name, request.form.get("new_lat"), request.form.get("new_lon"), request.form.get("new_timezone")]):
+                    error = f"A location named '{new_name}' already exists."
+                elif not all([new_name, request.form.get("new_lat"), request.form.get("new_lon"),
+                              request.form.get("new_timezone")]):
                     error = "Name, Latitude, Longitude, and Timezone are required."
                 else:
                     new_loc = Location(
-                        user_id=app_db_user.id,
-                        name=new_name,
-                        lat=float(request.form.get("new_lat")),
-                        lon=float(request.form.get("new_lon")),
-                        timezone=request.form.get("new_timezone"),
-                        active=request.form.get("new_active") == "on",
+                        user_id=app_db_user.id, name=new_name,
+                        lat=float(request.form.get("new_lat")), lon=float(request.form.get("new_lon")),
+                        timezone=request.form.get("new_timezone"), active=request.form.get("new_active") == "on",
                         comments=request.form.get("new_comments", "").strip()[:500]
                     )
-                    db.add(new_loc)
-                    db.flush() # So new_loc gets an ID
-                    # Add horizon mask points if provided
+                    db.add(new_loc);
+                    db.flush()
                     mask_str = request.form.get("new_horizon_mask", "").strip()
                     if mask_str:
                         try:
                             mask_data = yaml.safe_load(mask_str)
                             if isinstance(mask_data, list):
                                 for point in mask_data:
-                                    db.add(HorizonPoint(location_id=new_loc.id, az_deg=float(point[0]), alt_min_deg=float(point[1])))
+                                    db.add(HorizonPoint(location_id=new_loc.id, az_deg=float(point[0]),
+                                                        alt_min_deg=float(point[1])))
                         except (yaml.YAMLError, ValueError, TypeError):
-                             flash("Warning: Horizon Mask was invalid and was ignored.", "warning")
+                            flash("Warning: Horizon Mask was invalid and was ignored.", "warning")
                     message = "New location added."
 
             # --- Update Existing Locations ---
@@ -5785,15 +5860,13 @@ def config_form():
                 locs_to_update = db.query(Location).filter_by(user_id=app_db_user.id).all()
                 for loc in locs_to_update:
                     if request.form.get(f"delete_loc_{loc.name}") == "on":
-                        db.delete(loc)
+                        db.delete(loc);
                         continue
-                    # Update fields from form
                     loc.lat = float(request.form.get(f"lat_{loc.name}"))
                     loc.lon = float(request.form.get(f"lon_{loc.name}"))
                     loc.timezone = request.form.get(f"timezone_{loc.name}")
                     loc.active = request.form.get(f"active_{loc.name}") == "on"
                     loc.comments = request.form.get(f"comments_{loc.name}", "").strip()[:500]
-                    # Update horizon mask
                     db.query(HorizonPoint).filter_by(location_id=loc.id).delete()
                     mask_str = request.form.get(f"horizon_mask_{loc.name}", "").strip()
                     if mask_str:
@@ -5801,10 +5874,10 @@ def config_form():
                             mask_data = yaml.safe_load(mask_str)
                             if isinstance(mask_data, list):
                                 for point in mask_data:
-                                    db.add(HorizonPoint(location_id=loc.id, az_deg=float(point[0]), alt_min_deg=float(point[1])))
+                                    db.add(HorizonPoint(location_id=loc.id, az_deg=float(point[0]),
+                                                        alt_min_deg=float(point[1])))
                         except Exception:
                             flash(f"Warning: Horizon Mask for '{loc.name}' was invalid and ignored.", "warning")
-
                 message = "Locations updated."
 
             # --- Update Existing Objects ---
@@ -5812,20 +5885,24 @@ def config_form():
                 objs_to_update = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
                 for obj in objs_to_update:
                     if request.form.get(f"delete_{obj.object_name}") == "on":
-                        db.delete(obj)
+                        db.delete(obj);
                         continue
-                    # Update fields from form
+
                     obj.common_name = request.form.get(f"name_{obj.object_name}")
                     obj.ra_hours = float(request.form.get(f"ra_{obj.object_name}"))
                     obj.dec_deg = float(request.form.get(f"dec_{obj.object_name}"))
-                    obj.project_name = request.form.get(f"project_{obj.object_name}")
+                    obj.project_name = request.form.get(f"project_{obj.object_name}") # Private notes
                     obj.type = request.form.get(f"type_{obj.object_name}")
                     obj.magnitude = request.form.get(f"magnitude_{obj.object_name}")
                     obj.size = request.form.get(f"size_{obj.object_name}")
                     obj.sb = request.form.get(f"sb_{obj.object_name}")
+
+                    if not obj.original_user_id:
+                        obj.is_shared = request.form.get(f"is_shared_{obj.object_name}") == "on"
+                        obj.shared_notes = request.form.get(f"shared_notes_{obj.object_name}")
+
                 message = "Objects updated."
 
-            # --- Final Commit and Redirect ---
             if not error:
                 db.commit()
                 flash(f"{message or 'Configuration'} updated successfully.", "success")
@@ -5835,44 +5912,48 @@ def config_form():
                 flash(error, "error")
 
         # --- GET Request: Populate Template Context from DB ---
-        # Build a config-like dictionary for the template to use
         config_for_template = {}
         prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
         if prefs and prefs.json_blob:
             try:
                 config_for_template = json.loads(prefs.json_blob)
             except json.JSONDecodeError:
-                pass # Use empty dict on parse error
+                pass
 
-        # Load locations for the template
         locations_for_template = {}
         db_locations = db.query(Location).filter_by(user_id=app_db_user.id).order_by(Location.name).all()
         for loc in db_locations:
             locations_for_template[loc.name] = {
-                "lat": loc.lat,
-                "lon": loc.lon,
-                "timezone": loc.timezone,
-                "active": loc.active,
-                "comments": loc.comments,
-                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in sorted(loc.horizon_points, key=lambda p: p.az_deg)]
+                "lat": loc.lat, "lon": loc.lon, "timezone": loc.timezone,
+                "active": loc.active, "comments": loc.comments,
+                "horizon_mask": [[hp.az_deg, hp.alt_min_deg] for hp in
+                                 sorted(loc.horizon_points, key=lambda p: p.az_deg)]
             }
             if loc.is_default:
                 config_for_template['default_location'] = loc.name
 
-        # Load objects for the template
         db_objects = db.query(AstroObject).filter_by(user_id=app_db_user.id).order_by(AstroObject.object_name).all()
-        config_for_template['objects'] = [{
-            "Object": o.object_name,
-            "Name": o.common_name,
-            "RA": o.ra_hours,
-            "DEC": o.dec_deg,
-            "Project": o.project_name,
-            "Constellation": o.constellation,
-            "Type": o.type,
-            "Magnitude": o.magnitude,
-            "Size": o.size,
-            "SB": o.sb
-        } for o in db_objects]
+        config_for_template['objects'] = []
+        for o in db_objects:
+            # --- START: Rich Text Upgrade for Private Notes ---
+            raw_private_notes = o.project_name or ""
+            if not raw_private_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+                escaped_text = bleach.clean(raw_private_notes, tags=[], strip=True)
+                private_notes_html = escaped_text.replace("\n", "<br>")
+            else:
+                private_notes_html = raw_private_notes
+            # --- END: Rich Text Upgrade ---
+
+            config_for_template['objects'].append({
+                "Object": o.object_name, "Name": o.common_name,
+                "RA": o.ra_hours, "DEC": o.dec_deg,
+                "Project": private_notes_html,  # Send upgraded HTML to template
+                "Constellation": o.constellation, "Type": o.type,
+                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
+                "is_shared": o.is_shared,
+                "shared_notes": o.shared_notes,  # Shared notes are already HTML
+                "original_user_id": o.original_user_id
+            })
 
         return render_template('config_form.html', config=config_for_template, locations=locations_for_template)
 
@@ -7069,29 +7150,187 @@ def deprovision_user():
 @app.route('/uploads/<path:username>/<path:filename>')
 @login_required
 def get_uploaded_image(username, filename):
-    # Security check:
-    # In multi-user mode, only let a user see their own uploads.
-    # In single-user mode, 'default' user can see 'default' uploads.
-    if not SINGLE_USER_MODE and current_user.username != username:
-        return "Forbidden", 403
+    # Security check removed to allow for shared images.
+    # The @login_required decorator still prevents anonymous access.
+
+    # if not SINGLE_USER_MODE and current_user.username != username:
+    #     return "Forbidden", 403
 
     user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+
+    # Add a check to prevent errors if the file or directory doesn't exist
+    if not os.path.exists(os.path.join(user_upload_dir, filename)):
+        return "Not Found", 404
+
     return send_from_directory(user_upload_dir, filename)
 
-if __name__ == '__main__':
-    # Start the background thread to check for updates
 
-    # Automatically disable debugger and reloader if set by the updater
-    disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
+@app.route('/api/get_shared_items')
+@login_required
+def get_shared_items():
+    if SINGLE_USER_MODE:
+        return jsonify({"objects": [], "components": [], "imported_object_ids": [], "imported_component_ids": []})
 
-    app.run(
-        debug=not disable_debug,
-        use_reloader=False,
-        # use_reloader=not disable_debug,
-        host='0.0.0.0',
-        port=5001
-    )
+    db = get_db()
+    try:
+        current_user_id = g.db_user.id
 
+        # --- 1. Get all items shared by OTHER users ---
+        shared_objects_db = db.query(AstroObject, DbUser.username).join(
+            DbUser, AstroObject.user_id == DbUser.id
+        ).filter(
+            AstroObject.is_shared == True,
+            AstroObject.user_id != current_user_id
+        ).all()
+
+        shared_objects_list = []
+        for obj, username in shared_objects_db:
+            shared_objects_list.append({
+                "id": obj.id,  # This is the ID of the *original* item
+                "object_name": obj.object_name,
+                "common_name": obj.common_name,
+                "type": obj.type,
+                "constellation": obj.constellation,
+                "ra": obj.ra_hours,
+                "dec": obj.dec_deg,
+                "shared_by_user": username,
+                "shared_notes": obj.shared_notes or ""  # Include the shared notes
+            })
+
+        shared_components_db = db.query(Component, DbUser.username).join(
+            DbUser, Component.user_id == DbUser.id
+        ).filter(
+            Component.is_shared == True,
+            Component.user_id != current_user_id
+        ).all()
+
+        shared_components_list = []
+        for comp, username in shared_components_db:
+            shared_components_list.append({
+                "id": comp.id,  # This is the ID of the *original* item
+                "name": comp.name,
+                "kind": comp.kind,
+                "shared_by_user": username
+            })
+
+        # --- 2. Get all IDs of items this user has ALREADY imported ---
+        imported_objects = db.query(AstroObject.original_item_id).filter(
+            AstroObject.user_id == current_user_id,
+            AstroObject.original_item_id != None
+        ).all()
+        imported_object_ids = {item_id for (item_id,) in imported_objects}
+
+        imported_components = db.query(Component.original_item_id).filter(
+            Component.user_id == current_user_id,
+            Component.original_item_id != None
+        ).all()
+        imported_component_ids = {item_id for (item_id,) in imported_components}
+
+        return jsonify({
+            "objects": shared_objects_list,
+            "components": shared_components_list,
+            "imported_object_ids": list(imported_object_ids),
+            "imported_component_ids": list(imported_component_ids)
+        })
+
+    except Exception as e:
+        print(f"ERROR in get_shared_items: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()
+
+
+@app.route('/api/import_item', methods=['POST'])
+@login_required
+def import_item():
+    if SINGLE_USER_MODE:
+        return jsonify({"status": "error", "message": "Sharing is disabled in single-user mode"}), 400
+
+    db = get_db()
+    try:
+        data = request.get_json()
+        item_id = data.get('id')
+        item_type = data.get('type')  # 'object' or 'component'
+
+        if not item_id or not item_type:
+            return jsonify({"status": "error", "message": "Missing item ID or type"}), 400
+
+        current_user_id = g.db_user.id
+
+        if item_type == 'object':
+            # --- Import an Object ---
+            original_obj = db.query(AstroObject).filter_by(id=item_id, is_shared=True).one_or_none()
+            if not original_obj or original_obj.user_id == current_user_id:
+                return jsonify({"status": "error", "message": "Object not found or cannot import your own item"}), 404
+
+            existing = db.query(AstroObject).filter_by(user_id=current_user_id,
+                                                       object_name=original_obj.object_name).one_or_none()
+            if existing:
+                return jsonify({"status": "error",
+                                "message": f"You already have an object named '{original_obj.object_name}'"}), 409
+
+            new_obj = AstroObject(
+                user_id=current_user_id,
+                object_name=original_obj.object_name,
+                common_name=original_obj.common_name,
+                ra_hours=original_obj.ra_hours,
+                dec_deg=original_obj.dec_deg,
+                type=original_obj.type,
+                constellation=original_obj.constellation,
+                magnitude=original_obj.magnitude,
+                size=original_obj.size,
+                sb=original_obj.sb,
+                shared_notes=original_obj.shared_notes,
+                original_user_id=original_obj.user_id,
+                original_item_id=original_obj.id,  # <-- THE FIX
+                is_shared=False,
+                project_name=""
+            )
+            db.add(new_obj)
+
+        elif item_type == 'component':
+            # --- Import a Component ---
+            original_comp = db.query(Component).filter_by(id=item_id, is_shared=True).one_or_none()
+            if not original_comp or original_comp.user_id == current_user_id:
+                return jsonify(
+                    {"status": "error", "message": "Component not found or cannot import your own item"}), 404
+
+            existing = db.query(Component).filter_by(user_id=current_user_id, kind=original_comp.kind,
+                                                     name=original_comp.name).one_or_none()
+            if existing:
+                return jsonify({"status": "error",
+                                "message": f"You already have a {original_comp.kind} named '{original_comp.name}'"}), 409
+
+            new_comp = Component(
+                user_id=current_user_id,
+                kind=original_comp.kind,
+                name=original_comp.name,
+                aperture_mm=original_comp.aperture_mm,
+                focal_length_mm=original_comp.focal_length_mm,
+                sensor_width_mm=original_comp.sensor_width_mm,
+                sensor_height_mm=original_comp.sensor_height_mm,
+                pixel_size_um=original_comp.pixel_size_um,
+                factor=original_comp.factor,
+                is_shared=False,
+                original_user_id=original_comp.user_id,
+                original_item_id=original_comp.id  # <-- THE FIX
+            )
+            db.add(new_comp)
+
+        else:
+            return jsonify({"status": "error", "message": "Invalid item type"}), 400
+
+        db.commit()
+        return jsonify({"status": "success", "message": f"{item_type.capitalize()} imported successfully!"})
+
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR in import_item: {e}")
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": "An internal error occurred."}), 500
+    finally:
+        db.close()
 
 @app.route('/upload_editor_image', methods=['POST'])
 @login_required
@@ -7237,3 +7476,17 @@ def repair_db_now():
     except Exception as e:
         flash(f"Repair failed: {e}", "error")
     return redirect(url_for("index"))
+
+if __name__ == '__main__':
+    # Start the background thread to check for updates
+
+    # Automatically disable debugger and reloader if set by the updater
+    disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
+
+    app.run(
+        debug=not disable_debug,
+        use_reloader=False,
+        # use_reloader=not disable_debug,
+        host='0.0.0.0',
+        port=5001
+    )
