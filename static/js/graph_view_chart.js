@@ -646,7 +646,54 @@ function openFramingAssistant() {
         (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
         baseSurvey = aladin.getBaseImageLayer();
         let __blendSurveyId = null;
-        function ensureBlendLayer() { if (!aladin) return null; const sel = document.getElementById('blend-survey-select'); if (!sel) return null; const surveyId = sel.value; const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); if (existing && __blendSurveyId === surveyId) return existing; try { const hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(surveyId) : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' }); if (hpx) { aladin.setOverlayImageLayer(hpx, 'blend'); __blendSurveyId = surveyId; return aladin.getOverlayImageLayer('blend'); } } catch (e) { console.warn('[nova] Could not create/set overlay image survey:', e); } return null; }
+        function ensureBlendLayer() {
+            if (!aladin) return null;
+            const sel = document.getElementById('blend-survey-select');
+            if (!sel) return null;
+
+            const surveyId = sel.value; // This can be "P/DSS2/color" OR "https://..."
+
+            // Check if the layer already exists *and* the ID matches
+            const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
+            if (existing && __blendSurveyId === surveyId) {
+                return existing;
+            }
+
+            // If it's a new ID, we must create a new layer
+            try {
+                let hpx; // This will be our new layer
+
+                // --- NEW LOGIC ---
+                if (surveyId.startsWith('http')) {
+                    // This is an EXTERNAL survey
+                    const friendlyName = sel.options[sel.selectedIndex]?.textContent || surveyId;
+                    hpx = aladin.createImageSurvey(
+                        surveyId,       // Unique ID
+                        friendlyName,   // Display name
+                        surveyId,       // Base URL
+                        "equatorial",   // Frame
+                        9,              // Max Order
+                        {imgFormat: 'jpeg'}
+                    );
+                } else {
+                    // This is a STANDARD, built-in survey
+                    hpx = (aladin.newImageSurvey)
+                        ? aladin.newImageSurvey(surveyId)
+                        : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
+                }
+                // --- END NEW LOGIC ---
+
+                if (hpx) {
+                    aladin.setOverlayImageLayer(hpx, 'blend');
+                    __blendSurveyId = surveyId; // Store the ID we just set
+                    return aladin.getOverlayImageLayer('blend');
+                }
+            } catch (e) {
+                console.warn('[nova] Could not create/set overlay image survey:', e);
+                alert("Could not load external blend survey. See console for details.");
+            }
+            return null;
+        }
         function setBlendOpacity(a) { const v = Math.max(0, Math.min(1, Number(a) || 0)); if (!aladin) return; const layer = ensureBlendLayer(); if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) { (layer.setOpacity || layer.setAlpha).call(layer, v); return; } try { const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); survey?.setOpacity?.(v); } catch(e) {} }
         (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
         if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
@@ -813,7 +860,44 @@ function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
     }
 function startLockOverlayLoop() { if (lockRafId) return; const tick = () => { if (!lockToObject) { lockRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); lockRafId = requestAnimationFrame(tick); }; lockRafId = requestAnimationFrame(tick); }
 function stopLockOverlayLoop() { if (lockRafId) { cancelAnimationFrame(lockRafId); lockRafId = null; } }
-function setSurvey(hipsId) { if (!aladin) return; const newLayer = aladin.newImageSurvey(hipsId); aladin.setBaseImageLayer(newLayer); baseSurvey = aladin.getBaseImageLayer(); updateImageAdjustments(); }
+function setSurvey(hipsId) {
+    if (!aladin) return;
+
+    let newLayer;
+
+    // --- THIS IS THE NEW LOGIC ---
+    // Check if the ID is a full URL (external) or a simple ID (internal)
+    if (hipsId.startsWith('http')) {
+        // --- This is an EXTERNAL survey ---
+        // We must use aladin.createImageSurvey(id, name, url, frame, order, options)
+        // We derive a friendly name from the <option> text
+        const friendlyName = document.querySelector(`#survey-select option[value='${hipsId}']`)?.textContent || hipsId;
+
+        try {
+            // This is the documented way to add an external HiPS survey
+            newLayer = aladin.createImageSurvey(
+                hipsId,         // A unique ID for this layer (the URL is fine)
+                friendlyName,   // A human-readable name
+                hipsId,         // The base URL for the HiPS tiles
+                "equatorial",   // The coordinate frame
+                9,              // A standard max order (depth)
+                {imgFormat: 'jpeg'} // The image format to request
+            );
+        } catch (e) {
+            console.error("Error creating external survey layer:", e);
+            alert("Could not load external survey. See console for details.");
+            return;
+        }
+    } else {
+        // --- This is a STANDARD, built-in survey ---
+        newLayer = aladin.newImageSurvey(hipsId);
+    }
+    // --- END OF NEW LOGIC ---
+
+    aladin.setBaseImageLayer(newLayer);
+    baseSurvey = aladin.getBaseImageLayer();
+    updateImageAdjustments();
+}
 function updateImageAdjustments() { if (!baseSurvey) return; const b = parseFloat(document.getElementById('img-bright').value), c = parseFloat(document.getElementById('img-contrast').value), g = parseFloat(document.getElementById('img-gamma').value), s = parseFloat(document.getElementById('img-sat').value); baseSurvey.setBrightness(b); baseSurvey.setContrast(c); baseSurvey.setGamma(g); baseSurvey.setSaturation(s); }
 function updateReadout(raDeg, decDeg) { document.getElementById('ra-readout').value = formatRA(raDeg); document.getElementById('dec-readout').value = formatDec(decDeg); }
 function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
