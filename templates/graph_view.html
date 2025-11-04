@@ -960,7 +960,7 @@
     <div class="content-section project-notes-section">
         <h3>Project Notes</h3>
         <input type="hidden" id="project-field-hidden" name="project_notes_from_config"
-               value="{{ project_notes_from_config | e }}">
+                   value="{{ project_notes_from_config | safe }}">
 
         <trix-editor input="project-field-hidden" id="project-field-editor"
                      style="min-height: 150px; height: auto;"></trix-editor>

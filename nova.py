@@ -5354,23 +5354,9 @@ def confirm_object():
         dec_float = _parse_float_from_request(req.get('dec'), "DEC")
 
         # --- START: Rich Text Logic for Notes ---
-        # Get raw HTML for both private and shared notes
-        raw_private_notes = req.get('project', '') or ""
-        raw_shared_notes = req.get('shared_notes', '') or ""
-
-        # Check if private notes are plain text and upgrade
-        if not raw_private_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
-            escaped_text = bleach.clean(raw_private_notes, tags=[], strip=True)
-            private_notes_html = escaped_text.replace("\n", "<br>")
-        else:
-            private_notes_html = raw_private_notes # Already HTML
-
-        # Check if shared notes are plain text and upgrade
-        if not raw_shared_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
-            escaped_text = bleach.clean(raw_shared_notes, tags=[], strip=True)
-            shared_notes_html = escaped_text.replace("\n", "<br>")
-        else:
-            shared_notes_html = raw_shared_notes # Already HTML
+        # Get the raw HTML directly from the JS payload
+        private_notes_html = req.get('project', '') or ""
+        shared_notes_html = req.get('shared_notes', '') or ""
         # --- END: Rich Text Logic ---
 
         existing = db.query(AstroObject).filter_by(user_id=app_db_user.id, object_name=object_name).one_or_none()

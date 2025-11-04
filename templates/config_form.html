@@ -2094,19 +2094,18 @@
                     statusMsg.textContent = '';
                     statusMsg.style.color = '#28a745'; // Reset color
                 }
-
                 // --- Get Trix Editor Content Correctly ---
-                // We must get HTML directly from the editor, not the hidden input
-                const projectEditorEl = document.getElementById(`project_${objectId}_editor`);
-                const projectHtml = projectEditorEl ? projectEditorEl.editor.getDocument().toString() : '';
+                // We read from the hidden <input> field, which Trix keeps in sync with the full HTML.
+                const projectInputEl = document.getElementById(`project_${objectId}_hidden`);
+                const projectHtml = projectInputEl ? projectInputEl.value : '';
 
                 let sharedNotesHtml = '';
                 let isShared = false;
 
                 // Check if shared fields exist (for multi-user mode)
-                const sharedEditorEl = document.getElementById(`shared_notes_${objectId}_editor`);
-                if (sharedEditorEl) {
-                    sharedNotesHtml = sharedEditorEl.editor.getDocument().toString();
+                const sharedInputEl = document.getElementById(`shared_notes_${objectId}_hidden`);
+                if (sharedInputEl) {
+                    sharedNotesHtml = sharedInputEl.value;
                 }
                 const isSharedCheckbox = document.getElementById(`is_shared_${objectId}`);
                 if (isSharedCheckbox) {
