@@ -876,7 +876,7 @@
             <div class="inline-fields add-object-details-indent">
               <div>
                 <label class="short-label" for="new_constellation">Con:</label>
-                <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg" readonly>
+                <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg">
               </div>
               <div>
                 <label class="short-label" for="new_type">Type:</label>
@@ -899,6 +899,7 @@
                 <button id="submit_new_object" type="button" class="action-button">Search</button>
                 <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
                 <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
+                <button id="cancel_add_object" type="button" class="action-button" style="display:none; background-color: #778899;">Cancel</button>
             </div>
           </div>
 
@@ -1809,7 +1810,40 @@
             }
         }
         // --- END of new logic block ---
+        function resetAddObjectForm() {
+            const fieldsToClear = [
+                'new_object', 'new_name', 'new_ra', 'new_dec', 'new_constellation',
+                'new_type', 'new_magnitude', 'new_size', 'new_sb',
+                'new_project_hidden', 'new_shared_notes_hidden'
+            ];
 
+            fieldsToClear.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.value = '';
+                    el.readOnly = false; // Ensure all are unlocked
+                }
+            });
+
+            // Reset Trix editors
+            const newProjectEditor = document.getElementById('new_project_editor');
+            if (newProjectEditor) newProjectEditor.editor.loadHTML('');
+
+            const newSharedNotesEditor = document.getElementById('new_shared_notes_editor');
+            if (newSharedNotesEditor) newSharedNotesEditor.editor.loadHTML('');
+
+            // Reset checkbox
+            document.getElementById('new_is_shared').checked = false;
+
+            // Reset result div
+            document.getElementById('object_result').innerHTML = '';
+
+            // Toggle buttons
+            document.getElementById('submit_new_object').style.display = 'inline-block';
+            document.getElementById('confirm_add_object').style.display = 'none';
+            document.getElementById('edit_object').style.display = 'none';
+            document.getElementById('cancel_add_object').style.display = 'none';
+        }
         // --- Anonymous telemetry client ping (once per 24h) ---
         try {
           const TELEMETRY_KEY = 'novaTelemetryPingAt', lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10), now = Date.now(), DAY_MS = 86400000;
@@ -1944,18 +1978,18 @@
                       document.getElementById('new_size').value = extra.data.Size || '';
                       document.getElementById('new_sb').value = extra.data.SB || '';
                   }
-                  ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                  ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
                   submitNewObjectBtn.style.display = 'none';
                 }).catch(err => {
                   // This is the UPDATED failure path
                   resultDiv.innerHTML = `<p class="error">Error: ${err.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
 
                   // --- FIX: Show buttons and unlock fields on failure ---
-                  ['confirm_add_object', 'edit_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                  ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
                   submitNewObjectBtn.style.display = 'none';
 
                   // Automatically unlock all fields for manual entry
-                  ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
+                  ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
                       document.getElementById(id).readOnly = false;
                   });
                   // --- END OF FIX ---
@@ -2003,7 +2037,13 @@
                 });
             });
         }
-
+        const cancelAddObjectBtn = document.getElementById('cancel_add_object');
+        if (cancelAddObjectBtn) {
+            cancelAddObjectBtn.addEventListener('click', e => {
+                e.preventDefault();
+                resetAddObjectForm();
+            });
+        }
         // --- Dropdown Menu & Import Logic ---
         document.querySelectorAll('.dropdown-btn').forEach(button => {
             button.addEventListener('click', e => {
