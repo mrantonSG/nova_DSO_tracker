@@ -702,10 +702,56 @@ window.updateFramingChart = function (recenter = true) {
     (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), txt = `${Math.round(toSigned180(rotation))}°`; if (el) el.textContent = txt; if (sliderEl) sliderEl.title = `Rotation: ${txt}`; })();
     if (recenter) applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
     if (recenter) {
-        aladin.gotoObject(objectName, {
-            success: () => { applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation); const rc = aladin.getRaDec(); objectCoords = {ra: rc[0], dec: rc[1]}; fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]}; if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); } else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter); updateReadoutFromCenter?.(); },
-            error: () => { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); } else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter); updateReadoutFromCenter?.(); }
-        }); return;
+        // --- START OF FIX ---
+        // Get the coordinates from the global object (set in graph_view.html)
+        const raDeg = window.NOVA_GRAPH_DATA.objectRADeg;
+        const decDeg = window.NOVA_GRAPH_DATA.objectDECDeg;
+        const objectName = window.NOVA_GRAPH_DATA.objectName; // Also get objectName from here
+
+        // Check if we have valid, manually-provided coordinates from our database
+        if (raDeg != null && decDeg != null && isFinite(raDeg) && isFinite(decDeg)) {
+
+            // We have coords! Use gotoRaDec (which uses degrees) instead of gotoObject
+            aladin.gotoRaDec(raDeg, decDeg);
+
+            // Manually trigger the "success" logic
+            applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+            const rc = aladin.getRaDec(); // Get the coords we just set
+            objectCoords = {ra: rc[0], dec: rc[1]};
+            fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]};
+            if (lockToObject) {
+                if (fovLayer) fovLayer.removeAll();
+                updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation);
+            } else {
+                drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+            }
+            updateReadoutFromCenter?.();
+
+        } else {
+            // No manual coords, fall back to default Aladin/SIMBAD lookup
+            aladin.gotoObject(objectName, {
+                success: () => {
+                    // (Original success logic)
+                    applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
+                    const rc = aladin.getRaDec();
+                    objectCoords = {ra: rc[0], dec: rc[1]};
+                    fovCenter = lockToObject ? {...objectCoords} : {ra: rc[0], dec: rc[1]};
+                    if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
+                    else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+                    updateReadoutFromCenter?.();
+                },
+                error: () => {
+                    // (Original error logic)
+                    const rc = aladin.getRaDec();
+                    fovCenter = {ra: rc[0], dec: rc[1]};
+                    if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
+                    else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
+                    updateReadoutFromCenter?.();
+                }
+            });
+        }
+        return; // End of 'recenter' block
+        // --- END OF FIX ---
     }
     if (!fovCenter) { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; }
     if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
