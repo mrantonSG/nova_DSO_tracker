@@ -348,6 +348,36 @@ class AstroObject(Base):
     original_item_id = Column(Integer, nullable=True, index=True)
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
 
+    def to_dict(self):
+        """Converts this object into a YAML-safe dictionary."""
+        return {
+            # Base fields
+            "Object": self.object_name,
+            "Common Name": self.common_name,
+            "RA (hours)": self.ra_hours,
+            "DEC (degrees)": self.dec_deg,
+            "Type": self.type,
+            "Constellation": self.constellation,
+            "Magnitude": self.magnitude,
+            "Size": self.size,
+            "SB": self.sb,
+
+            # Compatibility aliases
+            "Name": self.common_name,
+            "RA": self.ra_hours,
+            "DEC": self.dec_deg,
+
+            # Project fields
+            "ActiveProject": self.active_project,
+            "Project": self.project_name,
+
+            # Sharing fields
+            "is_shared": self.is_shared,
+            "shared_notes": self.shared_notes,
+            "original_user_id": self.original_user_id,
+            "original_item_id": self.original_item_id
+        }
+
 
 class Component(Base):
     __tablename__ = 'components'
@@ -759,6 +789,10 @@ def _migrate_objects(db, user: DbUser, config: dict):
             sb = o.get("SB") if o.get("SB") is not None else o.get("sb")
             active_project = bool(o.get("ActiveProject") or o.get("active_project") or False)
             project_name = o.get("Project") or o.get("project_name")
+            is_shared = bool(o.get("is_shared", False))
+            shared_notes = o.get("shared_notes")
+            original_user_id = _as_int(o.get("original_user_id"))
+            original_item_id = _as_int(o.get("original_item_id"))
 
             ra_f = float(ra_val) if ra_val is not None else None
             dec_f = float(dec_val) if dec_val is not None else None
@@ -794,6 +828,10 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.sb = str(sb) if sb is not None else None
                 existing.active_project = active_project
                 existing.project_name = project_name
+                existing.is_shared = is_shared
+                existing.shared_notes = shared_notes
+                existing.original_user_id = original_user_id
+                existing.original_item_id = original_item_id
             else:
                 # INSERT PATH: The object is new, so we create a new database record.
                 new_object = AstroObject(
@@ -809,6 +847,10 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     sb=str(sb) if sb is not None else None,
                     active_project=active_project,
                     project_name=project_name,
+                    is_shared=is_shared,
+                    shared_notes=shared_notes,
+                    original_user_id=original_user_id,
+                    original_item_id=original_item_id
                 )
                 db.add(new_object)
 
@@ -903,6 +945,12 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             Component.kind == kind,
             Component.name.collate('NOCASE') == trimmed_name
         ).one_or_none()
+
+        # --- NEW: Get sharing fields from the 'fields' dict ---
+        is_shared = bool(fields.get("is_shared", False))
+        original_user_id = _as_int(fields.get("original_user_id"))
+        original_item_id = _as_int(fields.get("original_item_id"))
+
         if existing_row:
             if existing_row.aperture_mm is None: existing_row.aperture_mm = _coerce_float(fields.get("aperture_mm"))
             if existing_row.focal_length_mm is None: existing_row.focal_length_mm = _coerce_float(
@@ -914,8 +962,19 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             if existing_row.pixel_size_um is None: existing_row.pixel_size_um = _coerce_float(
                 fields.get("pixel_size_um"))
             if existing_row.factor is None: existing_row.factor = _coerce_float(fields.get("factor"))
+
+            # We only set them if they're not already set, to avoid overwriting original import data
+            if existing_row.is_shared is False:
+                existing_row.is_shared = is_shared
+            if existing_row.original_user_id is None:
+                existing_row.original_user_id = original_user_id
+            if existing_row.original_item_id is None:
+                existing_row.original_item_id = original_item_id
+            # --- END OF BLOCK ---
+
             db.flush()
             return existing_row
+
         new_row = Component(
             user_id=user.id, kind=kind, name=trimmed_name,
             aperture_mm=_coerce_float(fields.get("aperture_mm")),
@@ -924,6 +983,9 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             sensor_height_mm=_coerce_float(fields.get("sensor_height_mm")),
             pixel_size_um=_coerce_float(fields.get("pixel_size_um")),
             factor=_coerce_float(fields.get("factor")),
+            is_shared=is_shared,
+            original_user_id=original_user_id,
+            original_item_id=original_item_id
         )
         db.add(new_row)
         db.flush()
@@ -949,16 +1011,25 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
     # --- 1. Process Components Section ---
     for t in comps.get("telescopes", []):
         row = _get_or_create_component("telescope", _get_alias(t, "name"), aperture_mm=_get_alias(t, "aperture_mm"),
-                                       focal_length_mm=_get_alias(t, "focal_length_mm"))
+                                       focal_length_mm=_get_alias(t, "focal_length_mm"),
+                                       is_shared=t.get("is_shared"), original_user_id=t.get("original_user_id"),
+                                       original_item_id=t.get("original_item_id")
+                                       )
         _remember_component(row, "telescope", _get_alias(t, "name"), t.get("id"))
     for c in comps.get("cameras", []):
         row = _get_or_create_component("camera", _get_alias(c, "name"),
                                        sensor_width_mm=_get_alias(c, "sensor_width_mm"),
                                        sensor_height_mm=_get_alias(c, "sensor_height_mm"),
-                                       pixel_size_um=_get_alias(c, "pixel_size_um"))
+                                       pixel_size_um=_get_alias(c, "pixel_size_um"),
+                                       is_shared=c.get("is_shared"), original_user_id=c.get("original_user_id"),
+                                       original_item_id=c.get("original_item_id")
+                                       )
         _remember_component(row, "camera", _get_alias(c, "name"), c.get("id"))
     for r in comps.get("reducers_extenders", []):
-        row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), factor=_get_alias(r, "factor"))
+        row = _get_or_create_component("reducer_extender", _get_alias(r, "name"), factor=_get_alias(r, "factor"),
+                                       is_shared=r.get("is_shared"), original_user_id=r.get("original_user_id"),
+                                       original_item_id=r.get("original_item_id")
+                                       )
         _remember_component(row, "reducer_extender", _get_alias(r, "name"), r.get("id"))
 
     def _resolve_component_id(kind: str, legacy_id, name) -> int | None:
@@ -1218,18 +1289,7 @@ def build_user_config_from_db(username: str) -> dict:
         obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
         objects = []
         for o in obj_rows:
-            row = {
-                "Object": o.object_name,
-                "Name": o.common_name,  # For compatibility with config_form.html
-                "Common Name": o.common_name,  # For compatibility with the index page
-                "RA": o.ra_hours,
-                "DEC": o.dec_deg,
-                # ... (the rest of the fields are the same)
-                "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
-                "Type": o.type, "Constellation": o.constellation, "Magnitude": o.magnitude,
-                "Size": o.size, "SB": o.sb, "ActiveProject": o.active_project, "Project": o.project_name
-            }
-            objects.append(row)
+            objects.append(o.to_dict())
         user_config["objects"] = objects
 
         return user_config
@@ -1263,13 +1323,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 } for l in locs
             },
             "objects": [
-                {
-                    "Object": o.object_name, "Common Name": o.common_name,
-                    "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,
-                    "Type": o.type, "Constellation": o.constellation,
-                    "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
-                    "ActiveProject": o.active_project, "Project": o.project_name
-                } for o in db.query(AstroObject).filter_by(user_id=u.id).all()
+                o.to_dict() for o in db.query(AstroObject).filter_by(user_id=u.id).all()
             ]
         }
         cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
@@ -1282,16 +1336,16 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
         rigs_doc = {
             "components": {
                 "telescopes": [
-                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm}
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm, "is_shared": c.is_shared, "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
                     for c in bykind("telescope")
                 ],
                 "cameras": [
                     {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
-                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um}
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um, "is_shared": c.is_shared, "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
                     for c in bykind("camera")
                 ],
                 "reducers_extenders": [
-                    {"id": c.id, "name": c.name, "factor": c.factor}
+                    {"id": c.id, "name": c.name, "factor": c.factor, "is_shared": c.is_shared, "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
                     for c in bykind("reducer_extender")
                 ],
             },
@@ -2074,14 +2128,10 @@ def load_full_astro_context():
         g.objects = []
 
         for o in obj_rows:
-            obj_data = {
-                "Object": o.object_name, "Common Name": o.common_name, "RA (hours)": o.ra_hours,
-                "DEC (degrees)": o.dec_deg, "Type": o.type, "Constellation": o.constellation,
-                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
-                "ActiveProject": o.active_project, "Project": o.project_name,
-                # Add legacy keys for compatibility
-                "Name": o.common_name, "RA": o.ra_hours, "DEC": o.dec_deg
-            }
+            # Get all fields from our new method
+            obj_data = o.to_dict()
+
+            # Append to the list and map
             g.objects_list.append(obj_data)
             g.objects.append(o.object_name)
             if o.object_name:
@@ -4697,18 +4747,8 @@ def download_config():
         }
 
         # --- 3. Load Objects ---
-        config_doc["objects"] = [
-            {
-                "Object": o.object_name,
-                "Name": o.common_name,  # "Name" is used by the form
-                "Common Name": o.common_name,  # "Common Name" is used by the index page
-                "RA": o.ra_hours, "DEC": o.dec_deg,
-                "RA (hours)": o.ra_hours, "DEC (degrees)": o.dec_deg,  # Redundant for compatibility
-                "Type": o.type, "Constellation": o.constellation,
-                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
-                "ActiveProject": o.active_project, "Project": o.project_name
-            } for o in db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
-        ]
+        db_objects = db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
+        config_doc["objects"] = [o.to_dict() for o in db_objects]
 
         # --- 4. Create in-memory file ---
         yaml_string = yaml.dump(config_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
@@ -5721,9 +5761,12 @@ def get_object_data(object_name):
         # --- END OF NEW CALCULATIONS ---
 
         # --- 6. Assemble JSON using the single object record ---
-        single_object_data = {
-            'Object': obj_record.object_name,
-            'Common Name': obj_record.common_name,
+
+        # 1. Get all static data from the model's to_dict() method
+        single_object_data = obj_record.to_dict()
+
+        # 2. Add all dynamic (calculated) data to that dictionary
+        single_object_data.update({
             'Altitude Current': f"{current_alt:.2f}",
             'Azimuth Current': f"{current_az:.2f}",
             'Trend': trend,
@@ -5733,24 +5776,17 @@ def get_object_data(object_name):
             'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
             'Max Altitude (°)': cached_night_data['max_altitude'],
             'Angular Separation (°)': round(angular_sep),
-            'Project': obj_record.project_name or "none",
             'Time': current_datetime_local.strftime('%Y-%m-%d %H:%M:%S'),
-            'Constellation': obj_record.constellation or 'N/A',
-            'Type': obj_record.type or 'N/A',
-            'Magnitude': obj_record.magnitude or 'N/A',
-            'Size': obj_record.size or 'N/A',
-            'SB': obj_record.sb or 'N/A',
             'is_obstructed_now': is_obstructed_now,
             'is_obstructed_at_11pm': is_obstructed_at_11pm,
-            'ActiveProject': obj_record.active_project or False,
-
-            # --- ADD NEW KEYS TO RESPONSE ---
             'best_month_ra': best_month_str,
             'max_culmination_alt': max_culmination_alt,
-            # --- END OF ADDED KEYS ---
-
             'error': False
-        }
+        })
+
+        # 3. Ensure 'Project' key has a fallback for the UI
+        single_object_data.setdefault('Project', 'none')
+
         return jsonify(single_object_data)
 
     except Exception as e:
@@ -6115,16 +6151,24 @@ def config_form():
                 private_notes_html = raw_private_notes
             # --- END: Rich Text Upgrade ---
 
-            config_for_template['objects'].append({
-                "Object": o.object_name, "Name": o.common_name,
-                "RA": o.ra_hours, "DEC": o.dec_deg,
-                "Project": private_notes_html,  # Send upgraded HTML to template
-                "Constellation": o.constellation, "Type": o.type,
-                "Magnitude": o.magnitude, "Size": o.size, "SB": o.sb,
-                "is_shared": o.is_shared,
-                "shared_notes": o.shared_notes,  # Shared notes are already HTML
-                "original_user_id": o.original_user_id
-            })
+            # --- START: Rich Text Upgrade for SHARED Notes ---
+            raw_shared_notes = o.shared_notes or ""
+            if not raw_shared_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+                escaped_text = bleach.clean(raw_shared_notes, tags=[], strip=True)
+                shared_notes_html = escaped_text.replace("\n", "<br>")
+            else:
+                shared_notes_html = raw_shared_notes
+            # --- END: Rich Text Upgrade for SHARED Notes ---
+
+            # 1. Get all standard fields from the new method
+            obj_data_dict = o.to_dict()
+
+            # 2. Overwrite the note fields with our editor-safe HTML
+            obj_data_dict["Project"] = private_notes_html
+            obj_data_dict["shared_notes"] = shared_notes_html
+
+            # 3. Append the final dictionary
+            config_for_template['objects'].append(obj_data_dict)
 
         return render_template('config_form.html', config=config_for_template, locations=locations_for_template, all_timezones=pytz.all_timezones)
 
@@ -6857,16 +6901,28 @@ def download_rig_config():
         rigs_doc = {
             "components": {
                 "telescopes": [
-                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm}
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm,
+                     # --- ADD THESE 3 LINES ---
+                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
+                     "original_item_id": c.original_item_id
+                     }
                     for c in bykind("telescope")
                 ],
                 "cameras": [
                     {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
-                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um}
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um,
+                     # --- ADD THESE 3 LINES ---
+                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
+                     "original_item_id": c.original_item_id
+                     }
                     for c in bykind("camera")
                 ],
                 "reducers_extenders": [
-                    {"id": c.id, "name": c.name, "factor": c.factor}
+                    {"id": c.id, "name": c.name, "factor": c.factor,
+                     # --- ADD THESE 3 LINES ---
+                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
+                     "original_item_id": c.original_item_id
+                     }
                     for c in bykind("reducer_extender")
                 ],
             },
