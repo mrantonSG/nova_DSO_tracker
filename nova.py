@@ -2431,25 +2431,27 @@ def get_weather_forecast_api():
                 if timepoint_hours is None: continue
                 try:
                     start_time = init_time + timedelta(hours=int(timepoint_hours))
-                    # --- FIX: Use 1-hour blocks from Open-Meteo, 3-hour for 7Timer ---
-                    # Simple check: if 'seeing' is present, it's 7Timer (3hr). Else Open-Meteo (1hr).
-                    # This assumes 'seeing' is only from 7Timer!
-                    if block.get('seeing') is not None and block.get('seeing') != -9999:
-                        end_time = start_time + timedelta(hours=3)  # 7Timer 'astro' is 3hr
-                    else:
-                        end_time = start_time + timedelta(hours=1)  # Open-Meteo is 1hr
+
+                    # --- FIX: The hybrid cache *always* produces 1-hour blocks. ---
+                    # Remove the bad 3-hour guessing logic.
+                    end_time = start_time + timedelta(hours=1)
+                    # --- END FIX ---
 
                     seeing_val = block.get("seeing")
                     transparency_val = block.get("transparency")
 
+                    # Pass the raw values (e.g., 5 or -9999) directly.
+                    # The JavaScript is built to handle these.
                     processed_block = {
                         "start": start_time.isoformat(),
                         "end": end_time.isoformat(),
                         "cloudcover": block.get("cloudcover"),
-                        "seeing": seeing_val if seeing_val is not None and seeing_val != -9999 else None,
-                        "transparency": transparency_val if transparency_val is not None and transparency_val != -9999 else None,
+                        "seeing": seeing_val,
+                        "transparency": transparency_val,
                     }
-                    weather_forecast_series.append({k: v for k, v in processed_block.items() if v is not None})
+                    # Append the entire block, not a stripped version.
+                    weather_forecast_series.append(processed_block)
+
                 except Exception as e:
                     print(f"[API Weather] WARN: Skipping bad block: {e}")
                     continue  # Skip bad block
@@ -2669,7 +2671,11 @@ def get_hybrid_weather_forecast(lat, lon):
 
     final_data_to_cache = None
     base_dataseries = {}
+
+    # --- FIX: Initialize init_time and init_str to None in the outer scope ---
+    init_time = None
     init_str = None
+    # --- END FIX ---
 
     # === 1. Always fetch Open-Meteo for reliable cloud data ===
     print(f"[Weather Func] Fetching base cloud data from Open-Meteo for key '{cache_key}'")
@@ -2682,10 +2688,15 @@ def get_hybrid_weather_forecast(lat, lon):
             om_hourly = open_meteo_data['hourly']
             times = om_hourly.get('time', [])
 
-            init_time = None
+            # init_time is defined here (if successful)
             if times:
-                first_time = datetime.fromisoformat(times[0].replace('Z', '+00:00'))
-                init_time = first_time.replace(hour=0, minute=0, second=0, microsecond=0)
+                # --- START FIX: Ensure parsed datetimes are offset-aware ---
+                # 1. Parse the naive time (stripping 'Z' if it exists, fromisoformat handles T)
+                first_time_naive = datetime.fromisoformat(times[0].split('Z')[0])
+                # 2. Attach the UTC timezone to make it aware
+                first_time_aware = first_time_naive.replace(tzinfo=UTC)
+                # 3. Create the init_time (midnight), which is now guaranteed aware
+                init_time = first_time_aware.replace(hour=0, minute=0, second=0, microsecond=0)
                 init_str = init_time.strftime("%Y%m%d%H")
             else:
                 init_time = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -2693,8 +2704,11 @@ def get_hybrid_weather_forecast(lat, lon):
                 print("[Weather Func] WARN: Open-Meteo returned no times. Using current day as init.")
 
             for i, time_str in enumerate(times):
-                current_time = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                # --- FIX: Apply the same logic to the loop variable ---
+                current_time_naive = datetime.fromisoformat(time_str.split('Z')[0])
+                current_time = current_time_naive.replace(tzinfo=UTC)
                 timepoint = int((current_time - init_time).total_seconds() / 3600)
+                # --- END FIX ---
 
                 cc_low = om_hourly.get('cloud_cover_low', [0] * len(times))[i]
                 cc_mid = om_hourly.get('cloud_cover_mid', [0] * len(times))[i]
@@ -2749,22 +2763,61 @@ def get_hybrid_weather_forecast(lat, lon):
     astro_data_7t = get_weather_data_with_retries(lat, lon, product="astro")
 
     if astro_data_7t and astro_data_7t.get('dataseries'):
+        print("[DEBUG] 7Timer! RAW DATA (first 5 blocks):")
+        print(astro_data_7t['dataseries'][:5])
         print(f"[Weather Func] 7Timer! 'astro' succeeded. Merging data...")
-        if not init_str:  # If Open-Meteo failed, use 7Timer's init
-            init_str = astro_data_7t.get('init', datetime.now(UTC).strftime("%Y%m%d%H"))
 
-        for ablk in astro_data_7t.get('dataseries', []):
-            tp = ablk.get('timepoint')
-            if tp is None: continue
+        # --- START FIX: Calculate 7Timer! init time ---
+        astro_init_str = astro_data_7t.get('init')
+        try:
+            # Get the 7Timer! init time as a datetime object
+            astro_init_time = datetime.strptime(astro_init_str, "%Y%m%d%H").replace(tzinfo=UTC)
+        except (ValueError, TypeError, AttributeError):
+            _rate_limited_error(
+                f"[Weather Func] ERROR: 7Timer! 'astro' gave invalid init string: '{astro_init_str}'. Cannot merge seeing data.")
+            astro_data_7t = None  # Treat as failed
+        # --- END FIX ---
 
-            if tp in base_dataseries:
-                # Merge into existing Open-Meteo block
-                base_dataseries[tp].update(ablk)
-            else:
-                # Open-Meteo failed, use 7Timer! block as a fallback
-                # Add cloudcover placeholder if it doesn't exist
-                ablk.setdefault('cloudcover', 9)  # Assume overcast if no cloud data
-                base_dataseries[tp] = ablk
+        if astro_data_7t:  # Check if it's still valid after parsing init
+
+            # --- FIX: If init_time is STILL None, Open-Meteo failed. Use 7Timer's init as the base.
+            if init_time is None:
+                init_time = astro_init_time
+                init_str = astro_init_str
+                print(f"[Weather Func] WARN: Open-Meteo failed. Using 7Timer! init_time as base: {init_str}")
+            # --- END FIX ---
+
+            for ablk in astro_data_7t.get('dataseries', []):
+                tp_7timer = ablk.get('timepoint')
+                if tp_7timer is None: continue
+
+                try:
+                    # --- START FIX: Recalculate timepoint ---
+                    # Get the absolute UTC time of the 7Timer! forecast block
+                    abs_time = astro_init_time + timedelta(hours=int(tp_7timer))
+
+                    # Calculate the timepoint relative to our *guaranteed* init_time
+                    # This 'tp' is the correct key for our base_dataseries
+                    tp = int((abs_time - init_time).total_seconds() / 3600)
+                    # --- END FIX ---
+
+                    if tp in base_dataseries:
+                        # --- FIX: Only merge the keys we want from 7Timer! ---
+                        # This preserves the correct 'timepoint' and high-res 'cloudcover'
+                        # from the Open-Meteo block, while adding 'seeing' and 'transparency'.
+                        if 'seeing' in ablk:
+                            base_dataseries[tp]['seeing'] = ablk['seeing']
+                        if 'transparency' in ablk:
+                            base_dataseries[tp]['transparency'] = ablk['transparency']
+                        # --- END FIX ---
+                    else:
+                        # Open-Meteo failed, use 7Timer! block as a fallback
+                        # Add cloudcover placeholder if it doesn't exist
+                        ablk.setdefault('cloudcover', 9)
+                        base_dataseries[tp] = ablk
+
+                except Exception as e:
+                    print(f"[Weather Func] WARN: Skipping 7Timer! block, could not align timepoints. Error: {e}")
 
         print(f"[Weather Func] Merge complete.")
     else:
