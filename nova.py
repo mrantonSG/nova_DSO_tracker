@@ -5435,6 +5435,7 @@ def update_object():
         obj.common_name = data.get('name')
         obj.ra_hours = float(data.get('ra'))
         obj.dec_deg = float(data.get('dec'))
+        obj.constellation = data.get('constellation')
         obj.type = data.get('type')
         obj.magnitude = data.get('magnitude')
         obj.size = data.get('size')
@@ -6060,6 +6061,7 @@ def config_form():
                     obj.common_name = request.form.get(f"name_{obj.object_name}")
                     obj.ra_hours = float(request.form.get(f"ra_{obj.object_name}"))
                     obj.dec_deg = float(request.form.get(f"dec_{obj.object_name}"))
+                    obj.constellation = request.form.get(f"constellation_{obj.object_name}")
                     obj.project_name = request.form.get(f"project_{obj.object_name}") # Private notes
                     obj.type = request.form.get(f"type_{obj.object_name}")
                     obj.magnitude = request.form.get(f"magnitude_{obj.object_name}")
