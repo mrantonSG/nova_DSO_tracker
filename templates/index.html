@@ -967,7 +967,19 @@ async function fetchData() {
                     }
                     if (!matchesNumericFilter(cellNumber, filterValue)) { showRow = false; break; }
                 } else {
-                    if (filterValue.startsWith("!")) {
+                    // --- NEW LOGIC for comma-separated filters ---
+                    if (columnKeyInFilter === 'Best Month') {
+                        const filterTerms = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
+                        if (filterTerms.length > 0) {
+                            // Check if the cellText (e.g., "dec") matches ANY of the filter terms (e.g., "dec", "jan")
+                            const matchFound = filterTerms.some(term => cellText.includes(term));
+                            if (!matchFound) {
+                                showRow = false;
+                                break;
+                            }
+                        }
+                    // --- END NEW LOGIC ---
+                    } else if (filterValue.startsWith("!")) {
                         if (cellText.includes(filterValue.substring(1))) { showRow = false; break; }
                     } else {
                         if (!cellText.includes(filterValue)) { showRow = false; break; }
