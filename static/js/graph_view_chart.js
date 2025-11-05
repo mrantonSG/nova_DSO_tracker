@@ -673,7 +673,6 @@ function openFramingAssistant() {
                         surveyId,       // Base URL
                         "equatorial",   // Frame
                         9,              // Max Order
-                        {imgFormat: 'jpeg'}
                     );
                 } else {
                     // This is a STANDARD, built-in survey
@@ -881,7 +880,6 @@ function setSurvey(hipsId) {
                 hipsId,         // The base URL for the HiPS tiles
                 "equatorial",   // The coordinate frame
                 9,              // A standard max order (depth)
-                {imgFormat: 'jpeg'} // The image format to request
             );
         } catch (e) {
             console.error("Error creating external survey layer:", e);
