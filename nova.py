@@ -476,14 +476,20 @@ def _seed_user_from_guest_data(db_session, user_to_seed: 'DbUser'):
     # This is still all-or-nothing. If a user has 0 locations, they get them all.
     # If they have 1 or more, we assume they've configured it and we don't touch it.
     existing_loc_count = db_session.query(Location).filter_by(user_id=new_user_id).count()
+    # 3. Copy UiPref (only if no locations, as it's tied to location prefs)
     if existing_loc_count == 0:
-        print("      -> User has 0 locations. Seeding UiPref and Locations...")
+        print("      -> User has 0 locations. Seeding UiPref...")
 
-        # Copy UiPref
-        guest_prefs = db_session.query(UiPref).filter_by(user_id=guest_user_id).one_or_none()
-        if guest_prefs:
-            new_prefs = UiPref(user_id=new_user_id, json_blob=guest_prefs.json_blob)
-            db_session.add(new_prefs)
+        # --- START FIX: Check if prefs already exist before adding ---
+        existing_prefs = db_session.query(UiPref).filter_by(user_id=new_user_id).first()
+        if not existing_prefs:
+            guest_prefs = db_session.query(UiPref).filter_by(user_id=guest_user_id).first()  # Use .first()
+            if guest_prefs:
+                new_prefs = UiPref(user_id=new_user_id, json_blob=guest_prefs.json_blob)
+                db_session.add(new_prefs)
+                print("      -> Copied UiPref.")
+        else:
+            print("      -> User already has UiPref. Skipping.")
 
         # Copy Locations & HorizonPoints
         guest_locations = db_session.query(Location).options(selectinload(Location.horizon_points)).filter_by(
@@ -2202,7 +2208,7 @@ def load_global_request_context():
 
         # --- Load UI Prefs (general settings) ---
         g.user_config = {}
-        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
         if prefs and prefs.json_blob:
             try:
                 g.user_config = json.loads(prefs.json_blob)
@@ -4181,7 +4187,7 @@ def set_rig_sort_preference():
     db = get_db()
     try:
         user = db.query(DbUser).filter_by(username=username).one()
-        prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        prefs = db.query(UiPref).filter_by(user_id=user.id).first()
         if not prefs:
             prefs = UiPref(user_id=user.id, json_blob='{}')
             db.add(prefs)
@@ -4820,7 +4826,7 @@ def set_location_api():
     try:
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if user:
-            prefs = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+            prefs = db.query(UiPref).filter_by(user_id=user.id).first()
             if not prefs:
                 prefs = UiPref(user_id=user.id, json_blob='{}')
                 db.add(prefs)
@@ -4882,7 +4888,7 @@ def download_config():
 
         # --- 1. Load base settings from UiPref ---
         config_doc = {}
-        prefs = db.query(UiPref).filter_by(user_id=u.id).one_or_none()
+        prefs = db.query(UiPref).filter_by(user_id=u.id).first()
         if prefs and prefs.json_blob:
             try:
                 config_doc = json.loads(prefs.json_blob)
@@ -5824,7 +5830,7 @@ def get_object_data(object_name):
                 pass
 
         # Load UI Prefs specifically for altitude_threshold and sampling_interval
-        prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).first()
         user_prefs_dict = {}
         if prefs_record and prefs_record.json_blob:
             try:
@@ -6155,7 +6161,7 @@ def config_form():
         if request.method == 'POST':
             # --- General Settings Tab ---
             if 'submit_general' in request.form:
-                prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+                prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
                 if not prefs:
                     prefs = UiPref(user_id=app_db_user.id, json_blob='{}')
                     db.add(prefs)
@@ -6277,7 +6283,7 @@ def config_form():
 
         # --- GET Request: Populate Template Context from DB ---
         config_for_template = {}
-        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).one_or_none()
+        prefs = db.query(UiPref).filter_by(user_id=app_db_user.id).first()
         if prefs and prefs.json_blob:
             try:
                 config_for_template = json.loads(prefs.json_blob)
@@ -6708,7 +6714,7 @@ def graph_dashboard(object_name):
                 "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
             })
 
-        prefs_record = db.query(UiPref).filter_by(user_id=user.id).one_or_none()
+        prefs_record = db.query(UiPref).filter_by(user_id=user.id).first()
         sort_preference = 'name-asc'
         if prefs_record and prefs_record.json_blob:
             try:
