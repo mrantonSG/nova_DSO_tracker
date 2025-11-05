@@ -2976,8 +2976,8 @@ def get_hybrid_weather_forecast(lat, lon):
     astro_data_7t = get_weather_data_with_retries(lat, lon, product="astro")
 
     if astro_data_7t and astro_data_7t.get('dataseries'):
-        print("[DEBUG] 7Timer! RAW DATA (first 5 blocks):")
-        print(astro_data_7t['dataseries'][:5])
+        # print("[DEBUG] 7Timer! RAW DATA (first 5 blocks):")
+        # print(astro_data_7t['dataseries'][:5])
         print(f"[Weather Func] 7Timer! 'astro' succeeded. Merging data...")
 
         # --- START FIX: Calculate 7Timer! init time ---
