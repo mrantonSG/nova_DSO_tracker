@@ -789,7 +789,7 @@ async function fetchData() {
                     ];
                     // --- END MODIFICATION ---
 
-                     if (numericSortKeys.includes(config.dataKey)) {
+                     if (numericSortKeys.includes(columnKey)) {
                          if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
                             td.dataset.rawValue = 'N/A';
                          } else if (typeof rawValue === 'number') {
@@ -906,7 +906,7 @@ async function fetchData() {
                 'Magnitude', 'Size', 'SB', 'Max Altitude'
             ];
             // --- END MODIFICATION ---
-            if (config && numericSortKeys.includes(config.dataKey)) { valA = parseFloat(valA_str); valB = parseFloat(valB_str); }
+            if (config && numericSortKeys.includes(currentSort.columnKey)) { valA = parseFloat(valA_str); valB = parseFloat(valB_str); }
             else if (currentSort.columnKey === 'Transit Time' && /^\d{1,2}:\d{2}$/.test(valA_str) && /^\d{1,2}:\d{2}$/.test(valB_str)) { valA = parseTimeToMinutes(valA_str); valB = parseTimeToMinutes(valB_str); }
             if (typeof valA === 'number' && typeof valB === 'number') { if (isNaN(valA) && isNaN(valB)) return 0; if (isNaN(valA)) return currentSort.ascending ? 1 : -1; if (isNaN(valB)) return currentSort.ascending ? -1 : 1; return currentSort.ascending ? valA - valB : valB - valA; }
             return currentSort.ascending ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
