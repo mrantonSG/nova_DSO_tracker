@@ -108,37 +108,6 @@ engine = create_engine(DB_URI, echo=False, future=True)
 SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
 Base = declarative_base()
 
-def get_or_create_db_user(db_session, username: str) -> 'DbUser':
-    """
-    Finds a user in the `DbUser` table by username or creates them if they don't exist.
-    This is the bridge between the authentication DB and the application DB.
-
-    Returns:
-        The SQLAlchemy DbUser object for the given username.
-    """
-    if not username:
-        return None
-
-    # Try to find the user in our application database
-    user = db_session.query(DbUser).filter_by(username=username).one_or_none()
-
-    if user:
-        # The user already exists, just return them
-        return user
-    else:
-        # User exists in WordPress/users.db but not here. Create them now.
-        print(f"[PROVISIONING] User '{username}' not found in app.db. Creating new record.")
-        new_user = DbUser(username=username)
-        db_session.add(new_user)
-        try:
-            db_session.commit()
-            print(f"   -> Successfully provisioned '{username}' in app database.")
-            # We need to re-fetch to get the fully loaded object with its new ID
-            return db_session.query(DbUser).filter_by(username=username).one()
-        except Exception as e:
-            db_session.rollback()
-            print(f"   -> FAILED to provision '{username}'. Error: {e}")
-            return None
 
 def get_db():
     """Use inside request context or background tasks."""
@@ -480,6 +449,194 @@ class UiPref(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     json_blob = Column(Text, nullable=True)
     user = relationship("DbUser", back_populates="ui_prefs")
+
+
+def _seed_user_from_guest_data(db_session, user_to_seed: 'DbUser'):
+    """
+    Copies all template data from the 'guest_user' account to the 'user_to_seed'.
+    This function is now granular and non-destructive:
+    - If no locations exist, it seeds all locations and UI prefs.
+    - It iterates through default objects/components/rigs and only adds them
+      if an item with the same name doesn't already exist.
+    This safely fixes all partially provisioned users.
+    """
+    # 1. Get the template 'guest_user'
+    guest_user = db_session.query(DbUser).filter_by(username="guest_user").one_or_none()
+    if not guest_user:
+        print(
+            f"   -> [SEEDING] WARNING: 'guest_user' template not found. Cannot seed data for '{user_to_seed.username}'.")
+        return
+
+    new_user_id = user_to_seed.id
+    guest_user_id = guest_user.id
+    print(
+        f"   -> [SEEDING] Found template user 'guest_user' (ID: {guest_user_id}). Checking data for '{user_to_seed.username}' (ID: {new_user_id}).")
+
+    # 2. --- LOCATIONS & UI PREFS ---
+    # This is still all-or-nothing. If a user has 0 locations, they get them all.
+    # If they have 1 or more, we assume they've configured it and we don't touch it.
+    existing_loc_count = db_session.query(Location).filter_by(user_id=new_user_id).count()
+    if existing_loc_count == 0:
+        print("      -> User has 0 locations. Seeding UiPref and Locations...")
+
+        # Copy UiPref
+        guest_prefs = db_session.query(UiPref).filter_by(user_id=guest_user_id).one_or_none()
+        if guest_prefs:
+            new_prefs = UiPref(user_id=new_user_id, json_blob=guest_prefs.json_blob)
+            db_session.add(new_prefs)
+
+        # Copy Locations & HorizonPoints
+        guest_locations = db_session.query(Location).options(selectinload(Location.horizon_points)).filter_by(
+            user_id=guest_user_id).all()
+        for g_loc in guest_locations:
+            new_loc = Location(
+                user_id=new_user_id, name=g_loc.name, lat=g_loc.lat, lon=g_loc.lon,
+                timezone=g_loc.timezone, altitude_threshold=g_loc.altitude_threshold,
+                is_default=g_loc.is_default, active=g_loc.active, comments=g_loc.comments
+            )
+            db_session.add(new_loc)
+            db_session.flush()
+            for g_hp in g_loc.horizon_points:
+                new_hp = HorizonPoint(location_id=new_loc.id, az_deg=g_hp.az_deg, alt_min_deg=g_hp.alt_min_deg)
+                db_session.add(new_hp)
+        print(f"      -> Copied {len(guest_locations)} locations.")
+    else:
+        print(f"      -> User already has {existing_loc_count} locations. Skipping location/UI pref seeding.")
+
+    # 3. --- ASTRO OBJECTS (Item-by-Item) ---
+    print("      -> Checking for missing AstroObjects...")
+    # Get all names of objects the user *already has*
+    user_object_names = {
+        name[0] for name in db_session.query(AstroObject.object_name).filter_by(user_id=new_user_id)
+    }
+    guest_objects = db_session.query(AstroObject).filter_by(user_id=guest_user_id).all()
+
+    objects_added = 0
+    for g_obj in guest_objects:
+        # If user does NOT have an object with this name, add it
+        if g_obj.object_name not in user_object_names:
+            new_obj = AstroObject(
+                user_id=new_user_id, object_name=g_obj.object_name, common_name=g_obj.common_name,
+                ra_hours=g_obj.ra_hours, dec_deg=g_obj.dec_deg, type=g_obj.type,
+                constellation=g_obj.constellation, magnitude=g_obj.magnitude, size=g_obj.size,
+                sb=g_obj.sb, active_project=g_obj.active_project, project_name=g_obj.project_name,
+                is_shared=False, shared_notes=None, original_user_id=None, original_item_id=None
+            )
+            db_session.add(new_obj)
+            objects_added += 1
+    print(f"      -> Copied {objects_added} new astro objects (skipped {len(guest_objects) - objects_added} existing).")
+
+    # 4. --- COMPONENTS (Item-by-Item) & RIG ID MAPPING ---
+    print("      -> Checking for missing Components...")
+    # This part is tricky. We must create a map of [guest_id] -> [user_id]
+    # to build rigs correctly.
+
+    # Get all components the user *already has*, mapped by (kind, name) -> id
+    user_components = db_session.query(Component).filter_by(user_id=new_user_id).all()
+    user_component_map = {(c.kind, c.name): c.id for c in user_components}
+
+    guest_components = db_session.query(Component).filter_by(user_id=guest_user_id).all()
+    final_component_id_map = {}  # This will map {guest_comp_id -> user_comp_id}
+    components_added = 0
+
+    for g_comp in guest_components:
+        # Check if user already has a component with this (kind, name)
+        existing_user_comp_id = user_component_map.get((g_comp.kind, g_comp.name))
+
+        if existing_user_comp_id:
+            # User already has it. Just add it to our ID map for rig building.
+            final_component_id_map[g_comp.id] = existing_user_comp_id
+        else:
+            # User doesn't have it. Create it.
+            new_comp = Component(
+                user_id=new_user_id, kind=g_comp.kind, name=g_comp.name,
+                aperture_mm=g_comp.aperture_mm, focal_length_mm=g_comp.focal_length_mm,
+                sensor_width_mm=g_comp.sensor_width_mm, sensor_height_mm=g_comp.sensor_height_mm,
+                pixel_size_um=g_comp.pixel_size_um, factor=g_comp.factor,
+                is_shared=False, original_user_id=None, original_item_id=None
+            )
+            db_session.add(new_comp)
+            db_session.flush()  # IMPORTANT: We need the new_comp.id immediately
+
+            # Add the new component's ID to our map
+            final_component_id_map[g_comp.id] = new_comp.id
+            components_added += 1
+    print(
+        f"      -> Copied {components_added} new components (skipped {len(guest_components) - components_added} existing).")
+
+    # 5. --- RIGS (Item-by-Item) ---
+    print("      -> Checking for missing Rigs...")
+    # Get all names of rigs the user *already has*
+    user_rig_names = {
+        name[0] for name in db_session.query(Rig.rig_name).filter_by(user_id=new_user_id)
+    }
+    guest_rigs = db_session.query(Rig).filter_by(user_id=guest_user_id).all()
+
+    rigs_added = 0
+    for g_rig in guest_rigs:
+        # If user does NOT have a rig with this name, add it
+        if g_rig.rig_name not in user_rig_names:
+            # Use our 'final_component_id_map' to correctly link the new rig
+            # to the user's new (or existing) components
+            new_rig = Rig(
+                user_id=new_user_id, rig_name=g_rig.rig_name,
+                telescope_id=final_component_id_map.get(g_rig.telescope_id),
+                camera_id=final_component_id_map.get(g_rig.camera_id),
+                reducer_extender_id=final_component_id_map.get(g_rig.reducer_extender_id),
+                effective_focal_length=g_rig.effective_focal_length, f_ratio=g_rig.f_ratio,
+                image_scale=g_rig.image_scale, fov_w_arcmin=g_rig.fov_w_arcmin
+            )
+            db_session.add(new_rig)
+            rigs_added += 1
+    print(f"      -> Copied {rigs_added} new rigs (skipped {len(guest_rigs) - rigs_added} existing).")
+
+    print(f"   -> [SEEDING] Granular seeding complete for '{user_to_seed.username}'.")
+
+
+def get_or_create_db_user(db_session, username: str) -> 'DbUser':
+    """
+    Finds a user in the `DbUser` table by username or creates them if they don't exist.
+    If created, transactionally seeds them with data from the 'guest_user' template.
+    This function is defined AFTER the DB models, so it can safely query them.
+
+    Returns:
+        The SQLAlchemy DbUser object for the given username.
+    """
+    if not username:
+        return None
+
+    # Try to find the user in our application database
+    user = db_session.query(DbUser).filter_by(username=username).one_or_none()
+
+    if user:
+        # The user already exists, just return them
+        return user
+
+    # --- New User Provisioning Path ---
+    try:
+        # User exists in Auth DB but not here. Create them now.
+        print(f"[PROVISIONING] User '{username}' not found in app.db. Creating new record.")
+        new_user = DbUser(username=username)
+        db_session.add(new_user)
+        db_session.flush()  # Flush to get the new_user.id before seeding
+
+        print(f"   -> User record created with ID {new_user.id}. Now seeding data...")
+
+        # Call the helper function to ADD all default data to the session
+        _seed_user_from_guest_data(db_session, new_user)
+
+        # Commit the ENTIRE transaction (new user + all default data)
+        db_session.commit()
+
+        print(f"   -> Successfully provisioned and seeded '{username}'.")
+        # We need to re-fetch to get the fully loaded object
+        return db_session.query(DbUser).filter_by(username=username).one()
+
+    except Exception as e:
+        db_session.rollback()  # Roll back the entire transaction on any failure
+        print(f"   -> FAILED to provision '{username}'. Rolled back. Error: {e}")
+        traceback.print_exc()
+        return None
 
 class _FileLock:
     """Simple advisory lock; no-ops if fcntl is unavailable."""
@@ -7315,6 +7472,61 @@ if not SINGLE_USER_MODE:
         run_one_time_yaml_migration()
         print("--- [MIGRATION COMMAND] ---")
         print("✅ Migration task complete.")
+
+
+@app.cli.command("seed-empty-users")
+def seed_empty_users_command():
+    """
+    Finds all existing users with no data (no locations) and seeds
+    their accounts from the 'guest_user' template.
+    """
+    print("--- [BACKFILL SEEDING EMPTY USERS] ---")
+    db = get_db()
+    try:
+        # Find all users *except* the system/template users
+        users_to_check = db.query(DbUser).filter(
+            DbUser.username != "default",
+            DbUser.username != "guest_user"
+        ).all()
+
+        if not users_to_check:
+            print("No user accounts found to check.")
+            return
+
+        print(f"Found {len(users_to_check)} user account(s) to check...")
+        seeded_count = 0
+
+        for user in users_to_check:
+            # We will check and seed each user in their OWN transaction
+            # This is safer for a live system.
+            try:
+                # The seeding function already contains the safety check
+                # to see if the user is empty.
+                print(f"Checking user: '{user.username}' (ID: {user.id})...")
+                _seed_user_from_guest_data(db, user)
+
+                # If the function added data, the session will be "dirty"
+                if db.is_modified(user) or db.new or db.dirty:
+                    db.commit()
+                    print(f"   -> Successfully seeded '{user.username}'.")
+                    seeded_count += 1
+                else:
+                    # This happens if the safety check was triggered
+                    db.rollback()  # Rollback any potential flushes
+
+            except Exception as e:
+                db.rollback()
+                print(f"   -> FAILED to seed '{user.username}'. Rolled back. Error: {e}")
+
+        print("--- [BACKFILL COMPLETE] ---")
+        print(f"✅ Successfully seeded {seeded_count} empty user account(s).")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ An unexpected error occurred: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()
 
 @app.route('/api/internal/provision_user', methods=['POST'])
 def provision_user():
