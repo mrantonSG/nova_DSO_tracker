@@ -1101,7 +1101,8 @@
         // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
         // 'null' is passed if the database has no value.
         objectRADeg: {{ (object_main_details['RA (hours)'] * 15) if object_main_details['RA (hours)'] is not none else 'null' }},
-        objectDECDeg: {{ object_main_details['DEC (degrees)'] if object_main_details['DEC (degrees)'] is not none else 'null' }}
+        objectDECDeg: {{ object_main_details['DEC (degrees)'] if object_main_details['DEC (degrees)'] is not none else 'null' }},
+        allObjects: {{ framing_objects | tojson }}
     };
 </script>
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}"></script>
