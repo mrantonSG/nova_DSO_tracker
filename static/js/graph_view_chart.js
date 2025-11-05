@@ -280,7 +280,7 @@ function ensureNovaObjectsCatalog() {
         labelColor: '#83b4c5',       // dark-ish blue labels
         labelFont: '16px sans-serif', // larger font for visibility
         labelHalo: true,          // white halo to separate text from background
-        labelHaloColor: '#fff'    // contrast halo for dark backgrounds
+        labelHaloColor: '#fff',   // contrast halo for dark backgrounds
     });
 
     objects.forEach(obj => {
@@ -296,7 +296,9 @@ function ensureNovaObjectsCatalog() {
             (obj.common_name && String(obj.common_name).trim()) ||
             String(obj.id);
 
-        const src = A.source(ra, dec, { name: label });
+        // Add leading non-breaking spaces to visually offset label from circle
+        const labelWithPadding = '\u00A0\u00A0' + label;  // 3 spaces worth of padding
+        const src = A.source(ra, dec, { name: labelWithPadding });
         cat.addSources([src]);
     });
 
