@@ -6568,6 +6568,33 @@ def graph_dashboard(object_name):
             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
             if default_loc_obj: default_location_name = default_loc_obj.name
 
+        # --- NEW: Collect all AstroObjects for Aladin overlay (Nova DB objects) ---
+        all_objects_for_framing = []
+        try:
+            all_objs = (
+                db.query(AstroObject)
+                .filter_by(user_id=user.id)
+                .filter(AstroObject.ra_hours != None, AstroObject.dec_deg != None)
+                .all()
+            )
+
+            for o in all_objs:
+                try:
+                    all_objects_for_framing.append({
+                        "id": o.id,
+                        "object_name": o.object_name,
+                        "common_name": o.common_name,
+                        # Aladin expects RA in degrees in ICRS
+                        "ra_deg": float(o.ra_hours) * 15.0,
+                        "dec_deg": float(o.dec_deg),
+                    })
+                except Exception:
+                    # Skip any weird records instead of breaking the view
+                    continue
+        except Exception as e:
+            print(f"[FramingOverlay] Failed to load AstroObjects for user '{username}': {e}")
+            all_objects_for_framing = []
+
         # --- 9. Render Template ---
         return render_template('graph_view.html',
                                object_name=object_name,
@@ -6599,6 +6626,7 @@ def graph_dashboard(object_name):
                                all_projects=all_projects,
                                available_locations=available_locations,
                                default_location=default_location_name,
+                               framing_objects=all_objects_for_framing,
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
                                today_date=datetime.now().strftime('%Y-%m-%d')
                                )
