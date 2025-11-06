@@ -275,36 +275,9 @@
     select[name^="timezone_"] {
         width: 250px;
     }
-    /* Fix for dropdowns being clipped by content below them */
-    .block {
-        position: relative;
-        z-index: 1; /* All blocks start on the same "layer" */
-    }
     /* This class will be added by JS to bring the whole block forward */
     .block.dropdown-is-open {
         z-index: 100;
-    }
-    /* Give all blocks a base stacking context */
-    .block {
-        position: relative;
-        z-index: 1;
-    }
-
-    /* When a Choices.js dropdown is open,
-       set its z-index high so it's not clipped */
-    .choices.is-open {
-        z-index: 10;
-    }
-
-    /* When a block contains an open dropdown,
-       raise that *entire block's* z-index to be on top of all other blocks. */
-    .block:has(.choices.is-open) {
-        z-index: 20;
-    }
-    /* Fix for dropdowns being clipped by content below them */
-    .z-top {
-      position: relative;
-      z-index: 10;
     }
     /* --- Styles for Shared Items Tab --- */
     #shared-tab-content .table-wrapper {
@@ -802,7 +775,7 @@
 
       <form method="post">
         <h3>Add New Location</h3>
-        <div class="block z-top">
+        <div class="block">
             <div class="inline-fields">
               <div>
                 <label class="short-label" for="new_location">Name:</label>
@@ -1575,7 +1548,7 @@
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
-        let locationDropdownsInitialized = false; // <-- *** FIX ***: Flag to check if dropdowns are init
+        let locationDropdownsInitialized = false; // Flag to check if dropdowns are init
 
         // --- NEW: Location Limit & Counter Logic ---
         const MAX_ACTIVE_LOCATIONS = 5;
@@ -1645,26 +1618,46 @@
         };
         let activeTab = localStorage.getItem('activeConfigTab') || 'general';
 
+        // ---
+        // --- THIS IS THE CORRECTED FUNCTION TO RUN LOCATION SCRIPTS
+        // ---
+        function initializeLocationDropdowns() {
+            // Guard: Only run this one time
+            if (locationDropdownsInitialized) return;
+
+            // This needs to run *after* the tab is visible
+            setTimeout(() => {
+                if (document.getElementById('locations-tab-content')) {
+                    setupCharCounters();
+                    manageActiveLocationLimit();
+                    document.querySelectorAll('.active-location-checkbox').forEach(cb => {
+                        cb.addEventListener('change', manageActiveLocationLimit);
+                    });
+                    locationDropdownsInitialized = true; // Mark as done
+                }
+            }, 0); // 0ms timeout waits for next browser tick
+        }
+
         function updateTabDisplay() {
             Object.values(contentPanels).forEach(panel => { if(panel) panel.style.display = 'none'; });
             tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === activeTab));
             if (contentPanels[activeTab]) contentPanels[activeTab].style.display = 'block';
 
-            // --- *** FIX ***: Call init function when tab is shown
+            // --- THIS IS THE KEY CHANGE ---
+            // Call the init function when the tab is shown
             if (activeTab === 'locations') {
                 initializeLocationDropdowns();
             }
+            // --- END KEY CHANGE ---
 
             if (activeTab === 'rigs') fetchRigsData();
-            // --- MODIFIED THIS LINE ---
-            if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); } // Check if panel exists
+            if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); }
             localStorage.setItem('activeConfigTab', activeTab);
         }
         tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
-        updateTabDisplay();
+        updateTabDisplay(); // Run on page load
 
         // --- NEW: Trix Editor File Upload Handler ---
-        // This function handles file attachments for ALL Trix editors on the page
         function handleTrixAttachmentAdd(event) {
             if (!event.attachment.file) { return; }
             const file = event.attachment.file;
@@ -1754,30 +1747,6 @@
         setupImport('import-journal-btn', 'journal-upload', "{{ url_for('import_journal') }}", 'journal');
         setupImport('import-rigs-btn', 'rigs-upload', "{{ url_for('import_rig_config') }}", 'rigs file');
         setupImport('import-photos-btn', 'photos-upload', "{{ url_for('import_journal_photos') }}", 'journal photos archive');
-
-        // ---
-        // --- *** FIX ***: All location init logic moved into this function
-        // ---
-        function initializeLocationDropdowns() {
-            // Guard: Only run this one time
-            if (locationDropdownsInitialized) return;
-
-            // *** NEW FIX: Use setTimeout ***
-            // This pushes the initialization to the next 'tick' of the event loop,
-            // giving the browser time to render the tab and calculate its width.
-            setTimeout(() => {
-                if (document.getElementById('locations-tab-content')) {
-                    // Choices.js initialization is now removed.
-
-                    setupCharCounters();
-                    manageActiveLocationLimit();
-                    document.querySelectorAll('.active-location-checkbox').forEach(cb => {
-                        cb.addEventListener('change', manageActiveLocationLimit);
-                    });
-                }
-            }, 0); // A 0ms timeout is all that's needed
-        }
-        // --- END OF FIX ---
     });
 </script>
 
