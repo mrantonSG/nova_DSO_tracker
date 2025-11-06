@@ -326,6 +326,8 @@ class AstroObject(Base):
     original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True)
     user = relationship("DbUser", foreign_keys=[user_id], back_populates="objects")
     original_item_id = Column(Integer, nullable=True, index=True)
+    catalog_sources = Column(Text, nullable=True)
+    catalog_info = Column(Text, nullable=True)
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
 
     def to_dict(self):
@@ -355,7 +357,11 @@ class AstroObject(Base):
             "is_shared": self.is_shared,
             "shared_notes": self.shared_notes,
             "original_user_id": self.original_user_id,
-            "original_item_id": self.original_item_id
+            "original_item_id": self.original_item_id,
+
+            # Catalog metadata
+            "catalog_sources": self.catalog_sources,
+            "catalog_info": self.catalog_info
         }
 
 
@@ -748,6 +754,14 @@ def ensure_db_initialized_unified():
                 print("[DB PATCH] Added missing column astro_objects.original_item_id")
             # --- END OF BLOCK ---
 
+            if "catalog_sources" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_sources TEXT;")
+                print("[DB PATCH] Added missing column astro_objects.catalog_sources")
+
+            if "catalog_info" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_info TEXT;")
+                print("[DB PATCH] Added missing column astro_objects.catalog_info")
+
             # Pragmas
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
@@ -765,9 +779,10 @@ def _mkdirp(path: str):
 # Ensure config/backup directories exist before migration runs
 CONFIG_DIR = globals().get("CONFIG_DIR") or os.path.join(INSTANCE_PATH, "configs")
 BACKUP_DIR = globals().get("BACKUP_DIR") or os.path.join(INSTANCE_PATH, "backups")
+CATALOG_DIR = globals().get("CATALOG_DIR") or os.path.join(INSTANCE_PATH, "catalogs")
 _mkdirp(CONFIG_DIR)
 _mkdirp(BACKUP_DIR)
-
+_mkdirp(CATALOG_DIR)
 
 # === YAML → DB one-time migration ===========================================
 def _timestamped_copy(src_dir: str):
@@ -812,6 +827,126 @@ def _read_yaml(path: str) -> tuple[dict | None, str | None]:
         error_msg = f"Cannot read file '{os.path.basename(path)}': {e}"
         print(f"[MIGRATION] {error_msg}")
         return (None, error_msg)
+
+def discover_catalog_packs() -> list[dict]:
+    """Scan CATALOG_DIR for *.yaml catalog packs and return simple metadata for UI use.
+
+    Each returned dict contains: id, name, description, tags, version, filename, object_count.
+    """
+    packs: list[dict] = []
+    try:
+        from pathlib import Path as _Path
+
+        if not os.path.isdir(CATALOG_DIR):
+            return []
+
+        for path_str in glob.glob(os.path.join(CATALOG_DIR, "*.yaml")):
+            try:
+                data_tuple = _read_yaml(path_str)
+                if isinstance(data_tuple, tuple):
+                    data, err = data_tuple
+                else:
+                    data, err = data_tuple, None
+
+                if data is None:
+                    continue
+
+                catalog_meta = (data.get("catalog") or {}) if isinstance(data, dict) else {}
+                p = _Path(path_str)
+                pack_id = str(catalog_meta.get("id") or p.stem).strip()
+                if not pack_id:
+                    # Fallback to filename without extension
+                    pack_id = p.stem
+
+                name = catalog_meta.get("name") or pack_id
+                description = catalog_meta.get("description") or ""
+                tags = catalog_meta.get("tags") or []
+                if not isinstance(tags, list):
+                    tags = [str(tags)]
+                version = catalog_meta.get("version")
+
+                objects = (data.get("objects") or []) if isinstance(data, dict) else []
+                try:
+                    object_count = len(objects)
+                except Exception:
+                    object_count = 0
+
+                packs.append({
+                    "id": pack_id,
+                    "name": name,
+                    "description": description,
+                    "tags": tags,
+                    "version": version,
+                    "filename": p.name,
+                    "object_count": object_count,
+                })
+            except Exception as e:
+                print(f"[CATALOG DISCOVER] Failed to process '{path_str}': {e}")
+    except Exception as e:
+        print(f"[CATALOG DISCOVER] Error scanning catalog directory '{CATALOG_DIR}': {e}")
+    return sorted(packs, key=lambda x: x.get("name") or x.get("id") or "")
+
+
+def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
+    """Load a specific catalog pack by id.
+
+    Returns a tuple of (catalog_dict, meta_dict) or (None, None) if not found/invalid.
+    meta_dict has the same shape as entries from discover_catalog_packs().
+    """
+    try:
+        from pathlib import Path as _Path
+
+        if not os.path.isdir(CATALOG_DIR):
+            return (None, None)
+
+        for path_str in glob.glob(os.path.join(CATALOG_DIR, "*.yaml")):
+            try:
+                data_tuple = _read_yaml(path_str)
+                if isinstance(data_tuple, tuple):
+                    data, err = data_tuple
+                else:
+                    data, err = data_tuple, None
+
+                if data is None:
+                    continue
+
+                catalog_meta = (data.get("catalog") or {}) if isinstance(data, dict) else {}
+                p = _Path(path_str)
+                file_pack_id = str(catalog_meta.get("id") or p.stem).strip()
+                if not file_pack_id:
+                    file_pack_id = p.stem
+
+                if file_pack_id != pack_id:
+                    continue
+
+                name = catalog_meta.get("name") or file_pack_id
+                description = catalog_meta.get("description") or ""
+                tags = catalog_meta.get("tags") or []
+                if not isinstance(tags, list):
+                    tags = [str(tags)]
+                version = catalog_meta.get("version")
+
+                objects = (data.get("objects") or []) if isinstance(data, dict) else []
+                try:
+                    object_count = len(objects)
+                except Exception:
+                    object_count = 0
+
+                meta = {
+                    "id": file_pack_id,
+                    "name": name,
+                    "description": description,
+                    "tags": tags,
+                    "version": version,
+                    "filename": p.name,
+                    "object_count": object_count,
+                }
+                return (data, meta)
+            except Exception as e:
+                print(f"[CATALOG LOAD] Failed to process '{path_str}': {e}")
+    except Exception as e:
+        print(f"[CATALOG LOAD] Error scanning catalog directory '{CATALOG_DIR}': {e}")
+    return (None, None)
 
 def _select_rigs_yaml(username: str) -> dict:
     """Prefer per-user rigs_<user>.yaml; only use rigs_default.yaml for the 'default' account."""
@@ -967,6 +1102,8 @@ def _migrate_objects(db, user: DbUser, config: dict):
             shared_notes = o.get("shared_notes")
             original_user_id = _as_int(o.get("original_user_id"))
             original_item_id = _as_int(o.get("original_item_id"))
+            catalog_sources = o.get("catalog_sources")
+            catalog_info = o.get("catalog_info")
 
             ra_f = float(ra_val) if ra_val is not None else None
             dec_f = float(dec_val) if dec_val is not None else None
@@ -1006,6 +1143,8 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.shared_notes = shared_notes
                 existing.original_user_id = original_user_id
                 existing.original_item_id = original_item_id
+                existing.catalog_sources = catalog_sources
+                existing.catalog_info = catalog_info
             else:
                 # INSERT PATH: The object is new, so we create a new database record.
                 new_object = AstroObject(
@@ -1024,7 +1163,9 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     is_shared=is_shared,
                     shared_notes=shared_notes,
                     original_user_id=original_user_id,
-                    original_item_id=original_item_id
+                    original_item_id=original_item_id,
+                    catalog_sources=catalog_sources,
+                    catalog_info=catalog_info,
                 )
                 db.add(new_object)
 
@@ -1609,6 +1750,117 @@ def import_user_from_yaml(username: str,
     finally:
         db.close()
 
+def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id: str) -> tuple[int, int]:
+    """Import a catalog pack into a user's library in a non-destructive way.
+
+    - Adds new objects that do not already exist for the user (by object_name, case-insensitive).
+    - If an object already exists, it is skipped (user data is not overwritten), but
+      catalog_sources can be updated to include the pack_id for tracking.
+
+    Returns (created_count, skipped_count).
+    """
+    created = 0
+    skipped = 0
+
+    objs = (catalog_config or {}).get("objects", []) or []
+
+    def _merge_sources(current: str | None, new_id: str) -> str:
+        if not new_id:
+            return current or ""
+        if not current:
+            return new_id
+        parts = {p.strip() for p in str(current).split(',') if p.strip()}
+        parts.add(new_id)
+        return ",".join(sorted(parts))
+
+    for o in objs:
+        try:
+            ra_val = o.get("RA") if o.get("RA") is not None else o.get("RA (hours)")
+            dec_val = o.get("DEC") if o.get("DEC") is not None else o.get("DEC (degrees)")
+
+            raw_obj_name = o.get("Object") or o.get("object") or o.get("object_name")
+            if not raw_obj_name or not str(raw_obj_name).strip():
+                print(f"[CATALOG IMPORT][SKIP] Entry is missing an 'Object' identifier: {o}")
+                skipped += 1
+                continue
+
+            object_name = " ".join(str(raw_obj_name).strip().split())
+
+            common_name = o.get("Common Name") or o.get("Name") or o.get("common_name")
+            obj_type = o.get("Type") or o.get("type")
+            constellation = o.get("Constellation") or o.get("constellation")
+            magnitude = o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude")
+            size = o.get("Size") if o.get("Size") is not None else o.get("size")
+            sb = o.get("SB") if o.get("SB") is not None else o.get("sb")
+
+            ra_f = float(ra_val) if ra_val is not None else None
+            dec_f = float(dec_val) if dec_val is not None else None
+
+            # Compute constellation if missing but coordinates exist
+            if (not constellation) and (ra_f is not None) and (dec_f is not None):
+                try:
+                    coords = SkyCoord(ra=ra_f * u.hourangle, dec=dec_f * u.deg)
+                    constellation = get_constellation(coords)
+                except Exception:
+                    constellation = None
+
+            # Look up existing object by name (case-insensitive) for this user
+            existing = db.query(AstroObject).filter(
+                AstroObject.user_id == user.id,
+                AstroObject.object_name.collate('NOCASE') == object_name
+            ).one_or_none()
+
+            # Catalog info: allow explicit fields but always ensure pack_id is recorded
+            raw_catalog_sources = o.get("catalog_sources")
+            raw_catalog_info = o.get("catalog_info") or o.get("Info") or o.get("info")
+
+            if existing:
+                # Non-destructive: do not overwrite any user fields.
+                # Only update catalog_sources to include this pack_id.
+                existing_catalog_sources = existing.catalog_sources
+                merged_sources = _merge_sources(existing_catalog_sources, pack_id)
+                existing.catalog_sources = merged_sources
+                # Keep existing.catalog_info as-is; do not overwrite.
+                skipped += 1
+                continue
+
+            # New object: we require RA/DEC to be usable
+            if (ra_f is None) or (dec_f is None):
+                print(f"[CATALOG IMPORT][SKIP] Object '{object_name}' has no RA/DEC, skipping.")
+                skipped += 1
+                continue
+
+            catalog_sources_merged = _merge_sources(str(raw_catalog_sources) if raw_catalog_sources else None, pack_id)
+            catalog_info = raw_catalog_info
+
+            new_object = AstroObject(
+                user_id=user.id,
+                object_name=object_name,
+                common_name=common_name,
+                ra_hours=ra_f,
+                dec_deg=dec_f,
+                type=obj_type,
+                constellation=constellation,
+                magnitude=str(magnitude) if magnitude is not None else None,
+                size=str(size) if size is not None else None,
+                sb=str(sb) if sb is not None else None,
+                active_project=False,
+                project_name=None,
+                is_shared=False,
+                shared_notes=None,
+                original_user_id=None,
+                original_item_id=None,
+                catalog_sources=catalog_sources_merged,
+                catalog_info=catalog_info,
+            )
+            db.add(new_object)
+            created += 1
+
+        except Exception as e:
+            print(f"[CATALOG IMPORT] Could not process object entry '{o}'. Error: {e}")
+            skipped += 1
+
+    return (created, skipped)
 
 def repair_journals(dry_run: bool = False):
     """
@@ -5189,6 +5441,53 @@ def import_config():
         flash(f"Import failed: An unexpected error occurred. {str(e)}", "error")
         return redirect(url_for('config_form'))
 
+@app.route('/import_catalog/<pack_id>', methods=['POST'])
+@login_required
+def import_catalog(pack_id):
+    """Import a server-side catalog pack into the current user's object library.
+
+    This is non-destructive: existing objects are never overwritten. If an
+    object with the same name already exists, it is skipped (aside from
+    catalog_sources bookkeeping handled in the helper).
+    """
+    # Determine which username to use for DB lookups
+    try:
+        single_user_mode = bool(globals().get('SINGLE_USER_MODE', True))
+    except Exception:
+        single_user_mode = True
+
+    if single_user_mode:
+        username = "default"
+    else:
+        if not current_user.is_authenticated:
+            flash("Authentication error during catalog import.", "error")
+            return redirect(url_for('login'))
+        username = current_user.username
+
+    db = get_db()
+    try:
+        user = _upsert_user(db, username)
+
+        catalog_data, meta = load_catalog_pack(pack_id)
+        if not catalog_data or not isinstance(catalog_data, dict):
+            flash("Catalog pack not found or invalid.", "error")
+            return redirect(url_for('config_form'))
+
+        created, skipped = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
+        db.commit()
+
+        pack_name = (meta or {}).get("name") or pack_id
+        msg = f"Catalog '{pack_name}' imported: {created} new object(s), {skipped} skipped."
+        flash(msg, "success")
+    except Exception as e:
+        db.rollback()
+        print(f"[CATALOG IMPORT] Error importing catalog pack '{pack_id}': {e}")
+        flash("Catalog import failed due to an internal error.", "error")
+    finally:
+        db.close()
+
+    return redirect(url_for('config_form'))
+
 # =============================================================================
 # Astronomical Calculations
 # =============================================================================
@@ -6344,7 +6643,8 @@ def config_form():
             # 3. Append the final dictionary
             config_for_template['objects'].append(obj_data_dict)
 
-        return render_template('config_form.html', config=config_for_template, locations=locations_for_template, all_timezones=pytz.all_timezones)
+        catalog_packs = discover_catalog_packs()
+        return render_template('config_form.html', config=config_for_template, locations=locations_for_template, all_timezones=pytz.all_timezones, catalog_packs=catalog_packs)
 
     except Exception as e:
         db.rollback()
