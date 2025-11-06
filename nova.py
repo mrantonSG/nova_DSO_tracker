@@ -161,33 +161,44 @@ def get_weather_data_with_retries(lat: float, lon: float, product: str = "meteo"
     """
     Attempts to fetch weather data from 7Timer! with retries and exponential backoff.
     Builds the URL and calls the single-attempt helper function.
+
+    product:
+      - "meteo": standard meteorological product (meteo.php, with profiles etc.)
+      - "astro": astronomical product (astro.php, includes seeing/transparency)
     """
 
-    # --- Build the 7Timer! URL ---
-    # This is the standard URL for the 'meteo' product.
-    base_url = "http://www.7timer.info/bin/meteo.php"
-    url = f"{base_url}?lon={lon}&lat={lat}&product={product}&ac=0&unit=metric&output=json"
+    # --- Build the 7Timer! URL correctly depending on product ---
+    if product == "astro":
+        # ASTRO product uses astro.php; no separate 'product' parameter in the URL
+        base_url = "http://www.7timer.info/bin/astro.php"
+        url = f"{base_url}?lon={lon}&lat={lat}&ac=0&unit=metric&output=json"
+    else:
+        # Default / METEO product
+        base_url = "http://www.7timer.info/bin/meteo.php"
+        # Here the 'product' parameter is still useful (e.g. 'meteo')
+        url = f"{base_url}?lon={lon}&lat={lat}&product={product}&ac=0&unit=metric&output=json"
 
     retries = 3
     delay_seconds = 5  # Start with a 5-second delay
 
     for i in range(retries):
-        # Call our new, robust function from above
+        # Call our robust single-attempt helper
         data = get_weather_data_single_attempt(url, lat, lon)
 
         if data is not None:
             # Success!
-            print(f"[Weather Func] Successfully fetched data for lat={lat}, lon={lon} on attempt {i + 1}")
+            print(f"[Weather Func] Successfully fetched data for lat={lat}, lon={lon} on attempt {i + 1} (product={product})")
             return data
 
         # If data is None, it failed. Log and retry (if not the last attempt).
         if i < retries - 1:
-            print(
-                f"[Weather Func] WARN: Attempt {i + 1}/{retries} failed for lat={lat}, lon={lon}. Retrying in {delay_seconds}s...")
+            print(f"[Weather Func] WARN: Attempt {i + 1} for product='{product}' failed for lat={lat}, lon={lon}. "
+                  f"Retrying in {delay_seconds} seconds...")
             time.sleep(delay_seconds)
-            delay_seconds *= 2  # Exponential backoff (5s, 10s)
+            delay_seconds *= 2  # Exponential backoff
+        else:
+            print(f"[Weather Func] ERROR: All attempts ({retries}) failed for product='{product}' at lat={lat}, lon={lon}.")
 
-    print(f"[Weather Func] ERROR: All {retries} attempts failed for lat={lat}, lon={lon}.")
     return None
 
 def initialize_instance_directory():
