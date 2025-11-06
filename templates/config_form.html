@@ -4,7 +4,7 @@
 
 {% block head_extra %}
   <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
-  <link rel_layout="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <meta charset="UTF-8">
   <title>Configuration Form</title>
@@ -253,7 +253,28 @@
     .tab-content.active {
       display: block;
     }
+    /* Give all blocks a base stacking context */
+    .block {
+        position: relative;
+        z-index: 1;
+    }
 
+    /* When a Choices.js dropdown is open,
+       set its z-index high so it's not clipped */
+    .choices.is-open {
+        z-index: 10;
+    }
+
+    /* When a block contains an open dropdown,
+       raise that *entire block's* z-index to be on top of all other blocks. */
+    .block:has(.choices.is-open) {
+        z-index: 20;
+    }
+    /* Fix for dropdowns being clipped by content below them */
+    .z-top {
+      position: relative;
+      z-index: 10;
+    }
     /* --- Styles for Shared Items Tab --- */
     #shared-tab-content .table-wrapper {
         overflow-x: auto;
@@ -750,7 +771,7 @@
 
       <form method="post">
         <h3>Add New Location</h3>
-        <div class="block">
+        <div class="block z-top">
             <div class="inline-fields">
               <div>
                 <label class="short-label" for="new_location">Name:</label>
@@ -1697,7 +1718,8 @@
 
         // --- NEW: Run location setup functions ---
         if (document.getElementById('locations-tab-content')) {
-            // Initialize Choices.js for all location timezone selects
+            // ****** THIS IS THE FIX ******
+            // The selector now includes the 'new_timezone' select element
             document.querySelectorAll('select[name^="timezone_"], select[name="new_timezone"]').forEach(function(select) {
                 new Choices(select, {
                     searchEnabled: true,
@@ -1705,6 +1727,7 @@
                     shouldSort: false,
                 });
             });
+            // ****** END OF FIX ******
 
             setupCharCounters();
             manageActiveLocationLimit();

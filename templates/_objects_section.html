@@ -410,7 +410,12 @@
                 // Use requestAnimationFrame to ensure the function exists
                 // when this script (inside an include) is parsed.
                 requestAnimationFrame(() => {
-                    showObjectSubTab(lastSubTab);
+                    // Check if function exists before calling
+                    if (typeof showObjectSubTab === 'function') {
+                        showObjectSubTab(lastSubTab);
+                    } else {
+                        console.warn('showObjectSubTab not defined yet, defaulting to first tab.');
+                    }
                 });
             }
 
@@ -447,11 +452,15 @@
                           document.getElementById('new_size').value = extra.data.Size || '';
                           document.getElementById('new_sb').value = extra.data.SB || '';
                       }
-                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
+                          if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
+                      });
                       submitNewObjectBtn.style.display = 'none';
                     }).catch(err => {
                       resultDiv.innerHTML = `<p class="error">Error: ${err.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
-                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
+                          if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
+                      });
                       submitNewObjectBtn.style.display = 'none';
                       ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
                           const el = document.getElementById(id);
@@ -579,6 +588,8 @@
                                     statusMsg.textContent = '';
                                     statusMsg.style.color = '#28a745';
                                 }
+                            // **** THIS IS THE FIX ****
+                            // The stray '...' has been removed from the line below.
                             }, 4000);
                         })
                         .finally(() => {
@@ -591,4 +602,5 @@
         });
     }
 </script>
+
 </div>
