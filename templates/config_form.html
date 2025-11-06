@@ -4,8 +4,7 @@
 
 {% block head_extra %}
   <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
   <meta charset="UTF-8">
   <title>Configuration Form</title>
   <style>
@@ -252,6 +251,38 @@
     }
     .tab-content.active {
       display: block;
+    }
+    /* --- New styling for native <select> dropdowns --- */
+    select[name^="timezone_"], select[name="new_timezone"] {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding-right: 30px; /* Make space for the arrow */
+    }
+    /* "Add New Location" dropdown */
+    select[name="new_timezone"] {
+        width: 100%;
+        max-width: 300px;
+    }
+    /* Existing location dropdowns */
+    select[name^="timezone_"] {
+        width: 250px;
+    }
+    /* Fix for dropdowns being clipped by content below them */
+    .block {
+        position: relative;
+        z-index: 1; /* All blocks start on the same "layer" */
+    }
+    /* This class will be added by JS to bring the whole block forward */
+    .block.dropdown-is-open {
+        z-index: 100;
     }
     /* Give all blocks a base stacking context */
     .block {
@@ -1544,6 +1575,8 @@
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
+        let locationDropdownsInitialized = false; // <-- *** FIX ***: Flag to check if dropdowns are init
+
         // --- NEW: Location Limit & Counter Logic ---
         const MAX_ACTIVE_LOCATIONS = 5;
 
@@ -1616,6 +1649,12 @@
             Object.values(contentPanels).forEach(panel => { if(panel) panel.style.display = 'none'; });
             tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === activeTab));
             if (contentPanels[activeTab]) contentPanels[activeTab].style.display = 'block';
+
+            // --- *** FIX ***: Call init function when tab is shown
+            if (activeTab === 'locations') {
+                initializeLocationDropdowns();
+            }
+
             if (activeTab === 'rigs') fetchRigsData();
             // --- MODIFIED THIS LINE ---
             if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); } // Check if panel exists
@@ -1716,25 +1755,29 @@
         setupImport('import-rigs-btn', 'rigs-upload', "{{ url_for('import_rig_config') }}", 'rigs file');
         setupImport('import-photos-btn', 'photos-upload', "{{ url_for('import_journal_photos') }}", 'journal photos archive');
 
-        // --- NEW: Run location setup functions ---
-        if (document.getElementById('locations-tab-content')) {
-            // ****** THIS IS THE FIX ******
-            // The selector now includes the 'new_timezone' select element
-            document.querySelectorAll('select[name^="timezone_"], select[name="new_timezone"]').forEach(function(select) {
-                new Choices(select, {
-                    searchEnabled: true,
-                    itemSelectText: 'Press to select',
-                    shouldSort: false,
-                });
-            });
-            // ****** END OF FIX ******
+        // ---
+        // --- *** FIX ***: All location init logic moved into this function
+        // ---
+        function initializeLocationDropdowns() {
+            // Guard: Only run this one time
+            if (locationDropdownsInitialized) return;
 
-            setupCharCounters();
-            manageActiveLocationLimit();
-            document.querySelectorAll('.active-location-checkbox').forEach(cb => {
-                cb.addEventListener('change', manageActiveLocationLimit);
-            });
+            // *** NEW FIX: Use setTimeout ***
+            // This pushes the initialization to the next 'tick' of the event loop,
+            // giving the browser time to render the tab and calculate its width.
+            setTimeout(() => {
+                if (document.getElementById('locations-tab-content')) {
+                    // Choices.js initialization is now removed.
+
+                    setupCharCounters();
+                    manageActiveLocationLimit();
+                    document.querySelectorAll('.active-location-checkbox').forEach(cb => {
+                        cb.addEventListener('change', manageActiveLocationLimit);
+                    });
+                }
+            }, 0); // A 0ms timeout is all that's needed
         }
+        // --- END OF FIX ---
     });
 </script>
 
