@@ -1,0 +1,594 @@
+<div id="objects-tab-content" class="tab-content">
+
+<style>
+    /* Copied from journal for consistent sub-tabs */
+    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
+    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: #555; border-bottom: 2px solid transparent; font-size: 15px; }
+    .detail-tab-button.active { color: #83b4c5; border-bottom-color: #83b4c5; font-weight: 600; }
+    .detail-tab-content { display: none; }
+    .detail-tab-content.active { display: block; }
+
+    /* Moved from config_form (Object-specific styles) */
+    .object-add-container .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .add-object-details-indent {
+      margin-left: 0px;
+    }
+    .add-object-details-indent > div {
+      gap: 15px;
+    }
+    #object-filter-bar {
+      padding: 10px 15px;
+      background: #f9f9f9;
+    }
+    #object-filter-bar .inline-fields {
+      margin-bottom: 0;
+      gap: 20px;
+    }
+    .config-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .config-table th, .config-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    .config-table th { background-color: #f2f2f2; }
+    .config-table .badge { background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
+    .muted-text { color: #6c757d; }
+</style>
+
+<div class="config-section" style="padding-top: 1em;">
+    <div class="detail-tabs-container">
+        <button class="detail-tab-button active" data-tab="manage" onclick="showObjectSubTab('manage')">Manage My Objects</button>
+        <button class="detail-tab-button" data-tab="add" onclick="showObjectSubTab('add')">Add New Object</button>
+        <button class="detail-tab-button" data-tab="import" onclick="showObjectSubTab('import')">Import from Catalog</button>
+    </div>
+
+    <div id="manage-object-subtab" class="detail-tab-content active">
+        <div class="block" id="object-filter-bar">
+            <div class="inline-fields">
+              <div>
+                <label class="short-label" for="object-filter-id">Filter ID:</label>
+                <input type="text" id="object-filter-id" onkeyup="filterObjectsList()" placeholder="e.g., M42">
+              </div>
+              <div>
+                <label class="short-label" for="object-filter-name">Name:</label>
+                <input type="text" id="object-filter-name" onkeyup="filterObjectsList()" placeholder="e.g., Orion">
+              </div>
+              <div>
+                <label class="short-label" for="object-filter-con">Con:</label>
+                <input type="text" id="object-filter-con" onkeyup="filterObjectsList()" placeholder="e.g., Cyg">
+              </div>
+              <div>
+                <label class="short-label" for="object-filter-type">Type:</label>
+                <input type="text" id="object-filter-type" onkeyup="filterObjectsList()" placeholder="e.g., PN">
+              </div>
+            </div>
+        </div>
+
+        <form method="post">
+            <div class="objects-list">
+            {% for obj in config.objects %}
+                <div class="block object-grid-container">
+                  <div>
+                    <div class="inline-fields">
+                      <div class="object-id">
+                        <strong>{{ obj.Object }}</strong>
+                        {% if obj.original_user_id %}
+                          <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="Imported from another user">Imported</span>
+                        {% elif obj.is_shared %}
+                          <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="You are sharing this item">Shared</span>
+                        {% endif %}
+                      </div>
+                      <div>
+                        <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                        <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
+                      </div>
+                    </div>
+                    <div class="inline-fields second-row-fields">
+                      <div>
+                        <label class="short-label" for="ra_{{ obj.Object }}">RA:</label>
+                        <input type="text" name="ra_{{ obj.Object }}" id="ra_{{ obj.Object }}" class="short" value="{{ obj.RA }}">
+                      </div>
+                      <div>
+                        <label class="short-label" for="dec_{{ obj.Object }}">DEC:</label>
+                        <input type="text" name="dec_{{ obj.Object }}" id="dec_{{ obj.Object }}" class="short" value="{{ obj.DEC }}">
+                      </div>
+                    </div>
+
+                    <div class="inline-fields second-row-fields">
+                      <div>
+                        <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
+                        <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}">
+                      </div>
+                      <div>
+                        <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
+                        <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
+                      </div>
+                      <div>
+                        <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
+                        <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01"
+                               value="{{ obj.Magnitude if obj.Magnitude not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
+                      </div>
+                      <div>
+                        <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
+                        <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01"
+                               value="{{ obj.Size if obj.Size not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
+                      </div>
+                      <div>
+                        <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
+                        <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01"
+                               value="{{ obj.SB if obj.SB not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
+                      </div>
+                    </div>
+                      <div class="inline-fields second-row-fields">
+                        <div>
+                            <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+                        </div>
+                        <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
+                            <button type="button" class="action-button update-single-object-btn" data-object-id="{{ obj.Object | e }}">Update</button>
+                            <span class="update-status-msg" data-object-id="{{ obj.Object | e }}" style="font-style: italic; color: #28a745; font-size: 13px; white-space: nowrap;"></span>
+                        </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="form-group trix-group">
+                        <label for="project_{{ obj.Object }}_editor">Private Notes:</label>
+                        <input type="hidden" id="project_{{ obj.Object }}_hidden" name="project_{{ obj.Object }}" value="{{ obj.Project | default('', True) | e }}">
+                        <trix-editor input="project_{{ obj.Object }}_hidden" id="project_{{ obj.Object }}_editor" placeholder="Personal notes... (not shared)"></trix-editor>
+                    </div>
+
+                    {% if not SINGLE_USER_MODE %}
+                    <div class="form-group trix-group">
+                        <label for="shared_notes_{{ obj.Object }}_editor">Shared Notes:</label>
+                        <input type="hidden" id="shared_notes_{{ obj.Object }}_hidden" name="shared_notes_{{ obj.Object }}" value="{{ obj.shared_notes | default('', True) | e }}">
+                        <trix-editor input="shared_notes_{{ obj.Object }}_hidden" id="shared_notes_{{ obj.Object }}_editor" placeholder="Public notes... (will be shared)"></trix-editor>
+                    </div>
+                    <div class="share-control">
+                        <input type="checkbox" name="is_shared_{{ obj.Object }}" id="is_shared_{{ obj.Object }}" {% if obj.is_shared %}checked{% endif %} {% if obj.original_user_id %}disabled{% endif %}>
+                        <label for="is_shared_{{ obj.Object }}">Share this object with other users</label>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+              <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="add-object-subtab" class="detail-tab-content">
+        <h3>Add New Object</h3>
+        <div class="object-add-container object-grid-container block">
+            <div>
+              <div class="row">
+                <div>
+                  <label class="long-label" for="new_object">Object ID:</label>
+                  <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
+                </div>
+                <div>
+                  <label class="long-label" for="new_name">Name:</label>
+                  <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label class="long-label" for="new_ra">RA:</label>
+                  <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
+                </div>
+                <div>
+                  <label class="long-label" for="new_dec">DEC:</label>
+                  <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
+                </div>
+              </div>
+
+              <div class="inline-fields add-object-details-indent">
+                <div>
+                  <label class="short-label" for="new_constellation">Con:</label>
+                  <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg">
+                </div>
+                <div>
+                  <label class="short-label" for="new_type">Type:</label>
+                  <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
+                </div>
+                <div>
+                  <label class="short-label" for="new_magnitude">Mag:</label>
+                  <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
+                </div>
+                <div>
+                  <label class="short-label" for="new_size">Size:</label>
+                  <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
+                </div>
+                <div>
+                  <label class="short-label" for="new_sb">SB:</label>
+                  <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
+                </div>
+              </div>
+              <div>
+                  <button id="submit_new_object" type="button" class="action-button">Search</button>
+                  <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
+                  <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
+                  <button id="cancel_add_object" type="button" class="action-button" style="display:none; background-color: #778899;">Cancel</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-group trix-group">
+                  <label for="new_project_editor">Private Notes:</label>
+                  <input type="hidden" id="new_project_hidden" name="new_project">
+                  <trix-editor input="new_project_hidden" id="new_project_editor" placeholder="Personal notes, framing ideas... (not shared)"></trix-editor>
+              </div>
+
+              {% if not SINGLE_USER_MODE %}
+              <div class="form-group trix-group">
+                  <label for="new_shared_notes_editor">Shared Notes:</label>
+                  <input type="hidden" id="new_shared_notes_hidden" name="new_shared_notes">
+                  <trix-editor input="new_shared_notes_hidden" id="new_shared_notes_editor" placeholder="Public notes, acquisition advice... (will be shared)"></trix-editor>
+              </div>
+              <div class="share-control">
+                  <input type="checkbox" name="new_is_shared" id="new_is_shared">
+                  <label for="new_is_shared">Share this object with other users</label>
+              </div>
+              {% endif %}
+            </div>
+        </div>
+        <div id="object_result"></div>
+    </div>
+
+    <div id="import-object-subtab" class="detail-tab-content">
+        <h3>Catalog Packs</h3>
+        <div class="block">
+            <p>
+              Catalog packs are server-provided object collections you can import into your library.
+              Importing is non-destructive: existing objects are never overwritten, and overlapping
+              objects are skipped.
+            </p>
+
+            {% if catalog_packs %}
+              <table class="config-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Tags</th>
+                    <th>Objects</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for pack in catalog_packs %}
+                  <tr>
+                    <td>{{ pack.name or pack.id }}</td>
+                    <td>{{ pack.description }}</td>
+                    <td>
+                      {% if pack.tags %}
+                        {% for tag in pack.tags %}
+                          <span class="badge">{{ tag }}</span>
+                        {% endfor %}
+                      {% else %}
+                        <span class="muted-text">–</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ pack.object_count }}</td>
+                    <td>
+                      <form method="post" action="{{ url_for('import_catalog', pack_id=pack.id) }}">
+                        <button type="submit" class="action-button">Import</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p class="muted-text">No catalog packs are available on this server yet.</p>
+            {% endif %}
+          </div>
+    </div>
+
+</div>
+
+<script>
+    // --- Sub-tab management ---
+    function showObjectSubTab(tabName) {
+        // Hide all content
+        document.querySelectorAll('#objects-tab-content .detail-tab-content').forEach(tab => tab.classList.remove('active'));
+        // Deactivate all buttons
+        document.querySelectorAll('#objects-tab-content .detail-tab-button').forEach(button => button.classList.remove('active'));
+
+        // Show selected content
+        document.getElementById(tabName + '-object-subtab').classList.add('active');
+        // Activate selected button
+        document.querySelector(`#objects-tab-content .detail-tab-button[data-tab="${tabName}"]`).classList.add('active');
+
+        // Save choice
+        localStorage.setItem('activeObjectSubTab', tabName);
+    }
+
+    // --- All moved/self-contained object JS ---
+    function filterObjectsList() {
+        // 1. Get filter values
+        const filterId = document.getElementById('object-filter-id').value.toLowerCase();
+        const filterName = document.getElementById('object-filter-name').value.toLowerCase();
+        const filterCon = document.getElementById('object-filter-con').value.toLowerCase();
+        const filterType = document.getElementById('object-filter-type').value.toLowerCase();
+
+        // 2. Get all object blocks
+        const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
+
+        // 3. Loop through each block and check
+        objectBlocks.forEach(block => {
+            let show = true;
+
+            // Find the values within this block
+            const objectIdEl = block.querySelector('.object-id strong');
+            const nameInputEl = block.querySelector('input[id^="name_"]');
+            const conInputEl = block.querySelector('input[id^="constellation_"]');
+            const typeInputEl = block.querySelector('input[id^="type_"]');
+
+            const objectId = objectIdEl ? objectIdEl.textContent.toLowerCase() : '';
+            const name = nameInputEl ? nameInputEl.value.toLowerCase() : '';
+            const con = conInputEl ? conInputEl.value.toLowerCase() : '';
+            const type = typeInputEl ? typeInputEl.value.toLowerCase() : '';
+
+            // 4. Apply filters
+            if (filterId && !objectId.includes(filterId)) show = false;
+            if (show && filterName && !name.includes(filterName)) show = false;
+            if (show && filterCon && !con.includes(filterCon)) show = false;
+            if (show && filterType && !type.includes(filterType)) show = false;
+
+            // 5. Show or hide the block
+            block.style.display = show ? '' : 'none';
+        });
+    }
+
+    function parseRAToDecimal(raStr) {
+        raStr = String(raStr).trim();
+        if (!isNaN(raStr) && !raStr.match(/[:\s]/)) {
+            return parseFloat(raStr);
+        }
+        const parts = raStr.replace(/:/g, ' ').split(/\s+/).filter(Boolean);
+        const h = parseFloat(parts[0]) || 0;
+        const m = parseFloat(parts[1]) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        return (h + m/60 + s/3600);
+    }
+
+    function parseDecToDecimal(decStr) {
+        decStr = String(decStr).trim();
+        if (!isNaN(decStr) && !decStr.match(/[:\s]/)) {
+            return parseFloat(decStr);
+        }
+        const sign = decStr.startsWith('-') ? -1 : 1;
+        const parts = decStr.replace(/^-|\+/, '').replace(/:/g, ' ').split(/\s+/).filter(Boolean);
+        const d = parseFloat(parts[0]) || 0;
+        const m = parseFloat(parts[1]) || 0;
+        const s = parseFloat(parts[2]) || 0;
+        return sign * (d + m/60 + s/3600);
+    }
+
+    function resetAddObjectForm() {
+        const fieldsToClear = [
+            'new_object', 'new_name', 'new_ra', 'new_dec', 'new_constellation',
+            'new_type', 'new_magnitude', 'new_size', 'new_sb',
+            'new_project_hidden', 'new_shared_notes_hidden'
+        ];
+
+        fieldsToClear.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = '';
+                el.readOnly = false; // Ensure all are unlocked
+            }
+        });
+
+        const newProjectEditor = document.getElementById('new_project_editor');
+        if (newProjectEditor) newProjectEditor.editor.loadHTML('');
+
+        const newSharedNotesEditor = document.getElementById('new_shared_notes_editor');
+        if (newSharedNotesEditor) newSharedNotesEditor.editor.loadHTML('');
+
+        const newIsShared = document.getElementById('new_is_shared');
+        if (newIsShared) newIsShared.checked = false;
+
+        document.getElementById('object_result').innerHTML = '';
+
+        document.getElementById('submit_new_object').style.display = 'inline-block';
+        document.getElementById('confirm_add_object').style.display = 'none';
+        document.getElementById('edit_object').style.display = 'none';
+        document.getElementById('cancel_add_object').style.display = 'none';
+    }
+
+    // --- Event Listeners (run once the DOM is loaded) ---
+    // We wrap this in a check in case the script is loaded multiple times
+    if (!window.objectScriptLoaded) {
+        window.objectScriptLoaded = true;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Restore last active sub-tab
+            const lastSubTab = localStorage.getItem('activeObjectSubTab');
+            if (lastSubTab) {
+                // Use requestAnimationFrame to ensure the function exists
+                // when this script (inside an include) is parsed.
+                requestAnimationFrame(() => {
+                    showObjectSubTab(lastSubTab);
+                });
+            }
+
+            // --- Add Object Form Logic ---
+            const resultDiv = document.getElementById('object_result');
+            const submitNewObjectBtn = document.getElementById('submit_new_object');
+            const confirmAddObjectBtn = document.getElementById('confirm_add_object');
+            const editObjectBtn = document.getElementById('edit_object');
+            const cancelAddObjectBtn = document.getElementById('cancel_add_object');
+
+            if (submitNewObjectBtn) {
+                submitNewObjectBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    const objectName = document.getElementById('new_object').value.trim();
+                    if (!objectName) { alert("Please enter an object identifier."); return; }
+                    resultDiv.innerHTML = '<p class="progress-message">Searching...</p>';
+                    fetch("{{ url_for('search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
+                    .then(r => r.json()).then(data => {
+                      if (data.status !== "success") throw new Error(data.message);
+                      document.getElementById('new_name').value = data.data["Common Name"];
+                      document.getElementById('new_ra').value = data.data["RA (hours)"];
+                      document.getElementById('new_dec').value = data.data["DEC (degrees)"];
+                      document.getElementById('new_constellation').value = data.data["Constellation"] || '';
+                      ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+                      resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
+                      return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
+                    }).then(r => r.json()).then(extra => {
+                      const commonName = document.getElementById('new_name').value;
+                      resultDiv.innerHTML = `<p class="message">Found: ${commonName}. Details loaded.</p>`;
+
+                      if (extra.status === 'success') {
+                          document.getElementById('new_type').value = extra.data.Type || '';
+                          document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
+                          document.getElementById('new_size').value = extra.data.Size || '';
+                          document.getElementById('new_sb').value = extra.data.SB || '';
+                      }
+                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                      submitNewObjectBtn.style.display = 'none';
+                    }).catch(err => {
+                      resultDiv.innerHTML = `<p class="error">Error: ${err.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => document.getElementById(id).style.display = 'inline-block');
+                      submitNewObjectBtn.style.display = 'none';
+                      ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
+                          const el = document.getElementById(id);
+                          if(el) el.readOnly = false;
+                      });
+                    });
+                });
+            }
+            if (confirmAddObjectBtn) {
+                confirmAddObjectBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    const raInput = document.getElementById('new_ra').value;
+                    const decInput = document.getElementById('new_dec').value;
+                    const raDecimal = parseRAToDecimal(raInput);
+                    const decDecimal = parseDecToDecimal(decInput);
+
+                    const payload = {
+                        object: document.getElementById('new_object').value,
+                        name: document.getElementById('new_name').value,
+                        ra: raDecimal,
+                        dec: decDecimal,
+                        project: document.getElementById('new_project_hidden').value,
+                        type: document.getElementById('new_type').value,
+                        magnitude: document.getElementById('new_magnitude').value,
+                        size: document.getElementById('new_size').value,
+                        constellation: document.getElementById('new_constellation').value,
+                        sb: document.getElementById('new_sb').value,
+                        shared_notes: document.getElementById('new_shared_notes_hidden') ? document.getElementById('new_shared_notes_hidden').value : '',
+                        is_shared: document.getElementById('new_is_shared') ? document.getElementById('new_is_shared').checked : false
+                    };
+
+                    fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                    .then(r => r.json()).then(data => {
+                        if (data.status === "success") { window.location.reload(); }
+                        else { throw new Error(data.message); }
+                    }).catch(err => { resultDiv.innerHTML = `<p class="error">Error: ${err.message}</p>`; });
+                });
+            }
+            if (editObjectBtn) {
+                editObjectBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if(el) el.readOnly = false;
+                    });
+                });
+            }
+            if (cancelAddObjectBtn) {
+                cancelAddObjectBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    resetAddObjectForm();
+                });
+            }
+
+            // --- Update Single Object Button Logic ---
+            // Use event delegation on the object list container
+            const objectListContainer = document.querySelector('.objects-list');
+            if (objectListContainer) {
+                objectListContainer.addEventListener('click', function(e) {
+                    if (e.target.classList.contains('update-single-object-btn')) {
+                        const button = e.target;
+                        const objectId = button.dataset.objectId;
+
+                        button.disabled = true;
+                        button.textContent = 'Updating...';
+                        const statusMsg = document.querySelector(`.update-status-msg[data-object-id="${objectId}"]`);
+                        if (statusMsg) {
+                            statusMsg.textContent = '';
+                            statusMsg.style.color = '#28a745';
+                        }
+
+                        const projectInputEl = document.getElementById(`project_${objectId}_hidden`);
+                        const projectHtml = projectInputEl ? projectInputEl.value : '';
+
+                        let sharedNotesHtml = '';
+                        let isShared = false;
+
+                        const sharedInputEl = document.getElementById(`shared_notes_${objectId}_hidden`);
+                        if (sharedInputEl) sharedNotesHtml = sharedInputEl.value;
+
+                        const isSharedCheckbox = document.getElementById(`is_shared_${objectId}`);
+                        if (isSharedCheckbox) isShared = isSharedCheckbox.checked;
+
+                        const payload = {
+                            object_id: objectId,
+                            name: document.getElementById(`name_${objectId}`).value,
+                            ra: document.getElementById(`ra_${objectId}`).value,
+                            dec: document.getElementById(`dec_${objectId}`).value,
+                            constellation: document.getElementById(`constellation_${objectId}`).value,
+                            type: document.getElementById(`type_${objectId}`).value,
+                            magnitude: document.getElementById(`magnitude_${objectId}`).value,
+                            size: document.getElementById(`size_${objectId}`).value,
+                            sb: document.getElementById(`sb_${objectId}`).value,
+                            project_notes: projectHtml,
+                            shared_notes: sharedNotesHtml,
+                            is_shared: isShared
+                        };
+
+                        fetch("{{ url_for('update_object') }}", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        })
+                        .then(response => {
+                            if (!response.ok) return response.json().then(err => { throw new Error(err.message || 'Server error'); });
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                if (statusMsg) statusMsg.textContent = 'Saved!';
+                                setTimeout(() => { if (statusMsg) statusMsg.textContent = ''; }, 2000);
+                            } else {
+                                throw new Error(data.message);
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Update failed:', err);
+                            if (statusMsg) {
+                                statusMsg.textContent = 'Error!';
+                                statusMsg.style.color = '#dc3545';
+                            }
+                            alert(`Error updating ${objectId}: ${err.message}`);
+                            setTimeout(() => {
+                                if (statusMsg) {
+                                    statusMsg.textContent = '';
+                                    statusMsg.style.color = '#28a745';
+                                }
+                            }, 4000);
+                        })
+                        .finally(() => {
+                            button.disabled = false;
+                            button.textContent = 'Update';
+                        });
+                    }
+                });
+            }
+        });
+    }
+</script>
+</div>
