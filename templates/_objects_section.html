@@ -30,11 +30,42 @@
       margin-bottom: 0;
       gap: 20px;
     }
+    /* --- NEW: Style for the filter select dropdown --- */
+    #object-filter-bar select {
+        font-size: 14px;
+        padding: 5px;
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
     .config-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     .config-table th, .config-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
     .config-table th { background-color: #f2f2f2; }
     .config-table .badge { background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
     .muted-text { color: #6c757d; }
+
+    /* --- Catalog/Source Styles (from previous step) --- */
+    .readonly-notes {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px 15px;
+        min-height: 50px;
+        font-size: 14px;
+        color: #495057;
+        word-wrap: break-word;
+    }
+    .catalog-source-badge {
+        font-size: 13px;
+        font-weight: bold;
+        color: #1a689e;
+        background: #e1f0f5;
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        line-height: 1.5;
+    }
 </style>
 
 <div class="config-section" style="padding-top: 1em;">
@@ -62,6 +93,19 @@
               <div>
                 <label class="short-label" for="object-filter-type">Type:</label>
                 <input type="text" id="object-filter-type" onkeyup="filterObjectsList()" placeholder="e.g., PN">
+              </div>
+              <div>
+                <label class="short-label" for="object-filter-shared">Status:</label>
+                <select id="object-filter-shared" onchange="filterObjectsList()">
+                  <option value="all">All Statuses</option>
+                  <option value="private">Private</option>
+                  <option value="shared">Shared by Me</option>
+                  <option value="imported">Imported</option>
+                </select>
+              </div>
+              <div>
+                <label class="short-label" for="object-filter-source">Source:</label>
+                <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier">
               </div>
             </div>
         </div>
@@ -120,6 +164,12 @@
                         <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01"
                                value="{{ obj.SB if obj.SB not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
                       </div>
+                      {% if obj.catalog_sources %}
+                      <div style="align-self: center;">
+                        <label class="short-label">Source:</label>
+                        <span class="catalog-source-badge">{{ obj.catalog_sources }}</span>
+                      </div>
+                      {% endif %}
                     </div>
                       <div class="inline-fields second-row-fields">
                         <div>
@@ -132,6 +182,15 @@
                     </div>
                   </div>
                   <div>
+                    {% if obj.catalog_info %}
+                    <div class="form-group trix-group">
+                        <label>Catalog Info:</label>
+                        <div class="readonly-notes">
+                            {{ obj.catalog_info | safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="form-group trix-group">
                         <label for="project_{{ obj.Object }}_editor">Private Notes:</label>
                         <input type="hidden" id="project_{{ obj.Object }}_hidden" name="project_{{ obj.Object }}" value="{{ obj.Project | default('', True) | e }}">
@@ -311,6 +370,9 @@
         const filterName = document.getElementById('object-filter-name').value.toLowerCase();
         const filterCon = document.getElementById('object-filter-con').value.toLowerCase();
         const filterType = document.getElementById('object-filter-type').value.toLowerCase();
+        // --- NEW ---
+        const filterShared = document.getElementById('object-filter-shared').value;
+        const filterSource = document.getElementById('object-filter-source').value.toLowerCase();
 
         // 2. Get all object blocks
         const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
@@ -324,17 +386,35 @@
             const nameInputEl = block.querySelector('input[id^="name_"]');
             const conInputEl = block.querySelector('input[id^="constellation_"]');
             const typeInputEl = block.querySelector('input[id^="type_"]');
+            // --- NEW ---
+            const sharedIndicator = block.querySelector('.shared-indicator');
+            const sourceBadge = block.querySelector('.catalog-source-badge');
 
             const objectId = objectIdEl ? objectIdEl.textContent.toLowerCase() : '';
             const name = nameInputEl ? nameInputEl.value.toLowerCase() : '';
             const con = conInputEl ? conInputEl.value.toLowerCase() : '';
             const type = typeInputEl ? typeInputEl.value.toLowerCase() : '';
 
+            // --- NEW: Get values for new filters ---
+            let sharedStatus = 'private'; // Default
+            if (sharedIndicator) {
+                const indicatorText = sharedIndicator.textContent.toLowerCase();
+                if (indicatorText.includes('imported')) {
+                    sharedStatus = 'imported';
+                } else if (indicatorText.includes('shared')) {
+                    sharedStatus = 'shared';
+                }
+            }
+            const source = sourceBadge ? sourceBadge.textContent.toLowerCase() : '';
+
             // 4. Apply filters
             if (filterId && !objectId.includes(filterId)) show = false;
             if (show && filterName && !name.includes(filterName)) show = false;
             if (show && filterCon && !con.includes(filterCon)) show = false;
             if (show && filterType && !type.includes(filterType)) show = false;
+            // --- NEW ---
+            if (show && filterShared !== 'all' && sharedStatus !== filterShared) show = false;
+            if (show && filterSource && !source.includes(filterSource)) show = false;
 
             // 5. Show or hide the block
             block.style.display = show ? '' : 'none';
@@ -588,8 +668,6 @@
                                     statusMsg.textContent = '';
                                     statusMsg.style.color = '#28a745';
                                 }
-                            // **** THIS IS THE FIX ****
-                            // The stray '...' has been removed from the line below.
                             }, 4000);
                         })
                         .finally(() => {
