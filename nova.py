@@ -97,7 +97,7 @@ log.setLevel(logging.ERROR)
 
 
 
-APP_VERSION = "3.9.0"
+APP_VERSION = "4.0.0"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -779,10 +779,8 @@ def _mkdirp(path: str):
 # Ensure config/backup directories exist before migration runs
 CONFIG_DIR = globals().get("CONFIG_DIR") or os.path.join(INSTANCE_PATH, "configs")
 BACKUP_DIR = globals().get("BACKUP_DIR") or os.path.join(INSTANCE_PATH, "backups")
-CATALOG_DIR = globals().get("CATALOG_DIR") or os.path.join(INSTANCE_PATH, "catalogs")
 _mkdirp(CONFIG_DIR)
 _mkdirp(BACKUP_DIR)
-_mkdirp(CATALOG_DIR)
 
 # === YAML → DB one-time migration ===========================================
 def _timestamped_copy(src_dir: str):
@@ -829,123 +827,109 @@ def _read_yaml(path: str) -> tuple[dict | None, str | None]:
         return (None, error_msg)
 
 def discover_catalog_packs() -> list[dict]:
-    """Scan CATALOG_DIR for *.yaml catalog packs and return simple metadata for UI use.
+    """Scan the central web repository for catalog packs."""
+    global CATALOG_MANIFEST_CACHE
+    now = time.time()
 
-    Each returned dict contains: id, name, description, tags, version, filename, object_count.
-    """
-    packs: list[dict] = []
+    # 1. Check if cache is valid
+    if CATALOG_MANIFEST_CACHE["data"] is not None and now < CATALOG_MANIFEST_CACHE["expires"]:
+        return CATALOG_MANIFEST_CACHE["data"]
+
+    # --- THIS IS THE NEW LOGIC ---
+    # Get the URL from the (possibly empty) config
+    url_to_use = NOVA_CATALOG_URL
+    if not url_to_use:
+        # If it's not in the config, use the hardcoded default
+        url_to_use = "https://catalogs.nova-tracker.com"
+    # --- END NEW LOGIC ---
+
+    # 2. Check if a URL is available (from either source)
+    if not url_to_use:
+        print("[CATALOG DISCOVER] No Catalog URL is configured. Catalog import is disabled.")
+        return [] # Return empty list
+
+    manifest_url = f"{url_to_use.rstrip('/')}/manifest.json"
+
     try:
-        from pathlib import Path as _Path
+        # 3. Fetch new manifest
+        print(f"[CATALOG DISCOVER] Fetching new manifest from {manifest_url}")
+        r = requests.get(manifest_url, timeout=10)
+        r.raise_for_status() # Raise error for bad status (404, 500)
+        packs = r.json()
 
-        if not os.path.isdir(CATALOG_DIR):
+        if not isinstance(packs, list):
+            print(f"[CATALOG DISCOVER] Error: Manifest is not a valid JSON list.")
             return []
 
-        for path_str in glob.glob(os.path.join(CATALOG_DIR, "*.yaml")):
-            try:
-                data_tuple = _read_yaml(path_str)
-                if isinstance(data_tuple, tuple):
-                    data, err = data_tuple
-                else:
-                    data, err = data_tuple, None
+        # 4. Update cache (e.g., for 1 hour)
+        CATALOG_MANIFEST_CACHE = {
+            "data": packs,
+            "expires": now + 3600 # 1 hour cache
+        }
+        return packs
 
-                if data is None:
-                    continue
-
-                catalog_meta = (data.get("catalog") or {}) if isinstance(data, dict) else {}
-                p = _Path(path_str)
-                pack_id = str(catalog_meta.get("id") or p.stem).strip()
-                if not pack_id:
-                    # Fallback to filename without extension
-                    pack_id = p.stem
-
-                name = catalog_meta.get("name") or pack_id
-                description = catalog_meta.get("description") or ""
-                tags = catalog_meta.get("tags") or []
-                if not isinstance(tags, list):
-                    tags = [str(tags)]
-                version = catalog_meta.get("version")
-
-                objects = (data.get("objects") or []) if isinstance(data, dict) else []
-                try:
-                    object_count = len(objects)
-                except Exception:
-                    object_count = 0
-
-                packs.append({
-                    "id": pack_id,
-                    "name": name,
-                    "description": description,
-                    "tags": tags,
-                    "version": version,
-                    "filename": p.name,
-                    "object_count": object_count,
-                })
-            except Exception as e:
-                print(f"[CATALOG DISCOVER] Failed to process '{path_str}': {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"[CATALOG DISCOVER] Failed to fetch manifest: {e}")
+        return CATALOG_MANIFEST_CACHE["data"] or [] # Return old cache on error
+    except json.JSONDecodeError as e:
+        print(f"[CATALOG DISCOVER] Failed to parse manifest JSON: {e}")
+        return CATALOG_MANIFEST_CACHE["data"] or []
     except Exception as e:
-        print(f"[CATALOG DISCOVER] Error scanning catalog directory '{CATALOG_DIR}': {e}")
-    return sorted(packs, key=lambda x: x.get("name") or x.get("id") or "")
+        print(f"[CATALOG DISCOVER] Error: {e}")
+        return []
 
 
 def load_catalog_pack(pack_id: str) -> tuple[dict | None, dict | None]:
-    """Load a specific catalog pack by id.
+    """Load a specific catalog pack from the central web repository."""
 
-    Returns a tuple of (catalog_dict, meta_dict) or (None, None) if not found/invalid.
-    meta_dict has the same shape as entries from discover_catalog_packs().
-    """
+    # 1. Get the manifest (this will be cached)
+    all_packs_meta = discover_catalog_packs()
+
+    # 2. Find the metadata for the requested pack
+    meta = next((p for p in all_packs_meta if p.get("id") == pack_id), None)
+
+    if not meta:
+        print(f"[CATALOG LOAD] Pack ID '{pack_id}' not found in manifest.")
+        return (None, None)
+
+    filename = meta.get("filename")
+    if not filename:
+        print(f"[CATALOG LOAD] Pack ID '{pack_id}' has no filename in manifest.")
+        return (None, None)
+
+    # --- THIS IS THE NEW LOGIC ---
+    # Get the URL from the (possibly empty) config
+    url_to_use = NOVA_CATALOG_URL
+    if not url_to_use:
+        # If it's not in the config, use the hardcoded default
+        url_to_use = "https://catalogs.nova-tracker.com"
+    # --- END NEW LOGIC ---
+
+    # 3. Check if a URL is available (from either source)
+    if not url_to_use:
+        print("[CATALOG LOAD] No Catalog URL is configured. Cannot download pack.")
+        return (None, None)
+
+    pack_url = f"{url_to_use.rstrip('/')}/{filename}"
+
     try:
-        from pathlib import Path as _Path
+        # 4. Fetch the YAML file
+        print(f"[CATALOG LOAD] Downloading pack from {pack_url}")
+        r = requests.get(pack_url, timeout=15)
+        r.raise_for_status()
 
-        if not os.path.isdir(CATALOG_DIR):
-            return (None, None)
+        # 5. Parse the YAML content from the response
+        pack_data = yaml.safe_load(r.text) or {}
 
-        for path_str in glob.glob(os.path.join(CATALOG_DIR, "*.yaml")):
-            try:
-                data_tuple = _read_yaml(path_str)
-                if isinstance(data_tuple, tuple):
-                    data, err = data_tuple
-                else:
-                    data, err = data_tuple, None
+        return (pack_data, meta)
 
-                if data is None:
-                    continue
-
-                catalog_meta = (data.get("catalog") or {}) if isinstance(data, dict) else {}
-                p = _Path(path_str)
-                file_pack_id = str(catalog_meta.get("id") or p.stem).strip()
-                if not file_pack_id:
-                    file_pack_id = p.stem
-
-                if file_pack_id != pack_id:
-                    continue
-
-                name = catalog_meta.get("name") or file_pack_id
-                description = catalog_meta.get("description") or ""
-                tags = catalog_meta.get("tags") or []
-                if not isinstance(tags, list):
-                    tags = [str(tags)]
-                version = catalog_meta.get("version")
-
-                objects = (data.get("objects") or []) if isinstance(data, dict) else []
-                try:
-                    object_count = len(objects)
-                except Exception:
-                    object_count = 0
-
-                meta = {
-                    "id": file_pack_id,
-                    "name": name,
-                    "description": description,
-                    "tags": tags,
-                    "version": version,
-                    "filename": p.name,
-                    "object_count": object_count,
-                }
-                return (data, meta)
-            except Exception as e:
-                print(f"[CATALOG LOAD] Failed to process '{path_str}': {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"[CATALOG LOAD] Failed to download pack '{filename}': {e}")
+    except yaml.YAMLError as e:
+        print(f"[CATALOG LOAD] Failed to parse YAML for '{filename}': {e}")
     except Exception as e:
-        print(f"[CATALOG LOAD] Error scanning catalog directory '{CATALOG_DIR}': {e}")
+        print(f"[CATALOG LOAD] An unexpected error occurred: {e}")
+
     return (None, None)
 
 def _select_rigs_yaml(username: str) -> dict:
@@ -2128,6 +2112,8 @@ def _ensure_env_defaults(env_path: str = ENV_FILE):
             additions.append(f"INSTANCE_ID={secrets.token_hex(16)}")
         if not _has_key("NOVA_TELEMETRY_ENDPOINT"):
             additions.append("NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec")
+        if not _has_key("NOVA_CATALOG_URL"):
+            additions.append(f"NOVA_CATALOG_URL=https://catalogs.nova-tracker.com")
 
         if additions:
             with open(env_path, "a", encoding="utf-8") as f:
@@ -2162,12 +2148,13 @@ LATEST_VERSION_INFO = {}
 rig_data_cache = {}
 weather_cache = {}
 MAX_ACTIVE_LOCATIONS = 5
+CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
 
 # CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_default.yaml")
 
 
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
-
+NOVA_CATALOG_URL = config('NOVA_CATALOG_URL', default='')
 CONFIG_DIR = os.path.join(INSTANCE_PATH, "configs") # This is the only directory we need for YAMLs
 BACKUP_DIR = os.path.join(INSTANCE_PATH, "backups")
 UPLOAD_FOLDER = os.path.join(INSTANCE_PATH, 'uploads')
@@ -2332,6 +2319,7 @@ if not os.path.exists(ENV_FILE):
             "NOVA_TELEMETRY_ENDPOINT=https://script.google.com/macros/s/AKfycbz9Up3EEFuuwcbLnXtnsagyZjoE4oASl2PIjr4qgnaNhOsXzNQJykgtzhbCINXFVCDh-w/exec\n")
         instance_id = secrets.token_hex(16)
         f.write(f"INSTANCE_ID={instance_id}\n")
+        f.write(f"NOVA_CATALOG_URL=https://catalogs.nova-tracker.com\n")
 
     # After creating the .env, reload it into the current process and set the first-run flag
     try:
