@@ -1071,10 +1071,13 @@ def _migrate_objects(db, user: DbUser, config: dict):
             if not raw_obj_name or not str(raw_obj_name).strip():
                 print(f"[MIGRATION][OBJECT SKIP] Entry is missing an 'Object' identifier: {o}")
                 continue
-            # Sanitize the name to ensure consistency (e.g., " M31 " becomes "M31").
-            object_name = " ".join(str(raw_obj_name).strip().split())
+            object_name = normalize_object_name(raw_obj_name)
 
             common_name = o.get("Common Name") or o.get("Name") or o.get("common_name")
+            # If common_name is still blank, use the raw (pretty) object name as a fallback
+            if not common_name or not str(common_name).strip():
+                common_name = str(raw_obj_name).strip()
+
             obj_type = o.get("Type") or o.get("type")
             constellation = o.get("Constellation") or o.get("constellation")
             magnitude = o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude")
@@ -1103,12 +1106,11 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     constellation = None # Avoid crashing if coordinates are invalid.
 
             # --- 3. Perform the Idempotent "Upsert" ---
-            # Query for an existing object with the same name for this user (case-insensitive).
-            existing = db.query(AstroObject).filter(
-                AstroObject.user_id == user.id,
-                AstroObject.object_name.collate('NOCASE') == object_name
+            # Query for an existing object with the normalized name.
+            existing = db.query(AstroObject).filter_by(
+                user_id=user.id,
+                object_name=object_name
             ).one_or_none()
-
             if existing:
                 # UPDATE PATH: The object already exists, so we update its fields.
                 # This overwrites existing data with what's in the YAML, ensuring the
@@ -1768,9 +1770,13 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 skipped += 1
                 continue
 
-            object_name = " ".join(str(raw_obj_name).strip().split())
+            object_name = normalize_object_name(raw_obj_name)
 
             common_name = o.get("Common Name") or o.get("Name") or o.get("common_name")
+            # If common_name is still blank, use the raw (pretty) object name as a fallback
+            if not common_name or not str(common_name).strip():
+                common_name = str(raw_obj_name).strip()
+
             obj_type = o.get("Type") or o.get("type")
             constellation = o.get("Constellation") or o.get("constellation")
             magnitude = o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude")
@@ -1788,10 +1794,10 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 except Exception:
                     constellation = None
 
-            # Look up existing object by name (case-insensitive) for this user
-            existing = db.query(AstroObject).filter(
-                AstroObject.user_id == user.id,
-                AstroObject.object_name.collate('NOCASE') == object_name
+            # Look up existing object by normalized name for this user
+            existing = db.query(AstroObject).filter_by(
+                user_id=user.id,
+                object_name=object_name
             ).one_or_none()
 
             # Catalog info: allow explicit fields but always ensure pack_id is recorded
@@ -4865,8 +4871,20 @@ def journal_add_for_target(object_name):
     # For GET requests, the original behavior is maintained.
     return redirect(url_for('journal_add', target=object_name))
 
+def normalize_object_name(name: str) -> str:
+    """
+    Converts messy object names into a standard primary key.
+    e.g., "M 42", "M-42", "m 42" -> "M42"
+    e.g., "NGC 7000" -> "NGC7000"
+    """
+    if not name:
+        return None
+    # Convert to uppercase, remove leading/trailing spaces
+    name = str(name).strip().upper()
+    # Remove all internal spaces and dashes
+    name = name.replace(" ", "").replace("-", "")
+    return name
 
-# simbad sometimes needs Ids with a / between numbers. this creates a conflict with the app.
 def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
 
@@ -5843,13 +5861,17 @@ def confirm_object():
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one()
 
-        object_name = req.get('object')
-        if not object_name or not object_name.strip():
+        raw_object_name = req.get('object')
+        if not raw_object_name or not raw_object_name.strip():
             raise ValueError("Object ID is required and cannot be empty.")
+
+        # --- NEW: Normalize the name ---
+        object_name = normalize_object_name(raw_object_name)
 
         common_name = req.get('name')
         if not common_name or not common_name.strip():
-            raise ValueError("Name is required and cannot be empty.")
+            # If common name is blank, use the raw (pretty) object name as a fallback
+            common_name = raw_object_name.strip()
 
         ra_float = _parse_float_from_request(req.get('ra'), "RA")
         dec_float = _parse_float_from_request(req.get('dec'), "DEC")
