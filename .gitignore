@@ -2,3 +2,6 @@
 /venv/
 /instance/
 /cache/
+# PyCharm/IntelliJ IDE files
+.idea/
+*.iml
