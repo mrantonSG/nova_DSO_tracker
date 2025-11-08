@@ -992,6 +992,10 @@ def normalize_object_name(name: str) -> str:
     match = re.match(r'^(SH2)(\d+)$', name_str)
     if match: return f"SH 2-{match.group(2)}"
 
+    # SH 2-155 -> SH2-155 (Fix: SH2- + 1 or more digits)
+    match = re.match(r'^(SH2)-(\d+)$', name_str)
+    if match: return f"SH 2-{match.group(2)}"
+
     # NGC 1976 -> NGC1976 (Fix: NGC + 1 or more digits)
     match = re.match(r'^(NGC)(\d+)$', name_str)
     if match: return f"NGC {match.group(2)}"
@@ -1046,7 +1050,7 @@ def normalize_object_name(name: str) -> str:
 
     # --- 2. Fix simple space removal (M, IC, etc.) ---
     # This rule handles user input like "M 42"
-    match = re.match(r'^(M|IC|ABELL|BARNARD)\s+(.*)$', name_str)
+    match = re.match(r'^(M|IC)\s+(.*)$', name_str)
     if match:
         prefix = match.group(1)
         number_part = match.group(2).replace(" ", "")

@@ -352,12 +352,18 @@
         let nameStr = String(name).trim().toUpperCase();
         let match;
 
-        // --- 1. Fix known corruptions (add spaces/hyphens) ---
-        // This list mirrors the logic from your Python repair script.
+        // --- 1. Fix known "corrupt" or non-canonical inputs ---
+        // This list now mirrors the final Python repair script and normalizer.
 
         // SH 2-155 -> SH2155 (Fix: SH2 + 1 or more digits)
         match = nameStr.match(/^(SH2)(\d+)$/);
         if (match) return `SH 2-${match[2]}`;
+
+        // --- THIS IS NEW (Fix Bug 2) ---
+        // SH 2-155 -> SH2-155 (Unifies dash-only format)
+        match = nameStr.match(/^(SH2)-(\d+)$/);
+        if (match) return `SH 2-${match[2]}`;
+        // --- END OF NEW RULE ---
 
         // NGC 1976 -> NGC1976 (Fix: NGC + 1 or more digits)
         match = nameStr.match(/^(NGC)(\d+)$/);
@@ -408,22 +414,24 @@
         if (match) return `PN G${match[2]}-${match[3]}`;
 
         // WR 134 -> WR134
-        match = nameS.match(/^(WR)(\d+)$/);
+        match = nameStr.match(/^(WR)(\d+)$/);
         if (match) return `WR ${match[2]}`;
 
-
-        // --- 2. Fix simple space removal (M, IC, etc.) ---
+        // --- 2. Fix simple space removal (M, IC) ---
         // This rule handles user input like "M 42"
-        match = nameStr.match(/^(M|IC|ABELL|BARNARD)\s+(.*)$/);
+
+        // --- THIS IS CORRECTED (Fix Bug 1) ---
+        match = nameStr.match(/^(M|IC)\s+(.*)$/);
         if (match) {
             const prefix = match[1];
+            // Remove all spaces from the number part
             const numberPart = match[2].replace(/\s+/g, '');
             return prefix + numberPart;
         }
 
         // --- 3. Default Fallback ---
-        // For names that are already correct (e.g., "M42", "NGC 1976", "SH 2-155")
-        // just collapse whitespace.
+        // For names that are already correct (e.g., "M42", "NGC 1976", "BARNARD 33")
+        // just collapse multiple spaces into one.
         return nameStr.replace(/\s+/g, ' ');
     }
     // --- Sub-tab management ---
