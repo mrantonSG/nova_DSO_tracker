@@ -1554,43 +1554,57 @@
             formElement.submit();
         }
     }
-    function handleImportSubmit(fileInput, entityName) {
-        if (!fileInput.files[0]) return; // No file selected
+    // --- NEW Import Handler (replaces setupImport) ---
+        function handleImportSubmit(fileInput, entityName) {
+            if (!fileInput.files[0]) return; // No file selected
 
-        let confirmMsg = `This will import the ${entityName}. Are you sure?`;
-        if (entityName === 'configuration' || entityName === 'journal' || entityName === 'rigs file') {
-            confirmMsg = `This will merge/overwrite your current ${entityName}. The existing data will be backed up. Are you sure?`;
+            let confirmMsg = `This will import the ${entityName}. Are you sure?`;
+            if (entityName === 'configuration' || entityName === 'journal' || entityName === 'rigs file') {
+                confirmMsg = `This will merge/overwrite your current ${entityName}. The existing data will be backed up. Are you sure?`;
+            }
+
+            if (confirm(confirmMsg)) {
+                // User confirmed, submit via fetch
+                const formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+                const url = fileInput.form.action; // Get URL from the form's action attribute
+
+                // 1. Show a "please wait" message
+                const msgContainer = document.getElementById('flash-message-container');
+                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: #007bff; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
+
+                fetch(url, {
+                    method: "POST",
+                    body: formData,
+                    redirect: 'manual'  // <-- CRITICAL: Do NOT follow the redirect
+                })
+                .then(resp => {
+                    // resp.type will be 'opaqueredirect' if the server-side
+                    // (Python) finished and sent a redirect(). This is SUCCESS.
+                    // resp.ok will be true if the server just sent 200 OK (no redirect).
+                    // resp.ok will be false if the server sent 400/500 (an error).
+
+                    if (resp.ok || resp.type === 'opaqueredirect') {
+                        // SUCCESS! The server has set the flash message.
+                        // Now we reload the page to see it.
+                        window.location.reload();
+                    } else {
+                        // This handles server errors (4xx, 5xx)
+                        throw new Error(`Import failed: Server returned status ${resp.status}`);
+                    }
+                })
+                .catch(err => {
+                    // This catches network failures or the error thrown above
+                    alert(`${entityName} import failed: ${err.message}`);
+                    if (msgContainer) msgContainer.innerHTML = '';
+                    fileInput.value = ""; // Clear on failure
+                });
+
+            } else {
+                // User cancelled, clear the file input so they can try again
+                fileInput.value = "";
+            }
         }
-
-        if (confirm(confirmMsg)) {
-            // User confirmed, submit via fetch
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
-            const url = fileInput.form.action; // Get URL from the form's action attribute
-
-            fetch(url, {
-                method: "POST",
-                body: formData
-            })
-            .then(resp => {
-                if (!resp.ok) {
-                    // If the server returned an error (like 500), throw it
-                    throw new Error(`Import failed: Server returned status ${resp.status}`);
-                }
-                // SUCCESS! The server has processed the file and set a flash message.
-                // Now, we simply reload the page to see that message.
-                window.location.reload();
-            })
-            .catch(err => {
-                alert(`${entityName} import failed: ${err.message}`);
-                fileInput.value = ""; // Clear on failure
-            });
-
-        } else {
-            // User cancelled, clear the file input so they can try again
-            fileInput.value = "";
-        }
-    }
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
