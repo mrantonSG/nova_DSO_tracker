@@ -349,7 +349,20 @@
 <script>
     function normalizeObjectNameJS(name) {
         if (!name) return null;
-        return String(name).trim().toUpperCase().replace(/ /g, '').replace(/-/g, '');
+        let nameStr = String(name).trim().toUpperCase();
+
+        // 1. SPECIAL CASE: M, IC, ABELL, BARNARD (no NGC)
+        const match = nameStr.match(/^(M|IC|ABELL|BARNARD)\s+(.*)$/);
+        if (match) {
+            const prefix = match[1];
+            // Remove all spaces from the number part
+            const numberPart = match[2].replace(/\s+/g, '');
+            return prefix + numberPart;
+        }
+
+        // 2. DEFAULT: For everything else (NGC, SH, etc.),
+        // just collapse multiple spaces into one.
+        return nameStr.replace(/\s+/g, ' ');
     }
     // --- Sub-tab management ---
     function showObjectSubTab(tabName) {

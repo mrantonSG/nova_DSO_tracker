@@ -95,7 +95,7 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
-
+import re
 
 APP_VERSION = "4.0.0"
 
@@ -975,19 +975,36 @@ def _upsert_user(db, username: str) -> DbUser:
         db.flush()
     return u
 
+
 def normalize_object_name(name: str) -> str:
     """
     Converts messy object names into a standard primary key.
-    e.g., "M 42", "M-42", "m 42" -> "M42"
-    e.g., "NGC 7000" -> "NGC7000"
+    This is a "smart" normalization that only cleans common, simple
+    catalogs (M, IC, NGC, ABELL, BARNARD) where a space is
+    just a separator.
+
+    It safely leaves complex names (SH 2-, SNR G...) alone
+    to prevent data corruption.
     """
-    if not name:
-        return None
-    # Convert to uppercase, remove leading/trailing spaces
-    name = str(name).strip().upper()
-    # Remove all internal spaces and dashes
-    name = name.replace(" ", "").replace("-", "")
-    return name
+    if not name: return None
+    name_str = str(name).strip().upper()
+
+    # 1. SPECIAL CASE: M, IC, NGC, ABELL, BARNARD
+    # This regex looks for these prefixes, followed by one or more spaces,
+    # and then the object number.
+    # It will turn "M 42" into "M42".
+    # It will turn "Abell 21" into "ABELL21".
+    # It will *not* touch "SH 2-129" or "SNR G...".
+    match = re.match(r'^(M|IC|ABELL|BARNARD)\s+(.*)$', name_str)
+    if match:
+        prefix = match.group(1)
+        number_part = match.group(2).replace(" ", "")
+        return prefix + number_part
+
+    # 2. DEFAULT: For everything else, just collapse internal spaces
+    # This correctly handles "SH 2-129" and "SNR G180.0-01.7"
+    # by collapsing "SH 2-129" to "SH 2-129".
+    return " ".join(name_str.split())
 
 
 def _migrate_locations(db, user: DbUser, config: dict):
@@ -7827,130 +7844,6 @@ if not SINGLE_USER_MODE:
 # One-Time Data Migration for Object Name Normalization
 # =============================================================================
 
-@app.cli.command("clean-object-ids")
-def clean_object_ids_command():
-    """
-    Finds and merges duplicate AstroObjects caused by inconsistent naming
-    (e.g., 'M 42' vs 'M42'). Runs in two passes to avoid
-    database integrity errors during the transaction.
-    """
-    print("--- [OBJECT ID CLEANUP] ---")
-    db = get_db()
-
-    def _normalize(name: str) -> str:
-        if not name: return None
-        name = str(name).strip().upper()
-        name = name.replace(" ", "").replace("-", "")
-        return name
-
-    try:
-        all_users = db.query(DbUser).all()
-        print(f"Found {len(all_users)} users to check...")
-        total_merged = 0
-        total_renamed = 0
-
-        for user in all_users:
-            print(f"--- Processing user: {user.username} ---")
-
-            # --- PASS 1: Merge and Delete Duplicates ---
-            print("  Pass 1: Merging and deleting duplicates...")
-            user_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
-
-            grouped_objects = {}
-            for obj in user_objects:
-                norm_name = _normalize(obj.object_name)
-                if norm_name:
-                    grouped_objects.setdefault(norm_name, []).append(obj)
-
-            for norm_name, object_list in grouped_objects.items():
-                if len(object_list) > 1:
-                    # Conflict found!
-                    object_list.sort(key=lambda o: o.id)
-                    primary_obj = object_list[0]
-                    duplicates = object_list[1:]
-
-                    print(
-                        f"    Merging {len(duplicates)} duplicates into '{primary_obj.object_name}' (ID: {primary_obj.id})")
-
-                    primary_notes = primary_obj.project_name or ""
-
-                    for dup in duplicates:
-                        print(f"      - Merging '{dup.object_name}' (ID: {dup.id})")
-
-                        # 1. Merge project notes
-                        if dup.project_name:
-                            # Use the same "none" check from the importer
-                            dup_notes = dup.project_name or ""
-                            if not (not dup_notes or dup_notes.lower().strip() in ('none', '<div>none</div>', 'null')):
-                                primary_notes += f"<br>---<br><em>(Merged from: {dup.object_name})</em><br>{dup_notes}"
-
-                        # 2. Re-assign all journal entries
-                        db.query(JournalSession).filter_by(
-                            user_id=user.id,
-                            object_name=dup.object_name
-                        ).update({'object_name': primary_obj.object_name})  # Point to primary's *current* name
-
-                        # 3. Delete the duplicate object
-                        db.delete(dup)
-                        total_merged += 1
-
-                    # 4. Update the primary object's merged notes
-                    primary_obj.project_name = primary_notes
-
-            # --- FLUSH PASS 1 ---
-            # This commits all deletions and note merges
-            db.flush()
-            print("  Pass 1: Complete. Duplicates removed.")
-
-            # --- PASS 2: Rename Remaining Messy Objects ---
-            print("  Pass 2: Renaming remaining objects...")
-            all_remaining_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
-
-            for obj in all_remaining_objects:
-                norm_name = _normalize(obj.object_name)
-                if obj.object_name != norm_name:
-                    old_name = obj.object_name
-
-                    # Check if a different object with the clean name now exists (should not happen, but safe)
-                    existing_clean = db.query(AstroObject).filter(
-                        AstroObject.user_id == user.id,
-                        AstroObject.object_name == norm_name,
-                        AstroObject.id != obj.id
-                    ).first()
-
-                    if existing_clean:
-                        print(
-                            f"    ERROR: Cannot rename '{old_name}' to '{norm_name}' because it already exists (ID: {existing_clean.id}). Skipping.")
-                        continue
-
-                    # Rename the object
-                    obj.object_name = norm_name
-
-                    # Update all journal entries that used the old name
-                    db.query(JournalSession).filter_by(
-                        user_id=user.id,
-                        object_name=old_name
-                    ).update({'object_name': norm_name})
-
-                    print(f"    Renamed: '{old_name}' -> '{norm_name}' (and updated journals)")
-                    total_renamed += 1
-
-            print("  Pass 2: Complete.")
-
-        # All users done, commit the entire transaction
-        db.commit()
-        print("--- [CLEANUP COMPLETE] ---")
-        print(f"✅ Merged and deleted {total_merged} duplicate objects.")
-        print(f"✅ Renamed {total_renamed} objects.")
-        print("Database is now clean and ready for the new version.")
-
-    except Exception as e:
-        db.rollback()
-        print(f"❌ FATAL ERROR: {e}")
-        print("Database has been rolled back. No changes were saved.")
-        traceback.print_exc()
-    finally:
-        db.close()
 
 @app.cli.command("seed-empty-users")
 def seed_empty_users_command():
@@ -8445,6 +8338,159 @@ def repair_db_now():
     except Exception as e:
         flash(f"Repair failed: {e}", "error")
     return redirect(url_for("index"))
+
+
+@app.cli.command("repair-corrupt-ids")
+def repair_corrupt_ids_command():
+    """
+    Finds and repairs object IDs that were corrupted by the old
+    over-aggressive normalization script (e.g., 'SH2129' -> 'SH 2-129').
+    This script is RULE-BASED and fixes all matching corrupt patterns.
+    It runs IN-PLACE on the database to fix the names
+    and re-link all associated journal entries.
+    """
+    print("--- [EMERGENCY OBJECT ID REPAIR SCRIPT] ---")
+    db = get_db()
+
+    # Define the "un-corruption" rules using Regex.
+    # (corrupted_regex_pattern, correct_format_string)
+    # These rules target names that were incorrectly stripped of spaces/dashes.
+    # NOTE: Order matters! More specific rules must come first.
+    repair_rules = [
+        # SNR G180.0-01.7 -> SNRG180.001.7 (bad script removed '-' and left '.')
+        (re.compile(r'^(SNRG)(\d+\.\d+)(\d+\.\d+)$'), r'SNR G\2-\3'),
+
+        # LHA 120-N 70 -> LHA120N70
+        (re.compile(r'^(LHA)(\d+)(N\d+)$'), r'LHA \2-N \3'),
+
+        # SH 2-129 -> SH2129 (Finds SH2 followed by 3 or more digits)
+        (re.compile(r'^(SH2)(\d{3,})$'), r'SH 2-\2'),
+
+        # TGU H1867 -> TGUH1867
+        (re.compile(r'^(TGUH)(\d+)$'), r'TGU H\2'),
+
+        # VDB 1 -> VDB1
+        (re.compile(r'^(VDB)(\d+)$'), r'VDB \2'),
+
+        # NGC 1976 -> NGC1976
+        (re.compile(r'^(NGC)(\d+)$'), r'NGC \2'),
+
+        # GUM 16 -> GUM16
+        (re.compile(r'^(GUM)(\d+)$'), r'GUM \2'),
+
+        # CTA 1 -> CTA1
+        (re.compile(r'^(CTA)(\d+)$'), r'CTA \2'),
+
+        # HB 3 -> HB3
+        (re.compile(r'^(HB)(\d+)$'), r'HB \2'),
+
+        # PN ARO 121 -> PNARO121
+        (re.compile(r'^(PNARO)(\d+)$'), r'PN ARO \2'),
+
+        # LIESTO 1 -> LIESTO1
+        (re.compile(r'^(LIESTO)(\d+)$'), r'LIESTO \2'),
+
+        # PK 081-14.1 -> PK08114.1
+        (re.compile(r'^(PK)(\d+)(\d{2}\.\d+)$'), r'PK \2-\3'),
+
+        # PN G093.3-02.4 -> PNG093.302.4
+        (re.compile(r'^(PNG)(\d+\.\d+)(\d+\.\d+)$'), r'PN G\2-\3'),
+
+        # WR 134 -> WR134
+        (re.compile(r'^(WR)(\d+)$'), r'WR \2'),
+    ]
+
+    try:
+        all_users = db.query(DbUser).all()
+        print(f"Found {len(all_users)} users to check...")
+        total_repaired = 0
+
+        for user in all_users:
+            print(f"--- Processing user: {user.username} ---")
+
+            # Get all objects for this user
+            user_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
+
+            # Create a lookup of objects by their name for collision detection
+            objects_by_name = {obj.object_name: obj for obj in user_objects}
+
+            repaired_in_this_user = 0
+
+            # Iterate over a copy of the list, as we may be modifying objects
+            for obj_to_fix in list(user_objects):
+                corrupt_name = obj_to_fix.object_name
+                repaired_name = None
+
+                # Apply rules to find a match
+                for pattern, replacement in repair_rules:
+                    if pattern.match(corrupt_name):
+                        repaired_name = pattern.sub(replacement, corrupt_name)
+                        break  # Stop on the first rule that matches
+
+                # If we found a repair and it's different, apply it
+                if repaired_name and repaired_name != corrupt_name:
+
+                    # Check if the "repaired" name *already* exists (collision)
+                    existing_correct_obj = objects_by_name.get(repaired_name)
+
+                    if existing_correct_obj and existing_correct_obj.id != obj_to_fix.id:
+                        # --- MERGE PATH ---
+                        print(
+                            f"    WARNING: Found '{corrupt_name}' and '{repaired_name}'. Merging corrupt into correct...")
+
+                        # 1. Merge notes
+                        if obj_to_fix.project_name:
+                            notes_to_merge = obj_to_fix.project_name or ""
+                            if not (not notes_to_merge or notes_to_merge.lower().strip() in ('none', '<div>none</div>',
+                                                                                             'null')):
+                                existing_correct_obj.project_name = (
+                                                                                existing_correct_obj.project_name or "") + f"<br>---<br><em>(Merged from corrupt: {corrupt_name})</em><br>{notes_to_merge}"
+
+                        # 2. Re-link journals that point to the corrupt name
+                        db.query(JournalSession).filter_by(user_id=user.id, object_name=corrupt_name).update(
+                            {'object_name': repaired_name})
+
+                        # 3. Delete the corrupt object
+                        db.delete(obj_to_fix)
+                        print(f"      -> Merged and deleted '{corrupt_name}'.")
+
+                    else:
+                        # --- RENAME PATH ---
+                        print(f"    Repairing: '{corrupt_name}' -> '{repaired_name}'")
+
+                        # 1. Rename the object
+                        obj_to_fix.object_name = repaired_name
+
+                        # 2. Update all journal entries that pointed to the corrupt name
+                        db.query(JournalSession).filter_by(user_id=user.id, object_name=corrupt_name).update(
+                            {'object_name': repaired_name})
+
+                        # 3. Update the lookup map for this user
+                        objects_by_name[repaired_name] = obj_to_fix
+                        if corrupt_name in objects_by_name:
+                            del objects_by_name[corrupt_name]
+
+                    total_repaired += 1
+                    repaired_in_this_user += 1
+
+            if repaired_in_this_user > 0:
+                print(f"  Repaired {repaired_in_this_user} objects for this user.")
+            else:
+                print("  No corrupt IDs matching the repair rules were found for this user.")
+
+        # Commit all changes for all users at the very end
+        db.commit()
+        print("--- [REPAIR COMPLETE] ---")
+        print(f"✅ Repaired and re-linked {total_repaired} objects across all users.")
+        print("Database corruption has been fixed.")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ FATAL ERROR: {e}")
+        print("Database has been rolled back. No changes were saved.")
+        traceback.print_exc()
+    finally:
+        db.close()
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
