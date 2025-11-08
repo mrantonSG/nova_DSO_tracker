@@ -633,20 +633,30 @@
         </div>
       </div>
 
-      <div class="dropdown">
+    <div class="dropdown">
         <button class="file-button dropdown-btn">Import ▼</button>
         <div class="dropdown-content">
-          <a href="#" id="import-config-btn">Configuration</a>
-          <a href="#" id="import-journal-btn">Journal</a>
-          <a href="#" id="import-rigs-btn">Rigs</a>
-          <a href="#" id="import-photos-btn">Journal Photos</a>
+            <form id="form-import-config" action="{{ url_for('import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <a href="#" onclick="document.getElementById('file-import-config').click(); return false;">Configuration</a>
+                <input type="file" name="file" id="file-import-config" accept=".yaml" style="display:none;" onchange="handleImportSubmit(this, 'configuration')">
+            </form>
+
+            <form id="form-import-journal" action="{{ url_for('import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <a href="#" onclick="document.getElementById('file-import-journal').click(); return false;">Journal</a>
+                <input type="file" name="file" id="file-import-journal" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'journal')">
+            </form>
+
+            <form id="form-import-rigs" action="{{ url_for('import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <a href="#" onclick="document.getElementById('file-import-rigs').click(); return false;">Rigs</a>
+                <input type="file" name="file" id="file-import-rigs" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'rigs file')">
+            </form>
+
+            <form id="form-import-photos" action="{{ url_for('import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <a href="#" onclick="document.getElementById('file-import-photos').click(); return false;">Journal Photos</a>
+                <input type="file" name="file" id="file-import-photos" accept=".zip" style="display:none;" onchange="handleImportSubmit(this, 'journal photos archive')">
+            </form>
         </div>
       </div>
-
-      <input type="file" id="config-upload" accept=".yaml" style="display:none;">
-      <input type="file" id="journal-upload" accept=".yaml,.yml" style="display:none;">
-      <input type="file" id="rigs-upload" accept=".yaml,.yml" style="display:none;">
-      <input type="file" id="photos-upload" accept=".zip" style="display:none;">
     </div>
   </div>
 
@@ -1544,7 +1554,43 @@
             formElement.submit();
         }
     }
+    function handleImportSubmit(fileInput, entityName) {
+        if (!fileInput.files[0]) return; // No file selected
 
+        let confirmMsg = `This will import the ${entityName}. Are you sure?`;
+        if (entityName === 'configuration' || entityName === 'journal' || entityName === 'rigs file') {
+            confirmMsg = `This will merge/overwrite your current ${entityName}. The existing data will be backed up. Are you sure?`;
+        }
+
+        if (confirm(confirmMsg)) {
+            // User confirmed, submit via fetch
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+            const url = fileInput.form.action; // Get URL from the form's action attribute
+
+            fetch(url, {
+                method: "POST",
+                body: formData
+            })
+            .then(resp => {
+                if (!resp.ok) {
+                    // If the server returned an error (like 500), throw it
+                    throw new Error(`Import failed: Server returned status ${resp.status}`);
+                }
+                // SUCCESS! The server has processed the file and set a flash message.
+                // Now, we simply reload the page to see that message.
+                window.location.reload();
+            })
+            .catch(err => {
+                alert(`${entityName} import failed: ${err.message}`);
+                fileInput.value = ""; // Clear on failure
+            });
+
+        } else {
+            // User cancelled, clear the file input so they can try again
+            fileInput.value = "";
+        }
+    }
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
@@ -1720,33 +1766,7 @@
         });
         window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
 
-        function setupImport(btnId, inputId, url, entityName) {
-            const btn = document.getElementById(btnId), input = document.getElementById(inputId);
-            if (btn && input) {
-                btn.addEventListener('click', e => {
-                    e.preventDefault();
-                    // --- REFACTOR: Don't ask to overwrite for photos ---
-                    let confirmMsg = `This will import the ${entityName}. Are you sure?`;
-                    if (entityName === 'configuration' || entityName === 'journal' || entityName === 'rigs file') {
-                        confirmMsg = `This will merge/overwrite your current ${entityName}. The existing data will be backed up. Are you sure?`;
-                    }
-                    if (confirm(confirmMsg)) input.click();
-                });
-                input.addEventListener('change', function() {
-                    if (!this.files[0]) return;
-                    const formData = new FormData();
-                    formData.append("file", this.files[0]);
-                    fetch(url, { method: "POST", body: formData })
-                        .then(resp => { if (resp.ok && resp.redirected) window.location.href = resp.url; else throw new Error(`Import failed.`); })
-                        .catch(err => alert(`${entityName} import failed: ${err.message}`)).finally(() => { this.value = ""; });
-                });
-            }
-        }
 
-        setupImport('import-config-btn', 'config-upload', "{{ url_for('import_config') }}", 'configuration');
-        setupImport('import-journal-btn', 'journal-upload', "{{ url_for('import_journal') }}", 'journal');
-        setupImport('import-rigs-btn', 'rigs-upload', "{{ url_for('import_rig_config') }}", 'rigs file');
-        setupImport('import-photos-btn', 'photos-upload', "{{ url_for('import_journal_photos') }}", 'journal photos archive');
     });
 </script>
 
