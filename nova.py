@@ -97,7 +97,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.0.0"
+APP_VERSION = "4.0.2"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -1047,6 +1047,14 @@ def normalize_object_name(name: str) -> str:
     # WR 134 -> WR134
     match = re.match(r'^(WR)(\d+)$', name_str)
     if match: return f"WR {match.group(2)}"
+
+    # ABELL 21 -> ABELL21
+    match = re.match(r'^(ABELL)(\d+)$', name_str)
+    if match: return f"ABELL {match.group(2)}"
+
+    # BARNARD 33 -> BARNARD33
+    match = re.match(r'^(BARNARD)(\d+)$', name_str)
+    if match: return f"BARNARD {match.group(2)}"
 
     # --- 2. Fix simple space removal (M, IC, etc.) ---
     # This rule handles user input like "M 42"
@@ -8453,6 +8461,12 @@ def repair_corrupt_ids_command():
 
         # WR 134 -> WR134
         (re.compile(r'^(WR)(\d+)$'), r'WR \2'),
+
+        # ABELL 21 -> ABELL21
+        (re.compile(r'^(ABELL)(\d+)$'), r'ABELL \2'),
+
+        # BARNARD 33 -> BARNARD33
+        (re.compile(r'^(BARNARD)(\d+)$'), r'BARNARD \2'),
     ]
 
     try:
