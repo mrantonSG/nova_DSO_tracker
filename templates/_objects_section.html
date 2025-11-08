@@ -417,6 +417,14 @@
         match = nameStr.match(/^(WR)(\d+)$/);
         if (match) return `WR ${match[2]}`;
 
+        // ABELL 21 -> ABELL21
+        match = nameStr.match(/^(ABELL)(\d+)$/);
+        if (match) return `ABELL ${match[2]}`;
+
+        // BARNARD 33 -> BARNARD33
+        match = nameStr.match(/^(BARNARD)(\d+)$/);
+        if (match) return `BARNARD ${match[2]}`;
+
         // --- 2. Fix simple space removal (M, IC) ---
         // This rule handles user input like "M 42"
 
