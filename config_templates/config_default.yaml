@@ -454,7 +454,7 @@ objects:
 - DEC: '-23.928339811070003'
   Magnitude: 6.91
   Name: Dolphin Nebula
-  Object: Sh 2-308
+  Object: Sh2-308
   Project: none
   RA: '6.903623322455333'
   SB: 13.15
@@ -580,7 +580,7 @@ objects:
 - DEC: '59.949999999999996'
   Magnitude: 99.0
   Name: Flying Bat Nebula
-  Object: SH2-129
+  Object: Sh2-129
   Project: None
   RA: '21.196666666666662'
   SB: 109.47
@@ -1057,7 +1057,7 @@ objects:
 - DEC: '37.38024558325933'
   Magnitude: 17.81
   Name: Celestial Snow Angel
-  Object: Sh 2-106
+  Object: Sh2-106
   Project: None
   RA: '20.45745561643817'
   SB: 19.93

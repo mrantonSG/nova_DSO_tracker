@@ -1124,7 +1124,8 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.size = str(size) if size is not None else None
                 existing.sb = str(sb) if sb is not None else None
                 existing.active_project = active_project
-                existing.project_name = project_name
+                if project_name and project_name not in (existing.project_name or ""):
+                    existing.project_name = (existing.project_name or "") + f"<br>---<br><em>(Merged)</em><br>{project_name}"
                 existing.is_shared = is_shared
                 existing.shared_notes = shared_notes
                 existing.original_user_id = original_user_id
@@ -1451,7 +1452,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "user_id": user.id,
             "project_id": s.get("project_id"),
             "date_utc": dt,
-            "object_name": s.get("target_object_id") or s.get("object_name"),
+            "object_name": normalize_object_name(s.get("target_object_id") or s.get("object_name")),
             "notes": s.get("general_notes_problems_learnings"),
             "session_image_file": s.get("session_image_file"),
             "location_name": s.get("location_name"),
@@ -7800,6 +7801,114 @@ if not SINGLE_USER_MODE:
         print("--- [MIGRATION COMMAND] ---")
         print("✅ Migration task complete.")
 
+
+# =============================================================================
+# One-Time Data Migration for Object Name Normalization
+# =============================================================================
+
+@app.cli.command("clean-object-ids")
+def clean_object_ids_command():
+    """
+    Finds and merges duplicate AstroObjects caused by inconsistent naming
+    (e.g., 'M 42' vs 'M42'). This MUST be run before deploying code
+    that enforces name normalization on import.
+    """
+    print("--- [OBJECT ID CLEANUP] ---")
+    db = get_db()
+
+    # Use the same normalization function as the one in the app
+    #
+    def _normalize(name: str) -> str:
+        if not name: return None
+        name = str(name).strip().upper()
+        name = name.replace(" ", "").replace("-", "")
+        return name
+
+    try:
+        all_users = db.query(DbUser).all()
+        print(f"Found {len(all_users)} users to check...")
+        total_merged = 0
+        total_renamed = 0
+
+        for user in all_users:
+            print(f"--- Processing user: {user.username} ---")
+
+            # Find all objects for this user
+            user_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
+
+            # Group them by their *normalized* name
+            grouped_objects = {}
+            for obj in user_objects:
+                norm_name = _normalize(obj.object_name)
+                if norm_name:
+                    grouped_objects.setdefault(norm_name, []).append(obj)
+
+            for norm_name, object_list in grouped_objects.items():
+
+                # Case 1: No conflict. Just one object, but it might need renaming.
+                if len(object_list) == 1:
+                    obj = object_list[0]
+                    if obj.object_name != norm_name:
+                        old_name = obj.object_name
+
+                        # Rename the object
+                        obj.object_name = norm_name
+
+                        # Update all journal entries that used the old name
+                        db.query(JournalSession).filter_by(
+                            user_id=user.id,
+                            object_name=old_name
+                        ).update({'object_name': norm_name})
+
+                        print(f"  Renamed: '{old_name}' -> '{norm_name}' (and updated journals)")
+                        total_renamed += 1
+
+                # Case 2: Conflict! Multiple objects normalize to the same name.
+                elif len(object_list) > 1:
+                    # Sort to pick the oldest (lowest ID) as the "primary"
+                    object_list.sort(key=lambda o: o.id)
+                    primary_obj = object_list[0]
+                    duplicates = object_list[1:]
+
+                    print(f"  Merging {len(duplicates)} duplicates into '{norm_name}' (Primary ID: {primary_obj.id})")
+
+                    primary_notes = primary_obj.project_name or ""
+
+                    for dup in duplicates:
+                        print(f"    - Merging '{dup.object_name}' (ID: {dup.id})")
+
+                        # 1. Merge project notes (Trix HTML is safe to just append)
+                        if dup.project_name:
+                            primary_notes += f"<br>---<br><em>(Merged from: {dup.object_name})</em><br>{dup.project_name}"
+
+                        # 2. Re-assign all journal entries from the duplicate
+                        db.query(JournalSession).filter_by(
+                            user_id=user.id,
+                            object_name=dup.object_name
+                        ).update({'object_name': norm_name})
+
+                        # 3. Delete the duplicate object
+                        db.delete(dup)
+                        total_merged += 1
+
+                    # 4. Update the primary object's name (if needed) and its merged notes
+                    primary_obj.object_name = norm_name
+                    primary_obj.project_name = primary_notes
+
+        # All loops done, commit the changes for all users
+        db.commit()
+        print("--- [CLEANUP COMPLETE] ---")
+        print(f"✅ Renamed {total_renamed} objects.")
+        print(f"✅ Merged and deleted {total_merged} duplicate objects.")
+        print("Database is now clean.")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ FATAL ERROR: {e}")
+        print("Database has been rolled back. No changes were saved.")
+        traceback.print_exc()
+    finally:
+        db.close()
 
 @app.cli.command("seed-empty-users")
 def seed_empty_users_command():
