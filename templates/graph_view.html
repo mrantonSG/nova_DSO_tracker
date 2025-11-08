@@ -882,14 +882,14 @@
     });
 </script>
 <div class="tab-container">
-    <button class="tab-button active" data-tab="chart" onclick="showTab('chart')">Chart</button>
+    <button class="tab-button" data-tab="chart" onclick="showTab('chart')">Chart</button>
     <button class="tab-button" data-tab="journal" onclick="showTab('journal')">Journal</button>
     <button class="tab-button" data-tab="framing" onclick="showTab('framing')">Framing & Notes</button>
     <button class="tab-button" data-tab="opportunities" onclick="showTab('opportunities')">Opportunities</button>
     <button class="tab-button" data-tab="simbad" onclick="showTab('simbad')">SIMBAD</button>
 </div>
 
-<div id="chart-tab" class="tab-content active">
+<div id="chart-tab" class="tab-content">
     <div id="chart-section">
         <div style="width: 100%; max-width: 1300px; margin-left: 0;">
             <div id="chart-area">
@@ -1173,20 +1173,21 @@
 })();
 
 document.addEventListener('DOMContentLoaded', (event) => {
-    // 1. Check for a 'tab' parameter in the URL first
+    // Check for a 'tab' parameter in the URL first
     const params = new URLSearchParams(window.location.search);
     const tabFromUrl = params.get('tab');
 
-    if (tabFromUrl) {
-        showTab(tabFromUrl);
-        return; // Use the tab from the URL and stop here
-    }
-
-    // 2. If no URL parameter, fall back to localStorage
+    // Check local storage for the last used tab
     const lastTab = localStorage.getItem('lastActiveTab-{{ object_name|tojson }}');
-    if (lastTab) {
-        showTab(lastTab);
-    }
+
+    // Determine which tab to show in order of priority:
+    // 1. Tab from URL (e.g., &tab=journal)
+    // 2. Last used tab from local storage
+    // 3. Default to 'chart'
+    const tabToShow = tabFromUrl || lastTab || 'chart';
+
+    // Show the determined tab
+    showTab(tabToShow);
 });
 
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
