@@ -97,7 +97,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.0.2"
+APP_VERSION = "4.0.3"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -5510,8 +5510,17 @@ def import_config():
         try:
             user = _upsert_user(db, username)  # Get or create the user in app.db
 
-            # We re-use the exact same logic from your one-time migration
-            # This is robust and efficient.
+            print(f"[IMPORT_CONFIG] Deleting all existing locations and objects for user '{username}' before import...")
+
+            # 1. Delete existing locations (and their horizon points via cascade)
+            db.query(Location).filter_by(user_id=user.id).delete()
+
+            # 2. Delete existing objects
+            db.query(AstroObject).filter_by(user_id=user.id).delete()
+
+            # 3. Flush the deletions to the session
+            db.flush()
+
             _migrate_locations(db, user, new_config)
             _migrate_objects(db, user, new_config)
             _migrate_ui_prefs(db, user, new_config)
@@ -7715,7 +7724,16 @@ def import_rig_config():
             db = get_db()
             try:
                 user = _upsert_user(db, username)  # Get or create the user in app.db
+                print(f"[IMPORT_RIGS] Deleting all existing rigs and components for user '{username}' before import...")
 
+                # 1. Delete existing Rigs (must be done first due to foreign keys)
+                db.query(Rig).filter_by(user_id=user.id).delete()
+
+                # 2. Delete existing Components
+                db.query(Component).filter_by(user_id=user.id).delete()
+
+                # 3. Flush the deletions
+                db.flush()
                 # Use the migration helper to load data directly into the DB
                 _migrate_components_and_rigs(db, user, new_rigs_data, username)
 
