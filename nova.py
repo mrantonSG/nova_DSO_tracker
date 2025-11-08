@@ -975,6 +975,21 @@ def _upsert_user(db, username: str) -> DbUser:
         db.flush()
     return u
 
+def normalize_object_name(name: str) -> str:
+    """
+    Converts messy object names into a standard primary key.
+    e.g., "M 42", "M-42", "m 42" -> "M42"
+    e.g., "NGC 7000" -> "NGC7000"
+    """
+    if not name:
+        return None
+    # Convert to uppercase, remove leading/trailing spaces
+    name = str(name).strip().upper()
+    # Remove all internal spaces and dashes
+    name = name.replace(" ", "").replace("-", "")
+    return name
+
+
 def _migrate_locations(db, user: DbUser, config: dict):
     """
     Idempotent import of locations:
@@ -1124,8 +1139,27 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.size = str(size) if size is not None else None
                 existing.sb = str(sb) if sb is not None else None
                 existing.active_project = active_project
-                if project_name and project_name not in (existing.project_name or ""):
-                    existing.project_name = (existing.project_name or "") + f"<br>---<br><em>(Merged)</em><br>{project_name}"
+
+                # --- START NEW ROBUST MERGE LOGIC ---
+                existing_notes = existing.project_name or ""
+                new_notes = project_name or ""
+
+                # Define what counts as "empty"
+                is_existing_empty = not existing_notes or existing_notes.lower().strip() in ('none', '<div>none</div>',
+                                                                                             'null')
+                is_new_empty = not new_notes or new_notes.lower().strip() in ('none', '<div>none</div>', 'null')
+
+                if is_new_empty:
+                    # New notes are empty, so do nothing. Keep the existing notes.
+                    pass
+                elif is_existing_empty:
+                    # Existing notes are empty, so just replace them with the new notes.
+                    existing.project_name = new_notes
+                elif new_notes not in existing_notes:
+                    # Both have notes, and they are different. Append them.
+                    existing.project_name = existing_notes + f"<br>---<br><em>(Merged)</em><br>{new_notes}"
+                # --- END NEW ROBUST MERGE LOGIC ---
+
                 existing.is_shared = is_shared
                 existing.shared_notes = shared_notes
                 existing.original_user_id = original_user_id
@@ -1155,6 +1189,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     catalog_info=catalog_info,
                 )
                 db.add(new_object)
+                db.flush()
 
         except Exception as e:
             # If one object entry is malformed, log the error and continue with the rest.
@@ -4871,20 +4906,6 @@ def journal_add_for_target(object_name):
 
     # For GET requests, the original behavior is maintained.
     return redirect(url_for('journal_add', target=object_name))
-
-def normalize_object_name(name: str) -> str:
-    """
-    Converts messy object names into a standard primary key.
-    e.g., "M 42", "M-42", "m 42" -> "M42"
-    e.g., "NGC 7000" -> "NGC7000"
-    """
-    if not name:
-        return None
-    # Convert to uppercase, remove leading/trailing spaces
-    name = str(name).strip().upper()
-    # Remove all internal spaces and dashes
-    name = name.replace(" ", "").replace("-", "")
-    return name
 
 def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
