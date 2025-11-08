@@ -5,16 +5,22 @@ A Flask-based web application designed specifically for astrophotographers, prov
 
 ## Features
 
-  - Real-time altitude and azimuth tracking for DSOs
-  - Visibility forecasts based on altitude, moon illumination, and angular separation
-  - Integration with Stellarium for live sky visualization
-  - Customizable imaging opportunity alerts
-  - Imaging Journal
-  - Horizon Masking
-  - Aladin based Framing Assistant
-  - **New in 3.8.0:** Stable SQLite database backend for all user data
-  - **New in 3.8.0:** Background-processed weather and "Monthly Outlook" caches for a faster UI
-  - **New in 3.8.0:** Automatic version checking
+  - **New in 4.0.0:** **Smart Object Library** with automatic duplicate detection. `M42`, `M 42`, and `m-42` are all recognized as the same object, preventing duplicates.
+  - **New in 4.0.0:** **Object Catalog Importer** to add curated lists (like Messier, Caldwell, etc.) from a central server.
+  - **New in 4.0.0:** **Sharing (Multi-User):** Share your objects and rig components with other users on the same server.
+  - **New in 4.0.0:** **Enhanced Framing:** The Aladin-based framing assistant now uses your local, correct RA/Dec, includes new surveys (NSNS), and can overlay all objects from your database to find nearby targets.
+  - **New in 4.0.0:** **Smarter "Add Object"** workflow now checks your local database *before* searching SIMBAD.
+  - **New in 4.0.0:** **Revamped UI** with a tabbed "Objects" page (Manage, Add, Import) and new filters.
+  - **New in 4.0.0:** **Robust Backup/Restore** logic intelligently merges notes from duplicate objects when importing old YAML files, ensuring no data is lost.
+  - Real-time altitude and azimuth tracking for DSOs.
+  - Visibility forecasts based on altitude, moon illumination, and angular separation.
+  - Integration with Stellarium for live sky visualization.
+  - Customizable imaging opportunity alerts.
+  - Comprehensive Imaging Journal.
+  - Horizon Masking.
+  - Stable SQLite database backend for all user data.
+  - Background-processed weather and "Monthly Outlook" caches for a faster UI.
+  - Automatic version checking.
 
 ## Technologies Used
 
@@ -25,35 +31,47 @@ A Flask-based web application designed specifically for astrophotographers, prov
 
 -----
 
-## Upgrading to Version 3.8.0 (Migration Guide)
+## Upgrading to Version 4.0.0 (Data Migration Guide)
 
-Version 3.8.0 introduces a major change: all data (objects, locations, journals, rigs) is now stored in a single SQLite database (`instance/app.db`) instead of `.yaml` files. This makes the app faster and more reliable.
+This version introduces a powerful data-cleaning function to fix all inconsistent object names (e.g., `M 42` vs `M42`) from before the new normalization logic was added.
 
-Please follow the correct path for your installation.
+**Please follow the correct path for your installation.**
 
-### Single-Users (The Easiest Path)
+### Single-Users (The Easy Path)
 
-For a new installation, the easiest way to get your data into the new version is to import your old YAML files.
+Your upgrade is simple. The new "smart" import logic will handle the entire migration for you.
 
-**Safety Belt:** Before you install this new version, we **highly recommend** you go to your *old* Nova's "Config" page and use the **"Download" buttons** to get fresh backups of your `config_default.yaml`, `rigs_default.yaml`, and `journal_default.yaml` files.
+**Safety Belt:** Before you install this new version, go to your *old* Nova's "Config" page and use the **"Download" buttons** to get fresh backups of your `config_...yaml`, `rigs_...yaml`, and `journal_...yaml` files.
 
-**Your Simple 3-Step Migration:**
+**Your 3-Step Migration:**
 
-1.  **Install & Run:** Install and run version 3.8.0. The app will start up with a blank, "factory-default" setup.
-2.  **Go to Config:** Navigate to the "Config" page in the web UI.
-3.  **Import:** Use the **"Import" buttons** to upload your saved `config_default.yaml`, `rigs_default.yaml`, and `journal_default.yaml` files one by one.
+1.  **Install & Run:** Install and run the new version. The app will start with a fresh, empty database.
+2.  **Go to Config:** Navigate to the "Config" page.
+3.  **Import:** Use the **"Import" buttons** in this order:
+    1.  Import your `config_...yaml` file. The new code will automatically find duplicates, merge their project notes, and create a clean object list.
+    2.  Import your `rigs_...yaml` file.
+    3.  Import your `journal_...yaml` file. The new code will automatically link all your old sessions to the new, clean object IDs.
 
-Your system will be fully migrated and running on the new database.
+Your system will be fully migrated and all your old data will be clean and consistent.
 
 ### Multi-User (MU) Admins
 
-For multi-user installations, the migration is a **manual, controlled process** that you must run from the command line.
+Your live database is still running with "messy" data. You must run a **one-time admin command** to clean your database. This command will merge duplicates, merge all notes, and re-link all journal entries for all users.
 
-A detailed guide named `MIGRATION_MANUAL.md` is included in the main folder of this release. **Please follow this document carefully** to safely migrate all your users.
+**This must be done during a maintenance window when the server is offline.**
+
+1.  **Stop your application** (e.g., `docker compose stop nova`).
+2.  **Run the cleanup script.** This command will find and fix all inconsistent data for all users in your `app.db` file.
+    ```bash
+    docker compose run --rm nova flask --app nova clean-object-ids
+    ```
+3.  **Restart your application** (e.g., `docker compose up -d nova`).
+
+Your system is now fully migrated. All users will see a clean, de-duplicated object list, and all journal links will be preserved.
 
 -----
 
-# Nova DSO Altitude Tracker 3.8 - Quick Guide
+# Nova DSO Tracker - Quick Guide
 
 ### Purpose
 
@@ -67,7 +85,7 @@ In addition it provides information about the angular separation between the obj
 
 Includes a comprehensive Imaging Journal to log your imaging sessions.
 
-Powerful, interactive framing assistant
+Powerful, interactive framing assistant.
 
 ### Main Interface
 
@@ -104,24 +122,29 @@ Once you set the sorting order and filters, the screen will continue updating ev
 
 ### Configuration
 
-Nova comes pre-loaded with several DSOs. You can manage (add, remove, or edit) locations and objects from the configuration screen. To add an object, enter its ID and click `search`. This will trigger a SIMBAD search. If an object was found you can edit its name and project fields and finally add it to your list.
+The "Configuration" page is now organized into sub-tabs for easier management.
 
-  - **Object Designations:** SIMBAD may not recognize all object IDs. You can however add objects also manually. In that case you need to enter RA and DEC.
-  - **Highlighting Objects:** Entering text in the "Notes" field (project in the yaml file) highlights the corresponding object in the main interface. The main purpose is to mark objects you plan to image. In the project field you can put all necessary information, such as the rig you plan to use.
+  - **Locations:** Manage (add, remove, or edit) locations. This page now features a **dropdown menu for timezones** to prevent errors. You can also define a **horizon mask** for imaging sites with obstructions.
+  - **Objects:**
+      - **Manage My Objects:** Edit all objects in your library. You can filter by name, constellation, type, and sharing status.
+      - **Add New Object:** Add a new object. The app will **first check your local library** for a normalized match (e.g., `M 42` will find your existing `M42`). If not found locally, it will then search SIMBAD. You can also add objects manually.
+      - **Import from Catalog:** Import new object lists (e.g., "Messier Catalog") provided by the server. This is non-destructive and will not overwrite your existing data.
+![Screenshot_40_objects.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_40_objects.png)
+  - **Rigs:** Configure your equipment (telescopes, cameras, reducers), combine them into rigs, and calculate your imaging setup's sampling and FOV.
 
-![Screenshot_35_HM.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_35_HM.png)
 ![Screenshot_27_config.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_30_rigs.png)
+  - **Shared Items (Multi-User):** View and import objects and components shared by other users on the server.
+
+![Screenshot_40_sharing.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_40_sharing.png)
+**Highlighting Objects:** Entering text in the "Notes" field highlights the corresponding object in the main interface. The main purpose is to mark objects you plan to image.
 
 
-#### Data Storage in v3.8.0+ (The Database)
 
-Starting in version 3.8.0, all your locations, objects, and settings are stored in a single database file (`instance/app.db`). The old `.yaml` files are **no longer used** for live data.
+#### Data Storage (v3.8.0 and newer)
+
+All your locations, objects, and settings are stored in a single database file (`instance/app.db`). The old `.yaml` files are **no longer used** for live data.
 
 The "Download" and "Upload" buttons on the config page are now used for **backing up and restoring** your data from the database.
-
-There is an optional field in locations, where you can define a horizon mask. So if you have certain obstructions at your imaging sites you can configure them there. All calculations will then be based on obstruction free view.
-
-Under the tab "Rigs" you can configure your equipment, configure rigs and calculate the sampling. The rigs configured here can later be selected in the journal.
 
 ### Populating Missing Object Details
 
@@ -141,7 +164,7 @@ Clicking on a DSO in the main list opens detailed graphical information about it
 You can not only see the current night, but you can select a date you want to see. Just select the day and or month and year and click on "Day".
 The daily graph also displays a vertical dashed line indicating the meridian transit, which is the point of highest altitude and a crucial time for equatorial mount users to plan for a "meridian flip."
 
-![Screenshot_36_graphic.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_36_graphic.png)
+![Screenshot_40_graph.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_40_graph.png)
 
 ![Screenshot_28_month.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_month.png)
 
@@ -158,7 +181,7 @@ In addition, you will also see an approximate fit of your configured rigs.
 
 You can edit the selection criteria for the opportunity search in the configuration settings.
 
-The "Show Framing" button opens a powerful framing assistant.
+The "Show Framing" button opens a powerful framing assistant. This tool now uses your object's **local RA/Dec data** for perfect accuracy, includes **new surveys (like NSNS)**, and can **overlay all other objects** from your database to help you find nearby targets.
 
 ![Screenshot_29_opportunities.png](https://raw.githubusercontent.com/mrantonSG/nova_DSO_tracker/master/docs/Screenshot_32_framing.png)
 
@@ -181,10 +204,10 @@ You can add new sessions by clicking the "add new session" button - and filling 
 
 Version 3.3 (and later) introduces an optional and anonymous telemetry system to help me understand how the app is used and where to focus development efforts.
 
-  * **What it is for**: It sends a small, anonymous "heartbeat" to help me understand things like which operating systems are most common and if it runs under Docker.
-  * **What it collects**: It only sends **anonymous aggregate data**, such as your app version, OS type (e.g., Windows, Linux), and the *counts* of your objects, rigs, and locations. (to understand if we run in a bottleneck)
-  * **What it DOES NOT collect**: It **NEVER** sends any personal data, including the names of your objects, your location coordinates, your project notes, or any other sensitive information.
-  * **It is Opt-Out**: You can disable this feature at any time on the **Configuration -\> General** page.
+  - **What it is for**: It sends a small, anonymous "heartbeat" to help me understand things like which operating systems are most common and if it runs under Docker.
+  - **What it collects**: It only sends **anonymous aggregate data**, such as your app version, OS type (e.g., Windows, Linux), and the *counts* of your objects, rigs, and locations. (to understand if we run in a bottleneck)
+  - **What it DOES NOT collect**: It **NEVER** sends any personal data, including the names of your objects, your location coordinates, your project notes, or any other sensitive information.
+  - **It is Opt-Out**: You can disable this feature at any time on the **Configuration -\> General** page.
 
 # Nova Astronomical Tracker Setup Guide
 
@@ -370,6 +393,6 @@ See the Docker Hub page for instructions on how to run the container.
 
 Nova DSO Tracker is licensed under the Apache 2.0 License **with the Commons Clause**.
 Free for personal, educational, and non-commercial use only. Commercial use requires explicit permission.
-See [LICENSE](LICENSE)  for full details.
+See [LICENSE](LICENSE) for full details.
 
 clear skies\!
