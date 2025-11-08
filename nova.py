@@ -7831,14 +7831,12 @@ if not SINGLE_USER_MODE:
 def clean_object_ids_command():
     """
     Finds and merges duplicate AstroObjects caused by inconsistent naming
-    (e.g., 'M 42' vs 'M42'). This MUST be run before deploying code
-    that enforces name normalization on import.
+    (e.g., 'M 42' vs 'M42'). Runs in two passes to avoid
+    database integrity errors during the transaction.
     """
     print("--- [OBJECT ID CLEANUP] ---")
     db = get_db()
 
-    # Use the same normalization function as the one in the app
-    #
     def _normalize(name: str) -> str:
         if not name: return None
         name = str(name).strip().upper()
@@ -7854,10 +7852,10 @@ def clean_object_ids_command():
         for user in all_users:
             print(f"--- Processing user: {user.username} ---")
 
-            # Find all objects for this user
+            # --- PASS 1: Merge and Delete Duplicates ---
+            print("  Pass 1: Merging and deleting duplicates...")
             user_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
 
-            # Group them by their *normalized* name
             grouped_objects = {}
             for obj in user_objects:
                 norm_name = _normalize(obj.object_name)
@@ -7865,63 +7863,86 @@ def clean_object_ids_command():
                     grouped_objects.setdefault(norm_name, []).append(obj)
 
             for norm_name, object_list in grouped_objects.items():
-
-                # Case 1: No conflict. Just one object, but it might need renaming.
-                if len(object_list) == 1:
-                    obj = object_list[0]
-                    if obj.object_name != norm_name:
-                        old_name = obj.object_name
-
-                        # Rename the object
-                        obj.object_name = norm_name
-
-                        # Update all journal entries that used the old name
-                        db.query(JournalSession).filter_by(
-                            user_id=user.id,
-                            object_name=old_name
-                        ).update({'object_name': norm_name})
-
-                        print(f"  Renamed: '{old_name}' -> '{norm_name}' (and updated journals)")
-                        total_renamed += 1
-
-                # Case 2: Conflict! Multiple objects normalize to the same name.
-                elif len(object_list) > 1:
-                    # Sort to pick the oldest (lowest ID) as the "primary"
+                if len(object_list) > 1:
+                    # Conflict found!
                     object_list.sort(key=lambda o: o.id)
                     primary_obj = object_list[0]
                     duplicates = object_list[1:]
 
-                    print(f"  Merging {len(duplicates)} duplicates into '{norm_name}' (Primary ID: {primary_obj.id})")
+                    print(
+                        f"    Merging {len(duplicates)} duplicates into '{primary_obj.object_name}' (ID: {primary_obj.id})")
 
                     primary_notes = primary_obj.project_name or ""
 
                     for dup in duplicates:
-                        print(f"    - Merging '{dup.object_name}' (ID: {dup.id})")
+                        print(f"      - Merging '{dup.object_name}' (ID: {dup.id})")
 
-                        # 1. Merge project notes (Trix HTML is safe to just append)
+                        # 1. Merge project notes
                         if dup.project_name:
-                            primary_notes += f"<br>---<br><em>(Merged from: {dup.object_name})</em><br>{dup.project_name}"
+                            # Use the same "none" check from the importer
+                            dup_notes = dup.project_name or ""
+                            if not (not dup_notes or dup_notes.lower().strip() in ('none', '<div>none</div>', 'null')):
+                                primary_notes += f"<br>---<br><em>(Merged from: {dup.object_name})</em><br>{dup_notes}"
 
-                        # 2. Re-assign all journal entries from the duplicate
+                        # 2. Re-assign all journal entries
                         db.query(JournalSession).filter_by(
                             user_id=user.id,
                             object_name=dup.object_name
-                        ).update({'object_name': norm_name})
+                        ).update({'object_name': primary_obj.object_name})  # Point to primary's *current* name
 
                         # 3. Delete the duplicate object
                         db.delete(dup)
                         total_merged += 1
 
-                    # 4. Update the primary object's name (if needed) and its merged notes
-                    primary_obj.object_name = norm_name
+                    # 4. Update the primary object's merged notes
                     primary_obj.project_name = primary_notes
 
-        # All loops done, commit the changes for all users
+            # --- FLUSH PASS 1 ---
+            # This commits all deletions and note merges
+            db.flush()
+            print("  Pass 1: Complete. Duplicates removed.")
+
+            # --- PASS 2: Rename Remaining Messy Objects ---
+            print("  Pass 2: Renaming remaining objects...")
+            all_remaining_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
+
+            for obj in all_remaining_objects:
+                norm_name = _normalize(obj.object_name)
+                if obj.object_name != norm_name:
+                    old_name = obj.object_name
+
+                    # Check if a different object with the clean name now exists (should not happen, but safe)
+                    existing_clean = db.query(AstroObject).filter(
+                        AstroObject.user_id == user.id,
+                        AstroObject.object_name == norm_name,
+                        AstroObject.id != obj.id
+                    ).first()
+
+                    if existing_clean:
+                        print(
+                            f"    ERROR: Cannot rename '{old_name}' to '{norm_name}' because it already exists (ID: {existing_clean.id}). Skipping.")
+                        continue
+
+                    # Rename the object
+                    obj.object_name = norm_name
+
+                    # Update all journal entries that used the old name
+                    db.query(JournalSession).filter_by(
+                        user_id=user.id,
+                        object_name=old_name
+                    ).update({'object_name': norm_name})
+
+                    print(f"    Renamed: '{old_name}' -> '{norm_name}' (and updated journals)")
+                    total_renamed += 1
+
+            print("  Pass 2: Complete.")
+
+        # All users done, commit the entire transaction
         db.commit()
         print("--- [CLEANUP COMPLETE] ---")
-        print(f"✅ Renamed {total_renamed} objects.")
         print(f"✅ Merged and deleted {total_merged} duplicate objects.")
-        print("Database is now clean.")
+        print(f"✅ Renamed {total_renamed} objects.")
+        print("Database is now clean and ready for the new version.")
 
     except Exception as e:
         db.rollback()
