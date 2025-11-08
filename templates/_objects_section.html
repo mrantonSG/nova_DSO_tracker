@@ -347,6 +347,10 @@
 </div>
 
 <script>
+    function normalizeObjectNameJS(name) {
+        if (!name) return null;
+        return String(name).trim().toUpperCase().replace(/ /g, '').replace(/-/g, '');
+    }
     // --- Sub-tab management ---
     function showObjectSubTab(tabName) {
         // Hide all content
@@ -509,43 +513,112 @@
             if (submitNewObjectBtn) {
                 submitNewObjectBtn.addEventListener('click', e => {
                     e.preventDefault();
-                    const objectName = document.getElementById('new_object').value.trim();
-                    if (!objectName) { alert("Please enter an object identifier."); return; }
-                    resultDiv.innerHTML = '<p class="progress-message">Searching...</p>';
-                    fetch("{{ url_for('search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
-                    .then(r => r.json()).then(data => {
-                      if (data.status !== "success") throw new Error(data.message);
-                      document.getElementById('new_name').value = data.data["Common Name"];
-                      document.getElementById('new_ra').value = data.data["RA (hours)"];
-                      document.getElementById('new_dec').value = data.data["DEC (degrees)"];
-                      document.getElementById('new_constellation').value = data.data["Constellation"] || '';
-                      ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
-                      resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
-                      return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
-                    }).then(r => r.json()).then(extra => {
-                      const commonName = document.getElementById('new_name').value;
-                      resultDiv.innerHTML = `<p class="message">Found: ${commonName}. Details loaded.</p>`;
+                    const objectNameInput = document.getElementById('new_object');
+                    const objectName = objectNameInput.value.trim();
+                    if (!objectName) {
+                        alert("Please enter an object identifier.");
+                        return;
+                    }
 
-                      if (extra.status === 'success') {
-                          document.getElementById('new_type').value = extra.data.Type || '';
-                          document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
-                          document.getElementById('new_size').value = extra.data.Size || '';
-                          document.getElementById('new_sb').value = extra.data.SB || '';
-                      }
-                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
-                          if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
-                      });
-                      submitNewObjectBtn.style.display = 'none';
-                    }).catch(err => {
-                      resultDiv.innerHTML = `<p class="error">Error: ${err.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
-                      ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
-                          if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
-                      });
-                      submitNewObjectBtn.style.display = 'none';
-                      ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
-                          const el = document.getElementById(id);
-                          if(el) el.readOnly = false;
-                      });
+                    // 1. Normalize the name, just as you requested
+                    const normName = normalizeObjectNameJS(objectName);
+                    resultDiv.innerHTML = '<p class="progress-message">Checking your local library for ' + normName + '...</p>';
+
+                    // --- 2. NEW LOGIC: PATH A (Check Local DB First) ---
+                    // It calls the /api/get_object_data/ endpoint with the *normalized* name
+                    fetch(`/api/get_object_data/${normName}`)
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json(); // Object was found locally
+                        }
+                        // Object not found, throw an error to trigger Path B (SIMBAD)
+                        throw new Error('Object not found in local library. Checking SIMBAD...');
+                    })
+                    .then(data => {
+                        // --- PATH A: SUCCESS - Object Found Locally ---
+                        resultDiv.innerHTML = `<p class="message">Object '${normName}' found in your library. Loading for edit.</p>`;
+
+                        // Populate form with YOUR LOCAL data
+                        objectNameInput.value = data.Object; // Use the canonical name
+                        document.getElementById('new_name').value = data["Common Name"];
+                        document.getElementById('new_ra').value = data["RA (hours)"];
+                        document.getElementById('new_dec').value = data["DEC (degrees)"];
+                        document.getElementById('new_constellation').value = data.Constellation || '';
+                        document.getElementById('new_type').value = data.Type || '';
+                        document.getElementById('new_magnitude').value = data.Magnitude || '';
+                        document.getElementById('new_size').value = data.Size || '';
+                        document.getElementById('new_sb').value = data.SB || '';
+
+                        // Populate Trix editors with local notes
+                        const projectEditor = document.getElementById('new_project_editor');
+                        if (projectEditor) projectEditor.editor.loadHTML(data.Project || '');
+
+                        {% if not SINGLE_USER_MODE %}
+                        const sharedNotesEditor = document.getElementById('new_shared_notes_editor');
+                        if (sharedNotesEditor) sharedNotesEditor.editor.loadHTML(data.shared_notes || '');
+
+                        const isSharedCheck = document.getElementById('new_is_shared');
+                        if (isSharedCheck) {
+                            isSharedCheck.checked = data.is_shared || false;
+                            isSharedCheck.disabled = !!data.original_user_id; // Disable if imported
+                        }
+                        {% endif %}
+
+                        // Set form state to "Edit" (not "Confirm Add")
+                        ['new_object', 'new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+                        ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
+                            if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
+                        });
+                        submitNewObjectBtn.style.display = 'none';
+
+                    })
+                    .catch(err => {
+                        // --- 3. PATH B: FAILED - Object Not Local, Search SIMBAD ---
+                        // This is the ORIGINAL search logic, running only if the local check fails
+                        resultDiv.innerHTML = `<p class="progress-message">${err.message}</p>`;
+
+                        fetch("{{ url_for('search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
+                        .then(r => r.json()).then(data => {
+                          if (data.status !== "success") throw new Error(data.message);
+
+                          // Populate with SIMBAD data
+                          document.getElementById('new_name').value = data.data["Common Name"];
+                          document.getElementById('new_ra').value = data.data["RA (hours)"];
+                          document.getElementById('new_dec').value = data.data["DEC (degrees)"];
+                          document.getElementById('new_constellation').value = data.data["Constellation"] || '';
+                          ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
+
+                          resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
+                          return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
+                        })
+                        .then(r => r.json()).then(extra => {
+                          const commonName = document.getElementById('new_name').value;
+                          resultDiv.innerHTML = `<p class="message">Found: ${commonName}. Details loaded from SIMBAD.</p>`;
+                          if (extra.status === 'success') {
+                              document.getElementById('new_type').value = extra.data.Type || '';
+                              document.getElementById('new_magnitude').value = extra.data.Magnitude || '';
+                              document.getElementById('new_size').value = extra.data.Size || '';
+                              document.getElementById('new_sb').value = extra.data.SB || '';
+                          }
+                          // Set form state to "Confirm Add"
+                          ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
+                              if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
+                          });
+                          submitNewObjectBtn.style.display = 'none';
+                        })
+                        .catch(simbadErr => {
+                          // --- 4. PATH C: BOTH LOCAL AND SIMBAD FAILED ---
+                          resultDiv.innerHTML = `<p class="error">Error: ${simbadErr.message}.<br>You can now add the object manually and click 'Confirm Add'.</p>`;
+                          ['confirm_add_object', 'edit_object', 'cancel_add_object'].forEach(id => {
+                              if (document.getElementById(id)) document.getElementById(id).style.display = 'inline-block';
+                          });
+                          submitNewObjectBtn.style.display = 'none';
+                          // Unlock all fields for manual entry
+                          ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
+                              const el = document.getElementById(id);
+                              if(el) el.readOnly = false;
+                          });
+                        });
                     });
                 });
             }
