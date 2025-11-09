@@ -108,7 +108,8 @@
                 <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier">
               </div>
             </div>
-        </div>
+            <div id="object-count-display" style="margin-top: 10px; padding: 5px 0 0 0; font-weight: bold; color: #555;"></div>
+          </div>
 
         <form method="post">
             <div class="objects-list">
@@ -456,9 +457,13 @@
 
         // Save choice
         localStorage.setItem('activeObjectSubTab', tabName);
+        // When the 'manage' tab is shown, run the filter to update the count.
+        if (tabName === 'manage' && typeof filterObjectsList === 'function') {
+            filterObjectsList();
+        }
     }
 
-    // --- All moved/self-contained object JS ---
+// --- All moved/self-contained object JS ---
     function filterObjectsList() {
         // 1. Get filter values
         const filterId = document.getElementById('object-filter-id').value.toLowerCase();
@@ -471,6 +476,11 @@
 
         // 2. Get all object blocks
         const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
+
+        // --- START: COUNTER LOGIC ---
+        let visibleCount = 0;
+        const totalCount = objectBlocks.length;
+        // --- END: COUNTER LOGIC ---
 
         // 3. Loop through each block and check
         objectBlocks.forEach(block => {
@@ -513,7 +523,24 @@
 
             // 5. Show or hide the block
             block.style.display = show ? '' : 'none';
+
+            // --- START: INCREMENT COUNTER ---
+            if (show) {
+                visibleCount++;
+            }
+            // --- END: INCREMENT COUNTER ---
         });
+
+        // --- START: UPDATE DISPLAY ---
+        const countDisplay = document.getElementById('object-count-display');
+        if (countDisplay) {
+            if (visibleCount === totalCount) {
+                countDisplay.textContent = `Showing ${totalCount} objects`;
+            } else {
+                countDisplay.textContent = `Showing ${visibleCount} of ${totalCount} objects`;
+            }
+        }
+        // --- END: UPDATE DISPLAY ---
     }
 
     function parseRAToDecimal(raStr) {
