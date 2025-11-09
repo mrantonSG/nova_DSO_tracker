@@ -957,7 +957,49 @@ function setSurvey(hipsId) {
     baseSurvey = aladin.getBaseImageLayer();
     updateImageAdjustments();
 }
-function updateImageAdjustments() { if (!baseSurvey) return; const b = parseFloat(document.getElementById('img-bright').value), c = parseFloat(document.getElementById('img-contrast').value), g = parseFloat(document.getElementById('img-gamma').value), s = parseFloat(document.getElementById('img-sat').value); baseSurvey.setBrightness(b); baseSurvey.setContrast(c); baseSurvey.setGamma(g); baseSurvey.setSaturation(s); }
+function updateImageAdjustments() {
+    // Read all slider values first
+    const b = parseFloat(document.getElementById('img-bright').value);
+    const c = parseFloat(document.getElementById('img-contrast').value);
+    const g = parseFloat(document.getElementById('img-gamma').value);
+    const s = parseFloat(document.getElementById('img-sat').value);
+
+    /**
+     * Helper function to apply adjustments to any Aladin layer
+     * that supports these methods.
+     */
+    const applySettings = (layer) => {
+        if (!layer) return;
+
+        // Check for the existence of each function before calling it
+        if (typeof layer.setBrightness === 'function') {
+            layer.setBrightness(b);
+        }
+        if (typeof layer.setContrast === 'function') {
+            layer.setContrast(c);
+        }
+        if (typeof layer.setGamma === 'function') {
+            layer.setGamma(g);
+        }
+        if (typeof layer.setSaturation === 'function') {
+            layer.setSaturation(s);
+        }
+    };
+
+    // 1. Apply settings to the main base survey layer
+    applySettings(baseSurvey);
+
+    // 2. Apply the *same* settings to the blend overlay layer, if it exists
+    if (aladin && typeof aladin.getOverlayImageLayer === 'function') {
+        try {
+            const blendLayer = aladin.getOverlayImageLayer('blend');
+            applySettings(blendLayer);
+        } catch (e) {
+            // This might fail if the layer hasn't been created, which is fine
+            // console.warn("Could not apply settings to blend layer (yet).", e);
+        }
+    }
+}
 function updateReadout(raDeg, decDeg) { document.getElementById('ra-readout').value = formatRA(raDeg); document.getElementById('dec-readout').value = formatDec(decDeg); }
 function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
 function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
