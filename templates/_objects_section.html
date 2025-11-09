@@ -430,7 +430,7 @@
         // This rule handles user input like "M 42"
 
         // --- THIS IS CORRECTED (Fix Bug 1) ---
-        match = nameStr.match(/^(M|IC)\s+(.*)$/);
+        match = nameStr.match(/^(M)\s+(.*)$/);
         if (match) {
             const prefix = match[1];
             // Remove all spaces from the number part

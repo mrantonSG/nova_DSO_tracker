@@ -97,7 +97,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.0.4"
+APP_VERSION = "4.0.5"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -1058,7 +1058,7 @@ def normalize_object_name(name: str) -> str:
 
     # --- 2. Fix simple space removal (M, IC, etc.) ---
     # This rule handles user input like "M 42"
-    match = re.match(r'^(M|IC)\s+(.*)$', name_str)
+    match = re.match(r'^(M)\s+(.*)$', name_str)
     if match:
         prefix = match.group(1)
         number_part = match.group(2).replace(" ", "")
@@ -8438,6 +8438,9 @@ def repair_corrupt_ids_command():
     # These rules target names that were incorrectly stripped of spaces/dashes.
     # NOTE: Order matters! More specific rules must come first.
     repair_rules = [
+        # IC 405 -> IC405
+        (re.compile(r'^(IC)(\d+)$'), r'IC \2'),
+
         # SNR G180.0-01.7 -> SNRG180.001.7 (bad script removed '-' and left '.')
         (re.compile(r'^(SNRG)(\d+\.\d+)(\d+\.\d+)$'), r'SNR G\2-\3'),
 
