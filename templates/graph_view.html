@@ -959,8 +959,7 @@
 
     <div class="content-section project-notes-section">
         <h3>Project Notes</h3>
-        <input type="hidden" id="project-field-hidden" name="project_notes_from_config"
-                   value="{{ project_notes_from_config | safe }}">
+        <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
 
         <trix-editor input="project-field-hidden" id="project-field-editor"
                      style="min-height: 150px; height: auto;"></trix-editor>
@@ -1188,6 +1187,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     // Show the determined tab
     showTab(tabToShow);
+    const projectEditor = document.getElementById('project-field-editor');
+    if (projectEditor) {
+        // When Trix is initialized and ready, load the HTML content.
+        projectEditor.addEventListener('trix-initialize', () => {
+            // We pass the HTML content from Python to JS safely using the 'tojson' filter.
+            // This converts it to a valid JavaScript string, quotes and all.
+            const projectHtml = {{ project_notes_from_config | tojson }};
+            if (projectHtml) {
+                projectEditor.editor.loadHTML(projectHtml);
+            }
+        });
+    }
 });
 
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
