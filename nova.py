@@ -7649,6 +7649,11 @@ def import_journal_photos():
     """
     Handles the upload of a ZIP archive and safely extracts its contents
     into the user's upload directory.
+
+    V2 FIX: This version strips all directory structures from the ZIP,
+    placing all files flatly into the user's root upload directory.
+    This correctly handles migrating from a multi-user (e.g., /uploads/mrantonSG/)
+    to a single-user (/uploads/default/) instance.
     """
     if 'file' not in request.files:
         flash("No file selected for photo import.", "error")
@@ -7668,28 +7673,42 @@ def import_journal_photos():
     os.makedirs(user_upload_dir, exist_ok=True)  # Ensure the destination exists
 
     try:
-        # Check if the file is a valid ZIP archive
         if not zipfile.is_zipfile(file):
             flash("Import failed: The uploaded file is not a valid ZIP archive.", "error")
             return redirect(url_for('config_form'))
 
-        # Rewind the file stream after the check
         file.seek(0)
 
+        extracted_count = 0
         with zipfile.ZipFile(file, 'r') as zf:
             for member in zf.infolist():
-                # 🔒 Security Check: Prevent path traversal attacks (Zip Slip)
-                # This ensures files are only extracted inside the user's directory.
-                target_path = os.path.join(user_upload_dir, member.filename)
-                if not os.path.abspath(target_path).startswith(os.path.abspath(user_upload_dir)):
-                    raise ValueError(f"Illegal file path in ZIP: {member.filename}")
+                # Skip directories
+                if member.is_dir():
+                    continue
 
-                # We only want to extract files, not directories
-                if not member.is_dir():
-                    # extract() will overwrite existing files, which is what we want for a restore
-                    zf.extract(member, user_upload_dir)
+                # Get just the filename, stripping all parent directories
+                filename = os.path.basename(member.filename)
 
-        flash("Journal photos imported successfully!", "success")
+                # Skip empty filenames (like .DS_Store or empty dir entries)
+                if not filename:
+                    continue
+
+                # 🔒 Security Check: Prevent path traversal
+                # (os.path.basename already helps, but we double-check)
+                if ".." in filename or filename.startswith(("/", "\\")):
+                    print(f"Skipping potentially malicious file: {member.filename}")
+                    continue
+
+                # Build the final, correct, flat target path
+                target_path = os.path.join(user_upload_dir, filename)
+
+                # Extract the file data
+                with zf.open(member) as source, open(target_path, "wb") as target:
+                    target.write(source.read())
+
+                extracted_count += 1
+
+        flash(f"Journal photos imported successfully! Extracted {extracted_count} files.", "success")
 
     except zipfile.BadZipFile:
         flash("Import failed: The ZIP file appears to be corrupted.", "error")
@@ -8448,24 +8467,30 @@ def repair_db_now():
 @app.cli.command("repair-image-links")
 def repair_image_links_command():
     """
-    Finds and repairs absolute image URLs in Trix content that were
-    incorrectly saved (e.g., 'http://localhost:5001/uploads/...') and
-    converts them to portable relative URLs (e.g., '/uploads/...').
-
-    This version handles URLs enclosed in EITHER single (') or double (") quotes.
+    Finds and repairs image URLs in Trix content.
+    1. Converts absolute URLs (e.g., 'http://localhost/...') to
+       portable relative URLs (e.g., '/uploads/...').
+    2. If in SINGLE_USER_MODE, also rewrites all user-specific paths
+       (e.g., '/uploads/mrantonSG/...') to the 'default' user path
+       (e.g., '/uploads/default/...').
     """
     print("--- [REPAIRING BROKEN IMAGE LINKS (v2)] ---")
     db = get_db()
 
-    # This regex finds any absolute URL pointing to /uploads/
-    # Group 1: The absolute host (e.g., http://localhost:5001)
-    # Group 2: The correct relative path (e.g., /uploads/default/image.png)
-    # Group 3: The terminating quote (EITHER " or ')
-    # We replace the entire match with Group 2 + Group 3.
-    url_pattern = re.compile(r'(http[s]?://[^/"\']+)(/uploads/.*?)(["\'])')
+    # Regex 1: Fixes absolute URLs (e.g., http://.../uploads/...)
+    # Groups: (1: http://host) (2: /uploads/user/img.jpg) (3: quote)
+    abs_url_pattern = re.compile(r'(http[s]?://[^/"\']+)(/uploads/.*?)(["\'])')
+    abs_replacement = r'\2\3'  # Replace with: /uploads/user/img.jpg"
 
-    # The new replacement string uses the captured quote (\3)
-    replacement_string = r'\2\3'
+    # Regex 2: Fixes user paths *only* if in Single-User Mode
+    su_url_pattern = None
+    su_replacement = None
+    if SINGLE_USER_MODE:
+        print("--- Running in Single-User Mode: Will also fix user paths to 'default' ---")
+        # Groups: (1: /uploads/) (2: !default) (3: /img.jpg) (4: quote)
+        # This regex finds any path in /uploads/ that is NOT 'default'
+        su_url_pattern = re.compile(r'(/uploads/)(?!default/)([^/]+)(/.*?)(["\'])')
+        su_replacement = r'\1default\3\4'  # Replace with: /uploads/default/img.jpg"
 
     total_objects_fixed = 0
     total_journals_fixed = 0
@@ -8482,19 +8507,32 @@ def repair_image_links_command():
             objects_fixed_count = 0
             for obj in objects_to_fix:
                 fixed = False
-                # Fix Private Notes
-                if obj.project_name and "/uploads/" in obj.project_name:
-                    # Use the new replacement string
-                    new_notes, count = url_pattern.subn(replacement_string, obj.project_name)
-                    if count > 0:
+
+                # --- Fix Private Notes ---
+                notes = obj.project_name
+                if notes and "/uploads/" in notes:
+                    # Step 1: Fix absolute URLs
+                    new_notes, count_abs = abs_url_pattern.subn(abs_replacement, notes)
+                    # Step 2: Fix user paths (if in SU mode and pattern exists)
+                    count_su = 0
+                    if su_url_pattern and "/uploads/" in new_notes:
+                        new_notes, count_su = su_url_pattern.subn(su_replacement, new_notes)
+
+                    if count_abs > 0 or count_su > 0:
                         obj.project_name = new_notes
                         fixed = True
 
-                # Fix Shared Notes
-                if obj.shared_notes and "/uploads/" in obj.shared_notes:
-                    # Use the new replacement string
-                    new_shared_notes, count = url_pattern.subn(replacement_string, obj.shared_notes)
-                    if count > 0:
+                # --- Fix Shared Notes ---
+                shared_notes = obj.shared_notes
+                if shared_notes and "/uploads/" in shared_notes:
+                    # Step 1: Fix absolute URLs
+                    new_shared_notes, count_abs = abs_url_pattern.subn(abs_replacement, shared_notes)
+                    # Step 2: Fix user paths (if in SU mode)
+                    count_su = 0
+                    if su_url_pattern and "/uploads/" in new_shared_notes:
+                        new_shared_notes, count_su = su_url_pattern.subn(su_replacement, new_shared_notes)
+
+                    if count_abs > 0 or count_su > 0:
                         obj.shared_notes = new_shared_notes
                         fixed = True
 
@@ -8509,10 +8547,16 @@ def repair_image_links_command():
             sessions_to_fix = db.query(JournalSession).filter_by(user_id=user.id).all()
             sessions_fixed_count = 0
             for session in sessions_to_fix:
-                if session.notes and "/uploads/" in session.notes:
-                    # Use the new replacement string
-                    new_journal_notes, count = url_pattern.subn(replacement_string, session.notes)
-                    if count > 0:
+                notes = session.notes
+                if notes and "/uploads/" in notes:
+                    # Step 1: Fix absolute URLs
+                    new_journal_notes, count_abs = abs_url_pattern.subn(abs_replacement, notes)
+                    # Step 2: Fix user paths (if in SU mode)
+                    count_su = 0
+                    if su_url_pattern and "/uploads/" in new_journal_notes:
+                        new_journal_notes, count_su = su_url_pattern.subn(su_replacement, new_journal_notes)
+
+                    if count_abs > 0 or count_su > 0:
                         session.notes = new_journal_notes
                         sessions_fixed_count += 1
 
