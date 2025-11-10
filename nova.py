@@ -8089,23 +8089,47 @@ def deprovision_user():
         ok = disable_user(username)
         return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
 
-
 @app.route('/uploads/<path:username>/<path:filename>')
 @login_required
 def get_uploaded_image(username, filename):
-    # Security check removed to allow for shared images.
-    # The @login_required decorator still prevents anonymous access.
+    """
+    Serve uploaded images.
 
-    # if not SINGLE_USER_MODE and current_user.username != username:
-    #     return "Forbidden", 403
+    Compatible with:
+    - Legacy notes where Trix stored /uploads/<old_username>/...
+    - Photo ZIP imports that always extract into the *current* user's directory
+    - Single-user installs that store everything under 'default'
+    """
 
-    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+    candidate_dirs = []
 
-    # Add a check to prevent errors if the file or directory doesn't exist
-    if not os.path.exists(os.path.join(user_upload_dir, filename)):
-        return "Not Found", 404
+    # 1) Directory that matches the URL segment (legacy behaviour)
+    candidate_dirs.append(os.path.join(UPLOAD_FOLDER, username))
 
-    return send_from_directory(user_upload_dir, filename)
+    # 2) In multi-user mode, also try the current user's directory.
+    #    This fixes MU→MU migrations where the username changed:
+    #    old HTML: /uploads/mrantonsG/..., new files: uploads/anton/...
+    if not SINGLE_USER_MODE:
+        current_name = getattr(current_user, "username", None)
+        if current_name and current_name != username:
+            candidate_dirs.append(os.path.join(UPLOAD_FOLDER, current_name))
+
+    # 3) In single-user mode, fall back to "default" for legacy paths.
+    if SINGLE_USER_MODE and username != "default":
+        candidate_dirs.append(os.path.join(UPLOAD_FOLDER, "default"))
+
+    for user_upload_dir in candidate_dirs:
+        base_dir = os.path.abspath(user_upload_dir)
+        target_path = os.path.abspath(os.path.join(user_upload_dir, filename))
+
+        # Prevent path traversal
+        if not target_path.startswith(base_dir + os.sep):
+            continue
+
+        if os.path.exists(target_path):
+            return send_from_directory(user_upload_dir, filename)
+
+    return "Not Found", 404
 
 
 @app.route('/api/get_shared_items')
@@ -8427,15 +8451,21 @@ def repair_image_links_command():
     Finds and repairs absolute image URLs in Trix content that were
     incorrectly saved (e.g., 'http://localhost:5001/uploads/...') and
     converts them to portable relative URLs (e.g., '/uploads/...').
+
+    This version handles URLs enclosed in EITHER single (') or double (") quotes.
     """
-    print("--- [REPAIRING BROKEN IMAGE LINKS] ---")
+    print("--- [REPAIRING BROKEN IMAGE LINKS (v2)] ---")
     db = get_db()
 
-    # This regex finds any absolute URL that points to the /uploads/ directory
-    # Group 1: The absolute host part (e.g., http://localhost:5001)
+    # This regex finds any absolute URL pointing to /uploads/
+    # Group 1: The absolute host (e.g., http://localhost:5001)
     # Group 2: The correct relative path (e.g., /uploads/default/image.png)
-    # We replace the entire match with just Group 2.
-    url_pattern = re.compile(r'(http[s]?://[^/"]+)(/uploads/.*?)"')
+    # Group 3: The terminating quote (EITHER " or ')
+    # We replace the entire match with Group 2 + Group 3.
+    url_pattern = re.compile(r'(http[s]?://[^/"\']+)(/uploads/.*?)(["\'])')
+
+    # The new replacement string uses the captured quote (\3)
+    replacement_string = r'\2\3'
 
     total_objects_fixed = 0
     total_journals_fixed = 0
@@ -8454,14 +8484,16 @@ def repair_image_links_command():
                 fixed = False
                 # Fix Private Notes
                 if obj.project_name and "/uploads/" in obj.project_name:
-                    new_notes, count = url_pattern.subn(r'\2"', obj.project_name)
+                    # Use the new replacement string
+                    new_notes, count = url_pattern.subn(replacement_string, obj.project_name)
                     if count > 0:
                         obj.project_name = new_notes
                         fixed = True
 
                 # Fix Shared Notes
                 if obj.shared_notes and "/uploads/" in obj.shared_notes:
-                    new_shared_notes, count = url_pattern.subn(r'\2"', obj.shared_notes)
+                    # Use the new replacement string
+                    new_shared_notes, count = url_pattern.subn(replacement_string, obj.shared_notes)
                     if count > 0:
                         obj.shared_notes = new_shared_notes
                         fixed = True
@@ -8478,7 +8510,8 @@ def repair_image_links_command():
             sessions_fixed_count = 0
             for session in sessions_to_fix:
                 if session.notes and "/uploads/" in session.notes:
-                    new_journal_notes, count = url_pattern.subn(r'\2"', session.notes)
+                    # Use the new replacement string
+                    new_journal_notes, count = url_pattern.subn(replacement_string, session.notes)
                     if count > 0:
                         session.notes = new_journal_notes
                         sessions_fixed_count += 1
