@@ -97,7 +97,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.0.5"
+APP_VERSION = "4.0.6"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -8315,7 +8315,7 @@ def upload_editor_image():
 
             # Create the public URL for the image
             # This must match the `get_uploaded_image` route
-            public_url = url_for('get_uploaded_image', username=username, filename=new_filename, _external=True)
+            public_url = url_for('get_uploaded_image', username=username, filename=new_filename)
 
             # Trix expects a JSON response with a 'url' key
             return jsonify({"url": public_url})
@@ -8420,6 +8420,89 @@ def repair_db_now():
         flash(f"Repair failed: {e}", "error")
     return redirect(url_for("index"))
 
+
+@app.cli.command("repair-image-links")
+def repair_image_links_command():
+    """
+    Finds and repairs absolute image URLs in Trix content that were
+    incorrectly saved (e.g., 'http://localhost:5001/uploads/...') and
+    converts them to portable relative URLs (e.g., '/uploads/...').
+    """
+    print("--- [REPAIRING BROKEN IMAGE LINKS] ---")
+    db = get_db()
+
+    # This regex finds any absolute URL that points to the /uploads/ directory
+    # Group 1: The absolute host part (e.g., http://localhost:5001)
+    # Group 2: The correct relative path (e.g., /uploads/default/image.png)
+    # We replace the entire match with just Group 2.
+    url_pattern = re.compile(r'(http[s]?://[^/"]+)(/uploads/.*?)"')
+
+    total_objects_fixed = 0
+    total_journals_fixed = 0
+
+    try:
+        all_users = db.query(DbUser).all()
+        print(f"Found {len(all_users)} user(s) to check...")
+
+        for user in all_users:
+            print(f"--- Processing user: {user.username} ---")
+
+            # 1. Fix AstroObject Notes (Private and Shared)
+            objects_to_fix = db.query(AstroObject).filter_by(user_id=user.id).all()
+            objects_fixed_count = 0
+            for obj in objects_to_fix:
+                fixed = False
+                # Fix Private Notes
+                if obj.project_name and "/uploads/" in obj.project_name:
+                    new_notes, count = url_pattern.subn(r'\2"', obj.project_name)
+                    if count > 0:
+                        obj.project_name = new_notes
+                        fixed = True
+
+                # Fix Shared Notes
+                if obj.shared_notes and "/uploads/" in obj.shared_notes:
+                    new_shared_notes, count = url_pattern.subn(r'\2"', obj.shared_notes)
+                    if count > 0:
+                        obj.shared_notes = new_shared_notes
+                        fixed = True
+
+                if fixed:
+                    objects_fixed_count += 1
+
+            if objects_fixed_count > 0:
+                print(f"    Fixed links in {objects_fixed_count} AstroObject note(s).")
+                total_objects_fixed += objects_fixed_count
+
+            # 2. Fix JournalSession Notes
+            sessions_to_fix = db.query(JournalSession).filter_by(user_id=user.id).all()
+            sessions_fixed_count = 0
+            for session in sessions_to_fix:
+                if session.notes and "/uploads/" in session.notes:
+                    new_journal_notes, count = url_pattern.subn(r'\2"', session.notes)
+                    if count > 0:
+                        session.notes = new_journal_notes
+                        sessions_fixed_count += 1
+
+            if sessions_fixed_count > 0:
+                print(f"    Fixed links in {sessions_fixed_count} JournalSession note(s).")
+                total_journals_fixed += sessions_fixed_count
+
+            if objects_fixed_count == 0 and sessions_fixed_count == 0:
+                print("    No broken image links found for this user.")
+
+        # Commit all changes for all users at the end
+        db.commit()
+        print("--- [REPAIR COMPLETE] ---")
+        print(f"✅ Repaired links in {total_objects_fixed} object notes and {total_journals_fixed} journal notes.")
+        print("Database has been updated with relative image paths.")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ FATAL ERROR: {e}")
+        print("Database has been rolled back. No changes were saved.")
+        traceback.print_exc()
+    finally:
+        db.close()
 
 @app.cli.command("repair-corrupt-ids")
 def repair_corrupt_ids_command():
