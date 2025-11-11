@@ -4903,7 +4903,24 @@ def journal_edit(session_id):
                                                                        "").strip() or None  # Added calibration
             session_to_edit.transparency_observed_scale = request.form.get("transparency_observed_scale",
                                                                            "").strip() or None
+            project_id_for_session = None  # Default to None (standalone)
+            project_selection = request.form.get("project_selection")
+            new_project_name = request.form.get("new_project_name", "").strip()
 
+            if project_selection == "new_project" and new_project_name:
+                # User wants to create a new project
+                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
+                db.add(new_project)
+                db.flush()  # Need the ID before we can assign it
+                project_id_for_session = new_project.id
+            elif project_selection and project_selection not in ["standalone", "new_project"]:
+                # User selected an existing project
+                project_id_for_session = project_selection
+
+            # If project_selection is "standalone", project_id_for_session remains None.
+
+            # Update the session object's project_id
+            session_to_edit.project_id = project_id_for_session
             total_seconds = (session_to_edit.number_of_subs_light or 0) * (
                         session_to_edit.exposure_time_per_sub_sec or 0) + \
                             (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
