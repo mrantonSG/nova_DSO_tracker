@@ -1138,6 +1138,7 @@ def _migrate_locations(db, user: DbUser, config: dict):
         except Exception as e:
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
+
 def _migrate_objects(db, user: DbUser, config: dict):
     """
     Idempotently migrates astronomical objects from a YAML configuration dictionary to the database.
@@ -1146,11 +1147,19 @@ def _migrate_objects(db, user: DbUser, config: dict):
     unique name for a given user. It prevents duplicates, handles various legacy key names,
     and automatically calculates the constellation if it's missing but coordinates are present.
 
-    Args:
-        db: The SQLAlchemy session object.
-        user (DbUser): The user account to which these objects will be associated.
-        config (dict): The user's configuration dictionary, expected to contain an 'objects' list.
+    *** V2: Automatically rewrites '/uploads/...' image links in notes to point to
+    *** the importing user's directory.
     """
+
+    # === START: Link Rewriting Logic ===
+    # Get the target username (e.g., 'default' or 'mrantonSG')
+    target_username = user.username
+    # This regex finds '/uploads/', captures the (old) username, and the rest of the path
+    link_pattern = re.compile(r'(/uploads/)([^/]+)(/.*?["\'])')
+    # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
+    replacement_str = r'\1' + re.escape(target_username) + r'\3'
+    # === END: Link Rewriting Logic ===
+
     # Safely get the list of objects, defaulting to an empty list if missing.
     objs = (config or {}).get("objects", []) or []
 
@@ -1179,9 +1188,19 @@ def _migrate_objects(db, user: DbUser, config: dict):
             size = o.get("Size") if o.get("Size") is not None else o.get("size")
             sb = o.get("SB") if o.get("SB") is not None else o.get("sb")
             active_project = bool(o.get("ActiveProject") or o.get("active_project") or False)
+
+            # === START: Link Rewriting Application ===
             project_name = o.get("Project") or o.get("project_name")
-            is_shared = bool(o.get("is_shared", False))
             shared_notes = o.get("shared_notes")
+
+            # Rewrite image links to point to the *importer's* directory
+            if project_name:
+                project_name = link_pattern.sub(replacement_str, project_name)
+            if shared_notes:
+                shared_notes = link_pattern.sub(replacement_str, shared_notes)
+            # === END: Link Rewriting Application ===
+
+            is_shared = bool(o.get("is_shared", False))
             original_user_id = _as_int(o.get("original_user_id"))
             original_item_id = _as_int(o.get("original_item_id"))
             catalog_sources = o.get("catalog_sources")
@@ -1198,7 +1217,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     coords = SkyCoord(ra=ra_f * u.hourangle, dec=dec_f * u.deg)
                     constellation = get_constellation(coords)
                 except Exception:
-                    constellation = None # Avoid crashing if coordinates are invalid.
+                    constellation = None  # Avoid crashing if coordinates are invalid.
 
             # --- 3. Perform the Idempotent "Upsert" ---
             # Query for an existing object with the normalized name.
@@ -1222,7 +1241,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
 
                 # --- START NEW ROBUST MERGE LOGIC ---
                 existing_notes = existing.project_name or ""
-                new_notes = project_name or ""
+                new_notes = project_name or ""  # Use the *fixed* project_name
 
                 # Define what counts as "empty"
                 is_existing_empty = not existing_notes or existing_notes.lower().strip() in ('none', '<div>none</div>',
@@ -1241,7 +1260,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 # --- END NEW ROBUST MERGE LOGIC ---
 
                 existing.is_shared = is_shared
-                existing.shared_notes = shared_notes
+                existing.shared_notes = shared_notes  # Use the *fixed* shared_notes
                 existing.original_user_id = original_user_id
                 existing.original_item_id = original_item_id
                 existing.catalog_sources = catalog_sources
@@ -1260,9 +1279,9 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     size=str(size) if size is not None else None,
                     sb=str(sb) if sb is not None else None,
                     active_project=active_project,
-                    project_name=project_name,
+                    project_name=project_name,  # Use the *fixed* project_name
                     is_shared=is_shared,
-                    shared_notes=shared_notes,
+                    shared_notes=shared_notes,  # Use the *fixed* shared_notes
                     original_user_id=original_user_id,
                     original_item_id=original_item_id,
                     catalog_sources=catalog_sources,
@@ -1528,6 +1547,15 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
         data.setdefault("projects", [])
         data.setdefault("sessions", data.get("entries", [])) # Use 'entries' as fallback
 
+    # === START: Link Rewriting Logic ===
+    # Get the target username (e.g., 'default' or 'mrantonSG')
+    target_username = user.username
+    # This regex finds '/uploads/', captures the (old) username, and the rest of the path
+    link_pattern = re.compile(r'(/uploads/)([^/]+)(/.*?["\'])')
+    # This builds the replacement string, e.g., '/uploads/default/image.jpg"'
+    replacement_str = r'\1' + re.escape(target_username) + r'\3'
+    # === END: Link Rewriting Logic ===
+
     # --- 1. Migrate Projects ---
     for p in (data.get("projects") or []):
         # Check if both project_id and project_name are present and non-empty
@@ -1562,13 +1590,22 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                 print(f"[MIGRATION][SESSION SKIP] Invalid date format '{date_str}' for session with external_id '{ext_id}'. Skipping.")
                 continue # Skip if date parsing fails
 
+        # === START: Link Rewriting Application ===
+        # Get the raw HTML notes from the YAML
+        notes_html = s.get("general_notes_problems_learnings")
+
+        # Rewrite image links to point to the *importer's* directory
+        if notes_html:
+            notes_html = link_pattern.sub(replacement_str, notes_html)
+        # === END: Link Rewriting Application ===
+
         # Map all YAML keys to DB columns
         row_values = {
             "user_id": user.id,
             "project_id": s.get("project_id"),
             "date_utc": dt,
             "object_name": normalize_object_name(s.get("target_object_id") or s.get("object_name")),
-            "notes": s.get("general_notes_problems_learnings"),
+            "notes": notes_html, # <-- USE THE FIXED HTML
             "session_image_file": s.get("session_image_file"),
             "location_name": s.get("location_name"),
             "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
