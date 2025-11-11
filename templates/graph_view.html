@@ -920,6 +920,26 @@
 </div>
 
 <div id="framing-tab" class="tab-content">
+
+    <div class="content-section project-notes-section">
+        <h3>Project Notes</h3>
+        <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
+
+        <trix-editor input="project-field-hidden" id="project-field-editor"
+                     style="min-height: 150px; height: auto;"></trix-editor>
+        <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+        <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
+            <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>
+            Active Project
+        </label>
+        <div class="button-group">
+            <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
+            <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
+            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
+        </div>
+        <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+    </div>
+
     {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
     <div class="content-section">
         <h3>Framing With Your Rigs</h3>
@@ -957,24 +977,6 @@
     </div>
     {% endif %}
 
-    <div class="content-section project-notes-section">
-        <h3>Project Notes</h3>
-        <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
-
-        <trix-editor input="project-field-hidden" id="project-field-editor"
-                     style="min-height: 150px; height: auto;"></trix-editor>
-        <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
-        <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
-            <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>
-            Active Project
-        </label>
-        <div class="button-group">
-            <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
-            <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
-            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
-        </div>
-        <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
-    </div>
 </div>
 
 <div id="opportunities-tab" class="tab-content">
