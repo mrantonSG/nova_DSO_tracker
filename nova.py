@@ -4820,7 +4820,7 @@ def journal_add():
 
         # --- GET Request Logic (this part remains the same) ---
         available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
-        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id).order_by(Location.name).all()
         available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
         entry_for_form = {
             "target_object_id": request.args.get('target', ''),
@@ -4955,7 +4955,7 @@ def journal_edit(session_id):
 
         # --- GET Request Logic ---
         available_objects = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name).all()
-        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id).order_by(Location.name).all()
         available_rigs = db.query(Rig).filter_by(user_id=user.id).order_by(Rig.rig_name).all()
 
         entry_dict = {c.name: getattr(session_to_edit, c.name) for c in session_to_edit.__table__.columns}
@@ -6900,41 +6900,57 @@ def get_object_list_from_config():
 def get_moon_data_for_session():
     try:
         date_str = request.args.get('date')
-        lat = float(request.args.get('lat'))
-        lon = float(request.args.get('lon'))
-        ra = float(request.args.get('ra'))
-        dec = float(request.args.get('dec'))
         tz_name = request.args.get('tz')
+
+        # Use safe_float to handle potential empty strings or invalid values
+        lat = safe_float(request.args.get('lat'))
+        lon = safe_float(request.args.get('lon'))
+        ra = safe_float(request.args.get('ra'))
+        dec = safe_float(request.args.get('dec'))
 
         if not all([date_str, tz_name]):
             raise ValueError("Missing date or timezone.")
 
+        # Check if critical values are None after safe_float
+        if lat is None or lon is None:
+            raise ValueError("Invalid or missing latitude/longitude.")
+
+        # --- Calculate Moon Phase (always possible) ---
         local_tz = pytz.timezone(tz_name)
         date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        # Use a consistent time (e.g., local noon) for phase calculation
+        time_for_phase_local = local_tz.localize(
+            datetime.combine(date_obj.date(), datetime.min.time().replace(hour=12)))
+        moon_phase = round(ephem.Moon(time_for_phase_local.astimezone(pytz.utc)).phase, 1)
 
-        # Calculate moon phase at dusk for consistency
-        sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
-        dusk_str = sun_events.get("astronomical_dusk", "21:00")
-        dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
-        time_for_calc_local = local_tz.localize(datetime.combine(date_obj.date(), dusk_time_obj))
-        moon_phase = round(ephem.Moon(time_for_calc_local.astimezone(pytz.utc)).phase, 1)
+        # --- Calculate Separation (only if RA/DEC are present) ---
+        angular_sep_value = None
+        if ra is not None and dec is not None:
+            # All values present, calculate separation
+            sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
+            dusk_str = sun_events.get("astronomical_dusk", "21:00")
+            dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
+            time_for_calc_local = local_tz.localize(datetime.combine(date_obj.date(), dusk_time_obj))
+            time_obj = Time(time_for_calc_local.astimezone(pytz.utc))
 
-        # Calculate angular separation
-        location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
-        time_obj = Time(time_for_calc_local.astimezone(pytz.utc))
-        frame = AltAz(obstime=time_obj, location=location_obj)
-        obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
-        moon_coord = get_body('moon', time_obj, location=location_obj)
-        separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+            location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+            frame = AltAz(obstime=time_obj, location=location_obj)
+            obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+            moon_coord = get_body('moon', time_obj, location=location_obj)
+            separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+            angular_sep_value = round(separation, 1)
+        else:
+            print("[API Moon Data] RA/DEC not provided, calculating phase only.")
 
         return jsonify({
             "status": "success",
             "moon_illumination": moon_phase,
-            "angular_separation": round(separation, 1)
+            "angular_separation": angular_sep_value  # This will be null if RA/DEC were missing
         })
 
     except Exception as e:
         print(f"ERROR in /api/get_moon_data: {e}")
+        traceback.print_exc()  # Add traceback for better debugging
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -7211,7 +7227,7 @@ def graph_dashboard(object_name):
 
         # --- 8. Load Other Template Data (No change) ---
         all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
-        available_locations = db.query(Location).filter_by(user_id=user.id, active=True).order_by(Location.name).all()
+        available_locations = db.query(Location).filter_by(user_id=user.id).order_by(Location.name).all()
         default_location_name = effective_location_name if selected_location_db and selected_location_db.is_default else None
         if not default_location_name:  # Find default if not already set
             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()

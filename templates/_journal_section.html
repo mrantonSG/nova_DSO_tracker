@@ -249,7 +249,7 @@
                             {% for loc in available_locations %}
                                 <option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}"
                                         {{ 'selected' if loc.name == default_location else '' }}>
-                                    {{ loc.name }}
+                                    {{ loc.name }}{{ ' (Inactive)' if not loc.active else '' }}
                                 </option>
                             {% endfor %}
                         </select>
@@ -623,9 +623,13 @@
 
         const date = dateInput.value;
         const selectedOption = locationSelect.options[locationSelect.selectedIndex];
+
+        // --- NEW: Grab the input fields themselves ---
+        const illumInput = document.getElementById('moon_illumination_session');
+        const sepInput = document.getElementById('moon_angular_separation_session');
+
         if (!date || !selectedOption || !selectedOption.dataset.lat) {
-             document.getElementById('moon_illumination_session').value = '';
-             document.getElementById('moon_angular_separation_session').value = '';
+            // Don't clear fields, just stop if we can't calculate.
             return;
         }
 
@@ -636,9 +640,8 @@
         const dec = '{{ object_main_details["DEC (degrees)"] | default("", True) }}';
 
         if (!ra || !dec) {
-             console.warn("RA/DEC not available for moon calculation.");
-             document.getElementById('moon_illumination_session').value = '';
-             document.getElementById('moon_angular_separation_session').value = '';
+             console.warn("RA/DEC not available for moon calculation. Preserving existing values.");
+             // Don't clear fields, just stop.
              return;
         }
 
@@ -647,18 +650,18 @@
             const response = await fetch(apiUrl);
             if (!response.ok) throw new Error('Network response was not ok');
             const data = await response.json();
+
             if (data.status === 'success') {
-                document.getElementById('moon_illumination_session').value = data.moon_illumination !== null ? data.moon_illumination : '';
-                document.getElementById('moon_angular_separation_session').value = data.angular_separation !== null ? data.angular_separation : '';
+                // This part is correct: update on success
+                illumInput.value = data.moon_illumination !== null ? data.moon_illumination : '';
+                sepInput.value = data.angular_separation !== null ? data.angular_separation : '';
             } else {
+                // --- FIX: On API error, just log it. DO NOT clear fields. ---
                 console.error('Error fetching moon data:', data.message);
-                 document.getElementById('moon_illumination_session').value = '';
-                 document.getElementById('moon_angular_separation_session').value = '';
-             }
+            }
         } catch (error) {
+            // --- FIX: On network error, just log it. DO NOT clear fields. ---
             console.error('Failed to fetch moon data:', error);
-             document.getElementById('moon_illumination_session').value = '';
-             document.getElementById('moon_angular_separation_session').value = '';
         }
     }
 
