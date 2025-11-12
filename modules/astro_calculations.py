@@ -126,25 +126,57 @@ def calculate_sun_events(date_str, tz_name, lat, lon):
     obs.lat = str(lat)
     obs.lon = str(lon)
     obs.date = midnight_utc
+
+    # --- Start of Fix ---
+
+    # Calculate Astronomical Dawn
     obs.horizon = '-18'
-    astro_dawn = obs.next_rising(sun, use_center=True)
+    try:
+        astro_dawn = obs.next_rising(sun, use_center=True)
+        astro_dawn_local = ephem_to_local(astro_dawn, tz_name).strftime('%H:%M')
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        astro_dawn_local = "N/A" # Sun never rises to/sets from -18 deg
+
+    # Calculate Sunrise
     obs.horizon = '-0.833'
-    sunrise = obs.next_rising(sun, use_center=True)
-    obs.horizon = '0'
-    obs.date = midnight_utc
-    transit = obs.next_transit(sun)
+    try:
+        sunrise = obs.next_rising(sun, use_center=True)
+        sunrise_local = ephem_to_local(sunrise, tz_name).strftime('%H:%M')
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        sunrise_local = "N/A" # Circumpolar (never sets)
+
+    # Calculate Transit (Noon)
+    obs.horizon = '0' # Horizon doesn't matter for transit, but reset
+    obs.date = midnight_utc # Reset date to start of day for next_transit
+    try:
+        transit = obs.next_transit(sun)
+        transit_local = ephem_to_local(transit, tz_name).strftime('%H:%M')
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        transit_local = "N/A" # Should not happen for sun, but safe
+
+    # Set observer date to noon for finding *next* setting
     noon_local = local_tz.localize(datetime.combine(local_date, datetime.strptime("12:00", "%H:%M").time()))
     noon_utc = noon_local.astimezone(pytz.utc)
     obs.date = noon_utc
+
+    # Calculate Sunset
     obs.horizon = '-0.833'
-    sunset = obs.next_setting(sun, use_center=True)
+    try:
+        sunset = obs.next_setting(sun, use_center=True)
+        sunset_local = ephem_to_local(sunset, tz_name).strftime('%H:%M')
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        sunset_local = "N/A" # Circumpolar (never sets)
+
+    # Calculate Astronomical Dusk
     obs.horizon = '-18'
-    astro_dusk = obs.next_setting(sun, use_center=True)
-    astro_dawn_local = ephem_to_local(astro_dawn, tz_name).strftime('%H:%M')
-    sunrise_local    = ephem_to_local(sunrise, tz_name).strftime('%H:%M')
-    transit_local    = ephem_to_local(transit, tz_name).strftime('%H:%M')
-    sunset_local     = ephem_to_local(sunset, tz_name).strftime('%H:%M')
-    astro_dusk_local = ephem_to_local(astro_dusk, tz_name).strftime('%H:%M')
+    try:
+        astro_dusk = obs.next_setting(sun, use_center=True)
+        astro_dusk_local = ephem_to_local(astro_dusk, tz_name).strftime('%H:%M')
+    except (ephem.AlwaysUpError, ephem.NeverUpError):
+        astro_dusk_local = "N/A" # Sun never sets to -18 deg
+
+    # --- End of Fix ---
+
     return {
         "astronomical_dawn": astro_dawn_local,
         "sunrise": sunrise_local,
