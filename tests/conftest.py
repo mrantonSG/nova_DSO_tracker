@@ -2,10 +2,8 @@ import pytest
 import sys, os
 from datetime import date
 
-# Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import everything we need for the fixtures
 from nova import (
     app,
     Base,
@@ -22,7 +20,6 @@ from nova import (
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-# --- Database Fixture ---
 @pytest.fixture(scope="function")
 def db_session(monkeypatch):
     """
@@ -42,7 +39,6 @@ def db_session(monkeypatch):
     monkeypatch.setattr('nova.SessionLocal', TestSession)
     monkeypatch.setattr('nova.get_db', TestSession)
 
-    # Add the guest_user template
     guest_user = DbUser(username="guest_user")
     session.add(guest_user)
     session.commit()
@@ -55,7 +51,6 @@ def db_session(monkeypatch):
         Base.metadata.drop_all(engine)
 
 
-# --- Logged-In Client Fixture ---
 @pytest.fixture
 def client(db_session, monkeypatch):
     """
@@ -75,7 +70,6 @@ def client(db_session, monkeypatch):
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
 
-    # Create the 'default' user and location
     user = get_or_create_db_user(db_session, "default")
     location = Location(
         user_id=user.id,
@@ -95,7 +89,6 @@ def client(db_session, monkeypatch):
         client.get('/') # Prime the session
         yield client
 
-# --- Logged-Out Client Fixture ---
 @pytest.fixture
 def client_logged_out(db_session, monkeypatch):
     """
@@ -137,8 +130,6 @@ def multi_user_client(db_session, monkeypatch):
     monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
 
     # 2. Patch the Auth DB and User model
-    # We need to mock the *authentication* user model (nova.User)
-    # and the *authentication* database (nova.db)
     class AuthUser(UserMixin):
         # A simple mock of the SQLAlchemy User model for auth
         def __init__(self, id, username, password_hash=""):
@@ -170,7 +161,6 @@ def multi_user_client(db_session, monkeypatch):
             # Flask-SQLAlchemy's teardown, preventing the crash.
             pass
     # Patch the 'db' object in 'nova.py' to use our mock session
-    # This is tricky, we patch the *SQLAlchemy* instance
     monkeypatch.setattr('nova.db.session', MockAuthDbSession())
 
     # Patch the 'User' model in 'nova.py' to be our mock AuthUser
@@ -185,11 +175,9 @@ def multi_user_client(db_session, monkeypatch):
     user_a = get_or_create_db_user(db_session, "UserA")
     user_b = get_or_create_db_user(db_session, "UserB")
 
-    # --- START FIX ---
     # Store the IDs *before* the next commit detaches the objects
     user_a_app_id = user_a.id
     user_b_app_id = user_b.id
-    # --- END FIX ---
 
     # Add a default location for UserA (the logged-in user)
     loc_a = Location(
@@ -211,10 +199,8 @@ def multi_user_client(db_session, monkeypatch):
         client.get('/')
 
         # Yield the client and the user IDs for the test
-        # --- START FIX ---
         # Yield the stored IDs
         yield client, {"user_a_id": user_a_app_id, "user_b_id": user_b_app_id}
-        # --- END FIX ---
 
 
 @pytest.fixture
@@ -261,8 +247,6 @@ def client(db_session, monkeypatch):
     db_session.commit()
 
     with app.test_client() as client:
-        # We run one GET request to trigger the @before_request hook
-        # which logs in the user and sets the session cookie.
         client.get('/')
         yield client
 
@@ -298,4 +282,4 @@ def su_client_not_logged_in(db_session, monkeypatch):
     db_session.commit()
 
     with app.test_client() as client:
-        yield client # Yield the client *without* a session transaction
+        yield client
