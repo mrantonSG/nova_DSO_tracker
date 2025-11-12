@@ -215,3 +215,77 @@ def multi_user_client(db_session, monkeypatch):
         # Yield the stored IDs
         yield client, {"user_a_id": user_a_app_id, "user_b_id": user_b_app_id}
         # --- END FIX ---
+
+
+@pytest.fixture
+def client(db_session, monkeypatch):
+    """
+    Creates a Flask test client connected to our in-memory db_session
+    and logged in as the 'default' user.
+    (Moved from test_nova_api.py)
+    """
+    # ... (monkeypatching and app.config setup) ...
+
+    # Create the 'default' user and location
+    user = get_or_create_db_user(db_session, "default")
+    location = Location(
+        user_id=user.id,
+        name="Default Test Loc",
+        lat=50,
+        lon=10,
+        timezone="UTC",
+        is_default=True
+    )
+    db_session.add(location)
+
+    # --- START: ADD THIS OBJECT ---
+    # Add M42 so the plotting APIs have something to find
+    m42 = AstroObject(
+        user_id=user.id,
+        object_name="M42",
+        common_name="Orion Nebula",
+        ra_hours=5.58,
+        dec_deg=-5.4
+    )
+    db_session.add(m42)
+    # --- END: ADD THIS OBJECT ---
+
+    db_session.commit()
+
+    with app.test_client() as client:
+        # ... (session_transaction and client.get('/')) ...
+        yield client
+
+@pytest.fixture
+def su_client_not_logged_in(db_session, monkeypatch):
+    """
+    Creates a Flask test client in SINGLE_USER_MODE that is
+    *not* manually logged in, to test the @before_request hook.
+    """
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
+
+    class SingleUserTest(UserMixin):
+        def __init__(self, user_id, username):
+            self.id = user_id
+            self.username = username
+
+    monkeypatch.setattr('nova.User', SingleUserTest)
+
+    app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test-secret-key'
+
+    # Create the 'default' user and location (needed for the app to run)
+    user = get_or_create_db_user(db_session, "default")
+    location = Location(
+        user_id=user.id,
+        name="Default Test Loc",
+        lat=50,
+        lon=10,
+        timezone="UTC",
+        is_default=True
+    )
+    db_session.add(location)
+    db_session.commit()
+
+    with app.test_client() as client:
+        yield client # Yield the client *without* a session transaction
