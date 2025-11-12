@@ -2,6 +2,8 @@ import pytest
 import sys, os
 import yaml  # You'll need this to test YAML
 import io  # You'll need this to simulate file uploads
+import zipfile  # <-- Add this
+from datetime import date # <-- Add this
 
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

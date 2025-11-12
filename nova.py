@@ -1428,13 +1428,12 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
         return new_row
 
     # Use a string-keyed dictionary for the legacy IDs.
-    legacy_id_to_component_id: dict[str, int] = {}
+    legacy_id_to_component_id: dict[tuple[str, str], int] = {}
     name_to_component_id: dict[tuple[str, str | None], int] = {}
 
     def _remember_component(row: Component | None, kind: str, name: str, legacy_id):
         if row is None or legacy_id is None: return
-        # ❗ FIX: Store the legacy_id as a string, removing the int() conversion.
-        legacy_id_to_component_id[str(legacy_id)] = row.id
+        legacy_id_to_component_id[(kind, str(legacy_id))] = row.id
         if name:
             name_to_component_id[(kind, _norm_name(name))] = row.id
 
@@ -1470,11 +1469,14 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
     def _resolve_component_id(kind: str, legacy_id, name) -> int | None:
         if legacy_id is not None:
-            # ❗ FIX: Look up the ID as a string, removing the int() conversion.
             legacy_id_str = str(legacy_id)
-            if legacy_id_str in legacy_id_to_component_id:
-                return legacy_id_to_component_id[legacy_id_str]
+            # --- START FIX: Look up the namespaced (kind, id) key ---
+            if (kind, legacy_id_str) in legacy_id_to_component_id:
+                return legacy_id_to_component_id[(kind, legacy_id_str)]
+            # --- END FIX ---
+            # (The old lookup for just legacy_id_str is removed)
 
+        # This part for name-based lookup is still correct and needed
         if name:
             norm_key = (kind, _norm_name(name))
             if norm_key in name_to_component_id:
@@ -1484,6 +1486,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
                 name_to_component_id[norm_key] = row.id
                 return row.id
         return None
+
 
     # --- 2. Process Rigs Section ---
     for r in rig_list:
