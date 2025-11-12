@@ -21,10 +21,9 @@ from nova import (
     JournalSession,
     Project,
     UPLOAD_FOLDER,
+    _migrate_journal,
+    _migrate_objects
 )
-
-
-# Note: We don't need to import the 'client' fixture, pytest provides it.
 
 def test_download_config_yaml(client):
     """
@@ -528,18 +527,99 @@ def test_import_catalog_pack(client, monkeypatch):
     # Check that no new objects were created
     count = db.query(AstroObject).filter_by(user_id=user.id, object_name="CAT_OBJ_1").count()
     assert count == 1
-# TODO: Add more tests here
-# def test_download_journal_yaml(client):
-#     ...
-#
-# def test_import_journal_yaml(client):
-#     ...
-#
-# def test_import_rig_config(client):
-#     ...
-#
-# def test_download_journal_photos_zip(client):
-#     ...
-#
-# def test_import_journal_photos_zip(client):
-#     ...
+
+
+def test_migrate_journal_rewrites_image_links(db_session):
+    """
+    Tests that the _migrate_journal function (used by importers)
+    correctly rewrites /uploads/ image paths to point to the
+    *importing* user's directory.
+    """
+    # 1. ARRANGE
+    # Create the user who is *importing* the data
+    # We use a unique username to avoid conflicts with other tests
+    importing_user = DbUser(username="importer_journal")
+    db_session.add(importing_user)
+    db_session.commit()
+
+    # Define a mock journal YAML from an *old* user
+    old_username = "old_user"
+    corrupt_notes_html = (
+        '<div>Check out this image:</div>'
+        f'<figure><img src="/uploads/{old_username}/my_photo.jpg" width="800">'
+        '<figcaption>My old photo</figcaption></figure>'
+        '<div>And another: <img src="/uploads/another_user/pic.png"></div>'
+    )
+
+    corrupt_journal_yaml = {
+        "projects": [],
+        "sessions": [
+            {
+                "session_id": "s1_links",
+                "session_date": "2025-01-01",
+                "target_object_id": "M42",
+                "general_notes_problems_learnings": corrupt_notes_html
+            }
+        ]
+    }
+
+    # 2. ACT
+    # Run the migration, importing this data *for* "importer_journal"
+    _migrate_journal(db_session, importing_user, corrupt_journal_yaml)
+    db_session.commit()
+
+    # 3. ASSERT
+    # Check the database for the new session
+    new_session = db_session.query(JournalSession).filter_by(user_id=importing_user.id, external_id="s1_links").one()
+
+    # This is the critical check
+    expected_notes_html = (
+        '<div>Check out this image:</div>'
+        f'<figure><img src="/uploads/{importing_user.username}/my_photo.jpg" width="800">'
+        '<figcaption>My old photo</figcaption></figure>'
+        f'<div>And another: <img src="/uploads/{importing_user.username}/pic.png"></div>'
+    )
+
+    assert new_session.notes == expected_notes_html
+
+
+def test_migrate_objects_rewrites_image_links(db_session):
+    """
+    Tests that the _migrate_objects function (used by importers)
+    correctly rewrites /uploads/ image paths in object notes
+    to point to the *importing* user's directory.
+    """
+    # 1. ARRANGE
+    # Use a unique username to avoid conflicts
+    importing_user = DbUser(username="importer_config")
+    db_session.add(importing_user)
+    db_session.commit()
+
+    old_username = "mrantonSG"
+    corrupt_project_notes = f'My notes <img src="/uploads/{old_username}/img1.jpg">'
+    corrupt_shared_notes = f'Shared stuff <img src="/uploads/{old_username}/img2.jpg">'
+
+    corrupt_config_yaml = {
+        "objects": [
+            {
+                "Object": "M31",  # Use a different object to avoid conflicts
+                "RA": 0.75,
+                "DEC": 41.2,
+                "Project": corrupt_project_notes,
+                "shared_notes": corrupt_shared_notes
+            }
+        ]
+    }
+
+    # 2. ACT
+    _migrate_objects(db_session, importing_user, corrupt_config_yaml)
+    db_session.commit()
+
+    # 3. ASSERT
+    new_obj = db_session.query(AstroObject).filter_by(user_id=importing_user.id, object_name="M31").one()
+
+    expected_project_notes = f'My notes <img src="/uploads/{importing_user.username}/img1.jpg">'
+    expected_shared_notes = f'Shared stuff <img src="/uploads/{importing_user.username}/img2.jpg">'
+
+    assert new_obj.project_name == expected_project_notes
+    assert new_obj.shared_notes == expected_shared_notes

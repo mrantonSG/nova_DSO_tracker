@@ -457,16 +457,24 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     dusk_str = sun_events.get("astronomical_dusk")
     dawn_str = sun_events.get("astronomical_dawn")
 
-    if not dusk_str or not dawn_str:
-        return timedelta(0), 0, None, None
+    # Handle polar night/day where dusk or dawn is 'N/A'
+    if not dusk_str or not dawn_str or dusk_str == "N/A" or dawn_str == "N/A":
+        # Check for polar day (sun never sets to -18)
+        if dusk_str == "N/A":
+            return timedelta(0), 0, None, None  # No astronomical night
+        # Check for polar night (sun never rises to -18)
+        # We can't use dusk/dawn, so we check the full 24h period
+        dusk_dt = local_tz.localize(datetime.combine(date_obj, datetime.min.time()))
+        dawn_dt = dusk_dt + timedelta(days=1)
+    else:
+        # Standard night calculation
+        dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
+        dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
 
-    dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
-    dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
-
-    dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
-    dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
-    if dawn_dt <= dusk_dt:
-        dawn_dt += timedelta(days=1)
+        dusk_dt = local_tz.localize(datetime.combine(date_obj, dusk_time))
+        dawn_dt = local_tz.localize(datetime.combine(date_obj, dawn_time))
+        if dawn_dt <= dusk_dt:
+            dawn_dt += timedelta(days=1)
 
     sample_interval = timedelta(minutes=sampling_interval_minutes)
     times = []
@@ -487,6 +495,11 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     altitudes = altaz.alt.deg
     azimuths = altaz.az.deg
 
+    # --- START BUG 1 FIX ---
+    # Calculate the TRUE max altitude over the whole period, *before* masking.
+    max_altitude = float(np.max(altitudes)) if altitudes.size > 0 else 0
+    # --- END BUG 1 FIX ---
+
     # --- NEW HORIZON MASK LOGIC ---
     if horizon_mask and len(horizon_mask) > 1:
         # Sort mask by azimuth just in case it's not already
@@ -498,7 +511,8 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
                 point[1] = altitude_threshold
 
         # Calculate the true minimum altitude for each point in time using the mask
-        min_altitudes = np.array([interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]) # <-- FIXED LINE
+        min_altitudes = np.array(
+            [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths])  # <-- FIXED LINE
     else:
         # If no mask, the minimum altitude is the same for all azimuths
         min_altitudes = np.full_like(altitudes, altitude_threshold)
@@ -509,14 +523,22 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
 
     observable_indices = np.where(mask)[0]
     observable_from, observable_to = (None, None)
-    if observable_indices.size > 0:
+
+    # --- START BUG 2 FIX ---
+    # Check if the object is up at the very start AND very end of the night
+    is_up_all_night = mask[0] and mask[-1] and np.all(mask)
+
+    if observable_indices.size > 0 and not is_up_all_night:
         observable_from = times[observable_indices[0]]
         observable_to = times[observable_indices[-1]]
+    # If it is up all night, from/to remain None (which is correct)
+    # --- END BUG 2 FIX ---
 
     observable_minutes = int(np.sum(mask) * sampling_interval_minutes)
 
-    # Calculate max altitude only during the observable (unobstructed) period
-    max_altitude = float(np.max(altitudes[mask])) if observable_indices.size > 0 else 0
+    # --- BUG 1 FIX (REMOVED) ---
+    # The old, incorrect max_altitude calculation is removed from here.
+    # max_altitude = float(np.max(altitudes[mask])) if observable_indices.size > 0 else 0
 
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
 
