@@ -16,7 +16,8 @@ from nova import (
     JournalSession,
     get_db,
     get_or_create_db_user,
-    SessionLocal  # <-- Import the app's Session maker
+    SessionLocal,  # <-- Import the app's Session maker
+    UserMixin
 )
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -62,11 +63,26 @@ def db_session(monkeypatch):
 
 # --- 4. The Logged-In Client Fixture ---
 @pytest.fixture
-def client(db_session):
+def client(db_session, monkeypatch): # <-- Add monkeypatch
     """
     Creates a Flask test client connected to our in-memory db_session
     and logged in as the 'default' user.
     """
+    # --- START FIX: Force SINGLE_USER_MODE ---
+    # This makes the test client log in as the "default" user successfully
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
+
+    # --- NEW FIX: Patch the User class to match SINGLE_USER_MODE ---
+    # Define the simple User class that SINGLE_USER_MODE expects
+    class SingleUserTest(UserMixin):
+        def __init__(self, user_id, username):
+            self.id = user_id
+            self.username = username
+
+    # Patch the 'User' name in the nova module to point to this simple class
+    monkeypatch.setattr('nova.User', SingleUserTest)
+    # --- END FIX ---
+
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
 
@@ -121,7 +137,9 @@ def test_graph_dashboard_404(client):
     """ Tests 404 redirect. """
     response = client.get('/graph_dashboard/ObjectThatDoesNotExist', follow_redirects=True)
     assert response.status_code == 200
-    assert b"Object &#39;ObjectThatDoesNotExist&#39; not found" in response.data
+    # --- START FIX: Check for the correct flash message text ---
+    assert b"Object &#39;ObjectThatDoesNotExist&#39; not found in your configuration." in response.data
+    # --- END FIX ---
 
 
 def test_add_journal_session_post(client):
@@ -180,11 +198,16 @@ def test_add_journal_session_post(client):
 
 
 @pytest.fixture
-def client_logged_out(db_session):
+def client_logged_out(db_session, monkeypatch): # <-- Add monkeypatch
     """
     Creates a Flask test client that is NOT logged in,
     but still uses the in-memory test database.
     """
+    # --- START FIX: Force MULTI_USER_MODE ---
+    # This makes the app correctly require a login
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
+    # --- END FIX ---
+
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
 
@@ -218,7 +241,9 @@ def test_journal_add_redirects_when_logged_out(client_logged_out):
     # It should be a 302 Redirect
     assert response.status_code == 302
     # It should be redirecting to the '/login' page
-    assert response.location == '/login'
+    # --- START FIX: Check for the correct redirect URL ---
+    assert response.location == '/login?next=%2Fjournal%2Fadd'
+    # --- END FIX ---
 
 
 def test_add_journal_session_fails_with_bad_date(client):
@@ -247,6 +272,7 @@ def test_add_journal_session_fails_with_bad_date(client):
     assert response.status_code == 200
     # The page should show an error message (this is a good check)
     assert b"Add New Imaging Session" in response.data
+    assert b"Invalid date format." in response.data # Check for our new flash message
 
     # --- The most important check ---
     # Make sure NOTHING was added to the database
