@@ -121,3 +121,84 @@ def client_logged_out(db_session, monkeypatch):
 
     with app.test_client() as client:
         yield client
+
+
+@pytest.fixture
+def multi_user_client(db_session, monkeypatch):
+    """
+    Creates a Flask test client for a MULTI-USER environment.
+
+    - Sets SINGLE_USER_MODE = False
+    - Creates two app users: "UserA" and "UserB"
+    - Creates one auth user: "UserA"
+    - Logs in the client as "UserA"
+    """
+    # 1. Force Multi-User Mode
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
+
+    # 2. Patch the Auth DB and User model
+    # We need to mock the *authentication* user model (nova.User)
+    # and the *authentication* database (nova.db)
+    class AuthUser(UserMixin):
+        # A simple mock of the SQLAlchemy User model for auth
+        def __init__(self, id, username, password_hash=""):
+            self.id = id
+            self.username = username
+            self.password_hash = password_hash
+
+        def check_password(self, password):
+            return True  # Not needed for this, but good to have
+
+        @property
+        def is_active(self):
+            return True
+
+    # Store our mock auth users
+    mock_auth_users = {
+        1: AuthUser(1, "UserA"),
+        2: AuthUser(2, "UserB"),
+    }
+
+    # Mock the SQLAlchemy 'db.session.get(User, uid)' call
+    class MockAuthDbSession:
+        def get(self, model, user_id):
+            # model will be 'nova.User'
+            return mock_auth_users.get(int(user_id))
+
+    # Patch the 'db' object in 'nova.py' to use our mock session
+    # This is tricky, we patch the *SQLAlchemy* instance
+    monkeypatch.setattr('nova.db.session', MockAuthDbSession())
+
+    # Patch the 'User' model in 'nova.py' to be our mock AuthUser
+    monkeypatch.setattr('nova.User', AuthUser)
+
+    # 3. Configure the app
+    app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test-secret-key'
+
+    # 4. Provision the *application* (app.db) users
+    # These create the entries in the DbUser table via get_or_create
+    user_a = get_or_create_db_user(db_session, "UserA")
+    user_b = get_or_create_db_user(db_session, "UserB")
+
+    # Add a default location for UserA (the logged-in user)
+    loc_a = Location(
+        user_id=user_a.id,
+        name="UserA_Home",
+        lat=40, lon=-100, timezone="UTC", is_default=True
+    )
+    db_session.add(loc_a)
+    db_session.commit()
+
+    # 5. Create and log in the client
+    with app.test_client() as client:
+        # Log in as "UserA" (auth user ID is 1)
+        with client.session_transaction() as sess:
+            sess['_user_id'] = '1'  # Use the auth user ID
+            sess['_fresh'] = True
+
+        # Prime the session to load g.db_user correctly
+        client.get('/')
+
+        # Yield the client and the user IDs for the test
+        yield client, {"user_a_id": user_a.id, "user_b_id": user_b.id}
