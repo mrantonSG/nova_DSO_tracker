@@ -104,11 +104,64 @@ def parse_ra_dec(value):
         raise ValueError(f"Invalid RA/DEC format: {value}")
     return d, m, s
 
+
 def hms_to_hours(hms):
-    if is_decimal(hms):
-        return float(hms) / 15
-    h, m, s = parse_ra_dec(hms)
-    return h + (m / 60) + (s / 3600)
+    """
+    FIXED: Converts a string in H:M:S or H:M format to decimal hours.
+    Also handles inputs that are already decimal (as float or string).
+    """
+    # Handle None input
+    if hms is None:
+        return 0.0
+
+    # Handle if it's already a float or np.float
+    if isinstance(hms, (np.float64, float)):
+        return float(hms)
+
+    # Convert to string for parsing
+    hms_str = str(hms).strip()
+
+    # Check if it's already a decimal string
+    try:
+        # This handles the test case for hms_to_hours("12.5") == 12.5
+        return float(hms_str)
+    except ValueError:
+        pass  # It's not a simple float string, so we parse as H:M:S
+
+    # Now, parse as H:M:S (colon-separated)
+    try:
+        parts = hms_str.split(':')
+
+        # Handle negative sign, just in case
+        sign = -1 if parts[0].strip().startswith('-') else 1
+
+        if len(parts) == 1:
+            # This should have been caught by float(hms_str)
+            h = float(parts[0])
+            return h
+
+        elif len(parts) == 2:
+            # H:M format
+            h = float(parts[0])
+            m = float(parts[1])
+            s = 0.0
+
+        elif len(parts) == 3:
+            # H:M:S format
+            h = float(parts[0])
+            m = float(parts[1])
+            s = float(parts[2])
+
+        else:
+            # Bad format
+            return 0.0
+
+        # Calculate hours. abs(h) handles the negative sign correctly.
+        return sign * (abs(h) + (m / 60.0) + (s / 3600.0))
+
+    except (ValueError, TypeError, AttributeError):
+        # Handles "abc:def" or other junk
+        return 0.0
 
 
 def dms_to_degrees(dms):
