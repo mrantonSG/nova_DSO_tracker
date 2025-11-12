@@ -254,6 +254,18 @@ def test_add_journal_session_fails_with_bad_date(client):
     # 1. ARRANGE
     db = get_db()
 
+    # We need to create the 'M42' object so the redirect target exists
+    user = db.query(DbUser).filter_by(username="default").one()
+    test_object = AstroObject(
+        user_id=user.id,
+        object_name="M42",
+        common_name="Orion Nebula",  # <-- This is the name we check for
+        ra_hours=5.58,
+        dec_deg=-5.4
+    )
+    db.add(test_object)
+    db.commit()
+
     form_data = {
         'session_date': 'NOT-A-DATE',  # Invalid data
         'location_name': 'Default Test Loc',
@@ -262,17 +274,20 @@ def test_add_journal_session_fails_with_bad_date(client):
     }
 
     # 2. ACT
-    # Send the bad data. We set follow_redirects=False
-    # to check that the page *doesn't* redirect.
-    response = client.post('/journal/add', data=form_data, follow_redirects=False)
+    # Send the bad data. We set follow_redirects=True
+    # to catch the flash message on the *next* page.
+    response = client.post('/journal/add', data=form_data, follow_redirects=True)
 
     # 3. ASSERT
-    # It should NOT redirect. It should re-render the form,
-    # which is a 200 OK status.
+    # It should NOT create a session, but it should redirect
+    # and land successfully (200 OK) on the object's page.
     assert response.status_code == 200
-    # The page should show an error message (this is a good check)
-    assert b"Add New Imaging Session" in response.data
-    assert b"Invalid date format." in response.data # Check for our new flash message
+
+    # --- THIS IS THE FIX ---
+    assert b"Orion Nebula" in response.data  # Check we landed on the right page
+    # --- END OF FIX ---
+
+    assert b"Invalid date format." in response.data  # Check for our flash message
 
     # --- The most important check ---
     # Make sure NOTHING was added to the database
