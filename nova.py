@@ -987,6 +987,7 @@ def normalize_object_name(name: str) -> str:
     """
     if not name: return None
     name_str = str(name).strip().upper()
+    if not name_str: return None  # Catches whitespace-only input
 
     # --- 1. Fix known "corrupt" inputs (add spaces/hyphens) ---
     # This list should mirror the rules from the Python repair script.
@@ -1016,11 +1017,13 @@ def normalize_object_name(name: str) -> str:
     if match: return f"TGU H{match.group(2)}"
 
     # LHA 120-N 70 -> LHA120N70
-    match = re.match(r'^(LHA)(\d+)(N\d+)$', name_str)
-    if match: return f"LHA {match.group(2)}-N {match.group(3)}"
+    # The regex now splits 'N' and '70' into separate groups
+    match = re.match(r'^(LHA)(\d+)(N)(\d+)$', name_str)
+    if match: return f"LHA {match.group(2)}-{match.group(3)} {match.group(4)}"
 
     # SNR G180.0-01.7 -> SNRG180.001.7
-    match = re.match(r'^(SNRG)(\d+\.\d+)(\d+\.\d+)$', name_str)
+    # Made first decimal match non-greedy with +?
+    match = re.match(r'^(SNRG)(\d+\.\d+?)(\d+\.\d+)$', name_str)
     if match: return f"SNR G{match.group(2)}-{match.group(3)}"
 
     # CTA 1 -> CTA1
@@ -1044,7 +1047,8 @@ def normalize_object_name(name: str) -> str:
     if match: return f"PK {match.group(2)}-{match.group(3)}"
 
     # PN G093.3-02.4 -> PNG093.302.4
-    match = re.match(r'^(PNG)(\d+\.\d+)(\d+\.\d+)$', name_str)
+    # Made first decimal match non-greedy with +?
+    match = re.match(r'^(PNG)(\d+\.\d+?)(\d+\.\d+)$', name_str)
     if match: return f"PN G{match.group(2)}-{match.group(3)}"
 
     # WR 134 -> WR134
@@ -8643,21 +8647,18 @@ def repair_corrupt_ids_command():
     print("--- [EMERGENCY OBJECT ID REPAIR SCRIPT] ---")
     db = get_db()
 
-    # Define the "un-corruption" rules using Regex.
-    # (corrupted_regex_pattern, correct_format_string)
-    # These rules target names that were incorrectly stripped of spaces/dashes.
-    # NOTE: Order matters! More specific rules must come first.
+    # --- THIS LIST IS NOW FIXED TO MATCH normalize_object_name ---
     repair_rules = [
         # IC 405 -> IC405
         (re.compile(r'^(IC)(\d+)$'), r'IC \2'),
 
-        # SNR G180.0-01.7 -> SNRG180.001.7 (bad script removed '-' and left '.')
-        (re.compile(r'^(SNRG)(\d+\.\d+)(\d+\.\d+)$'), r'SNR G\2-\3'),
+        # SNR G180.0-01.7 -> SNRG180.001.7
+        (re.compile(r'^(SNRG)(\d+\.\d+?)(\d+\.\d+)$'), r'SNR G\2-\3'), # (non-greedy)
 
         # LHA 120-N 70 -> LHA120N70
-        (re.compile(r'^(LHA)(\d+)(N\d+)$'), r'LHA \2-N \3'),
+        (re.compile(r'^(LHA)(\d+)(N)(\d+)$'), r'LHA \2-\3 \4'), # (FIXED regex and replacement)
 
-        # SH 2-129 -> SH2129 (Finds SH2 followed by 1 OR MORE digits)
+        # SH 2-129 -> SH2129
         (re.compile(r'^(SH2)(\d+)$'), r'SH 2-\2'),
 
         # TGU H1867 -> TGUH1867
@@ -8688,7 +8689,7 @@ def repair_corrupt_ids_command():
         (re.compile(r'^(PK)(\d+)(\d{2}\.\d+)$'), r'PK \2-\3'),
 
         # PN G093.3-02.4 -> PNG093.302.4
-        (re.compile(r'^(PNG)(\d+\.\d+)(\d+\.\d+)$'), r'PN G\2-\3'),
+        (re.compile(r'^(PNG)(\d+\.\d+?)(\d+\.\d+)$'), r'PN G\2-\3'), # (non-greedy)
 
         # WR 134 -> WR134
         (re.compile(r'^(WR)(\d+)$'), r'WR \2'),

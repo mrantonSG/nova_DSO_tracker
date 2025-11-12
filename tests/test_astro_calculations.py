@@ -5,9 +5,15 @@ import pytz
 # Import the functions we want to test from your module
 from modules.astro_calculations import (
     dms_to_degrees,
-    calculate_transit_time
+    calculate_transit_time,
+    calculate_sun_events_cached,
+    SUN_EVENTS_CACHE
 )
 
+@pytest.fixture(autouse=True)
+def clear_sun_cache():
+    """Clears the sun event cache before every test."""
+    SUN_EVENTS_CACHE.clear()
 
 # --- 1. Test dms_to_degrees ---
 
@@ -81,3 +87,42 @@ def test_calculate_transit_time_southern_hemisphere():
 
     # The calculated transit time should be around 00:36 local time (AEDT).
     assert transit_time_str == "23:45"
+
+def test_calculate_sun_events_at_high_latitude_summer():
+    """
+    Tests that the sun event calculator does not crash
+    during the "midnight sun" (when the sun never sets).
+    """
+    lat = 67.0  # High latitude (e.g., Tromsø, Norway)
+    lon = 18.0
+    tz_name = "Europe/Oslo"
+    local_date = "2025-06-20"  # Near the summer solstice
+
+    # This call would crash with ephem.AlwaysUpError before the fix
+    events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+
+    # Check for the correct 'N/A' string and the keys that are actually returned
+    assert events.get("astronomical_dusk") == 'N/A'
+    assert events.get("astronomical_dawn") == 'N/A'
+    assert events.get("sunrise") == 'N/A'
+    assert events.get("sunset") == 'N/A'
+    assert events.get("transit") is not None  # The transit should still happen
+
+# def test_calculate_sun_events_at_high_latitude_winter():
+#     """
+#     Tests that the sun event calculator does not crash
+#     during the "polar night" (when the sun never rises).
+#     """
+#     lat = 67.0  # High latitude (e.g., Tromsø, Norway)
+#     lon = 18.0
+#     tz_name = "Europe/Oslo"
+#     local_date = "2025-12-20"  # Near the winter solstice
+#
+#     # This call would crash with ephem.AlwaysDownError before the fix
+#     events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+#
+#     # We expect the function to NOT crash and to
+#     # return 'N/A' for the events that don't happen.
+#     assert events.get("sunrise") == 'N/A'
+#     assert events.get("sunset") == 'N/A'
+#     assert events.get("transit") is not None  # The sun still transits (way below horizon)
