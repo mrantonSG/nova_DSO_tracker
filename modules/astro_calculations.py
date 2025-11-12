@@ -528,7 +528,7 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
     # Check if the object is up at the very start AND very end of the night
     is_up_all_night = mask[0] and mask[-1] and np.all(mask)
 
-    if observable_indices.size > 0 and not is_up_all_night:
+    if observable_indices.size > 0:
         observable_from = times[observable_indices[0]]
         observable_to = times[observable_indices[-1]]
     # If it is up all night, from/to remain None (which is correct)
