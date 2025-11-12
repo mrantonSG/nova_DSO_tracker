@@ -2759,7 +2759,12 @@ def load_effective_settings():
     if SINGLE_USER_MODE:
         # In single-user mode, read from the user's config file.
         g.sampling_interval = g.user_config.get('sampling_interval_minutes') or 15
-        g.telemetry_enabled = g.user_config.get('telemetry', {}).get('enabled', True)
+        # --- START FIX ---
+        # Handle case where 'telemetry' key exists but is None
+        telemetry_config = g.user_config.get('telemetry') or {}
+        g.telemetry_enabled = telemetry_config.get('enabled', True)
+        # --- END FIX ---
+
     else:
         # In multi-user mode, read from the .env file with hardcoded defaults.
         g.sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
@@ -5157,10 +5162,12 @@ def ensure_telemetry_defaults():
     """
     try:
         if hasattr(g, 'user_config') and isinstance(g.user_config, dict):
-            # Use setdefault to add the 'telemetry' key if it's missing.
-            # This modifies the g.user_config dictionary for this request only.
+            # --- START FIX ---
+            # Ensure 'telemetry' is a dict, not None
+            if g.user_config.get('telemetry') is None:
+                g.user_config['telemetry'] = {}
             telemetry_config = g.user_config.setdefault('telemetry', {})
-            # Now ensure the 'enabled' key has a default value.
+            # --- END FIX ---
             telemetry_config.setdefault('enabled', True)
     except Exception as e:
         print(f"❌ ERROR in ensure_telemetry_defaults: {e}")
@@ -6733,6 +6740,14 @@ def config_form():
                 config_for_template = json.loads(prefs.json_blob)
             except json.JSONDecodeError:
                 pass
+
+        # --- START FIX ---
+        # Ensure nested dicts are not None, so template .get() calls don't fail
+        if config_for_template.get('telemetry') is None:
+            config_for_template['telemetry'] = {}
+        if config_for_template.get('imaging_criteria') is None:
+            config_for_template['imaging_criteria'] = {}
+        # --- END FIX ---
 
         locations_for_template = {}
         db_locations = db.query(Location).filter_by(user_id=app_db_user.id).order_by(Location.name).all()
