@@ -268,6 +268,9 @@ class DbUser(Base):
     sessions = relationship("JournalSession", back_populates="user", cascade="all, delete-orphan")
     ui_prefs = relationship("UiPref", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
+    # --- This is the line we added to fix the test ---
+    projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
+
 class Project(Base):
     __tablename__ = 'projects'
     # The project_id from YAML will be our primary key. It's a string (UUID).
@@ -275,7 +278,7 @@ class Project(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     name = Column(String(256), nullable=False)
 
-    user = relationship("DbUser")
+    user = relationship("DbUser", back_populates="projects")
     sessions = relationship("JournalSession", back_populates="project")
 
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_project_name'),)

@@ -22,3 +22,7 @@ __pycache__/
 # Note: We are NOT ignoring the LICENSE file.
 README.md
 *.md
+
+# Pytest files
+tests/
+.pytest_cache/

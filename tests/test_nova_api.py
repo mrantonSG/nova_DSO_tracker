@@ -19,10 +19,6 @@ from nova import (
     UiPref,
 )
 
-# --- All Fixtures are GONE (moved to conftest.py) ---
-
-
-# --- 5. Your API Tests (Unchanged) ---
 
 def test_homepage_loads(client):
     """ Tests if the homepage (/) loads without errors. """
@@ -31,7 +27,6 @@ def test_homepage_loads(client):
     assert b"<h1>Nova</h1>" in response.data
     assert b"DSO Tracker" in response.data
 
-# ... (all your other tests remain exactly as they are) ...
 
 def test_moon_api_bug_with_no_ra(client):
     # ...
@@ -54,7 +49,6 @@ def test_add_journal_session_fails_with_bad_date(client):
     pass
 
 
-# Change the test to use the new fixture
 def test_su_login_bypass(su_client_not_logged_in):
     """
     Tests that in SINGLE_USER_MODE, an unauthenticated user

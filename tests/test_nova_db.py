@@ -6,7 +6,6 @@ import os
 
 # --- Imports from your 'nova.py' file ---
 # We need to import all the database models and the Base class
-# (This assumes nova.py is in the root and can be imported)
 try:
     from nova import (
         Base,
@@ -19,8 +18,6 @@ try:
         get_or_create_db_user  # We will test this function directly
     )
 except ImportError:
-    # This is a common issue if the project isn't installed.
-    # We can add the parent directory to the path to fix it.
     import sys
 
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -36,7 +33,6 @@ except ImportError:
     )
 
 
-# --- 1. The Database Fixture (The "Magic") ---
 
 @pytest.fixture(scope="function")
 def db_session(monkeypatch):

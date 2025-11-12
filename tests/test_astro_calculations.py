@@ -10,7 +10,6 @@ from modules.astro_calculations import (
 
 
 # --- 1. Test dms_to_degrees ---
-# This is another simple helper, just like hms_to_hours
 
 def test_dms_to_degrees_simple():
     assert dms_to_degrees("45:30:00") == 45.5

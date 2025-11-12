@@ -3,13 +3,10 @@ from nova import normalize_object_name
 from modules.astro_calculations import hms_to_hours
 import pytest # Import pytest to use its features
 
-# --- Test Function 1: hms_to_hours ---
 
-# This is the test that just passed!
 def test_hms_to_hours_with_seconds():
     assert hms_to_hours("01:00:36") == 1.01
 
-# Add more test cases for the *same* function
 def test_hms_to_hours_simple():
     assert hms_to_hours("12:30:00") == 12.5
     assert hms_to_hours("06:00:00") == 6.0
