@@ -138,7 +138,7 @@ def multi_user_client(db_session, monkeypatch):
             self.password_hash = password_hash
 
         def check_password(self, password):
-            return True  # Not needed for this, but good to have
+            return True
 
         @property
         def is_active(self):
@@ -157,7 +157,6 @@ def multi_user_client(db_session, monkeypatch):
             return mock_auth_users.get(int(user_id))
 
         def remove(self):
-            # This is a no-op (no operation) method to satisfy
             # Flask-SQLAlchemy's teardown, preventing the crash.
             pass
     # Patch the 'db' object in 'nova.py' to use our mock session
@@ -198,7 +197,6 @@ def multi_user_client(db_session, monkeypatch):
         # Prime the session to load g.db_user correctly
         client.get('/')
 
-        # Yield the client and the user IDs for the test
         # Yield the stored IDs
         yield client, {"user_a_id": user_a_app_id, "user_b_id": user_b_app_id}
 

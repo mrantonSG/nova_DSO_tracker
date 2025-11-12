@@ -35,16 +35,6 @@ def test_download_config_yaml(client):
     db = get_db()
     user = db.query(DbUser).filter_by(username="default").one()
 
-    # Add an object to the DB. (The client fixture already added a location)
-    m42 = AstroObject(
-        user_id=user.id,
-        object_name="M42",
-        common_name="Orion Nebula",
-        ra_hours=5.58,
-        dec_deg=-5.4
-    )
-    db.add(m42)
-    db.commit()
 
     # 2. ACT
     response = client.get('/download_config')
