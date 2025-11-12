@@ -6721,17 +6721,32 @@ def config_form():
                     loc.timezone = request.form.get(f"timezone_{loc.name}")
                     loc.active = request.form.get(f"active_{loc.name}") == "on"
                     loc.comments = request.form.get(f"comments_{loc.name}", "").strip()[:500]
-                    db.query(HorizonPoint).filter_by(location_id=loc.id).delete()
+
+                    # --- START FIX: Use relationship assignment for cascade ---
+                    # 1. Create a new, empty list for this location's points.
+                    new_horizon_points = []
                     mask_str = request.form.get(f"horizon_mask_{loc.name}", "").strip()
+
                     if mask_str:
                         try:
                             mask_data = yaml.safe_load(mask_str)
                             if isinstance(mask_data, list):
+                                # 2. Create new HorizonPoint objects and add them to the new list.
                                 for point in mask_data:
-                                    db.add(HorizonPoint(location_id=loc.id, az_deg=float(point[0]),
-                                                        alt_min_deg=float(point[1])))
+                                    new_horizon_points.append(
+                                        HorizonPoint(location_id=loc.id, az_deg=float(point[0]),
+                                                     alt_min_deg=float(point[1]))
+                                    )
                         except Exception:
                             flash(f"Warning: Horizon Mask for '{loc.name}' was invalid and ignored.", "warning")
+
+                    # 3. Assign the new list directly to the relationship.
+                    # SQLAlchemy will now compare the old list with the new one.
+                    # It will automatically delete any points not in the new list (due to 'delete-orphan')
+                    # and add any new points. This avoids the bulk-delete conflict.
+                    loc.horizon_points = new_horizon_points
+                    # --- END FIX ---
+
                 message = "Locations updated."
 
             # --- Update Existing Objects ---
