@@ -4,7 +4,7 @@ import yaml
 import io
 import zipfile
 from datetime import date
-from unittest.mock import
+from unittest.mock import MagicMock
 
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -382,6 +382,162 @@ def test_download_journal_photos_zip(client, monkeypatch, tmp_path):  # <-- Add 
         with zf.open('my_photo_2.png') as f:
             assert f.read() == b'png data'
 
+
+def test_sharing_and_importing_items(multi_user_client, db_session):
+    """
+    Tests the full sharing loop:
+    1. UserB shares an item.
+    2. UserA sees the shared item.
+    3. UserA imports the item.
+    4. UserA sees the item is now marked 'imported'.
+    """
+    # 1. ARRANGE
+    # multi_user_client is logged in as UserA
+    client, user_ids = multi_user_client
+    user_a_id = user_ids['user_a_id']
+    user_b_id = user_ids['user_b_id']
+
+    # As UserB, create a shared object and component
+    shared_obj = AstroObject(
+        user_id=user_b_id,
+        object_name="SHARED_OBJ",
+        common_name="Shared Object",
+        ra_hours=1, dec_deg=1,
+        is_shared=True,
+        shared_notes="UserB notes"
+    )
+    shared_comp = Component(
+        user_id=user_b_id,
+        kind="telescope",
+        name="Shared Scope",
+        is_shared=True
+    )
+    db_session.add_all([shared_obj, shared_comp])
+    db_session.commit()
+
+    # Need the IDs of the *original* items
+    original_obj_id = shared_obj.id
+    original_comp_id = shared_comp.id
+
+    # 2. ACT (Get shared items)
+    response_get = client.get('/api/get_shared_items')
+    data_get = response_get.get_json()
+
+    # 3. ASSERT (Check if UserA sees UserB's items)
+    assert response_get.status_code == 200
+    assert len(data_get['objects']) == 1
+    assert len(data_get['components']) == 1
+    assert data_get['objects'][0]['object_name'] == "SHARED_OBJ"
+    assert data_get['objects'][0]['shared_by_user'] == "UserB"
+    assert data_get['components'][0]['name'] == "Shared Scope"
+    assert data_get['components'][0]['shared_by_user'] == "UserB"
+    # UserA has imported nothing yet
+    assert data_get['imported_object_ids'] == []
+    assert data_get['imported_component_ids'] == []
+
+    # 4. ACT (UserA imports the object)
+    response_import_obj = client.post('/api/import_item', json={
+        'id': original_obj_id,
+        'type': 'object'
+    })
+    data_import_obj = response_import_obj.get_json()
+    assert response_import_obj.status_code == 200
+    assert data_import_obj['status'] == 'success'
+
+    # 5. ACT (UserA imports the component)
+    response_import_comp = client.post('/api/import_item', json={
+        'id': original_comp_id,
+        'type': 'component'
+    })
+    data_import_comp = response_import_comp.get_json()
+    assert response_import_comp.status_code == 200
+    assert data_import_comp['status'] == 'success'
+
+    # 6. ACT (Get shared items again)
+    response_get_again = client.get('/api/get_shared_items')
+    data_get_again = response_get_again.get_json()
+
+    # 7. ASSERT (Check that items are now marked 'imported')
+    assert data_get_again['imported_object_ids'] == [original_obj_id]
+    assert data_get_again['imported_component_ids'] == [original_comp_id]
+
+    # 8. ASSERT (Check database for UserA)
+    imported_obj_db = db_session.query(AstroObject).filter_by(
+        user_id=user_a_id,
+        object_name="SHARED_OBJ"
+    ).one_or_none()
+
+    assert imported_obj_db is not None
+    assert imported_obj_db.original_item_id == original_obj_id
+    assert imported_obj_db.original_user_id == user_b_id
+    assert imported_obj_db.shared_notes == "UserB notes"  # Check notes were copied
+    assert imported_obj_db.is_shared is False  # Should be False for the new owner
+
+
+def test_import_catalog_pack(client, monkeypatch):
+    """
+    Tests that a user can import an object catalog,
+    and that importing it again skips duplicates.
+    """
+    # 1. ARRANGE
+    db = get_db()
+    user = db.query(DbUser).filter_by(username="default").one()
+
+    # Create the mock data that the catalog server would return
+    mock_catalog_data = {
+        'objects': [
+            {
+                'Object': 'CAT_OBJ_1',
+                'Common Name': 'Catalog Object 1',
+                'RA': 10.5,
+                'DEC': 20.2,
+                'Type': 'Galaxy'
+            }
+        ]
+    }
+    # Create a mock metadata object
+    mock_meta_data = {
+        'id': 'mock_pack',
+        'name': 'My Mock Catalog'
+    }
+
+    # Create a mock function for 'load_catalog_pack'
+    # We use MagicMock to just return our fake data
+    mock_load = MagicMock(return_value=(mock_catalog_data, mock_meta_data))
+
+    # Patch the app's 'load_catalog_pack' function to use our mock
+    monkeypatch.setattr('nova.load_catalog_pack', mock_load)
+
+    # 2. ACT (First import)
+    response_first = client.post(
+        '/import_catalog/mock_pack',
+        follow_redirects=True
+    )
+
+    # 3. ASSERT (First import)
+    assert response_first.status_code == 200
+    assert b"Catalog &#39;My Mock Catalog&#39; imported: 1 new object(s), 0 skipped." in response_first.data
+
+    # Check the database
+    new_obj = db.query(AstroObject).filter_by(user_id=user.id, object_name="CAT_OBJ_1").one_or_none()
+    assert new_obj is not None
+    assert new_obj.common_name == "Catalog Object 1"
+    assert new_obj.ra_hours == 10.5
+    assert new_obj.catalog_sources == "mock_pack"  # Check that the pack ID was recorded
+
+    # 4. ACT (Second import - test idempotency)
+    response_second = client.post(
+        '/import_catalog/mock_pack',
+        follow_redirects=True
+    )
+
+    # 5. ASSERT (Second import)
+    assert response_second.status_code == 200
+    assert b"Catalog &#39;My Mock Catalog&#39; imported: 0 new object(s), 1 skipped." in response_second.data
+
+    # Check that no new objects were created
+    count = db.query(AstroObject).filter_by(user_id=user.id, object_name="CAT_OBJ_1").count()
+    assert count == 1
 # TODO: Add more tests here
 # def test_download_journal_yaml(client):
 #     ...

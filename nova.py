@@ -4876,7 +4876,7 @@ def journal_edit(session_id):
 
         if not session_to_edit:
             flash("Journal entry not found or you do not have permission to edit it.", "error")
-            return redirect(url_for('journal_list_view'))
+            return redirect(url_for('index'))
 
         if request.method == 'POST':
             # --- START FIX: Validate the date ---
@@ -4952,10 +4952,10 @@ def journal_delete(session_id):
             if object_name_redirect:
                 return redirect(url_for('graph_dashboard', object_name=object_name_redirect))
             else:
-                return redirect(url_for('journal_list_view'))
+                return redirect(url_for('index'))
         else:
             flash("Journal entry not found or you do not have permission to delete it.", "error")
-            return redirect(url_for('journal_list_view'))
+            return redirect(url_for('index'))
     finally:
         db.close()
 

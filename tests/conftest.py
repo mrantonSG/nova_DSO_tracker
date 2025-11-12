@@ -165,6 +165,10 @@ def multi_user_client(db_session, monkeypatch):
             # model will be 'nova.User'
             return mock_auth_users.get(int(user_id))
 
+        def remove(self):
+            # This is a no-op (no operation) method to satisfy
+            # Flask-SQLAlchemy's teardown, preventing the crash.
+            pass
     # Patch the 'db' object in 'nova.py' to use our mock session
     # This is tricky, we patch the *SQLAlchemy* instance
     monkeypatch.setattr('nova.db.session', MockAuthDbSession())
@@ -181,9 +185,15 @@ def multi_user_client(db_session, monkeypatch):
     user_a = get_or_create_db_user(db_session, "UserA")
     user_b = get_or_create_db_user(db_session, "UserB")
 
+    # --- START FIX ---
+    # Store the IDs *before* the next commit detaches the objects
+    user_a_app_id = user_a.id
+    user_b_app_id = user_b.id
+    # --- END FIX ---
+
     # Add a default location for UserA (the logged-in user)
     loc_a = Location(
-        user_id=user_a.id,
+        user_id=user_a_app_id,  # Use the stored ID
         name="UserA_Home",
         lat=40, lon=-100, timezone="UTC", is_default=True
     )
@@ -201,4 +211,7 @@ def multi_user_client(db_session, monkeypatch):
         client.get('/')
 
         # Yield the client and the user IDs for the test
-        yield client, {"user_a_id": user_a.id, "user_b_id": user_b.id}
+        # --- START FIX ---
+        # Yield the stored IDs
+        yield client, {"user_a_id": user_a_app_id, "user_b_id": user_b_app_id}
+        # --- END FIX ---
