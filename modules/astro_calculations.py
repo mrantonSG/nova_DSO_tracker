@@ -70,8 +70,26 @@ def get_utc_time_for_local_11pm(tz_name):
     utc_time = eleven_pm_local.astimezone(pytz.utc)
     return utc_time.strftime('%Y-%m-%dT%H:%M:%S')
 
+
 def is_decimal(value):
-    return isinstance(value, (np.float64, float)) or len(str(value).split()) == 1
+    """
+    FIXED: Checks if a value is already a float or can be converted to a float.
+    This will now correctly return False for "D:M:S" or "H M S" strings.
+    """
+    if isinstance(value, (np.float64, float)):
+        return True
+
+    # Handle None before str() conversion
+    if value is None:
+        return False
+
+    try:
+        # Check if str(value) can be a float
+        float(str(value))
+        return True
+    except (ValueError, TypeError):
+        # Catches conversion errors for "45:30:00" or "05 35 17"
+        return False
 
 def parse_ra_dec(value):
     if is_decimal(value):
@@ -92,12 +110,63 @@ def hms_to_hours(hms):
     h, m, s = parse_ra_dec(hms)
     return h + (m / 60) + (s / 3600)
 
+
 def dms_to_degrees(dms):
-    if is_decimal(dms):
+    """
+    FIXED: Converts a string in D:M:S or D:M format to decimal degrees.
+    Also handles inputs that are already decimal (as float or string).
+    """
+    # Handle None input
+    if dms is None:
+        return 0.0
+
+    # Handle if it's already a float or np.float
+    if isinstance(dms, (np.float64, float)):
         return float(dms)
-    d, m, s = parse_ra_dec(dms)
-    sign = -1 if d < 0 else 1
-    return sign * (abs(d) + (m / 60) + (s / 3600))
+
+    # Convert to string for parsing
+    dms_str = str(dms).strip()
+
+    # Check if it's already a decimal string
+    try:
+        return float(dms_str)
+    except ValueError:
+        pass  # It's not a simple float string, so we parse as D:M:S
+
+    # Now, parse as D:M:S
+    try:
+        parts = dms_str.split(':')
+
+        # Handle negative sign
+        sign = -1 if parts[0].strip().startswith('-') else 1
+
+        if len(parts) == 1:
+            # This should have been caught by float(dms_str) but as a fallback
+            d = float(parts[0])
+            return d
+
+        elif len(parts) == 2:
+            # D:M format
+            d = float(parts[0])
+            m = float(parts[1])
+            s = 0.0
+
+        elif len(parts) == 3:
+            # D:M:S format
+            d = float(parts[0])
+            m = float(parts[1])
+            s = float(parts[2])
+
+        else:
+            # Bad format
+            return 0.0
+
+        # Calculate degrees. abs(d) handles the negative sign correctly.
+        return sign * (abs(d) + (m / 60.0) + (s / 3600.0))
+
+    except (ValueError, TypeError, AttributeError):
+        # Handles "abc:def" or other junk
+        return 0.0
 
 def ra_dec_to_alt_az(ra, dec, lat, lon, time_utc):
     if "T" not in time_utc:
