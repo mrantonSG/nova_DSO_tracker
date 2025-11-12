@@ -1,6 +1,7 @@
 import pytest
 from datetime import date
 import sys, os
+import json
 
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -12,7 +13,10 @@ from nova import (
     AstroObject,
     Project,
     JournalSession,
-    get_db
+    get_db,
+    Component,
+    Rig,
+    UiPref,
 )
 
 # --- All Fixtures are GONE (moved to conftest.py) ---
@@ -206,3 +210,206 @@ def test_get_imaging_opportunities_success(client):
     assert "max_alt" in first_result
     assert "moon_illumination" in first_result
     assert "rating" in first_result
+
+
+def test_get_imaging_opportunities_fail_moon(client, db_session):
+    """
+    Tests that the imaging opportunities API correctly returns no
+    results when the moon criteria are not met.
+    """
+    # 1. ARRANGE
+    # We must manually update the user's UiPref in the database
+    # to set a very strict moon illumination limit.
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    prefs = db_session.query(UiPref).filter_by(user_id=user.id).one_or_none()
+    if not prefs:
+        prefs = UiPref(user_id=user.id, json_blob='{}')
+        db_session.add(prefs)
+
+    # Load, modify, and save the settings
+    settings = json.loads(prefs.json_blob or '{}')
+    settings['imaging_criteria'] = {"max_moon_illumination": 5}  # Set moon limit to 5%
+    prefs.json_blob = json.dumps(settings)
+    db_session.commit()
+
+    # 2. ACT
+    # We query for a date with a known bright moon (Jan 25, 2025 is a full moon)
+    response = client.get(
+        '/get_imaging_opportunities/M42',
+        query_string={
+            'plot_lat': 50,
+            'plot_lon': 10,
+            'plot_tz': 'UTC',
+            'year': 2025,
+            'month': 1,
+            'day': 25  # <-- Full moon date
+        }
+    )
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data['status'] == 'success'
+
+    # We expect ZERO results because the moon is too bright
+    assert "results" in data
+    all_result_dates = [r['date'] for r in data['results']]
+    assert '2025-01-25' not in all_result_dates
+
+
+def test_journal_edit_post(client, db_session):
+    """
+    Tests that a user can successfully edit an existing journal session.
+    """
+    # 1. ARRANGE
+    user = db_session.query(DbUser).filter_by(username="default").one()
+
+    # Create a session to edit
+    session = JournalSession(
+        user_id=user.id,
+        date_utc=date(2025, 1, 1),
+        object_name="M42",
+        notes="Original notes"
+    )
+    db_session.add(session)
+    db_session.commit()
+    session_id = session.id
+
+    # Form data with updated notes
+    form_data = {
+        'session_date': '2025-01-02',  # Change the date
+        'target_object_id': 'M42',
+        'location_name': 'Default Test Loc',
+        'project_selection': 'standalone',
+        'general_notes_problems_learnings': 'Updated notes'  # Change the notes
+    }
+
+    # 2. ACT
+    response = client.post(
+        f'/journal/edit/{session_id}',
+        data=form_data,
+        follow_redirects=True
+    )
+
+    # 3. ASSERT
+    assert response.status_code == 200  # Lands on graph dashboard
+    assert b"Journal entry updated successfully!" in response.data
+
+    # Check the database directly
+    edited_session = db_session.get(JournalSession, session_id)
+    assert edited_session is not None
+    assert edited_session.notes == 'Updated notes'
+    assert edited_session.date_utc == date(2025, 1, 2)
+
+
+def test_journal_delete_post(client, db_session):
+    """
+    Tests that a user can successfully delete a journal session.
+    """
+    # 1. ARRANGE
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    session = JournalSession(
+        user_id=user.id,
+        date_utc=date(2025, 1, 1),
+        object_name="M42",
+    )
+    db_session.add(session)
+    db_session.commit()
+    session_id = session.id
+
+    # Make sure it's in the DB
+    assert db_session.get(JournalSession, session_id) is not None
+
+    # 2. ACT
+    response = client.post(
+        f'/journal/delete/{session_id}',
+        follow_redirects=True
+    )
+
+    # 3. ASSERT
+    assert response.status_code == 200  # Lands on graph dashboard
+    assert b"Journal entry deleted successfully." in response.data
+
+    # Check that it's gone from the DB
+    deleted_session = db_session.get(JournalSession, session_id)
+    assert deleted_session is None
+
+
+def test_add_component_and_rig_routes(client, db_session):
+    """
+    Tests adding components and a rig via the config form POST routes.
+    """
+    # 1. ACT (Add Telescope)
+    client.post('/add_component', data={
+        'component_type': 'telescopes',
+        'name': 'Test Scope',
+        'aperture_mm': 80,
+        'focal_length_mm': 400
+    })
+
+    # 2. ACT (Add Camera)
+    client.post('/add_component', data={
+        'component_type': 'cameras',
+        'name': 'Test Camera',
+        'sensor_width_mm': 20,
+        'sensor_height_mm': 15,
+        'pixel_size_um': 3.8
+    })
+
+    # 3. ASSERT (Check DB for components)
+    scope = db_session.query(Component).filter_by(name="Test Scope").one()
+    cam = db_session.query(Component).filter_by(name="Test Camera").one()
+    assert scope is not None
+    assert cam is not None
+
+    # 4. ACT (Add Rig)
+    client.post('/add_rig', data={
+        'rig_name': 'My New Rig',
+        'telescope_id': scope.id,
+        'camera_id': cam.id
+    })
+
+    # 5. ASSERT (Check DB for Rig)
+    rig = db_session.query(Rig).filter_by(rig_name="My New Rig").one()
+    assert rig is not None
+    assert rig.telescope_id == scope.id
+    assert rig.camera.name == "Test Camera"
+
+
+def test_api_update_object(client, db_session):
+    """
+    Tests that the /api/update_object endpoint correctly
+    updates an object's details in the database.
+    """
+    # 1. ARRANGE
+    # The M42 object was created by the 'client' fixture
+    obj = db_session.query(AstroObject).filter_by(object_name="M42").one()
+    assert obj.common_name == "Orion Nebula"  # Check initial state
+
+    update_payload = {
+        "object_id": "M42",
+        "name": "NEW Common Name",
+        "ra": 5.58,
+        "dec": -5.4,
+        "constellation": "Ori",
+        "type": "Nebula",
+        "magnitude": "4.0",
+        "size": "60",
+        "sb": "N/A",
+        "project_notes": "<p>New notes</p>",
+        "shared_notes": "",
+        "is_shared": False
+    }
+
+    # 2. ACT
+    response = client.post('/api/update_object', json=update_payload)
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    assert response.get_json()['status'] == 'success'
+
+    # Refresh the object from the DB and check its fields
+    obj_after_update = db_session.get(AstroObject, obj.id)
+    assert obj_after_update.common_name == "NEW Common Name"
+    assert obj_after_update.project_name == "<p>New notes</p>"
+    assert obj_after_update.constellation == "Ori"

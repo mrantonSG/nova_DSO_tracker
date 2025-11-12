@@ -220,11 +220,21 @@ def multi_user_client(db_session, monkeypatch):
 @pytest.fixture
 def client(db_session, monkeypatch):
     """
-    Creates a Flask test client connected to our in-memory db_session
-    and logged in as the 'default' user.
-    (Moved from test_nova_api.py)
+    Creates a Flask test client in SINGLE_USER_MODE that is
+    NOT manually logged in. It relies on the @before_request hook
+    to auto-login the 'default' user.
     """
-    # ... (monkeypatching and app.config setup) ...
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
+
+    class SingleUserTest(UserMixin):
+        def __init__(self, user_id, username):
+            self.id = user_id
+            self.username = username
+
+    monkeypatch.setattr('nova.User', SingleUserTest)
+
+    app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test-secret-key'
 
     # Create the 'default' user and location
     user = get_or_create_db_user(db_session, "default")
@@ -238,7 +248,6 @@ def client(db_session, monkeypatch):
     )
     db_session.add(location)
 
-    # --- START: ADD THIS OBJECT ---
     # Add M42 so the plotting APIs have something to find
     m42 = AstroObject(
         user_id=user.id,
@@ -248,12 +257,13 @@ def client(db_session, monkeypatch):
         dec_deg=-5.4
     )
     db_session.add(m42)
-    # --- END: ADD THIS OBJECT ---
 
     db_session.commit()
 
     with app.test_client() as client:
-        # ... (session_transaction and client.get('/')) ...
+        # We run one GET request to trigger the @before_request hook
+        # which logs in the user and sets the session cookie.
+        client.get('/')
         yield client
 
 @pytest.fixture
