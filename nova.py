@@ -6708,7 +6708,7 @@ def config_form():
                     loc.horizon_points = new_horizon_points
                     # --- END FIX ---
 
-                message = "Locations updated."
+                message = "Locations"
 
             # --- Update Existing Objects ---
             elif 'submit_objects' in request.form:
