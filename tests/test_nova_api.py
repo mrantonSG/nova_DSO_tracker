@@ -50,19 +50,24 @@ def test_add_journal_session_fails_with_bad_date(client):
     pass
 
 
-def test_su_login_bypass(client):
+# Change the test to use the new fixture
+def test_su_login_bypass(su_client_not_logged_in):
     """
-    Tests that in SINGLE_USER_MODE, a user is automatically logged in.
-    We can test this by checking that the client fixture (which is in SU mode)
-    has a user_id.
+    Tests that in SINGLE_USER_MODE, an unauthenticated user
+    is automatically logged in by the @before_request hook.
     """
-    # The 'client' fixture is already logged in via @before_request
-    # We can check that the flash message for 'login required' is NOT present
-    # when accessing a protected route.
-    response = client.get('/config_form')
+    # Use the new client which has NO session cookie
+    client = su_client_not_logged_in
+
+    # Access a protected route. The @before_request hook
+    # 'load_global_request_context' should see we are in SU mode,
+    # see we are not authenticated, and log in the 'default' user.
+    response = client.get('/config_form', follow_redirects=True)  # Follow redirects
+
+    # Assert that we successfully land on the config page
     assert response.status_code == 200
+    assert b"General Settings" in response.data
     assert b"Please log in to access this page." not in response.data
-    assert b"General Settings" in response.data  # Check we are on the config page
 
 
 def test_mu_login_required(client_logged_out):
@@ -121,3 +126,83 @@ def test_mu_data_isolation(multi_user_client, db_session):
     assert response.status_code == 200  # Lands on the journal list page
     assert b"Journal entry not found" in response.data
     assert b"UserB's Private Object" not in response.data  # Does not load data
+
+
+def test_get_plot_data_api(client):
+    """
+    Tests the main plotting data API endpoint for the graph dashboard.
+    """
+    # 1. ARRANGE
+    # The 'client' fixture is logged in and has "M42" and "Default Test Loc"
+
+    # 2. ACT
+    # Request plot data for M42 using the default location
+    response = client.get(
+        '/api/get_plot_data/M42',
+        query_string={
+            'plot_loc_name': 'Default Test Loc',
+            'plot_lat': 50,
+            'plot_lon': 10,
+            'plot_tz': 'UTC'
+        }
+    )
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    data = response.get_json()
+
+    # Check for the key data structures
+    assert "times" in data
+    assert "object_alt" in data
+    assert "moon_alt" in data
+    assert "sun_events" in data
+    assert "transit_time" in data
+
+    # Check that the data arrays are not empty
+    assert len(data['times']) > 0
+    assert len(data['object_alt']) == len(data['times'])
+
+    # Check that sun events were calculated
+    assert data['sun_events']['current']['astronomical_dusk'] is not None
+
+
+def test_get_imaging_opportunities_success(client):
+    """
+    Tests the imaging opportunities API for a known good target.
+    """
+    # 1. ARRANGE
+    # The 'client' fixture is logged in with M42.
+    # We will use a date in January, when M42 is high at night.
+    # We also pass plot_lat/lon/tz to simulate the graph view.
+
+    # 2. ACT
+    response = client.get(
+        '/get_imaging_opportunities/M42',
+        query_string={
+            'plot_lat': 50,
+            'plot_lon': 10,
+            'plot_tz': 'UTC',
+            'year': 2025,
+            'month': 1,
+            'day': 15
+        }
+    )
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    data = response.get_json()
+
+    assert data['status'] == 'success'
+    assert data['object'] == 'M42'
+
+    # M42 should be visible on Jan 15, so we expect results
+    assert "results" in data
+    assert len(data['results']) > 0
+
+    # Check the first result has the expected keys
+    first_result = data['results'][0]
+    assert "date" in first_result
+    assert "obs_minutes" in first_result
+    assert "max_alt" in first_result
+    assert "moon_illumination" in first_result
+    assert "rating" in first_result
