@@ -1110,16 +1110,26 @@ def _migrate_locations(db, user: DbUser, config: dict):
                 existing.is_default = new_is_default
                 existing.active = loc.get("active", True)
 
-                # Replace horizon points
-                db.query(HorizonPoint).filter_by(location_id=existing.id).delete()
+                # --- START FIX: Replace horizon points using relationship cascade ---
+                new_horizon_points = []
                 hm = loc.get("horizon_mask")
                 if isinstance(hm, list):
                     for pair in hm:
                         try:
                             az, altmin = float(pair[0]), float(pair[1])
-                            db.add(HorizonPoint(location_id=existing.id, az_deg=az, alt_min_deg=altmin))
+                            # Create the object, but don't add it to the session.
+                            # Appending to the list handles the relationship.
+                            new_horizon_points.append(
+                                HorizonPoint(az_deg=az, alt_min_deg=altmin)
+                            )
                         except Exception:
                             pass
+
+                # Assigning the new list triggers the 'delete-orphan' cascade.
+                # All old points are deleted, all new points are added.
+                existing.horizon_points = new_horizon_points
+                # --- END FIX ---
+
             else:
                 # --- INSERT new row
                 row = Location(
@@ -1132,16 +1142,25 @@ def _migrate_locations(db, user: DbUser, config: dict):
                     is_default=new_is_default,
                     active=loc.get("active", True)
                 )
-                db.add(row); db.flush()
+                db.add(row);
+                db.flush()  # Flush to get the row.id
 
+                # --- START REFACTOR: Use the same pattern for consistency ---
+                new_horizon_points = []
                 hm = loc.get("horizon_mask")
                 if isinstance(hm, list):
                     for pair in hm:
                         try:
                             az, altmin = float(pair[0]), float(pair[1])
-                            db.add(HorizonPoint(location_id=row.id, az_deg=az, alt_min_deg=altmin))
+                            new_horizon_points.append(
+                                HorizonPoint(az_deg=az, alt_min_deg=altmin)
+                            )
                         except Exception:
                             pass
+
+                # Assign the new list to the new row object
+                row.horizon_points = new_horizon_points
+                # --- END REFACTOR ---
         except Exception as e:
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
