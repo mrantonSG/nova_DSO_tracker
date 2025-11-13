@@ -1,6 +1,6 @@
 import pytest
 from datetime import date
-import sys, os
+import sys, os, io
 import json
 from unittest.mock import MagicMock # We'll need this for mocking
 
@@ -41,12 +41,15 @@ def test_su_login_bypass(su_client_not_logged_in):
     assert b"General Settings" in response.data
     assert b"Please log in to access this page." not in response.data
 
-def test_mu_login_required(client_logged_out):
+def test_mu_login_required(mu_client_logged_out):
     """
     Tests that in MULTI_USER_MODE, a logged-out user is redirected
     from a protected route to the login page.
     """
-    response = client_logged_out.get('/config_form', follow_redirects=False)
+    # The 'mu_client_logged_out' fixture is in MU mode and not logged in.
+    response = mu_client_logged_out.get('/config_form', follow_redirects=False)
+
+    # Assert we are redirected (302) to the login page
     assert response.status_code == 302
     assert response.location.startswith('/login')
 
@@ -252,6 +255,166 @@ def test_delete_component_and_rig_routes(client, db_session):
     # Check DB: Component should now be gone
     assert db_session.get(Component, scope_id) is None
 
+# --- NEW TEST: Add Object from SIMBAD Search ---
+def test_api_confirm_object_from_simbad(client, db_session):
+    """
+    Tests the /confirm_object endpoint, which is used when
+    a user adds a new object from the SIMBAD search modal.
+    """
+    # 1. ARRANGE
+    # This payload mimics the data sent from the "Add to My Objects" modal
+    simbad_payload = {
+        "object": "M101",
+        "name": "Pinwheel Galaxy",
+        "ra": 14.057,
+        "dec": 54.348,
+        "constellation": "UMa",
+        "type": "Galaxy",
+        "magnitude": "7.9",
+        "size": "28x26",
+        "sb": "14.3",
+        "project": "<p>My brand new notes for M101</p>",
+        "shared_notes": "",
+        "is_shared": False
+    }
+
+    # 2. ACT
+    response = client.post('/confirm_object', json=simbad_payload)
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    assert response.get_json()['status'] == 'success'
+
+    # Check the database directly to confirm it was saved
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    new_obj = db_session.query(AstroObject).filter_by(
+        user_id=user.id,
+        object_name="M101"
+    ).one_or_none()
+
+    assert new_obj is not None
+    assert new_obj.common_name == "Pinwheel Galaxy"
+    assert new_obj.ra_hours == 14.057
+    assert new_obj.project_name == "<p>My brand new notes for M101</p>"
+
+
+# --- NEW TEST: Confirm Object Normalization ---
+def test_api_confirm_object_normalization(client, db_session):
+    """
+    Tests that the /confirm_object endpoint correctly normalizes
+    the object name (e.g., "M 42" -> "M42") before saving.
+    """
+    # 1. ARRANGE
+    payload = {
+        "object": "M 42",  # <-- Name with a space
+        "name": "Orion",
+        "ra": 5.58,
+        "dec": -5.4,
+        # ... other fields are not critical for this test
+    }
+
+    # 2. ACT
+    client.post('/confirm_object', json=payload)
+
+    # 3. ASSERT
+    user = db_session.query(DbUser).filter_by(username="default").one()
+
+    # Check that the object was saved with the NORMALIZED name
+    obj_normalized = db_session.query(AstroObject).filter_by(
+        user_id=user.id,
+        object_name="M42"  # <-- The correct, normalized name
+    ).one_or_none()
+    assert obj_normalized is not None
+
+    # Check that the "corrupt" name was NOT saved
+    obj_corrupt = db_session.query(AstroObject).filter_by(
+        user_id=user.id,
+        object_name="M 42"
+    ).one_or_none()
+    assert obj_corrupt is None
+
+# --- NEW TEST: Update Project Notes ---
+def test_api_update_project_notes(client, db_session):
+    """
+    Tests the /update_project endpoint, which saves notes
+    from the Trix editor on the graph dashboard.
+    """
+    # 1. ARRANGE
+    # The 'client' fixture created M42. Let's get it.
+    obj = db_session.query(AstroObject).filter_by(object_name="M42").one()
+    assert obj.project_name is None  # Check initial state
+    obj_id = obj.id  # <-- Get the ID before the object becomes stale
+
+    notes_payload = {
+        "object": "M42",
+        "project": "<div>These are my <strong>new</strong> notes.</div>"
+    }
+
+    # 2. ACT
+    response = client.post('/update_project', json=notes_payload)
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    assert response.get_json()['status'] == 'success'
+
+    # --- FIX ---
+    # The client.post() call commits a transaction in a separate
+    # session, which detaches our local 'obj'.
+    # We must re-fetch the object from the DB using our session.
+    updated_obj = db_session.get(AstroObject, obj_id)
+
+    assert updated_obj is not None
+    assert updated_obj.project_name == "<div>These are my <strong>new</strong> notes.</div>"
+
+
+# --- NEW TEST: Image Upload in Editor ---
+def test_upload_editor_image(client, monkeypatch, tmp_path):
+    """
+    Tests the /upload_editor_image endpoint for the Trix editor.
+    This test requires 'monkeypatch' and 'tmp_path' fixtures.
+    """
+    # 1. ARRANGE
+    # Create a temporary folder for this test's uploads
+    mock_upload_folder = tmp_path / "uploads"
+    # Tell the app to use this temporary folder instead of the real one
+    monkeypatch.setattr('nova.UPLOAD_FOLDER', str(mock_upload_folder))
+
+    # Create a mock file in memory
+    mock_file = io.BytesIO(b'fake-image-data-bytes')
+
+    # 2. ACT
+    response = client.post(
+        '/upload_editor_image',
+        data={
+            # The form field name is 'file',
+            # and we send it as a (file_object, filename) tuple
+            'file': (mock_file, 'test_image.jpg')
+        }
+    )
+
+    # 3. ASSERT
+    # Check the API response
+    assert response.status_code == 200
+    data = response.get_json()
+    assert 'url' in data
+    url = data['url']
+
+    # The URL should point to the 'default' user's folder
+    # and have a new, unique, non-guessable filename.
+    assert url.startswith('/uploads/default/note_img_')
+    assert url.endswith('.jpg')
+
+    # Get the unique filename from the URL
+    new_filename = os.path.basename(url)
+
+    # Check the file system (our temporary folder)
+    expected_file_path = mock_upload_folder / 'default' / new_filename
+    assert os.path.exists(expected_file_path)
+
+    # Check the file content
+    with open(expected_file_path, 'rb') as f:
+        content = f.read()
+    assert content == b'fake-image-data-bytes'
 
 # --- Your other existing tests/stubs from test_nova_api.py ---
 # ...

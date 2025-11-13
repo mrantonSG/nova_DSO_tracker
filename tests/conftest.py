@@ -142,67 +142,62 @@ def client_logged_out(db_session, monkeypatch):
 def multi_user_client(db_session, monkeypatch):
     """
     Creates a Flask test client for a MULTI-USER environment.
-
-    - Sets SINGLE_USER_MODE = False
-    - Creates two app users: "UserA" and "UserB"
-    - Creates one auth user: "UserA"
-    - Logs in the client as "UserA"
+    (This version is corrected to not patch nova.User AND fixes scalar)
     """
     # 1. Force Multi-User Mode
     monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
 
     # 2. Patch the Auth DB and User model
-    class AuthUser(UserMixin):
-        # A simple mock of the SQLAlchemy User model for auth
+    class MockAuthUser(UserMixin):
         def __init__(self, id, username, password_hash=""):
             self.id = id
             self.username = username
             self.password_hash = password_hash
 
-        def check_password(self, password):
-            return True
+        def check_password(self, password): return True
 
         @property
-        def is_active(self):
-            return True
+        def is_active(self): return True
 
-    # Store our mock auth users
     mock_auth_users = {
-        1: AuthUser(1, "UserA"),
-        2: AuthUser(2, "UserB"),
+        1: MockAuthUser(1, "UserA"),
+        2: MockAuthUser(2, "UserB"),
     }
 
-    # Mock the SQLAlchemy 'db.session.get(User, uid)' call
     class MockAuthDbSession:
         def get(self, model, user_id):
-            # model will be 'nova.User'
             return mock_auth_users.get(int(user_id))
 
-        def remove(self):
-            # Flask-SQLAlchemy's teardown, preventing the crash.
-            pass
-    # Patch the 'db' object in 'nova.py' to use our mock session
-    monkeypatch.setattr('nova.db.session', MockAuthDbSession())
+        def scalar(self, select_statement):
+            try:
+                # --- THIS IS THE FIX ---
+                # Access the .value of the parameter on the right
+                username = select_statement.whereclause.right.value
+                # --- END OF FIX ---
 
-    # Patch the 'User' model in 'nova.py' to be our mock AuthUser
-    monkeypatch.setattr('nova.User', AuthUser)
+                for user in mock_auth_users.values():
+                    if user.username == username:
+                        return user
+            except Exception as e:
+                print(f"[MOCK_AUTH_ERROR] scalar failed: {e}")
+            return None
+
+        def remove(self):
+            pass
+
+    monkeypatch.setattr('nova.db.session', MockAuthDbSession())
 
     # 3. Configure the app
     app.config['TESTING'] = True
     app.config['SECRET_KEY'] = 'test-secret-key'
 
     # 4. Provision the *application* (app.db) users
-    # These create the entries in the DbUser table via get_or_create
     user_a = get_or_create_db_user(db_session, "UserA")
     user_b = get_or_create_db_user(db_session, "UserB")
-
-    # Store the IDs *before* the next commit detaches the objects
     user_a_app_id = user_a.id
     user_b_app_id = user_b.id
-
-    # Add a default location for UserA (the logged-in user)
     loc_a = Location(
-        user_id=user_a_app_id,  # Use the stored ID
+        user_id=user_a_app_id,
         name="UserA_Home",
         lat=40, lon=-100, timezone="UTC", is_default=True
     )
@@ -211,17 +206,77 @@ def multi_user_client(db_session, monkeypatch):
 
     # 5. Create and log in the client
     with app.test_client() as client:
-        # Log in as "UserA" (auth user ID is 1)
         with client.session_transaction() as sess:
-            sess['_user_id'] = '1'  # Use the auth user ID
+            sess['_user_id'] = '1'
             sess['_fresh'] = True
-
-        # Prime the session to load g.db_user correctly
         client.get('/')
-
-        # Yield the stored IDs
         yield client, {"user_a_id": user_a_app_id, "user_b_id": user_b_app_id}
 
+
+@pytest.fixture
+def mu_client_logged_out(db_session, monkeypatch):
+    """
+    Creates a Flask test client for a MULTI-USER environment
+    that is NOT logged in.
+    (This version is corrected to not patch nova.User AND fixes scalar)
+    """
+    # 1. Force Multi-User Mode
+    monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
+
+    # 2. Patch the Auth DB and User model
+    class MockAuthUser(UserMixin):
+        def __init__(self, id, username, password="password"):
+            self.id = id
+            self.username = username
+            self.mock_password = password
+            self.password_hash = f"hash_for_{password}"
+
+        def check_password(self, password):
+            return self.mock_password == password
+
+        @property
+        def is_active(self): return True
+
+    mock_auth_users = {
+        1: MockAuthUser(1, "UserA", password="password123"),
+        2: MockAuthUser(2, "UserB", password="password456"),
+    }
+
+    class MockAuthDbSession:
+        def get(self, model, user_id):
+            return mock_auth_users.get(int(user_id))
+
+        def scalar(self, select_statement):
+            try:
+                # --- THIS IS THE FIX ---
+                # Access the .value of the parameter on the right
+                username = select_statement.whereclause.right.value
+                # --- END OF FIX ---
+
+                for user in mock_auth_users.values():
+                    if user.username == username:
+                        return user
+            except Exception as e:
+                print(f"[MOCK_AUTH_ERROR] scalar failed: {e}")
+            return None
+
+        def remove(self):
+            pass
+
+    monkeypatch.setattr('nova.db.session', MockAuthDbSession())
+
+    # 3. Configure the app
+    app.config['TESTING'] = True
+    app.config['SECRET_KEY'] = 'test-secret-key'
+
+    # 4. Provision the *application* (app.db) users
+    get_or_create_db_user(db_session, "UserA")
+    get_or_create_db_user(db_session, "UserB")
+    db_session.commit()
+
+    # 5. Create the client *without* a session cookie
+    with app.test_client() as client:
+        yield client
 
 @pytest.fixture
 def client(db_session, monkeypatch):
