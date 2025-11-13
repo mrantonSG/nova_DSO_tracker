@@ -21,6 +21,8 @@ from nova import (
     JournalSession,
     Project,
     UPLOAD_FOLDER,
+    import_user_from_yaml,
+    HorizonPoint,
     _migrate_journal,
     _migrate_objects
 )
@@ -623,3 +625,97 @@ def test_migrate_objects_rewrites_image_links(db_session):
 
     assert new_obj.project_name == expected_project_notes
     assert new_obj.shared_notes == expected_shared_notes
+
+
+def test_import_config_horizon_mask_is_idempotent(client, tmp_path):
+    """
+    Hardened test for the horizon mask bug.
+    This test imports the *same* config file twice, and
+    asserts that the horizon mask points are REPLACED, not
+    appended, confirming the import is idempotent.
+    """
+    # 1. ARRANGE
+    db = get_db()
+    user = db.query(DbUser).filter_by(username="default").one()
+
+    # Manually add an *initial* location that the YAML will update.
+    initial_loc = Location(
+        user_id=user.id,
+        name="Test Location",
+        lat=10, lon=10, timezone="UTC"
+    )
+    initial_loc.horizon_points = [
+        HorizonPoint(az_deg=999, alt_min_deg=999)
+    ]
+    db.add(initial_loc)
+    db.commit()
+
+    # Check the initial state: 1 location, 1 horizon point
+    assert db.query(HorizonPoint).count() == 1
+
+    # Define the config YAML to be imported.
+    config_yaml_content = """
+    default_location: Test Location
+    locations:
+        Test Location:
+            lat: 10
+            lon: 10
+            timezone: UTC
+            active: true
+            horizon_mask:
+                - [0, 10]
+                - [180, 20]
+    objects: []
+    """
+
+    # Create mock file paths
+    cfg_path = tmp_path / "test_cfg.yaml"
+    rigs_path = tmp_path / "test_rigs.yaml"
+    jrn_path = tmp_path / "test_jrn.yaml"
+
+    cfg_path.write_text(config_yaml_content)
+    rigs_path.write_text("components: {}\nrigs: []")
+    jrn_path.write_text("projects: []\nsessions: []")
+
+    # 2. ACT (Import #1)
+    import_user_from_yaml(
+        username="default",
+        config_path=str(cfg_path),
+        rigs_path=str(rigs_path),
+        journal_path=str(jrn_path),
+        clear_existing=False
+    )
+
+    # 3. ASSERT (Import #1)
+    # --- START OF FIX ---
+    # Re-fetch the location using the *current* test session.
+    # The old 'loc_after_import1' object is now detached.
+    loc_after_import1 = db.query(Location).filter_by(name="Test Location").one()
+    # --- END OF FIX ---
+
+    points_after_import1 = loc_after_import1.horizon_points
+    assert len(points_after_import1) == 2
+    assert points_after_import1[0].az_deg == 0
+    assert points_after_import1[0].alt_min_deg == 10
+    assert points_after_import1[1].az_deg == 180
+    assert points_after_import1[1].alt_min_deg == 20
+
+    # 4. ACT (Import #2 - The Idempotency Check)
+    import_user_from_yaml(
+        username="default",
+        config_path=str(cfg_path),
+        rigs_path=str(rigs_path),
+        journal_path=str(jrn_path),
+        clear_existing=False
+    )
+
+    # 5. ASSERT (Import #2)
+    # --- START OF FIX ---
+    # Re-fetch the location *again* after the second import.
+    loc_after_import2 = db.query(Location).filter_by(name="Test Location").one()
+    # --- END OF FIX ---
+
+    points_after_import2 = loc_after_import2.horizon_points
+
+    # THIS IS THE HARDENED ASSERTION:
+    assert len(points_after_import2) == 2

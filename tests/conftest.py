@@ -20,34 +20,56 @@ from nova import (
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
+
 @pytest.fixture(scope="function")
 def db_session(monkeypatch):
     """
     Creates a new, empty, in-memory database AND patches the app
     to use this database for all its operations.
-    (Moved from test_nova_api.py)
+
+    This version (v6) correctly patches the REAL SessionLocal.remove()
+    to prevent app-side db.close() calls from detaching the
+    session from the test thread.
     """
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
 
-    TestSession = scoped_session(
+    # 1. Create a Test factory that mirrors the app's factory
+    TestSessionLocal = scoped_session(
         sessionmaker(autocommit=False, autoflush=False, bind=engine)
     )
-    session = TestSession()
 
-    monkeypatch.setattr(sys.modules[__name__], 'SessionLocal', TestSession)
-    monkeypatch.setattr('nova.SessionLocal', TestSession)
-    monkeypatch.setattr('nova.get_db', TestSession)
+    # 2. Patch the app's REAL 'SessionLocal' to use our test factory
+    monkeypatch.setattr('nova.SessionLocal', TestSessionLocal)
 
+    # 3. Patch the app's 'get_db' to use our test factory
+    # (This ensures all calls to get_db() get the test session)
+    monkeypatch.setattr('nova.get_db', TestSessionLocal)
+
+    # 4. Patch the *remove* method to do nothing.
+    #    This is the key: db.close() calls SessionLocal.remove().
+    #    We make this do nothing so the session stays open for the test.
+    monkeypatch.setattr(TestSessionLocal, 'remove', lambda: None)
+
+    # 5. Get the single session instance we will use for this test
+    session = TestSessionLocal()
+
+    # 6. Add the guest user template
     guest_user = DbUser(username="guest_user")
     session.add(guest_user)
     session.commit()
 
     try:
-        yield session
+        yield session  # The test runs here
     finally:
-        session.close()
-        TestSession.remove()
+        # 7. The test is over, now we clean up
+
+        # --- THIS IS THE CORRECTED CLEANUP ---
+        # We call the *real* remove method via the factory itself.
+        # This properly closes the session we've been using.
+        TestSessionLocal.remove()
+        # --- END OF FIX ---
+
         Base.metadata.drop_all(engine)
 
 
