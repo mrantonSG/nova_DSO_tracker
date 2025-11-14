@@ -12,7 +12,20 @@
     --accent-set: #F44336;
     --accent-high: #2196F3;
 }
-
+/* Update header styles for new two-line title */
+.header {
+    padding: 12px 20px; /* Make header a bit shorter */
+}
+.header h1 {
+    margin: 0;
+    font-size: 1.3rem; /* Main title */
+}
+.header .header-subtitle {
+    margin: 2px 0 0 0; /* Subtitle */
+    font-size: 1.5rem;
+    font-weight: normal;
+    opacity: 0.9;
+}
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
@@ -152,33 +165,44 @@ trix-editor {
     cursor: not-allowed;
 }
 
-/* --- Navigation Menu --- */
+/* --- Navigation Menu (Button Style) --- */
 .mobile-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     display: flex;
-    background-color: #ffffff;
+    background-color: var(--bg-color); /* Use main page background */
     border-top: 1px solid var(--border-color);
     box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    padding: 5px; /* Add padding around the bar */
+    gap: 5px; /* Add a small gap between buttons */
 }
 .mobile-nav a {
     flex: 1; /* Each item takes equal width */
     text-align: center;
-    padding: 12px 5px;
-    color: #555;
+    padding: 14px 5px; /* Make buttons taller */
+    color: #333;
     text-decoration: none;
-    font-size: 0.75rem;
+    font-size: 0.9rem; /* Slightly larger text */
+    font-weight: 500;
+    border-radius: 8px; /* Rounded corners for buttons */
+    background-color: #fff;
+    border: 1px solid #ddd;
+    transition: background-color 0.2s, color 0.2s;
 }
+
+/* This is the "nova-green" active button */
 .mobile-nav a.active {
-    color: var(--primary-dark);
+    background-color: var(--primary-dark); /* Your app's green color */
+    color: white;
     font-weight: bold;
+    border-color: var(--primary-dark);
 }
+
+/* This hides the old emoji <span> tags */
 .mobile-nav a span {
-    display: block;
-    font-size: 1.5rem; /* Icon size */
-    margin-bottom: 3px;
+   display: none;
 }
 .form-group input[readonly] {
     font-size: 1.1rem;
@@ -192,4 +216,29 @@ trix-editor {
 #search-name {
     padding: 14px;
     font-size: 1.2rem;
+}
+.item-card h3 a {
+    text-decoration: none;
+    color: inherit; /* Inherits the --primary-dark color from the h3 */
+}
+/* Style for the new 'Edit' button on 'Up Now' cards */
+.item-card {
+    position: relative; /* This is needed to position the button */
+}
+
+.edit-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    background-color: #eee;
+    color: #333;
+    text-decoration: none;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-weight: 500;
+}
+.edit-button:hover {
+    background-color: #ddd;
 }

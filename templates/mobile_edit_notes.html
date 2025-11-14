@@ -1,0 +1,86 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}Edit Notes{% endblock %}
+{% block header_title %}Edit: {{ common_name or object_name }}{% endblock %}
+
+{% block content %}
+    <form id="edit-notes-form">
+        <div class="form-group">
+            <input id="project-notes" type="hidden" name="content" value="{{ project_notes_html | e }}">
+            <trix-editor input="project-notes"></trix-editor>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+            <input type="checkbox" id="is-active" style="width: auto;" {% if is_project_active %}checked{% endif %}>
+            <label for="is-active" style="margin: 0; font-weight: normal;">Set as Active Project</label>
+        </div>
+        <button type="submit" class="button" id="save-button" style="margin-top: 20px;">
+            Save Notes
+        </button>
+    </form>
+
+    <div id="message-area" class="message" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('edit-notes-form');
+        const saveButton = document.getElementById('save-button');
+        const messageArea = document.getElementById('message-area');
+        const editor = document.querySelector('trix-editor');
+        const objectName = "{{ object_name | e }}";
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+            messageArea.style.display = 'none';
+
+            // Get the full HTML content from the Trix editor
+            const notesHtml = editor.editor.getDocument().toString();
+
+            const payload = {
+                object: objectName,
+                project: notesHtml,
+                is_active: document.getElementById('is-active').checked
+            };
+
+            try {
+                // We post to the *existing* /update_project API
+                const response = await fetch("{{ url_for('update_project') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    messageArea.textContent = 'Notes saved successfully!';
+                    messageArea.style.color = 'var(--accent-rise)';
+                    messageArea.style.display = 'block';
+
+                    // Re-enable button
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Save Notes';
+
+                    // Optional: Redirect back to 'Up Now' after a delay
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('mobile_up_now') }}";
+                    }, 1500);
+
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            } catch (err) {
+                messageArea.textContent = `Error: ${err.message}`;
+                messageArea.style.color = 'var(--accent-set)';
+                messageArea.style.display = 'block';
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Notes';
+            }
+        });
+    });
+</script>
+{% endblock %}

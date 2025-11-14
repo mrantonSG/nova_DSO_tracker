@@ -58,6 +58,7 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_
 from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
 import jwt
+import bleach
 
 from modules.astro_calculations import (
     calculate_transit_time,
@@ -6518,6 +6519,50 @@ def mobile_outlook():
     return render_template('mobile_outlook.html')
 
 
+@app.route('/m/edit_notes/<path:object_name>')
+@login_required
+def mobile_edit_notes(object_name):
+    """Renders the mobile 'Edit Notes' page for a specific object."""
+    load_full_astro_context()  # Ensures g.db_user is loaded
+
+    # Get the current user
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for('mobile_up_now'))
+
+        # Get the specific object
+        obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
+
+        if not obj_record:
+            flash(f"Object '{object_name}' not found.", "error")
+            return redirect(url_for('mobile_up_now'))
+
+        # Handle Trix/HTML conversion for old plain text notes
+        raw_project_notes = obj_record.project_name or ""
+        if not raw_project_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+            escaped_text = bleach.clean(raw_project_notes, tags=[], strip=True)
+            project_notes_for_editor = escaped_text.replace("\n", "<br>")
+        else:
+            project_notes_for_editor = raw_project_notes
+
+        return render_template(
+            'mobile_edit_notes.html',
+            object_name=obj_record.object_name,
+            common_name=obj_record.common_name,
+            project_notes_html=project_notes_for_editor,
+            is_project_active=obj_record.active_project
+        )
+    finally:
+        db.close()
+
 @app.route('/sun_events')
 def sun_events():
     """
@@ -6877,10 +6922,6 @@ def update_project():
     data = request.get_json()
     object_name = data.get('object')
 
-    # --- MODIFIED: The 'project' key now contains HTML ---
-    new_project_notes_html = data.get('project')
-    # --- END MODIFICATION ---
-
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
@@ -6888,12 +6929,32 @@ def update_project():
         obj_to_update = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
         if obj_to_update:
-            # --- MODIFIED: Save the raw HTML ---
-            obj_to_update.project_name = new_project_notes_html
-            # --- END MODIFICATION ---
+
+            did_change_active_status = False
+
+            # --- START OF FIX ---
+
+            # Only update notes if the 'project' key was sent
+            if 'project' in data:
+                new_project_notes_html = data.get('project')
+                obj_to_update.project_name = new_project_notes_html
+
+            # Only update 'active_project' if the 'is_active' key was sent
+            if 'is_active' in data:
+                new_is_active = bool(data.get('is_active'))
+                # Check if the status is actually changing
+                if obj_to_update.active_project != new_is_active:
+                    obj_to_update.active_project = new_is_active
+                    did_change_active_status = True
+
+            # --- END OF FIX ---
 
             db.commit()
-            trigger_outlook_update_for_user(username)
+
+            # Only trigger the expensive outlook update if the status actually changed
+            if did_change_active_status:
+                trigger_outlook_update_for_user(username)
+
             return jsonify({"status": "success"})
         else:
             return jsonify({"status": "error", "error": "Object not found."}), 404
