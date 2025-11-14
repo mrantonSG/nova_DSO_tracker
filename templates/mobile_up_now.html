@@ -89,12 +89,14 @@
 
             // Sort the data based on the current setting
             if (currentSort === 'alt') {
+                // ... (sorting logic remains the same) ...
                 objectsData.sort((a, b) => {
                     return parseFloat(b['Altitude Current']) - parseFloat(a['Altitude Current']);
                 });
                 sortAltButton.classList.add('active');
                 sortDurButton.classList.remove('active');
             } else { // 'dur'
+                // ... (sorting logic remains the same) ...
                 objectsData.sort((a, b) => {
                     return parseFloat(b['Observable Duration (min)']) - parseFloat(a['Observable Duration (min)']);
                 });
@@ -102,14 +104,20 @@
                 sortAltButton.classList.remove('active');
             }
 
+            // --- START OF CHANGE ---
             for (const obj of objectsData) {
                 const obsMin = obj['Observable Duration (min)'];
                 let obsText = `${obsMin} min`;
                 if (obsMin === 0) obsText = "Not visible";
 
+                // Get the URL for the edit page
+                const editUrl = `{{ url_for('mobile_edit_notes', object_name='__NAME__') }}`.replace('__NAME__', obj['Object']);
+
                 const li = document.createElement('li');
                 li.className = 'item-card';
                 li.innerHTML = `
+                    <a href="${editUrl}" class="edit-button">Edit</a>
+
                     <h3>${obj['Common Name']} (${obj['Object']})</h3>
                     <div class="item-card-grid">
                         <div><strong>Altitude:</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
@@ -120,6 +128,7 @@
                 `;
                 list.appendChild(li);
             }
+            // --- END OF CHANGE ---
         }
 
         // Add click listeners for the new buttons
