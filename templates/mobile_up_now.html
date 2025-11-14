@@ -6,12 +6,13 @@
 {% block head %}
 <style>
     .sort-bar {
-        display: flex;
-        gap: 10px;
+        display: grid; /* Use grid for 3 buttons */
+        grid-template-columns: 1fr 1fr 1fr; /* 3 equal columns */
+        gap: 8px; /* A little less gap */
         padding: 10px 20px 0 20px;
     }
     .sort-button {
-        flex: 1;
+        /* flex: 1; <-- No longer needed */
         padding: 10px;
         font-size: 0.9rem;
         border: 1px solid var(--border-color);
@@ -31,6 +32,7 @@
     <div class="sort-bar">
         <button class="sort-button active" id="sort-alt">Sort by Altitude</button>
         <button class="sort-button" id="sort-dur">Sort by Duration</button>
+        <button class="sort-button" id="filter-active">Active Only</button>
     </div>
 <ul class="item-list" id="object-list" style="margin-top: 15px;">
         <li class="loading" id="loading-indicator">
@@ -46,8 +48,8 @@
         const loading = document.getElementById('loading-indicator');
         const sortAltButton = document.getElementById('sort-alt');
         const sortDurButton = document.getElementById('sort-dur');
+        const filterActiveButton = document.getElementById('filter-active'); // 1. Get the new button
 
-        // Get the list of object names from the 'g' context
         const objectNames = [
             {% for obj in g.objects_list %}
                 "{{ obj['Object'] | e }}",
@@ -59,12 +61,12 @@
             return;
         }
 
-        // We use the helper function to get ?location=... if it's set
         const locationQuery = getLocationQueryParam();
         const fetchUrlBase = `{{ url_for('get_object_data', object_name='__NAME__') }}`;
 
-        let objectsData = [];
-        let currentSort = 'alt'; // 'alt' or 'dur'
+        let objectsData = []; // This will hold ALL fetched objects
+        let currentSort = 'alt';
+        let filterActive = false; // 2. Add new filter state
 
         async function fetchAllObjects() {
             for (const name of objectNames) {
@@ -80,44 +82,55 @@
                     console.error("Error fetching object:", name, e);
                 }
             }
-            renderList(); // Initial render (will be sorted by alt)
+            renderList(); // Initial render
         }
 
         function renderList() {
             loading.style.display = 'none';
-            list.innerHTML = ''; // Clear the list before re-rendering
+            list.innerHTML = ''; // Clear the list
 
-            // Sort the data based on the current setting
+            // 3. APPLY FILTER FIRST
+            // Your API sends 'ActiveProject: true/false'
+            let filteredData = objectsData;
+            if (filterActive) {
+                filteredData = objectsData.filter(obj => obj.ActiveProject === true);
+            }
+
+            // Update button visual state
+            filterActiveButton.classList.toggle('active', filterActive);
+
+            // 4. APPLY SORT to the filtered data
             if (currentSort === 'alt') {
-                // ... (sorting logic remains the same) ...
-                objectsData.sort((a, b) => {
+                filteredData.sort((a, b) => {
                     return parseFloat(b['Altitude Current']) - parseFloat(a['Altitude Current']);
                 });
                 sortAltButton.classList.add('active');
                 sortDurButton.classList.remove('active');
             } else { // 'dur'
-                // ... (sorting logic remains the same) ...
-                objectsData.sort((a, b) => {
+                filteredData.sort((a, b) => {
                     return parseFloat(b['Observable Duration (min)']) - parseFloat(a['Observable Duration (min)']);
                 });
                 sortDurButton.classList.add('active');
                 sortAltButton.classList.remove('active');
             }
 
-            // --- START OF CHANGE ---
-            for (const obj of objectsData) {
+            // 5. RENDER the filtered and sorted data
+            if (filteredData.length === 0) {
+                list.innerHTML = `<li class="message">No objects match your filter.</li>`;
+                return;
+            }
+
+            for (const obj of filteredData) {
                 const obsMin = obj['Observable Duration (min)'];
                 let obsText = `${obsMin} min`;
                 if (obsMin === 0) obsText = "Not visible";
 
-                // Get the URL for the edit page
                 const editUrl = `{{ url_for('mobile_edit_notes', object_name='__NAME__') }}`.replace('__NAME__', obj['Object']);
 
                 const li = document.createElement('li');
                 li.className = 'item-card';
                 li.innerHTML = `
                     <a href="${editUrl}" class="edit-button">Edit</a>
-
                     <h3>${obj['Common Name']} (${obj['Object']})</h3>
                     <div class="item-card-grid">
                         <div><strong>Altitude:</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
@@ -128,10 +141,9 @@
                 `;
                 list.appendChild(li);
             }
-            // --- END OF CHANGE ---
         }
 
-        // Add click listeners for the new buttons
+        // 6. ADD CLICK LISTENERS
         sortAltButton.addEventListener('click', () => {
             if (currentSort !== 'alt') {
                 currentSort = 'alt';
@@ -144,6 +156,11 @@
                 currentSort = 'dur';
                 renderList();
             }
+        });
+
+        filterActiveButton.addEventListener('click', () => {
+            filterActive = !filterActive; // Toggle the filter state
+            renderList(); // Re-render the list
         });
 
         fetchAllObjects();
