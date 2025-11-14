@@ -348,7 +348,6 @@
     // ========================================================================
     let activeTab = localStorage.getItem('activeTab') || 'position';
     let outlookDataLoaded = false;
-    let isUpdatingLocation = false;
 
     let allOutlookOpportunities = []; // To store the full list of results
     let currentOutlookSort = { columnKey: 'date', ascending: true }; // Default sort
@@ -624,206 +623,216 @@
 
 
 async function fetchData() {
-        const tbody = document.getElementById("data-body");
-        const loadingDiv = document.getElementById("table-loading");
-        // Prevent multiple simultaneous fetches
-        if (!tbody || !loadingDiv || tbody.dataset.loading === 'true') return;
+    const tbody = document.getElementById("data-body");
+    const loadingDiv = document.getElementById("table-loading");
+    // Prevent multiple simultaneous fetches
+    if (!tbody || !loadingDiv || tbody.dataset.loading === 'true') return;
 
-        tbody.dataset.loading = 'true'; // Mark as loading
-        try {
-            // Show loading indicator only if the table is currently empty
-            if (tbody.innerHTML.trim() === '') loadingDiv.style.display = 'block';
+    tbody.dataset.loading = 'true'; // Mark as loading
 
-            // 1. Fetch the list of all object names first
-            const listResponse = await fetch('/api/get_object_list');
-            if (!listResponse.ok) throw new Error(`HTTP error fetching object list! status: ${listResponse.status}`);
-            const listData = await listResponse.json(); // Gets { objects: ["name1", "name2", ...] }
+    // --- NEW: Remember which location we are STARTING to fetch ---
+    const locationBeingFetched = sessionStorage.getItem('selectedLocation');
+    console.log(`Starting fetch for location: ${locationBeingFetched}`);
 
-            // --- Get the currently selected location from browser session storage ---
-            const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
-            // --- End location retrieval ---
+    // --- Define columnOrder here so it's available in catch block if needed ---
+    const columnOrder = [
+        'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
+        'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
+        'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
+        'Best Month', 'Max Altitude'
+    ];
 
-            // 2. Start fetching detailed data for EACH object in parallel, passing the location
-            const fetchPromises = listData.objects.map(objName =>
-                // --- Pass location as a query parameter ---
-                fetch(`/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`)
-                // --- End URL modification ---
-                .then(res => { // Handle the response for each object
-                    if (!res.ok) { // Check if the server reported an error for this specific object
-                        console.error(`Error fetching data for ${objName}: ${res.status}`);
-                        // Return a placeholder error object so Promise.all doesn't fail completely
-                        return { Object: objName, error: true, 'Common Name': `Error: ${res.status}` };
-                    }
-                    return res.json(); // If okay, parse the JSON data
-                })
-                .catch(error => { // Catch network errors (e.g., server down) for individual requests
-                    console.error(`Network error fetching data for ${objName}:`, error);
-                    // Return a placeholder error object
-                    return { Object: objName, error: true, 'Common Name': 'Error: Network failed' };
-                })
-            );
+    try {
+        // Show loading indicator only if the table is currently empty
+        if (tbody.innerHTML.trim() === '') loadingDiv.style.display = 'block';
 
-            // 3. Wait for ALL the individual detail fetches to complete
-            const allObjectData = await Promise.all(fetchPromises);
+        // 1. Fetch the list of all object names first
+        const listResponse = await fetch('/api/get_object_list');
+        if (!listResponse.ok) throw new Error(`HTTP error fetching object list! status: ${listResponse.status}`);
+        const listData = await listResponse.json(); // Gets { objects: ["name1", "name2", ...] }
 
-            // 4. Clear the table body, ready for the new rows
-            tbody.innerHTML = '';
+        // --- Get the currently selected location from browser session storage ---
+        const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+        // --- End location retrieval ---
 
-            // Define the order columns should appear in the table row
-            // --- MODIFIED TO ADD NEW COLUMNS ---
-            const columnOrder = [
-                'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
-                'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
-                'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
-                'Best Month', 'Max Altitude'
-            ];
-            // --- END MODIFICATION ---
-
-
-            // Get the altitude threshold (needed for highlighting) from the template/global scope if possible
-            // Fallback to 20 if not defined
-            const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
-
-            // 5. Loop through the data for each object and build the table row
-            allObjectData.forEach(objectData => {
-                // Skip if data is missing or marked as an error from the fetch stage
-                if (!objectData) {
-                    console.warn("Skipping row due to missing objectData.");
-                    return;
+        // 2. Start fetching detailed data for EACH object in parallel, passing the location
+        const fetchPromises = listData.objects.map(objName =>
+            // --- Pass location as a query parameter ---
+            fetch(`/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`)
+            // --- End URL modification ---
+            .then(res => { // Handle the response for each object
+                if (!res.ok) { // Check if the server reported an error for this specific object
+                    console.error(`Error fetching data for ${objName}: ${res.status}`);
+                    // Return a placeholder error object so Promise.all doesn't fail completely
+                    return { Object: objName, error: true, 'Common Name': `Error: ${res.status}` };
                 }
-                 // Handle explicit errors returned from fetch promises
-                 if (objectData.error === true) {
-                     console.warn(`Skipping row for ${objectData.Object} due to fetch error: ${objectData['Common Name']}`);
-                     // Optionally, you could still add a row indicating the error here
-                     // return; // Let's still add the row to show the error
-                 }
+                return res.json(); // If okay, parse the JSON data
+            })
+            .catch(error => { // Catch network errors (e.g., server down) for individual requests
+                console.error(`Network error fetching data for ${objName}:`, error);
+                // Return a placeholder error object
+                return { Object: objName, error: true, 'Common Name': 'Error: Network failed' };
+            })
+        );
+
+        // 3. Wait for ALL the individual detail fetches to complete
+        const allObjectData = await Promise.all(fetchPromises);
+
+        // 4. Clear the table body, ready for the new rows
+        tbody.innerHTML = '';
+
+        // Get the altitude threshold (needed for highlighting) from the template/global scope if possible
+        // Fallback to 20 if not defined
+        const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
+
+        // 5. Loop through the data for each object and build the table row
+        allObjectData.forEach(objectData => {
+            // Skip if data is missing or marked as an error from the fetch stage
+            if (!objectData) {
+                console.warn("Skipping row due to missing objectData.");
+                return;
+            }
+             // Handle explicit errors returned from fetch promises
+             if (objectData.error === true) {
+                 console.warn(`Skipping row for ${objectData.Object} due to fetch error: ${objectData['Common Name']}`);
+                 // Optionally, you could still add a row indicating the error here
+                 // return; // Let's still add the row to show the error
+             }
 
 
-                // Create the table row element
-                const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-'); // Handle potential missing Object field
-                const row = document.createElement('tr');
-                row.id = `row-${sanitizedId}`;
-                row.className = 'clickable-row';
+            // Create the table row element
+            const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-'); // Handle potential missing Object field
+            const row = document.createElement('tr');
+            row.id = `row-${sanitizedId}`;
+            row.className = 'clickable-row';
 
-                // Style rows indicating errors differently
-                 if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
-                    row.style.backgroundColor = "#f8d7da"; // Light red for errors
-                    row.style.color = "#721c24";
+            // Style rows indicating errors differently
+             if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
+                row.style.backgroundColor = "#f8d7da"; // Light red for errors
+                row.style.color = "#721c24";
+            } else {
+                // Apply active project highlighting if not an error row
+                const ap = objectData.ActiveProject;
+                const isActive = (ap === true) || (ap === 1) || (ap === '1') || (ap === 'true') || (ap === 'True');
+                if (isActive) {
+                    row.classList.add('active-project-row');
+                }
+            }
+
+
+            // Make rows clickable to go to the graph view, unless it's an error row
+             if (objectData.error !== true && !(objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
+                row.onclick = () => {
+                    showGraph(objectData.Object);
+                };
+            } else {
+                row.style.cursor = 'default'; // Not clickable if error
+            }
+
+
+            // 6. Create a table cell (td) for each column in the defined order
+            columnOrder.forEach(columnKey => {
+                const config = columnConfig[columnKey]; // Get config (header, formatting, etc.)
+                if (!config) {
+                    console.warn(`Missing columnConfig for key: ${columnKey}`);
+                    return; // Skip this cell if config is missing
+                }
+
+                const td = document.createElement('td');
+                td.dataset.columnKey = columnKey; // Store key for filtering/sorting
+
+                // Set text alignment based on column
+                if (columnKey === 'Object' || columnKey === 'Common Name') {
+                    td.style.textAlign = 'left';
                 } else {
-                    // Apply active project highlighting if not an error row
-                    const ap = objectData.ActiveProject;
-                    const isActive = (ap === true) || (ap === 1) || (ap === '1') || (ap === 'true') || (ap === 'True');
-                    if (isActive) {
-                        row.classList.add('active-project-row');
+                    td.style.textAlign = 'center';
+                }
+
+                // Get the raw value, handle potential undefined/null
+                const rawValue = objectData[config.dataKey];
+
+                // Format the value for display (use formatter if defined, handle N/A)
+                let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
+                                   ? 'N/A'
+                                   : (config.format ? config.format(rawValue) : rawValue);
+                td.textContent = displayValue;
+
+                // Add tooltip for potentially truncated Common Name
+                if (columnKey === 'Common Name' && rawValue !== null && rawValue !== undefined) {
+                    td.setAttribute('title', String(rawValue));
+                }
+
+                // Apply highlighting and obstruction styling based on altitude and obstruction flags
+                const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
+
+                if (config.dataKey === 'Altitude Current' && isAboveThreshold && objectData.error !== true) {
+                    td.classList.add('highlight');
+                    if (objectData.is_obstructed_now) {
+                        td.classList.add('obstructed');
                     }
                 }
 
+                if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && objectData.error !== true) {
+                    td.classList.add('highlight');
+                    if (objectData.is_obstructed_at_11pm) {
+                        td.classList.add('obstructed');
+                    }
+                }
 
-                // Make rows clickable to go to the graph view, unless it's an error row
-                 if (objectData.error !== true && !(objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
-                    row.onclick = () => {
-                        showGraph(objectData.Object);
-                    };
-                } else {
-                    row.style.cursor = 'default'; // Not clickable if error
+                // Store raw numeric value in data attribute for accurate sorting
+                const numericSortKeys = [
+                    'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                    'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                    'Magnitude', 'Size', 'SB', 'Max Altitude'
+                ];
+
+                 if (numericSortKeys.includes(columnKey)) {
+                     if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
+                        td.dataset.rawValue = 'N/A';
+                     } else if (typeof rawValue === 'number') {
+                         td.dataset.rawValue = rawValue;
+                     } else if (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))) {
+                         td.dataset.rawValue = parseFloat(rawValue);
+                     } else {
+                        // Store the original string if it's not clearly numeric or N/A
+                         td.dataset.rawValue = rawValue;
+                     }
+                 } else if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
+                     td.dataset.rawValue = 'N/A'; // Ensure N/A sorts correctly for text columns too
                 }
 
 
-                // 6. Create a table cell (td) for each column in the defined order
-                columnOrder.forEach(columnKey => {
-                    const config = columnConfig[columnKey]; // Get config (header, formatting, etc.)
-                    // --- FIX: Handle missing config for new columns gracefully ---
-                    if (!config) {
-                        console.warn(`Missing columnConfig for key: ${columnKey}`);
-                        return; // Skip this cell if config is missing
-                    }
-                    // --- END FIX ---
-
-                    const td = document.createElement('td');
-                    td.dataset.columnKey = columnKey; // Store key for filtering/sorting
-
-                    // Set text alignment based on column
-                    if (columnKey === 'Object' || columnKey === 'Common Name') {
-                        td.style.textAlign = 'left';
-                    } else {
-                        td.style.textAlign = 'center';
-                    }
-
-                    // Get the raw value, handle potential undefined/null
-                    const rawValue = objectData[config.dataKey];
-
-                    // Format the value for display (use formatter if defined, handle N/A)
-                    let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
-                                       ? 'N/A'
-                                       : (config.format ? config.format(rawValue) : rawValue);
-                    td.textContent = displayValue;
-
-                    // Add tooltip for potentially truncated Common Name
-                    if (columnKey === 'Common Name' && rawValue !== null && rawValue !== undefined) {
-                        td.setAttribute('title', String(rawValue));
-                    }
-
-                    // Apply highlighting and obstruction styling based on altitude and obstruction flags
-                    const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
-
-                    if (config.dataKey === 'Altitude Current' && isAboveThreshold && objectData.error !== true) {
-                        td.classList.add('highlight');
-                        if (objectData.is_obstructed_now) {
-                            td.classList.add('obstructed');
-                        }
-                    }
-
-                    if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && objectData.error !== true) {
-                        td.classList.add('highlight');
-                        if (objectData.is_obstructed_at_11pm) {
-                            td.classList.add('obstructed');
-                        }
-                    }
-
-                    // Store raw numeric value in data attribute for accurate sorting
-                    // --- MODIFIED TO ADD NEW COLUMNS ---
-                    const numericSortKeys = [
-                        'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                        'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                        'Magnitude', 'Size', 'SB', 'Max Altitude'
-                    ];
-                    // --- END MODIFICATION ---
-
-                     if (numericSortKeys.includes(columnKey)) {
-                         if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
-                            td.dataset.rawValue = 'N/A';
-                         } else if (typeof rawValue === 'number') {
-                             td.dataset.rawValue = rawValue;
-                         } else if (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))) {
-                             td.dataset.rawValue = parseFloat(rawValue);
-                         } else {
-                            // Store the original string if it's not clearly numeric or N/A
-                             td.dataset.rawValue = rawValue;
-                         }
-                     } else if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
-                         td.dataset.rawValue = 'N/A'; // Ensure N/A sorts correctly for text columns too
-                    }
-
-
-                    row.appendChild(td); // Add the cell to the row
-                });
-                tbody.appendChild(row); // Add the completed row to the table body
+                row.appendChild(td); // Add the cell to the row
             });
+            tbody.appendChild(row); // Add the completed row to the table body
+        });
 
-        } catch (error) {
-            // Handle errors during the overall fetch process (e.g., fetching the object list failed)
-            console.error("Failed to fetch and render data:", error);
-            tbody.innerHTML = `<tr><td colspan="${columnOrder.length}" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
-        } finally {
-            // 7. Hide loading indicator, apply column visibility, sort, and filter
-            loadingDiv.style.display = 'none';
-            applyDsoColumnVisibility(); // Show/hide columns based on the active tab
-            sortTable(currentSort.columnKey, false); // Apply the current sort order
-            filterTable(); // Apply any active filters
-            tbody.dataset.loading = 'false'; // Mark loading as complete
-            fetchSunEvents();
+    } catch (error) {
+        // Handle errors during the overall fetch process (e.g., fetching the object list failed)
+        console.error("Failed to fetch and render data:", error);
+        tbody.innerHTML = `<tr><td colspan="${columnOrder.length}" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
+    } finally {
+        // 7. Hide loading indicator, apply column visibility, sort, and filter
+        loadingDiv.style.display = 'none';
+        applyDsoColumnVisibility(); // Show/hide columns based on the active tab
+        sortTable(currentSort.columnKey, false); // Apply the current sort order
+        filterTable(); // Apply any active filters
+        tbody.dataset.loading = 'false'; // Mark loading as complete
+        fetchSunEvents();
+
+        // --- NEW: Check if location changed *during* this fetch ---
+        const finalSelectedLocation = sessionStorage.getItem('selectedLocation');
+        if (finalSelectedLocation !== locationBeingFetched) {
+            console.log(`Location changed to ${finalSelectedLocation} during fetch. Re-triggering...`);
+            // Call setLocation() again. Since loading is now false,
+            // it will immediately start the new fetch.
+            setLocation();
+        } else {
+            console.log(`Finished fetch for location: ${locationBeingFetched}`);
         }
+        // --- END NEW LOGIC ---
     }
+}
 
     function sortOutlookTable(columnKey, toggle = true) {
         if (toggle) {
@@ -1075,45 +1084,55 @@ function fetchLocations() {
     }
 
 function setLocation() {
-        if (isUpdatingLocation) return; // Prevent multiple calls while updating
-        isUpdatingLocation = true; // Set flag
+    // Get the table body to check its loading status
+    const tbody = document.getElementById("data-body");
 
-        const selectedLocation = document.getElementById('location-select').value;
-        console.log(`Location changed to: ${selectedLocation}`);
+    // Get the newly selected location
+    const selectedLocation = document.getElementById('location-select').value;
 
-        // Store the currently selected location for this browser session
-        sessionStorage.setItem('selectedLocation', selectedLocation);
-        outlookDataLoaded = false; // Reset outlook flag as data will be for new location
+    // Always store the user's *latest* choice in sessionStorage.
+    // This is what we'll check when the current fetch finishes.
+    console.log(`Location select changed to: ${selectedLocation}`);
+    sessionStorage.setItem('selectedLocation', selectedLocation);
+    outlookDataLoaded = false; // Reset outlook flag for the new location
 
-        // Clear existing data immediately
-        document.getElementById('data-body').innerHTML = '';
-        document.getElementById('journal-data-body').innerHTML = '';
-        document.getElementById('outlook-body').innerHTML = '';
-
-        // Show loading indicator
+    // --- NEW LOGIC ---
+    // If data is already being fetched, just update the loading message and stop.
+    // The `fetchData` function will see this change when it finishes.
+    if (tbody.dataset.loading === 'true') {
+        console.log(`Location change to ${selectedLocation} queued (data load in progress).`);
         const loadingDiv = document.getElementById('table-loading');
         if (loadingDiv) {
-            loadingDiv.innerHTML = "Updating location...";
+            loadingDiv.innerHTML = `Switching to ${selectedLocation}...`;
             loadingDiv.style.display = "block";
         }
-
-        // --- No fetch to /set_location needed here anymore ---
-
-        // Directly trigger data refresh using the new location (which fetchData etc. will now read from sessionStorage)
-        fetchData();
-        // fetchSunEvents();
-        if (activeTab === 'journal') {
-           populateJournalTable();
-        } else if (activeTab === 'outlook') {
-           fetchOutlookData(); // Re-fetch outlook for the new location
-        }
-
-        // Update display immediately (optional, fetchSunEvents will also do this)
-         document.getElementById('location-select').value = selectedLocation;
-
-        // Reset flag after a short delay to allow fetches to start
-        setTimeout(() => { isUpdatingLocation = false; }, 500);
+        return; // Do NOT trigger another fetch
     }
+
+    // --- If we are NOT loading, proceed as normal ---
+    console.log(`Triggering fetch for new location: ${selectedLocation}`);
+
+    // Clear existing data immediately
+    document.getElementById('data-body').innerHTML = '';
+    document.getElementById('journal-data-body').innerHTML = '';
+    document.getElementById('outlook-body').innerHTML = '';
+
+    // Show loading indicator
+    const loadingDiv = document.getElementById('table-loading');
+    if (loadingDiv) {
+        loadingDiv.innerHTML = "Updating location...";
+        loadingDiv.style.display = "block";
+    }
+
+    // Trigger the data fetches for the new location
+    fetchData();
+
+    if (activeTab === 'journal') {
+       populateJournalTable();
+    } else if (activeTab === 'outlook') {
+       fetchOutlookData(); // Re-fetch outlook for the new location
+    }
+}
 
     function fetchSunEvents() {
         const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
