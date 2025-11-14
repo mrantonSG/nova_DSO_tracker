@@ -1,0 +1,143 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}Up Now{% endblock %}
+{% block header_title %}Up Now{% endblock %}
+
+{% block head %}
+<style>
+    .sort-bar {
+        display: flex;
+        gap: 10px;
+        padding: 10px 20px 0 20px;
+    }
+    .sort-button {
+        flex: 1;
+        padding: 10px;
+        font-size: 0.9rem;
+        border: 1px solid var(--border-color);
+        background-color: var(--card-bg);
+        border-radius: 5px;
+        text-align: center;
+    }
+    .sort-button.active {
+        background-color: var(--primary-dark);
+        color: white;
+        border-color: var(--primary-dark);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="sort-bar">
+        <button class="sort-button active" id="sort-alt">Sort by Altitude</button>
+        <button class="sort-button" id="sort-dur">Sort by Duration</button>
+    </div>
+<ul class="item-list" id="object-list" style="margin-top: 15px;">
+        <li class="loading" id="loading-indicator">
+            Loading your objects...
+        </li>
+    </ul>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const list = document.getElementById('object-list');
+        const loading = document.getElementById('loading-indicator');
+        const sortAltButton = document.getElementById('sort-alt');
+        const sortDurButton = document.getElementById('sort-dur');
+
+        // Get the list of object names from the 'g' context
+        const objectNames = [
+            {% for obj in g.objects_list %}
+                "{{ obj['Object'] | e }}",
+            {% endfor %}
+        ];
+
+        if (objectNames.length === 0) {
+            loading.textContent = "No objects found. Try adding one!";
+            return;
+        }
+
+        // We use the helper function to get ?location=... if it's set
+        const locationQuery = getLocationQueryParam();
+        const fetchUrlBase = `{{ url_for('get_object_data', object_name='__NAME__') }}`;
+
+        let objectsData = [];
+        let currentSort = 'alt'; // 'alt' or 'dur'
+
+        async function fetchAllObjects() {
+            for (const name of objectNames) {
+                try {
+                    const response = await fetch(fetchUrlBase.replace('__NAME__', name) + locationQuery);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (!data.error) {
+                            objectsData.push(data);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error fetching object:", name, e);
+                }
+            }
+            renderList(); // Initial render (will be sorted by alt)
+        }
+
+        function renderList() {
+            loading.style.display = 'none';
+            list.innerHTML = ''; // Clear the list before re-rendering
+
+            // Sort the data based on the current setting
+            if (currentSort === 'alt') {
+                objectsData.sort((a, b) => {
+                    return parseFloat(b['Altitude Current']) - parseFloat(a['Altitude Current']);
+                });
+                sortAltButton.classList.add('active');
+                sortDurButton.classList.remove('active');
+            } else { // 'dur'
+                objectsData.sort((a, b) => {
+                    return parseFloat(b['Observable Duration (min)']) - parseFloat(a['Observable Duration (min)']);
+                });
+                sortDurButton.classList.add('active');
+                sortAltButton.classList.remove('active');
+            }
+
+            for (const obj of objectsData) {
+                const obsMin = obj['Observable Duration (min)'];
+                let obsText = `${obsMin} min`;
+                if (obsMin === 0) obsText = "Not visible";
+
+                const li = document.createElement('li');
+                li.className = 'item-card';
+                li.innerHTML = `
+                    <h3>${obj['Common Name']} (${obj['Object']})</h3>
+                    <div class="item-card-grid">
+                        <div><strong>Altitude:</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
+                        <div><strong>Azimuth:</strong> ${obj['Azimuth Current']}°</div>
+                        <div><strong>Max Alt:</strong> ${obj['Max Altitude (°)']}°</div>
+                        <div><strong>Duration:</strong> ${obsText}</div>
+                    </div>
+                `;
+                list.appendChild(li);
+            }
+        }
+
+        // Add click listeners for the new buttons
+        sortAltButton.addEventListener('click', () => {
+            if (currentSort !== 'alt') {
+                currentSort = 'alt';
+                renderList();
+            }
+        });
+
+        sortDurButton.addEventListener('click', () => {
+            if (currentSort !== 'dur') {
+                currentSort = 'dur';
+                renderList();
+            }
+        });
+
+        fetchAllObjects();
+    });
+</script>
+{% endblock %}

@@ -3860,6 +3860,7 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
                                 "date": date_str, "score": opportunity_score, "rating": "★" * stars + "☆" * (5 - stars),
                                 "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
                                 "obs_dur": int(obs_duration.total_seconds() / 60),
+                                "moon_illumination": round(moon_phase, 1),
                                 "project": obj_config_entry.get("Project", "none"), "type": obj_details.get("Type", "N/A"),
                                 "constellation": obj_details.get("Constellation", "N/A"), "magnitude": obj_details.get("Magnitude", "N/A"),
                                 "size": obj_details.get("Size", "N/A"), "sb": obj_details.get("SB", "N/A")
@@ -6036,6 +6037,7 @@ def confirm_object():
         size = str(convert_to_native_python(req.get('size')) or '')
         sb = str(convert_to_native_python(req.get('sb')) or '')
         is_shared = req.get('is_shared') == True
+        active_project = req.get('is_active') == True
 
         if existing:
             existing.common_name = common_name
@@ -6049,6 +6051,7 @@ def confirm_object():
             existing.sb = sb
             existing.shared_notes = shared_notes_html
             existing.is_shared = is_shared
+            existing.active_project = active_project
         else:
             new_obj = AstroObject(
                 user_id=app_db_user.id,
@@ -6063,7 +6066,8 @@ def confirm_object():
                 size=size,
                 sb=sb,
                 shared_notes=shared_notes_html,
-                is_shared=is_shared
+                is_shared=is_shared,
+                active_project = active_project
             )
             db.add(new_obj)
 
@@ -6479,6 +6483,40 @@ def index():
                                selected_year=observing_date_for_calcs.year)
     finally:
         db.close()
+
+
+# =============================================================================
+# MOBILE COMPANION ROUTES
+# =============================================================================
+
+@app.route('/m')
+@app.route('/m/up_now')
+def mobile_up_now():
+    """Renders the mobile 'Up Now' dashboard."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    return render_template('mobile_up_now.html')
+
+@app.route('/m/location')
+def mobile_location():
+    """Renders the mobile location selector."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    return render_template('mobile_location.html',
+                           locations=g.active_locations,
+                           selected_location_name=g.selected_location)
+
+@app.route('/m/add_object')
+@login_required
+def mobile_add_object():
+    """Renders the mobile 'Add Object' page."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    return render_template('mobile_add_object.html')
+
+@app.route('/m/outlook')
+def mobile_outlook():
+    """Renders the mobile 'Outlook' page."""
+    load_full_astro_context()  # <-- ADD THIS LINE
+    return render_template('mobile_outlook.html')
+
 
 @app.route('/sun_events')
 def sun_events():
