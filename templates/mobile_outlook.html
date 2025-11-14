@@ -1,0 +1,77 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}Outlook{% endblock %}
+{% block header_title %}Imaging Outlook{% endblock %}
+
+{% block content %}
+    <ul class="item-list" id="outlook-list">
+        <li class="loading" id="loading-indicator">
+            Calculating imaging opportunities...
+        </li>
+    </ul>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const list = document.getElementById('outlook-list');
+        const loading = document.getElementById('loading-indicator');
+
+        // Use the helper function to get ?location=... if it's set
+        const locationQuery = getLocationQueryParam();
+        const fetchUrl = `{{ url_for('get_outlook_data') }}${locationQuery}`;
+
+        async function fetchOutlook() {
+            try {
+                const response = await fetch(fetchUrl);
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    loading.textContent = data.message || 'Error loading outlook.';
+                } else if (data.status === 'starting' || data.status === 'running') {
+                    loading.textContent = 'Outlook cache is generating. Please check back in a minute.';
+                } else if (data.status === 'complete') {
+                    renderList(data.results);
+                }
+
+            } catch (e) {
+                loading.textContent = 'Error connecting to server.';
+            }
+        }
+
+            function formatDate(isoDate) {
+                // Converts "YYYY-MM-DD" to "DD.MM.YYYY"
+                const parts = isoDate.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+                return isoDate; // Fallback
+            }
+
+            function renderList(results) {
+                if (results.length === 0) {
+                    loading.textContent = 'No imaging opportunities found for your active projects.';
+                    return;
+                }
+                loading.style.display = 'none';
+
+                for (const item of results) {
+                    const li = document.createElement('li');
+                    li.className = 'item-card';
+                    li.innerHTML = `
+                        <h3>${item.common_name} (${formatDate(item.date)})</h3>
+                        <div class="item-card-grid">
+                            <div><strong>Rating:</strong> ${item.rating}</div>
+                            <div><strong>Max Alt:</strong> ${item.max_alt}°</div>
+                            <div><strong>Duration:</strong> ${item.obs_dur} min</div>
+                            <div><strong>Moon:</strong> ${item.moon_illumination}%</div>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                }
+            }
+
+        fetchOutlook();
+    });
+</script>
+{% endblock %}

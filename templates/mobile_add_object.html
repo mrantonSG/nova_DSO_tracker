@@ -1,0 +1,147 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}Add Object{% endblock %}
+{% block header_title %}Add Object{% endblock %}
+
+{% block content %}
+    <div class="form-group">
+        <label for="search-name">Object Name</label>
+        <input type="text" id="search-name" placeholder="e.g., M42 or NGC1976">
+    </div>
+    <button class="button" id="search-button" style="margin-top: 10px;">Search SIMBAD</button>
+
+    <hr style="margin: 25px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+    <form id="add-form" style="display: none;">
+        <div class="form-group">
+            <label for="object-name">Object ID</label>
+            <input type="text" id="object-name" readonly>
+        </div>
+        <div class="form-group">
+            <label for="common-name">Common Name</label>
+            <input type="text" id="common-name">
+        </div>
+
+        <div class="form-group">
+            <label for="ra">RA (hours)</label>
+            <input type="text" id="ra">
+        </div>
+
+        <div class="form-group">
+            <label for="dec">DEC (degrees)</label>
+            <input type="text" id="dec">
+        </div>
+
+        <div class="form-group">
+            <label for="trix-notes">Project Notes</label>
+            <input id="project-notes" type="hidden" name="content">
+            <trix-editor input="project-notes"></trix-editor>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
+            <input type="checkbox" id="is-active" style="width: auto;">
+            <label for="is-active" style="margin: 0; font-weight: normal;">Set as Active Project</label>
+        </div>
+
+        <button type="submit" class="button" id="save-button" style="margin-top: 20px;">Save Object</button>
+    </form>
+
+    <div id="message-area" class="message" style="display: none;"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const searchInput = document.getElementById('search-name');
+        const searchButton = document.getElementById('search-button');
+        const addForm = document.getElementById('add-form');
+        const messageArea = document.getElementById('message-area');
+
+        const objInput = document.getElementById('object-name');
+        const nameInput = document.getElementById('common-name');
+        const raInput = document.getElementById('ra');
+        const decInput = document.getElementById('dec');
+        const notesEditor = document.querySelector('trix-editor');
+        const activeCheckbox = document.getElementById('is-active');
+        const saveButton = document.getElementById('save-button');
+
+        // 1. Search SIMBAD
+        searchButton.addEventListener('click', async () => {
+            const objectName = searchInput.value;
+            if (!objectName) return;
+
+            messageArea.textContent = `Searching for ${objectName}...`;
+            messageArea.style.display = 'block';
+            addForm.style.display = 'none';
+
+            try {
+                const response = await fetch("{{ url_for('search_object') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ object: objectName })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    // Populate the form with data from SIMBAD
+                    objInput.value = data.data['Object'];
+                    nameInput.value = data.data['Common Name'];
+                    raInput.value = data.data['RA (hours)'];
+                    decInput.value = data.data['DEC (degrees)'];
+
+                    messageArea.style.display = 'none';
+                    addForm.style.display = 'block';
+                } else {
+                    messageArea.textContent = data.message || "Object not found.";
+                }
+            } catch (e) {
+                messageArea.textContent = "Error connecting to server.";
+            }
+        });
+
+        // 2. Save the Object
+        addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+
+            const payload = {
+                object: objInput.value,
+                name: nameInput.value,
+                ra: raInput.value,
+                dec: decInput.value,
+                project: notesEditor.editor.getDocument().toString(), // Gets plain text from Trix
+                is_active: activeCheckbox.checked // This is the new field
+            };
+
+            try {
+                // Call the existing /confirm_object endpoint
+                const response = await fetch("{{ url_for('confirm_object') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'success') {
+                    messageArea.textContent = `Object "${payload.object}" saved successfully!`;
+                    messageArea.style.display = 'block';
+                    addForm.style.display = 'none';
+                    searchInput.value = '';
+                } else {
+                    messageArea.textContent = `Error: ${data.message}`;
+                    messageArea.style.display = 'block';
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'Save Object';
+                }
+            } catch (e) {
+                messageArea.textContent = "Error connecting to server.";
+                saveButton.disabled = false;
+                saveButton.textContent = 'Save Object';
+            }
+        });
+    });
+</script>
+{% endblock %}

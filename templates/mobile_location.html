@@ -1,0 +1,66 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}Set Location{% endblock %}
+{% block header_title %}Set Location{% endblock %}
+
+{% block content %}
+    <p style="text-align: center; color: #555; margin-top: -10px;">
+        Current: <strong id="current-loc-name">{{ selected_location_name or 'Default' }}</strong>
+    </p>
+
+    <ul class="location-list" id="location-list">
+        {% for name, details in locations.items() %}
+            <li class="location-item" data-location-name="{{ name }}">
+                {{ name }}
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const currentLocEl = document.getElementById('current-loc-name');
+        const list = document.getElementById('location-list');
+
+        // 1. Get the temporarily saved location
+        let activeLocation = getActiveLocation();
+
+        // 2. If no temporary one is set, use the one from the server (g.selected_location)
+        if (!activeLocation) {
+            activeLocation = "{{ selected_location_name | e }}";
+        }
+
+        // 3. Highlight the active location in the list
+        function updateActiveHighlight() {
+            activeLocation = getActiveLocation() || "{{ selected_location_name | e }}";
+            currentLocEl.textContent = activeLocation;
+
+            list.querySelectorAll('.location-item').forEach(item => {
+                if (item.dataset.locationName === activeLocation) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // 4. Set click listeners
+        list.addEventListener('click', (e) => {
+            const item = e.target.closest('.location-item');
+            if (!item) return;
+
+            const locName = item.dataset.locationName;
+
+            // 5. Save the selected location to browser's session storage
+            sessionStorage.setItem('nova_mobile_location', locName);
+
+            // 6. Update the UI to give feedback
+            updateActiveHighlight();
+        });
+
+        // 7. Set initial state on page load
+        updateActiveHighlight();
+    });
+</script>
+{% endblock %}
