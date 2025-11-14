@@ -1479,8 +1479,14 @@ function populateJournalTable() {
         const loadingDiv = document.getElementById("table-loading"); // Assuming you might have a general loading div
         if (!tableBody) return;
 
+        // --- START FIX ---
+        // Get the main DSO table body to check if a location update is already in progress
+        const mainDsoTbody = document.getElementById("data-body");
+        const isLocationUpdating = mainDsoTbody && mainDsoTbody.dataset.loading === 'true';
+
         // Show fetching message only if not already updating location UI
-        if (!isUpdatingLocation) {
+        if (!isLocationUpdating) {
+        // --- END FIX ---
             tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Fetching...</td></tr>`;
         }
 
