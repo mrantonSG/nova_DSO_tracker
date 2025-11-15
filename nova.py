@@ -5089,7 +5089,19 @@ def login():
             if user and user.check_password(password):
                 login_user(user)
                 flash("Logged in successfully!", "success")
+
+                # --- START: THIS IS THE CORRECTED LOGIC ---
+                # Read 'next' from the form's hidden input, not the URL
+                next_page = request.form.get('next')
+
+                # Security check: Only redirect if 'next' is a relative path
+                if next_page and next_page.startswith('/'):
+                    return redirect(next_page)
+
+                # Default redirect if 'next' is missing or invalid
                 return redirect(url_for('index'))
+                # --- END OF CORRECTION ---
+
             else:
                 flash("Invalid username or password.", "error")
         return render_template('login.html')
@@ -6492,12 +6504,14 @@ def index():
 
 @app.route('/m')
 @app.route('/m/up_now')
+@login_required
 def mobile_up_now():
     """Renders the mobile 'Up Now' dashboard."""
     load_full_astro_context()  # <-- ADD THIS LINE
     return render_template('mobile_up_now.html')
 
 @app.route('/m/location')
+@login_required
 def mobile_location():
     """Renders the mobile location selector."""
     load_full_astro_context()  # <-- ADD THIS LINE
@@ -6507,12 +6521,14 @@ def mobile_location():
 
 @app.route('/m/add_object')
 @login_required
+@login_required
 def mobile_add_object():
     """Renders the mobile 'Add Object' page."""
     load_full_astro_context()  # <-- ADD THIS LINE
     return render_template('mobile_add_object.html')
 
 @app.route('/m/outlook')
+@login_required
 def mobile_outlook():
     """Renders the mobile 'Outlook' page."""
     load_full_astro_context()  # <-- ADD THIS LINE
