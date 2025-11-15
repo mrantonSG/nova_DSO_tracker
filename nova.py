@@ -6507,8 +6507,58 @@ def index():
 @login_required
 def mobile_up_now():
     """Renders the mobile 'Up Now' dashboard."""
-    load_full_astro_context()  # <-- ADD THIS LINE
-    return render_template('mobile_up_now.html')
+    load_full_astro_context()  # This loads g.db_user, g.user_config, g.objects_list, g.locations, g.selected_location
+
+    objects_data_list = []  # Default to empty
+
+    try:
+        # --- 1. Get user, location, and prefs from 'g' ---
+        user = g.db_user
+        location_name = g.selected_location
+        all_locations = g.locations
+        user_prefs = g.user_config or {}
+
+        # --- 2. Get all AstroObject records from the DB ---
+        # g.objects_list is just a list of dicts, we need the DB objects
+        db = get_db()
+        try:
+            all_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
+        finally:
+            db.close()
+
+        # --- 3. Check for valid data ---
+        if user and location_name and all_locations and all_objects:
+            # --- 4. Get DB Location object (needed for horizon points) ---
+            db = get_db()
+            try:
+                # We need the full DB object to get the horizon_points relationship
+                location_db_obj = db.query(Location).options(
+                    selectinload(Location.horizon_points)
+                ).filter_by(user_id=user.id, name=location_name).one_or_none()
+
+                if location_db_obj:
+                    # --- 5. Call the new server-side helper function ---
+                    objects_data_list = get_all_mobile_up_now_data(
+                        user,
+                        location_db_obj,
+                        user_prefs,
+                        all_objects
+                    )
+                else:
+                    print(f"[Mobile Up Now] Could not find location DB object for {location_name}")
+
+            finally:
+                db.close()
+        else:
+            print("[Mobile Up Now] Missing g context (user, location, or objects)")
+
+    except Exception as e:
+        print(f"Error in mobile_up_now route: {e}")
+        traceback.print_exc()
+        # objects_data_list remains empty, page will show "no objects"
+
+    # --- 6. Pass the complete data list to the template ---
+    return render_template('mobile_up_now.html', objects_data=objects_data_list)
 
 @app.route('/m/location')
 @login_required
@@ -6578,6 +6628,151 @@ def mobile_edit_notes(object_name):
         )
     finally:
         db.close()
+
+
+def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list):
+    """
+    Server-side function to get all data for the mobile 'Up Now' page in one pass.
+    This avoids the N+1 request problem from the client.
+    """
+
+    # --- 1. Get Location & Time Details ---
+    try:
+        lat = location.lat
+        lon = location.lon
+        tz_name = location.timezone
+        local_tz = pytz.timezone(tz_name)
+    except Exception as e:
+        print(f"[Mobile Helper] Error getting location details: {e}")
+        return []  # Return empty on location error
+
+    current_datetime_local = datetime.now(local_tz)
+    today_str = current_datetime_local.strftime('%Y-%m-%d')
+    dawn_today_str = calculate_sun_events_cached(today_str, tz_name, lat, lon).get("astronomical_dawn")
+    local_date = today_str
+    if dawn_today_str:
+        try:
+            dawn_today_dt = local_tz.localize(
+                datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
+            if current_datetime_local < dawn_today_dt:
+                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+        except (ValueError, TypeError):
+            pass
+
+    # --- 2. Get Calculation Settings ---
+    altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
+    if location.altitude_threshold is not None:
+        altitude_threshold = location.altitude_threshold
+
+    sampling_interval = 15  # Default
+    if SINGLE_USER_MODE:
+        sampling_interval = user_prefs_dict.get('sampling_interval_minutes') or 15
+    else:
+        sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+    horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
+    location_name_key = location.name.lower().replace(' ', '_')
+
+    # --- 3. Pre-calculate Moon Position ---
+    try:
+        time_obj_now = Time(datetime.now(pytz.utc))
+        location_for_moon = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body('moon', time_obj_now, location_for_moon)
+        frame_now = AltAz(obstime=time_obj_now, location=location_for_moon)
+        moon_in_frame = moon_coord.transform_to(frame_now)
+    except Exception:
+        moon_in_frame = None  # Handle moon calc failure
+
+    # --- 4. Loop Through All Objects ---
+    all_objects_data = []
+
+    for obj_record in objects_list:
+        try:
+            object_name = obj_record.object_name
+            ra = obj_record.ra_hours
+            dec = obj_record.dec_deg
+
+            if ra is None or dec is None:
+                continue  # Skip objects with no coordinates
+
+            # --- 5. Get Nightly Cached Data ---
+            cache_key = f"{object_name.lower()}_{local_date}_{location_name_key}"
+            if cache_key not in nightly_curves_cache:
+                # Cache miss - calculate it now
+                times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+                location_ephem = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+                sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                altaz_frame = AltAz(obstime=times_utc, location=location_ephem)
+                altitudes = sky_coord.transform_to(altaz_frame).alt.deg
+                azimuths = sky_coord.transform_to(altaz_frame).az.deg
+                transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+                obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                    ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
+                    horizon_mask=horizon_mask
+                )
+                fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+                alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+                is_obstructed_at_11pm = False
+                if horizon_mask and len(horizon_mask) > 1:
+                    sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+                    required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+                    if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                        is_obstructed_at_11pm = True
+
+                nightly_curves_cache[cache_key] = {
+                    "times_local": times_local, "altitudes": altitudes, "azimuths": azimuths,
+                    "transit_time": transit_time,
+                    "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                    "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                    "alt_11pm": f"{alt_11pm:.2f}", "az_11pm": f"{az_11pm:.2f}",
+                    "is_obstructed_at_11pm": is_obstructed_at_11pm
+                }
+
+            cached_night_data = nightly_curves_cache[cache_key]
+
+            # --- 6. Calculate Current Position ---
+            now_utc = datetime.now(pytz.utc)
+            time_diffs = [abs((t - now_utc).total_seconds()) for t in cached_night_data["times_local"]]
+            current_index = np.argmin(time_diffs)
+            current_alt = cached_night_data["altitudes"][current_index]
+            current_az = cached_night_data["azimuths"][current_index]
+            next_index = min(current_index + 1, len(cached_night_data["altitudes"]) - 1)
+            next_alt = cached_night_data["altitudes"][next_index]
+            trend = '–'
+            if abs(next_alt - current_alt) > 0.01: trend = '↑' if next_alt > current_alt else '↓'
+
+            # --- 7. Calculate Moon Separation ---
+            angular_sep = "N/A"
+            if moon_in_frame:
+                try:
+                    obj_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    obj_in_frame = obj_coord_sky.transform_to(frame_now)
+                    angular_sep = round(obj_in_frame.separation(moon_in_frame).deg)
+                except Exception:
+                    pass  # Keep N/A
+
+            # --- 8. Assemble Final Dictionary ---
+            all_objects_data.append({
+                # Static data from the object record
+                "Object": obj_record.object_name,
+                "Common Name": obj_record.common_name or obj_record.object_name,
+                "ActiveProject": obj_record.active_project,
+
+                # Calculated data
+                'Altitude Current': f"{current_alt:.2f}",
+                'Azimuth Current': f"{current_az:.2f}",
+                'Trend': trend,
+                'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
+                'Max Altitude (°)': cached_night_data['max_altitude'],
+                'Angular Separation (°)': angular_sep,
+            })
+        except Exception as e:
+            print(f"[Mobile Helper] Failed to process object {obj_record.object_name}: {e}")
+            continue  # Skip this object
+
+    return all_objects_data
+
+
 
 @app.route('/sun_events')
 def sun_events():

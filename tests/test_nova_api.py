@@ -416,6 +416,76 @@ def test_upload_editor_image(client, monkeypatch, tmp_path):
         content = f.read()
     assert content == b'fake-image-data-bytes'
 
+
+# ===================================================================
+# --- NEW MOBILE ROUTE TESTS ---
+# ===================================================================
+
+@pytest.mark.parametrize("route", [
+    "/m/up_now",
+    "/m/location",
+    "/m/outlook",
+    "/m/add_object",
+    "/m/edit_notes/M42"
+])
+def test_mobile_routes_require_login_multi_user(mu_client_logged_out, route):
+    """
+    Tests that all mobile pages (except login) redirect to the
+    login page when logged out in multi-user mode.
+    (This uses the 'mu_client_logged_out' fixture from conftest.py)
+    """
+    response = mu_client_logged_out.get(route, follow_redirects=False)
+
+    # Assert we are redirected (302) to the login page
+    assert response.status_code == 302
+    assert response.location.startswith('/login')
+
+
+@pytest.mark.parametrize("route", [
+    "/m/up_now",
+    "/m/location",
+    "/m/outlook",
+    "/m/add_object"
+])
+def test_mobile_pages_load_when_logged_in(client, route):
+    """
+    Tests that the main mobile pages load correctly for a
+    logged-in user.
+    (This uses the 'client' fixture, which is logged-in)
+    """
+    response = client.get(route)
+
+    assert response.status_code == 200
+    # Check for the header from mobile_base.html
+    assert b"Nova Pocket" in response.data
+
+
+def test_mobile_up_now_renders_data_from_server(client):
+    """
+    Tests our new high-performance "Up Now" page.
+    It confirms that the data (M42 from the fixture) is rendered
+    by the server directly into the HTML.
+    """
+    # 1. ACT
+    response = client.get('/m/up_now')
+
+    # 2. ASSERT
+    assert response.status_code == 200
+
+    # Check that M42 (from the 'client' fixture) is in the HTML
+    assert b"M42" in response.data
+    assert b"Orion Nebula" in response.data
+
+    # Check that our new data attributes for sorting are present
+    assert b"data-sort-alt=" in response.data
+    assert b"data-sort-dur=" in response.data
+
+    # CRITICAL: Check that the *old* slow JavaScript fetch loop is GONE.
+    # This proves we are using the new server-side-rendered template.
+    assert b"fetchAllObjects" not in response.data
+    assert b"fetch(fetchUrlBase" not in response.data
+
+
 # --- Your other existing tests/stubs from test_nova_api.py ---
 # ...
 def test_moon_api_bug_with_no_ra(client):
