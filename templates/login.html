@@ -122,7 +122,8 @@
     {% endif %}
   {% endwith %}
 
-  <form method="POST" action="{{ url_for('login') }}">
+<form method="POST" action="{{ url_for('login') }}">
+    <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
     <label for="username">Username</label>
     <input type="text" id="username" name="username" required autofocus>
 

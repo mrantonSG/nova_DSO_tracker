@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}Nova Companion{% endblock %}</title>
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='nova-touch-icon.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}">
+    <link rel="stylesheet" href="/static/css/mobile.css">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js"></script>
     {% block head %}{% endblock %}
@@ -13,6 +13,7 @@
 <body>
 
 <header class="header">
+    <a href="{{ url_for('index') }}" class="header-link">Main Site</a>
     <h1>Nova Pocket</h1>
     <p class="header-subtitle">{% block header_title %}Up Now{% endblock %}</p>
 </header>
@@ -22,28 +23,30 @@
 </main>
 
 <nav class="mobile-nav">
-    <a href="{{ url_for('mobile_up_now') }}" id="nav-up-now">
-        <span>🌌</span>
-        Up Now
-    </a>
-    <a href="{{ url_for('mobile_outlook') }}" id="nav-outlook">
-        <span>🗓️</span>
-        Outlook
-    </a>
-    <a href="{{ url_for('mobile_add_object') }}" id="nav-add-object">
-        <span>✨</span>
-        Add Object
-    </a>
-    <a href="{{ url_for('mobile_location') }}" id="nav-location">
-        <span>🌍</span>
-        Location
-    </a>
-    {% if not current_user.is_authenticated %}
-    <a href="{{ url_for('login') }}" id="nav-login">
-        <span>🔑</span>
-        Log In
-    </a>
-    {% endif %}</nav>
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('mobile_up_now') }}" id="nav-up-now">
+            <span>🌌</span>
+            Up Now
+        </a>
+        <a href="{{ url_for('mobile_outlook') }}" id="nav-outlook">
+            <span>🗓️</span>
+            Outlook
+        </a>
+        <a href="{{ url_for('mobile_add_object') }}" id="nav-add-object">
+            <span>✨</span>
+            Add Object
+        </a>
+        <a href="{{ url_for('mobile_location') }}" id="nav-location">
+            <span>🌍</span>
+            Location
+        </a>
+    {% else %}
+        <a href="{{ url_for('login', next=request.path) }}" id="nav-login">
+            <span>🔑</span>
+            Log In
+        </a>
+    {% endif %}
+</nav>
 
 <script>
     // This helper function gets the location override from browser storage
