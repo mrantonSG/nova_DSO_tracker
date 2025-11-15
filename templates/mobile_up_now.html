@@ -5,6 +5,20 @@
 
 {% block head %}
 <style>
+    /* --- Search Bar --- */
+    .search-bar {
+        padding: 10px 20px 0 20px;
+    }
+    .search-bar input {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        box-sizing: border-box; /* Important */
+    }
+
+    /* --- Sort Bar --- */
     .sort-bar {
         display: grid; /* Use grid for 3 buttons */
         grid-template-columns: 1fr 1fr 1fr; /* 3 equal columns */
@@ -29,6 +43,10 @@
 {% endblock %}
 
 {% block content %}
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search by name (e.g., M42 or Orion)...">
+    </div>
+
     <div class="sort-bar">
         <button class="sort-button active" id="sort-alt">Sort by Altitude</button>
         <button class="sort-button" id="sort-dur">Sort by Duration</button>
@@ -42,7 +60,8 @@
                 <li class="item-card"
                     data-sort-alt="{{ obj['Altitude Current'] | float }}"
                     data-sort-dur="{{ obj['Observable Duration (min)'] | int }}"
-                    data-is-active="{{ 'true' if obj.ActiveProject else 'false' }}">
+                    data-is-active="{{ 'true' if obj.ActiveProject else 'false' }}"
+                    data-search-text="{{ obj['Common Name'].lower() }} {{ obj['Object'].lower() }}">
 
                     {% set editUrl = url_for('mobile_edit_notes', object_name=obj.Object) %}
                     <a href="{{ editUrl }}" class="edit-button">Edit</a>
@@ -75,6 +94,7 @@
         const sortAltButton = document.getElementById('sort-alt');
         const sortDurButton = document.getElementById('sort-dur');
         const filterActiveButton = document.getElementById('filter-active');
+        const searchInput = document.getElementById('search-input'); // <-- ADDED
 
         // Get all list items. They are already in the DOM.
         const allItems = Array.from(list.querySelectorAll('.item-card'));
@@ -82,18 +102,29 @@
 
         let currentSort = 'alt';
         let filterActive = false;
+        let currentSearch = ''; // <-- ADDED
 
         function renderList() {
-            // 1. Apply Filter
-            let itemsToShow = [];
-
-            if (filterActive) {
-                itemsToShow = allItems.filter(item => item.dataset.isActive === 'true');
+            // 1. Apply Search Filter first
+            let searchedItems = [];
+            if (currentSearch === '') {
+                searchedItems = [...allItems];
             } else {
-                itemsToShow = [...allItems]; // Show all
+                searchedItems = allItems.filter(item => {
+                    // Check our new data attribute
+                    return item.dataset.searchText.includes(currentSearch);
+                });
             }
 
-            // 2. Apply Sort
+            // 2. Apply Active Filter to the *searched* results
+            let itemsToShow = [];
+            if (filterActive) {
+                itemsToShow = searchedItems.filter(item => item.dataset.isActive === 'true');
+            } else {
+                itemsToShow = [...searchedItems];
+            }
+
+            // 3. Apply Sort to the final list
             if (currentSort === 'alt') {
                 itemsToShow.sort((a, b) => {
                     return parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt);
@@ -108,34 +139,44 @@
                 sortAltButton.classList.remove('active');
             }
 
-            // 3. Update DOM
-            // Hide all items first
+            // 4. Update DOM (hide all, then show the ones that passed)
             allItems.forEach(item => item.style.display = 'none');
 
-            // Show filtered and sorted items
             itemsToShow.forEach(item => {
                 item.style.display = 'block';
                 list.appendChild(item); // This re-orders them in the list
             });
 
-            // 4. Update "No objects" message
+            // 5. Update the "No objects" message
             if (noObjectsMessage) {
                 if (allItems.length === 0) {
                     noObjectsMessage.textContent = "No objects found. Try adding one!";
                     noObjectsMessage.style.display = 'block';
                 } else if (itemsToShow.length === 0) {
-                    noObjectsMessage.textContent = "No objects match your filter.";
+                    // Show a different message if it's due to search vs. filter
+                    if (searchedItems.length === 0) {
+                        noObjectsMessage.textContent = "No objects match your search.";
+                    } else {
+                        noObjectsMessage.textContent = "No objects match your filter.";
+                    }
                     noObjectsMessage.style.display = 'block';
                 } else {
                     noObjectsMessage.style.display = 'none';
                 }
             }
 
-            // 5. Update filter button state
+            // 6. Update filter button state
             filterActiveButton.classList.toggle('active', filterActive);
         }
 
-        // --- Click Listeners ---
+        // --- Click/Input Listeners ---
+
+        // ADDED: Listen for typing in the search box
+        searchInput.addEventListener('input', () => {
+            currentSearch = searchInput.value.trim().toLowerCase();
+            renderList();
+        });
+
         sortAltButton.addEventListener('click', () => {
             if (currentSort !== 'alt') {
                 currentSort = 'alt';
