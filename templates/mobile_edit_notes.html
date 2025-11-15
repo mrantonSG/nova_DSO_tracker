@@ -27,8 +27,47 @@
         const form = document.getElementById('edit-notes-form');
         const saveButton = document.getElementById('save-button');
         const messageArea = document.getElementById('message-area');
+
+        // --- Get the Trix editor and its hidden input field ---
         const editor = document.querySelector('trix-editor');
+        const notesInput = document.getElementById('project-notes'); // The hidden input
+        // ---
+
         const objectName = "{{ object_name | e }}";
+
+
+        // --- FIX #1: THE TRIX UPLOAD HANDLER ---
+        // This listens for when you drop an image into the editor.
+        editor.addEventListener('trix-attachment-add', (event) => {
+            const file = event.attachment.file;
+            if (file) {
+                // 1. Create a FormData object
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // 2. Post it to your (already existing) upload endpoint
+                fetch("{{ url_for('upload_editor_image') }}", {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        // 3. On success, tell Trix the URL of the uploaded image
+                        event.attachment.setAttributes({
+                            url: data.url,
+                            href: data.url
+                        });
+                    }
+                })
+                .catch(e => {
+                    console.error('Upload failed:', e);
+                    event.attachment.remove(); // Remove the failed upload
+                });
+            }
+        });
+        // --- END OF FIX #1 ---
+
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -37,8 +76,10 @@
             saveButton.textContent = 'Saving...';
             messageArea.style.display = 'none';
 
-            // Get the full HTML content from the Trix editor
-            const notesHtml = editor.editor.getDocument().toString();
+            // --- FIX #2: SAVE THE HTML, NOT PLAIN TEXT ---
+            // We get the .value from the *hidden input field*
+            const notesHtml = notesInput.value;
+            // --- END OF FIX #2 ---
 
             const payload = {
                 object: objectName,
@@ -47,7 +88,7 @@
             };
 
             try {
-                // We post to the *existing* /update_project API
+                // ... (rest of the fetch/save logic is the same) ...
                 const response = await fetch("{{ url_for('update_project') }}", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -61,11 +102,9 @@
                     messageArea.style.color = 'var(--accent-rise)';
                     messageArea.style.display = 'block';
 
-                    // Re-enable button
                     saveButton.disabled = false;
                     saveButton.textContent = 'Save Notes';
 
-                    // Optional: Redirect back to 'Up Now' after a delay
                     setTimeout(() => {
                         window.location.href = "{{ url_for('mobile_up_now') }}";
                     }, 1500);
