@@ -1,0 +1,25 @@
+{
+  "name": "Nova Pocket",
+  "short_name": "Nova Pocket",
+  "start_url": "/m",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#83b4c5",
+  "icons": [
+    {
+      "src": "/static/nova-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    },
+    {
+      "src": "/static/nova-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/nova-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
