@@ -61,11 +61,16 @@
         const nameInput = document.getElementById('common-name');
         const raInput = document.getElementById('ra');
         const decInput = document.getElementById('dec');
+
+        // --- Get the Trix editor and its hidden input field ---
         const notesEditor = document.querySelector('trix-editor');
+        const notesInput = document.getElementById('project-notes'); // The hidden input
+        // ---
+
         const activeCheckbox = document.getElementById('is-active');
         const saveButton = document.getElementById('save-button');
 
-        // 1. Search SIMBAD
+        // ... (The 'searchButton' click listener remains the same) ...
         searchButton.addEventListener('click', async () => {
             const objectName = searchInput.value;
             if (!objectName) return;
@@ -100,23 +105,63 @@
             }
         });
 
+
+        // --- FIX #1: THE TRIX UPLOAD HANDLER ---
+        // This listens for when you drop an image into the editor.
+        notesEditor.addEventListener('trix-attachment-add', (event) => {
+            const file = event.attachment.file;
+            if (file) {
+                // 1. Create a FormData object
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // 2. Post it to your (already existing) upload endpoint
+                fetch("{{ url_for('upload_editor_image') }}", {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        // 3. On success, tell Trix the URL of the uploaded image
+                        event.attachment.setAttributes({
+                            url: data.url,
+                            href: data.url
+                        });
+                    }
+                })
+                .catch(e => {
+                    console.error('Upload failed:', e);
+                    event.attachment.remove(); // Remove the failed upload
+                });
+            }
+        });
+        // --- END OF FIX #1 ---
+
+
         // 2. Save the Object
         addForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             saveButton.disabled = true;
             saveButton.textContent = 'Saving...';
 
+            // --- FIX #2: SAVE THE HTML, NOT PLAIN TEXT ---
+            // We get the .value from the *hidden input field*,
+            // which Trix keeps updated with the full HTML.
+            const notesHtml = notesInput.value;
+            // --- END OF FIX #2 ---
+
             const payload = {
                 object: objInput.value,
                 name: nameInput.value,
                 ra: raInput.value,
                 dec: decInput.value,
-                project: notesEditor.editor.getDocument().toString(), // Gets plain text from Trix
-                is_active: activeCheckbox.checked // This is the new field
+                project: notesHtml, // Use the HTML content
+                is_active: activeCheckbox.checked
             };
 
             try {
-                // Call the existing /confirm_object endpoint
+                // ... (rest of the save logic is the same) ...
                 const response = await fetch("{{ url_for('confirm_object') }}", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
