@@ -46,6 +46,7 @@ from flask import render_template, jsonify, request, send_file, redirect, url_fo
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
+import hashlib
 
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation
@@ -108,6 +109,34 @@ DB_URI = f"sqlite:///{DB_PATH}"
 engine = create_engine(DB_URI, echo=False, future=True)
 SessionLocal = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False))
 Base = declarative_base()
+
+
+def get_user_log_string(user_id, username):
+    """Creates a privacy-aware but debuggable log string."""
+
+    # This logic handles the None user_id case
+    user_id_str = str(user_id) if user_id is not None else "None"
+
+    # This logic handles the None/empty username case
+    if not username or not str(username).strip():
+        log_name = "unknown"
+    else:
+        # This logic handles the name hint
+        try:
+            username_clean = str(username).strip()  # Clean it
+            parts = username_clean.split()
+            if len(parts) > 1:
+                # "Jane van der Beek" -> "Jane B."
+                log_name = f"{parts[0]} {parts[-1][0]}."
+            else:
+                # "mrantonSG" -> "mrantonSG"
+                log_name = username_clean
+        except Exception:
+            # Fallback for any weird names
+            log_name = f"{username_clean[:5]}..."
+
+    # Return with the parentheses
+    return f"({user_id_str} | {log_name})"
 
 
 def get_db():
@@ -3725,17 +3754,20 @@ def trigger_startup_cache_workers():
         else:
             print("[STARTUP] No active locations found across all users. No cache warming needed.")
 
-def update_outlook_cache(username, location_name, user_config, sampling_interval):
+
+# --- CHANGE THIS (the function definition) ---
+def update_outlook_cache(user_id, status_key, cache_filename, location_name, user_config, sampling_interval):
+    # --- END CHANGE ---
     """
     Finds ALL good imaging opportunities for PROJECT objects only for the specified
     user and location, saving them sorted by date.
     Relies ONLY on passed arguments, not the global 'g' object.
     """
-    status_key = f"{username}_{location_name}"
-    cache_filename = os.path.join(CACHE_DIR,
-                                  f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+    # status_key and cache_filename are now passed in
+    # e.g., status_key = "(123 | FirstName L.)_Home"
+    # e.g., cache_filename = ".../outlook_cache_123_FirstName_L_home.json"
 
-    with app.app_context(): # Keep app context for potential future DB needs, but avoid using 'g'
+    with app.app_context():  # Keep app context for potential future DB needs, but avoid using 'g'
         print(f"--- [OUTLOOK WORKER {status_key}] Starting ---")
         cache_worker_status[status_key] = "running"
 
@@ -3744,7 +3776,9 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
             all_locations_from_config = user_config.get("locations", {})
             loc_cfg = all_locations_from_config.get(location_name)
             if not loc_cfg: raise ValueError(f"Location '{location_name}' not found.")
-            lat = loc_cfg.get("lat"); lon = loc_cfg.get("lon"); tz_name = loc_cfg.get("timezone", "UTC")
+            lat = loc_cfg.get("lat");
+            lon = loc_cfg.get("lon");
+            tz_name = loc_cfg.get("timezone", "UTC")
             horizon_mask = loc_cfg.get("horizon_mask")
             if lat is None or lon is None: raise ValueError(f"Missing lat/lon for '{location_name}'.")
             print(f"[OUTLOOK WORKER {status_key}] Using Loc: lat={lat}, lon={lon}, tz={tz_name}")
@@ -3752,16 +3786,30 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
 
             # --- Extract Imaging Criteria from ARGUMENTS ---
             def _get_criteria_from_config(cfg):
-                defaults = { "min_observable_minutes": 60, "min_max_altitude": 30, "max_moon_illumination": 20, "min_angular_separation": 30, "search_horizon_months": 6 }
-                raw = (cfg or {}).get("imaging_criteria") or {}; out = dict(defaults)
+                defaults = {"min_observable_minutes": 60, "min_max_altitude": 30, "max_moon_illumination": 20,
+                            "min_angular_separation": 30, "search_horizon_months": 6}
+                raw = (cfg or {}).get("imaging_criteria") or {};
+                out = dict(defaults)
                 if isinstance(raw, dict):
                     def _update_key(key, cast_func):
                         if key in raw and raw[key] is not None:
-                            try: out[key] = cast_func(str(raw[key]))
-                            except: pass
-                    _update_key("min_observable_minutes", int); _update_key("min_max_altitude", float); _update_key("max_moon_illumination", int); _update_key("min_angular_separation", int); _update_key("search_horizon_months", int)
-                out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0)); out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0))); out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100))); out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0))); out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
+                            try:
+                                out[key] = cast_func(str(raw[key]))
+                            except:
+                                pass
+
+                    _update_key("min_observable_minutes", int);
+                    _update_key("min_max_altitude", float);
+                    _update_key("max_moon_illumination", int);
+                    _update_key("min_angular_separation", int);
+                    _update_key("search_horizon_months", int)
+                out["min_observable_minutes"] = max(0, out.get("min_observable_minutes", 0));
+                out["min_max_altitude"] = max(0.0, min(90.0, out.get("min_max_altitude", 0.0)));
+                out["max_moon_illumination"] = max(0, min(100, out.get("max_moon_illumination", 100)));
+                out["min_angular_separation"] = max(0, min(180, out.get("min_angular_separation", 0)));
+                out["search_horizon_months"] = max(1, min(12, out.get("search_horizon_months", 1)))
                 return out
+
             criteria = _get_criteria_from_config(user_config)
 
             # --- Extract Objects List from ARGUMENTS ---
@@ -3788,11 +3836,12 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
 
             if not project_objects:
                 print(f"[OUTLOOK WORKER {status_key}] No active projects. Writing empty cache.")
-                cache_content = {"metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username}, "opportunities": []}
+                cache_content = {"metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(),
+                                              "location": location_name, "user_id": user_id}, "opportunities": []}
                 with open(cache_filename, 'w') as f: json.dump(cache_content, f)
                 cache_worker_status[status_key] = "complete"
                 print(f"--- [OUTLOOK WORKER {status_key}] Finished (no active projects) ---")
-                return # Exit early
+                return  # Exit early
 
             # --- Calculation Loop ---
             all_good_opportunities = []
@@ -3809,9 +3858,11 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
                     obj_details = get_ra_dec(object_name_from_config, objects_map=local_objects_map)
                     # --- END FIX ---
 
-                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get("DEC (degrees)")
+                    object_name, ra, dec = obj_details.get("Object"), obj_details.get("RA (hours)"), obj_details.get(
+                        "DEC (degrees)")
                     if not all([object_name, ra is not None, dec is not None]):
-                        print(f"[OUTLOOK WORKER {status_key}] Skipping {object_name_from_config}: Missing RA/DEC or lookup failed.")
+                        print(
+                            f"[OUTLOOK WORKER {status_key}] Skipping {object_name_from_config}: Missing RA/DEC or lookup failed.")
                         continue
 
                     for d in dates_to_check:
@@ -3822,33 +3873,45 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
                             altitude_threshold, sampling_interval, horizon_mask=horizon_mask
                         )
 
-                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < criteria["min_observable_minutes"]: continue
+                        if max_altitude < criteria["min_max_altitude"] or (obs_duration.total_seconds() / 60) < \
+                                criteria["min_observable_minutes"]: continue
 
-                        moon_phase = ephem.Moon(local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(pytz.utc)).phase
+                        moon_phase = ephem.Moon(
+                            local_tz.localize(datetime.combine(d, datetime.min.time().replace(hour=12))).astimezone(
+                                pytz.utc)).phase
                         if moon_phase > criteria["max_moon_illumination"]: continue
 
                         sun_events = calculate_sun_events_cached(date_str, tz_name, lat, lon)
                         dusk = sun_events.get("astronomical_dusk", "20:00")
-                        try: dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
-                        except ValueError: dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
+                        try:
+                            dusk_time_obj = datetime.strptime(dusk, "%H:%M").time()
+                        except ValueError:
+                            dusk_time_obj = datetime.strptime("20:00", "%H:%M").time()
                         dusk_dt = local_tz.localize(datetime.combine(d, dusk_time_obj))
                         location_obj = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
                         time_obj = Time(dusk_dt.astimezone(pytz.utc))
                         frame = AltAz(obstime=time_obj, location=location_obj)
                         obj_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+
+                        # --- THIS IS THE CORRECTED LINE ---
                         moon_coord = get_body('moon', time_obj, location=location_obj)
+                        # --- END CORRECTION ---
+
                         try:
-                           separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
-                           if separation < criteria["min_angular_separation"]: continue
+                            separation = obj_coord.transform_to(frame).separation(moon_coord.transform_to(frame)).deg
+                            if separation < criteria["min_angular_separation"]: continue
                         except Exception as sep_e:
-                           print(f"[OUTLOOK WORKER {status_key}] WARN Sep calc fail for {object_name} on {date_str}: {sep_e}")
-                           continue
+                            print(
+                                f"[OUTLOOK WORKER {status_key}] WARN Sep calc fail for {object_name} on {date_str}: {sep_e}")
+                            continue
 
                         score_alt = max(0, min((max_altitude - 20) / 70, 1))
                         score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
                         score_moon_illum = 1 - min(moon_phase / 100, 1)
-                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180, 1)
-                        composite_score = 100 * (0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
+                        score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
+                                                                                                     1)
+                        composite_score = 100 * (
+                                    0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
 
                         if composite_score > 75:
                             stars = int(round((composite_score / 100) * 4)) + 1
@@ -3862,8 +3925,10 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
                                 "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
                                 "obs_dur": int(obs_duration.total_seconds() / 60),
                                 "moon_illumination": round(moon_phase, 1),
-                                "project": obj_config_entry.get("Project", "none"), "type": obj_details.get("Type", "N/A"),
-                                "constellation": obj_details.get("Constellation", "N/A"), "magnitude": obj_details.get("Magnitude", "N/A"),
+                                "project": obj_config_entry.get("Project", "none"),
+                                "type": obj_details.get("Type", "N/A"),
+                                "constellation": obj_details.get("Constellation", "N/A"),
+                                "magnitude": obj_details.get("Magnitude", "N/A"),
                                 "size": obj_details.get("Size", "N/A"), "sb": obj_details.get("SB", "N/A")
                             }
                             all_good_opportunities.append(good_night_opportunity)
@@ -3877,14 +3942,22 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
             print(f"[OUTLOOK WORKER {status_key}] Found {len(all_good_opportunities)} total opportunities.")
 
             opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
+
+            # --- START CHANGE (inside the cache_content dictionary) ---
             cache_content = {
-                "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name, "user": username},
+                "metadata": {"last_successful_run_utc": datetime.now(pytz.utc).isoformat(), "location": location_name,
+                             "user_id": user_id},  # Use the real user_id
                 "opportunities": opportunities_sorted_by_date
             }
+            # --- END CHANGE ---
 
+            # --- START CHANGE (to use the passed-in cache_filename) ---
             _atomic_write_yaml(cache_filename.replace('.json', '_debug.yaml'), cache_content)
-            with open(cache_filename, 'w') as f: json.dump(cache_content, f)
+            with open(cache_filename, 'w') as f:
+                json.dump(cache_content, f)
             print(f"[OUTLOOK WORKER {status_key}] Successfully updated cache: {cache_filename}")
+            # --- END CHANGE ---
+
             cache_worker_status[status_key] = "complete"
 
         except Exception as e:
@@ -3892,8 +3965,7 @@ def update_outlook_cache(username, location_name, user_config, sampling_interval
             traceback.print_exc()
             cache_worker_status[status_key] = "error"
         finally:
-             print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
-
+            print(f"--- [OUTLOOK WORKER {status_key}] Finished (Status: {cache_worker_status.get(status_key)}) ---")
 
 def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
@@ -4355,94 +4427,73 @@ def get_outlook_data():
     if hasattr(g, 'is_guest') and g.is_guest:
         return jsonify({"status": "complete", "results": []})
 
-    # --- Determine username ---
+    # --- Determine user ID and username ---
     if SINGLE_USER_MODE:
-        username = "default"
+        user_id = g.db_user.id
+        username = g.db_user.username
     elif current_user.is_authenticated:
-        username = current_user.username
+        user_id = g.db_user.id
+        username = g.db_user.username
     else:
         return jsonify({"status": "error", "message": "User not authenticated"}), 401
 
-    # --- START FIX: Determine Location to Use ---
-    # Check for a location override from the request query parameter
+    # --- Determine Location to Use ---
     requested_location_name = request.args.get('location')
-    # Start with the user's saved default location from the global 'g' object
     location_name_to_use = g.selected_location
-
-    # If a location name was provided in the URL AND it's a valid location for the user...
     if requested_location_name and requested_location_name in g.locations:
-        # ...use the requested location instead of the default.
         location_name_to_use = requested_location_name
-        # print(f"[Outlook] Using requested location: {location_name_to_use}") # Optional debug
-    # else:
-        # print(f"[Outlook] Using default location: {location_name_to_use}") # Optional debug
-
-    # Safety check: If no location could be determined (e.g., user has no locations configured)
     if not location_name_to_use:
         return jsonify({"status": "error", "message": "No valid location selected or configured."}), 400
-
-    # Use the finally determined location name for the rest of the function
     location_name = location_name_to_use
-    # --- END FIX ---
 
-    # Construct cache filename using the determined username and location name
-    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
-    status_key = f"{username}_{location_name}" # Key for checking background worker status
+    # --- START OF CHANGES ---
+    # 1. Get the new anonymous log ID string
+    user_log_key = get_user_log_string(user_id, username) # e.g., "(123 | FirstName L.)"
 
-    # --- START FIX: Check worker status FIRST ---
+    # 2. Construct cache filename and status key using the log ID
+    # We must sanitize the key for filenames
+    safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_") # e.g., "123_FirstName_L"
+    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{location_name.lower().replace(' ', '_')}.json")
+    status_key = f"({user_log_key})_{location_name}" # e.g., "(123 | FirstName L.)_Home"
+    # --- END OF CHANGES ---
+
     worker_status = cache_worker_status.get(status_key, "idle")
     if worker_status in ["running", "starting"]:
-        # A worker is already running (or just started).
-        # Tell the client to wait, even if an old cache file exists.
         print(f"[OUTLOOK] Worker for {status_key} is '{worker_status}'. Telling client to wait.")
         return jsonify({"status": worker_status, "results": []})
-    # --- END FIX ---
 
-    # --- Worker is idle. NOW check the cache file. ---
     if os.path.exists(cache_filename):
         try:
-            # Check if the cache is stale (e.g., older than 1 day)
             cache_mtime = os.path.getmtime(cache_filename)
-            is_stale = (datetime.now().timestamp() - cache_mtime) > 86400 # 86400 seconds = 1 day
+            is_stale = (datetime.now().timestamp() - cache_mtime) > 86400 # 1 day
 
             if not is_stale:
-                # Cache is fresh AND no worker is running. Serve it.
                 with open(cache_filename, 'r') as f:
                     data = json.load(f)
                 return jsonify({"status": "complete", "results": data.get("opportunities", [])})
             else:
-                # Cache is stale. Proceed to start a new worker.
                 print(f"[OUTLOOK] Cache for {status_key} is stale. Will start new worker.")
-
         except (json.JSONDecodeError, IOError, OSError) as e:
-            # Error reading or parsing the file, treat as missing/corrupt
             print(f"❌ ERROR: Could not read/parse outlook cache '{cache_filename}': {e}")
-            # Proceed to start a new worker
 
-    # --- Cache is missing, stale, or corrupt, AND no worker is running. Start a new one. ---
     print(f"[OUTLOOK] Triggering new worker for {status_key} (current status: {worker_status}).")
     try:
-        # Ensure user config is available (should be in 'g')
         if not hasattr(g, 'user_config') or not g.user_config:
              return jsonify({"status": "error", "message": "User configuration not loaded."}), 500
 
-        # Determine sampling interval based on mode
         sampling_interval = 15 # Default
         if SINGLE_USER_MODE:
             sampling_interval = g.user_config.get('sampling_interval_minutes', 15)
         else:
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
 
-        # Start the background thread, passing necessary data
-        # CRITICAL: Pass user_config.copy() to avoid issues with 'g' context in the thread
+        # --- START OF CHANGE (when starting the thread) ---
+        # We pass the user_id (for metadata), the status_key (for logging), and the cache_filename
         thread = threading.Thread(target=update_outlook_cache,
-                                  args=(username, location_name, g.user_config.copy(), sampling_interval))
+                                  args=(user_id, status_key, cache_filename, location_name, g.user_config.copy(), sampling_interval))
+        # --- END OF CHANGE ---
         thread.start()
-
-        # Mark status as 'starting' immediately to prevent duplicate workers
         cache_worker_status[status_key] = "starting"
-
-        # Tell the client we've started, and to poll again later
         return jsonify({"status": "starting", "results": []})
 
     except Exception as e:
@@ -4450,6 +4501,7 @@ def get_outlook_data():
         traceback.print_exc()
         cache_worker_status[status_key] = "error" # Mark as error if thread start fails
         return jsonify({"status": "error", "message": "Failed to start background worker."}), 500
+
 @app.route('/api/latest_version')
 def get_latest_version():
     """An API endpoint for the frontend to check for updates."""
