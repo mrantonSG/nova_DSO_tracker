@@ -164,6 +164,16 @@
                             <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
                             <dt>Guiding Equipment:</dt><dd>{{ entry.guiding_equipment | default('N/A') }}</dd>
                             <dt>Guiding RMS:</dt><dd>{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</dd>
+                            {% if entry.rig_name_snapshot %}
+                                <dt>Rig Used:</dt>
+                                <dd>{{ entry.rig_name_snapshot }}</dd>
+                                <dt>Rig Specs:</dt>
+                                <dd style="font-size: 0.9em; line-height: 1.4;">
+                                    FL: {{ entry.rig_efl_snapshot | round(0) if entry.rig_efl_snapshot is number else 'N/A' }} mm (f/{{ entry.rig_fr_snapshot | round(1) if entry.rig_fr_snapshot is number else 'N/A' }})<br>
+                                    Scale: {{ entry.rig_scale_snapshot | round(2) if entry.rig_scale_snapshot is number else 'N/A' }}"/px<br>
+                                    FOV: {{ entry.rig_fov_w_snapshot | round(1) if entry.rig_fov_w_snapshot is number else 'N/A' }}' &times; {{ entry.rig_fov_h_snapshot | round(1) if entry.rig_fov_h_snapshot is number else 'N/A' }}'
+                                </dd>
+                            {% endif %}
                             <dt>Weather Notes:</dt><dd><div class="notes-block">{{ entry.weather_notes | default('N/A') }}</div></dd>
                         </dl>
                     </div>
@@ -308,10 +318,10 @@
                      <div class="form-section-title">Equipment & Guiding</div>
                     <div class="form-group">
                         <label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label>
-                        <select id="rig-selector-edit" onchange="document.getElementById('telescope_setup_notes').value = this.options[this.selectedIndex].text;">
+                        <select id="rig-selector-edit" name="rig_id_snapshot" onchange="document.getElementById('telescope_setup_notes').value = this.options[this.selectedIndex].text;">
                             <option value="">-- Manually Enter Below --</option>
                             {% for rig in available_rigs %}
-                                <option value="{{ rig.rig_name }}">{{ rig.rig_name }}</option>
+                                <option value="{{ rig.rig_id }}">{{ rig.rig_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -484,6 +494,7 @@
         form.elements['sky_sqm_observed'].value = data.sky_sqm_observed || '';
         form.elements['moon_illumination_session'].value = data.moon_illumination_session || '';
         form.elements['moon_angular_separation_session'].value = data.moon_angular_separation_session || '';
+        form.elements['rig_id_snapshot'].value = data.rig_id_snapshot || '';
         form.elements['telescope_setup_notes'].value = data.telescope_setup_notes || '';
         form.elements['guiding_rms_avg_arcsec'].value = data.guiding_rms_avg_arcsec || '';
         form.elements['exposure_time_per_sub_sec'].value = data.exposure_time_per_sub_sec || '';

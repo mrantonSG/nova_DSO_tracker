@@ -496,11 +496,22 @@ class JournalSession(Base):
     filter_OIII_exposure_sec = Column(Integer, nullable=True)
     filter_SII_subs = Column(Integer, nullable=True);
     filter_SII_exposure_sec = Column(Integer, nullable=True)
+
+    # --- NEW: Rig Snapshot Fields ---
+    rig_id_snapshot = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True) # <-- ADDED THIS
+    rig_name_snapshot = Column(String(256), nullable=True)
+    rig_efl_snapshot = Column(Float, nullable=True)
+    rig_fr_snapshot = Column(Float, nullable=True)
+    rig_scale_snapshot = Column(Float, nullable=True)
+    rig_fov_w_snapshot = Column(Float, nullable=True)
+    rig_fov_h_snapshot = Column(Float, nullable=True)
+
     calculated_integration_time_minutes = Column(Float, nullable=True)
     external_id = Column(String(64), nullable=True, index=True)
 
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
+    rig_snapshot = relationship("Rig", foreign_keys=[rig_id_snapshot]) # <-- ADDED THIS
 
 class UiPref(Base):
     __tablename__ = 'ui_prefs'
@@ -729,6 +740,7 @@ class _FileLock:
         except Exception:
             pass
 
+
 def ensure_db_initialized_unified():
     """
     Create tables if missing, ensure schema patches (external_id column),
@@ -744,12 +756,37 @@ def ensure_db_initialized_unified():
             if "external_id" not in colnames_journal:
                 conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
                 print("[DB PATCH] Added missing column journal_sessions.external_id")
-                try:
-                    conn.exec_driver_sql(
-                        "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
-                    )
-                except Exception:
-                    pass
+
+            # --- ADD THIS BLOCK for Rig Snapshot ---
+            if "rig_id_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_id_snapshot INTEGER;")
+                print("[DB PATCH] Added missing column journal_sessions.rig_id_snapshot")
+            if "rig_name_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_name_snapshot VARCHAR(256);")
+                print("[DB PATCH] Added missing column journal_sessions.rig_name_snapshot")
+            if "rig_efl_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_efl_snapshot FLOAT;")
+                print("[DB PATCH] Added missing column journal_sessions.rig_efl_snapshot")
+            if "rig_fr_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fr_snapshot FLOAT;")
+                print("[DB PATCH] Added missing column journal_sessions.rig_fr_snapshot")
+            if "rig_scale_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_scale_snapshot FLOAT;")
+                print("[DB PATCH] Added missing column journal_sessions.rig_scale_snapshot")
+            if "rig_fov_w_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_w_snapshot FLOAT;")
+                print("[DB PATCH] Added missing column journal_sessions.rig_fov_w_snapshot")
+            if "rig_fov_h_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_h_snapshot FLOAT;")
+                print("[DB PATCH] Added missing column journal_sessions.rig_fov_h_snapshot")
+            # --- END OF BLOCK ---
+
+            try:
+                conn.exec_driver_sql(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
+                )
+            except Exception:
+                pass
 
             # --- Add new columns to 'components' table ---
             cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
@@ -1710,7 +1747,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "project_id": s.get("project_id"),
             "date_utc": dt,
             "object_name": normalize_object_name(s.get("target_object_id") or s.get("object_name")),
-            "notes": notes_html, # <-- USE THE FIXED HTML
+            "notes": notes_html,  # <-- USE THE FIXED HTML
             "session_image_file": s.get("session_image_file"),
             "location_name": s.get("location_name"),
             "seeing_observed_fwhm": _try_float(s.get("seeing_observed_fwhm")),
@@ -1750,11 +1787,17 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
             "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
             "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
+            "rig_id_snapshot": _as_int(s.get("rig_id_snapshot")),  # <-- ADDED
+            "rig_name_snapshot": s.get("rig_name_snapshot"),
+            "rig_efl_snapshot": _try_float(s.get("rig_efl_snapshot")),
+            "rig_fr_snapshot": _try_float(s.get("rig_fr_snapshot")),
+            "rig_scale_snapshot": _try_float(s.get("rig_scale_snapshot")),
+            "rig_fov_w_snapshot": _try_float(s.get("rig_fov_w_snapshot")),
+            "rig_fov_h_snapshot": _try_float(s.get("rig_fov_h_snapshot")),
             "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
             # Ensure external_id is stored as string if it exists
             "external_id": str(ext_id) if ext_id else None
         }
-
         # *** START: Simplified Upsert Logic ***
         if ext_id:
             # Try to find an existing session with this external_id for this user
@@ -4901,6 +4944,28 @@ def journal_add():
             elif project_selection and project_selection not in ["standalone", "new_project"]:
                 project_id_for_session = project_selection
 
+            # --- NEW: Get Rig Snapshot Specs ---
+            rig_id_str = request.form.get("rig_id_snapshot")
+            rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
+
+            if rig_id_str:
+                try:
+                    rig_id = int(rig_id_str)
+                    rig = db.query(Rig).options(
+                        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
+                    ).filter_by(id=rig_id, user_id=user.id).one_or_none()
+
+                    if rig:
+                        rig_id_snap = rig.id # <-- SAVE THE ID
+                        rig_name_snap = rig.rig_name
+                        efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
+                            rig.telescope, rig.camera, rig.reducer_extender
+                        )
+                        if rig.camera and rig.camera.sensor_height_mm and efl_snap:
+                            fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+                except (ValueError, TypeError):
+                    pass # rig_id_str was invalid (e.g., "")
+
             # --- Create New Session Object (This logic is still valid) ---
             new_session = JournalSession(
                 user_id=user.id,
@@ -4945,7 +5010,14 @@ def journal_add():
                 darks_strategy=request.form.get("darks_strategy", "").strip() or None,
                 flats_strategy=request.form.get("flats_strategy", "").strip() or None,
                 bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None,
-                transparency_observed_scale=request.form.get("transparency_observed_scale", "").strip() or None
+                transparency_observed_scale=request.form.get("transparency_observed_scale", "").strip() or None,
+                rig_id_snapshot=rig_id_snap, # <-- ADDED
+                rig_name_snapshot=rig_name_snap,
+                rig_efl_snapshot=efl_snap,
+                rig_fr_snapshot=fr_snap,
+                rig_scale_snapshot=scale_snap,
+                rig_fov_w_snapshot=fov_w_snap,
+                rig_fov_h_snapshot=fov_h_snap
             )
 
             # ... (rest of session creation logic, file upload, etc.) ...
@@ -5018,21 +5090,108 @@ def journal_edit(session_id):
                                         session_id=session_id))
             # --- END FIX ---
 
+            # --- NEW: Get Rig Snapshot Specs ---
+            rig_id_str = request.form.get("rig_id_snapshot")
+            rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
+
+            if rig_id_str:
+                try:
+                    rig_id = int(rig_id_str)
+                    rig = db.query(Rig).options(
+                        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
+                    ).filter_by(id=rig_id, user_id=user.id).one_or_none()
+
+                    if rig:
+                        rig_id_snap = rig.id  # <-- SAVE THE ID
+                        rig_name_snap = rig.rig_name
+                        efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
+                            rig.telescope, rig.camera, rig.reducer_extender
+                        )
+                        if rig.camera and rig.camera.sensor_height_mm and efl_snap:
+                            fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+                except (ValueError, TypeError):
+                    pass  # rig_id_str was invalid (e.g., "")
+
             # --- Update ALL fields from the form (This logic is still valid) ---
             session_to_edit.date_utc = parsed_date_utc  # <-- Use the validated date
             session_to_edit.object_name = request.form.get("target_object_id", "").strip()
-            # ... (rest of POST logic) ...
             session_to_edit.notes = request.form.get("general_notes_problems_learnings")
-            # ... (etc.) ...
+
+            # --- START: Update all fields ---
+            form = request.form
+            session_to_edit.seeing_observed_fwhm = safe_float(form.get("seeing_observed_fwhm"))
+            session_to_edit.sky_sqm_observed = safe_float(form.get("sky_sqm_observed"))
+            session_to_edit.moon_illumination_session = safe_int(form.get("moon_illumination_session"))
+            session_to_edit.moon_angular_separation_session = safe_float(form.get("moon_angular_separation_session"))
+            session_to_edit.telescope_setup_notes = form.get("telescope_setup_notes", "").strip()
+            session_to_edit.guiding_rms_avg_arcsec = safe_float(form.get("guiding_rms_avg_arcsec"))
+            session_to_edit.exposure_time_per_sub_sec = safe_int(form.get("exposure_time_per_sub_sec"))
+            session_to_edit.number_of_subs_light = safe_int(form.get("number_of_subs_light"))
+            session_to_edit.filter_used_session = form.get("filter_used_session", "").strip()
+            session_to_edit.gain_setting = safe_int(form.get("gain_setting"))
+            session_to_edit.offset_setting = safe_int(form.get("offset_setting"))
+            session_to_edit.session_rating_subjective = safe_int(form.get("session_rating_subjective"))
+            session_to_edit.filter_L_subs = safe_int(form.get("filter_L_subs"))
+            session_to_edit.filter_L_exposure_sec = safe_int(form.get("filter_L_exposure_sec"))
+            session_to_edit.filter_R_subs = safe_int(form.get("filter_R_subs"))
+            session_to_edit.filter_R_exposure_sec = safe_int(form.get("filter_R_exposure_sec"))
+            session_to_edit.filter_G_subs = safe_int(form.get("filter_G_subs"))
+            session_to_edit.filter_G_exposure_sec = safe_int(form.get("filter_G_exposure_sec"))
+            session_to_edit.filter_B_subs = safe_int(form.get("filter_B_subs"))
+            session_to_edit.filter_B_exposure_sec = safe_int(form.get("filter_B_exposure_sec"))
+            session_to_edit.filter_Ha_subs = safe_int(form.get("filter_Ha_subs"))
+            session_to_edit.filter_Ha_exposure_sec = safe_int(form.get("filter_Ha_exposure_sec"))
+            session_to_edit.filter_OIII_subs = safe_int(form.get("filter_OIII_subs"))
+            session_to_edit.filter_OIII_exposure_sec = safe_int(form.get("filter_OIII_exposure_sec"))
+            session_to_edit.filter_SII_subs = safe_int(form.get("filter_SII_subs"))
+            session_to_edit.filter_SII_exposure_sec = safe_int(form.get("filter_SII_exposure_sec"))
+            session_to_edit.weather_notes = form.get("weather_notes", "").strip() or None
+            session_to_edit.guiding_equipment = form.get("guiding_equipment", "").strip() or None
+            session_to_edit.dither_details = form.get("dither_details", "").strip() or None
+            session_to_edit.acquisition_software = form.get("acquisition_software", "").strip() or None
+            session_to_edit.camera_temp_setpoint_c = safe_float(form.get("camera_temp_setpoint_c"))
+            session_to_edit.camera_temp_actual_avg_c = safe_float(form.get("camera_temp_actual_avg_c"))
+            session_to_edit.binning_session = form.get("binning_session", "").strip() or None
+            session_to_edit.darks_strategy = form.get("darks_strategy", "").strip() or None
+            session_to_edit.flats_strategy = form.get("flats_strategy", "").strip() or None
+            session_to_edit.bias_darkflats_strategy = form.get("bias_darkflats_strategy", "").strip() or None
+            session_to_edit.transparency_observed_scale = form.get("transparency_observed_scale", "").strip() or None
+            # --- END of all fields ---
+
+            # --- Add the new rig snapshot fields ---
+            session_to_edit.rig_id_snapshot = rig_id_snap  # <-- ADDED
+            session_to_edit.rig_name_snapshot = rig_name_snap
+            session_to_edit.rig_efl_snapshot = efl_snap
+            session_to_edit.rig_fr_snapshot = fr_snap
+            session_to_edit.rig_scale_snapshot = scale_snap
+            session_to_edit.rig_fov_w_snapshot = fov_w_snap
+            session_to_edit.rig_fov_h_snapshot = fov_h_snap
 
             # (Project logic, calculation logic, and file upload logic remain the same)
             # ...
             project_id_for_session = None
             project_selection = request.form.get("project_selection")
-            # ... (etc.) ...
+            new_project_name = request.form.get("new_project_name", "").strip()
+            if project_selection == "new_project" and new_project_name:
+                new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
+                db.add(new_project)
+                db.flush()
+                project_id_for_session = new_project.id
+            elif project_selection and project_selection not in ["standalone", "new_project"]:
+                project_id_for_session = project_selection
+
             session_to_edit.project_id = project_id_for_session
-            # ... (total_seconds calculation) ...
-            total_seconds = (session_to_edit.number_of_subs_light or 0)  # ... (rest of calculation)
+
+            total_seconds = (session_to_edit.number_of_subs_light or 0) * (
+                        session_to_edit.exposure_time_per_sub_sec or 0) + \
+                            (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
+                            (session_to_edit.filter_R_subs or 0) * (session_to_edit.filter_R_exposure_sec or 0) + \
+                            (session_to_edit.filter_G_subs or 0) * (session_to_edit.filter_G_exposure_sec or 0) + \
+                            (session_to_edit.filter_B_subs or 0) * (session_to_edit.filter_B_exposure_sec or 0) + \
+                            (session_to_edit.filter_Ha_subs or 0) * (session_to_edit.filter_Ha_exposure_sec or 0) + \
+                            (session_to_edit.filter_OIII_subs or 0) * (session_to_edit.filter_OIII_exposure_sec or 0) + \
+                            (session_to_edit.filter_SII_subs or 0) * (session_to_edit.filter_SII_exposure_sec or 0)
+
             session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                         1) if total_seconds > 0 else None
             # ... (file handling logic) ...
@@ -5477,6 +5636,7 @@ def download_journal():
         # --- 2. Load Sessions ---
         sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
         sessions_list = []
+
         for s in sessions:
             sessions_list.append({
                 "session_id": s.external_id or s.id,
@@ -5516,7 +5676,14 @@ def download_journal():
                 "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
                 "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
                 "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
-                "calculated_integration_time_minutes": s.calculated_integration_time_minutes
+                "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
+                "rig_id_snapshot": s.rig_id_snapshot,  # <-- ADDED
+                "rig_name_snapshot": s.rig_name_snapshot,
+                "rig_efl_snapshot": s.rig_efl_snapshot,
+                "rig_fr_snapshot": s.rig_fr_snapshot,
+                "rig_scale_snapshot": s.rig_scale_snapshot,
+                "rig_fov_w_snapshot": s.rig_fov_w_snapshot,
+                "rig_fov_h_snapshot": s.rig_fov_h_snapshot
             })
 
         journal_doc = {"projects": projects_list, "sessions": sessions_list}
@@ -7507,6 +7674,17 @@ def graph_dashboard(object_name):
                         'a': ['href'],
                         '*': ['style']
                     }
+                    # Define which CSS properties are safe
+                    SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
+                                'margin-right']
+                    css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+
+                    sanitized_notes = bleach.clean(
+                        raw_journal_notes,
+                        tags=SAFE_TAGS,
+                        attributes=SAFE_ATTRS,
+                        css_sanitizer=css_sanitizer  # <-- Pass the sanitizer here
+                    )
 
                     # --- THIS IS THE NEW PART ---
                     # Define which CSS properties are safe
@@ -9317,6 +9495,7 @@ def repair_corrupt_ids_command():
         traceback.print_exc()
     finally:
         db.close()
+
 
 @app.cli.command("seed-guest-account")
 def seed_guest_account_command():
