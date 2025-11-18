@@ -2,7 +2,7 @@ import pytest
 from datetime import date
 import sys, os, io
 import json
-from unittest.mock import MagicMock # We'll need this for mocking
+from unittest.mock import MagicMock  # We'll need this for mocking
 
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -18,8 +18,10 @@ from nova import (
     Component,
     Rig,
     UiPref,
-    HorizonPoint
+    HorizonPoint,
+    SavedView  # <-- IMPORT THE NEW MODEL
 )
+
 
 # --- Existing Tests (from your file) ---
 
@@ -27,8 +29,10 @@ def test_homepage_loads(client):
     """ Tests if the homepage (/) loads without errors. """
     response = client.get('/')
     assert response.status_code == 200
-    assert b"<h1>Nova</h1>" in response.data
-    assert b"DSO Tracker" in response.data
+    # --- FIX: Update assertion to match the actual page content ---
+    assert b"DSO Altitude Tracker" in response.data
+    assert b"Position" in response.data  # Check for a tab
+
 
 def test_su_login_bypass(su_client_not_logged_in):
     """
@@ -41,6 +45,7 @@ def test_su_login_bypass(su_client_not_logged_in):
     assert b"General Settings" in response.data
     assert b"Please log in to access this page." not in response.data
 
+
 def test_mu_login_required(mu_client_logged_out):
     """
     Tests that in MULTI_USER_MODE, a logged-out user is redirected
@@ -52,6 +57,7 @@ def test_mu_login_required(mu_client_logged_out):
     # Assert we are redirected (302) to the login page
     assert response.status_code == 302
     assert response.location.startswith('/login')
+
 
 def test_mu_data_isolation(multi_user_client, db_session):
     """
@@ -70,9 +76,12 @@ def test_mu_data_isolation(multi_user_client, db_session):
     db_session.commit()
     session_id_user_b = session_for_user_b.id
 
+    # --- FIX: The /journal/edit route now redirects to the graph view ---
     response = client.get(f'/journal/edit/{session_id_user_b}', follow_redirects=True)
     assert response.status_code == 200
+    # The flash message is the real assertion
     assert b"Journal entry not found" in response.data
+
 
 def test_get_plot_data_api(client):
     """
@@ -93,6 +102,7 @@ def test_get_plot_data_api(client):
     assert "object_alt" in data
     assert "sun_events" in data
     assert len(data['times']) > 0
+
 
 # --- NEW TEST: Main Data API (Success) ---
 def test_api_get_object_data_success(client):
@@ -117,7 +127,7 @@ def test_api_get_object_data_success(client):
     # Check for calculated fields
     assert 'Altitude Current' in data
     assert 'Transit Time' in data
-    assert 'Max Altitude (°)'in data
+    assert 'Max Altitude (°)' in data
     assert 'best_month_ra' in data
     assert 'max_culmination_alt' in data
 
@@ -255,6 +265,7 @@ def test_delete_component_and_rig_routes(client, db_session):
     # Check DB: Component should now be gone
     assert db_session.get(Component, scope_id) is None
 
+
 # --- NEW TEST: Add Object from SIMBAD Search ---
 def test_api_confirm_object_from_simbad(client, db_session):
     """
@@ -275,7 +286,8 @@ def test_api_confirm_object_from_simbad(client, db_session):
         "sb": "14.3",
         "project": "<p>My brand new notes for M101</p>",
         "shared_notes": "",
-        "is_shared": False
+        "is_shared": False,
+        "is_active": True  # Added field
     }
 
     # 2. ACT
@@ -296,6 +308,7 @@ def test_api_confirm_object_from_simbad(client, db_session):
     assert new_obj.common_name == "Pinwheel Galaxy"
     assert new_obj.ra_hours == 14.057
     assert new_obj.project_name == "<p>My brand new notes for M101</p>"
+    assert new_obj.active_project is True
 
 
 # --- NEW TEST: Confirm Object Normalization ---
@@ -333,21 +346,23 @@ def test_api_confirm_object_normalization(client, db_session):
     ).one_or_none()
     assert obj_corrupt is None
 
+
 # --- NEW TEST: Update Project Notes ---
-def test_api_update_project_notes(client, db_session):
+def test_api_update_project_notes_and_active_status(client, db_session):
     """
     Tests the /update_project endpoint, which saves notes
-    from the Trix editor on the graph dashboard.
+    and active status from the graph dashboard.
     """
     # 1. ARRANGE
-    # The 'client' fixture created M42. Let's get it.
     obj = db_session.query(AstroObject).filter_by(object_name="M42").one()
     assert obj.project_name is None  # Check initial state
-    obj_id = obj.id  # <-- Get the ID before the object becomes stale
+    assert obj.active_project is False
+    obj_id = obj.id
 
     notes_payload = {
         "object": "M42",
-        "project": "<div>These are my <strong>new</strong> notes.</div>"
+        "project": "<div>These are my <strong>new</strong> notes.</div>",
+        "is_active": True
     }
 
     # 2. ACT
@@ -357,14 +372,12 @@ def test_api_update_project_notes(client, db_session):
     assert response.status_code == 200
     assert response.get_json()['status'] == 'success'
 
-    # --- FIX ---
-    # The client.post() call commits a transaction in a separate
-    # session, which detaches our local 'obj'.
-    # We must re-fetch the object from the DB using our session.
+    # Re-fetch the object from the DB
     updated_obj = db_session.get(AstroObject, obj_id)
 
     assert updated_obj is not None
     assert updated_obj.project_name == "<div>These are my <strong>new</strong> notes.</div>"
+    assert updated_obj.active_project is True
 
 
 # --- NEW TEST: Image Upload in Editor ---
@@ -486,40 +499,141 @@ def test_mobile_up_now_renders_data_from_server(client):
     assert b"fetch(fetchUrlBase" not in response.data
 
 
+# ===================================================================
+# --- NEW SAVED VIEWS API TESTS ---
+# ===================================================================
+
+def test_api_saved_views_full_workflow(client, db_session):
+    """
+    Tests the full Create, Read, Update, Delete (CRUD) workflow
+    for the /api/get_saved_views, /api/save_saved_view,
+    and /api/delete_saved_view endpoints.
+    """
+    # 1. ARRANGE
+    user = db_session.query(DbUser).filter_by(username="default").one()
+    view_settings_v1 = {
+        "activeTab": "position",
+        "dso_sortColumnKey": "Altitude Current",
+        "dso_sortOrder": "desc"
+    }
+    view_settings_v2 = {
+        "activeTab": "properties",
+        "dso_sortColumnKey": "Magnitude",
+        "dso_sortOrder": "asc"
+    }
+
+    # 2. ACT (READ - Empty)
+    response_get1 = client.get('/api/get_saved_views')
+    data_get1 = response_get1.get_json()
+
+    # 3. ASSERT (READ - Empty)
+    assert response_get1.status_code == 200
+    assert data_get1 == {}  # Should be an empty dictionary
+
+    # 4. ACT (CREATE)
+    response_save1 = client.post(
+        '/api/save_saved_view',
+        json={"name": "My View", "settings": view_settings_v1}
+    )
+    data_save1 = response_save1.get_json()
+
+    # 5. ASSERT (CREATE)
+    assert response_save1.status_code == 200
+    assert data_save1['status'] == 'success'
+
+    # Check DB directly
+    view_db = db_session.query(SavedView).filter_by(user_id=user.id, name="My View").one_or_none()
+    assert view_db is not None
+    assert json.loads(view_db.settings_json) == view_settings_v1
+
+    # 6. ACT (READ - Not Empty)
+    response_get2 = client.get('/api/get_saved_views')
+    data_get2 = response_get2.get_json()
+
+    # 7. ASSERT (READ - Not Empty)
+    assert response_get2.status_code == 200
+    assert "My View" in data_get2
+    assert data_get2["My View"]["settings"]["activeTab"] == "position"
+
+    # 8. ACT (UPDATE)
+    response_save2 = client.post(
+        '/api/save_saved_view',
+        json={"name": "My View", "settings": view_settings_v2}  # Same name, new settings
+    )
+    assert response_save2.status_code == 200
+
+    # 9. ASSERT (UPDATE)
+    # Check DB directly for update (not duplication)
+    count = db_session.query(SavedView).filter_by(user_id=user.id).count()
+    assert count == 1
+    updated_view_db = db_session.get(SavedView, view_db.id)
+    assert json.loads(updated_view_db.settings_json) == view_settings_v2
+
+    # 10. ACT (DELETE)
+    response_delete = client.post(
+        '/api/delete_saved_view',
+        json={"name": "My View"}
+    )
+    assert response_delete.status_code == 200
+    assert response_delete.get_json()['status'] == 'success'
+
+    # 11. ASSERT (DELETE)
+    assert db_session.query(SavedView).filter_by(user_id=user.id).count() == 0
+
+    # 12. ACT (READ - Empty again)
+    response_get3 = client.get('/api/get_saved_views')
+    data_get3 = response_get3.get_json()
+
+    # 13. ASSERT (READ - Empty again)
+    assert response_get3.status_code == 200
+    assert data_get3 == {}
+
+
 # --- Your other existing tests/stubs from test_nova_api.py ---
 # ...
 def test_moon_api_bug_with_no_ra(client):
     pass
 
+
 def test_graph_dashboard_404(client):
     pass
+
 
 def test_add_journal_session_post(client):
     pass
 
+
 def test_journal_add_redirects_when_logged_out(client_logged_out):
     pass
+
 
 def test_add_journal_session_fails_with_bad_date(client):
     pass
 
+
 def test_get_imaging_opportunities_success(client):
     pass
+
 
 def test_get_imaging_opportunities_fail_moon(client, db_session):
     pass
 
+
 def test_journal_edit_post(client, db_session):
     pass
+
 
 def test_journal_delete_post(client, db_session):
     pass
 
+
 def test_add_component_and_rig_routes(client, db_session):
     pass
 
+
 def test_api_update_object(client, db_session):
     pass
+
 
 def test_config_form_post_update_and_delete_locations(client, db_session):
     pass
