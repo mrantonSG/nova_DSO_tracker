@@ -553,10 +553,11 @@
             }
         }
 
-        // --- ADDED: Reset saved views dropdown ---
+        // --- MODIFIED: Reset saved views dropdown AND clear persistent view name ---
         if (savedViewsDropdown) savedViewsDropdown.value = '';
         if (deleteViewBtn) deleteViewBtn.style.display = 'none';
-        // --- END OF ADD ---
+        localStorage.removeItem('nova_last_applied_view'); // <-- THIS LINE IS ADDED
+        // --- END OF MODIFICATION ---
 
         // Refresh the tables to reflect the cleared filters
         filterTable();
@@ -636,8 +637,8 @@
             localStorage.setItem(key, viewData.settings[key]);
         }
 
-        // 3. Store the name to be selected on reload
-        sessionStorage.setItem('nova_view_to_apply', viewName);
+        // 3. Store the name to be selected on reload in localStorage (to persist)
+        localStorage.setItem('nova_last_applied_view', viewName); // <-- THIS LINE IS CHANGED
 
         // 4. Reload the page to apply all settings from scratch
         window.location.reload();
@@ -1522,13 +1523,7 @@ function populateJournalTable() {
     window.onload = () => {
       // --- ADDED FOR SAVED VIEWS ---
       // Check if we are reloading to apply a view
-      let viewToApplyOnLoad = sessionStorage.getItem('nova_view_to_apply');
-      if (viewToApplyOnLoad) {
-          sessionStorage.removeItem('nova_view_to_apply');
-          // Settings are already in localStorage from loadView().
-          // The rest of this function will apply them.
-          // We just need to make sure the dropdown selects it at the end.
-      }
+      let viewToApplyOnLoad = localStorage.getItem('nova_last_applied_view');
       // --- END OF ADD ---
 
       // --- START: New Timer Logic ---
