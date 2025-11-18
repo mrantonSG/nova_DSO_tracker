@@ -3,7 +3,9 @@
 {% block title %}Graph – Nova DSO Tracker{% endblock %}
 
 {% block head_extra %}
-
+<script>
+    const IS_GUEST_USER = {{ is_guest | tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8"></script>
 <script>
     // Safely convert the Python object to a JavaScript object
@@ -1155,6 +1157,17 @@
   const cb = document.getElementById('active-project-checkbox');
   if (!cb) return;
   cb.addEventListener('change', async (e) => {
+
+    // --- THIS IS THE FIX ---
+    // If the user is a guest, save the state to session storage but don't call the database
+    if (IS_GUEST_USER) {
+        const objectName = {{ object_name|tojson }};
+        sessionStorage.setItem(`nova_guest_active_${objectName}`, e.target.checked); // <-- THIS LINE IS ADDED
+        console.log(`Guest mode: Set ${objectName} active status to ${e.target.checked} (visual only)`);
+        return;
+    }
+    // --- END OF FIX ---
+
     try {
       const res = await fetch('/update_project_active', {
         method: 'POST',
@@ -1174,6 +1187,30 @@
 })();
 
 document.addEventListener('DOMContentLoaded', (event) => {
+    if (IS_GUEST_USER) {
+        const trixEditor = document.getElementById('project-field-editor');
+        const saveButton = document.querySelector('button[onclick="saveProject()"]');
+
+        // Disable notes editor and save button for guests
+        if (trixEditor) {
+            // Wait for the editor to be ready before disabling it
+            trixEditor.addEventListener('trix-initialize', () => {
+                trixEditor.editor.element.setAttribute('disabled', 'true');
+            });
+        }
+        if (saveButton) saveButton.style.display = 'none';
+
+        // --- ADD THIS PART: Restore checkbox state for guest ---
+        const objectName = {{ object_name|tojson }};
+        const storageKey = `nova_guest_active_${objectName}`;
+        const savedState = sessionStorage.getItem(storageKey);
+        const checkbox = document.getElementById('active-project-checkbox');
+
+        if (checkbox && savedState !== null) {
+            // Convert stored string 'true'/'false' to boolean
+            checkbox.checked = (savedState === 'true');
+        }
+    }
     // Check for a 'tab' parameter in the URL first
     const params = new URLSearchParams(window.location.search);
     const tabFromUrl = params.get('tab');

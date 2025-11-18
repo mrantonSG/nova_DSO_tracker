@@ -1,1 +1,29 @@
-components: []
+components:
+  telescopes:
+    - id: 1
+      name: "Widefield Refractor (Demo)"
+      aperture_mm: 80
+      focal_length_mm: 480
+    - id: 2
+      name: "SCT (Demo)"
+      aperture_mm: 203
+      focal_length_mm: 2030
+  cameras:
+    - id: 1
+      name: "ASI2600MM (Demo)"
+      pixel_size_um: 3.76
+      sensor_width_mm: 23.5
+      sensor_height_mm: 15.7
+    - id: 2
+      name: "QSI 683 (Demo)"
+      pixel_size_um: 5.4
+      sensor_width_mm: 17.9
+      sensor_height_mm: 13.5
+  reducers_extenders: []
+rigs:
+  - rig_name: "Widefield Setup (Demo)"
+    telescope_id: 1
+    camera_id: 1
+  - rig_name: "SCT Setup (Demo)"
+    telescope_id: 2
+    camera_id: 2
