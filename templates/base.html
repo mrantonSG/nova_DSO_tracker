@@ -37,6 +37,21 @@
         font-weight: normal;
         white-space: nowrap;
       }
+
+      /* --- NEW CSS FOR THE BANNER --- */
+      .demo-banner {
+        width: 100%;
+        background-color: #fef9e7; /* Pale yellow */
+        color: #333;
+        text-align: center;
+        padding: 12px 10px;
+        font-size: 14px;
+        font-weight: 600;
+        border-bottom: 1px solid #e0e0e0;
+        box-sizing: border-box;
+      }
+      /* --- END OF NEW CSS --- */
+
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -47,6 +62,13 @@
   </head>
   <body>
 
+    {% block demo_banner %}
+    {% if is_guest %}
+    <div class="demo-banner">
+      <strong>Demo Mode:</strong> You are viewing a read-only demo. Full functionality (like saving) is enabled for registered users.
+    </div>
+    {% endif %}
+    {% endblock %}
     <div class="header-container">
       <h1>Nova</h1>
       <h3>DSO Tracker V{{ version }}<span id="update-notification"></span></h3>
