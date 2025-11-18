@@ -260,6 +260,7 @@ def initialize_instance_directory():
                 ('config_guest_user.yaml', 'config_guest_user.yaml'),
                 # Add a journal for the guest user too
                 ('journal_default.yaml', 'journal_guest_user.yaml'),
+                ('rigs_default.yaml', 'rigs_guest_user.yaml'),
             ]
 
             for template_name, final_name in files_to_create:
@@ -7715,7 +7716,8 @@ def graph_dashboard(object_name):
                                default_location=default_location_name,
                                framing_objects=all_objects_for_framing,
                                stellarium_api_url_base=STELLARIUM_API_URL_BASE,
-                               today_date=datetime.now().strftime('%Y-%m-%d')
+                               today_date=datetime.now().strftime('%Y-%m-%d'),
+                               is_guest=g.is_guest
                                )
 
     except Exception as e:
@@ -9307,6 +9309,72 @@ def repair_corrupt_ids_command():
         print("--- [REPAIR COMPLETE] ---")
         print(f"✅ Repaired and re-linked {total_repaired} objects across all users.")
         print("Database corruption has been fixed.")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ FATAL ERROR: {e}")
+        print("Database has been rolled back. No changes were saved.")
+        traceback.print_exc()
+    finally:
+        db.close()
+
+@app.cli.command("seed-guest-account")
+def seed_guest_account_command():
+    """
+    Safely adds default rigs AND journal entries to the 'guest_user' account.
+    This is for live systems to populate the demo account.
+    V2: Cleans up guest account first and reads from TEMPLATE_DIR.
+    """
+    print("--- [SEEDING GUEST ACCOUNT (v2 - FIX)] ---")
+    db = get_db()
+    try:
+        # 1. Find the guest_user
+        guest_user = db.query(DbUser).filter_by(username="guest_user").one_or_none()
+        if not guest_user:
+            print("ERROR: 'guest_user' account not found. Cannot seed.")
+            return
+        print(f"Found 'guest_user' (ID: {guest_user.id}).")
+
+        # 2. --- CLEAN UP FIRST ---
+        # This is critical to remove your personal data from the guest account.
+        print("Cleaning up any existing data from guest_user account...")
+        db.query(Rig).filter_by(user_id=guest_user.id).delete()
+        db.query(Component).filter_by(user_id=guest_user.id).delete()
+        db.query(JournalSession).filter_by(user_id=guest_user.id).delete()
+        db.commit()  # Commit the deletions
+        print("...Cleanup complete.")
+
+        # 3. --- Seed Rigs from TEMPLATES ---
+        # Use TEMPLATE_DIR (config_templates), not CONFIG_DIR (instance/configs)
+        rigs_template_path = os.path.join(TEMPLATE_DIR, "rigs_default.yaml")
+        if os.path.exists(rigs_template_path):
+            rigs_yaml, error = _read_yaml(rigs_template_path)
+            if error:
+                print(f"ERROR (Rigs): Could not read 'config_templates/rigs_default.yaml': {error}")
+            else:
+                print("Migrating components and rigs from template...")
+                _migrate_components_and_rigs(db, guest_user, rigs_yaml, "guest_user")
+                print("...Rigs seeded.")
+        else:
+            print("WARNING: 'config_templates/rigs_default.yaml' not found.")
+
+        # 4. --- Seed Journal from TEMPLATES ---
+        # Use TEMPLATE_DIR, not CONFIG_DIR
+        journal_template_path = os.path.join(TEMPLATE_DIR, "journal_default.yaml")
+        if os.path.exists(journal_template_path):
+            journal_yaml, error = _read_yaml(journal_template_path)
+            if error:
+                print(f"ERROR (Journal): Could not read 'config_templates/journal_default.yaml': {error}")
+            else:
+                print("Migrating journal entries from template...")
+                _migrate_journal(db, guest_user, journal_yaml)
+                print("...Journal seeded.")
+        else:
+            print("WARNING: 'config_templates/journal_default.yaml' not found.")
+
+        db.commit()  # Commit the additions
+        print("--- [SEEDING COMPLETE] ---")
+        print("✅ Successfully cleaned and populated the 'guest_user' account with demo data.")
 
     except Exception as e:
         db.rollback()

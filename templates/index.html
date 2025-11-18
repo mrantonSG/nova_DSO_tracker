@@ -401,6 +401,7 @@
     // ========================================================================
     // Configuration & Global State Variables
     // ========================================================================
+    const IS_GUEST_USER = {{ is_guest | tojson }};
     let activeTab = localStorage.getItem('activeTab') || 'position';
     let outlookDataLoaded = false;
 
@@ -570,6 +571,16 @@
 
     async function populateSavedViewsDropdown(selectedViewName = null) {
         if (!savedViewsDropdown) return;
+
+        // --- THIS BLOCK IS NEW ---
+        if (IS_GUEST_USER) {
+            savedViewsDropdown.innerHTML = '<option value="">-- Saved Views --</option>';
+            savedViewsDropdown.disabled = true;
+            if (saveViewBtn) saveViewBtn.style.display = 'none';
+            if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+            return; // Stop here for guest users
+        }
+        // --- END OF NEW BLOCK ---
 
         try {
             const response = await fetch('/api/get_saved_views');
@@ -1568,6 +1579,11 @@ function populateJournalTable() {
       saveViewBtn = document.getElementById('save-view-btn');
       deleteViewBtn = document.getElementById('delete-view-btn');
       // --- END OF ADD ---
+      if (IS_GUEST_USER) {
+          if (savedViewsDropdown) savedViewsDropdown.disabled = true;
+          if (saveViewBtn) saveViewBtn.style.display = 'none';
+          if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+      }
 
       fetchLocations();
       fetchSunEvents();

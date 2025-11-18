@@ -1,1 +1,21 @@
-sessions: []
+projects:
+  - project_id: "demo_project_1"
+    project_name: "Orion Nebula Project (Demo)"
+sessions:
+  - session_id: "demo_session_1"
+    project_id: "demo_project_1"
+    session_date: "2024-11-10"
+    target_object_id: "M42"
+    location_name: "Default Test Loc"
+    telescope_setup_notes: "Used the Widefield Setup (Demo) rig."
+    calculated_integration_time_minutes: 120
+    session_rating_subjective: 4
+    general_notes_problems_learnings: "This is a demo journal entry for M42. Guests can see this but not edit it."
+  - session_id: "demo_session_2"
+    session_date: "2024-09-15"
+    target_object_id: "M31"
+    location_name: "Default Test Loc"
+    telescope_setup_notes: "Demo entry with the SCT."
+    calculated_integration_time_minutes: 90
+    session_rating_subjective: 3
+    general_notes_problems_learnings: "This is a demo journal entry for M31. It shows how sessions are grouped by object."
