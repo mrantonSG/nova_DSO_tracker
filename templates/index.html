@@ -218,10 +218,42 @@
       margin-top: 2px;
       margin-bottom: 2px;
     }
+
+    /* --- NEW: Unified Dropdown Styling --- */
+    .styled-select {
+        height: 35px;
+        font-size: 16px;
+        padding: 5px;
+        padding-right: 30px; /* Make space for custom arrow */
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+
+        /* Appearance from screenshot */
+        background-color: #e9e9e9;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+
+        /* Custom arrow */
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23666666%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4l128-128c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%27%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 10px;
+    }
+
     #location-select {
         /* This ID is now just for width */
         min-width: 150px;
     }
+
+    #saved-views-dropdown {
+        /* This ID is now just for width */
+        width: 250px;
+    }
+    /* --- END: Unified Dropdown Styling --- */
+
 
     .info-values p { margin: 0; font-size: 16px; }
     .info-values small { font-size: 12px; color: #666; }
@@ -330,13 +362,7 @@
         font-weight: normal;
     }
 
-
-    .message { color: #155724; font-weight: bold; }
-    .error { color: #dc3545; font-weight: bold; }
-    #tab-message-container {
-      margin-left: 20px; /* Give it some space from the new view buttons */
-      align-self: center;
-    }
+    /* --- REMOVED old .message, .error, and #tab-message-container styles --- */
 
     /* --- ADDED FOR SAVED VIEWS --- */
     #saved-views-container {
@@ -366,32 +392,8 @@
     #delete-view-btn:hover {
         background-color: #849398 !important;
     }
-    #saved-views-dropdown {
-        /* This ID is now just for width */
-        width: 250px;
-    }
-    .styled-select {
-        height: 35px;
-        font-size: 16px;
-        padding: 5px;
-        padding-right: 30px; /* Make space for custom arrow */
-        box-sizing: border-box;
-        font-family: 'Roboto', sans-serif;
-
-        /* Appearance from screenshot */
-        background-color: #e9e9e9;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-
-        /* Custom arrow */
-        appearance: none;
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23666666%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4l128-128c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%27%2F%3E%3C%2Fsvg%3E");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-        background-size: 10px;
-    }
+    /* #saved-views-dropdown is now part of .styled-select */
+    /* --- END OF ADD --- */
 
   </style>
 
@@ -443,10 +445,8 @@
         'Magnitude':        { header: 'Magnitude<br><span class="subtext">&nbsp;</span>', dataKey: 'Magnitude', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
         'Size':             { header: "Size (')<br><span class='subtext'>&nbsp;</span>", dataKey: 'Size', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
         'SB':               { header: 'SB<br><span class="subtext">&nbsp;</span>', dataKey: 'SB', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : parseFloat(val).toFixed(1) },
-        /* --- ADDED FOR NEW COLUMNS --- */
         'Best Month':       { header: 'Best Month<br><span class="subtext">(Opp.)</span>', dataKey: 'best_month_ra', type: 'properties', filterable: true, sortable: true },
         'Max Altitude':     { header: 'Max Alt<br><span class="subtext">(Culm.)</span>', dataKey: 'max_culmination_alt', type: 'properties', filterable: true, sortable: true, format: val => (val === 'N/A' || val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(1)}°` }
-        /* --- END OF ADD --- */
     };
 
     // --- Journal Table Configuration ---
@@ -1784,19 +1784,36 @@ function populateJournalTable() {
             });
     }
 
+    // --- REPLACED: New flash message script ---
     document.addEventListener("DOMContentLoaded", function () {
-        setTimeout(() => {
-            const flashMessages = document.querySelectorAll(".flash-transient");
-            flashMessages.forEach(el => {
-                if (el) { el.style.transition = "opacity 0.5s ease"; el.style.opacity = "0"; setTimeout(() => el.remove(), 500); }
-            });
-        }, 4000);
+        const flashMessages = document.querySelectorAll(".flash-message");
+        if (flashMessages.length > 0) {
+            setTimeout(() => {
+                flashMessages.forEach(el => {
+                    el.style.transition = "opacity 0.5s ease";
+                    el.style.opacity = "0";
+                    setTimeout(() => el.remove(), 500); // Remove from DOM after fade
+                });
+            }, 4000); // Message disappears after 4 seconds
+        }
     });
+    // --- END OF REPLACE ---
     </script>
 {% endblock %}
 </head>
 <body> {% block body %}
 
+  <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+              {% for category, message in messages %}
+                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                      {{ message }}
+                  </div>
+              {% endfor %}
+          {% endif %}
+      {% endwith %}
+  </div>
   <div class="info-bar-wrapper">
       <div class="user-info">
         {% if is_guest %}
@@ -1858,18 +1875,7 @@ function populateJournalTable() {
         <button id="save-view-btn" title="Save current filters and sorting">Save</button>
         <button id="delete-view-btn" title="Delete selected view">Delete</button>
     </div>
-    <div id="tab-message-container">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <span class="{{ 'error' if category == 'error' else 'message' }} flash-transient" style="margin: 0;">{{ message }}</span>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-    </div>
-
-    <div id="remove-filters-container" style="display: none;">
-     <button type="button" id="remove-filters-btn">
+    <div id="remove-filters-container" style="display: none; margin-left: auto;"> <button type="button" id="remove-filters-btn">
        Remove Filter
      </button>
     </div>
