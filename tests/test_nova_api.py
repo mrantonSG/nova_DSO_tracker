@@ -2,7 +2,8 @@ import pytest
 from datetime import date
 import sys, os, io
 import json
-from unittest.mock import MagicMock  # We'll need this for mocking
+import threading
+from unittest.mock import MagicMock
 
 # 1. Add the project's parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -589,6 +590,83 @@ def test_api_saved_views_full_workflow(client, db_session):
     assert data_get3 == {}
 
 
+def test_update_project_active_triggers_outlook_worker_correctly(client, monkeypatch, db_session):
+    """
+    Tests that changing an object's 'Active Project' status
+    (which calls trigger_outlook_update_for_user)
+    starts the background worker with the
+    CORRECT number of arguments, preventing the TypeError.
+
+    This test will FAIL until the bug is fixed.
+    """
+    # 1. ARRANGE
+    # Get the 'default' user created by the 'client' fixture
+    user = db_session.query(DbUser).filter_by(username="default").one()
+
+    # Create a spy to watch what threading.Thread is called with
+    mock_thread_constructor = MagicMock()
+
+    # Use monkeypatch to replace the real threading.Thread
+    # with our spy.
+    monkeypatch.setattr('threading.Thread', mock_thread_constructor)
+
+    # This is the payload to trigger the function
+    payload = {
+        "object": "M42",  # M42 exists in the 'client' fixture
+        "active": True
+    }
+
+    # 2. ACT
+    # Call the API route that contains the buggy trigger
+    response = client.post('/update_project_active', json=payload)
+    assert response.status_code == 200  # Check API call worked
+
+    # 3. ASSERT
+    # Check that our spy (mock_thread_constructor) was called
+    # (The fixture has 1 location, so it's called once)
+    mock_thread_constructor.assert_called_once()
+
+    # Get the arguments that the spy was called with
+    call_kwargs = mock_thread_constructor.call_args.kwargs
+    call_args_tuple = call_kwargs.get('args')
+
+    # THE KEY ASSERTIONS:
+
+    # 1. Check that the 'target' was the correct function
+    assert call_kwargs.get('target').__name__ == 'update_outlook_cache'
+
+    # 2. Check that the 'args' tuple was passed
+    assert call_args_tuple is not None
+
+    # 3. This is the assertion that will FAIL on your current code:
+    #    Check that the 'args' tuple has 6 items, not 4
+    assert len(call_args_tuple) == 6
+
+    # 4. (Optional) We can also check the types/values of the args
+    #    args=(user_id, status_key, cache_filename, location_name, user_config, sampling_interval)
+
+    # Arg 1: user_id (should be an integer, which is user.id)
+    assert isinstance(call_args_tuple[0], int)
+    assert call_args_tuple[0] == user.id
+
+    # Arg 2: status_key (should be a string like "(1 | default)_Default Test Loc")
+    assert isinstance(call_args_tuple[1], str)
+    assert call_args_tuple[1].startswith(f"(({user.id}")
+
+    # Arg 3: cache_filename (should be a string path ending in .json)
+    assert isinstance(call_args_tuple[2], str)
+    assert call_args_tuple[2].endswith('.json')
+    assert 'default_test_loc' in call_args_tuple[2]  # Fixture location name
+
+    # Arg 4: location_name (should be the string "Default Test Loc")
+    assert isinstance(call_args_tuple[3], str)
+    assert call_args_tuple[3] == "Default Test Loc"
+
+    # Arg 5: user_config (should be a dictionary)
+    assert isinstance(call_args_tuple[4], dict)
+
+    # Arg 6: sampling_interval (should be an integer)
+    assert isinstance(call_args_tuple[5], int)
 # --- Your other existing tests/stubs from test_nova_api.py ---
 # ...
 def test_moon_api_bug_with_no_ra(client):

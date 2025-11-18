@@ -4047,6 +4047,7 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             print(f"[OUTLOOK WORKER {status_key}] Found {len(all_good_opportunities)} total opportunities.")
 
             opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
+            opportunities_sorted_by_date = recursively_clean_numpy_types(opportunities_sorted_by_date)
 
             # --- START CHANGE (inside the cache_content dictionary) ---
             cache_content = {
