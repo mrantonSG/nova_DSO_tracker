@@ -3728,14 +3728,30 @@ def trigger_outlook_update_for_user(username):
         # --- END FIX ---
 
         for loc_name in locations.keys():
-            # --- START FIX: Set status to 'starting' *before* starting thread ---
-            status_key = f"{username}_{loc_name}"
+            # 1. Get the user ID and log string
+            user_log_key = get_user_log_string(g.db_user.id, g.db_user.username)
+            safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+
+            # 2. Construct the key and filename
+            status_key = f"({user_log_key})_{loc_name}"
+            cache_filename = os.path.join(CACHE_DIR,
+                                          f"outlook_cache_{safe_log_key}_{loc_name.lower().replace(' ', '_')}.json")
+
+            # 3. Set status before starting
             cache_worker_status[status_key] = "starting"
             print(f"    -> Set status='starting' for {status_key}")
-            # --- END FIX ---
 
-            thread = threading.Thread(target=update_outlook_cache, args=(username, loc_name, user_cfg.copy(), sampling_interval)) # Pass correct interval
+            # 4. Call the thread with all 6 arguments
+            thread = threading.Thread(target=update_outlook_cache, args=(
+                g.db_user.id,  # 1. user_id
+                status_key,  # 2. status_key
+                cache_filename,  # 3. cache_filename
+                loc_name,  # 4. location_name
+                user_cfg.copy(),  # 5. user_config
+                sampling_interval  # 6. sampling_interval
+            ))
             thread.start()
+
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
 
