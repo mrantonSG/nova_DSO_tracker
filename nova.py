@@ -44,7 +44,7 @@ import platform
 from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from flask import session
+from flask import session, Response
 from flask import Flask, send_from_directory, has_request_context
 import hashlib
 
@@ -5283,6 +5283,103 @@ def _cleanup_orphan_projects(journal_data):
         journal_data['projects'] = cleaned_projects
 
     return journal_data
+
+
+@app.route('/journal/report_page/<int:session_id>')
+@login_required
+def show_journal_report_page(session_id):
+    """
+    Renders the HTML version of the report page.
+    """
+    db = get_db()
+    try:
+        # --- 1. Get Session Data ---
+        session = db.query(JournalSession).filter_by(id=session_id, user_id=g.db_user.id).one_or_none()
+        if not session:
+            flash("Session not found.", "error")
+            return redirect(url_for('index'))
+
+        session_dict = {c.name: getattr(session, c.name) for c in session.__table__.columns}
+
+        # --- 2. Get Related Data (FIXED: Fetch from DB) ---
+        # Try to find the object in the user's database first
+        obj_record = db.query(AstroObject).filter_by(user_id=g.db_user.id,
+                                                     object_name=session.object_name).one_or_none()
+
+        if obj_record:
+            # Use the database record (contains your custom Common Name, Type, etc.)
+            object_details = {
+                'Object': obj_record.object_name,
+                'Common Name': obj_record.common_name or obj_record.object_name,
+                'Type': obj_record.type or 'Deep Sky Object',
+                'Constellation': obj_record.constellation or 'N/A'
+            }
+        else:
+            # Fallback if object not in DB (e.g. deleted)
+            object_details = get_ra_dec(session.object_name) or {'Common Name': session.object_name,
+                                                                 'Object': session.object_name}
+
+        project_name = "Standalone Session"
+        if session.project_id:
+            project = db.query(Project).filter_by(id=session.project_id).one_or_none()
+            if project:
+                project_name = project.name
+
+        # --- 3. Prepare Template Variables ---
+        rating = session_dict.get('session_rating_subjective') or 0
+        rating_stars = "★" * rating + "☆" * (5 - rating)
+
+        integ_min = session_dict.get('calculated_integration_time_minutes') or 0
+        integ_str = f"{integ_min // 60}h {integ_min % 60:.0f}m" if integ_min > 0 else "N/A"
+
+        image_url = None
+        if session_dict.get('session_image_file'):
+            username = "default" if SINGLE_USER_MODE else current_user.username
+            image_url = url_for('get_uploaded_image', username=username, filename=session_dict['session_image_file'],
+                                _external=True)
+
+        logo_url = None
+        try:
+            logo_path = os.path.join(app.static_folder, 'nova_logo.png')
+            if os.path.exists(logo_path):
+                logo_url = url_for('static', filename='nova_logo.png', _external=True)
+        except Exception:
+            pass
+
+            # Sanitize notes
+        raw_journal_notes = session_dict.get('notes') or ""
+        if not raw_journal_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+            escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
+            sanitized_notes = escaped_text.replace("\n", "<br>")
+        else:
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+            SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
+            css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+            sanitized_notes = bleach.clean(raw_journal_notes, tags=SAFE_TAGS, attributes=SAFE_ATTRS,
+                                           css_sanitizer=css_sanitizer)
+        session_dict['notes'] = sanitized_notes
+
+        return render_template(
+            'journal_report.html',
+            session=session_dict,
+            object_details=object_details,
+            project_name=project_name,
+            rating_stars=rating_stars,
+            integ_str=integ_str,
+            image_url=image_url,
+            logo_url=logo_url,
+            today_date=datetime.now().strftime('%d.%m.%Y')
+        )
+
+    except Exception as e:
+        print(f"Error rendering report page: {e}")
+        traceback.print_exc()
+        return f"Error generating report: {e}", 500
+    finally:
+        if db:
+            db.close()
+
 
 @app.route('/journal/add_for_target/<path:object_name>', methods=['GET', 'POST'])
 @login_required

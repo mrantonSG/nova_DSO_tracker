@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Report</title>
+    <style>
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #333;
+        }
+        .a4-page {
+            width: 210mm;
+            background-color: #ffffff;
+            padding: 10mm 15mm; /* Tighter padding */
+            box-sizing: border-box;
+        }
+        h1, h2, h3, h4 { margin: 0; font-weight: 700; }
+        p { line-height: 1.4; margin: 0; }
+
+        /* Header */
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
+        .header-logo img { height: 35px; width: auto; }
+
+        /* Text Logo Fallback */
+        .header-logo-text { font-size: 22px; font-weight: 800; color: #000; letter-spacing: -0.5px; line-height: 1; }
+        .header-logo-text span { font-weight: 300; color: #555; margin-left: 4px; font-size: 20px;}
+
+        .header-title { text-align: right; font-size: 14px; color: #83b4c5; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .header-line { border: 0; border-top: 2px solid #83b4c5; margin-bottom: 10px; }
+
+        /* Target Info - VERY COMPACT */
+        .target-info { text-align: center; margin-bottom: 12px; }
+        .target-info h1 { font-size: 22px; color: #222; margin-bottom: 2px; }
+        .target-info h2 { font-size: 14px; color: #666; font-weight: 500; margin-bottom: 2px; }
+        .target-info p { font-size: 11px; color: #888; font-style: italic; }
+
+        /* Session Details Table */
+        .session-details-table { width: 100%; font-size: 12px; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 15px; }
+        .session-details-table tr:first-child { background-color: #f8f9fa; }
+        .session-details-table td { padding: 5px 8px; border-right: 1px solid #eee; }
+        .session-details-table td:last-child { border-right: none; }
+        .session-details-table strong { color: #555; text-transform: uppercase; font-size: 10px; font-weight: 700; }
+        .session-rating { font-size: 14px; color: #f39c12; letter-spacing: 2px; }
+
+        /* Main Columns */
+        .main-content-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .main-content-table .left-column { width: 58%; padding-right: 12px; vertical-align: top; }
+        .main-content-table .right-column { width: 42%; padding-left: 12px; vertical-align: top; }
+
+        /* Titles */
+        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #83b4c5; border-bottom: 1px solid #eee; padding-bottom: 2px; margin-bottom: 6px; margin-top: 12px; }
+        .section-title:first-child { margin-top: 0; }
+
+        /* Image & Notes */
+        .session-image-container { border: 1px solid #ccc; border-radius: 3px; padding: 3px; background-color: #fff; }
+        .session-image-container img { width: 100%; display: block; border-radius: 2px; }
+        .session-image-caption { text-align: center; font-style: italic; color: #777; margin-top: 4px; font-size: 10px; }
+
+        .session-notes-container { border: 1px solid #eee; padding: 8px; border-radius: 3px; min-height: 150px; font-size: 12px; background: #fff; color: #333; }
+        .session-notes-container p { margin-bottom: 6px; }
+        .session-notes-container ul { padding-left: 15px; margin: 4px 0; }
+
+        /* Right Column Boxes */
+        .info-box { border: 1px solid #eee; padding: 6px 10px; border-radius: 3px; font-size: 11px; line-height: 1.5; margin-bottom: 10px; color: #333; }
+        .info-box.stats { background: #f8f9fa; }
+        .info-box strong { color: #444; width: 90px; display: inline-block; font-weight: 600; }
+
+        /* Exposures Table */
+        .exposures-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+        .exposures-table th { background-color: #f4f4f4; padding: 4px 6px; border: 1px solid #ddd; text-align: left; font-weight: 600; }
+        .exposures-table td { padding: 4px 6px; border: 1px solid #ddd; }
+        .exposures-table th:nth-child(2), .exposures-table td:nth-child(2), .exposures-table th:nth-child(3), .exposures-table td:nth-child(3) { text-align: right; width: 40px; }
+
+        .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #eee; width: 100%; text-align: center; color: #aaa; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="a4-page" id="report-content">
+        <table class="header-table">
+            <tr>
+                <td class="header-logo">
+                    {% if logo_url %}
+                        <img src="{{ logo_url }}" alt="Nova Logo">
+                    {% else %}
+                        <div class="header-logo-text">Nova<span>DSO Tracker</span></div>
+                    {% endif %}
+                </td>
+                <td class="header-title">SESSION REPORT</td>
+            </tr>
+        </table>
+        <hr class="header-line">
+
+        <div class="target-info">
+            <h1>{{ object_details['Common Name'] }}</h1>
+            {% if object_details['Common Name'] != object_details['Object'] %}
+                <h2>{{ object_details['Object'] }}</h2>
+            {% endif %}
+            <p>{{ object_details.Type }} in {{ object_details.Constellation }}</p>
+        </div>
+
+        <table class="session-details-table">
+            <tr>
+                <td><strong>Date</strong></td><td>{{ session.date_utc | date_eu }}</td>
+                <td><strong>Location</strong></td><td>{{ session.location_name | default('N/A') }}</td>
+            </tr>
+            <tr>
+                <td><strong>Project</strong></td><td>{{ project_name | default('N/A') }}</td>
+                <td><strong>Rating</strong></td><td class="session-rating">{{ rating_stars }}</td>
+            </tr>
+        </table>
+
+        <table class="main-content-table">
+            <tr>
+                <td class="left-column">
+                    <h4 class="section-title">Session Image</h4>
+                    <div class="session-image-container">
+                        {% if image_url %}
+                            <img src="{{ image_url }}">
+                        {% else %}
+                            <div style="width: 100%; height: 200px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 11px;">[No Image]</div>
+                        {% endif %}
+                        <p class="session-image-caption">Total Integration: {{ integ_str }}</p>
+                    </div>
+
+                    <h4 class="section-title">Notes</h4>
+                    <div class="session-notes-container">
+                        {{ session.notes | safe | default('No notes.') }}
+                    </div>
+                </td>
+
+                <td class="right-column">
+                    <h4 class="section-title">Statistics</h4>
+                    <div class="info-box stats">
+                        <strong>Integration:</strong> {{ integ_str }}<br>
+                        <strong>Seeing:</strong> {{ session.seeing_observed_fwhm | default('-') }}{% if session.seeing_observed_fwhm %}"{% endif %}<br>
+                        <strong>Guiding:</strong> {{ session.guiding_rms_avg_arcsec | default('-') }}{% if session.guiding_rms_avg_arcsec %}"{% endif %}<br>
+                        <strong>Sky Quality:</strong> {{ session.sky_sqm_observed | default('-') }}
+                    </div>
+
+                    <h4 class="section-title">Conditions</h4>
+                    <div class="info-box">
+                        <strong>Moon:</strong> {{ session.moon_illumination_session | default('-') }}% / {{ session.moon_angular_separation_session | default('-') }}°<br>
+                        <strong>Transparency:</strong> {{ session.transparency_observed_scale | default('-') }}<br>
+                        <strong>Weather:</strong> {{ session.weather_notes | default('-') }}
+                    </div>
+
+                    <h4 class="section-title">Equipment</h4>
+                    <div class="info-box">
+                        <strong>Rig:</strong> {{ session.rig_name_snapshot | default(session.telescope_setup_notes, True) | default('-') }}<br>
+                        {% if session.rig_name_snapshot %}
+                            <strong>Specs:</strong> {{ session.rig_efl_snapshot | round(0) if session.rig_efl_snapshot is number else '-' }}mm f/{{ session.rig_fr_snapshot | round(1) if session.rig_fr_snapshot is number else '-' }}<br>
+                        {% endif %}
+                        <strong>Camera:</strong> {{ session.gain_setting | default('-') }} / {{ session.offset_setting | default('-') }} @ {{ session.camera_temp_actual_avg_c | default('?') }}°C<br>
+                        <strong>Guiding:</strong> {{ session.guiding_equipment | default('-') }}
+                    </div>
+
+                    <h4 class="section-title">Exposures</h4>
+                    <table class="exposures-table">
+                        <thead><tr><th>Filter</th><th>Subs</th><th>Time</th></tr></thead>
+                        <tbody>
+                            {% if session.number_of_subs_light %}
+                            <tr><td>{{ session.filter_used_session | default('Broadband') }}</td><td>{{ session.number_of_subs_light }}</td><td>{{ session.exposure_time_per_sub_sec }}s</td></tr>
+                            {% endif %}
+                            {% set mono_filters = [('L', 'L'), ('R', 'R'), ('G', 'G'), ('B', 'B'), ('Ha', 'Ha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
+                            {% for key, name in mono_filters %}
+                                {% if session['filter_' ~ key ~ '_subs'] %}
+                                <tr><td>{{ name }}</td><td>{{ session['filter_' + key + '_subs'] }}</td><td>{{ session['filter_' + key + '_exposure_sec'] }}s</td></tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <div class="footer">Report generated by Nova DSO Tracker | {{ today_date }} | Page 1 of 1</div>
+    </div>
+</body>
+</html>
