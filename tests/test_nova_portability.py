@@ -2,6 +2,7 @@ import pytest
 import sys, os
 import yaml
 import io
+import json  # <-- IMPORT JSON
 import zipfile
 from datetime import date
 from unittest.mock import MagicMock
@@ -24,8 +25,10 @@ from nova import (
     import_user_from_yaml,
     HorizonPoint,
     _migrate_journal,
-    _migrate_objects
+    _migrate_objects,
+    SavedView  # <-- IMPORT THE NEW MODEL
 )
+
 
 def test_download_config_yaml(client):
     """
@@ -36,6 +39,16 @@ def test_download_config_yaml(client):
     db = get_db()
     user = db.query(DbUser).filter_by(username="default").one()
 
+    # --- ADD A SAVED VIEW TO THE DB ---
+    view_settings = {"dso_sortColumnKey": "Magnitude", "dso_sortOrder": "asc"}
+    saved_view = SavedView(
+        user_id=user.id,
+        name="Mag Sort View",
+        settings_json=json.dumps(view_settings)
+    )
+    db.add(saved_view)
+    db.commit()
+    # --- END OF ADD ---
 
     # 2. ACT
     response = client.get('/download_config')
@@ -57,6 +70,13 @@ def test_download_config_yaml(client):
     assert len(config_data['objects']) == 1
     assert config_data['objects'][0]['Object'] == "M42"
     assert config_data['objects'][0]['Common Name'] == "Orion Nebula"
+
+    # --- ADD ASSERTIONS FOR SAVED VIEWS ---
+    assert 'saved_views' in config_data
+    assert len(config_data['saved_views']) == 1
+    assert config_data['saved_views'][0]['name'] == "Mag Sort View"
+    assert config_data['saved_views'][0]['settings']['dso_sortOrder'] == "asc"
+    # --- END OF ADD ---
 
 
 def test_import_config_yaml(client):
@@ -81,6 +101,14 @@ def test_import_config_yaml(client):
           Common Name: Andromeda
           RA: 0.75
           DEC: 41.2
+
+    # --- ADD SAVED VIEWS TO THE TEST YAML ---
+    saved_views:
+        - name: Imported View
+          settings:
+              activeTab: "properties"
+              dso_sortKey: "Magnitude"
+    # --- END OF ADD ---
     """
     # Convert the string to a file-like object
     mock_file = io.BytesIO(new_config_yaml.encode('utf-8'))
@@ -115,6 +143,14 @@ def test_import_config_yaml(client):
     new_loc = db.query(Location).filter_by(user_id=user.id, name="New Home").one_or_none()
     assert new_loc is not None
     assert new_loc.lat == 40.7
+
+    # --- ADD ASSERTIONS FOR SAVED VIEWS ---
+    new_view = db.query(SavedView).filter_by(user_id=user.id, name="Imported View").one_or_none()
+    assert new_view is not None
+    view_settings = json.loads(new_view.settings_json)
+    assert view_settings['activeTab'] == "properties"
+    assert view_settings['dso_sortKey'] == "Magnitude"
+    # --- END OF ADD ---
 
 
 def test_import_rig_config(client):
