@@ -18,6 +18,7 @@
         display: flex;
         margin-bottom: 15px;
         border-bottom: 2px solid #ccc;
+        align-items: center; /* This vertically centers all items */
     }
 
     .tab-button {
@@ -218,11 +219,8 @@
       margin-bottom: 2px;
     }
     #location-select {
-      height: 35px;
-      font-size: 16px;
-      padding: 5px;
-      box-sizing: border-box;
-      font-family: 'Roboto', sans-serif;
+        /* This ID is now just for width */
+        min-width: 150px;
     }
 
     .info-values p { margin: 0; font-size: 16px; }
@@ -336,8 +334,63 @@
     .message { color: #155724; font-weight: bold; }
     .error { color: #dc3545; font-weight: bold; }
     #tab-message-container {
-      margin-left: auto;
+      margin-left: 20px; /* Give it some space from the new view buttons */
       align-self: center;
+    }
+
+    /* --- ADDED FOR SAVED VIEWS --- */
+    #saved-views-container {
+        margin-left: 20px; /* Space from tabs */
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    #saved-views-container button {
+        padding: 4px 10px;    /* Match user-info button */
+        font-size: 13px;
+        margin-left: 0px;
+        flex-shrink: 0;       /* Prevent buttons from shrinking */
+        background: #83b4c5;  /* Match user-info button */
+        color: white;
+        border: none;
+        border-radius: 4px;   /* Match user-info button */
+        cursor: pointer;
+    }
+    #saved-views-container button:hover {
+        background: #6795a4;  /* Match user-info button hover */
+    }
+    #delete-view-btn {
+        background-color: #a1b0b4; /* Match remove-filters-btn */
+        display: none; /* Hide by default */
+    }
+    #delete-view-btn:hover {
+        background-color: #849398 !important;
+    }
+    #saved-views-dropdown {
+        /* This ID is now just for width */
+        width: 250px;
+    }
+    .styled-select {
+        height: 35px;
+        font-size: 16px;
+        padding: 5px;
+        padding-right: 30px; /* Make space for custom arrow */
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+
+        /* Appearance from screenshot */
+        background-color: #e9e9e9;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+
+        /* Custom arrow */
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23666666%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4l128-128c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%27%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 10px;
     }
 
   </style>
@@ -348,6 +401,11 @@
     // ========================================================================
     let activeTab = localStorage.getItem('activeTab') || 'position';
     let outlookDataLoaded = false;
+
+    // --- ADDED FOR SAVED VIEWS ---
+    let savedViewsDropdown, saveViewBtn, deleteViewBtn;
+    let allSavedViews = {}; // Global cache for view settings
+    // --- END OF ADD ---
 
     let allOutlookOpportunities = []; // To store the full list of results
     let currentOutlookSort = { columnKey: 'date', ascending: true }; // Default sort
@@ -495,9 +553,152 @@
             }
         }
 
+        // --- ADDED: Reset saved views dropdown ---
+        if (savedViewsDropdown) savedViewsDropdown.value = '';
+        if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+        // --- END OF ADD ---
+
         // Refresh the tables to reflect the cleared filters
         filterTable();
         filterJournalTable();
+    }
+
+    // ========================================================================
+    // Saved Views Functions (NEW - DB Version)
+    // ========================================================================
+
+    async function populateSavedViewsDropdown(selectedViewName = null) {
+        if (!savedViewsDropdown) return;
+
+        try {
+            const response = await fetch('/api/get_saved_views');
+            if (!response.ok) throw new Error('Failed to fetch views');
+            allSavedViews = await response.json(); // Store in global cache
+
+            savedViewsDropdown.innerHTML = '<option value="">-- Saved Views --</option>';
+            const viewNames = Object.keys(allSavedViews).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+            viewNames.forEach(viewName => {
+                const option = document.createElement('option');
+                option.value = viewName;
+                option.textContent = viewName;
+                savedViewsDropdown.appendChild(option);
+            });
+
+            if (selectedViewName && allSavedViews[selectedViewName]) {
+                savedViewsDropdown.value = selectedViewName;
+                if (deleteViewBtn) deleteViewBtn.style.display = 'inline-block';
+            } else {
+                if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+            }
+        } catch (error) {
+            console.error("Error populating saved views:", error);
+            savedViewsDropdown.innerHTML = '<option value="">Error loading views</option>';
+        }
+    }
+
+    function getCurrentSettingsSnapshot() {
+        const settings = {};
+        // Get DSO filters
+        for (const key in columnConfig) {
+            if (columnConfig[key].filterable) {
+                settings['dso_filter_col_key_' + key] = localStorage.getItem('dso_filter_col_key_' + key) || '';
+            }
+        }
+        // Get Journal filters
+        for (const key in journalColumnConfig) {
+            if (journalColumnConfig[key].filterable) {
+                settings['journal_filter_col_key_' + key] = localStorage.getItem('journal_filter_col_key_' + key) || '';
+            }
+        }
+        // Get DSO sort
+        settings['dso_sortColumnKey'] = localStorage.getItem('dso_sortColumnKey') || 'Altitude Current';
+        settings['dso_sortOrder'] = localStorage.getItem('dso_sortOrder') || 'desc';
+        // Get Journal sort
+        settings['journal_sortColumnKey'] = localStorage.getItem('journal_sortColumnKey') || 'session_date';
+        settings['journal_sortOrder'] = localStorage.getItem('journal_sortOrder') || 'desc';
+        // Get active tab
+        settings['activeTab'] = localStorage.getItem('activeTab') || 'position';
+        return settings;
+    }
+
+    function loadView(viewName) {
+        const viewData = allSavedViews[viewName];
+        if (!viewData || !viewData.settings) {
+            alert('Error: Could not load view data from cache.');
+            return;
+        }
+        // 1. Clear all existing filters from inputs and localStorage
+        clearAllFilters();
+
+        // 2. Apply all settings from the snapshot to localStorage
+        for (const key in viewData.settings) {
+            localStorage.setItem(key, viewData.settings[key]);
+        }
+
+        // 3. Store the name to be selected on reload
+        sessionStorage.setItem('nova_view_to_apply', viewName);
+
+        // 4. Reload the page to apply all settings from scratch
+        window.location.reload();
+    }
+
+    async function handleSaveView() {
+        const viewName = prompt("Enter a name for this view:", "");
+        if (!viewName || viewName.trim() === "") return;
+
+        const currentSettings = getCurrentSettingsSnapshot();
+
+        try {
+            const response = await fetch('/api/save_saved_view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: viewName,
+                    settings: currentSettings
+                })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Failed to save view');
+            }
+
+            // Repopulate the dropdown, which will fetch the new list and select the new view
+            await populateSavedViewsDropdown(viewName);
+
+        } catch (error) {
+            console.error("Error saving view:", error);
+            alert(`Error saving view: ${error.message}`);
+        }
+    }
+
+    async function handleDeleteView() {
+        const viewName = savedViewsDropdown.value;
+        if (!viewName) return;
+
+        if (!confirm(`Are you sure you want to delete the view "${viewName}"?`)) return;
+
+        try {
+            const response = await fetch('/api/delete_saved_view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: viewName })
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.message || 'Failed to delete view');
+            }
+
+            // Repopulate the dropdown (will reset to default)
+            await populateSavedViewsDropdown();
+            if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+
+        } catch (error) {
+            console.error("Error deleting view:", error);
+            alert(`Error deleting view: ${error.message}`);
+        }
     }
 
     // ========================================================================
@@ -1319,6 +1520,17 @@ function populateJournalTable() {
     // window.onload Event Handler
     // ========================================================================
     window.onload = () => {
+      // --- ADDED FOR SAVED VIEWS ---
+      // Check if we are reloading to apply a view
+      let viewToApplyOnLoad = sessionStorage.getItem('nova_view_to_apply');
+      if (viewToApplyOnLoad) {
+          sessionStorage.removeItem('nova_view_to_apply');
+          // Settings are already in localStorage from loadView().
+          // The rest of this function will apply them.
+          // We just need to make sure the dropdown selects it at the end.
+      }
+      // --- END OF ADD ---
+
       // --- START: New Timer Logic ---
       let timeToNextUpdate = 60;
       const updateIntervalInSeconds = 60;
@@ -1356,9 +1568,19 @@ function populateJournalTable() {
       const removeFiltersBtn = document.getElementById('remove-filters-btn');
       if (removeFiltersBtn) { removeFiltersBtn.addEventListener('click', clearAllFilters); }
 
+      // --- ADDED FOR SAVED VIEWS ---
+      savedViewsDropdown = document.getElementById('saved-views-dropdown');
+      saveViewBtn = document.getElementById('save-view-btn');
+      deleteViewBtn = document.getElementById('delete-view-btn');
+      // --- END OF ADD ---
+
       fetchLocations();
       fetchSunEvents();
       fetchData();
+
+      // --- ADD THIS LINE: Fetch saved views ---
+      populateSavedViewsDropdown(viewToApplyOnLoad);
+      // --- END OF ADD ---
 
       updateTabDisplay();
 
@@ -1404,12 +1626,33 @@ function populateJournalTable() {
           const columnKey = thParent ? thParent.dataset.outlookColumnKey : null;
           if (columnKey && outlookColumnConfig[columnKey] && outlookColumnConfig[columnKey].filterable) { input.addEventListener("keyup", filterOutlookTable); }
       });
+
+      // --- ADDED FOR SAVED VIEWS ---
+      if (saveViewBtn) saveViewBtn.addEventListener('click', handleSaveView);
+      if (deleteViewBtn) deleteViewBtn.addEventListener('click', handleDeleteView);
+      if (savedViewsDropdown) savedViewsDropdown.addEventListener('change', () => {
+          const viewName = savedViewsDropdown.value;
+          if (!viewName) {
+              if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+              return;
+            }
+            // Show delete button immediately
+            if (deleteViewBtn) deleteViewBtn.style.display = 'inline-block';
+            // Trigger the load
+            loadView(viewName);
+      });
+      // --- END OF ADD ---
+
       for (const key in columnConfig) {
         if (columnConfig[key].filterable) { const val = localStorage.getItem("dso_filter_col_key_" + key); const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
       }
       for (const key in journalColumnConfig) {
         if (journalColumnConfig[key].filterable) { const val = localStorage.getItem("journal_filter_col_key_" + key); const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
       }
+
+       // --- (MOVED) Populate the dropdown. If viewToApplyOnLoad has a value, it will be selected. ---
+       // This was moved to earlier in the function, right after fetchData()
+
        filterTable();
        filterJournalTable();
        updateRemoveFiltersButtonVisibility();
@@ -1586,7 +1829,7 @@ function populateJournalTable() {
             <p style="margin:0; display:flex; align-items:center; gap: 5px;">
                 <small>Location:</small>
                 <span>
-                  <select id="location-select" onchange="setLocation()">
+                  <select id="location-select" class="styled-select" onchange="setLocation()">
                     </select>
                 </span>
             </p>
@@ -1608,6 +1851,13 @@ function populateJournalTable() {
     <button class="tab-button" data-tab="outlook">Outlook</button>
     <button class="tab-button" data-tab="journal">Journal</button>
 
+    <div id="saved-views-container">
+        <select id="saved-views-dropdown" class="styled-select">
+            <option value="">-- Saved Views --</option>
+        </select>
+        <button id="save-view-btn" title="Save current filters and sorting">Save</button>
+        <button id="delete-view-btn" title="Delete selected view">Delete</button>
+    </div>
     <div id="tab-message-container">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

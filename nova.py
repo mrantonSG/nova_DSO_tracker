@@ -292,6 +292,7 @@ class DbUser(Base):
     locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")
     objects = relationship("AstroObject", foreign_keys="AstroObject.user_id", back_populates="user",
                            cascade="all, delete-orphan")
+    saved_views = relationship("SavedView", back_populates="user", cascade="all, delete-orphan")
     components = relationship("Component", foreign_keys="Component.user_id", back_populates="user",
                               cascade="all, delete-orphan")
     rigs = relationship("Rig", back_populates="user", cascade="all, delete-orphan")
@@ -313,7 +314,14 @@ class Project(Base):
 
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_project_name'),)
 
-
+class SavedView(Base):
+    __tablename__ = 'saved_views'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    name = Column(String(256), nullable=False)
+    settings_json = Column(Text, nullable=False)
+    user = relationship("DbUser", back_populates="saved_views")
+    __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_view_name'),)
 
 class Location(Base):
     __tablename__ = 'locations'
@@ -1594,6 +1602,43 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 
         except Exception as e:
             print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
+
+
+def _migrate_saved_views(db, user: DbUser, config: dict):
+    """
+    Idempotent import of saved views. Deletes all existing views and replaces them.
+    """
+    # 1. Delete all existing views for this user
+    db.query(SavedView).filter_by(user_id=user.id).delete()
+    db.flush()
+
+    # 2. Add new views from the config
+    views_list = (config or {}).get("saved_views", []) or []
+    if not isinstance(views_list, list):
+        print("[MIGRATION] 'saved_views' is not a list, skipping.")
+        return
+
+    for view_entry in views_list:
+        try:
+            name = view_entry.get("name")
+            settings = view_entry.get("settings")
+            if not name or not settings:
+                print(f"[MIGRATION] Skipping invalid saved view (missing name or settings): {view_entry}")
+                continue
+
+            # Ensure settings are stored as a JSON string
+            settings_str = json.dumps(settings)
+
+            new_view = SavedView(
+                user_id=user.id,
+                name=name,
+                settings_json=settings_str
+            )
+            db.add(new_view)
+        except Exception as e:
+            print(f"[MIGRATION] Could not process saved view '{view_entry.get('name')}'. Error: {e}")
+
+    db.flush()
 
 
 def _migrate_journal(db, user: DbUser, journal_yaml: dict):
@@ -5384,7 +5429,13 @@ def download_config():
         db_objects = db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
         config_doc["objects"] = [o.to_dict() for o in db_objects]
 
-        # --- 4. Create in-memory file ---
+        # --- 4. ADD THIS BLOCK: Load Saved Views ---
+        db_views = db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
+        config_doc["saved_views"] = [
+            {"name": v.name, "settings": json.loads(v.settings_json)} for v in db_views
+        ]
+
+        # --- 5. Create in-memory file ---
         yaml_string = yaml.dump(config_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
         str_io = io.BytesIO(yaml_string.encode('utf-8'))
 
@@ -5618,12 +5669,18 @@ def import_config():
             # 2. Delete existing objects
             db.query(AstroObject).filter_by(user_id=user.id).delete()
 
-            # 3. Flush the deletions to the session
+            # 3. Delete existing saved views ---
+            db.query(SavedView).filter_by(user_id=user.id).delete()
+
+            # 4. Flush the deletions to the session
             db.flush()
 
             _migrate_locations(db, user, new_config)
             _migrate_objects(db, user, new_config)
             _migrate_ui_prefs(db, user, new_config)
+
+            # 5. Import the saved views ---
+            _migrate_saved_views(db, user, new_config)
 
             db.commit()
             flash("Config imported and synced to database successfully!", "success")
@@ -8151,6 +8208,91 @@ def import_journal_photos():
         flash(f"An unexpected error occurred during import: {e}", "error")
 
     return redirect(url_for('config_form'))
+
+
+@app.route('/api/get_saved_views')
+@login_required
+def get_saved_views():
+    db = get_db()
+    try:
+        views = db.query(SavedView).filter_by(user_id=g.db_user.id).order_by(SavedView.name).all()
+        views_dict = {
+            v.name: {
+                "id": v.id,
+                "name": v.name,
+                "settings": json.loads(v.settings_json)
+            } for v in views
+        }
+        return jsonify(views_dict)
+    except Exception as e:
+        print(f"Error fetching saved views: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()
+
+
+@app.route('/api/save_saved_view', methods=['POST'])
+@login_required
+def save_saved_view():
+    db = get_db()
+    try:
+        data = request.get_json()
+        view_name = data.get('name')
+        settings = data.get('settings')
+        if not view_name or not settings:
+            return jsonify({"status": "error", "message": "Missing view name or settings."}), 400
+
+        settings_str = json.dumps(settings)
+
+        # Check for existing view by name (upsert logic)
+        existing_view = db.query(SavedView).filter_by(user_id=g.db_user.id, name=view_name).one_or_none()
+
+        if existing_view:
+            existing_view.settings_json = settings_str
+            message = "View updated"
+        else:
+            new_view = SavedView(
+                user_id=g.db_user.id,
+                name=view_name,
+                settings_json=settings_str
+            )
+            db.add(new_view)
+            message = "View saved"
+
+        db.commit()
+        return jsonify({"status": "success", "message": message})
+    except Exception as e:
+        db.rollback()
+        print(f"Error saving view: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@app.route('/api/delete_saved_view', methods=['POST'])
+@login_required
+def delete_saved_view():
+    db = get_db()
+    try:
+        data = request.get_json()
+        view_name = data.get('name')
+        if not view_name:
+            return jsonify({"status": "error", "message": "Missing view name."}), 400
+
+        view_to_delete = db.query(SavedView).filter_by(user_id=g.db_user.id, name=view_name).one_or_none()
+
+        if view_to_delete:
+            db.delete(view_to_delete)
+            db.commit()
+            return jsonify({"status": "success", "message": "View deleted."})
+        else:
+            return jsonify({"status": "error", "message": "View not found."}), 404
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting view: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
 
 
 @app.route('/import_rig_config', methods=['POST'])
