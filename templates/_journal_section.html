@@ -1,10 +1,10 @@
 <style>
     .journal-container { display: flex; gap: 25px; align-items: flex-start; }
-    .session-list-column { flex: 0 0 450px; max-height: 750px; overflow-y: auto; }
-    /* REVERT: Allow detail column to scroll if needed, set max height */
+    .session-list-column { flex: 0 0 450px; max-height: 950px; overflow-y: auto; }
+    /* FIX: Increase max-height for detail column */
     .session-detail-column {
         flex: 1 1 auto;
-        max-height: 750px;
+        max-height: 950px; /* Increased from 750px */
         overflow-y: auto;
         padding-right: 15px;
     }
@@ -42,8 +42,8 @@
     .report-iframe {
         width: 100%;
         max-width: 210mm;
-        /* FIX: Increase height dramatically to suppress internal scrollbar */
-        height: 1200px;
+        /* FIX: Increase height to match column height increase */
+        height: 1400px; /* Increased from 1200px */
         border: none;
         background-color: white;
         box-shadow: 0 0 10px rgba(0,0,0,0.3);
@@ -116,7 +116,7 @@
                             onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}&tab=journal"'>
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:#555;">{{ session_item.location_name | default("-") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
-                            <td class="col-rating">{{ session_item.session_rating_subjective | default('-') }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
+                            <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
                         </tr>
                     {% endfor %}
                 {% endfor %}
