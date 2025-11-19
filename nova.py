@@ -5211,7 +5211,29 @@ def journal_edit(session_id):
 
             session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                         1) if total_seconds > 0 else None
-            # ... (file handling logic) ...
+            # Handle "Delete Image" Checkbox
+            if request.form.get('delete_session_image') == '1':
+                old_image = session_to_edit.session_image_file
+                if old_image:
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    old_image_path = os.path.join(user_upload_dir, old_image)
+                    if os.path.exists(old_image_path):
+                        try:
+                            os.remove(old_image_path)
+                        except Exception as e:
+                            print(f"Error deleting file: {e}")
+                    session_to_edit.session_image_file = None
+
+            # Handle New Image Upload (Your existing code for file replacement)
+            if 'session_image' in request.files:
+                file = request.files['session_image']
+                if file and file.filename != '' and allowed_file(file.filename):
+                    file_extension = file.filename.rsplit('.', 1)[1].lower()
+                    new_filename = f"{session_to_edit.id}.{file_extension}"
+                    user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+                    os.makedirs(user_upload_dir, exist_ok=True)
+                    file.save(os.path.join(user_upload_dir, new_filename))
+                    session_to_edit.session_image_file = new_filename
 
             db.commit()
             flash("Journal entry updated successfully!", "success")
