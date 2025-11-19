@@ -667,6 +667,126 @@ def test_update_project_active_triggers_outlook_worker_correctly(client, monkeyp
 
     # Arg 6: sampling_interval (should be an integer)
     assert isinstance(call_args_tuple[5], int)
+
+
+# --- NEW TEST: Journal Add with Full Rig Snapshot ---
+def test_add_journal_session_with_full_rig_snapshot(client, db_session):
+    """
+    Tests that /journal/add correctly snapshots all calculated metrics AND
+    the new component names when a rig is selected.
+    """
+    # 1. ARRANGE
+    user = db_session.query(DbUser).filter_by(username="default").one()
+
+    # Create Components
+    scope = Component(user_id=user.id, kind="telescope", name="EdgeHD 8", aperture_mm=203, focal_length_mm=2030)
+    reducer = Component(user_id=user.id, kind="reducer_extender", name="Reducer 0.7x", factor=0.7)
+    cam = Component(user_id=user.id, kind="camera", name="ASI 533", pixel_size_um=3.76, sensor_width_mm=11.31,
+                    sensor_height_mm=11.31)
+    db_session.add_all([scope, reducer, cam])
+    db_session.commit()
+
+    # Create Rig (EFL: 2030*0.7 = 1421.0, f/ratio: 1421/203 = 7.0)
+    rig = Rig(user_id=user.id, rig_name="EHD8 + 533", telescope_id=scope.id, reducer_extender_id=reducer.id,
+              camera_id=cam.id)
+    db_session.add(rig)
+    db_session.commit()
+
+    # Payload
+    payload = {
+        "session_date": "2025-01-01",
+        "target_object_id": "M42",
+        "exposure_time_per_sub_sec": 300,
+        "number_of_subs_light": 10,
+        "telescope_setup_notes": "Manually entered description",
+        "rig_id_snapshot": rig.id,  # <-- CRITICAL RIG ID
+        "gain_setting": 100,
+        "offset_setting": 50,
+    }
+
+    # 2. ACT
+    response = client.post('/journal/add', data=payload, follow_redirects=True)
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    assert b"New journal entry added successfully!" in response.data
+
+    new_session = db_session.query(JournalSession).filter_by(object_name="M42").order_by(
+        JournalSession.id.desc()).first()
+    assert new_session is not None
+
+    # A. Check Calculated Metrics (from Rig Snapshot)
+    assert new_session.rig_efl_snapshot == 1421.0
+    assert new_session.rig_fr_snapshot == pytest.approx(7.0)
+
+    # B. Check Component Names (NEWLY ADDED LOGIC)
+    assert new_session.telescope_name_snapshot == "EdgeHD 8"
+    assert new_session.reducer_name_snapshot == "Reducer 0.7x"
+    assert new_session.camera_name_snapshot == "ASI 533"
+
+    # C. Check Redundant Notes (should still be saved)
+    assert new_session.telescope_setup_notes == "Manually entered description"
+
+
+# --- NEW TEST: Journal Edit to Fill Empty Snapshot Fields ---
+def test_journal_edit_fills_missing_snapshots(client, db_session):
+    """
+    Tests that calling journal/edit on an OLD entry without snapshot data
+    will calculate and fill the new component name and metric fields.
+    """
+    # 1. ARRANGE
+    user = db_session.query(DbUser).filter_by(username="default").one()
+
+    # Create the old session (without any snapshot data)
+    old_session = JournalSession(
+        user_id=user.id,
+        date_utc=date(2023, 5, 5),
+        object_name="M31",
+        # NOTE: All snapshot fields are NULL/None
+    )
+    db_session.add(old_session)
+
+    # Create a Rig (must exist in DB for lookup)
+    scope = Component(user_id=user.id, kind="telescope", name="Apo 100mm", aperture_mm=100, focal_length_mm=700)
+    cam = Component(user_id=user.id, kind="camera", name="ASI 183", pixel_size_um=2.4)
+    db_session.add_all([scope, cam])
+    db_session.commit()
+
+    rig = Rig(user_id=user.id, rig_name="Apo-183", telescope_id=scope.id, camera_id=cam.id)
+    db_session.add(rig)
+    db_session.commit()
+
+    session_id = old_session.id
+
+    # Payload for the Edit (only providing the Rig ID and a new note)
+    payload = {
+        "session_id": session_id,
+        "session_date": "2023-05-05",  # Required date
+        "target_object_id": "M31",
+        "telescope_setup_notes": "Apo 100mm f/7",
+        "rig_id_snapshot": rig.id,  # <--- Trigger the snapshot
+        # Provide minimal required fields for the form to submit
+        "exposure_time_per_sub_sec": 100,
+        "number_of_subs_light": 5,
+    }
+
+    # 2. ACT
+    response = client.post(f'/journal/edit/{session_id}', data=payload, follow_redirects=True)
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    assert b"Journal entry updated successfully!" in response.data
+
+    updated_session = db_session.get(JournalSession, session_id)
+
+    # A. Check Calculated Metrics (from Rig Snapshot)
+    assert updated_session.rig_efl_snapshot == 700.0
+    assert updated_session.rig_fr_snapshot == 7.0
+
+    # B. Check Component Names (NEWLY ADDED LOGIC)
+    assert updated_session.telescope_name_snapshot == "Apo 100mm"
+    assert updated_session.reducer_name_snapshot is None  # No reducer selected
+    assert updated_session.camera_name_snapshot == "ASI 183"
 # --- Your other existing tests/stubs from test_nova_api.py ---
 # ...
 def test_moon_api_bug_with_no_ra(client):
