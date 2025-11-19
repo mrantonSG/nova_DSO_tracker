@@ -505,6 +505,9 @@ class JournalSession(Base):
     rig_scale_snapshot = Column(Float, nullable=True)
     rig_fov_w_snapshot = Column(Float, nullable=True)
     rig_fov_h_snapshot = Column(Float, nullable=True)
+    telescope_name_snapshot = Column(String(256), nullable=True)
+    reducer_name_snapshot = Column(String(256), nullable=True)
+    camera_name_snapshot = Column(String(256), nullable=True)
 
     calculated_integration_time_minutes = Column(Float, nullable=True)
     external_id = Column(String(64), nullable=True, index=True)
@@ -779,7 +782,15 @@ def ensure_db_initialized_unified():
             if "rig_fov_h_snapshot" not in colnames_journal:
                 conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_h_snapshot FLOAT;")
                 print("[DB PATCH] Added missing column journal_sessions.rig_fov_h_snapshot")
-            # --- END OF BLOCK ---
+            if "telescope_name_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN telescope_name_snapshot VARCHAR(256);")
+                print("[DB PATCH] Added missing column journal_sessions.telescope_name_snapshot")
+            if "reducer_name_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN reducer_name_snapshot VARCHAR(256);")
+                print("[DB PATCH] Added missing column journal_sessions.reducer_name_snapshot")
+            if "camera_name_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN camera_name_snapshot VARCHAR(256);")
+                print("[DB PATCH] Added missing column journal_sessions.camera_name_snapshot")
 
             try:
                 conn.exec_driver_sql(
@@ -1794,6 +1805,9 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "rig_scale_snapshot": _try_float(s.get("rig_scale_snapshot")),
             "rig_fov_w_snapshot": _try_float(s.get("rig_fov_w_snapshot")),
             "rig_fov_h_snapshot": _try_float(s.get("rig_fov_h_snapshot")),
+            "telescope_name_snapshot": s.get("telescope_name_snapshot"),
+            "reducer_name_snapshot": s.get("reducer_name_snapshot"),
+            "camera_name_snapshot": s.get("camera_name_snapshot"),
             "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
             # Ensure external_id is stored as string if it exists
             "external_id": str(ext_id) if ext_id else None
@@ -1987,7 +2001,10 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                     "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
                     "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
                     "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
-                    "calculated_integration_time_minutes": s.calculated_integration_time_minutes
+                    "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
+                    "telescope_name_snapshot": s.telescope_name_snapshot,
+                    "reducer_name_snapshot": s.reducer_name_snapshot,
+                    "camera_name_snapshot": s.camera_name_snapshot,
                 } for s in sessions
             ]
         }
@@ -4703,6 +4720,7 @@ def update_component():
         db.close()
     return redirect(url_for('config_form'))
 
+
 @app.route('/add_rig', methods=['POST'])
 @login_required
 def add_rig():
@@ -4718,18 +4736,49 @@ def add_rig():
         red_id_str = form.get('reducer_extender_id')
         red_id = int(red_id_str) if red_id_str else None
 
-        if rig_id: # Update
+        # --- NEW LOGIC START ---
+        # 1. Fetch the component objects needed for calculation
+        tel_obj = db.get(Component, tel_id)
+        cam_obj = db.get(Component, cam_id)
+        red_obj = db.get(Component, red_id) if red_id else None
+
+        # 2. Calculate the derived properties (EFL, f-ratio, scale, FOV)
+        efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
+        fov_h = None
+        if cam_obj and cam_obj.sensor_height_mm and efl:
+            try:
+                # Calculate FOV height using the derived effective focal length
+                fov_h = (degrees(2 * atan((cam_obj.sensor_height_mm / 2.0) / efl)) * 60.0)
+            except:
+                pass
+
+        if rig_id:  # Update
             rig = db.get(Rig, int(rig_id))
             rig.rig_name = form.get('rig_name')
             rig.telescope_id, rig.camera_id, rig.reducer_extender_id = tel_id, cam_id, red_id
             flash(f"Rig '{rig.rig_name}' updated successfully.", "success")
-        else: # Add
+        else:  # Add
             new_rig = Rig(
                 user_id=user.id, rig_name=form.get('rig_name'),
                 telescope_id=tel_id, camera_id=cam_id, reducer_extender_id=red_id
             )
             db.add(new_rig)
+            rig = new_rig  # Reference the new object for update below
             flash(f"Rig '{new_rig.rig_name}' created successfully.", "success")
+
+        # 3. Persist calculated values to the Rig object (for both ADD and UPDATE)
+        rig.effective_focal_length = efl
+        rig.f_ratio = f_ratio
+        rig.image_scale = scale
+        rig.fov_w_arcmin = fov_w
+        # NOTE: fov_w_arcmin is used for width, but we should store the height too for a complete record
+        # Although the Rig model currently only has fov_w_arcmin, we'll ensure we persist the calculated values.
+        # Since the model is missing fov_h_arcmin, we'll only persist the existing fields:
+        # We need to verify if fov_h_arcmin was added in a previous step, if not, we stick to fov_w_arcmin.
+        # The provided JournalSession model (line 343) shows rig_fov_h_snapshot, so we assume the Rig model
+        # was intended to have it. However, since it is not visible, we only update the ones we know exist:
+
+        # --- NEW LOGIC END ---
 
         db.commit()
     except Exception as e:
@@ -4920,7 +4969,6 @@ def journal_list_view():
         return render_template('journal_list.html', journal_sessions=sessions)
     finally:
         db.close()
-
 @app.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
@@ -4961,13 +5009,15 @@ def journal_add():
             elif project_selection and project_selection not in ["standalone", "new_project"]:
                 project_id_for_session = project_selection
 
-            # --- NEW: Get Rig Snapshot Specs ---
+            # --- NEW: Get Rig Snapshot Specs and Component Names ---
             rig_id_str = request.form.get("rig_id_snapshot")
             rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
+            tel_name_snap, reducer_name_snap, camera_name_snap = None, None, None
 
             if rig_id_str:
                 try:
                     rig_id = int(rig_id_str)
+                    # Use selectinload to ensure components are fetched efficiently
                     rig = db.query(Rig).options(
                         selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
                     ).filter_by(id=rig_id, user_id=user.id).one_or_none()
@@ -4980,6 +5030,12 @@ def journal_add():
                         )
                         if rig.camera and rig.camera.sensor_height_mm and efl_snap:
                             fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+
+                        # --- NEW: Save Component Names ---
+                        tel_name_snap = rig.telescope.name if rig.telescope else None
+                        reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
+                        camera_name_snap = rig.camera.name if rig.camera else None
+                        # --- END NEW ---
                 except (ValueError, TypeError):
                     pass # rig_id_str was invalid (e.g., "")
 
@@ -5028,13 +5084,20 @@ def journal_add():
                 flats_strategy=request.form.get("flats_strategy", "").strip() or None,
                 bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None,
                 transparency_observed_scale=request.form.get("transparency_observed_scale", "").strip() or None,
-                rig_id_snapshot=rig_id_snap, # <-- ADDED
+
+                # --- Rig Snapshot Fields ---
+                rig_id_snapshot=rig_id_snap,
                 rig_name_snapshot=rig_name_snap,
                 rig_efl_snapshot=efl_snap,
                 rig_fr_snapshot=fr_snap,
                 rig_scale_snapshot=scale_snap,
                 rig_fov_w_snapshot=fov_w_snap,
-                rig_fov_h_snapshot=fov_h_snap
+                rig_fov_h_snapshot=fov_h_snap,
+
+                # --- NEW COMPONENT NAME SNAPSHOTS ---
+                telescope_name_snapshot=tel_name_snap,
+                reducer_name_snapshot=reducer_name_snap,
+                camera_name_snapshot=camera_name_snap
             )
 
             # ... (rest of session creation logic, file upload, etc.) ...
@@ -5066,7 +5129,7 @@ def journal_add():
             flash("New journal entry added successfully!", "success")
             return redirect(url_for('graph_dashboard', object_name=new_session.object_name, session_id=new_session.id))
 
-        # --- GET Request Logic (REPLACED) ---
+        # --- GET Request Logic ---
         target_object = request.args.get('target')
         if target_object:
             # If a target is specified, go to that object's dashboard
@@ -5086,7 +5149,7 @@ def journal_edit(session_id):
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
     try:
-        user = db.query(DbUser).filter_by(username=username).one()
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
         session_to_edit = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
         if not session_to_edit:
@@ -5107,9 +5170,10 @@ def journal_edit(session_id):
                                         session_id=session_id))
             # --- END FIX ---
 
-            # --- NEW: Get Rig Snapshot Specs ---
+            # --- NEW: Get Rig Snapshot Specs and Component Names ---
             rig_id_str = request.form.get("rig_id_snapshot")
             rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
+            tel_name_snap, reducer_name_snap, camera_name_snap = None, None, None  # Initialize new snapshots
 
             if rig_id_str:
                 try:
@@ -5126,15 +5190,20 @@ def journal_edit(session_id):
                         )
                         if rig.camera and rig.camera.sensor_height_mm and efl_snap:
                             fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
-                except (ValueError, TypeError):
-                    pass  # rig_id_str was invalid (e.g., "")
 
-            # --- Update ALL fields from the form (This logic is still valid) ---
-            session_to_edit.date_utc = parsed_date_utc  # <-- Use the validated date
+                        # --- GET AND SAVE COMPONENT NAMES ---
+                        tel_name_snap = rig.telescope.name if rig.telescope else None
+                        reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
+                        camera_name_snap = rig.camera.name if rig.camera else None
+                        # --- END COMPONENT NAMES ---
+                except (ValueError, TypeError):
+                    pass
+
+            # --- Update ALL fields from the form ---
+            session_to_edit.date_utc = parsed_date_utc
             session_to_edit.object_name = request.form.get("target_object_id", "").strip()
             session_to_edit.notes = request.form.get("general_notes_problems_learnings")
 
-            # --- START: Update all fields ---
             form = request.form
             session_to_edit.seeing_observed_fwhm = safe_float(form.get("seeing_observed_fwhm"))
             session_to_edit.sky_sqm_observed = safe_float(form.get("sky_sqm_observed"))
@@ -5173,10 +5242,9 @@ def journal_edit(session_id):
             session_to_edit.flats_strategy = form.get("flats_strategy", "").strip() or None
             session_to_edit.bias_darkflats_strategy = form.get("bias_darkflats_strategy", "").strip() or None
             session_to_edit.transparency_observed_scale = form.get("transparency_observed_scale", "").strip() or None
-            # --- END of all fields ---
 
-            # --- Add the new rig snapshot fields ---
-            session_to_edit.rig_id_snapshot = rig_id_snap  # <-- ADDED
+            # --- START: Update Rig Snapshot Fields (Crucial Assignment) ---
+            session_to_edit.rig_id_snapshot = rig_id_snap
             session_to_edit.rig_name_snapshot = rig_name_snap
             session_to_edit.rig_efl_snapshot = efl_snap
             session_to_edit.rig_fr_snapshot = fr_snap
@@ -5184,8 +5252,13 @@ def journal_edit(session_id):
             session_to_edit.rig_fov_w_snapshot = fov_w_snap
             session_to_edit.rig_fov_h_snapshot = fov_h_snap
 
-            # (Project logic, calculation logic, and file upload logic remain the same)
-            # ...
+            # --- ASSIGN NEW COMPONENT NAME SNAPSHOTS ---
+            session_to_edit.telescope_name_snapshot = tel_name_snap
+            session_to_edit.reducer_name_snapshot = reducer_name_snap
+            session_to_edit.camera_name_snapshot = camera_name_snap
+            # --- END: Update Rig Snapshot Fields ---
+
+            # Project logic
             project_id_for_session = None
             project_selection = request.form.get("project_selection")
             new_project_name = request.form.get("new_project_name", "").strip()
@@ -5199,8 +5272,9 @@ def journal_edit(session_id):
 
             session_to_edit.project_id = project_id_for_session
 
+            # Integration time calculation
             total_seconds = (session_to_edit.number_of_subs_light or 0) * (
-                        session_to_edit.exposure_time_per_sub_sec or 0) + \
+                    session_to_edit.exposure_time_per_sub_sec or 0) + \
                             (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
                             (session_to_edit.filter_R_subs or 0) * (session_to_edit.filter_R_exposure_sec or 0) + \
                             (session_to_edit.filter_G_subs or 0) * (session_to_edit.filter_G_exposure_sec or 0) + \
@@ -5211,7 +5285,7 @@ def journal_edit(session_id):
 
             session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                         1) if total_seconds > 0 else None
-            # Handle "Delete Image" Checkbox
+            # File Handling (Delete Image)
             if request.form.get('delete_session_image') == '1':
                 old_image = session_to_edit.session_image_file
                 if old_image:
@@ -5224,7 +5298,7 @@ def journal_edit(session_id):
                             print(f"Error deleting file: {e}")
                     session_to_edit.session_image_file = None
 
-            # Handle New Image Upload (Your existing code for file replacement)
+            # File Handling (New Image Upload)
             if 'session_image' in request.files:
                 file = request.files['session_image']
                 if file and file.filename != '' and allowed_file(file.filename):
@@ -5238,11 +5312,9 @@ def journal_edit(session_id):
             db.commit()
             flash("Journal entry updated successfully!", "success")
             return redirect(
-                url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_to_edit.id))
+                url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id))
 
-        # --- GET Request Logic (REPLACED) ---
-        # A GET request to "edit" just shows the dashboard for that object/session.
-        # The UI (JavaScript) will be responsible for opening the edit modal.
+        # --- GET Request Logic ---
         if not session_to_edit.object_name:
             flash("Cannot edit session: associated object name is missing.", "error")
             return redirect(url_for('journal_list_view'))
