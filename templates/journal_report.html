@@ -12,11 +12,12 @@
             padding: 20px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             color: #333;
+            font-size: 11px;
         }
         .a4-page {
             width: 210mm;
             background-color: #ffffff;
-            padding: 10mm 15mm; /* Tighter padding */
+            padding: 10mm 15mm;
             box-sizing: border-box;
         }
         h1, h2, h3, h4 { margin: 0; font-weight: 700; }
@@ -28,54 +29,106 @@
         .header-logo-text { font-size: 22px; font-weight: 800; color: #000; letter-spacing: -0.5px; line-height: 1; }
         .header-logo-text span { font-weight: 300; color: #555; margin-left: 4px; font-size: 20px;}
         .header-title { text-align: right; font-size: 14px; color: #83b4c5; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .header-line { border: 0; border-top: 2px solid #83b4c5; margin-bottom: 15px; } /* Increased margin */
+        .header-line { border: 0; border-top: 2px solid #83b4c5; margin-bottom: 15px; }
 
-        /* Target Info */
-        .target-info { text-align: center; margin-bottom: 15px; } /* Increased margin */
-        .target-info h1 { font-size: 24px; color: #222; margin-bottom: 2px; }
-        .target-info h2 { font-size: 15px; color: #666; font-weight: 500; margin-bottom: 2px; }
-        .target-info p { font-size: 12px; color: #888; font-style: italic; }
+        /* Target Info - Condensed */
+        .target-info { text-align: center; margin-bottom: 15px; }
+        .target-info h1 { font-size: 18px; color: #222; margin-bottom: 2px; }
+        .target-info h2, .target-info p { display: none; }
 
         /* Session Details Table */
-        .session-details-table { width: 100%; font-size: 13px; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 20px; } /* Increased margin */
+        .session-details-table { width: 100%; font-size: 11px; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 20px; }
         .session-details-table tr:first-child { background-color: #f8f9fa; }
-        .session-details-table td { padding: 6px 10px; border-right: 1px solid #eee; }
-        .session-details-table strong { color: #555; text-transform: uppercase; font-size: 11px; font-weight: 700; }
-        .session-rating { font-size: 15px; color: #f39c12; letter-spacing: 2px; }
+        .session-details-table td { padding: 5px 8px; border-right: 1px solid #eee; }
+        .session-details-table strong { color: #555; text-transform: uppercase; font-size: 10px; font-weight: 700; }
+        .session-rating { font-size: 14px; color: #f39c12; letter-spacing: 2px; }
 
         /* Main Columns */
         .main-content-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .main-content-table .left-column { width: 50%; padding-right: 15px; vertical-align: top; } /* Increased padding */
-        .main-content-table .right-column { width: 50%; padding-left: 15px; vertical-align: top; } /* Increased padding */
+        .main-content-table .left-column { width: 50%; padding-right: 15px; vertical-align: top; }
+        .main-content-table .right-column { width: 50%; padding-left: 15px; vertical-align: top; }
 
         /* Titles */
-        .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #83b4c5; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 8px; margin-top: 15px; } /* Increased spacing and size */
+        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #83b4c5; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; margin-top: 15px; }
         .section-title:first-child { margin-top: 0; }
 
         /* Image & Notes */
         .session-image-container { border: 1px solid #ccc; border-radius: 3px; padding: 5px; background-color: #fff; }
         .session-image-container img { max-width: 100%; height: auto; display: block; border-radius: 2px; }
-        .session-image-caption { text-align: center; font-style: italic; color: #777; margin-top: 6px; font-size: 11px; }
+        .session-image-caption { text-align: center; font-style: italic; color: #777; margin-top: 6px; font-size: 10px; }
 
-        .session-notes-container { border: 1px solid #eee; padding: 10px; border-radius: 3px; min-height: 150px; font-size: 12px; background: #fff; color: #333; }
+        .session-notes-container { border: 1px solid #eee; padding: 10px; border-radius: 3px; min-height: 150px; font-size: 11px; background: #fff; color: #333; }
         .session-notes-container p, .session-notes-container div { margin-bottom: 8px; }
 
-        /* Information Box Layout */
-        .info-box { border: 1px solid #eee; padding: 8px 12px; border-radius: 3px; font-size: 12px; line-height: 1.6; margin-bottom: 12px; color: #333; } /* Increased spacing */
+        /* Information Box Layout (Using inline-block for reliable alignment) */
+        .info-box {
+            border: 1px solid #eee;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            color: #333;
+        }
         .info-box.stats { background: #f8f9fa; }
-        .info-box strong { color: #444; width: 120px; display: inline-block; font-weight: 600; vertical-align: top; }
+
+        /* Alignment Styling */
+        .info-box .detail-line { display: block; }
+        .info-box .detail-line strong {
+            color: #444;
+            font-weight: 600;
+            width: 115px; /* Fixed width for labels */
+            display: inline-block;
+            vertical-align: top;
+        }
+
+        /* Equipment Info Box Specific Styling */
+        .acq-details-block strong {
+            width: 90px !important; /* Narrower labels for equipment section */
+        }
+        /* FIX: Ensure camera details align with main equipment labels */
+        .camera-details-block {
+            padding-left: 0;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .camera-details-block .detail-line strong { width: 90px !important; font-weight: 600; }
+
+        /* Setup Notes and Acquisition details use the same structure */
+        .setup-notes-line strong { width: 90px; display: inline-block; vertical-align: top; }
+        .acq-line { display: block; }
+        .acq-line strong {
+            color: #444;
+            font-weight: 600;
+            width: 90px; /* Fixed width for labels */
+            display: inline-block;
+            vertical-align: top;
+        }
 
         /* Exposures Table */
-        .exposures-table { width: 100%; font-size: 12px; border-collapse: collapse; }
-        .exposures-table th { background-color: #f4f4f4; padding: 5px 8px; border: 1px solid #ddd; text-align: left; font-weight: 600; }
-        .exposures-table td { padding: 5px 8px; border: 1px solid #ddd; }
+        .exposures-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+        .exposures-table th { background-color: #f4f4f4; padding: 4px 6px; border: 1px solid #ddd; text-align: left; font-weight: 600; }
+        .exposures-table td { padding: 4px 6px; border: 1px solid #ddd; }
         .exposures-table th:nth-child(2), .exposures-table td:nth-child(2), .exposures-table th:nth-child(3), .exposures-table td:nth-child(3) { text-align: right; width: 50px; }
+
+        /* FIX: Prevent Time (sec) header from wrapping */
+        .exposures-table th:nth-child(3) {
+            white-space: nowrap;
+        }
 
         .footer { margin-top: 25px; padding-top: 10px; border-top: 1px solid #eee; width: 100%; text-align: center; color: #aaa; font-size: 10px; }
     </style>
 </head>
 <body>
     <div class="a4-page" id="report-content">
+        {% macro display_value(value) -%}
+            {% if value is number or (value is string and value|lower != 'none' and value|length > 0) -%}
+                {{ value }}
+            {% else -%}
+                -
+            {% endif -%}
+        {% endmacro -%}
+
         <table class="header-table">
             <tr>
                 <td class="header-logo">
@@ -91,20 +144,16 @@
         <hr class="header-line">
 
         <div class="target-info">
-            <h1>{{ object_details['Common Name'] }}</h1>
-            {% if object_details['Common Name'] != object_details['Object'] %}
-                <h2>{{ object_details['Object'] }}</h2>
-            {% endif %}
-            <p>{{ object_details.Type | default('-') }} in {{ object_details.Constellation | default('-') }}</p>
+            <h1>{{ display_value(object_details['Common Name']) }} {% if object_details['Object'] and object_details['Object'] != object_details['Common Name'] %}{{ display_value(object_details['Object']) }}{% endif %}</h1>
         </div>
 
         <table class="session-details-table">
             <tr>
-                <td><strong>Date</strong></td><td>{{ session.date_utc | date_eu }}</td>
-                <td><strong>Location</strong></td><td>{{ session.location_name | default('-') }}</td>
+                <td><strong>Date</strong></td><td>{{ session.date_utc | date_eu | default('-') }}</td>
+                <td><strong>Location</strong></td><td>{{ display_value(session.location_name) }}</td>
             </tr>
             <tr>
-                <td><strong>Project</strong></td><td>{{ project_name | default('-') }}</td>
+                <td><strong>Project</strong></td><td>{{ display_value(project_name) }}</td>
                 <td><strong>Rating</strong></td><td class="session-rating">{{ rating_stars }}</td>
             </tr>
         </table>
@@ -119,7 +168,7 @@
                         {% else %}
                             <div style="width: 100%; height: 200px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 12px;">[No Image]</div>
                         {% endif %}
-                        <p class="session-image-caption">Total Integration: {{ integ_str }}</p>
+                        <p class="session-image-caption">Total Integration: {{ display_value(integ_str) }}</p>
                     </div>
 
                     <h4 class="section-title">Notes & Reflections</h4>
@@ -131,65 +180,66 @@
                 <td class="right-column">
                     <h4 class="section-title">Statistics & Conditions</h4>
                     <div class="info-box stats">
-                        <strong>Integration:</strong> {{ integ_str }}<br>
-                        <strong>Seeing (FWHM):</strong> {{ session.seeing_observed_fwhm | default('-') }}{% if session.seeing_observed_fwhm %}"{% endif %}<br>
-                        <strong>Guiding (RMS):</strong> {{ session.guiding_rms_avg_arcsec | default('-') }}{% if session.guiding_rms_avg_arcsec %}"{% endif %}<br>
-                        <strong>Sky Quality (SQM):</strong> {{ session.sky_sqm_observed | default('-') }}
+                        <div class="detail-line"><strong>Integration:</strong> {{ display_value(integ_str) }}</div>
+                        <div class="detail-line"><strong>Seeing (FWHM):</strong> {{ display_value(session.seeing_observed_fwhm) }}{% if session.seeing_observed_fwhm and session.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</div>
+                        <div class="detail-line"><strong>Guiding (RMS):</strong> {{ display_value(session.guiding_rms_avg_arcsec) }}{% if session.guiding_rms_avg_arcsec and session.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</div>
+                        <div class="detail-line"><strong>Sky Quality (SQM):</strong> {{ display_value(session.sky_sqm_observed) }}</div>
                     </div>
 
                     <div class="info-box">
-                        <strong>Moon Illum./Sep.:</strong> {{ session.moon_illumination_session | default('-') }}% / {{ session.moon_angular_separation_session | default('-') }}°<br>
-                        <strong>Transparency:</strong> {{ session.transparency_observed_scale | default('-') }}<br>
-                        <strong>Weather Notes:</strong> {{ session.weather_notes | default('-') }}
+                        <div class="detail-line"><strong>Moon Illum./Sep.:</strong> {{ display_value(session.moon_illumination_session) }}% / {{ display_value(session.moon_angular_separation_session) }}°</div>
+                        <div class="detail-line"><strong>Transparency:</strong> {{ display_value(session.transparency_observed_scale) }}</div>
+                        <div class="detail-line"><strong>Weather Notes:</strong> {{ display_value(session.weather_notes) }}</div>
                     </div>
 
                     <h4 class="section-title">Equipment & Acquisition</h4>
                     <div class="info-box acq">
                         {% if session.rig_name_snapshot %}
                             {# 1. Display the Rig Name #}
-                            <div style="font-weight: 600; margin-bottom: 5px; color: #212529; border-bottom: 1px dashed #eee;">Rig: {{ session.rig_name_snapshot }}</div>
+                            <div style="font-weight: 600; margin-bottom: 5px; color: #212529; border-bottom: 1px dashed #eee;">Rig: {{ display_value(session.rig_name_snapshot) }}</div>
 
-                            {# 2. Display Component Names from new snapshot fields #}
-                            <div style="font-size: 0.9em; margin-bottom: 12px; line-height: 1.4;">
-                                <strong>Telescope:</strong> {{ session.telescope_name_snapshot | default('N/A') }}<br>
+                            {# 2. Display Component Names #}
+                            <div class="acq-details-block" style="font-size: 1em; margin-bottom: 0px; line-height: 1.4;">
+                                <div class="detail-line"><strong>Telescope:</strong> {{ display_value(session.telescope_name_snapshot) }}</div>
                                 {% if session.reducer_name_snapshot %}
-                                    <strong>Reducer/Ext.:</strong> {{ session.reducer_name_snapshot }}<br>
+                                    <div class="detail-line"><strong>Reducer/Ext.:</strong> {{ display_value(session.reducer_name_snapshot) }}</div>
                                 {% endif %}
-                                <strong>Camera:</strong> {{ session.camera_name_snapshot | default('N/A') }}
+                                <div class="detail-line"><strong>Camera:</strong> {{ display_value(session.camera_name_snapshot) }}</div>
                             </div>
+
+                            <div class="camera-details-block">
+                                <div class="detail-line"><strong>Gain / Offset:</strong> {{ display_value(session.gain_setting) }} / {{ display_value(session.offset_setting) }}</div>
+                                <div class="detail-line"><strong>Temp (Set/Avg):</strong> {{ display_value(session.camera_temp_setpoint_c) }}°C / {{ display_value(session.camera_temp_actual_avg_c) }}°C</div>
+                            </div>
+
 
                             {# 3. Display the Calculated Rig Specifications #}
-                            <div style="font-size: 0.9em; line-height: 1.4; margin-bottom: 8px; padding-top: 5px; border-top: 1px solid #f8f9fa;">
-                                <strong>FL / Ratio:</strong> {{ session.rig_efl_snapshot | round(0) if session.rig_efl_snapshot is number else 'N/A' }} mm (f/{{ session.rig_fr_snapshot | round(1) if session.rig_fr_snapshot is number else 'N/A' }})<br>
-                                <strong>Scale / FOV:</strong> {{ session.rig_scale_snapshot | round(2) if session.rig_scale_snapshot is number else 'N/A' }}"/px<br>
-                                <span style="margin-left: 110px;">{{ session.rig_fov_w_snapshot | round(1) if session.rig_fov_w_snapshot is number else 'N/A' }}' &times; {{ session.rig_fov_h_snapshot | round(1) if session.rig_fov_h_snapshot is number else 'N/A' }}'</span>
+                            <div class="acq-details-block" style="font-size: 1em; line-height: 1.4; margin-bottom: 8px; padding-top: 5px; border-top: 1px solid #f8f9fa;">
+                                <div class="detail-line"><strong>FL / Ratio:</strong> {{ session.rig_efl_snapshot | round(0) if session.rig_efl_snapshot is number else '-' }} mm (f/{{ session.rig_fr_snapshot | round(1) if session.rig_fr_snapshot is number else '-' }})</div>
+                                <div class="detail-line"><strong>Scale / FOV:</strong> {{ session.rig_scale_snapshot | round(2) if session.rig_scale_snapshot is number else '-' }}"/px ({{ session.rig_fov_w_snapshot | round(1) if session.rig_fov_w_snapshot is number else '-' }}' &times; {{ session.rig_fov_h_snapshot | round(1) if session.rig_fov_h_snapshot is number else '-' }}')</div>
                             </div>
 
-                            <div style="font-size: 0.9em; margin-top: 10px;">
-                                <strong>Setup Notes:</strong> {{ session.telescope_setup_notes | default('-') }}
+                            <div class="setup-notes-line" style="font-size: 1em; margin-top: 10px;">
+                                <strong>Setup Notes:</strong> {{ display_value(session.telescope_setup_notes) }}
                             </div>
                         {% else %}
                             {# Fallback (for old sessions without snapshot data) #}
-                            <div style="font-weight: 600; margin-bottom: 5px; color: #212529; border-bottom: 1px dashed #eee;">Rig/Setup: {{ session.telescope_setup_notes | default('-') }}</div>
+                            <div style="font-weight: 600; margin-bottom: 5px; color: #212529; border-bottom: 1px dashed #eee;">Rig/Setup: {{ display_value(session.telescope_setup_notes) }}</div>
                         {% endif %}
 
                         <br>
                         {# Acquisition details #}
-                        <strong>Acquisition SW:</strong> {{ session.acquisition_software | default('-') }}<br>
-                        <strong>Guiding Equip.:</strong> {{ session.guiding_equipment | default('-') }}<br>
-                        <strong>Dither Details:</strong> {{ session.dither_details | default('-') }}<br>
-                        <strong>Binning:</strong> {{ session.binning_session | default('-') }}<br>
-                        <br>
-                        {# Camera details #}
-                        <strong>Gain / Offset:</strong> {{ session.gain_setting | default('-') }} / {{ session.offset_setting | default('-') }}<br>
-                        <strong>Camera Temp (Set/Avg):</strong> {{ session.camera_temp_setpoint_c | default('-') }}°C / {{ session.camera_temp_actual_avg_c | default('-') }}°C<br>
+                        <div class="acq-line"><strong>Acquisition SW:</strong> {{ display_value(session.acquisition_software) }}</div>
+                        <div class="acq-line"><strong>Guiding Equip.:</strong> {{ display_value(session.guiding_equipment) }}</div>
+                        <div class="acq-line"><strong>Dither Details:</strong> {{ display_value(session.dither_details) }}</div>
+                        <div class="acq-line"><strong>Binning:</strong> {{ display_value(session.binning_session) }}</div>
                     </div>
 
                     <h4 class="section-title">Calibration Strategy</h4>
                     <div class="info-box">
-                        <strong>Darks:</strong> {{ session.darks_strategy | default('-') }}<br>
-                        <strong>Flats:</strong> {{ session.flats_strategy | default('-') }}<br>
-                        <strong>Bias/Dark Flats:</strong> {{ session.bias_darkflats_strategy | default('-') }}
+                        <div class="detail-line"><strong>Darks:</strong> {{ display_value(session.darks_strategy) }}</div>
+                        <div class="detail-line"><strong>Flats:</strong> {{ display_value(session.flats_strategy) }}</div>
+                        <div class="detail-line"><strong>Bias/Dark Flats:</strong> {{ display_value(session.bias_darkflats_strategy) }}</div>
                     </div>
 
                     <h4 class="section-title">Exposures</h4>
@@ -197,14 +247,14 @@
                         <thead><tr><th>Filter</th><th>Subs</th><th>Time (sec)</th></tr></thead>
                         <tbody>
                             {# Broadband/Single Filter #}
-                            {% if session.number_of_subs_light and session.exposure_time_per_sub_sec %}
-                            <tr><td>{{ session.filter_used_session | default('Broadband') }}</td><td>{{ session.number_of_subs_light }}</td><td>{{ session.exposure_time_per_sub_sec }}</td></tr>
+                            {% if session.number_of_subs_light or session.exposure_time_per_sub_sec %}
+                            <tr><td>{{ display_value(session.filter_used_session) }}</td><td>{{ display_value(session.number_of_subs_light) }}</td><td>{{ display_value(session.exposure_time_per_sub_sec) }}</td></tr>
                             {% endif %}
                             {# Monochrome Filters #}
                             {% set mono_filters = [('L', 'L'), ('R', 'R'), ('G', 'G'), ('B', 'B'), ('Ha', 'Ha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
                             {% for key, name in mono_filters %}
-                                {% if session['filter_' ~ key ~ '_subs'] and session['filter_' ~ key ~ '_exposure_sec'] %}
-                                <tr><td>{{ name }}</td><td>{{ session['filter_' + key + '_subs'] }}</td><td>{{ session['filter_' + key + '_exposure_sec'] }}</td></tr>
+                                {% if session['filter_' ~ key ~ '_subs'] or session['filter_' ~ key ~ '_exposure_sec'] %}
+                                <tr><td>{{ name }}</td><td>{{ display_value(session['filter_' + key + '_subs']) }}</td><td>{{ display_value(session['filter_' + key + '_exposure_sec']) }}</td></tr>
                                 {% endif %}
                             {% endfor %}
                             {# Default dash if no exposure data is present #}
