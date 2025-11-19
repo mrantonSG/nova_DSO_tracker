@@ -1,15 +1,21 @@
 <style>
     .journal-container { display: flex; gap: 25px; align-items: flex-start; }
     .session-list-column { flex: 0 0 450px; max-height: 750px; overflow-y: auto; }
-    .session-detail-column { flex: 1 1 auto; max-height: 750px; overflow-y: auto; padding-right: 15px; }
+    /* REVERT: Allow detail column to scroll if needed, set max height */
+    .session-detail-column {
+        flex: 1 1 auto;
+        max-height: 750px;
+        overflow-y: auto;
+        padding-right: 15px;
+    }
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
     .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: #555; border-bottom: 2px solid transparent; font-size: 15px; }
     .detail-tab-button.active { color: #83b4c5; border-bottom-color: #83b4c5; font-weight: 600; }
     .detail-tab-content { display: none; }
-    .detail-tab-content.active { display: block; }
+    .detail-tab-content.active { display: block; } /* REVERT: Simple display for tab content */
 
     /* Controls visibility based on mode */
-    .view-mode { display: block; }
+    .view-mode { display: block; } /* REVERT: Simple display for view mode */
     .edit-mode-form { display: none; }
     .is-editing .view-mode, .is-adding .view-mode { display: none; }
     .is-editing .edit-mode-form, .is-adding .edit-mode-form { display: block; }
@@ -22,25 +28,35 @@
     .is-editing .detail-tab-button[data-tab="report"],
     .is-adding .detail-tab-button[data-tab="report"] { display: none; }
 
+    /* Hide old sky tab button in view mode */
+    .detail-tab-button[data-tab="sky"] { display: none; }
+
+
     /* Report Preview Styles */
     .report-preview-container {
-        background-color: #525659; /* Dark grey background like a PDF reader */
+        background-color: #525659;
         padding: 20px;
         border-radius: 4px;
         text-align: center;
     }
     .report-iframe {
         width: 100%;
-        max-width: 210mm; /* A4 width */
-        height: 800px; /* Tall enough to see most of the page */
+        max-width: 210mm;
+        /* FIX: Increase height dramatically to suppress internal scrollbar */
+        height: 1200px;
         border: none;
         background-color: white;
         box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        display: block;
+        margin: 0 auto;
     }
     .report-toolbar {
         margin-bottom: 15px;
         display: flex;
         justify-content: flex-end;
+        max-width: 210mm;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     /* Other styles remain the same */
@@ -98,9 +114,9 @@
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
                             onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}&tab=journal"'>
-                            <td class="col-date">{{ session_item.date_utc | date_eu | default("N/A") }}<br><small style="color:#555;">{{ session_item.location_name | default("N/A") }}</small></td>
-                            <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else 'N/A' }} min</td>
-                            <td class="col-rating">{{ session_item.session_rating_subjective | default('N/A') }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
+                            <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:#555;">{{ session_item.location_name | default("-") }}</small></td>
+                            <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
+                            <td class="col-rating">{{ session_item.session_rating_subjective | default('-') }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
                         </tr>
                     {% endfor %}
                 {% endfor %}
@@ -116,6 +132,16 @@
             {# --- VIEW MODE SECTION --- #}
             {% if selected_session_data %}
                 {% set entry = selected_session_data_dict %}
+
+                {# --- Macro to safely display a value or a dash, handling 'None' string explicitly --- #}
+                {% macro display_safe_value(value) -%}
+                    {% if value is number or (value is string and value|lower != 'none' and value|length > 0) -%}
+                        {{ value }}
+                    {% else -%}
+                        -
+                    {% endif -%}
+                {% endmacro -%}
+
                 <div class="detail-header view-mode">
                     <h4 id="detail-title">Details for Session: {{ entry.date_utc | date_eu }}</h4>
                     <div class="action-button-group">
@@ -126,21 +152,20 @@
                     </div>
                 </div>
 
-                {# --- View Tabs (Added Report Tab) --- #}
+                {# --- View Tabs (Updated to match PDF structure) --- #}
                 <div class="detail-tabs-container view-mode">
                     <button type="button" class="detail-tab-button active" data-tab="summary" onclick="showDetailTab('summary')">Summary</button>
-                    <button type="button" class="detail-tab-button" data-tab="sky" onclick="showDetailTab('sky')">Sky & Equipment</button>
-                    <button type="button" class="detail-tab-button" data-tab="acq" onclick="showDetailTab('acq')">Acquisition</button>
-                    <button type="button" class="detail-tab-button" data-tab="outcome" onclick="showDetailTab('outcome')">Outcome</button>
+                    <button type="button" class="detail-tab-button" data-tab="acq" onclick="showDetailTab('acq')">Equipment & Acquisition</button>
+                    <button type="button" class="detail-tab-button" data-tab="outcome" onclick="showDetailTab('outcome')">Calibration & Outcome</button>
                     <button type="button" class="detail-tab-button" data-tab="report" onclick="showDetailTab('report')">Report</button>
                 </div>
 
                 <div class="view-mode">
                     <div id="summary-tab" class="detail-tab-content active">
                          <div class="summary-box">
-                            <div class="stat"><span class="stat-value">{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</span><span class="stat-label">SEEING (FWHM)</span></div>
-                            <div class="stat"><span class="stat-value">{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</span><span class="stat-label">GUIDING (RMS)</span></div>
-                            <div class="stat"><span class="stat-value">{{ entry.sky_sqm_observed | default('N/A') }}</span><span class="stat-label">SKY QUALITY (SQM)</span></div>
+                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.seeing_observed_fwhm) }}{% if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</span><span class="stat-label">SEEING (FWHM)</span></div>
+                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</span><span class="stat-label">GUIDING (RMS)</span></div>
+                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.sky_sqm_observed) }}</span><span class="stat-label">SKY QUALITY (SQM)</span></div>
                             <div class="stat">
                                 <span class="stat-value">
                                     {% set mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'] %}
@@ -153,14 +178,31 @@
                                     {% if has_mono_data.found %}
                                         Multiple
                                     {% else %}
-                                        {{ entry.number_of_subs_light | default('N/A') }}x{{ entry.exposure_time_per_sub_sec | default('N/A') }}s
+                                        {{ display_safe_value(entry.number_of_subs_light) }}x{{ display_safe_value(entry.exposure_time_per_sub_sec) }}s
                                     {% endif %}
                                 </span><span class="stat-label">EXPOSURES</span>
                             </div>
                         </div>
                         <dl class="detail-grid">
-                            <dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd>
-                            <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
+                            <dt>Filter:</dt><dd>{{ display_safe_value(entry.filter_used_session) }}</dd>
+
+                            {# Display Rig/Setup Details on Summary Tab #}
+                            {% if entry.rig_name_snapshot %}
+                                <dt>Rig Used:</dt><dd>{{ display_safe_value(entry.rig_name_snapshot) }}</dd>
+                                <dt>Rig Specs:</dt>
+                                <dd style="font-size: 0.9em; line-height: 1.4;">
+                                    Telescope: {{ display_safe_value(entry.telescope_name_snapshot) }}<br>
+                                    Camera: {{ display_safe_value(entry.camera_name_snapshot) }}<br>
+                                    FL: {{ entry.rig_efl_snapshot | round(0) if entry.rig_efl_snapshot is number else '-' }} mm (f/{{ entry.rig_fr_snapshot | round(1) if entry.rig_fr_snapshot is number else '-' }})<br>
+                                    Scale: {{ entry.rig_scale_snapshot | round(2) if entry.rig_scale_snapshot is number else '-' }}"/px
+                                </dd>
+                                {% if entry.telescope_setup_notes %}
+                                    <dt>Setup Notes:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                                {% endif %}
+                            {% else %}
+                                <dt>Telescope Setup:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                            {% endif %}
+
                             {% if entry.session_image_file %}
                                 <dt style="grid-column: 1 / -1;">Session Image:</dt>
                                 <dd style="grid-column: 1 / -1; margin-top: 8px;">
@@ -172,39 +214,61 @@
                             {% endif %}
                         </dl>
                     </div>
+
+                    {# --- HIDDEN: Sky tab content remains, but is no longer linked in the view tabs --- #}
                     <div id="sky-tab" class="detail-tab-content">
+                        {# Content moved to ACQ tab #}
+                    </div>
+
+                    {# --- UPDATED: EQUIPMENT & ACQUISITION Tab (Contains Sky, Rig, Guiding, and ACQ details) --- #}
+                    <div id="acq-tab" class="detail-tab-content">
+                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Statistics & Conditions</h5>
                         <dl class="detail-grid">
-                            <dt>Seeing (FWHM):</dt><dd>{{ entry.seeing_observed_fwhm | default('N/A') }}{% if entry.seeing_observed_fwhm %}"{% endif %}</dd>
-                            <dt>SQM:</dt><dd>{{ entry.sky_sqm_observed | default('N/A') }}</dd>
-                            <dt>Transparency Scale:</dt><dd>{{ entry.transparency_observed_scale | default('N/A') }}</dd>
-                            <dt>Moon Illum/Sep:</dt><dd>{{ entry.moon_illumination_session | default('N/A') }}% / {{ entry.moon_angular_separation_session | default('N/A') }}°</dd>
-                            <dt>Telescope Setup:</dt><dd>{{ entry.telescope_setup_notes | default('N/A') }}</dd>
-                            <dt>Guiding Equipment:</dt><dd>{{ entry.guiding_equipment | default('N/A') }}</dd>
-                            <dt>Guiding RMS:</dt><dd>{{ entry.guiding_rms_avg_arcsec | default('N/A') }}{% if entry.guiding_rms_avg_arcsec %}"{% endif %}</dd>
+                            <dt>Seeing (FWHM):</dt><dd>{{ display_safe_value(entry.seeing_observed_fwhm) }}{% if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</dd>
+                            <dt>Guiding RMS:</dt><dd>{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</dd>
+                            <dt>SQM:</dt><dd>{{ display_safe_value(entry.sky_sqm_observed) }}</dd>
+                            <dt>Transparency Scale:</dt><dd>{{ display_safe_value(entry.transparency_observed_scale) }}</dd>
+                            <dt>Moon Illum/Sep:</dt><dd>{{ display_safe_value(entry.moon_illumination_session) }}% / {{ display_safe_value(entry.moon_angular_separation_session) }}°</dd>
+                            <dt>Weather Notes:</dt><dd><div class="notes-block" style="min-height: auto;">{{ display_safe_value(entry.weather_notes) }}</div></dd>
+                        </dl>
+
+                        <div style="grid-column: 1 / -1; border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;"></div>
+
+                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Equipment & Acquisition Details</h5>
+                        <dl class="detail-grid">
                             {% if entry.rig_name_snapshot %}
                                 <dt>Rig Used:</dt>
-                                <dd>{{ entry.rig_name_snapshot }}</dd>
+                                <dd>{{ display_safe_value(entry.rig_name_snapshot) }}</dd>
+                                <dt>Telescope:</dt>
+                                <dd>{{ display_safe_value(entry.telescope_name_snapshot) }}</dd>
+                                {% if entry.reducer_name_snapshot %}
+                                    <dt>Reducer/Ext.:</dt>
+                                    <dd>{{ display_safe_value(entry.reducer_name_snapshot) }}</dd>
+                                {% endif %}
+                                <dt>Camera:</dt>
+                                <dd>{{ display_safe_value(entry.camera_name_snapshot) }}</dd>
                                 <dt>Rig Specs:</dt>
                                 <dd style="font-size: 0.9em; line-height: 1.4;">
-                                    FL: {{ entry.rig_efl_snapshot | round(0) if entry.rig_efl_snapshot is number else 'N/A' }} mm (f/{{ entry.rig_fr_snapshot | round(1) if entry.rig_fr_snapshot is number else 'N/A' }})<br>
-                                    Scale: {{ entry.rig_scale_snapshot | round(2) if entry.rig_scale_snapshot is number else 'N/A' }}"/px<br>
-                                    FOV: {{ entry.rig_fov_w_snapshot | round(1) if entry.rig_fov_w_snapshot is number else 'N/A' }}' &times; {{ entry.rig_fov_h_snapshot | round(1) if entry.rig_fov_h_snapshot is number else 'N/A' }}'
+                                    FL/Ratio: {{ entry.rig_efl_snapshot | round(0) if entry.rig_efl_snapshot is number else '-' }} mm (f/{{ entry.rig_fr_snapshot | round(1) if entry.rig_fr_snapshot is number else '-' }})<br>
+                                    Scale: {{ entry.rig_scale_snapshot | round(2) if entry.rig_scale_snapshot is number else '-' }}"/px<br>
+                                    FOV: {{ entry.rig_fov_w_snapshot | round(1) if entry.rig_fov_w_snapshot is number else '-' }}' &times; {{ entry.rig_fov_h_snapshot | round(1) if entry.rig_fov_h_snapshot is number else '-' }}'
                                 </dd>
+                                <dt>Setup Notes:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                            {% else %}
+                                <dt>Telescope Setup:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
                             {% endif %}
-                            <dt>Weather Notes:</dt><dd><div class="notes-block">{{ entry.weather_notes | default('N/A') }}</div></dd>
+
+                            <dt>Guiding Equipment:</dt><dd>{{ display_safe_value(entry.guiding_equipment) }}</dd>
+                            <dt>Acquisition Sw:</dt><dd>{{ display_safe_value(entry.acquisition_software) }}</dd>
+                            <dt>Dither Settings:</dt><dd>{{ display_safe_value(entry.dither_details) }}</dd>
+                            <dt>Binning:</dt><dd>{{ display_safe_value(entry.binning_session) }}</dd>
+                            <dt>Gain / Offset:</dt><dd>{{ display_safe_value(entry.gain_setting) }} / {{ display_safe_value(entry.offset_setting) }}</dd>
+                            <dt>Camera Temp (Set/Avg):</dt><dd>{{ display_safe_value(entry.camera_temp_setpoint_c) }}°C / {{ display_safe_value(entry.camera_temp_actual_avg_c) }}°C</dd>
+                            <dt>Filter:</dt><dd>{{ display_safe_value(entry.filter_used_session) }}</dd>
+                            <dt>Sub Exposure:</dt><dd>{{ display_safe_value(entry.exposure_time_per_sub_sec) }}s</dd>
+                            <dt># Light Subs:</dt><dd>{{ display_safe_value(entry.number_of_subs_light) }}</dd>
                         </dl>
-                    </div>
-                    <div id="acq-tab" class="detail-tab-content">
-                        <dl class="detail-grid">
-                            <dt>Sub Exposure:</dt><dd>{{ entry.exposure_time_per_sub_sec | default('N/A') }}s</dd>
-                            <dt># Light Subs:</dt><dd>{{ entry.number_of_subs_light | default('N/A') }}</dd>
-                            <dt>Filter:</dt><dd>{{ entry.filter_used_session | default('N/A') }}</dd>
-                            <dt>Gain / Offset:</dt><dd>{{ entry.gain_setting | default('N/A') }} / {{ entry.offset_setting | default('N/A') }}</dd>
-                            <dt>Acquisition Sw:</dt><dd>{{ entry.acquisition_software | default('N/A') }}</dd>
-                            <dt>Dither Settings:</dt><dd>{{ entry.dither_details | default('N/A') }}</dd>
-                            <dt>Binning:</dt><dd>{{ entry.binning_session | default('N/A') }}</dd>
-                            <dt>Camera Temp (Set/Avg):</dt><dd>{{ entry.camera_temp_setpoint_c | default('N/A') }}°C / {{ entry.camera_temp_actual_avg_c | default('N/A') }}°C</dd>
-                        </dl>
+
                         {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
                         {% set has_mono_data = namespace(found=false) %}
                         {% for filt_key, _ in mono_filters %}
@@ -220,19 +284,28 @@
                                 {% set exp = entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
                                 {% if subs or exp %}
                                     <dt>{{ filt_name }} ({{ filt_key }}):</dt>
-                                    <dd>{{ subs | default('N/A') }} subs x {{ exp | default('N/A') }}s</dd>
+                                    <dd>{{ display_safe_value(subs) }} subs x {{ display_safe_value(exp) }}s</dd>
                                 {% endif %}
                             {% endfor %}
                             </dl>
                         {% endif %}
                     </div>
+
+                    {# --- UPDATED: CALIBRATION & OUTCOME Tab (Contains Calibration and Notes/Rating) --- #}
                     <div id="outcome-tab" class="detail-tab-content">
+                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Calibration Strategy</h5>
                         <dl class="detail-grid">
-                            <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('N/A') }}{% if entry.session_rating_subjective %} ★{% endif %}</dd>
-                            <dt>Darks:</dt><dd>{{ entry.darks_strategy | default('N/A') }}</dd>
-                            <dt>Flats:</dt><dd>{{ entry.flats_strategy | default('N/A') }}</dd>
-                            <dt>Bias/DarkFlats:</dt><dd>{{ entry.bias_darkflats_strategy | default('N/A') }}</dd>
-                            <dt>Notes:</dt><dd><div class="notes-block">{{ entry.notes | default('N/A') | safe }}</div></dd>
+                            <dt>Darks:</dt><dd>{{ display_safe_value(entry.darks_strategy) }}</dd>
+                            <dt>Flats:</dt><dd>{{ display_safe_value(entry.flats_strategy) }}</dd>
+                            <dt>Bias/DarkFlats:</dt><dd>{{ display_safe_value(entry.bias_darkflats_strategy) }}</dd>
+                        </dl>
+
+                        <div style="grid-column: 1 / -1; border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;"></div>
+
+                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Outcome & Reflections</h5>
+                        <dl class="detail-grid">
+                            <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('-') }}{% if entry.session_rating_subjective %} ★{% endif %}</dd>
+                            <dt>Notes:</dt><dd style="grid-column: 2 / 2;"><div class="notes-block">{{ entry.notes | default('-') | safe }}</div></dd>
                         </dl>
                     </div>
 
