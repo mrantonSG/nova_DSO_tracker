@@ -54,12 +54,12 @@ from astropy.time import Time
 import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session, selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
 import jwt
-import bleach
+from bleach.css_sanitizer import CSSSanitizer
 
 from modules.astro_calculations import (
     calculate_transit_time,
@@ -303,12 +303,22 @@ class DbUser(Base):
     # --- This is the line we added to fix the test ---
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
 
+
 class Project(Base):
     __tablename__ = 'projects'
     # The project_id from YAML will be our primary key. It's a string (UUID).
     id = Column(String(64), primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     name = Column(String(256), nullable=False)
+
+    # --- NEW FIELDS FOR PROJECT DETAIL PAGE ---
+    target_object_name = Column(String(256), nullable=True)  # Primary object for the project
+    description_notes = Column(Text, nullable=True)  # Project-level story/learnings (rich text)
+    framing_notes = Column(Text, nullable=True)  # Framing/composition notes (rich text)
+    processing_notes = Column(Text, nullable=True)  # Processing workflow (rich text)
+    final_image_file = Column(String(256), nullable=True)  # Path to the final image (similar to session_image_file)
+    goals = Column(Text, nullable=True)  # Goals and completion status (rich text)
+    status = Column(String(32), nullable=False, default="In Progress")  # e.g., 'In Progress', 'Completed', 'On Hold'
 
     user = relationship("DbUser", back_populates="projects")
     sessions = relationship("JournalSession", back_populates="project")
@@ -851,6 +861,39 @@ def ensure_db_initialized_unified():
             if "catalog_info" not in colnames_objects:
                 conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_info TEXT;")
                 print("[DB PATCH] Added missing column astro_objects.catalog_info")
+
+            # --- Project Model Patches ---
+            cols_projects = conn.exec_driver_sql("PRAGMA table_info(projects);").fetchall()
+            colnames_projects = {row[1] for row in cols_projects}
+
+            if "target_object_name" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN target_object_name VARCHAR(256);")
+                print("[DB PATCH] Added missing column projects.target_object_name")
+
+            if "description_notes" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN description_notes TEXT;")
+                print("[DB PATCH] Added missing column projects.description_notes")
+
+            if "framing_notes" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN framing_notes TEXT;")
+                print("[DB PATCH] Added missing column projects.framing_notes")
+
+            if "processing_notes" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN processing_notes TEXT;")
+                print("[DB PATCH] Added missing column projects.processing_notes")
+
+            if "final_image_file" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN final_image_file VARCHAR(256);")
+                print("[DB PATCH] Added missing column projects.final_image_file")
+
+            if "goals" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN goals TEXT;")
+                print("[DB PATCH] Added missing column projects.goals")
+
+            if "status" not in colnames_projects:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN status VARCHAR(32) DEFAULT 'In Progress';")
+                print("[DB PATCH] Added missing column projects.status")
+            # --- End Project Model Patches ---
 
             # Pragmas
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
@@ -1716,14 +1759,34 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
         project_name_val = p.get("project_name")
         if project_id_val and str(project_id_val).strip() and project_name_val and str(project_name_val).strip():
             # Check if project already exists by ID
-            if not db.query(Project).filter_by(id=str(project_id_val)).one_or_none():
+            existing_project = db.query(Project).filter_by(id=str(project_id_val)).one_or_none()
+
+            # --- NEW: Fields to set/update (Safely defaults to None if key missing) ---
+            project_data = {
+                "user_id": user.id,
+                "name": str(project_name_val).strip(),
+                "target_object_name": p.get("target_object_id"),
+                "description_notes": p.get("description_notes"),
+                "framing_notes": p.get("framing_notes"),
+                "processing_notes": p.get("processing_notes"),
+                "final_image_file": p.get("final_image_file"),
+                "goals": p.get("goals"),
+                "status": p.get("status", "In Progress"),
+            }
+
+            if existing_project:
+                # Update existing project
+                for key, value in project_data.items():
+                    if value is not None:
+                        setattr(existing_project, key, value)
+            else:
                 # Check if a project with the same name already exists for the user
-                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=str(project_name_val)).one_or_none()
+                existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
                 if not existing_by_name:
-                    db.add(Project(id=str(project_id_val), user_id=user.id, name=str(project_name_val)))
-                # else: print(f"[MIGRATION][PROJECT SKIP] Project '{project_name_val}' already exists for user {user.username}, skipping ID '{project_id_val}'.") # Optional warning
-        # else: print(f"[MIGRATION][PROJECT SKIP] Invalid project entry: {p}") # Optional warning
-    db.flush() # Flush after adding all valid projects
+                    new_project = Project(id=str(project_id_val), **project_data)
+                    db.add(new_project)
+
+    db.flush()  # Flush after adding all valid projects
 
     # --- 2. Migrate Sessions with ALL fields ---
     for s in (data.get("sessions") or []):
@@ -4543,6 +4606,150 @@ def telemetry_debug():
         'last_error': TELEMETRY_DEBUG_STATE.get('last_error'),
         'last_ts': TELEMETRY_DEBUG_STATE.get('last_ts')
     })
+
+def _handle_project_image_upload(file_object, project_id: str, username: str, existing_filename: str = None):
+    """
+    Handles image upload for a project.
+
+    file_object: The file from request.files
+    project_id: The ID of the project
+    username: The current user's username
+    existing_filename: The current filename (to delete the old one if replacing)
+
+    Returns the new filename or None if no file was uploaded/valid.
+    """
+    if file_object and file_object.filename != '' and allowed_file(file_object.filename):
+        try:
+            # Delete old image if replacing
+            if existing_filename:
+                old_image_path = os.path.join(UPLOAD_FOLDER, username, existing_filename)
+                if os.path.exists(old_image_path):
+                    os.remove(old_image_path)
+
+            file_extension = file_object.filename.rsplit('.', 1)[1].lower()
+            new_filename = f"project_{project_id}.{file_extension}"
+            user_upload_dir = os.path.join(UPLOAD_FOLDER, username)
+            os.makedirs(user_upload_dir, exist_ok=True)
+            file_object.save(os.path.join(user_upload_dir, new_filename))
+            return new_filename
+        except Exception as e:
+            print(f"Error handling project image upload: {e}")
+            return None
+    return existing_filename
+
+
+@app.route('/project/<string:project_id>', methods=['GET', 'POST'])
+@login_required
+def project_detail(project_id):
+    load_full_astro_context()  # Ensures g.db_user is loaded
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+
+    try:
+        project = db.query(Project).filter_by(id=project_id, user_id=g.db_user.id).one_or_none()
+        if not project:
+            flash("Project not found or you do not have permission to view it.", "error")
+            return redirect(url_for('index'))
+
+        # --- Aggregated Statistics ---
+        total_integration_minutes = db.query(
+            func.sum(JournalSession.calculated_integration_time_minutes)
+        ).filter_by(project_id=project_id).scalar() or 0
+
+        # Format integration time (e.g., 10h 30m)
+        total_minutes = int(total_integration_minutes)
+        hours = total_minutes // 60
+        minutes = total_minutes % 60
+        total_integration_str = f"{hours}h {minutes}m"
+
+        # Fetch all linked sessions eagerly to display them
+        sessions = db.query(JournalSession).filter_by(project_id=project_id).order_by(
+            JournalSession.date_utc.desc()).all()
+
+        # --- Handle POST Request (Update Project) ---
+        if request.method == 'POST':
+
+            # 1. Handle image deletion
+            if request.form.get('delete_final_image') == '1' and project.final_image_file:
+                try:
+                    os.remove(os.path.join(UPLOAD_FOLDER, username, project.final_image_file))
+                    project.final_image_file = None
+                except Exception as e:
+                    print(f"Error deleting final image: {e}")
+                    flash("Error deleting old image.", "warning")
+
+            # 2. Handle image upload (returns new/existing filename)
+            new_filename = _handle_project_image_upload(
+                request.files.get('final_image'),
+                project.id,
+                username,
+                project.final_image_file
+            )
+
+            # 3. Update all new fields (including the rich text from Trix)
+            project.name = request.form.get('name')
+            project.target_object_name = request.form.get('target_object_id')  # Note: Renamed from 'target_object_name'
+            project.status = request.form.get('status')
+
+            # Rich text notes (Trix content is received as raw HTML)
+            project.goals = request.form.get('goals')
+            project.description_notes = request.form.get('description_notes')
+            project.framing_notes = request.form.get('framing_notes')
+            project.processing_notes = request.form.get('processing_notes')
+
+            # Finalize image file update
+            if new_filename:
+                project.final_image_file = new_filename
+
+            # If the primary target is changed, check if the linked object has notes
+            if project.target_object_name:
+                target_obj_in_config = db.query(AstroObject).filter_by(
+                    user_id=g.db_user.id, object_name=project.target_object_name
+                ).one_or_none()
+                if target_obj_in_config:
+                    # Update active_project status based on this primary project
+                    # Set active if status is "In Progress", otherwise set inactive
+                    target_obj_in_config.active_project = (project.status == "In Progress")
+
+            db.commit()
+            flash("Project updated successfully.", "success")
+            return redirect(url_for('project_detail', project_id=project_id))
+
+        # --- Handle GET Request (Prepare Template Variables) ---
+
+        # Helper to sanitize rich text for passing to the editor/view
+        def _sanitize_for_display(html_content):
+            if not html_content: return ""
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+            SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
+            css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+            return bleach.clean(html_content, tags=SAFE_TAGS, attributes=SAFE_ATTRS, css_sanitizer=css_sanitizer)
+
+        return render_template(
+            'project_detail.html',
+            project=project,
+            sessions=sessions,
+            total_integration_str=total_integration_str,
+            username=username,
+            # Pass sanitized HTML for display/editor
+            goals_html=_sanitize_for_display(project.goals),
+            description_notes_html=_sanitize_for_display(project.description_notes),
+            framing_notes_html=_sanitize_for_display(project.framing_notes),
+            processing_notes_html=_sanitize_for_display(project.processing_notes),
+            # Pass all available AstroObjects for the target selector dropdown
+            all_objects=db.query(AstroObject).filter_by(user_id=g.db_user.id).order_by(AstroObject.object_name).all(),
+            project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"]
+        )
+    except Exception as e:
+        db.rollback()
+        flash(f"An error occurred: {e}", "error")
+        print(f"Error in project_detail route: {e}")
+        traceback.print_exc()
+        return redirect(url_for('index'))
+    finally:
+        db.close()
+
 @app.route('/get_outlook_data')
 def get_outlook_data():
     load_full_astro_context()
@@ -5835,10 +6042,20 @@ def download_journal():
             flash("User not found.", "error")
             return redirect(url_for('config_form'))
 
-        # --- 1. Load Projects ---
+        # --- 1. Load Projects (Including new fields) ---
         projects = db.query(Project).filter_by(user_id=u.id).order_by(Project.name).all()
         projects_list = [
-            {"project_id": p.id, "project_name": p.name} for p in projects
+            {
+                "project_id": p.id,
+                "project_name": p.name,
+                "target_object_id": p.target_object_name,
+                "description_notes": p.description_notes,
+                "framing_notes": p.framing_notes,
+                "processing_notes": p.processing_notes,
+                "final_image_file": p.final_image_file,
+                "goals": p.goals,
+                "status": p.status,
+            } for p in projects
         ]
 
         # --- 2. Load Sessions ---
@@ -7824,7 +8041,69 @@ def graph_dashboard(object_name):
             flash(f"Object '{object_name}' not found in your configuration.", "error")
             return redirect(url_for('index'))
 
-        # --- START: Rich Text Migration Logic ---
+        # --- NEW: Project Details, Aggregated Stats, and Context Setup ---
+
+        # 1. Fetch the full Project record linked to this object
+        project_record = db.query(Project).filter_by(
+            user_id=user.id, target_object_name=object_name
+        ).order_by(Project.status).first()
+
+        # Initialize all required template variables (must be defined here)
+        project_id_for_this_object = None
+        project_name_for_this_object = "N/A"
+        project_data_for_template = {}
+        sessions_for_project = []
+        total_integration_str = "N/A"
+
+        # Define rich-text variables (defaults to empty string)
+        goals_html = ""
+        description_notes_html = ""
+        framing_notes_html = ""
+        processing_notes_html = ""
+
+        # Helper to sanitize rich text fields for display/editor initialization
+        # NOTE: This function needs bleach and CSSSanitizer which are already imported at the top of nova.py
+        def _sanitize_for_display(html_content):
+            if not html_content: return ""
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+            SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
+                        'margin-right']
+            css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+            return bleach.clean(html_content, tags=SAFE_TAGS, attributes=SAFE_ATTRS, css_sanitizer=css_sanitizer)
+
+        if project_record:
+            project_id_for_this_object = project_record.id
+            project_name_for_this_object = project_record.name
+
+            # 2. Calculate Combined Statistics (Aggregate Integration Time)
+            total_integration_minutes = db.query(
+                func.sum(JournalSession.calculated_integration_time_minutes)
+            ).filter_by(project_id=project_record.id).scalar() or 0
+
+            total_minutes = int(total_integration_minutes)
+            hours = total_minutes // 60
+            minutes = total_minutes % 60
+            total_integration_str = f"{hours}h {minutes}m"
+
+            # 3. Fetch all linked sessions eagerly for the history table
+            sessions_for_project_db = db.query(JournalSession).filter_by(
+                project_id=project_record.id
+            ).order_by(JournalSession.date_utc.desc()).all()
+
+            # Convert list of Session objects to list of dicts for template use
+            sessions_for_project = [{c.name: getattr(s, c.name) for c in s.__table__.columns}
+                                    for s in sessions_for_project_db]
+
+            # 4. Create a clean dict of the full project record for template access
+            project_data_for_template = {c.name: getattr(project_record, c.name)
+                                         for c in project_record.__table__.columns}
+
+            # 5. Prepare rich-text variables for the template context (using sanitation helper)
+            goals_html = _sanitize_for_display(project_data_for_template.get('goals'))
+            description_notes_html = _sanitize_for_display(project_data_for_template.get('description_notes'))
+            framing_notes_html = _sanitize_for_display(project_data_for_template.get('framing_notes'))
+            processing_notes_html = _sanitize_for_display(project_data_for_template.get('processing_notes'))
 
         raw_project_notes = obj_record.project_name or ""
 
@@ -8086,7 +8365,24 @@ def graph_dashboard(object_name):
 
                                # --- MODIFIED: Pass the new editor-ready HTML ---
                                project_notes_from_config=project_notes_for_editor,
-                               # --- END MODIFICATION ---
+
+                               # --- PROJECT DETAIL DATA (Resolves unresolved references) ---
+                               project_id_for_this_object=project_id_for_this_object,
+                               project_name_for_this_object=project_name_for_this_object,
+                               project=project_data_for_template,
+                               total_integration_str=total_integration_str,
+                               sessions=sessions_for_project,
+
+                               goals_html=goals_html,
+                               description_notes_html=description_notes_html,
+                               framing_notes_html=framing_notes_html,
+                               processing_notes_html=processing_notes_html,
+
+                               # Context for the form's dropdowns
+                               all_objects=db.query(AstroObject).filter_by(user_id=user.id).order_by(
+                                   AstroObject.object_name).all(),
+                               project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"],
+                               # --- END PROJECT DETAIL DATA ---
 
                                is_project_active=object_main_details.get('ActiveProject', False),
                                grouped_sessions=grouped_sessions_for_template,
