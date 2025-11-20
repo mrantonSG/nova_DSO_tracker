@@ -1,0 +1,193 @@
+<style>
+    /* Styles needed for this include file */
+    .project-container { display: flex; gap: 20px; align-items: flex-start; }
+    .project-side-column { flex: 0 0 320px; }
+    .project-main-column { flex: 1; }
+
+    .stat-box { padding: 15px; background-color: #e9ecef; border-radius: 6px; text-align: center; margin-bottom: 20px; }
+    .stat-value { font-size: 1.6em; font-weight: 600; color: #343a40; display: block; }
+    .stat-label { font-size: 0.8em; color: #6c757d; text-transform: uppercase; }
+
+    .final-image-container { margin-top: 20px; text-align: center; }
+    .final-image-container img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; }
+
+    .sessions-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+    .sessions-table th, .sessions-table td { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+    .sessions-table th { background-color: #f8f9fa; font-weight: 600; }
+    .sessions-table tr:hover { background-color: #f0f8ff; cursor: pointer; }
+
+    .notes-section { margin-top: 20px; padding: 15px; border: 1px solid #dee2e6; border-radius: 6px; background-color: #fff; }
+    .notes-section h3 { font-size: 1.2em; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; }
+    .notes-section .notes-content { padding: 5px; min-height: 50px; }
+
+    .form-group label { display: block; margin-bottom: 3px; font-weight: 600; font-size: 0.95em; color: #495057; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .form-group.trix-editor-container { margin-top: 15px; }
+
+    #project-edit-mode { display: none; } /* Start hidden */
+</style>
+
+<div id="project-story-container">
+    {% if not project_id_for_this_object %}
+        <p style="text-align:center; padding: 40px; color:#777;">This object is not currently linked to a Project. The **Project Details** sub-tab will only appear if the object is the primary target of an existing project.</p>
+    {% else %}
+        <button class="inline-button" id="edit-button-project" onclick="toggleProjectSubTabEdit(true)">Edit Project</button>
+
+        <div id="project-view-mode" style="padding: 0; margin-top: 20px; border: none; background: none;">
+            <h2 style="font-size: 1.5em; margin: 0 0 10px 0;">Project: {{ project_name_for_this_object }}</h2>
+            <div class="project-container">
+                <div class="project-side-column">
+                    <div class="stat-box">
+                        <span class="stat-value">{{ total_integration_str }}</span>
+                        <span class="stat-label">Total Integration Time</span>
+                    </div>
+
+                    <div class="stat-box">
+                        <span class="stat-value">{{ project.status }}</span>
+                        <span class="stat-label">Status</span>
+                    </div>
+
+                    <div class="stat-box">
+                        <span class="stat-value">{{ project.target_object_name or '-' }}</span>
+                        <span class="stat-label">Primary Target</span>
+                    </div>
+
+                    <div class="notes-section">
+                        <h3>Goals & Status</h3>
+                        <div class="notes-content">{{ goals_html | default('No goals set.', true) | safe }}</div>
+                    </div>
+
+                    {% if project.final_image_file %}
+                    <div class="final-image-container">
+                        {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
+                        <a href="{{ url_for('get_uploaded_image', username=image_username, filename=project.final_image_file) }}" target="_blank">
+                            <img src="{{ url_for('get_uploaded_image', username=image_username, filename=project.final_image_file) }}" alt="Final Project Image">
+                        </a>
+                        <span class="stat-label" style="margin-top:5px; display:block;">Final Image</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="project-main-column">
+                    <div class="notes-section">
+                        <h3>Project Story & Learnings</h3>
+                        <div class="notes-content">{{ description_notes_html | default('No project description added.', true) | safe }}</div>
+                    </div>
+
+                    <div class="notes-section">
+                        <h3>Framing Notes</h3>
+                        <div class="notes-content">{{ framing_notes_html | default('No framing notes added.', true) | safe }}</div>
+                    </div>
+
+                    <div class="notes-section">
+                        <h3>Processing Notes</h3>
+                        <div class="notes-content">{{ processing_notes_html | default('No processing workflow recorded.', true) | safe }}</div>
+                    </div>
+
+                    <div class="notes-section">
+                        <h3>Linked Sessions ({{ sessions|length }} nights)</h3>
+                        <table class="sessions-table">
+                            <thead>
+                                <tr>
+                                    <th>Date (UTC)</th>
+                                    <th>Location</th>
+                                    <th>Rating</th>
+                                    <th>Integ. Time</th>
+                                    <th>SQM</th>
+                                    <th>Seeing</th>
+                                    <th>Rig Snapshot</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in sessions %}
+                                <tr onclick='window.location.href="{{ url_for("graph_dashboard", object_name=session.object_name, session_id=session.id) }}&tab=journal"'>
+                                    <td>{{ session.date_utc | date_eu }}</td>
+                                    <td>{{ session.location_name or '-' }}</td>
+                                    <td>{{ session.session_rating_subjective or '-' }}{% if session.session_rating_subjective %} ★{% endif %}</td>
+                                    <td>{{ session.calculated_integration_time_minutes | round(0) or '-' }} min</td>
+                                    <td>{{ session.sky_sqm_observed or '-' }}</td>
+                                    <td>{{ session.seeing_observed_fwhm or '-' }}{% if session.seeing_observed_fwhm %}"{% endif %}</td>
+                                    <td>{{ session.rig_name_snapshot or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if not sessions %}
+                            <p style="text-align:center; color:#777;">No sessions have been linked to this project yet.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="project-edit-mode" style="padding: 0; margin-top: 20px; border: none; background: none;">
+            <form id="project-edit-form" method="POST" action="{{ url_for('project_detail', project_id=project_id_for_this_object) }}" enctype="multipart/form-data">
+
+                <div class="project-header" style="border-bottom: none; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 1.5em; margin: 0;">Editing Project: {{ project_name_for_this_object }}</h2>
+                    <div class="action-buttons">
+                        <button type="submit" class="inline-button" style="background-color:#28a745;">Save Project</button>
+                        <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="toggleProjectSubTabEdit(false)">Cancel</button>
+                    </div>
+                </div>
+
+                <div class="project-container">
+                    <div class="project-side-column">
+                        <div class="notes-section">
+                            <h3>Metadata</h3>
+                            <div class="form-group"><label for="project-name">Project Name:</label><input type="text" id="project-name" name="name" value="{{ project.name }}" required></div>
+                            <div class="form-group"><label for="target-object-id">Primary Target:</label>
+                                <select id="target-object-id" name="target_object_id">
+                                    <option value="">-- Select Primary Target --</option>
+                                    {% for obj in all_objects %}
+                                    <option value="{{ obj.object_name }}" {% if obj.object_name == project.target_object_name %}selected{% endif %}>{{ obj.common_name or obj.object_name }} ({{ obj.object_name }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group"><label for="project-status">Status:</label>
+                                <select id="project-status" name="status">
+                                    {% for status_option in project_statuses %}
+                                    <option value="{{ status_option }}" {% if status_option == project.status %}selected{% endif %}>{{ status_option }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group trix-editor-container"><label for="goals-editor-edit">Goals & Status:</label>
+                                <input type="hidden" id="goals-hidden" name="goals" value="{{ goals_html | safe }}">
+                                <trix-editor input="goals-hidden" id="goals-editor-edit" style="min-height: 100px;"></trix-editor>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <h3>Final Image</h3>
+                                {% if project.final_image_file %}
+                                    <p style="font-size:13px;">Current file: <code>{{ project.final_image_file }}</code></p>
+                                    <label style="color: #c0392b; cursor: pointer;"><input type="checkbox" name="delete_final_image" value="1"> Delete Current Image</label>
+                                    <hr class="detail-separator">
+                                {% endif %}
+                                <label for="final_image">Upload New Final Image (optional, max 5MB)</label>
+                                <input type="file" id="final_image" name="final_image" accept="image/jpeg, image/png, image/gif">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="project-main-column">
+                        <div class="notes-section form-group full-width trix-editor-container"><label for="description-editor-edit">Project Story & Learnings:</label>
+                            <input type="hidden" id="description-hidden" name="description_notes" value="{{ description_notes_html | safe }}">
+                            <trix-editor input="description-hidden" id="description-editor-edit" style="min-height: 150px;"></trix-editor>
+                        </div>
+
+                        <div class="notes-section form-group full-width trix-editor-container"><label for="framing-editor-edit">Framing Notes (Composition/FoV):</label>
+                            <input type="hidden" id="framing-hidden" name="framing_notes" value="{{ framing_notes_html | safe }}">
+                            <trix-editor input="framing-hidden" id="framing-editor-edit" style="min-height: 150px;"></trix-editor>
+                        </div>
+
+                        <div class="notes-section form-group full-width trix-editor-container"><label for="processing-editor-edit">Processing Notes & Workflow:</label>
+                            <input type="hidden" id="processing-hidden" name="processing_notes" value="{{ processing_notes_html | safe }}">
+                            <trix-editor input="processing-hidden" id="processing-editor-edit" style="min-height: 150px;"></trix-editor>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+</div>

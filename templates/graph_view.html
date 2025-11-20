@@ -923,62 +923,85 @@
 
 <div id="framing-tab" class="tab-content">
 
-    <div class="content-section project-notes-section">
-        <h3>Project Notes</h3>
-        <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
+    <div class="detail-tabs-container">
+        <button type="button" class="detail-tab-button active" data-tab="notes" onclick="showProjectSubTab('notes')">Notes & Overview</button>
+        <button type="button" class="detail-tab-button" data-tab="framing-scout" onclick="showProjectSubTab('framing-scout')">Framing & Rig Data</button>
+        <button type="button" class="detail-tab-button" data-tab="project-detail" onclick="showProjectSubTab('project-detail')" >Project Details</button>
+    </div>
 
-        <trix-editor input="project-field-hidden" id="project-field-editor"
-                     style="min-height: 150px; height: auto;"></trix-editor>
-        <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
-        <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
-            <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>
-            Active Project
-        </label>
-        <div class="button-group">
-            <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
-            <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
-            <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
+    <div id="notes-sub-tab" class="detail-tab-content active">
+        <div class="content-section project-notes-section">
+            {% if project_id_for_this_object %}
+                <h3>Project: <a href="javascript:void(0);" onclick="showProjectSubTab('project-detail')" style="color:#007bff; text-decoration:none;">{{ project_name_for_this_object }}</a></h3>
+                <p style="font-size:13px; color: #666; margin-top: -8px;">
+                    <a href="javascript:void(0);" onclick="showProjectSubTab('project-detail')" style="color:#28a745; text-decoration: none;">
+                        (Click here to manage project goals, final image, and view combined statistics.)
+                    </a>
+                </p>
+            {% else %}
+                <h3> Notes</h3>
+            {% endif %}
+
+            <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
+            <trix-editor input="project-field-hidden" id="project-field-editor"
+                         style="min-height: 150px; height: auto;"></trix-editor>
+
+            <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+            <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
+                <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>
+                Active Project
+            </label>
+            <div class="button-group">
+                <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
+                <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
+                <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
+            </div>
+            <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
         </div>
-        <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
     </div>
 
-    {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
-    <div class="content-section">
-        <h3>Framing With Your Rigs</h3>
-        <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
-        <table class="framing-table">
-            <thead>
-            <tr>
-                <th>Rig Name</th>
-                <th>Rig FOV</th>
-                <th>Object Size</th>
-                <th>Fit Assessment</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% set object_size = object_main_details.Size | float %}
-            {% for rig in available_rigs %}
-            {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
-            {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
-            {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
-            {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "#e74c3c" %}
-            {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "#f39c12" %}
-            {% else %}{% set fit_ratio = (object_size / fov_min) * 100 %}
-            {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "#9b59b6" %}
-            {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "#3498db" %}
-            {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "#2ecc71" %}{% endif %}{% endif %}
-            <tr>
-                <td><strong>{{ rig.rig_name }}</strong></td>
-                <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
-                <td>{{ object_size }}'</td>
-                <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
-            </tr>
-            {% endif %}{% endfor %}
-            </tbody>
-        </table>
+    <div id="framing-scout-sub-tab" class="detail-tab-content">
+        {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
+        <div class="content-section">
+            <h3>Framing With Your Rigs</h3>
+            <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
+            <table class="framing-table">
+                <thead>
+                <tr>
+                    <th>Rig Name</th>
+                    <th>Rig FOV</th>
+                    <th>Object Size</th>
+                    <th>Fit Assessment</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% set object_size = object_main_details.Size | float %}
+                {% for rig in available_rigs %}
+                {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
+                {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
+                {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
+                {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "#e74c3c" %}
+                {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "#f39c12" %}
+                {% else %}{% set fit_ratio = (object_size / fov_min) * 100 %}
+                {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "#9b59b6" %}
+                {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "#3498db" %}
+                {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "#2ecc71" %}{% endif %}{% endif %}
+                <tr>
+                    <td><strong>{{ rig.rig_name }}</strong></td>
+                    <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
+                    <td>{{ object_size }}'</td>
+                    <td style="color: {{ fit_color }}; font-weight: bold;">{{ fit_text }}</td>
+                </tr>
+                {% endif %}{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 
+    <div id="project-detail-sub-tab" class="detail-tab-content">
+        {% include '_project_subtab.html' %}
+    </div>
 </div>
 
 <div id="opportunities-tab" class="tab-content">
@@ -1112,136 +1135,157 @@
 </script>
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        /**
-         * Checks if the Stellarium Remote Control plugin is reachable and shows the
-         * "Open in Stellarium" button if it is.
-         */
-        async function checkStellariumStatus() {
-            // Get the button element
-            const stellariumButton = document.getElementById('open-in-stellarium');
-            if (!stellariumButton) return;
+    // Data object to pass server-side variables to the external script
+    window.NOVA_GRAPH_DATA = {
+        // CORRECTED LINES: Use 'tojson' filter and remove surrounding quotes
+        objectName: {{ object_name | tojson }},
+        altName: {{ alt_name | default(object_name, True) | tojson }},
+        plotLat: "{{ graph_lat_param | default('', True) }}",
+        plotLon: "{{ graph_lon_param | default('', True) }}",
+        plotTz: "{{ graph_tz_name_param | default('UTC', true) }}",
+        plotLocName: {{ header_location_name | tojson }},
 
-            // Get the API URL passed from the Python backend
-            const stellariumApiUrl = {{ stellarium_api_url_base | tojson }};
-
-            if (!stellariumApiUrl) {
-                console.log("Stellarium URL not configured.");
-                return;
-            }
-
-            // The status endpoint is a simple GET request endpoint, perfect for a health check.
-            const statusCheckUrl = `${stellariumApiUrl}/api/main/status`;
-
-            try {
-                // We use 'no-cors' mode because a simple check doesn't need the response body,
-                // and this avoids potential CORS issues if Stellarium's server is strict.
-                // A successful network request is enough to confirm it's running.
-                const response = await fetch(statusCheckUrl, { method: 'GET', mode: 'no-cors', signal: AbortSignal.timeout(2000) });
-
-                // If the fetch promise resolves without a network error, Stellarium is likely running.
-                console.log("Stellarium is reachable. Showing button.");
-                stellariumButton.style.display = 'inline-block'; // Make the button visible!
-
-            } catch (error) {
-                // This catch block will trigger on network errors (e.g., connection refused) or timeout.
-                console.log("Stellarium not reachable:", error.message);
-                // The button remains hidden, as intended.
-            }
-        }
-
-        // Run the check!
-        checkStellariumStatus();
-    });
+        // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
+        // 'null' is passed if the database has no value.
+        objectRADeg: {{ (object_main_details['RA (hours)'] * 15) if object_main_details['RA (hours)'] is not none else 'null' }},
+        objectDECDeg: {{ object_main_details['DEC (degrees)'] if object_main_details['DEC (degrees)'] is not none else 'null' }},
+        allObjects: {{ framing_objects | tojson }}
+    };
 </script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}"></script>
 <script>
-(function(){
-  const cb = document.getElementById('active-project-checkbox');
-  if (!cb) return;
-  cb.addEventListener('change', async (e) => {
+// --- Sub-Tab Control Logic ---
+function showProjectSubTab(tabName) {
+    document.querySelectorAll('#framing-tab .detail-tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('#framing-tab .detail-tab-button').forEach(button => button.classList.remove('active'));
 
-    // --- THIS IS THE FIX ---
-    // If the user is a guest, save the state to session storage but don't call the database
-    if (IS_GUEST_USER) {
-        const objectName = {{ object_name|tojson }};
-        sessionStorage.setItem(`nova_guest_active_${objectName}`, e.target.checked); // <-- THIS LINE IS ADDED
-        console.log(`Guest mode: Set ${objectName} active status to ${e.target.checked} (visual only)`);
-        return;
+    document.getElementById(tabName + '-sub-tab').classList.add('active');
+    document.querySelector(`#framing-tab .detail-tab-button[data-tab="${tabName}"]`).classList.add('active');
+
+    // Auto-select view mode when entering the project detail tab
+    if (tabName === 'project-detail') {
+        // Only run if a project is actually linked (i.e., the container exists)
+        if (document.getElementById('project-view-mode')) {
+            // Ensure View Mode is active (and edit mode is hidden)
+            toggleProjectSubTabEdit(false, true);
+        }
     }
-    // --- END OF FIX ---
+}
 
-    try {
-      const res = await fetch('/update_project_active', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ object: {{ object_name|tojson }}, active: e.target.checked })
-      });
-      const data = await res.json();
-      if (!res.ok || data.status !== 'success') {
-        alert('Failed to update Active Project: ' + (data.error || res.status));
-        e.target.checked = !e.target.checked; // revert on error
-      }
-    } catch (err) {
-      alert('Failed to update Active Project: ' + err);
-      e.target.checked = !e.target.checked; // revert on error
+// Trix helper for loading content into EDIT mode editors
+function loadTrixContentEdit(editorId, htmlContent) {
+    const editorElement = document.getElementById(editorId);
+    if (editorElement && editorElement.editor) {
+         editorElement.editor.loadHTML(htmlContent);
+    } else if (editorElement) {
+         const hiddenInput = document.getElementById(editorElement.getAttribute('input'));
+         if (hiddenInput) {
+             hiddenInput.value = htmlContent;
+         }
+         editorElement.addEventListener('trix-initialize', function() {
+             editorElement.editor.loadHTML(hiddenInput.value);
+         }, { once: true });
     }
-  });
-})();
+}
 
+// Toggle logic for the EDIT mode inside the Project Detail sub-tab
+function toggleProjectSubTabEdit(enable, justSwitchedTab = false) {
+    const viewMode = document.getElementById('project-view-mode');
+    const editMode = document.getElementById('project-edit-mode');
+    const editButton = document.getElementById('edit-button-project');
+
+    if (!viewMode || !editMode) return;
+
+    if (enable) {
+        // Switch to Edit Mode
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+        if (editButton) editButton.style.display = 'none';
+
+        // Ensure Trix editors are populated when entering edit mode
+        loadTrixContentEdit('goals-editor-edit', document.getElementById('goals-hidden').value);
+        loadTrixContentEdit('description-editor-edit', document.getElementById('description-hidden').value);
+        loadTrixContentEdit('framing-editor-edit', document.getElementById('framing-hidden').value);
+        loadTrixContentEdit('processing-editor-edit', document.getElementById('processing-hidden').value);
+
+    } else {
+        // Switch to View Mode
+        viewMode.style.display = 'block';
+        editMode.style.display = 'none';
+        if (editButton) editButton.style.display = 'inline-block';
+
+        // If canceling the edit, reload the page to discard unsaved changes and update the view data.
+        if (!justSwitchedTab) {
+            // We must clear the session ID to return to the correct view of the object's page
+            window.location.href = window.location.href.split('?')[0] + '?tab=framing';
+        }
+    }
+}
+
+
+// --- Main Initialization Block (DOMContentLoaded) ---
 document.addEventListener('DOMContentLoaded', (event) => {
+    // --- Existing Guest/Trix Setup ---
     if (IS_GUEST_USER) {
         const trixEditor = document.getElementById('project-field-editor');
         const saveButton = document.querySelector('button[onclick="saveProject()"]');
 
-        // Disable notes editor and save button for guests
         if (trixEditor) {
-            // Wait for the editor to be ready before disabling it
             trixEditor.addEventListener('trix-initialize', () => {
                 trixEditor.editor.element.setAttribute('disabled', 'true');
             });
         }
         if (saveButton) saveButton.style.display = 'none';
 
-        // --- ADD THIS PART: Restore checkbox state for guest ---
         const objectName = {{ object_name|tojson }};
         const storageKey = `nova_guest_active_${objectName}`;
         const savedState = sessionStorage.getItem(storageKey);
         const checkbox = document.getElementById('active-project-checkbox');
 
         if (checkbox && savedState !== null) {
-            // Convert stored string 'true'/'false' to boolean
             checkbox.checked = (savedState === 'true');
         }
     }
-    // Check for a 'tab' parameter in the URL first
+
+    // --- Project Edit Form Submission Handler (New Logic) ---
+    const editForm = document.getElementById('project-edit-form');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            // Update hidden inputs just before submission
+            document.getElementById('goals-hidden').value = document.getElementById('goals-editor-edit').value;
+            document.getElementById('description-hidden').value = document.getElementById('description-editor-edit').value;
+            document.getElementById('framing-hidden').value = document.getElementById('framing-editor-edit').value;
+            document.getElementById('processing-hidden').value = document.getElementById('processing-editor-edit').value;
+        });
+    }
+
+    // --- Tab Initialization ---
     const params = new URLSearchParams(window.location.search);
     const tabFromUrl = params.get('tab');
-
-    // Check local storage for the last used tab
     const lastTab = localStorage.getItem('lastActiveTab-{{ object_name|tojson }}');
-
-    // Determine which tab to show in order of priority:
-    // 1. Tab from URL (e.g., &tab=journal)
-    // 2. Last used tab from local storage
-    // 3. Default to 'chart'
     const tabToShow = tabFromUrl || lastTab || 'chart';
 
-    // Show the determined tab
     showTab(tabToShow);
+
+    // --- Initialize Project Notes Editor (Trix) ---
     const projectEditor = document.getElementById('project-field-editor');
     if (projectEditor) {
-        // When Trix is initialized and ready, load the HTML content.
         projectEditor.addEventListener('trix-initialize', () => {
-            // We pass the HTML content from Python to JS safely using the 'tojson' filter.
-            // This converts it to a valid JavaScript string, quotes and all.
             const projectHtml = {{ project_notes_from_config | tojson }};
             if (projectHtml) {
                 projectEditor.editor.loadHTML(projectHtml);
             }
         });
     }
+
+    // --- Initialize Project Sub-Tab ---
+    if (tabToShow === 'framing') {
+        showProjectSubTab('notes');
+    }
 });
 
+
+// --- Original Helper Functions ---
 let opportunitiesLoaded = false; // Flag to prevent multiple fetches
 let simbadLoaded = false; // Flag for SIMBAD iframe
 
@@ -1261,121 +1305,107 @@ function showTab(tabName) {
     if (tabName === 'simbad' && !simbadLoaded) {
         loadSimbadInfo();
     }
-}
 
-function loadSimbadInfo() {
-    if (simbadLoaded) return;
-
-    // --- ADD THIS CHECK ---
-    if (!navigator.onLine) {
-        // We have a helper function in the other JS file, so we can call it!
-        displayOfflineMessage('simbadContainer', 'SIMBAD requires an active internet connection to load data.');
-        simbadLoaded = true; // Mark as "loaded" to prevent re-triggering
-        return;
+    // If we switch to the main Framing tab, ensure the sub-tab defaults to 'notes'
+    if (tabName === 'framing') {
+        showProjectSubTab('notes');
     }
-    // --- END OF ADDED CHECK ---
-
-    const iframe = document.getElementById('simbadIframe');
-    const objectName = {{ object_name|tojson }};
-    iframe.src = `https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=${encodeURIComponent(objectName)}&submit=SIMBAD+search`;
-    simbadLoaded = true;
 }
+// ... (the rest of the original functions: loadSimbadInfo, loadImagingOpportunities) ...
+    function loadSimbadInfo() {
+        if (simbadLoaded) return;
 
-async function loadImagingOpportunities() {
-    if (opportunitiesLoaded) return; // Prevent multiple loads
-
-    const tableBody = document.getElementById('opportunities-body');
-    const objectName = {{ object_name|tojson }}; // Get object name from template
-
-    // Show loading indicator row
-    tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">Loading...</td></tr>';
-
-    try {
-        // --- START FIX ---
-        // Get plot location data stored globally on this page by the Python template
-        const plotLat = window.NOVA_GRAPH_DATA.plotLat;
-        const plotLon = window.NOVA_GRAPH_DATA.plotLon;
-        const plotTz = window.NOVA_GRAPH_DATA.plotTz;
-
-        // Create URL query parameters from the plot location data
-        const params = new URLSearchParams({
-            plot_lat: plotLat,
-            plot_lon: plotLon,
-            plot_tz: plotTz
-        });
-
-        // Construct the fetch URL including the object name and location parameters
-        const fetchUrl = `/get_imaging_opportunities/${encodeURIComponent(objectName)}?${params.toString()}`;
-        // --- END FIX ---
-
-        // Fetch data from the backend using the constructed URL
-        const response = await fetch(fetchUrl); // <-- Use the modified URL
-        if (!response.ok) {
-            // Throw error if response status is not OK (e.g., 404, 500)
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json(); // Parse the JSON response
-
-        // Clear the loading row
-        tableBody.innerHTML = '';
-
-        // Check the status field in the response data
-        if (data.status === 'success') {
-            if (data.results && data.results.length > 0) {
-                // If results exist, populate the table
-                data.results.forEach(opp => {
-                    const row = document.createElement('tr');
-
-                    // Make row clickable to navigate to that date's chart
-                    const [year, month, day] = opp.date.split('-');
-                    const url = `/graph_dashboard/${encodeURIComponent(objectName)}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart&location=${encodeURIComponent(window.NOVA_GRAPH_DATA.plotLocName || '')}`; // Include location in URL
-                    row.style.cursor = 'pointer';
-                    row.onclick = () => { window.location.href = url; };
-
-                    // Create URL for the "Add to Calendar" (.ics) link
-                    const icsUrl = new URL(`/generate_ics/${encodeURIComponent(objectName)}`, window.location.origin);
-                    icsUrl.searchParams.append('date', opp.date);
-                    icsUrl.searchParams.append('from_time', opp.from_time);
-                    icsUrl.searchParams.append('to_time', opp.to_time);
-                    icsUrl.searchParams.append('max_alt', opp.max_alt);
-                    icsUrl.searchParams.append('moon_illum', opp.moon_illumination);
-                    icsUrl.searchParams.append('obs_dur', opp.obs_minutes);
-                    // Pass the correct location parameters used for the calculation
-                    icsUrl.searchParams.append('lat', plotLat);
-                    icsUrl.searchParams.append('lon', plotLon);
-                    icsUrl.searchParams.append('tz', plotTz);
-
-                    // Populate row cells
-                    row.innerHTML = `
-                        <td>${new Date(opp.date + 'T00:00:00Z').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })}</td>
-                        <td>${opp.from_time}</td>
-                        <td>${opp.to_time}</td>
-                        <td>${opp.obs_minutes}</td>
-                        <td>${opp.max_alt}</td>
-                        <td>${opp.moon_illumination}</td>
-                        <td>${opp.moon_separation}</td>
-                        <td>${opp.rating}</td>
-                        <td><a href="${icsUrl.href}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" onclick="event.stopPropagation();">📅</a></td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+        if (!navigator.onLine) {
+            if (typeof displayOfflineMessage === 'function') {
+                displayOfflineMessage('simbadContainer', 'SIMBAD requires an active internet connection to load data.');
             } else {
-                // No opportunities found
-                tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
+                document.getElementById('simbadContainer').innerHTML = '<div class="offline-message" style="min-height: 400px;">SIMBAD requires an active internet connection.</div>';
             }
-            opportunitiesLoaded = true; // Mark as loaded
-        } else {
-            // Handle error status from backend
-            tableBody.innerHTML = `<tr><td colspan="9">Error loading opportunities: ${data.message || 'Unknown error'}</td></tr>`;
-             opportunitiesLoaded = true; // Also mark loaded on error to prevent loops
+            simbadLoaded = true;
+            return;
         }
-    } catch (error) {
-        // Handle fetch errors (network, parsing)
-        console.error('Error fetching imaging opportunities:', error);
-        tableBody.innerHTML = `<tr><td colspan="9">Failed to load imaging opportunities. Check console for details. (${error.message})</td></tr>`;
-         opportunitiesLoaded = true; // Also mark loaded on error
-    }
-}
 
+        const iframe = document.getElementById('simbadIframe');
+        const objectName = {{ object_name|tojson }};
+        iframe.src = `https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=${encodeURIComponent(objectName)}&submit=SIMBAD+search`;
+        simbadLoaded = true;
+    }
+
+    async function loadImagingOpportunities() {
+        if (opportunitiesLoaded) return;
+
+        const tableBody = document.getElementById('opportunities-body');
+        const objectName = {{ object_name|tojson }};
+
+        tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">Loading...</td></tr>';
+
+        try {
+            const plotLat = window.NOVA_GRAPH_DATA.plotLat;
+            const plotLon = window.NOVA_GRAPH_DATA.plotLon;
+            const plotTz = window.NOVA_GRAPH_DATA.plotTz;
+
+            const params = new URLSearchParams({
+                plot_lat: plotLat,
+                plot_lon: plotLon,
+                plot_tz: plotTz
+            });
+
+            const fetchUrl = `/get_imaging_opportunities/${encodeURIComponent(objectName)}?${params.toString()}`;
+
+            const response = await fetch(fetchUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+
+            tableBody.innerHTML = '';
+
+            if (data.status === 'success') {
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(opp => {
+                        const row = document.createElement('tr');
+                        const [year, month, day] = opp.date.split('-');
+                        const url = `/graph_dashboard/${encodeURIComponent(objectName)}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart&location=${encodeURIComponent(window.NOVA_GRAPH_DATA.plotLocName || '')}`;
+                        row.style.cursor = 'pointer';
+                        row.onclick = () => { window.location.href = url; };
+
+                        const icsUrl = new URL(`/generate_ics/${encodeURIComponent(objectName)}`, window.location.origin);
+                        icsUrl.searchParams.append('date', opp.date);
+                        icsUrl.searchParams.append('from_time', opp.from_time);
+                        icsUrl.searchParams.append('to_time', opp.to_time);
+                        icsUrl.searchParams.append('max_alt', opp.max_alt);
+                        icsUrl.searchParams.append('moon_illum', opp.moon_illumination);
+                        icsUrl.searchParams.append('obs_dur', opp.obs_minutes);
+                        icsUrl.searchParams.append('lat', plotLat);
+                        icsUrl.searchParams.append('lon', plotLon);
+                        icsUrl.searchParams.append('tz', plotTz);
+
+                        row.innerHTML = `
+                            <td>${new Date(opp.date + 'T00:00:00Z').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })}</td>
+                            <td>${opp.from_time}</td>
+                            <td>${opp.to_time}</td>
+                            <td>${opp.obs_minutes}</td>
+                            <td>${opp.max_alt}</td>
+                            <td>${opp.moon_illumination}</td>
+                            <td>${opp.moon_separation}</td>
+                            <td>${opp.rating}</td>
+                            <td><a href="${icsUrl.href}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" onclick="event.stopPropagation();">📅</a></td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
+                }
+                opportunitiesLoaded = true;
+            } else {
+                tableBody.innerHTML = `<tr><td colspan="9">Error loading opportunities: ${data.message || 'Unknown error'}</td></tr>`;
+                opportunitiesLoaded = true;
+            }
+        } catch (error) {
+            console.error('Error fetching imaging opportunities:', error);
+            tableBody.innerHTML = `<tr><td colspan="9">Failed to load imaging opportunities. Check console for details. (${error.message})</td></tr>`;
+            opportunitiesLoaded = true;
+        }
+    }
 </script>
 {% endblock %}
