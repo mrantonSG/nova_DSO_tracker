@@ -5213,6 +5213,9 @@ def journal_add():
                 db.add(new_project)
                 db.flush()
                 project_id_for_session = new_project.id
+                target_object_id = request.form.get("target_object_id", "").strip()
+                if target_object_id:
+                    new_project.target_object_name = target_object_id
             elif project_selection and project_selection not in ["standalone", "new_project"]:
                 project_id_for_session = project_selection
 
@@ -5469,13 +5472,27 @@ def journal_edit(session_id):
             project_id_for_session = None
             project_selection = request.form.get("project_selection")
             new_project_name = request.form.get("new_project_name", "").strip()
+
+            # The object being viewed/edited (use this consistently)
+            target_object_id = session_to_edit.object_name
+
             if project_selection == "new_project" and new_project_name:
                 new_project = Project(id=uuid.uuid4().hex, user_id=user.id, name=new_project_name)
                 db.add(new_project)
                 db.flush()
                 project_id_for_session = new_project.id
+
+                # Link the NEW project to the object
+                if target_object_id:
+                    new_project.target_object_name = target_object_id
+
             elif project_selection and project_selection not in ["standalone", "new_project"]:
                 project_id_for_session = project_selection
+
+                # Link the EXISTING project to the object
+                project_to_link = db.query(Project).filter_by(id=project_id_for_session, user_id=user.id).one_or_none()
+                if project_to_link and target_object_id:
+                    project_to_link.target_object_name = target_object_id
 
             session_to_edit.project_id = project_id_for_session
 
@@ -7846,20 +7863,12 @@ def update_project():
             did_change_active_status = False
 
             # --- START OF FIX ---
-
             # Only update notes if the 'project' key was sent
             if 'project' in data:
                 new_project_notes_html = data.get('project')
                 obj_to_update.project_name = new_project_notes_html
 
-            # Only update 'active_project' if the 'is_active' key was sent
-            if 'is_active' in data:
-                new_is_active = bool(data.get('is_active'))
-                # Check if the status is actually changing
-                if obj_to_update.active_project != new_is_active:
-                    obj_to_update.active_project = new_is_active
-                    did_change_active_status = True
-
+            # The old logic to check/set 'is_active' is permanently REMOVED here.
             # --- END OF FIX ---
 
             db.commit()
@@ -7871,6 +7880,7 @@ def update_project():
             return jsonify({"status": "success"})
         else:
             return jsonify({"status": "error", "error": "Object not found."}), 404
+
     except Exception as e:
         db.rollback()
         return jsonify({"status": "error", "error": str(e)}), 500
