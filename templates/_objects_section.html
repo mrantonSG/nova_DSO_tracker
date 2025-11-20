@@ -66,6 +66,13 @@
         display: inline-block;
         line-height: 1.5;
     }
+    /* NEW STYLE: Ensure checkbox scale is consistent */
+    .objects-list .inline-fields input[type="checkbox"] {
+        transform: scale(1.5);
+        transform-origin: center left;
+        margin-top: 0;
+        margin-right: 5px;
+    }
 </style>
 
 <div class="config-section" style="padding-top: 1em;">
@@ -176,6 +183,12 @@
                         <div>
                             <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
                         </div>
+
+                        <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
+                            <label class="short-label" for="active_project_{{ obj.Object }}">Active Project:</label>
+                            <input type="checkbox" name="active_project_{{ obj.Object }}" id="active_project_{{ obj.Object }}"
+                                   {% if obj.ActiveProject %}checked{% endif %}>
+                        </div>
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
                             <button type="button" class="action-button update-single-object-btn" data-object-id="{{ obj.Object | e }}">Update</button>
                             <span class="update-status-msg" data-object-id="{{ obj.Object | e }}" style="font-style: italic; color: #28a745; font-size: 13px; white-space: nowrap;"></span>
@@ -263,6 +276,11 @@
                   <label class="short-label" for="new_sb">SB:</label>
                   <input type="number" name="new_sb" id="new_sb" class="short" step="0.01" placeholder="22.5">
                 </div>
+              </div>
+
+              <div class="share-control" style="margin-top: 10px; margin-left: 15px;">
+                  <input type="checkbox" name="new_is_active" id="new_is_active" checked>
+                  <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">Active Project</label>
               </div>
               <div>
                   <button id="submit_new_object" type="button" class="action-button">Search</button>
@@ -383,8 +401,8 @@
         if (match) return `TGU H${match[2]}`;
 
         // LHA 120-N 70 -> LHA120N70
-        match = nameStr.match(/^(LHA)(\d+)(N\d+)$/);
-        if (match) return `LHA ${match[2]}-N ${match[3]}`;
+        match = nameStr.match(/^(LHA)(\d+)(N)(\d+)$/); /* FIXED REGEX HERE */
+        if (match) return `LHA ${match[2]}-N ${match[4]}`; /* FIXED REPLACEMENT HERE */
 
         // SNR G180.0-01.7 -> SNRG180.001.7
         match = nameStr.match(/^(SNRG)(\d+\.\d+)(\d+\.\d+)$/);
@@ -583,6 +601,11 @@
             }
         });
 
+        // --- NEW: Reset new_is_active checkbox ---
+        const newIsActive = document.getElementById('new_is_active');
+        if (newIsActive) newIsActive.checked = true; // Default to checked
+        // --- END NEW ---
+
         const newProjectEditor = document.getElementById('new_project_editor');
         if (newProjectEditor) newProjectEditor.editor.loadHTML('');
 
@@ -667,6 +690,11 @@
                         document.getElementById('new_size').value = data.Size || '';
                         document.getElementById('new_sb').value = data.SB || '';
 
+                        // --- NEW: Populate Active Project state ---
+                        const isActive = data.ActiveProject || false;
+                        document.getElementById('new_is_active').checked = isActive;
+                        // --- END NEW ---
+
                         // Populate Trix editors with local notes
                         const projectEditor = document.getElementById('new_project_editor');
                         if (projectEditor) projectEditor.editor.loadHTML(data.Project || '');
@@ -706,6 +734,10 @@
                           document.getElementById('new_constellation').value = data.data["Constellation"] || '';
                           ['new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
 
+                          // --- NEW: Set Active Project state for SIMBAD data (default true) ---
+                          document.getElementById('new_is_active').checked = true;
+                          // --- END NEW ---
+
                           resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
                           return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
                         })
@@ -732,7 +764,7 @@
                           });
                           submitNewObjectBtn.style.display = 'none';
                           // Unlock all fields for manual entry
-                          ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
+                          ['new_name', 'new_ra', 'new_dec', 'new_constellation', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared', 'new_is_active'].forEach(id => {
                               const el = document.getElementById(id);
                               if(el) el.readOnly = false;
                           });
@@ -760,7 +792,10 @@
                         constellation: document.getElementById('new_constellation').value,
                         sb: document.getElementById('new_sb').value,
                         shared_notes: document.getElementById('new_shared_notes_hidden') ? document.getElementById('new_shared_notes_hidden').value : '',
-                        is_shared: document.getElementById('new_is_shared') ? document.getElementById('new_is_shared').checked : false
+                        is_shared: document.getElementById('new_is_shared') ? document.getElementById('new_is_shared').checked : false,
+                        // --- NEW: Include Active Project Status ---
+                        is_active: document.getElementById('new_is_active') ? document.getElementById('new_is_active').checked : false
+                        // --- END NEW ---
                     };
 
                     fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -773,7 +808,7 @@
             if (editObjectBtn) {
                 editObjectBtn.addEventListener('click', e => {
                     e.preventDefault();
-                    ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared'].forEach(id => {
+                    ['new_name', 'new_ra', 'new_dec', 'new_type', 'new_magnitude', 'new_size', 'new_sb', 'new_project_hidden', 'new_object', 'new_shared_notes_hidden', 'new_is_shared', 'new_is_active'].forEach(id => {
                         const el = document.getElementById(id);
                         if(el) el.readOnly = false;
                     });
@@ -809,6 +844,12 @@
                         let sharedNotesHtml = '';
                         let isShared = false;
 
+                        // --- NEW: Get Active Project State ---
+                        let isActive = false;
+                        const isActiveCheckbox = document.getElementById(`active_project_${objectId}`);
+                        if (isActiveCheckbox) isActive = isActiveCheckbox.checked;
+                        // --- END NEW ---
+
                         const sharedInputEl = document.getElementById(`shared_notes_${objectId}_hidden`);
                         if (sharedInputEl) sharedNotesHtml = sharedInputEl.value;
 
@@ -827,7 +868,10 @@
                             sb: document.getElementById(`sb_${objectId}`).value,
                             project_notes: projectHtml,
                             shared_notes: sharedNotesHtml,
-                            is_shared: isShared
+                            is_shared: isShared,
+                            // --- NEW: Include Active Project Status ---
+                            is_active: isActive
+                            // --- END NEW ---
                         };
 
                         fetch("{{ url_for('update_object') }}", {

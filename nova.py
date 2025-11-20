@@ -6844,7 +6844,7 @@ def update_object():
         obj.magnitude = data.get('magnitude')
         obj.size = data.get('size')
         obj.sb = data.get('sb')
-
+        obj.active_project = data.get('is_active')
         # Update notes (JS sends the raw HTML from Trix)
         obj.project_name = data.get('project_notes')
 
@@ -7744,21 +7744,31 @@ def config_form():
 
             # --- Update Existing Objects ---
             elif 'submit_objects' in request.form:
+                # 1. Fetch all objects for the current user
                 objs_to_update = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+
+                # 2. Loop through each object and process its form data
                 for obj in objs_to_update:
+                    # Handle deletion first
                     if request.form.get(f"delete_{obj.object_name}") == "on":
                         db.delete(obj);
                         continue
 
+                    # Update standard fields
                     obj.common_name = request.form.get(f"name_{obj.object_name}")
                     obj.ra_hours = float(request.form.get(f"ra_{obj.object_name}"))
                     obj.dec_deg = float(request.form.get(f"dec_{obj.object_name}"))
                     obj.constellation = request.form.get(f"constellation_{obj.object_name}")
-                    obj.project_name = request.form.get(f"project_{obj.object_name}") # Private notes
+                    obj.project_name = request.form.get(f"project_{obj.object_name}")  # Private notes
                     obj.type = request.form.get(f"type_{obj.object_name}")
                     obj.magnitude = request.form.get(f"magnitude_{obj.object_name}")
                     obj.size = request.form.get(f"size_{obj.object_name}")
                     obj.sb = request.form.get(f"sb_{obj.object_name}")
+
+                    # --- START NEW LOGIC ---
+                    # Update the 'ActiveProject' status based on the checkbox being 'on'
+                    obj.active_project = request.form.get(f"active_project_{obj.object_name}") == "on"
+                    # --- END NEW LOGIC ---
 
                     if not obj.original_user_id:
                         obj.is_shared = request.form.get(f"is_shared_{obj.object_name}") == "on"
