@@ -1223,6 +1223,47 @@ function toggleProjectSubTabEdit(enable, justSwitchedTab = false) {
 }
 
 
+// --- Active Project Checkbox Handler (The Fix) ---
+(function(){
+  const cb = document.getElementById('active-project-checkbox');
+  if (!cb) return;
+  cb.addEventListener('change', async (e) => {
+
+    const objectName = {{ object_name|tojson }};
+    const isActive = e.target.checked;
+
+    // 1. Handle Guest User (visual/session-only update)
+    if (IS_GUEST_USER) {
+        sessionStorage.setItem(`nova_guest_active_${objectName}`, isActive);
+        console.log(`Guest mode: Set ${objectName} active status to ${isActive} (visual/session only)`);
+        return;
+    }
+
+    // 2. Handle Authenticated User (API call to database)
+    try {
+      const res = await fetch('/update_project_active', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // This dedicated endpoint updates *only* the active_project flag in the database
+        body: JSON.stringify({ object: objectName, active: isActive })
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.status !== 'success') {
+        alert('Failed to update Active Project: ' + (data.error || res.status));
+        e.target.checked = !e.target.checked; // Revert the checkbox on API error
+      } else {
+          console.log(`Successfully updated Active Project status for ${objectName} to ${isActive}`);
+      }
+    } catch (err) {
+      alert('Failed to update Active Project: ' + err);
+      e.target.checked = !e.target.checked; // Revert the checkbox on network error
+    }
+  });
+})();
+// --- End Active Project Checkbox Handler ---
+
+
 // --- Main Initialization Block (DOMContentLoaded) ---
 document.addEventListener('DOMContentLoaded', (event) => {
     // --- Existing Guest/Trix Setup ---
