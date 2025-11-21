@@ -8556,6 +8556,50 @@ def get_imaging_opportunities(object_name):
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
 
 
+@app.route('/project/report_page/<string:project_id>')
+@login_required
+def show_project_report_page(project_id):
+    db = get_db()
+    try:
+        # 1. Fetch Project
+        project = db.query(Project).filter_by(id=project_id, user_id=g.db_user.id).one_or_none()
+        if not project:
+            return "Project not found", 404
+
+        # 2. Fetch Sessions
+        sessions = db.query(JournalSession).filter_by(project_id=project.id).order_by(
+            JournalSession.date_utc.asc()).all()
+
+        # 3. Calculate Stats
+        total_min = sum(s.calculated_integration_time_minutes or 0 for s in sessions)
+        hours = int(total_min) // 60
+        mins = int(total_min) % 60
+        total_integration = f"{hours}h {mins}m"
+
+        first_date = sessions[0].date_utc.strftime('%d.%m.%Y') if sessions else "-"
+        last_date = sessions[-1].date_utc.strftime('%d.%m.%Y') if sessions else "-"
+
+        # 4. Prepare Image
+        project_image_url = None
+        if project.final_image_file:
+            username = "default" if SINGLE_USER_MODE else current_user.username
+            project_image_url = url_for('get_uploaded_image', username=username, filename=project.final_image_file,
+                                        _external=True)
+
+        return render_template(
+            'project_report.html',
+            project=project,
+            sessions=sessions,
+            total_integration=total_integration,
+            session_count=len(sessions),
+            first_date=first_date,
+            last_date=last_date,
+            project_image_url=project_image_url,
+            today_date=datetime.now().strftime('%d.%m.%Y')
+        )
+    finally:
+        db.close()
+
 @app.route('/project/delete/<string:project_id>', methods=['POST'])
 @login_required
 def delete_project(project_id):

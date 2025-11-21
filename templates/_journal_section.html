@@ -344,7 +344,7 @@
                         <div class="report-preview-container">
                             <div class="report-toolbar">
                                 <button type="button" class="inline-button" style="background-color:#007bff;"
-                                        onclick="downloadVisibleReport('Nova_Report_{{ object_name | replace(' ', '_') }}_{{ entry.date_utc }}.pdf', this)">
+                                        onclick="downloadVisibleReport('Nova_Report_{{ object_name | replace(' ', '_') }}_{{ entry.date_utc }}.pdf', this, 'report-preview-frame')">
                                     Download PDF
                                 </button>
                             </div>
@@ -368,58 +368,77 @@
                         </div>
                     </div>
 
-                    <div id="journal-project-view-mode" class="journal-project-container">
-                        <div style="display: flex; gap: 15px;">
-                            <div style="flex: 1;">
-                                <div class="journal-project-stat-box">
-                                    <span class="journal-project-stat-value">{{ total_integration_str_journal }}</span>
-                                    <span class="journal-project-stat-label">Total Integration</span>
+                    <div class="detail-tabs-container view-mode">
+                        <button type="button" class="detail-tab-button project-tab-btn active" data-ptab="overview" onclick="showProjectTab('overview')">Overview</button>
+                        <button type="button" class="detail-tab-button project-tab-btn" data-ptab="report" onclick="showProjectTab('report')">Project Report</button>
+                    </div>
+
+                    <div id="project-overview-tab" class="project-tab-content" style="display:block;">
+                        <div id="journal-project-view-mode" class="journal-project-container">
+                            <div style="display: flex; gap: 15px;">
+                                <div style="flex: 1;">
+                                    <div class="journal-project-stat-box">
+                                        <span class="journal-project-stat-value">{{ total_integration_str_journal }}</span>
+                                        <span class="journal-project-stat-label">Total Integration</span>
+                                    </div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="journal-project-stat-box">
+                                        <span class="journal-project-stat-value">{{ selected_project_data_journal.status }}</span>
+                                        <span class="journal-project-stat-label">Status</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div style="flex: 1;">
-                                <div class="journal-project-stat-box">
-                                    <span class="journal-project-stat-value">{{ selected_project_data_journal.status }}</span>
-                                    <span class="journal-project-stat-label">Status</span>
-                                </div>
+
+                            <div class="journal-project-notes-section">
+                                <h3>Goals & Status</h3>
+                                <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals set.', true) | safe }}</div>
                             </div>
-                        </div>
 
-                        <div class="journal-project-notes-section">
-                            <h3>Goals & Status</h3>
-                            <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals set.', true) | safe }}</div>
-                        </div>
+                            {% if selected_project_data_journal.final_image_file %}
+                            <div style="margin-top: 10px; text-align: left;">
+                                {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
+                                <a href="{{ url_for('get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}" target="_blank">
+                                    <img src="{{ url_for('get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}"
+                                         alt="Final Project Image"
+                                         style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain; margin: 0;">
+                                </a>
+                                <span class="journal-project-stat-label" style="margin-top:5px; display:block;">Final Image</span>
+                            </div>
+                            {% endif %}
 
-                        {% if selected_project_data_journal.final_image_file %}
-                        <div style="margin-top: 10px; text-align: left;">
-                            {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
-                            <a href="{{ url_for('get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}" target="_blank">
-                                <img src="{{ url_for('get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}"
-                                     alt="Final Project Image"
-                                     style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain; margin: 0;">
-                            </a>
-                            <span class="journal-project-stat-label" style="margin-top:5px; display:block;">Final Image</span>
-                        </div>
-                        {% endif %}
+                            <div class="journal-project-notes-section">
+                                <h3>Project Story & Learnings</h3>
+                                <div class="notes-content">{{ project_journal_html_fields.description | default('No description added.', true) | safe }}</div>
+                            </div>
 
-                        <div class="journal-project-notes-section">
-                            <h3>Project Story & Learnings</h3>
-                            <div class="notes-content">{{ project_journal_html_fields.description | default('No description added.', true) | safe }}</div>
-                        </div>
+                            <div class="journal-project-notes-section">
+                                <h3>Framing Notes</h3>
+                                <div class="notes-content">{{ project_journal_html_fields.framing | default('No framing notes added.', true) | safe }}</div>
+                            </div>
 
-                        <div class="journal-project-notes-section">
-                            <h3>Framing Notes</h3>
-                            <div class="notes-content">{{ project_journal_html_fields.framing | default('No framing notes added.', true) | safe }}</div>
-                        </div>
-
-                        <div class="journal-project-notes-section">
-                            <h3>Processing Notes</h3>
-                            <div class="notes-content">{{ project_journal_html_fields.processing | default('No processing workflow recorded.', true) | safe }}</div>
+                            <div class="journal-project-notes-section">
+                                <h3>Processing Notes</h3>
+                                <div class="notes-content">{{ project_journal_html_fields.processing | default('No processing workflow recorded.', true) | safe }}</div>
+                            </div>
                         </div>
                     </div>
 
-                    {# --- EDIT MODE: PROJECT --- #}
+                    <div id="project-report-tab" class="project-tab-content" style="display:none;">
+                        <div class="report-preview-container">
+                            <div class="report-toolbar">
+                                <button type="button" class="inline-button" style="background-color:#007bff;"
+                                        onclick="downloadVisibleReport('Nova_Project_{{ selected_project_data_journal.name | replace(' ', '_') }}.pdf', this, 'project-report-frame')">
+                                    Download PDF
+                                </button>
+                            </div>
+                            <iframe id="project-report-frame" data-src="{{ url_for('show_project_report_page', project_id=selected_project_data_journal.id) }}" class="report-iframe"></iframe>
+                        </div>
+                    </div>
+
+                    {# --- EDIT MODE: PROJECT (Unchanged, just kept in correct nesting) --- #}
                     <div id="journal-project-edit-mode" style="display:none;">
-                        <form id="journal-project-edit-form" method="POST"
+                       <form id="journal-project-edit-form" method="POST"
                               action="{{ url_for('project_detail', project_id=selected_project_data_journal.id, next=request.url) }}"
                               enctype="multipart/form-data">
 
@@ -434,9 +453,7 @@
                             <div class="journal-project-notes-section">
                                 <h3>Metadata</h3>
                                 <div class="form-group"><label for="project-name">Project Name:</label><input type="text" id="project-name" name="name" value="{{ selected_project_data_journal.name }}" required></div>
-
                                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
-
                                 <div class="form-group"><label for="project-status">Status:</label>
                                     <select id="project-status" name="status">
                                         {% for status_option in project_statuses %}
@@ -556,17 +573,25 @@
 </div>
 
 <script>
-    // --- MODIFIED PDF FUNCTION for PREVIEW MODE ---
-    function downloadVisibleReport(defaultFilename, buttonElement) {
+    // --- MODIFIED PDF FUNCTION (Accepts iframeId) ---
+    function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
             alert('PDF libraries missing.');
             return;
         }
 
-        // Find the visible iframe in the report tab
-        const iframe = document.getElementById('report-preview-frame');
-        if (!iframe || !iframe.contentWindow) {
-            alert("Report preview not loaded. Please switch to the Report tab first.");
+        // Find the specific iframe passed in the arguments
+        const iframe = document.getElementById(iframeId);
+
+        if (!iframe) {
+             console.error("Iframe not found with ID:", iframeId);
+             alert("Error: Report frame not found.");
+             return;
+        }
+
+        // Check if content is loaded
+        if (!iframe.contentWindow || iframe.contentWindow.document.readyState !== 'complete') {
+            alert("Report is still loading. Please wait a moment and try again.");
             return;
         }
 
@@ -575,8 +600,12 @@
         buttonElement.disabled = true;
 
         try {
-            const reportContent = iframe.contentWindow.document.getElementById('report-content');
-            if (!reportContent) throw new Error('Could not find report content.');
+            const doc = iframe.contentWindow.document;
+            const reportContent = doc.getElementById('report-content');
+
+            if (!reportContent) {
+                throw new Error('Could not find report content in the frame.');
+            }
 
             html2canvas(reportContent, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
                 const { jsPDF } = window.jspdf;
@@ -867,4 +896,30 @@
             showDetailTab('summary');
         }
     });
+
+// --- New function for Project Detail Tabs ---
+    function showProjectTab(tabName) {
+        // 1. Hide all content divs
+        document.querySelectorAll('.project-tab-content').forEach(el => el.style.display = 'none');
+
+        // 2. Remove active class from buttons
+        document.querySelectorAll('.project-tab-btn').forEach(el => el.classList.remove('active'));
+
+        // 3. Show selected content
+        const content = document.getElementById(`project-${tabName}-tab`);
+        if (content) content.style.display = 'block';
+
+        // 4. Activate button
+        const btn = document.querySelector(`.project-tab-btn[data-ptab="${tabName}"]`);
+        if (btn) btn.classList.add('active');
+
+        // 5. Lazy load report iframe if needed
+        if (tabName === 'report') {
+            const iframe = document.getElementById('project-report-frame');
+            if (iframe && !iframe.src && iframe.dataset.src) {
+                iframe.src = iframe.dataset.src;
+            }
+        }
+    }
+
 </script>
