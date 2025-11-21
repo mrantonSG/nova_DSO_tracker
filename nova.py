@@ -4654,7 +4654,7 @@ def project_detail(project_id):
         # --- Aggregated Statistics ---
         total_integration_minutes = db.query(
             func.sum(JournalSession.calculated_integration_time_minutes)
-        ).filter_by(project_id=project_id).scalar() or 0
+        ).filter_by(project_id=project_id, user_id=g.db_user.id).scalar() or 0
 
         # Format integration time (e.g., 10h 30m)
         total_minutes = int(total_integration_minutes)
@@ -5674,7 +5674,10 @@ def show_journal_report_page(session_id):
                                 _external=True)
             image_source_label = "Project Context (Final Image)"
 
-        image_url = None
+        # [DELETED THE DUPLICATE LOGIC BLOCK HERE]
+
+        logo_url = None
+
         if session_dict.get('session_image_file'):
             username = "default" if SINGLE_USER_MODE else current_user.username
             image_url = url_for('get_uploaded_image', username=username, filename=session_dict['session_image_file'],
@@ -8189,7 +8192,7 @@ def graph_dashboard(object_name):
                 # Calculate total integration
                 total_int_min = db.query(
                     func.sum(JournalSession.calculated_integration_time_minutes)
-                ).filter_by(project_id=selected_project_data_journal.id).scalar() or 0
+                ).filter_by(project_id=selected_project_data_journal.id, user_id=user.id).scalar() or 0
                 total_minutes = int(total_int_min)
                 total_integration_str_journal = f"{total_minutes // 60}h {total_minutes % 60}m"
 
