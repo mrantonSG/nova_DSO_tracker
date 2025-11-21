@@ -924,35 +924,29 @@
 <div id="framing-tab" class="tab-content">
 
     <div class="detail-tabs-container">
-        <button type="button" class="detail-tab-button active" data-tab="notes" onclick="showProjectSubTab('notes')">Notes & Overview</button>
-        <button type="button" class="detail-tab-button" data-tab="framing-scout" onclick="showProjectSubTab('framing-scout')">Framing & Rig Data</button>
-        <button type="button" class="detail-tab-button" data-tab="project-detail" onclick="showProjectSubTab('project-detail')" >Project Details</button>
+        <button type="button" class="detail-tab-button active" data-tab="notes" onclick="showProjectSubTab('notes')">Notes & Framing</button>
+        <button type="button" class="detail-tab-button" data-tab="framing-scout" onclick="showProjectSubTab('framing-scout')">Rig Data</button>
     </div>
 
     <div id="notes-sub-tab" class="detail-tab-content active">
         <div class="content-section project-notes-section">
-            {% if project_id_for_this_object %}
-                <h3>Project: <a href="javascript:void(0);" onclick="showProjectSubTab('project-detail')" style="color:#007bff; text-decoration:none;">{{ project_name_for_this_object }}</a></h3>
-                <p style="font-size:13px; color: #666; margin-top: -8px;">
-                    <a href="javascript:void(0);" onclick="showProjectSubTab('project-detail')" style="color:#28a745; text-decoration: none;">
-                        (Click here to manage project goals, final image, and view combined statistics.)
-                    </a>
-                </p>
-            {% else %}
-                <h3> Notes</h3>
-            {% endif %}
+            <h3>{{ alt_name | default(object_name, True) }} - Notes</h3>
 
             <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
             <trix-editor input="project-field-hidden" id="project-field-editor"
                          style="min-height: 150px; height: auto;"></trix-editor>
 
             <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
-            <label style="display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px;">
-                <input type="checkbox" id="active-project-checkbox" {% if is_project_active %}checked{% endif %}>
-                Active Project
-            </label>
-            <div class="button-group">
-                <button class="inline-button" onclick="saveProject()">Save Project Notes</button>
+
+            <div style="margin-top: 15px; margin-bottom: 5px;">
+                <label style="font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: #333;">
+                    <input type="checkbox" id="active-project-checkbox" style="transform: scale(1.3);"
+                           {% if object_main_details.ActiveProject %}checked{% endif %}>
+                    Active Project
+                </label>
+            </div>
+            <div class="button-group" style="margin-top: 15px;">
+                <button class="inline-button" onclick="saveProject()">Save Notes</button>
                 <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
                 <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
             </div>
@@ -997,10 +991,6 @@
             </table>
         </div>
         {% endif %}
-    </div>
-
-    <div id="project-detail-sub-tab" class="detail-tab-content">
-        {% include '_project_subtab.html' %}
     </div>
 </div>
 

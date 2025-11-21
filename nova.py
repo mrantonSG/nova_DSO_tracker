@@ -4713,6 +4713,13 @@ def project_detail(project_id):
 
             db.commit()
             flash("Project updated successfully.", "success")
+
+            # --- Redirect Logic (Updated) ---
+            # Check if we should return to a specific page (like the Journal tab)
+            next_url = request.args.get('next')
+            if next_url:
+                return redirect(next_url)
+
             return redirect(url_for('project_detail', project_id=project_id))
 
         # --- Handle GET Request (Prepare Template Variables) ---
@@ -8025,9 +8032,9 @@ def graph_dashboard(object_name):
             else:
                 flash(f"Requested location '{requested_location_name_from_url}' not found, using default.", "warning")
 
-        if not selected_location_db:  # If URL param missing, invalid, or no URL param
+        if not selected_location_db:
             selected_location_db = db.query(Location).filter_by(user_id=user.id, is_default=True).one_or_none()
-            if not selected_location_db:  # If no default, try first active
+            if not selected_location_db:
                 selected_location_db = db.query(Location).filter_by(user_id=user.id, active=True).order_by(
                     Location.id).first()
 
@@ -8036,8 +8043,6 @@ def graph_dashboard(object_name):
             effective_lat = selected_location_db.lat
             effective_lon = selected_location_db.lon
             effective_tz_name = selected_location_db.timezone
-            if not requested_location_name_from_url:  # Only print if we fell back
-                print(f"[Graph View] Using default/first location: {effective_location_name}")
         else:
             flash("Error: No valid location configured or selected for this user.", "error")
             return redirect(url_for('index'))
@@ -8045,7 +8050,6 @@ def graph_dashboard(object_name):
         try:
             now_at_effective_location = datetime.now(pytz.timezone(effective_tz_name))
         except pytz.UnknownTimeZoneError:
-            flash(f"Warning: Invalid timezone '{effective_tz_name}', using UTC.", "warning")
             effective_tz_name = 'UTC'
             now_at_effective_location = datetime.now(pytz.utc)
 
@@ -8061,28 +8065,22 @@ def graph_dashboard(object_name):
             flash(f"Object '{object_name}' not found in your configuration.", "error")
             return redirect(url_for('index'))
 
-        # --- NEW: Project Details, Aggregated Stats, and Context Setup ---
-
-        # 1. Fetch the full Project record linked to this object
+        # --- Framing Tab Data Preparation ---
         project_record = db.query(Project).filter_by(
             user_id=user.id, target_object_name=object_name
         ).order_by(Project.status).first()
 
-        # Initialize all required template variables (must be defined here)
         project_id_for_this_object = None
         project_name_for_this_object = "N/A"
         project_data_for_template = {}
-        sessions_for_project = []
+        sessions_for_project = []  # This is for the Framing Tab only
         total_integration_str = "N/A"
 
-        # Define rich-text variables (defaults to empty string)
         goals_html = ""
         description_notes_html = ""
         framing_notes_html = ""
         processing_notes_html = ""
 
-        # Helper to sanitize rich text fields for display/editor initialization
-        # NOTE: This function needs bleach and CSSSanitizer which are already imported at the top of nova.py
         def _sanitize_for_display(html_content):
             if not html_content: return ""
             SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
@@ -8095,52 +8093,17 @@ def graph_dashboard(object_name):
         if project_record:
             project_id_for_this_object = project_record.id
             project_name_for_this_object = project_record.name
-
-            # 2. Calculate Combined Statistics (Aggregate Integration Time)
-            total_integration_minutes = db.query(
-                func.sum(JournalSession.calculated_integration_time_minutes)
-            ).filter_by(project_id=project_record.id).scalar() or 0
-
-            total_minutes = int(total_integration_minutes)
-            hours = total_minutes // 60
-            minutes = total_minutes % 60
-            total_integration_str = f"{hours}h {minutes}m"
-
-            # 3. Fetch all linked sessions eagerly for the history table
-            sessions_for_project_db = db.query(JournalSession).filter_by(
-                project_id=project_record.id
-            ).order_by(JournalSession.date_utc.desc()).all()
-
-            # Convert list of Session objects to list of dicts for template use
-            sessions_for_project = [{c.name: getattr(s, c.name) for c in s.__table__.columns}
-                                    for s in sessions_for_project_db]
-
-            # 4. Create a clean dict of the full project record for template access
             project_data_for_template = {c.name: getattr(project_record, c.name)
                                          for c in project_record.__table__.columns}
+            # (We skip calculating stats here since we removed the Project Details sub-tab from Framing)
 
-            # 5. Prepare rich-text variables for the template context (using sanitation helper)
-            goals_html = _sanitize_for_display(project_data_for_template.get('goals'))
-            description_notes_html = _sanitize_for_display(project_data_for_template.get('description_notes'))
-            framing_notes_html = _sanitize_for_display(project_data_for_template.get('framing_notes'))
-            processing_notes_html = _sanitize_for_display(project_data_for_template.get('processing_notes'))
-
+        # Notes Upgrader
         raw_project_notes = obj_record.project_name or ""
-
-        # This is our "upgrader". It checks if the text looks like plain text.
-        # If it is plain text, it converts its line breaks to HTML <br> tags.
-        # This makes old notes look correct in the new editor.
         if not raw_project_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
-            # It looks like plain text. Convert it.
-            # 1. Escape any existing HTML (e.g., if user typed "<" by accident)
             escaped_text = bleach.clean(raw_project_notes, tags=[], strip=True)
-            # 2. Convert newlines to <br> tags (this is the key step)
             project_notes_for_editor = escaped_text.replace("\n", "<br>")
         else:
-            # It's already HTML, just use it as-is for the editor
             project_notes_for_editor = raw_project_notes
-
-        # --- END: Rich Text Migration Logic ---
 
         object_main_details = {
             "Object": obj_record.object_name, "Common Name": obj_record.common_name,
@@ -8151,81 +8114,80 @@ def graph_dashboard(object_name):
             "Name": obj_record.common_name, "RA": obj_record.ra_hours, "DEC": obj_record.dec_deg
         }
 
-        if obj_record.ra_hours is None or obj_record.dec_deg is None:
-            flash(f"Warning: RA/DEC missing for object '{object_name}' in database.", "warning")
-
-        # --- 5. Handle Journal Data (No change) ---
+        # --- 5. Handle Journal Data ---
         requested_session_id = request.args.get('session_id')
+        requested_project_id_journal = request.args.get('project_id')
+
         selected_session_data = None
         selected_session_data_dict = None
 
+        # Variables for the Journal Project Detail View
+        selected_project_data_journal = None
+        project_journal_html_fields = {}
+        total_integration_str_journal = "0h 0m"
+        project_sessions_list_journal = []  # <--- NEW LIST
+
+        # A: Handle Session Selection
         if requested_session_id:
             selected_session_data = db.query(JournalSession).filter_by(id=requested_session_id,
                                                                        user_id=user.id).one_or_none()
             if selected_session_data:
                 selected_session_data_dict = {c.name: getattr(selected_session_data, c.name) for c in
                                               selected_session_data.__table__.columns}
-
-                # --- START: Rich Text for Journal Notes ---
+                # ... (Session Note Sanitization Logic - same as before) ...
                 raw_journal_notes = selected_session_data_dict.get('notes') or ""
-
-                # 1. Upgrade plain text to HTML (for old notes)
                 if not raw_journal_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
                     escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
                     sanitized_notes = escaped_text.replace("\n", "<br>")
                 else:
-                    # 2. Sanitize existing HTML
                     SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
-                    SAFE_ATTRS = {
-                        'img': ['src', 'alt', 'width', 'height', 'style'],
-                        'a': ['href'],
-                        '*': ['style']
-                    }
-                    # Define which CSS properties are safe
+                    SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
                     SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
                                 'margin-right']
                     css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
-
-                    sanitized_notes = bleach.clean(
-                        raw_journal_notes,
-                        tags=SAFE_TAGS,
-                        attributes=SAFE_ATTRS,
-                        css_sanitizer=css_sanitizer  # <-- Pass the sanitizer here
-                    )
-
-                    # --- THIS IS THE NEW PART ---
-                    # Define which CSS properties are safe
-                    SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
-                                'margin-right']
-                    css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
-
-                    sanitized_notes = bleach.clean(
-                        raw_journal_notes,
-                        tags=SAFE_TAGS,
-                        attributes=SAFE_ATTRS,
-                        css_sanitizer=css_sanitizer  # <-- Pass the sanitizer here
-                    )
-                    # --- END OF NEW PART ---
-
-                # 3. Put the safe, upgraded HTML back into the dictionary
+                    sanitized_notes = bleach.clean(raw_journal_notes, tags=SAFE_TAGS, attributes=SAFE_ATTRS,
+                                                   css_sanitizer=css_sanitizer)
                 selected_session_data_dict['notes'] = sanitized_notes
-                # --- END: Rich Text for Journal Notes ---
+
                 if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
                     selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
                     if selected_session_data.date_utc:
                         effective_day, effective_month, effective_year = selected_session_data.date_utc.day, selected_session_data.date_utc.month, selected_session_data.date_utc.year
-                    session_loc_name = getattr(selected_session_data, 'location_name', None)
-                    if session_loc_name:
-                        session_loc_details = db.query(Location).filter_by(user_id=user.id,
-                                                                           name=session_loc_name).one_or_none()
-                        if session_loc_details:
-                            effective_lat, effective_lon, effective_tz_name = session_loc_details.lat, session_loc_details.lon, session_loc_details.timezone
-                            effective_location_name = session_loc_name
-                        else:
-                            flash(f"Location '{session_loc_name}' from session not found.", "warning")
-            elif requested_session_id:
-                flash(f"Requested session ID '{requested_session_id}' not found.", "info")
 
+        # B: Handle Project Selection
+        elif requested_project_id_journal:
+            selected_project_data_journal = db.query(Project).filter_by(
+                id=requested_project_id_journal, user_id=user.id
+            ).one_or_none()
+
+            if selected_project_data_journal:
+                # Calculate total integration
+                total_int_min = db.query(
+                    func.sum(JournalSession.calculated_integration_time_minutes)
+                ).filter_by(project_id=selected_project_data_journal.id).scalar() or 0
+                total_minutes = int(total_int_min)
+                total_integration_str_journal = f"{total_minutes // 60}h {total_minutes % 60}m"
+
+                # Prepare sanitized rich text fields
+                project_journal_html_fields = {
+                    'goals': _sanitize_for_display(selected_project_data_journal.goals),
+                    'description': _sanitize_for_display(selected_project_data_journal.description_notes),
+                    'framing': _sanitize_for_display(selected_project_data_journal.framing_notes),
+                    'processing': _sanitize_for_display(selected_project_data_journal.processing_notes)
+                }
+
+                # --- NEW: Fetch all sessions for this project to explain the integration time ---
+                project_sessions_db = db.query(JournalSession).filter_by(
+                    project_id=selected_project_data_journal.id
+                ).order_by(JournalSession.date_utc.desc()).all()
+
+                project_sessions_list_journal = []
+                for s in project_sessions_db:
+                    s_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
+                    if s.date_utc: s_dict['date_utc'] = s.date_utc.isoformat()
+                    project_sessions_list_journal.append(s_dict)
+
+        # (The rest of grouping logic is unchanged)
         all_projects_for_user = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
         object_specific_sessions_db = db.query(JournalSession).filter_by(user_id=user.id,
                                                                          object_name=object_name).order_by(
@@ -8238,29 +8200,35 @@ def graph_dashboard(object_name):
 
         projects_map = {p.id: p.name for p in all_projects_for_user}
         grouped_sessions_dict = {}
-        for session in object_specific_sessions_list:  # Use the dict list
+        for session in object_specific_sessions_list:
             project_id = session.get('project_id')
             grouped_sessions_dict.setdefault(project_id, []).append(session)
 
-        grouped_sessions_for_template = []  # Use a distinct name
+        grouped_sessions_for_template = []
         sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
                                     key=lambda pid: projects_map.get(pid, ''))
         for project_id in sorted_project_ids:
             sessions_in_group = grouped_sessions_dict[project_id]
             total_minutes = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_in_group)
             grouped_sessions_for_template.append({
-                'is_project': True, 'project_name': projects_map.get(project_id, 'Unknown Project'),
-                'sessions': sessions_in_group, 'total_integration_time': total_minutes
+                'is_project': True,
+                'project_name': projects_map.get(project_id, 'Unknown Project'),
+                'project_id': project_id,
+                'sessions': sessions_in_group,
+                'total_integration_time': total_minutes
             })
         if None in grouped_sessions_dict:
             sessions_none_project = grouped_sessions_dict[None]
             total_minutes_none = sum(s.get('calculated_integration_time_minutes') or 0 for s in sessions_none_project)
             grouped_sessions_for_template.append({
-                'is_project': False, 'project_name': 'Standalone Sessions',
-                'sessions': sessions_none_project, 'total_integration_time': total_minutes_none
+                'is_project': False,
+                'project_name': 'Standalone Sessions',
+                'project_id': None,
+                'sessions': sessions_none_project,
+                'total_integration_time': total_minutes_none
             })
 
-        # --- 6. Calculate Effective Date and Sun/Moon Data (No change) ---
+        # --- 6. Calculate Effective Date (No change) ---
         effective_day_req = request.args.get('day')
         effective_month_req = request.args.get('month')
         effective_year_req = request.args.get('year')
@@ -8303,9 +8271,7 @@ def graph_dashboard(object_name):
 
         # --- 7. Load Rigs (No change) ---
         rigs_from_db = db.query(Rig).options(
-            selectinload(Rig.telescope),  # Eager load components
-            selectinload(Rig.camera),
-            selectinload(Rig.reducer_extender)
+            selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
         ).filter_by(user_id=user.id).all()
         final_rigs_for_template = []
         for rig in rigs_from_db:
@@ -8316,8 +8282,7 @@ def graph_dashboard(object_name):
                 try:
                     fov_h = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl)) * 60.0)
                 except:
-                    pass  # Ignore math errors if efl is zero etc.
-
+                    pass
             final_rigs_for_template.append({
                 "rig_id": rig.id, "rig_name": rig.rig_name,
                 "effective_focal_length": efl, "f_ratio": f_ratio,
@@ -8337,35 +8302,23 @@ def graph_dashboard(object_name):
         all_projects = db.query(Project).filter_by(user_id=user.id).order_by(Project.name).all()
         available_locations = db.query(Location).filter_by(user_id=user.id).order_by(Location.name).all()
         default_location_name = effective_location_name if selected_location_db and selected_location_db.is_default else None
-        if not default_location_name:  # Find default if not already set
+        if not default_location_name:
             default_loc_obj = db.query(Location).filter_by(user_id=user.id, is_default=True).first()
             if default_loc_obj: default_location_name = default_loc_obj.name
 
-        # --- NEW: Collect all AstroObjects for Aladin overlay (Nova DB objects) ---
         all_objects_for_framing = []
         try:
-            all_objs = (
-                db.query(AstroObject)
-                .filter_by(user_id=user.id)
-                .filter(AstroObject.ra_hours != None, AstroObject.dec_deg != None)
-                .all()
-            )
-
+            all_objs = db.query(AstroObject).filter_by(user_id=user.id).filter(AstroObject.ra_hours != None,
+                                                                               AstroObject.dec_deg != None).all()
             for o in all_objs:
                 try:
                     all_objects_for_framing.append({
-                        "id": o.id,
-                        "object_name": o.object_name,
-                        "common_name": o.common_name,
-                        # Aladin expects RA in degrees in ICRS
-                        "ra_deg": float(o.ra_hours) * 15.0,
-                        "dec_deg": float(o.dec_deg),
+                        "id": o.id, "object_name": o.object_name, "common_name": o.common_name,
+                        "ra_deg": float(o.ra_hours) * 15.0, "dec_deg": float(o.dec_deg),
                     })
                 except Exception:
-                    # Skip any weird records instead of breaking the view
                     continue
-        except Exception as e:
-            print(f"[FramingOverlay] Failed to load AstroObjects for user '{username}': {e}")
+        except Exception:
             all_objects_for_framing = []
 
         # --- 9. Render Template ---
@@ -8382,28 +8335,18 @@ def graph_dashboard(object_name):
                                header_moon_phase=moon_phase_for_effective_date,
                                header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                                header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
-
-                               # --- MODIFIED: Pass the new editor-ready HTML ---
                                project_notes_from_config=project_notes_for_editor,
 
-                               # --- PROJECT DETAIL DATA (Resolves unresolved references) ---
-                               project_id_for_this_object=project_id_for_this_object,
-                               project_name_for_this_object=project_name_for_this_object,
-                               project=project_data_for_template,
-                               total_integration_str=total_integration_str,
-                               sessions=sessions_for_project,
+                               # --- PASS THESE VARIABLES TO TEMPLATE ---
+                               selected_project_data_journal=selected_project_data_journal,
+                               project_journal_html_fields=project_journal_html_fields,
+                               total_integration_str_journal=total_integration_str_journal,
+                               current_project_id=requested_project_id_journal,
+                               project_sessions_list_journal=project_sessions_list_journal,  # <--- NEW Variable
 
-                               goals_html=goals_html,
-                               description_notes_html=description_notes_html,
-                               framing_notes_html=framing_notes_html,
-                               processing_notes_html=processing_notes_html,
-
-                               # Context for the form's dropdowns
                                all_objects=db.query(AstroObject).filter_by(user_id=user.id).order_by(
                                    AstroObject.object_name).all(),
                                project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"],
-                               # --- END PROJECT DETAIL DATA ---
-
                                is_project_active=object_main_details.get('ActiveProject', False),
                                grouped_sessions=grouped_sessions_for_template,
                                object_specific_sessions=object_specific_sessions_list,
@@ -8423,13 +8366,14 @@ def graph_dashboard(object_name):
                                )
 
     except Exception as e:
-        db.rollback()  # Rollback any potential partial changes
+        db.rollback()
         print(f"ERROR rendering graph dashboard for '{object_name}': {e}")
         traceback.print_exc()
         flash(f"An error occurred while loading the details for {object_name}.", "error")
         return redirect(url_for('index'))
     finally:
-        db.close()  # Ensure session is closed
+        db.close()
+
 @app.route('/get_date_info/<path:object_name>')
 def get_date_info(object_name):
     load_full_astro_context()
@@ -8610,6 +8554,46 @@ def get_imaging_opportunities(object_name):
 
     # Return success response
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
+
+
+@app.route('/project/delete/<string:project_id>', methods=['POST'])
+@login_required
+def delete_project(project_id):
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        project = db.query(Project).filter_by(id=project_id, user_id=user.id).one_or_none()
+
+        if not project:
+            flash("Project not found.", "error")
+            return redirect(url_for('index'))
+
+        # Optional: Unset 'active_project' flag on the associated object if it exists
+        if project.target_object_name:
+            obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=project.target_object_name).one_or_none()
+            if obj:
+                obj.active_project = False
+
+        # Delete the project.
+        # Note: Sessions will NOT be deleted. Their project_id will automatically set to NULL
+        # because of the ForeignKey(ondelete="SET NULL") definition in your model.
+        db.delete(project)
+        db.commit()
+
+        flash(f"Project '{project.name}' deleted. Sessions are now standalone.", "success")
+
+        # Redirect back to the object's journal tab
+        return redirect(
+            url_for('graph_dashboard', object_name=request.form.get('redirect_object', 'M31'), tab='journal'))
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error deleting project: {e}", "error")
+        return redirect(url_for('index'))
+    finally:
+        db.close()
+
 
 @app.route('/generate_ics/<object_name>')
 def generate_ics(object_name):
