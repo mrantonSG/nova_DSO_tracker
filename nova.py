@@ -5658,6 +5658,23 @@ def show_journal_report_page(session_id):
         integ_str = f"{integ_min // 60}h {integ_min % 60:.0f}m" if integ_min > 0 else "N/A"
 
         image_url = None
+        image_source_label = "Session Image"  # Default label
+
+        username = "default" if SINGLE_USER_MODE else current_user.username
+
+        # 1. Try Session Image
+        if session_dict.get('session_image_file'):
+            image_url = url_for('get_uploaded_image', username=username, filename=session_dict['session_image_file'],
+                                _external=True)
+            image_source_label = "Session Result / Preview"
+
+        # 2. Fallback to Project Image (if session image is missing)
+        elif project and project.final_image_file:
+            image_url = url_for('get_uploaded_image', username=username, filename=project.final_image_file,
+                                _external=True)
+            image_source_label = "Project Context (Final Image)"
+
+        image_url = None
         if session_dict.get('session_image_file'):
             username = "default" if SINGLE_USER_MODE else current_user.username
             image_url = url_for('get_uploaded_image', username=username, filename=session_dict['session_image_file'],
@@ -5693,6 +5710,7 @@ def show_journal_report_page(session_id):
             rating_stars=rating_stars,
             integ_str=integ_str,
             image_url=image_url,
+            image_source_label=image_source_label,
             logo_url=logo_url,
             today_date=datetime.now().strftime('%d.%m.%Y')
         )
