@@ -5672,6 +5672,14 @@ def show_journal_report_page(session_id):
 
         session_dict = {c.name: getattr(session, c.name) for c in session.__table__.columns}
 
+        project = None  # <--- ADD THIS LINE
+        project_name = "Standalone Session"
+
+        if session.project_id:
+            project = db.query(Project).filter_by(id=session.project_id).one_or_none()
+            if project:
+                project_name = project.name
+
         # --- 2. Get Related Data (FIXED: Fetch from DB) ---
         # Try to find the object in the user's database first
         obj_record = db.query(AstroObject).filter_by(user_id=g.db_user.id,
