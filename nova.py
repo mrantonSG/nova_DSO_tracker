@@ -7184,6 +7184,8 @@ def index():
             return render_template('index.html', journal_sessions=[])
 
         sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
+        all_projects = db.query(Project).filter_by(user_id=user.id).all()
+        project_map = {p.id: p.name for p in all_projects}
         objects_from_db = db.query(AstroObject).filter_by(user_id=user.id).all()
         object_names_lookup = {o.object_name: o.common_name for o in objects_from_db}
 
@@ -7200,6 +7202,11 @@ def index():
 
             # Add the common name for convenience in the template
             session_dict['target_common_name'] = object_names_lookup.get(session.object_name, session.object_name)
+
+            if session.project_id:
+                session_dict['project_name'] = project_map.get(session.project_id, "Unknown Project")
+            else:
+                session_dict['project_name'] = "-"  # Or "Standalone"
 
             sessions_for_template.append(session_dict)
         # --- END OF FIX ---
