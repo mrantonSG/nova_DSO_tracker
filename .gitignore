@@ -5,3 +5,5 @@
 # PyCharm/IntelliJ IDE files
 .idea/
 *.iml
+/instance/
+/tests/instance/
