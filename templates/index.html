@@ -1403,7 +1403,21 @@ function populateJournalTable() {
 
         let sessionsToDisplay = [...allJournalSessions];
 
-        // --- [PRESERVED] Your existing filtering logic ---
+        // --- Helper to build the component string ---
+        function getRigDisplayString(session) {
+            const parts = [];
+            if (session.telescope_name_snapshot) parts.push(session.telescope_name_snapshot);
+            if (session.reducer_name_snapshot) parts.push(session.reducer_name_snapshot);
+            if (session.camera_name_snapshot) parts.push(session.camera_name_snapshot);
+
+            if (parts.length > 0) {
+                return parts.join(' + ');
+            }
+            // Fallback to old notes if no snapshot data exists
+            return session.telescope_setup_notes || "";
+        }
+
+        // --- Filtering Logic ---
         const journalFilterInputs = document.querySelectorAll("#journal-filter-row input");
         const activeJournalFilters = {};
         journalFilterInputs.forEach(input => {
@@ -1414,16 +1428,31 @@ function populateJournalTable() {
                 if (value !== '') activeJournalFilters[columnKey] = value;
             }
         });
+
         const journalNumericFilterKeys = ['calculated_integration_time_minutes','guiding_rms_avg_arcsec','seeing_observed_fwhm','session_rating_subjective'];
+
         if (Object.keys(activeJournalFilters).length > 0) {
             sessionsToDisplay = sessionsToDisplay.filter(session => {
                 for (const key in activeJournalFilters) {
                     const filterValue = activeJournalFilters[key];
                     const config = journalColumnConfig[key];
                     if (!config) continue;
+
+                    // Special handling for Telescope Setup: Check components string AND old notes
+                    if (key === 'telescope_setup_notes') {
+                        const compositeString = getRigDisplayString(session).toLowerCase();
+                        // Also check the manual notes just in case
+                        const rawNotes = String(session.telescope_setup_notes || '').toLowerCase();
+                        if (!compositeString.includes(filterValue) && !rawNotes.includes(filterValue)) {
+                            return false;
+                        }
+                        continue;
+                    }
+
                     let rawSessionValueStr = String(session[config.dataKey] || '').toLowerCase();
-                    if (filterValue === "n/a" || filterValue === "na") { if (rawSessionValueStr !== "n/a" && rawSessionValueStr !== "") return false; continue; }
-                    if (key === 'date_utc') { // Corrected key for date filtering
+
+                    // ... (Existing Date Filter Logic) ...
+                    if (key === 'date_utc') {
                         const sessionDateString_YYYY_MM_DD = session[config.dataKey] || "";
                         if (!sessionDateString_YYYY_MM_DD) return false;
                         let operator = null; let dateFilterStringUserInput = filterValue;
@@ -1443,32 +1472,40 @@ function populateJournalTable() {
                         } catch (e) { return false; }
                         continue;
                     }
+
+                    // ... (Existing Numeric Logic) ...
                     if (journalNumericFilterKeys.includes(key)) {
                         let sessionNumericValue = session[config.dataKey];
                         if (sessionNumericValue === null || sessionNumericValue === undefined) return false;
                         const cellNumber = parseFloat(sessionNumericValue);
                         if (isNaN(cellNumber)) { if (!rawSessionValueStr.includes(filterValue)) return false; continue; }
                         if (!matchesNumericFilter(cellNumber, filterValue)) return false;
-                    } else { if (filterValue.startsWith("!")) { if (rawSessionValueStr.includes(filterValue.substring(1))) return false; } else { if (!rawSessionValueStr.includes(filterValue)) return false; } }
+                    } else {
+                        // Standard string check
+                        if (filterValue.startsWith("!")) { if (rawSessionValueStr.includes(filterValue.substring(1))) return false; } else { if (!rawSessionValueStr.includes(filterValue)) return false; }
+                    }
                 } return true;
             });
         }
 
-        // --- [PRESERVED] Your existing sorting logic ---
+        // --- Sorting Logic ---
         const sortConfig = journalColumnConfig[currentJournalSort.columnKey];
         if (sortConfig) {
             sessionsToDisplay.sort((a, b) => {
-                // 1. Prepare Primary Values
                 let rawA = a[sortConfig.dataKey];
                 let rawB = b[sortConfig.dataKey];
 
-                // Normalize strings: treat null, undefined, "-" as empty string for comparison
+                // Special sort for setup: sort by the generated string
+                if (sortConfig.dataKey === 'telescope_setup_notes') {
+                    rawA = getRigDisplayString(a);
+                    rawB = getRigDisplayString(b);
+                }
+
                 let valA_str = (rawA === null || rawA === undefined || rawA === '-') ? '' : String(rawA).toLowerCase();
                 let valB_str = (rawB === null || rawB === undefined || rawB === '-') ? '' : String(rawB).toLowerCase();
 
                 let comparison = 0;
 
-                // 2. Compare Primary Column
                 if (sortConfig.dataKey === 'date_utc') {
                     const dateA = new Date(a.date_utc || 0);
                     const dateB = new Date(b.date_utc || 0);
@@ -1478,23 +1515,19 @@ function populateJournalTable() {
                     const numB = parseFloat(rawB) || 0;
                     comparison = numA - numB;
                 } else {
-                    // String comparison
                     comparison = valA_str.localeCompare(valB_str);
                 }
 
-                // Apply Sort Direction (Ascending/Descending)
                 if (comparison !== 0) {
                     return currentJournalSort.ascending ? comparison : -comparison;
                 }
-
-                // 3. Secondary Sort (Tie-Breaker): Always sort by Date DESC if primary values are equal
                 const dateA_tie = new Date(a.date_utc || 0);
                 const dateB_tie = new Date(b.date_utc || 0);
-                return dateB_tie - dateA_tie; // Always Newest First for ties
+                return dateB_tie - dateA_tie;
             });
         }
 
-        // --- [PRESERVED & CORRECTED] Your rendering logic ---
+        // --- Rendering Logic ---
         tableBody.innerHTML = '';
         let previousTargetIdForGrouping = null;
 
@@ -1506,14 +1539,12 @@ function populateJournalTable() {
 
             let showFullTargetInfoThisRow = true;
 
-            // --- THIS IS THE CORRECTED GROUPING LOGIC ---
             if (currentJournalSort.columnKey === 'object_name' || currentJournalSort.columnKey === 'target_common_name') {
                 if (session.object_name === previousTargetIdForGrouping) {
                     showFullTargetInfoThisRow = false;
                 }
                 previousTargetIdForGrouping = session.object_name;
             }
-            // --- END OF CORRECTION ---
 
             for (const key in journalColumnConfig) {
                 const config = journalColumnConfig[key];
@@ -1523,24 +1554,33 @@ function populateJournalTable() {
                 let rawValue = session[config.dataKey];
                 let displayValue = "";
 
-                // 1. Custom check: Turn dash projects into empty strings
+                // 1. Custom check for Project Name
                 if (key === 'project_name' && rawValue === '-') {
                     displayValue = "";
                 }
-                // 2. Standard N/A check for everything else
+                // 2. NEW: Custom Display for Telescope Setup
+                else if (key === 'telescope_setup_notes') {
+                    const fullString = getRigDisplayString(session);
+                    if (!fullString || fullString === "") {
+                        displayValue = "N/A";
+                    } else {
+                        // Truncate if too long, like before
+                        displayValue = fullString.length > 60 ? fullString.substring(0, 60) + "..." : fullString;
+                        td.title = fullString; // Show full string on hover
+                    }
+                }
+                // 3. Standard N/A check
                 else if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
                     displayValue = "N/A";
                 }
-                // 3. Apply formatting if it exists
+                // 4. Formatting
                 else if (config.format) {
                     displayValue = config.format(rawValue);
                 }
-                // 4. Default display
                 else {
                     displayValue = String(rawValue);
                 }
 
-                // Correctly apply the grouping visual effect
                 if ((config.dataKey === 'object_name' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) {
                     td.innerHTML = "";
                 } else {
