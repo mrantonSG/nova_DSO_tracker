@@ -90,6 +90,35 @@
     .session-history-table td.col-date, .session-history-table th.col-date { width: 120px; }
     .session-history-table td.col-integ, .session-history-table th.col-integ { width: 100px; text-align: center; }
     .session-history-table td.col-rating, .session-history-table th.col-rating { width: 100px; text-align: center; }
+
+    /* Styles for the Journal Project View */
+    .project-header-clickable {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        background-color: #f0f2f5;
+        border-top: 2px solid #d1d9e6 !important;
+    }
+    .project-header-clickable:hover {
+        background-color: #dbe4f0 !important;
+    }
+    .current-project-item {
+        background-color: #cfe2ff !important;
+        border-left: 4px solid #0056b3;
+    }
+    .journal-project-stat-box {
+        padding: 12px; background-color: #e9ecef; border-radius: 6px; text-align: center; margin-bottom: 15px;
+    }
+    .journal-project-stat-value { font-size: 1.4em; font-weight: 600; color: #343a40; display: block; }
+    .journal-project-stat-label { font-size: 0.75em; color: #6c757d; text-transform: uppercase; }
+    .journal-project-notes-section {
+        margin-top: 15px; padding: 15px; border: 1px solid #dee2e6; border-radius: 6px; background-color: #fff;
+    }
+    .journal-project-notes-section h3 {
+        font-size: 1.1em; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px;
+    }
+    .journal-project-container {
+        display: flex; flex-direction: column; gap: 15px;
+    }
 </style>
 
 <div class="journal-container">
@@ -104,7 +133,14 @@
                 <tbody>
                 {% for group in grouped_sessions %}
                     <tr>
-                        <th colspan="3" style="background-color: #f0f2f5; font-weight: bold; padding: 8px 5px; border-top: 1px solid #ddd;">
+                        <th colspan="3"
+                            class="{{ 'project-header-clickable' if group.is_project else '' }} {{ 'current-project-item' if group.is_project and group.project_id|string == current_project_id|string else '' }}"
+                            style="padding: 8px 5px; border-top: 1px solid #ddd;"
+                            {% if group.is_project %}
+                            onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=group.project_id) }}'"
+                            title="Click to view project details"
+                            {% endif %}
+                        >
                             {% if group.is_project %}{% set project_total_h = (group.total_integration_time / 60) | round(1) %}
                                 Project: {{ group.project_name }}
                                 {% if project_total_h > 0 %}<span style="float: right; font-weight: normal; color: #555;">Total: {{ project_total_h }}h</span>{% endif %}
@@ -129,7 +165,7 @@
     <div class="session-detail-column">
         <div id="session-detail-wrapper" class="{{ 'is-editing' if request.args.get('edit') == 'true' else '' }}">
 
-            {# --- VIEW MODE SECTION --- #}
+            {# --- VIEW MODE: SESSION SELECTED --- #}
             {% if selected_session_data %}
                 {% set entry = selected_session_data_dict %}
 
@@ -213,11 +249,6 @@
                                 </dd>
                             {% endif %}
                         </dl>
-                    </div>
-
-                    {# --- HIDDEN: Sky tab content remains, but is no longer linked in the view tabs --- #}
-                    <div id="sky-tab" class="detail-tab-content">
-                        {# Content moved to ACQ tab #}
                     </div>
 
                     {# --- UPDATED: EQUIPMENT & ACQUISITION Tab (Contains Sky, Rig, Guiding, and ACQ details) --- #}
@@ -322,14 +353,151 @@
                     </div>
                 </div>
 
+            {# --- VIEW MODE: PROJECT SELECTED --- #}
+            {% elif selected_project_data_journal %}
+                <div id="journal-project-view-wrapper">
+                    <div class="detail-header">
+                        <h4 id="detail-title">Project: {{ selected_project_data_journal.name }}</h4>
+                        <div class="action-button-group">
+                            <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="toggleJournalProjectEdit(true)">Edit Project</button>
+
+                            <form action="{{ url_for('delete_project', project_id=selected_project_data_journal.id) }}" method="POST" style="display:inline; margin: 0;" onsubmit="return confirm('Are you sure you want to delete this project? Linked sessions will become standalone.');">
+                                <input type="hidden" name="redirect_object" value="{{ object_name }}">
+                                <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete Project</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div id="journal-project-view-mode" class="journal-project-container">
+                        <div style="display: flex; gap: 15px;">
+                            <div style="flex: 1;">
+                                <div class="journal-project-stat-box">
+                                    <span class="journal-project-stat-value">{{ total_integration_str_journal }}</span>
+                                    <span class="journal-project-stat-label">Total Integration</span>
+                                </div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div class="journal-project-stat-box">
+                                    <span class="journal-project-stat-value">{{ selected_project_data_journal.status }}</span>
+                                    <span class="journal-project-stat-label">Status</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="journal-project-notes-section">
+                            <h3>Goals & Status</h3>
+                            <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals set.', true) | safe }}</div>
+                        </div>
+
+                        {% if selected_project_data_journal.final_image_file %}
+                        <div style="margin-top: 10px; text-align: left;">
+                            {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
+                            <a href="{{ url_for('get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}" target="_blank">
+                                <img src="{{ url_for('get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}"
+                                     alt="Final Project Image"
+                                     style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain; margin: 0;">
+                            </a>
+                            <span class="journal-project-stat-label" style="margin-top:5px; display:block;">Final Image</span>
+                        </div>
+                        {% endif %}
+
+                        <div class="journal-project-notes-section">
+                            <h3>Project Story & Learnings</h3>
+                            <div class="notes-content">{{ project_journal_html_fields.description | default('No description added.', true) | safe }}</div>
+                        </div>
+
+                        <div class="journal-project-notes-section">
+                            <h3>Framing Notes</h3>
+                            <div class="notes-content">{{ project_journal_html_fields.framing | default('No framing notes added.', true) | safe }}</div>
+                        </div>
+
+                        <div class="journal-project-notes-section">
+                            <h3>Processing Notes</h3>
+                            <div class="notes-content">{{ project_journal_html_fields.processing | default('No processing workflow recorded.', true) | safe }}</div>
+                        </div>
+                    </div>
+
+                    {# --- EDIT MODE: PROJECT --- #}
+                    <div id="journal-project-edit-mode" style="display:none;">
+                        <form id="journal-project-edit-form" method="POST"
+                              action="{{ url_for('project_detail', project_id=selected_project_data_journal.id, next=request.url) }}"
+                              enctype="multipart/form-data">
+
+                            <div class="detail-header">
+                                <h4 style="margin:0;">Editing Project</h4>
+                                <div class="action-button-group">
+                                    <button type="submit" class="inline-button" style="background-color:#28a745;">Save Project</button>
+                                    <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="toggleJournalProjectEdit(false)">Cancel</button>
+                                </div>
+                            </div>
+
+                            <div class="journal-project-notes-section">
+                                <h3>Metadata</h3>
+                                <div class="form-group"><label for="project-name">Project Name:</label><input type="text" id="project-name" name="name" value="{{ selected_project_data_journal.name }}" required></div>
+
+                                <input type="hidden" name="target_object_id" value="{{ object_name }}">
+
+                                <div class="form-group"><label for="project-status">Status:</label>
+                                    <select id="project-status" name="status">
+                                        {% for status_option in project_statuses %}
+                                        <option value="{{ status_option }}" {% if status_option == selected_project_data_journal.status %}selected{% endif %}>{{ status_option }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="journal-project-notes-section">
+                                <div class="form-group trix-editor-container"><label>Goals & Status:</label>
+                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | safe }}">
+                                    <trix-editor input="goals-hidden-journal" id="goals-editor-journal" style="min-height: 100px;"></trix-editor>
+                                </div>
+                            </div>
+
+                            <div class="journal-project-notes-section">
+                                <div class="form-group full-width">
+                                    <h3>Final Image</h3>
+                                    {% if selected_project_data_journal.final_image_file %}
+                                        <p style="font-size:13px;">Current file: <code>{{ selected_project_data_journal.final_image_file }}</code></p>
+                                        <label style="color: #c0392b; cursor: pointer;"><input type="checkbox" name="delete_final_image" value="1"> Delete Current Image</label>
+                                        <hr class="detail-separator">
+                                    {% endif %}
+                                    <label for="final_image">Upload New Final Image (optional, max 5MB)</label>
+                                    <input type="file" id="final_image" name="final_image" accept="image/jpeg, image/png, image/gif">
+                                </div>
+                            </div>
+
+                            <div class="journal-project-notes-section">
+                                <div class="form-group trix-editor-container"><label>Project Story & Learnings:</label>
+                                    <input type="hidden" id="description-hidden-journal" name="description_notes" value="{{ project_journal_html_fields.description | safe }}">
+                                    <trix-editor input="description-hidden-journal" id="description-editor-journal" style="min-height: 150px;"></trix-editor>
+                                </div>
+                            </div>
+
+                            <div class="journal-project-notes-section">
+                                <div class="form-group trix-editor-container"><label>Framing Notes:</label>
+                                    <input type="hidden" id="framing-hidden-journal" name="framing_notes" value="{{ project_journal_html_fields.framing | safe }}">
+                                    <trix-editor input="framing-hidden-journal" id="framing-editor-journal" style="min-height: 150px;"></trix-editor>
+                                </div>
+                            </div>
+
+                            <div class="journal-project-notes-section">
+                                <div class="form-group trix-editor-container"><label>Processing Notes:</label>
+                                    <input type="hidden" id="processing-hidden-journal" name="processing_notes" value="{{ project_journal_html_fields.processing | safe }}">
+                                    <trix-editor input="processing-hidden-journal" id="processing-editor-journal" style="min-height: 150px;"></trix-editor>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
             {% else %}
                 <div class="detail-header view-mode">
                     <h4 id="detail-title">No session selected</h4>
                 </div>
-                <p class="view-mode" style="color: #6c757d; margin-top: 20px;">Select a session from the list on the left to view details, or click 'Add New Session'.</p>
+                <p class="view-mode" style="color: #6c757d; margin-top: 20px;">Select a session or project from the list on the left to view details, or click 'Add New Session'.</p>
             {% endif %}
 
-            {# --- EDIT/ADD FORM (unchanged) --- #}
+            {# --- EDIT/ADD FORM (SESSION) --- #}
             <form id="journal-detail-form" class="edit-mode-form" method="POST" action="" enctype="multipart/form-data">
                  <div class="detail-header">
                     <h4 id="form-detail-title">Edit Session</h4>
@@ -507,7 +675,9 @@
 
         if (!wrapper || !form || !formDetailTitle || !submitButton || !cancelButton) return;
 
-        document.querySelectorAll('.view-mode').forEach(el => el.style.display = 'none');
+        // Hide ALL view modes (session and project)
+        document.querySelectorAll('.view-mode, #journal-project-view-wrapper').forEach(el => el.style.display = 'none');
+
         const initialDetailHeader = wrapper.querySelector('.detail-header:not(form .detail-header)');
         if(initialDetailHeader) initialDetailHeader.style.display = 'none';
         const placeholder = wrapper.querySelector('p.view-mode');
@@ -618,9 +788,71 @@
         }
     }
 
+    // Trix helper for loading content into editors (Used for Project Edit)
+    function loadTrixContentJournal(editorId, htmlContent) {
+        const editorElement = document.getElementById(editorId);
+        if (editorElement && editorElement.editor) {
+             editorElement.editor.loadHTML(htmlContent);
+        } else if (editorElement) {
+             const hiddenInput = document.getElementById(editorElement.getAttribute('input'));
+             if (hiddenInput) {
+                 hiddenInput.value = htmlContent;
+             }
+             editorElement.addEventListener('trix-initialize', function() {
+                 editorElement.editor.loadHTML(hiddenInput.value);
+             }, { once: true });
+        }
+    }
+
+    function toggleJournalProjectEdit(enable) {
+        const viewMode = document.getElementById('journal-project-view-mode');
+        const editMode = document.getElementById('journal-project-edit-mode');
+
+        // Select the button group in the main view header (Edit + Delete)
+        const viewHeaderButtons = document.querySelector('#journal-project-view-wrapper .detail-header .action-button-group');
+
+        if (!viewMode || !editMode) return;
+
+        if (enable) {
+            // Switch to Edit Mode
+            viewMode.style.display = 'none';
+            editMode.style.display = 'block';
+
+            // Hide the Edit/Delete buttons in the main header
+            if (viewHeaderButtons) viewHeaderButtons.style.display = 'none';
+
+            // Ensure Trix editors are populated
+            loadTrixContentJournal('goals-editor-journal', document.getElementById('goals-hidden-journal').value);
+            loadTrixContentJournal('description-editor-journal', document.getElementById('description-hidden-journal').value);
+            loadTrixContentJournal('framing-editor-journal', document.getElementById('framing-hidden-journal').value);
+            loadTrixContentJournal('processing-editor-journal', document.getElementById('processing-hidden-journal').value);
+
+        } else {
+            // Switch to View Mode
+            viewMode.style.display = 'flex';
+            editMode.style.display = 'none';
+
+            // Show the Edit/Delete buttons again
+            if (viewHeaderButtons) viewHeaderButtons.style.display = 'flex';
+        }
+    }
+
+    // Form submission handler for the journal project edit form to update hidden inputs
     document.addEventListener('DOMContentLoaded', () => {
+        const projectEditForm = document.getElementById('journal-project-edit-form');
+        if (projectEditForm) {
+            projectEditForm.addEventListener('submit', function(e) {
+                document.getElementById('goals-hidden-journal').value = document.getElementById('goals-editor-journal').value;
+                document.getElementById('description-hidden-journal').value = document.getElementById('description-editor-journal').value;
+                document.getElementById('framing-hidden-journal').value = document.getElementById('framing-editor-journal').value;
+                document.getElementById('processing-hidden-journal').value = document.getElementById('processing-editor-journal').value;
+            });
+        }
+
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
+
+        // Initial visibility logic
         if (wrapper && form && wrapper.querySelector('.view-mode .detail-header')) {
              form.style.display = 'none';
         } else if (form) {
