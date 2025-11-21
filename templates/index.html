@@ -279,6 +279,15 @@
     }
 
 
+    #journal-data-table th[data-journal-column-key="project_name"],
+    #journal-data-table td[data-journal-column-key="project_name"] {
+        text-align: left;
+        width: 130px;
+        min-width: 130px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     #journal-data-table th[data-journal-column-key="object_name"],
     #journal-data-table td[data-journal-column-key="object_name"],
     #journal-data-table th[data-journal-column-key="target_common_name"],
@@ -296,8 +305,12 @@
     #journal-data-table td[data-journal-column-key="object_name"] { width: 120px; min-width: 120px; }
     #journal-data-table th[data-journal-column-key="target_common_name"],
     #journal-data-table td[data-journal-column-key="target_common_name"] { min-width: 150px; }
-    #journal-data-table th[data-journal-column-key="session_date"],
-    #journal-data-table td[data-journal-column-key="session_date"] { width: 100px; min-width: 100px; }
+    #journal-data-table th[data-journal-column-key="date_utc"],
+    #journal-data-table td[data-journal-column-key="date_utc"] {
+        width: 100px;
+        min-width: 100px;
+        max-width: 100px; /* Force constraint */
+    }
     #journal-data-table th[data-journal-column-key="location_name"],
     #journal-data-table td[data-journal-column-key="location_name"] { min-width: 100px; width: 110px; text-align: left; }
     #journal-data-table th[data-journal-column-key="telescope_setup_notes"],
@@ -395,6 +408,16 @@
     /* #saved-views-dropdown is now part of .styled-select */
     /* --- END OF ADD --- */
 
+    #journal-data-table th[data-journal-column-key="project_name"],
+    #journal-data-table td[data-journal-column-key="project_name"] {
+        text-align: left;
+        width: 130px;
+        min-width: 130px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    #journal-data-table th[data-journal-column-key="object_name"]
   </style>
 
   <script>
@@ -452,11 +475,18 @@
 
     // --- Journal Table Configuration ---
     const allJournalSessions = {{ journal_sessions | tojson | safe }};
-    let currentJournalSort = { columnKey: 'session_date', ascending: false };
+    let currentJournalSort = { columnKey: 'date_utc', ascending: false };
     const journalColumnConfig = {
         'object_name': {
             headerText: 'Object',
             dataKey: 'object_name',
+            sortable: true,
+            filterable: true
+        },
+        // --- PROJECT COLUMN (Moved) ---
+        'project_name': {
+            headerText: 'Project',
+            dataKey: 'project_name',
             sortable: true,
             filterable: true
         },
@@ -1428,19 +1458,39 @@ function populateJournalTable() {
         const sortConfig = journalColumnConfig[currentJournalSort.columnKey];
         if (sortConfig) {
             sessionsToDisplay.sort((a, b) => {
-                let valA_str = String(a[sortConfig.dataKey] === undefined ? '' : a[sortConfig.dataKey]);
-                let valB_str = String(b[sortConfig.dataKey] === undefined ? '' : b[sortConfig.dataKey]);
-                const isNA_A = valA_str.toLowerCase() === 'n/a' || valA_str === '';
-                const isNA_B = valB_str.toLowerCase() === 'n/a' || valB_str === '';
-                if (isNA_A && isNA_B) return 0; if (isNA_A) return currentJournalSort.ascending ? 1 : -1; if (isNA_B) return currentJournalSort.ascending ? -1 : 1;
+                // 1. Prepare Primary Values
+                let rawA = a[sortConfig.dataKey];
+                let rawB = b[sortConfig.dataKey];
+
+                // Normalize strings: treat null, undefined, "-" as empty string for comparison
+                let valA_str = (rawA === null || rawA === undefined || rawA === '-') ? '' : String(rawA).toLowerCase();
+                let valB_str = (rawB === null || rawB === undefined || rawB === '-') ? '' : String(rawB).toLowerCase();
+
+                let comparison = 0;
+
+                // 2. Compare Primary Column
                 if (sortConfig.dataKey === 'date_utc') {
-                    const valA = new Date(valA_str); const valB = new Date(valB_str);
-                    return currentJournalSort.ascending ? valA - valB : valB - valA;
+                    const dateA = new Date(a.date_utc || 0);
+                    const dateB = new Date(b.date_utc || 0);
+                    comparison = dateA - dateB;
                 } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
-                    const valA = parseFloat(valA_str); const valB = parseFloat(valB_str);
-                    return currentJournalSort.ascending ? valA - valB : valB - valA;
+                    const numA = parseFloat(rawA) || 0;
+                    const numB = parseFloat(rawB) || 0;
+                    comparison = numA - numB;
+                } else {
+                    // String comparison
+                    comparison = valA_str.localeCompare(valB_str);
                 }
-                return currentJournalSort.ascending ? valA_str.localeCompare(valB_str) : valB_str.localeCompare(String(valB_str));
+
+                // Apply Sort Direction (Ascending/Descending)
+                if (comparison !== 0) {
+                    return currentJournalSort.ascending ? comparison : -comparison;
+                }
+
+                // 3. Secondary Sort (Tie-Breaker): Always sort by Date DESC if primary values are equal
+                const dateA_tie = new Date(a.date_utc || 0);
+                const dateB_tie = new Date(b.date_utc || 0);
+                return dateB_tie - dateA_tie; // Always Newest First for ties
             });
         }
 
@@ -1472,11 +1522,21 @@ function populateJournalTable() {
 
                 let rawValue = session[config.dataKey];
                 let displayValue = "";
-                if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
+
+                // 1. Custom check: Turn dash projects into empty strings
+                if (key === 'project_name' && rawValue === '-') {
+                    displayValue = "";
+                }
+                // 2. Standard N/A check for everything else
+                else if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
                     displayValue = "N/A";
-                } else if (config.format) {
+                }
+                // 3. Apply formatting if it exists
+                else if (config.format) {
                     displayValue = config.format(rawValue);
-                } else {
+                }
+                // 4. Default display
+                else {
                     displayValue = String(rawValue);
                 }
 
@@ -1945,6 +2005,7 @@ function populateJournalTable() {
             <thead>
                 <tr>
                     <th data-journal-column-key="object_name"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="project_name"><span>Project</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="target_common_name"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="date_utc"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="location_name"><span>Location</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
@@ -1954,8 +2015,9 @@ function populateJournalTable() {
                 </tr>
                 <tr class="filter-row" id="journal-filter-row">
                     <th data-journal-column-key="object_name"><input type="text" placeholder="Object ID"/></th>
+                    <th data-journal-column-key="project_name"><input type="text" placeholder="Project Name"/></th>
                     <th data-journal-column-key="target_common_name"><input type="text" placeholder="Search Common Name"/></th>
-                    <th data-journal-column-key="date_utc"><input type="text" placeholder="DD.MM.YYYY"/></th>
+                    <th data-journal-column-key="date_utc"><input type="text" placeholder="Date" style="min-width: 0;"/></th>
                     <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
                     <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
                     <th data-journal-column-key="calculated_integration_time_minutes"><input type="text" placeholder="e.g. >120"/></th>
