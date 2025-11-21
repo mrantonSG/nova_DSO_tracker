@@ -99,7 +99,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.1.0"
+APP_VERSION = "4.1.1"
 
 INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -4304,8 +4304,24 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
                 print(f"    -> Outlook cache for '{location_name}' is corrupted. Triggering update.")
 
         if needs_update:
+            # --- FIX START: Generate required arguments for the worker ---
+            db = get_db()
+            try:
+                u_obj = db.query(DbUser).filter_by(username=username).first()
+                u_id = u_obj.id if u_obj else 0
+            finally:
+                db.close()
+
+            user_log_key = f"({u_id} | {username})"
+            safe_log_key = f"{u_id}_{username}"
+            status_key = f"{user_log_key}_{location_name}"
+            cache_filename = os.path.join(CACHE_DIR,
+                                          f"outlook_cache_{safe_log_key}_{location_name.lower().replace(' ', '_')}.json")
+
             thread = threading.Thread(target=update_outlook_cache,
-                                      args=(username, location_name, user_config.copy(), sampling_interval))
+                                      args=(u_id, status_key, cache_filename, location_name, user_config.copy(),
+                                            sampling_interval))
+            # --- FIX END ---
             thread.start()
 
     except Exception as e:
@@ -6391,9 +6407,18 @@ def import_config():
             cache_filepath = os.path.join(CACHE_DIR, cache_filename)
             if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
+
+                # --- FIX START: Generate keys ---
+                user_log_key = f"({user.id} | {user.username})"
+                safe_log_key = f"{user.id}_{user.username}"
+                status_key = f"{user_log_key}_{loc_name}"
+                # Note: cache_filepath is already defined above in your code,
+                # but we ensure the arguments match the function signature.
+
                 thread = threading.Thread(target=update_outlook_cache,
-                                          args=(username, loc_name, user_config_for_thread,
-                                                g.sampling_interval))  # Pass sampling_interval
+                                          args=(user.id, status_key, cache_filepath, loc_name, user_config_for_thread,
+                                                g.sampling_interval))
+                # --- FIX END ---
                 thread.start()
 
         return redirect(url_for('config_form'))
