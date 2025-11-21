@@ -483,16 +483,16 @@
             sortable: true,
             filterable: true
         },
-        // --- PROJECT COLUMN (Moved) ---
-        'project_name': {
-            headerText: 'Project',
-            dataKey: 'project_name',
-            sortable: true,
-            filterable: true
-        },
         'target_common_name': {
             headerText: 'Common Name',
             dataKey: 'target_common_name',
+            sortable: true,
+            filterable: true
+        },
+        // --- MOVED: Project is now here ---
+        'project_name': {
+            headerText: 'Project',
+            dataKey: 'project_name',
             sortable: true,
             filterable: true
         },
@@ -2005,8 +2005,8 @@ function populateJournalTable() {
             <thead>
                 <tr>
                     <th data-journal-column-key="object_name"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="project_name"><span>Project</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="target_common_name"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="project_name"><span>Project</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="date_utc"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="location_name"><span>Location</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                     <th data-journal-column-key="telescope_setup_notes"><span>Telescope Setup</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
@@ -2015,8 +2015,8 @@ function populateJournalTable() {
                 </tr>
                 <tr class="filter-row" id="journal-filter-row">
                     <th data-journal-column-key="object_name"><input type="text" placeholder="Object ID"/></th>
-                    <th data-journal-column-key="project_name"><input type="text" placeholder="Project Name"/></th>
                     <th data-journal-column-key="target_common_name"><input type="text" placeholder="Search Common Name"/></th>
+                    <th data-journal-column-key="project_name"><input type="text" placeholder="Project Name"/></th>
                     <th data-journal-column-key="date_utc"><input type="text" placeholder="Date" style="min-width: 0;"/></th>
                     <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
                     <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
