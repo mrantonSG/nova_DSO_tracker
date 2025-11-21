@@ -7890,7 +7890,6 @@ def config_form():
     finally:
         db.close()
 
-
 @app.route('/update_project', methods=['POST'])
 @login_required
 def update_project():
@@ -7908,12 +7907,18 @@ def update_project():
             did_change_active_status = False
 
             # --- START OF FIX ---
-            # Only update notes if the 'project' key was sent
+            # 1. Update notes if the 'project' key was sent
             if 'project' in data:
                 new_project_notes_html = data.get('project')
                 obj_to_update.project_name = new_project_notes_html
 
-            # The old logic to check/set 'is_active' is permanently REMOVED here.
+            # 2. RESTORED: Update Active Status if 'is_active' key was sent
+            # This is required for the 'Save Project' button in the graph dashboard
+            if 'is_active' in data:
+                new_active_status = bool(data.get('is_active'))
+                if obj_to_update.active_project != new_active_status:
+                    obj_to_update.active_project = new_active_status
+                    did_change_active_status = True
             # --- END OF FIX ---
 
             db.commit()
