@@ -23,6 +23,7 @@ from nova import (
     Project,
     UPLOAD_FOLDER,
     import_user_from_yaml,
+    export_user_to_yaml,
     HorizonPoint,
     _migrate_journal,
     _migrate_objects,
@@ -755,3 +756,132 @@ def test_import_config_horizon_mask_is_idempotent(client, tmp_path):
 
     # THIS IS THE HARDENED ASSERTION:
     assert len(points_after_import2) == 2
+
+
+# --- NEW TESTS ADDED BELOW ---
+
+def test_export_includes_project_metadata(db_session, tmp_path):
+    """
+    Verifies that export_user_to_yaml now correctly writes the 'projects' block.
+    Previous versions wrote an empty list [], causing data loss.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="export_test_user")
+    db_session.add(user)
+    db_session.commit()
+
+    # Create a detailed project
+    proj_id = "proj_export_1"
+    proj = Project(
+        id=proj_id,
+        user_id=user.id,
+        name="Deep Field Survey",
+        status="On Hold",
+        goals="<div>Find new galaxies</div>",
+        target_object_name="M31"
+    )
+    db_session.add(proj)
+    db_session.commit()
+
+    # 2. ACT
+    # Export to a temporary directory
+    output_dir = str(tmp_path)
+    success = export_user_to_yaml(user.username, out_dir=output_dir)
+    assert success is True
+
+    # 3. ASSERT
+    # Read the generated YAML file
+    expected_file = os.path.join(output_dir, f"journal_{user.username}.yaml")
+    assert os.path.exists(expected_file)
+
+    with open(expected_file, 'r') as f:
+        data = yaml.safe_load(f)
+
+    # Critical Check: Projects list must not be empty
+    assert "projects" in data
+    assert len(data["projects"]) == 1
+
+    exported_proj = data["projects"][0]
+    assert exported_proj["project_id"] == proj_id
+    assert exported_proj["project_name"] == "Deep Field Survey"
+    assert exported_proj["status"] == "On Hold"
+    assert exported_proj["goals"] == "<div>Find new galaxies</div>"
+
+
+def test_import_handles_orphan_project_ids_gracefully(db_session):
+    """
+    CRITICAL FIX TEST:
+    Simulates importing an older YAML where a session links to a project_id,
+    but the project definition is missing from the YAML and the DB.
+
+    Old behavior: Crashes with IntegrityError (Foreign Key violation).
+    New behavior: Auto-creates a placeholder Project.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="import_test_user")
+    db_session.add(user)
+    db_session.commit()
+
+    orphan_id = "legacy_proj_999"
+
+    # Mock YAML from an older version (has project_id in session, but NO 'projects' list)
+    legacy_yaml = {
+        "sessions": [
+            {
+                "session_id": "sess_1",
+                "date": "2025-01-01",
+                "object_name": "M42",
+                "project_id": orphan_id,  # <--- This ID does not exist anywhere!
+                "project_name": "Old Helix Project"  # (Optional hint sometimes found in old exports)
+            }
+        ]
+    }
+
+    # 2. ACT
+    # This function should now detect the orphan and create the project first
+    _migrate_journal(db_session, user, legacy_yaml)
+    db_session.commit()
+
+    # 3. ASSERT
+    # A. Check that the Project was auto-created
+    project = db_session.query(Project).filter_by(id=orphan_id).one_or_none()
+    assert project is not None
+    assert project.user_id == user.id
+    # It should use the name if available, or generate a name
+    assert project.name == "Old Helix Project"
+    assert project.status == "Completed"  # Default for legacy auto-creation
+
+    # B. Check that the Session was created and linked
+    session = db_session.query(JournalSession).filter_by(external_id="sess_1").one()
+    assert session.project_id == orphan_id
+
+
+def test_import_supports_legacy_list_format(db_session):
+    """
+    Verifies that really old YAML files (where the root was just a list of sessions)
+    still import correctly.
+    """
+    # 1. ARRANGE
+    user = DbUser(username="list_import_user")
+    db_session.add(user)
+    db_session.commit()
+
+    # Legacy Format: Root is a LIST, not a DICT
+    legacy_list_yaml = [
+        {
+            "session_id": "list_sess_1",
+            "date": "2025-02-01",
+            "object_name": "M51",
+            "notes": "Old list format"
+        }
+    ]
+
+    # 2. ACT
+    _migrate_journal(db_session, user, legacy_list_yaml)
+    db_session.commit()
+
+    # 3. ASSERT
+    session = db_session.query(JournalSession).filter_by(external_id="list_sess_1").one_or_none()
+    assert session is not None
+    assert session.object_name == "M51"
+    assert session.notes == "Old list format"

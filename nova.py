@@ -1752,19 +1752,24 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
     replacement_str = r'\1' + re.escape(target_username) + r'\3'
     # === END: Link Rewriting Logic ===
 
-    # --- 1. Migrate Projects ---
+    # --- 1. Migrate Projects & Track Valid IDs ---
+    valid_project_ids = set()
+
     for p in (data.get("projects") or []):
         # Check if both project_id and project_name are present and non-empty
         project_id_val = p.get("project_id")
         project_name_val = p.get("project_name")
-        if project_id_val and str(project_id_val).strip() and project_name_val and str(project_name_val).strip():
+
+        if project_id_val and str(project_id_val).strip():
+            valid_project_ids.add(str(project_id_val)) # Track valid IDs from the import file
+
             # Check if project already exists by ID
             existing_project = db.query(Project).filter_by(id=str(project_id_val)).one_or_none()
 
             # --- NEW: Fields to set/update (Safely defaults to None if key missing) ---
             project_data = {
                 "user_id": user.id,
-                "name": str(project_name_val).strip(),
+                "name": str(project_name_val).strip() if project_name_val else "Unnamed Project",
                 "target_object_name": p.get("target_object_id"),
                 "description_notes": p.get("description_notes"),
                 "framing_notes": p.get("framing_notes"),
@@ -1780,13 +1785,13 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
                     if value is not None:
                         setattr(existing_project, key, value)
             else:
-                # Check if a project with the same name already exists for the user
+                # Check if a project with the same name already exists for the user (to avoid name duplicates if ID differs)
                 existing_by_name = db.query(Project).filter_by(user_id=user.id, name=project_data["name"]).one_or_none()
                 if not existing_by_name:
                     new_project = Project(id=str(project_id_val), **project_data)
                     db.add(new_project)
 
-    db.flush()  # Flush after adding all valid projects
+    db.flush()  # Flush after adding all valid projects from the YAML
 
     # --- 2. Migrate Sessions with ALL fields ---
     for s in (data.get("sessions") or []):
@@ -1808,17 +1813,40 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
 
         # === START: Link Rewriting Application ===
         # Get the raw HTML notes from the YAML
-        notes_html = s.get("general_notes_problems_learnings")
+        notes_html = s.get("general_notes_problems_learnings") or s.get("notes")
 
         # Rewrite image links to point to the *importer's* directory
         if notes_html:
             notes_html = link_pattern.sub(replacement_str, notes_html)
         # === END: Link Rewriting Application ===
 
+        # === START: Orphan Project Check ===
+        sess_project_id = s.get("project_id")
+        if sess_project_id:
+            sess_project_id = str(sess_project_id)
+            # If this ID wasn't in the YAML projects block...
+            if sess_project_id not in valid_project_ids:
+                # ...check if it exists in the DB (maybe from a previous import)
+                exists_in_db = db.query(Project).filter_by(id=sess_project_id).first()
+
+                if not exists_in_db:
+                    # ORPHAN DETECTED: Auto-create a placeholder project to satisfy Foreign Key
+                    print(f"[MIGRATION] Auto-creating missing project {sess_project_id} for session.")
+                    placeholder_project = Project(
+                        id=sess_project_id,
+                        user_id=user.id,
+                        name=s.get("project_name") or f"Legacy Project {sess_project_id[:8]}",
+                        status="Completed" # Assume legacy projects are done
+                    )
+                    db.add(placeholder_project)
+                    db.flush() # Commit immediately so the session insert works
+                    valid_project_ids.add(sess_project_id)
+        # === END: Orphan Project Check ===
+
         # Map all YAML keys to DB columns
         row_values = {
             "user_id": user.id,
-            "project_id": s.get("project_id"),
+            "project_id": sess_project_id, # Use the stringified/checked ID
             "date_utc": dt,
             "object_name": normalize_object_name(s.get("target_object_id") or s.get("object_name")),
             "notes": notes_html,  # <-- USE THE FIXED HTML
@@ -1861,7 +1889,7 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "filter_OIII_exposure_sec": _as_int(s.get("filter_OIII_exposure_sec")),
             "filter_SII_subs": _as_int(s.get("filter_SII_subs")),
             "filter_SII_exposure_sec": _as_int(s.get("filter_SII_exposure_sec")),
-            "rig_id_snapshot": _as_int(s.get("rig_id_snapshot")),  # <-- ADDED
+            "rig_id_snapshot": _as_int(s.get("rig_id_snapshot")),
             "rig_name_snapshot": s.get("rig_name_snapshot"),
             "rig_efl_snapshot": _try_float(s.get("rig_efl_snapshot")),
             "rig_fr_snapshot": _try_float(s.get("rig_fr_snapshot")),
@@ -1899,8 +1927,6 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             new_session = JournalSession(**row_values)
             db.add(new_session)
         # *** END: Simplified Upsert Logic ***
-
-        # Removed db.flush() from here, let commit handle it later
 
 def _migrate_ui_prefs(db, user: DbUser, config: dict):
     """
@@ -2050,11 +2076,31 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
 
         # JOURNAL
         sessions = db.query(JournalSession).filter_by(user_id=u.id).order_by(JournalSession.date_utc.asc()).all()
+
+        db_projects = db.query(Project).filter_by(user_id=u.id).all()
+        projects_list = []
+        for p in db_projects:
+            projects_list.append({
+                "project_id": p.id,
+                "project_name": p.name,
+                "target_object_id": p.target_object_name,
+                "status": p.status,
+                "goals": p.goals,
+                "description_notes": p.description_notes,
+                "framing_notes": p.framing_notes,
+                "processing_notes": p.processing_notes,
+                "final_image_file": p.final_image_file
+            })
+
         jdoc = {
-            "projects": [],
+            "projects": projects_list,
             "sessions": [
                 {
                     "date": s.date_utc.isoformat(), "object_name": s.object_name, "notes": s.notes,
+                    "session_id": s.external_id or s.id,  # Ensure ID is preserved
+                    "project_id": s.project_id,  # Link is preserved
+                    "object_name": s.object_name,
+                    "notes": s.notes,
                     "number_of_subs_light": s.number_of_subs_light,
                     "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
                     "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
