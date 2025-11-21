@@ -6390,6 +6390,10 @@ def import_config():
             # 5. Import the saved views ---
             _migrate_saved_views(db, user, new_config)
 
+            # --- FIX: Capture ID before closing session ---
+            user_id_for_thread = user.id
+            # ----------------------------------------------
+
             db.commit()
             flash("Config imported and synced to database successfully!", "success")
         except Exception as e:
@@ -6408,15 +6412,15 @@ def import_config():
             if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
 
-                # --- FIX START: Generate keys ---
-                user_log_key = f"({user.id} | {user.username})"
-                safe_log_key = f"{user.id}_{user.username}"
+                # --- FIX START: Use captured variables ---
+                # We use user_id_for_thread (captured above) and username (available in function scope)
+                user_log_key = f"({user_id_for_thread} | {username})"
+                safe_log_key = f"{user_id_for_thread}_{username}"
                 status_key = f"{user_log_key}_{loc_name}"
-                # Note: cache_filepath is already defined above in your code,
-                # but we ensure the arguments match the function signature.
 
                 thread = threading.Thread(target=update_outlook_cache,
-                                          args=(user.id, status_key, cache_filepath, loc_name, user_config_for_thread,
+                                          args=(user_id_for_thread, status_key, cache_filepath, loc_name,
+                                                user_config_for_thread,
                                                 g.sampling_interval))
                 # --- FIX END ---
                 thread.start()
