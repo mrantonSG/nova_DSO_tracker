@@ -130,7 +130,8 @@ def test_import_config_yaml(client):
 
     # 3. ASSERT
     assert response.status_code == 200  # Landed back on config page
-    assert b"Config imported and synced to database successfully!" in response.data
+    # Updated assertion to match the new "Wipe & Replace" flash message
+    assert b"Config imported successfully! (Previous config was replaced)" in response.data
 
     # Check the database *directly*
     user = db.query(DbUser).filter_by(username="default").one()
@@ -155,7 +156,6 @@ def test_import_config_yaml(client):
     view_settings = json.loads(new_view.settings_json)
     assert view_settings['activeTab'] == "properties"
     assert view_settings['dso_sortKey'] == "Magnitude"
-    # --- END OF ADD ---
 
 
 def test_import_rig_config(client):
@@ -307,7 +307,8 @@ def test_import_journal_yaml(client):
 
     # 3. ASSERT
     assert response.status_code == 200  # Landed back on config page
-    assert b"Journal imported and synced to database successfully!" in response.data
+    # Updated assertion to match the new "Wipe & Replace" flash message
+    assert b"Journal imported successfully! (Previous journal data was replaced)" in response.data
 
     # Check the database *directly*
     user = db.query(DbUser).filter_by(username="default").one()

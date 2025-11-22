@@ -6475,7 +6475,7 @@ def import_journal():
             if new_journal_data is None:
                 new_journal_data = {"projects": [], "sessions": []}  # Handle empty file
 
-            # You can keep your validation function if you like
+            # Basic validation
             is_valid, message = validate_journal_data(new_journal_data)
             if not is_valid:
                 flash(f"Invalid journal file structure: {message}", "error")
@@ -6483,21 +6483,31 @@ def import_journal():
 
             username = "default" if SINGLE_USER_MODE else current_user.username
 
-            # === START REFACTOR ===
-            # Import directly into the database
+            # === START REFACTOR: WIPE & REPLACE ===
             db = get_db()
             try:
-                user = _upsert_user(db, username)  # Get or create the user in app.db
+                user = _upsert_user(db, username)
 
-                # Use the migration helper to load data directly into the DB
+                # 1. Wipe existing Journal Data
+                # We must delete Sessions first (they depend on Projects), then Projects.
+                print(f"[IMPORT_JOURNAL] Wiping existing sessions and projects for user '{username}'...")
+
+                db.query(JournalSession).filter_by(user_id=user.id).delete()
+                # Projects are safe to delete after sessions are gone
+                db.query(Project).filter_by(user_id=user.id).delete()
+
+                db.flush()  # Ensure deletion happens before insertion
+
+                # 2. Import New Data
                 _migrate_journal(db, user, new_journal_data)
 
                 db.commit()
-                flash("Journal imported and synced to database successfully!", "success")
+                flash("Journal imported successfully! (Previous journal data was replaced)", "success")
             except Exception as e:
                 db.rollback()
                 print(f"[IMPORT_JOURNAL] DB Error: {e}")
-                raise e  # Re-throw to be caught by the outer block
+                # Re-raise to hit the outer exception handler for detailed logging
+                raise e
             finally:
                 db.close()
             # === END REFACTOR ===
@@ -6510,11 +6520,16 @@ def import_journal():
             return redirect(url_for('config_form'))
         except Exception as e:
             print(f"[IMPORT JOURNAL ERROR] {e}")
-            flash(f"Import failed: An unexpected error occurred. {str(e)}", "error")
+            # Clean up the error message for display
+            err_msg = str(e)
+            if "UNIQUE constraint failed" in err_msg:
+                err_msg = "Data conflict detected. Please try again (the wipe logic should prevent this)."
+            flash(f"Import failed: {err_msg}", "error")
             return redirect(url_for('config_form'))
     else:
         flash("Invalid file type. Please upload a .yaml journal file.", "error")
         return redirect(url_for('config_form'))
+
 
 @app.route('/import_config', methods=['POST'])
 @login_required
@@ -6524,7 +6539,6 @@ def import_config():
     elif current_user.is_authenticated:
         username = current_user.username
     else:
-        # This case should ideally not be reached due to @login_required
         flash("Authentication error during import.", "error")
         return redirect(url_for('login'))
 
@@ -6547,47 +6561,46 @@ def import_config():
             flash(error_message, "error")
             return redirect(url_for('config_form'))
 
-        # === START REFACTOR ===
-        # Import directly into the database
+        # === START REFACTOR: FULL WIPE & REPLACE ===
         db = get_db()
         try:
-            user = _upsert_user(db, username)  # Get or create the user in app.db
+            user = _upsert_user(db, username)
 
-            print(f"[IMPORT_CONFIG] Deleting all existing locations and objects for user '{username}' before import...")
+            print(f"[IMPORT_CONFIG] Wiping all existing config data for user '{username}'...")
 
-            # 1. Delete existing locations (and their horizon points via cascade)
+            # 1. Delete existing locations
             db.query(Location).filter_by(user_id=user.id).delete()
 
             # 2. Delete existing objects
             db.query(AstroObject).filter_by(user_id=user.id).delete()
 
-            # 3. Delete existing saved views ---
+            # 3. Delete existing saved views
             db.query(SavedView).filter_by(user_id=user.id).delete()
 
-            # 4. Flush the deletions to the session
+            # 4. Delete existing saved framings (ADDED THIS)
+            db.query(SavedFraming).filter_by(user_id=user.id).delete()
+
+            # 5. Flush deletions
             db.flush()
 
+            # 6. Import New Data
             _migrate_locations(db, user, new_config)
             _migrate_objects(db, user, new_config)
             _migrate_ui_prefs(db, user, new_config)
-
-            # 5. Import the saved views ---
             _migrate_saved_views(db, user, new_config)
 
-            # 6. Import Saved Framings (THIS WAS MISSING) ---
+            # 7. Import Saved Framings
             _migrate_saved_framings(db, user, new_config)
-            # ----------------------------------------------
 
-            # --- FIX: Capture ID before closing session ---
+            # Capture ID for thread
             user_id_for_thread = user.id
-            # ----------------------------------------------
 
             db.commit()
-            flash("Config imported and synced to database successfully!", "success")
+            flash("Config imported successfully! (Previous config was replaced)", "success")
         except Exception as e:
             db.rollback()
             print(f"[IMPORT_CONFIG] DB Error: {e}")
-            raise e  # Re-throw to be caught by the outer block
+            raise e
         finally:
             db.close()
         # === END REFACTOR ===
@@ -6598,8 +6611,6 @@ def import_config():
             cache_filename = f"outlook_cache_{username}_{loc_name.lower().replace(' ', '_')}.json"
             cache_filepath = os.path.join(CACHE_DIR, cache_filename)
             if not os.path.exists(cache_filepath):
-                print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
-
                 user_log_key = f"({user_id_for_thread} | {username})"
                 safe_log_key = f"{user_id_for_thread}_{username}"
                 status_key = f"{user_log_key}_{loc_name}"
@@ -6613,12 +6624,10 @@ def import_config():
         return redirect(url_for('config_form'))
 
     except yaml.YAMLError as ye:
-        print(f"[IMPORT ERROR] Invalid YAML: {ye}")
-        flash(f"Import failed: The uploaded file was not valid YAML. ({ye})", "error")
+        flash(f"Import failed: Invalid YAML. ({ye})", "error")
         return redirect(url_for('config_form'))
     except Exception as e:
-        print(f"[IMPORT ERROR] {e}")
-        flash(f"Import failed: An unexpected error occurred. {str(e)}", "error")
+        flash(f"Import failed: {str(e)}", "error")
         return redirect(url_for('config_form'))
 
 @app.route('/import_catalog/<pack_id>', methods=['POST'])
