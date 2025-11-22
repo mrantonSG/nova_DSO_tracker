@@ -1,5 +1,7 @@
 # (All your existing imports)
 import pytest
+import math
+import numpy as np
 from datetime import datetime, time, timedelta
 import pytz
 
@@ -8,7 +10,8 @@ from modules.astro_calculations import (
     calculate_transit_time,
     calculate_sun_events_cached,
     SUN_EVENTS_CACHE,
-    calculate_observable_duration_vectorized,  # <-- Added this
+    calculate_observable_duration_vectorized,
+    hms_to_hours,
     get_common_time_arrays,  # <-- Added this
     interpolate_horizon  # <-- Added this
 )
@@ -196,3 +199,182 @@ def test_calc_observable_duration_allowed_by_horizon_mask():
     assert obs_duration.total_seconds() > 0
     assert obs_from is not None
     assert obs_to is not None
+
+@pytest.mark.parametrize(
+    "input_ra, expected_hours",
+    [
+        # --- plain decimal HOURS should pass through unchanged ---
+        ("12.5", 12.5),
+        (12.5, 12.5),
+        (np.float64(12.5), 12.5),
+
+        # --- HMS strings (space or colon separated) ---
+        ("12 30 00", 12.5),
+        ("12:30:00", 12.5),
+        ("12 30 36", 12 + 30/60 + 36/3600),
+
+        # --- decimal DEGREES should auto-convert to hours ---
+        # this is the bug you hit with NGC4490
+        ("187.6437", 187.6437 / 15.0),
+        (187.6437, 187.6437 / 15.0),
+        (np.float64(187.6437), 187.6437 / 15.0),
+
+        # near-boundary sanity checks
+        ("359.999", 359.999 / 15.0),  # degrees -> ~23.9999h
+        ("24.0001", 24.0001 / 15.0),  # >24 means degrees per your heuristic
+    ],
+)
+def test_hms_to_hours_accepts_hours_hms_and_degrees(input_ra, expected_hours):
+    out = hms_to_hours(input_ra)
+    assert math.isclose(out, expected_hours, rel_tol=0, abs_tol=1e-6)
+
+
+def test_hms_to_hours_never_returns_over_24_for_decimal_inputs():
+    """
+    Guard rail: any purely-decimal RA should end up in [0, 24),
+    because if it's bigger it must have been degrees or a bug.
+    """
+    decimals = ["0", "12.3", "23.999", "187.6", "350.0"]
+    for val in decimals:
+        out = hms_to_hours(val)
+        assert 0.0 <= out < 24.0
+
+
+@pytest.mark.parametrize(
+    "input_dec, expected_deg",
+    [
+        # decimal degrees pass through
+        ("41.6405", 41.6405),
+        (-41.6405, -41.6405),
+
+        # DMS variants
+        ("+41 38 26", 41 + 38/60 + 26/3600),
+        ("-41 38 26", -(41 + 38/60 + 26/3600)),
+        ("41:38:26", 41 + 38/60 + 26/3600),
+        ("-41:38:26", -(41 + 38/60 + 26/3600)),
+    ],
+)
+def test_dms_to_degrees_parsing(input_dec, expected_deg):
+    out = dms_to_degrees(input_dec)
+    assert math.isclose(out, expected_deg, rel_tol=0, abs_tol=1e-6)
+
+
+
+# ------------------------------
+# Helpers for round-trip tests
+# (tests only — not production)
+# ------------------------------
+def hours_to_hms_str(hours: float) -> str:
+    """Convert decimal hours to 'HH MM SS.s' test string."""
+    hours = hours % 24.0
+    h = int(hours)
+    m_float = (hours - h) * 60.0
+    m = int(m_float)
+    s = (m_float - m) * 60.0
+    return f"{h:02d} {m:02d} {s:06.3f}"
+
+
+def deg_to_dms_str(deg: float) -> str:
+    """Convert decimal degrees to '±DD MM SS.s' test string."""
+    sign = "-" if deg < 0 else "+"
+    deg_abs = abs(deg)
+    d = int(deg_abs)
+    m_float = (deg_abs - d) * 60.0
+    m = int(m_float)
+    s = (m_float - m) * 60.0
+    return f"{sign}{d:02d} {m:02d} {s:06.3f}"
+
+
+# ------------------------------
+# RA unit/consistency guard rails
+# ------------------------------
+@pytest.mark.parametrize("ra_deg", [0.0, 15.0, 120.0, 187.6437, 359.999])
+def test_ra_degree_inputs_convert_to_hours_and_stay_in_range(ra_deg):
+    """
+    If the input is >24, it's degrees and must be converted.
+    If the input is <=24, it's decimal hours and must be taken as-is.
+    """
+    out = hms_to_hours(str(ra_deg))
+
+    # Always within the valid range for hours
+    assert 0.0 <= out < 24.0
+
+    if ra_deg > 24.0:
+        # degrees → hours
+        assert math.isclose(out, ra_deg / 15.0, abs_tol=1e-6)
+    else:
+        # <=24 → treat as hours
+        assert math.isclose(out, ra_deg, abs_tol=1e-6)
+
+
+def test_ra_decimal_hours_leave_unchanged_and_in_range():
+    """
+    Pure decimal inputs <= 24 are treated as hours.
+    """
+    for ra_h in [0.0, 1.2345, 12.5, 23.999]:
+        out = hms_to_hours(str(ra_h))
+        assert math.isclose(out, ra_h, abs_tol=1e-6)
+        assert 0.0 <= out < 24.0
+
+
+def test_ra_dec_pair_typical_simbad_case():
+    """
+    Typical SIMBAD case that caused your bug:
+    RA as decimal degrees, DEC as decimal degrees.
+    RA must be normalized to hours; DEC stays degrees.
+    """
+    ra_in = "187.6437"   # degrees
+    dec_in = "41.6405"   # degrees
+
+    ra_h = hms_to_hours(ra_in)
+    dec_d = dms_to_degrees(dec_in)
+
+    assert math.isclose(ra_h, 187.6437 / 15.0, abs_tol=1e-6)
+    assert math.isclose(dec_d, 41.6405, abs_tol=1e-6)
+
+
+# ------------------------------
+# Round-trip formatting tests
+# ------------------------------
+@pytest.mark.parametrize("ra_h", [0.0, 0.001, 1.5, 12.34567, 23.9999])
+def test_ra_round_trip_hours_to_hms_and_back(ra_h):
+    """
+    If we format hours as HMS and parse back, we should recover the same value.
+    """
+    hms = hours_to_hms_str(ra_h)
+    out = hms_to_hours(hms)
+    assert math.isclose(out, ra_h % 24.0, abs_tol=1e-4)  # small tolerance due to formatting
+
+
+@pytest.mark.parametrize("dec_d", [-89.999, -41.6405, -0.1, 0.0, 12.5, 41.6405, 89.999])
+def test_dec_round_trip_deg_to_dms_and_back(dec_d):
+    """
+    Same idea for DEC: degrees -> DMS string -> degrees
+    """
+    dms = deg_to_dms_str(dec_d)
+    out = dms_to_degrees(dms)
+    assert math.isclose(out, dec_d, abs_tol=1e-4)
+
+
+# ------------------------------
+# DEC edge / bounds tests
+# ------------------------------
+@pytest.mark.parametrize(
+    "dec_str, expected",
+    [
+        ("+90 00 00", 90.0),
+        ("-90 00 00", -90.0),
+        ("+89:59:59.9", 89.9999722222),
+        ("-89:59:59.9", -89.9999722222),
+        ("0 0 0", 0.0),
+    ]
+)
+def test_dec_edge_cases_parse_correctly(dec_str, expected):
+    out = dms_to_degrees(dec_str)
+    assert math.isclose(out, expected, abs_tol=1e-4)
+    assert -90.0 <= out <= 90.0
+
+
+def test_dec_bad_inputs_never_crash_and_return_zero():
+    for bad in ["abc", "abc:def", "++--", "12:xx:yy", ""]:
+        assert dms_to_degrees(bad) == 0.0
