@@ -1129,15 +1129,34 @@ function startCurrentTimeUpdater(chartInstance) {
     updateLine();
     currentTimeUpdateInterval = setInterval(updateLine, 60000);
 }
+function startCurrentTimeUpdater(chartInstance) {
+    if (!chartInstance) return;
+    if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
+
+    const updateLine = () => {
+        if (!chartInstance || !chartInstance.options || !chartInstance.options.plugins?.annotation?.annotations) {
+            if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
+            currentTimeUpdateInterval = null;
+            return;
+        }
+        const nowMs = luxon.DateTime.now().setZone(plotTz).toMillis();
+        const annotations = chartInstance.options.plugins.annotation.annotations;
+        if (annotations.currentTimeLine) {
+            annotations.currentTimeLine.xMin = nowMs;
+            annotations.currentTimeLine.xMax = nowMs;
+            chartInstance.update('none');
+        }
+    };
+    updateLine();
+    currentTimeUpdateInterval = setInterval(updateLine, 60000);
+}
 
 function saveFramingToDB() {
     const objectName = NOVA_GRAPH_DATA.objectName;
     const sel = document.getElementById('framing-rig-select');
 
     // 1. Gather Data
-    // Use the existing helper getFrameCenterRaDec() to ensure we get the crosshair center if locked
     const center = getFrameCenterRaDec();
-
     const payload = {
         object_name: objectName,
         rig: sel?.value || '',
@@ -1159,9 +1178,30 @@ function saveFramingToDB() {
     .then(data => {
         if(data.status === 'success') {
             alert("Framing settings saved to database.");
-            checkAndShowFramingButton(); // Refresh the button immediately to ensure it works
+            checkAndShowFramingButton();
         } else {
             alert("Error saving: " + data.message);
+        }
+    });
+}
+
+function deleteSavedFraming() {
+    const objectName = NOVA_GRAPH_DATA.objectName;
+    if (!confirm("Are you sure you want to delete the saved framing for this object?")) return;
+
+    fetch('/api/delete_framing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ object_name: objectName })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === 'success') {
+            // Clear the UI
+            const container = document.getElementById('project-quick-link');
+            if (container) container.innerHTML = '';
+        } else {
+            alert("Error deleting: " + data.message);
         }
     });
 }
@@ -1177,16 +1217,20 @@ function checkAndShowFramingButton() {
             container.innerHTML = '';
 
             if (data.status === 'found') {
-                const btn = document.createElement('button');
-                btn.className = 'inline-button'; // Use standard CSS class (Blue)
-                btn.textContent = 'Open Saved Framing';
+                // Create a wrapper div to hold both buttons side-by-side
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.gap = '8px';
 
-                // Only manual overrides for size/padding, NO colors
+                // 1. OPEN BUTTON
+                const btn = document.createElement('button');
+                btn.className = 'inline-button';
+                btn.textContent = 'Open Saved Framing';
                 btn.style.fontSize = '13px';
                 btn.style.padding = '6px 12px';
 
                 btn.onclick = () => {
-                    // Reconstruct query string from DB data
                     const params = new URLSearchParams();
                     if(data.rig) params.set('rig', data.rig);
                     if(data.ra) params.set('ra', data.ra);
@@ -1196,10 +1240,25 @@ function checkAndShowFramingButton() {
                     if(data.blend) params.set('blend', data.blend);
                     params.set('blend_op', data.blend_op);
 
-                    // Open assistant directly with these params
                     openFramingAssistant(params.toString());
                 };
-                container.appendChild(btn);
+
+                // 2. DELETE BUTTON
+                const delBtn = document.createElement('button');
+                delBtn.className = 'inline-button';
+                delBtn.textContent = 'Delete Saved Framing';
+                delBtn.title = "Delete Saved Framing";
+                delBtn.style.fontSize = '13px';
+                delBtn.style.padding = '6px 10px';
+                delBtn.style.backgroundColor = '#c0392b'; // Red background
+                delBtn.style.color = 'white'; // White text
+
+                delBtn.onclick = deleteSavedFraming;
+
+                // Add both to wrapper, then wrapper to container
+                wrapper.appendChild(btn);
+                wrapper.appendChild(delBtn);
+                container.appendChild(wrapper);
             }
         });
 }
@@ -1237,7 +1296,6 @@ window.addEventListener('load', () => {
     const lockBox = document.getElementById('lock-to-object');
     if (lockBox) lockBox.checked = true;
 
-    // Handle URL params for direct linking (e.g. bookmarks)
     const q = new URLSearchParams(location.search);
     if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
 
@@ -1266,6 +1324,6 @@ window.addEventListener('load', () => {
         }
     });
 
-    // --- CHECK DATABASE FOR SAVED FRAMING BUTTON ---
+    // --- CHECK DATABASE FOR FRAMING ---
     checkAndShowFramingButton();
 });

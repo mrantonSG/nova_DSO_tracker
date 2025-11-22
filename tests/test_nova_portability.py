@@ -27,7 +27,11 @@ from nova import (
     HorizonPoint,
     _migrate_journal,
     _migrate_objects,
-    SavedView  # <-- IMPORT THE NEW MODEL
+    SavedView,
+    SavedFraming,
+    _migrate_saved_framings,
+    _migrate_components_and_rigs,
+    build_user_config_from_db
 )
 
 
@@ -885,3 +889,88 @@ def test_import_supports_legacy_list_format(db_session):
     assert session is not None
     assert session.object_name == "M51"
     assert session.notes == "Old list format"
+
+
+def test_export_includes_framing_data(db_session, tmp_path):
+    """
+    Test that building the user config includes the saved_framings block
+    with the resolved rig name.
+    """
+    # 1. ARRANGE
+    # FIX: Ensure user exists. get_or_create is safer than .one() here.
+    # We import it locally or assume it's available via imports
+    from nova import get_or_create_db_user
+    user = get_or_create_db_user(db_session, "default")
+
+    # Inject raw DB record
+    sf = SavedFraming(
+        user_id=user.id,
+        object_name="IC 434",
+        rig_name="Portable Rig",
+        ra=1.1, dec=2.2, rotation=90
+    )
+    db_session.add(sf)
+    db_session.commit()
+
+    # 2. ACT
+    config_dict = build_user_config_from_db("default")
+
+    # 3. ASSERT
+    assert "saved_framings" in config_dict
+    framings = config_dict["saved_framings"]
+    assert len(framings) > 0
+
+    target = next((f for f in framings if f["object_name"] == "IC 434"), None)
+    assert target is not None
+    assert target["rig_name"] == "Portable Rig"
+    assert target["rotation"] == 90
+
+
+def test_import_healing_logic(db_session):
+    """
+    The specific test for the "Self-Healing" logic.
+    """
+    # 1. ARRANGE
+    # FIX: Ensure user exists
+    from nova import get_or_create_db_user
+    user = get_or_create_db_user(db_session, "default")
+
+    # --- DATA PREP ---
+    config_yaml = {
+        "saved_framings": [{
+            "object_name": "Target A",
+            "rig_name": "Future Rig",
+            "ra": 0, "dec": 0
+        }]
+    }
+
+    rigs_yaml = {
+        "rigs": [{
+            "rig_name": "Future Rig",
+            "telescope_name": "Scope A", "camera_name": "Cam A"
+        }],
+        "components": {
+            "telescopes": [{"name": "Scope A", "focal_length_mm": 500, "aperture_mm": 80}],
+            "cameras": [{"name": "Cam A", "pixel_size_um": 3.76}],
+            "reducers_extenders": []
+        }
+    }
+
+    # --- STEP 1: Import Config FIRST ---
+    _migrate_saved_framings(db_session, user, config_yaml)
+    db_session.commit()
+
+    framing = db_session.query(SavedFraming).filter_by(user_id=user.id, object_name="Target A").one()
+    assert framing.rig_name == "Future Rig"
+    assert framing.rig_id is None
+
+    # --- STEP 2: Import Rigs SECOND ---
+    _migrate_components_and_rigs(db_session, user, rigs_yaml, user.username)
+    db_session.commit()
+
+    # Verify Final State
+    db_session.refresh(framing)
+    rig_created = db_session.query(Rig).filter_by(user_id=user.id, rig_name="Future Rig").one()
+
+    assert framing.rig_id is not None
+    assert framing.rig_id == rig_created.id
