@@ -149,59 +149,45 @@ def hms_to_hours(hms):
 
 def dms_to_degrees(dms):
     """
-    FIXED: Converts a string in D:M:S or D:M format to decimal degrees.
-    Also handles inputs that are already decimal (as float or string).
+    Converts DEC to decimal degrees.
+
+    Accepts:
+      - decimal degrees: "41.64"
+      - DMS with spaces: "+41 38 26"
+      - DMS with colons: "+41:38:26"
+    Returns 0.0 on any unparseable input.
     """
-    # Handle None input
     if dms is None:
         return 0.0
 
-    # Handle if it's already a float or np.float
-    if isinstance(dms, (np.float64, float)):
+    # Float / numpy passthrough
+    if isinstance(dms, (float, int, np.float64)):
         return float(dms)
 
-    # Convert to string for parsing
     dms_str = str(dms).strip()
 
-    # Check if it's already a decimal string
+    # Try simple decimal degrees first
     try:
         return float(dms_str)
     except ValueError:
-        pass  # It's not a simple float string, so we parse as D:M:S
+        pass
 
-    # Now, parse as D:M:S
+    # Normalize separators: allow ":" or whitespace
+    parts = dms_str.replace(":", " ").split()
+    if not parts:
+        return 0.0
+
     try:
-        parts = dms_str.split(':')
+        # Extract sign from first component only
+        first = parts[0]
+        sign = -1 if first.startswith("-") else 1
+        deg = abs(float(first))
+        minutes = float(parts[1]) if len(parts) > 1 else 0.0
+        seconds = float(parts[2]) if len(parts) > 2 else 0.0
 
-        # Handle negative sign
-        sign = -1 if parts[0].strip().startswith('-') else 1
-
-        if len(parts) == 1:
-            # This should have been caught by float(dms_str) but as a fallback
-            d = float(parts[0])
-            return d
-
-        elif len(parts) == 2:
-            # D:M format
-            d = float(parts[0])
-            m = float(parts[1])
-            s = 0.0
-
-        elif len(parts) == 3:
-            # D:M:S format
-            d = float(parts[0])
-            m = float(parts[1])
-            s = float(parts[2])
-
-        else:
-            # Bad format
-            return 0.0
-
-        # Calculate degrees. abs(d) handles the negative sign correctly.
-        return sign * (abs(d) + (m / 60.0) + (s / 3600.0))
-
-    except (ValueError, TypeError, AttributeError):
-        # Handles "abc:def" or other junk
+        return sign * (deg + minutes / 60.0 + seconds / 3600.0)
+    except Exception:
+        # Anything weird (non-numeric tokens, etc.) -> safe fallback
         return 0.0
 
 def ra_dec_to_alt_az(ra, dec, lat, lon, time_utc):
