@@ -20,7 +20,8 @@ from nova import (
     Rig,
     UiPref,
     HorizonPoint,
-    SavedView  # <-- IMPORT THE NEW MODEL
+    SavedView,
+    SavedFraming
 )
 
 
@@ -787,8 +788,52 @@ def test_journal_edit_fills_missing_snapshots(client, db_session):
     assert updated_session.telescope_name_snapshot == "Apo 100mm"
     assert updated_session.reducer_name_snapshot is None  # No reducer selected
     assert updated_session.camera_name_snapshot == "ASI 183"
-# --- Your other existing tests/stubs from test_nova_api.py ---
-# ...
+
+
+
+def test_api_save_framing_stores_rig_name(client, db_session):
+    """
+    Tests that the /api/save_framing endpoint correctly saves the
+    redundant 'rig_name' column to ensure portability.
+    """
+    # 1. ARRANGE
+    # The 'client' fixture logs in as 'default' automatically
+    user = db_session.query(DbUser).filter_by(username="default").one()
+
+    # Create a dummy rig
+    rig = Rig(user_id=user.id, rig_name="Test Scope 2000")
+    db_session.add(rig)
+    db_session.commit()
+    rig_id = rig.id
+
+    # 2. ACT
+    payload = {
+        "object_name": "M42",
+        "rig": str(rig_id),
+        "ra": 10.5,
+        "dec": -20.5,
+        "rotation": 45.0,
+        "survey": "DSS2",
+        "blend": "Ha",
+        "blend_op": 0.5
+    }
+
+    response = client.post('/api/save_framing', json=payload)
+
+    # 3. ASSERT
+    assert response.status_code == 200
+    assert response.get_json()['status'] == 'success'
+
+    # Verify DB
+    framing = db_session.query(SavedFraming).filter_by(user_id=user.id, object_name="M42").one()
+
+    # CRITICAL CHECK: Did it save the ID?
+    assert framing.rig_id == rig_id
+    # CRITICAL CHECK: Did it save the Name? (This enables backup/restore)
+    assert framing.rig_name == "Test Scope 2000"
+
+
+
 def test_moon_api_bug_with_no_ra(client):
     pass
 

@@ -2092,7 +2092,7 @@ def build_user_config_from_db(username: str) -> dict:
             except json.JSONDecodeError:
                 print(f"[CONFIG BUILD] WARNING: Could not parse UI prefs JSON for user '{username}'")
 
-        # --- 2. Load Locations (your existing logic is perfect) ---
+        # --- 2. Load Locations ---
         loc_rows = db.query(Location).filter_by(user_id=u.id).all()
         locations = {}
         for l in loc_rows:
@@ -2105,12 +2105,37 @@ def build_user_config_from_db(username: str) -> dict:
             }
         user_config["locations"] = locations
 
-        # --- 3. Load Objects (your existing logic is perfect) ---
+        # --- 3. Load Objects ---
         obj_rows = db.query(AstroObject).filter_by(user_id=u.id).all()
         objects = []
         for o in obj_rows:
             objects.append(o.to_dict())
         user_config["objects"] = objects
+
+        # --- 4. Load Saved Framings (NEW) ---
+        saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
+        saved_framings_list = []
+        for sf in saved_framings_db:
+            # Resolve rig name for portability (ID is local to DB)
+            r_name = None
+            # Prefer the saved name if available (for portability), fallback to lookup
+            if sf.rig_name:
+                r_name = sf.rig_name
+            elif sf.rig_id:
+                rig_obj = db.get(Rig, sf.rig_id)
+                if rig_obj: r_name = rig_obj.rig_name
+
+            saved_framings_list.append({
+                "object_name": sf.object_name,
+                "rig_name": r_name,
+                "ra": sf.ra,
+                "dec": sf.dec,
+                "rotation": sf.rotation,
+                "survey": sf.survey,
+                "blend_survey": sf.blend_survey,
+                "blend_opacity": sf.blend_opacity
+            })
+        user_config["saved_framings"] = saved_framings_list
 
         return user_config
     finally:
@@ -10467,6 +10492,34 @@ def get_framing(object_name):
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
+
+
+@app.route('/api/delete_framing', methods=['POST'])
+@login_required
+def delete_framing():
+    db = get_db()
+    try:
+        data = request.get_json()
+        object_name = data.get('object_name')
+
+        framing = db.query(SavedFraming).filter_by(
+            user_id=g.db_user.id,
+            object_name=object_name
+        ).one_or_none()
+
+        if framing:
+            db.delete(framing)
+            db.commit()
+            return jsonify({"status": "success", "message": "Framing deleted."})
+        else:
+            return jsonify({"status": "error", "message": "No saved framing found."}), 404
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
+
 
 if __name__ == '__main__':
     # Start the background thread to check for updates
