@@ -107,60 +107,43 @@ def parse_ra_dec(value):
 
 def hms_to_hours(hms):
     """
-    FIXED: Converts a string in H:M:S or H:M format to decimal hours.
-    Also handles inputs that are already decimal (as float or string).
+    Converts RA to decimal hours.
+
+    Accepts:
+      - HMS strings like "12 30 36.4" or "12:30:36.4"
+      - decimal hours (e.g., "12.5")
+      - decimal degrees from SIMBAD (e.g., "187.6"), auto-detected and converted
     """
-    # Handle None input
     if hms is None:
         return 0.0
 
-    # Handle if it's already a float or np.float
+    # numpy/float passthrough
     if isinstance(hms, (np.float64, float)):
-        return float(hms)
+        val = float(hms)
+        return val / 15.0 if val > 24.0 else val
 
-    # Convert to string for parsing
     hms_str = str(hms).strip()
 
-    # Check if it's already a decimal string
+    # If it's a plain decimal, decide hours vs degrees
     try:
-        # This handles the test case for hms_to_hours("12.5") == 12.5
-        return float(hms_str)
+        val = float(hms_str)
+        # Heuristic: RA in hours must be in [0,24); if larger, it's almost certainly degrees.
+        return val / 15.0 if val > 24.0 else val
     except ValueError:
-        pass  # It's not a simple float string, so we parse as H:M:S
+        pass
 
-    # Now, parse as H:M:S (colon-separated)
+    # Normalize separators: allow either ":" or whitespace
+    parts = hms_str.replace(":", " ").split()
+    if not parts:
+        return 0.0
+
     try:
-        parts = hms_str.split(':')
-
-        # Handle negative sign, just in case
-        sign = -1 if parts[0].strip().startswith('-') else 1
-
-        if len(parts) == 1:
-            # This should have been caught by float(hms_str)
-            h = float(parts[0])
-            return h
-
-        elif len(parts) == 2:
-            # H:M format
-            h = float(parts[0])
-            m = float(parts[1])
-            s = 0.0
-
-        elif len(parts) == 3:
-            # H:M:S format
-            h = float(parts[0])
-            m = float(parts[1])
-            s = float(parts[2])
-
-        else:
-            # Bad format
-            return 0.0
-
-        # Calculate hours. abs(h) handles the negative sign correctly.
-        return sign * (abs(h) + (m / 60.0) + (s / 3600.0))
-
-    except (ValueError, TypeError, AttributeError):
-        # Handles "abc:def" or other junk
+        sign = -1 if parts[0].startswith("-") else 1
+        h = abs(float(parts[0]))
+        m = float(parts[1]) if len(parts) > 1 else 0.0
+        s = float(parts[2]) if len(parts) > 2 else 0.0
+        return sign * (h + m / 60.0 + s / 3600.0)
+    except Exception:
         return 0.0
 
 
