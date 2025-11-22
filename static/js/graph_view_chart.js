@@ -657,29 +657,7 @@ function toggleFramingFullscreen(btn) {
     const isFullscreen = modalContent.classList.contains('fullscreen');
     if (btn) { btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'; }
 }
-function setProjectQuickLink(url) {
-    const container = document.getElementById('project-quick-link');
-    if (!container) return;
-    container.innerHTML = '';
-    if (url) {
-        const btn = document.createElement('button');
-        btn.className = 'inline-button';
-        btn.style.fontSize = '13px';
-        btn.style.padding = '6px 12px';
-        btn.textContent = 'Re-open Last Saved Framing';
-        btn.onclick = () => {
-            try {
-                const u = new URL(url, location.origin);
-                const qNow = new URLSearchParams(buildFramingQuery().slice(1));
-                qNow.forEach((v, k) => u.searchParams.set(k, v));
-                history.pushState(null, '', u.pathname + '?' + u.searchParams.toString());
-            } catch (e) { history.pushState(null, '', url); }
-            openFramingAssistant();
-        };
-        container.appendChild(btn);
-    }
-}
-function openFramingAssistant() {
+function openFramingAssistant(optionalQueryString) {
     const framingModal = document.getElementById('framing-modal');
     framingModal.style.display = 'block'; // Show the modal frame immediately
 
@@ -704,45 +682,27 @@ function openFramingAssistant() {
             const sel = document.getElementById('blend-survey-select');
             if (!sel) return null;
 
-            const surveyId = sel.value; // This can be "P/DSS2/color" OR "https://..."
-
-            // Check if the layer already exists *and* the ID matches
+            const surveyId = sel.value;
             const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
             if (existing && __blendSurveyId === surveyId) {
                 return existing;
             }
 
-            // If it's a new ID, we must create a new layer
             try {
-                let hpx; // This will be our new layer
-
-                // --- NEW LOGIC ---
+                let hpx;
                 if (surveyId.startsWith('http')) {
-                    // This is an EXTERNAL survey
                     const friendlyName = sel.options[sel.selectedIndex]?.textContent || surveyId;
-                    hpx = aladin.createImageSurvey(
-                        surveyId,       // Unique ID
-                        friendlyName,   // Display name
-                        surveyId,       // Base URL
-                        "equatorial",   // Frame
-                        9,              // Max Order
-                    );
+                    hpx = aladin.createImageSurvey(surveyId, friendlyName, surveyId, "equatorial", 9);
                 } else {
-                    // This is a STANDARD, built-in survey
-                    hpx = (aladin.newImageSurvey)
-                        ? aladin.newImageSurvey(surveyId)
-                        : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
+                    hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(surveyId) : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
                 }
-                // --- END NEW LOGIC ---
-
                 if (hpx) {
                     aladin.setOverlayImageLayer(hpx, 'blend');
-                    __blendSurveyId = surveyId; // Store the ID we just set
+                    __blendSurveyId = surveyId;
                     return aladin.getOverlayImageLayer('blend');
                 }
             } catch (e) {
                 console.warn('[nova] Could not create/set overlay image survey:', e);
-                alert("Could not load external blend survey. See console for details.");
             }
             return null;
         }
@@ -761,9 +721,14 @@ function openFramingAssistant() {
         (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
     }
     function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN }); const qp = new URLSearchParams(); if (rig) qp.set('rig', rig); if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6)); if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6)); qp.set('rot', String(Math.round(to360(rot)))); if (survey) qp.set('survey', survey); if (blend) qp.set('blend', blend); qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op)))); return '?' + qp.toString(); }
+
     let haveCenter = false, haveRot = false, haveRigRestored = false;
     try {
-        const q = new URLSearchParams(location.search), rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec')), rot = parseFloat(q.get('rot')), surv = q.get('survey'), blend = q.get('blend'), blendOp = parseFloat(q.get('blend_op'));
+        // --- FIX: Use optionalQueryString if provided, otherwise fallback to location.search ---
+        const q = new URLSearchParams(optionalQueryString || location.search);
+        // -------------------------------------------------------------------------------------
+
+        const rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec')), rot = parseFloat(q.get('rot')), surv = q.get('survey'), blend = q.get('blend'), blendOp = parseFloat(q.get('blend_op'));
         if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
         if (!Number.isNaN(rot)) { const rotInput = document.getElementById('framing-rotation'), signed = toSigned180(rot); if (rotInput) rotInput.value = signed; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`; haveRot = true; }
         if (surv) { if (typeof setSurvey === 'function') setSurvey(surv); else { const s = document.getElementById('survey-select'); if (s) s.value = surv; } }
@@ -778,7 +743,6 @@ function openFramingAssistant() {
     updateFovVsObjectLabel?.();
     updateReadoutFromCenter?.();
 
-    // Add overlay with all Nova DB objects (circles with IDs)
     try {
         ensureNovaObjectsCatalog();
     } catch (e) {
@@ -864,6 +828,80 @@ window.updateFramingChart = function (recenter = true) {
     if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
     else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
 };
+function saveFramingToDB() {
+    const objectName = NOVA_GRAPH_DATA.objectName;
+    const sel = document.getElementById('framing-rig-select');
+
+    // 1. Gather Data
+    const payload = {
+        object_name: objectName,
+        rig: sel?.value || '',
+        rotation: parseFloat(document.getElementById('framing-rotation')?.value || 0),
+        survey: document.getElementById('survey-select')?.value || '',
+        blend: document.getElementById('blend-survey-select')?.value || '',
+        blend_op: parseFloat(document.getElementById('blend-opacity')?.value || 0),
+        // Get current center coordinates
+        ra: getFrameCenterRaDec().ra,
+        dec: getFrameCenterRaDec().dec
+    };
+
+    // 2. Send to DB
+    fetch('/api/save_framing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === 'success') {
+            alert("Framing settings saved to database.");
+            checkAndShowFramingButton(); // Refresh the button immediately
+        } else {
+            alert("Error saving: " + data.message);
+        }
+    });
+}
+
+function checkAndShowFramingButton() {
+    const objectName = NOVA_GRAPH_DATA.objectName;
+    const container = document.getElementById('project-quick-link');
+    if (!container) return;
+
+    fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
+        .then(r => r.json())
+        .then(data => {
+            container.innerHTML = ''; // Clear any existing button
+
+            if (data.status === 'found') {
+                const btn = document.createElement('button');
+                btn.className = 'inline-button';
+                btn.textContent = 'Open Saved Framing';
+
+                // --- COLOR CHANGE: Removed explicit green color ---
+                // It now inherits the standard #83b4c5 from the 'inline-button' class
+
+                // Keep size overrides if you want it slightly smaller than the main buttons
+                btn.style.fontSize = '13px';
+                btn.style.padding = '6px 12px';
+
+                btn.onclick = () => {
+                    // Reconstruct query string from DB data
+                    const params = new URLSearchParams();
+                    if(data.rig) params.set('rig', data.rig);
+                    if(data.ra) params.set('ra', data.ra);
+                    if(data.dec) params.set('dec', data.dec);
+                    params.set('rot', data.rotation);
+                    if(data.survey) params.set('survey', data.survey);
+                    if(data.blend) params.set('blend', data.blend);
+                    params.set('blend_op', data.blend_op);
+
+                    // Open assistant directly with these params
+                    openFramingAssistant(params.toString());
+                };
+                container.appendChild(btn);
+            }
+        });
+}
 function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
     if (!aladin || !fovLayer || !center) return;
     fovLayer.removeAll();
@@ -1065,205 +1103,169 @@ function saveProject() {
         alert(data.status === "success" ? "Project updated successfully!" : data.error);
     });
 }
-function insertFramingIntoProject() {
-    try {
-        // --- START MODIFICATION ---
-        // Find the Trix editor *element*
-        const trixEditor = document.getElementById('project-field-editor');
-        if (!trixEditor) {
-            alert('Project notes editor not found.');
-            return;
-        }
-        // Get the editor *controller* from the element
-        const editor = trixEditor.editor;
 
-        // Get the current notes HTML from the hidden field
-        const currentNotes = document.getElementById('project-field-hidden').value;
-        // --- END MODIFICATION ---
-
-        const sel = document.getElementById('framing-rig-select'), rigId = sel?.value || '', rigName = (sel && sel.selectedIndex >= 0) ? sel.options[sel.selectedIndex].textContent.trim() : 'rig?', rotInput = document.getElementById('framing-rotation'), rotDeg = Math.round(parseFloat(rotInput?.value ?? '0')) || 0, survSel = document.getElementById('survey-select'), survey = survSel?.value || '', blendSel = document.getElementById('blend-survey-select'), blendSurvey = blendSel?.value || '', blendOpEl = document.getElementById('blend-opacity'), blendOp = Math.max(0, Math.min(1, parseFloat(blendOpEl?.value ?? '0') || 0));
-        const center = getFrameCenterRaDec(), raDeg = center.ra, decDeg = center.dec;
-        updateReadout(raDeg, decDeg);
-        const qs = new URLSearchParams();
-        if (rigId) qs.set('rig', rigId);
-        if (Number.isFinite(raDeg)) qs.set('ra', raDeg.toFixed(6));
-        if (Number.isFinite(decDeg)) qs.set('dec', decDeg.toFixed(6));
-        qs.set('rot', String(rotDeg));
-        if (survey) qs.set('survey', survey);
-        if (blendSurvey) qs.set('blend', blendSurvey);
-        qs.set('blend_op', String(blendOp));
-        const url = `${location.origin}${location.pathname}?${qs.toString()}`;
-        const objectName = NOVA_GRAPH_DATA.objectName, centerTxt = `RA ${formatRA(raDeg)}, Dec ${formatDec(decDeg)}`, line = `[Framing:${objectName}] ${rigName}, rot ${rotDeg}\u00B0, ${centerTxt}, survey ${survey || 'default'}${blendSurvey ? ` + blend ${blendSurvey} @ ${blendOp}` : ''}`;
-
-        // --- START MODIFICATION ---
-        // To properly parse the old notes, we create a temporary div
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = currentNotes;
-        const lines = tempDiv.innerText.split(/\r?\n/); // Get plain text lines
-        const out = [];
-
-        // Re-build the notes, skipping old framing links for *this* object
-        for (let i = 0; i < lines.length; i++) {
-            const L = lines[i];
-            if (/^\[Framing:/.test(L)) {
-                if (L.startsWith(`[Framing:${objectName}]`)) {
-                    const maybeUrl = lines[i + 1] || '';
-                    if (/^https?:\/\//i.test(maybeUrl)) i++; continue;
-                }
-            }
-            out.push(L);
-        }
-        if (out.length && out[out.length - 1] !== '') out.push('');
-        out.push(line);
-        out.push(url);
-
-        // Convert the plain text array back into simple HTML for the editor
-        // We wrap each line in a <div>, which Trix treats as a paragraph.
-        const newHtml = out.map(l => `<div>${l || '<br>'}</div>`).join('');
-
-        // Load the new HTML into the editor (this replaces everything)
-        editor.loadHTML(newHtml);
-        // --- END MODIFICATION ---
-
-        setProjectQuickLink(url);
-    } catch (e) {
-        console.error('insertFramingIntoProject failed', e);
-        alert('Could not insert framing into Project. See console for details.');
-    }
-}
 function copyFramingUrl() { try { const q = buildFramingQuery(), url = location.origin + location.pathname + q; navigator.clipboard.writeText(url); console.log("[Framing] Copied URL:", url); } catch (e) { console.warn("[Framing] copyFramingUrl failed:", e); } }
 function loadImagingOpportunities() { document.getElementById("opportunities-section").style.display = "block"; const tbody = document.getElementById("opportunities-body"); tbody.innerHTML = `<tr><td colspan="9">Searching...</td></tr>`; const objectName = NOVA_GRAPH_DATA.objectName; fetch(`/get_imaging_opportunities/${encodeURIComponent(objectName)}`).then(response => response.json()).then(data => { if (data.status === "success") { if (data.results.length === 0) { tbody.innerHTML = `<tr><td colspan="9">No good dates found matching your criteria.</td></tr>`; return; } let htmlRows = ""; const selectedDateStr = `${document.getElementById('year-select').value.padStart(4, '0')}-${document.getElementById('month-select').value.padStart(2, '0')}-${document.getElementById('day-select').value.padStart(2, '0')}`, plotLat = NOVA_GRAPH_DATA.plotLat, plotLon = NOVA_GRAPH_DATA.plotLon; data.results.forEach(r => { const isSelected = r.date === selectedDateStr, formattedDate = formatDateISOtoEuropean(r.date), ics_url = `/generate_ics/${encodeURIComponent(objectName)}?date=${r.date}&tz=${encodeURIComponent(plotTz)}&lat=${plotLat}&lon=${plotLon}&max_alt=${r.max_alt}&moon_illum=${r.moon_illumination}&obs_dur=${r.obs_minutes}&from_time=${r.from_time}&to_time=${r.to_time}`, filename = `imaging_${objectName.replace(/\s+/g, '_')}_${r.date}.ics`; htmlRows += `<tr class="${isSelected ? 'highlight' : ''}" data-date="${r.date}" onclick="selectSuggestedDate('${r.date}')" style="cursor: pointer;"><td>${formattedDate}</td><td>${r.from_time}</td><td>${r.to_time}</td><td>${r.obs_minutes}</td><td>${r.max_alt}</td><td>${r.moon_illumination}</td><td>${r.moon_separation}</td><td>${r.rating || ""}</td><td onclick="event.stopPropagation();"><a href="${ics_url}" download="${filename}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;">🗓️</a></td></tr>`; }); tbody.innerHTML = htmlRows; } else tbody.innerHTML = `<tr><td colspan="9">Error: ${data.message}</td></tr>`; }); }
 function selectSuggestedDate(dateStr) { const [year, month, day] = dateStr.split('-').map(Number); document.getElementById('year-select').value = year; document.getElementById('month-select').value = month; document.getElementById('day-select').value = day; changeView('day'); setTimeout(() => { const rows = document.getElementById("opportunities-body").querySelectorAll("tr"); rows.forEach(row => { row.classList.toggle("highlight", row.getAttribute("data-date") === dateStr); }); }, 100); }
 function openInStellarium() { document.getElementById('stellarium-status').textContent = "Sending object to Stellarium..."; document.getElementById('stellarium-status').style.color = "#666"; const objectName = NOVA_GRAPH_DATA.objectName; fetch("/proxy_focus", { method: "POST", headers: {"Content-Type": "application/x-www-form-urlencoded"}, body: new URLSearchParams({target: objectName, mode: "center"}) }).then(async response => { let data; try { data = await response.json(); } catch (e) { data = {message: "Could not parse server response."}; } if (response.ok && data.status === "success") { document.getElementById('stellarium-status').textContent = "Stellarium view updated!"; document.getElementById('stellarium-status').style.color = "#83b4c5"; } else document.getElementById('stellarium-status').innerHTML = `<p style="color:red; margin:0;">Error: ${data.message || "Unknown error"}</p>`; }); }
-
-window.addEventListener('load', () => {
-    if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
-    const savedTab = localStorage.getItem('activeGraphTab') || 'chart';
-
-    changeView('day');
-    // Trix Editor File Upload Handler
-    try {
-        const trixEditor = document.querySelector("#project-field-editor");
-
-        if (trixEditor) {
-            trixEditor.addEventListener("trix-attachment-add", function(event) {
-                if (event.attachment.file) {
-                    // This is the function that will upload the file
-                    uploadTrixFile(event.attachment);
-                }
-            });
-            // This handler is for the JOURNAL NOTES editor
-            const journalEditor = document.querySelector("#journal-notes-editor");
-            if (journalEditor) {
-                journalEditor.addEventListener("trix-attachment-add", function(event) {
-                    if (event.attachment.file) {
-                        // It can call the *exact same* upload function
-                        uploadTrixFile(event.attachment);
-                    }
-                });
-            }
-            function uploadTrixFile(attachment) {
-                // 1. Create FormData
-                const formData = new FormData();
-                formData.append("file", attachment.file);
-
-                // 2. Start the upload
-                fetch("/upload_editor_image", {
-                    method: "POST",
-                    body: formData,
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        // --- START: Improved Error Handling ---
-                        // Try to parse error as JSON, but fall back to plain text
-                        return response.json()
-                            .then(data => {
-                                // We got a JSON error response (e.g., "File type not allowed")
-                                throw new Error(data.error || "Upload failed: Server returned an error");
-                            })
-                            .catch(() => {
-                                // Failed to parse JSON, it's probably an HTML error page
-                                // (e.g., 413 Payload Too Large, 401 Unauthorized, or 500)
-                                throw new Error(`Upload failed: Server responded with status ${response.status} ${response.statusText}`);
-                            });
-                        // --- END: Improved Error Handling ---
-                    }
-                    return response.json(); // Get the success JSON
-                })
-                .then(data => {
-                    if (data.url) {
-                        // 3. Success! Tell Trix the URL of the uploaded file
-                        attachment.setAttributes({
-                            url: data.url,
-                            href: data.url
-                        });
-                    } else {
-                        throw new Error("Invalid success response from server.");
-                    }
-                })
-                .catch(error => {
-                    // 4. Failure. Alert the user and remove the attachment
-                    console.error("Trix upload failed:", error);
-                    alert("File upload failed: " + error.message);
-                    attachment.remove(); // Removes the file from the editor
-                });
-            }
-        }
-    } catch (e) {
-        console.error("Could not set up Trix editor file uploads:", e);
-    }
-    const lockBox = document.getElementById('lock-to-object');
-    if (lockBox) lockBox.checked = true;
-    const q = new URLSearchParams(location.search);
-    if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
-    const dateEl = document.getElementById("date-display");
-    // if (dateEl && dateEl.innerText.includes("-")) dateEl.innerText = formatDateISOtoEuropean(dateEl.innerText);
-    const dayInput = document.getElementById("day-select"), monthSelect = document.getElementById("month-select"), yearInput = document.getElementById("year-select");
-    function updateDayLimit() { const year = parseInt(yearInput.value), month = parseInt(monthSelect.value), daysInMonth = new Date(year, month, 0).getDate(); if (parseInt(dayInput.value) > daysInMonth) dayInput.value = daysInMonth; dayInput.max = daysInMonth; }
-    monthSelect.addEventListener("change", updateDayLimit);
-    yearInput.addEventListener("change", updateDayLimit);
-    updateDayLimit();
-    const framingModal = document.getElementById('framing-modal');
-    window.addEventListener('click', function (event) { if (event.target == framingModal) closeFramingAssistant(); });
-window.addEventListener('resize', () => {
-    if (document.getElementById('framing-modal').style.display === 'block') {
-        if (aladin) updateFramingChart(false);
-    }
-    // Chart.js will re-render the plugin overlay on resize automatically
-});
-    const ta = document.getElementById('project-field');
-    if (ta) { const m = ta.value.match(/\bhttps?:\/\/[^\s<>"']+/g); if (m && m.length) setProjectQuickLink(m[m.length - 1]); }
-});
-
 function startCurrentTimeUpdater(chartInstance) {
-    if (!chartInstance) return; // Don't run if the chart doesn't exist
-
-    // Clear any previous timer first
-    if (currentTimeUpdateInterval) {
-        clearInterval(currentTimeUpdateInterval);
-    }
+    if (!chartInstance) return;
+    if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
 
     const updateLine = () => {
-        // Check if the chart still exists before trying to update it
         if (!chartInstance || !chartInstance.options || !chartInstance.options.plugins?.annotation?.annotations) {
             if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
             currentTimeUpdateInterval = null;
             return;
         }
-
-        // Get the current time in the chart's timezone
         const nowMs = luxon.DateTime.now().setZone(plotTz).toMillis();
         const annotations = chartInstance.options.plugins.annotation.annotations;
-
-        // Update the position of our line
         if (annotations.currentTimeLine) {
             annotations.currentTimeLine.xMin = nowMs;
             annotations.currentTimeLine.xMax = nowMs;
-            chartInstance.update('none'); // Update the chart without a flashy animation
+            chartInstance.update('none');
         }
     };
-
-    // Run it once immediately, and then set it to run every 10 minutes
     updateLine();
-    currentTimeUpdateInterval = setInterval(updateLine, 1 * 60 * 1000); // 1 minutes in milliseconds
+    currentTimeUpdateInterval = setInterval(updateLine, 60000);
 }
+
+function saveFramingToDB() {
+    const objectName = NOVA_GRAPH_DATA.objectName;
+    const sel = document.getElementById('framing-rig-select');
+
+    // 1. Gather Data
+    // Use the existing helper getFrameCenterRaDec() to ensure we get the crosshair center if locked
+    const center = getFrameCenterRaDec();
+
+    const payload = {
+        object_name: objectName,
+        rig: sel?.value || '',
+        rotation: parseFloat(document.getElementById('framing-rotation')?.value || 0),
+        survey: document.getElementById('survey-select')?.value || '',
+        blend: document.getElementById('blend-survey-select')?.value || '',
+        blend_op: parseFloat(document.getElementById('blend-opacity')?.value || 0),
+        ra: center.ra,
+        dec: center.dec
+    };
+
+    // 2. Send to DB
+    fetch('/api/save_framing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === 'success') {
+            alert("Framing settings saved to database.");
+            checkAndShowFramingButton(); // Refresh the button immediately to ensure it works
+        } else {
+            alert("Error saving: " + data.message);
+        }
+    });
+}
+
+function checkAndShowFramingButton() {
+    const objectName = NOVA_GRAPH_DATA.objectName;
+    const container = document.getElementById('project-quick-link');
+    if (!container) return;
+
+    fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
+        .then(r => r.json())
+        .then(data => {
+            container.innerHTML = '';
+
+            if (data.status === 'found') {
+                const btn = document.createElement('button');
+                btn.className = 'inline-button'; // Use standard CSS class (Blue)
+                btn.textContent = 'Open Saved Framing';
+
+                // Only manual overrides for size/padding, NO colors
+                btn.style.fontSize = '13px';
+                btn.style.padding = '6px 12px';
+
+                btn.onclick = () => {
+                    // Reconstruct query string from DB data
+                    const params = new URLSearchParams();
+                    if(data.rig) params.set('rig', data.rig);
+                    if(data.ra) params.set('ra', data.ra);
+                    if(data.dec) params.set('dec', data.dec);
+                    params.set('rot', data.rotation);
+                    if(data.survey) params.set('survey', data.survey);
+                    if(data.blend) params.set('blend', data.blend);
+                    params.set('blend_op', data.blend_op);
+
+                    // Open assistant directly with these params
+                    openFramingAssistant(params.toString());
+                };
+                container.appendChild(btn);
+            }
+        });
+}
+
+window.addEventListener('load', () => {
+    if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
+
+    changeView('day');
+
+    // Trix File Upload Logic
+    try {
+        const trixEditor = document.querySelector("#project-field-editor");
+        if (trixEditor) {
+            trixEditor.addEventListener("trix-attachment-add", function(event) {
+                if (event.attachment.file) uploadTrixFile(event.attachment);
+            });
+            const journalEditor = document.querySelector("#journal-notes-editor");
+            if (journalEditor) {
+                journalEditor.addEventListener("trix-attachment-add", function(event) {
+                    if (event.attachment.file) uploadTrixFile(event.attachment);
+                });
+            }
+            function uploadTrixFile(attachment) {
+                const formData = new FormData();
+                formData.append("file", attachment.file);
+                fetch("/upload_editor_image", { method: "POST", body: formData })
+                .then(r => r.ok ? r.json() : Promise.reject(r))
+                .then(data => { if(data.url) attachment.setAttributes({ url: data.url, href: data.url }); })
+                .catch(e => { console.error("Trix upload failed", e); attachment.remove(); });
+            }
+        }
+    } catch (e) {}
+
+    // General UI
+    const lockBox = document.getElementById('lock-to-object');
+    if (lockBox) lockBox.checked = true;
+
+    // Handle URL params for direct linking (e.g. bookmarks)
+    const q = new URLSearchParams(location.search);
+    if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
+
+    // Date Picker Limits
+    const dayInput = document.getElementById("day-select");
+    if (dayInput) {
+        const mSel = document.getElementById("month-select"), yInp = document.getElementById("year-select");
+        const updateDL = () => {
+            const d = new Date(parseInt(yInp.value), parseInt(mSel.value), 0).getDate();
+            if(parseInt(dayInput.value) > d) dayInput.value = d;
+            dayInput.max = d;
+        };
+        mSel.addEventListener("change", updateDL);
+        yInp.addEventListener("change", updateDL);
+        updateDL();
+    }
+
+    // Modal Listeners
+    const framingModal = document.getElementById('framing-modal');
+    if (framingModal) {
+        window.addEventListener('click', e => { if (e.target == framingModal) closeFramingAssistant(); });
+    }
+    window.addEventListener('resize', () => {
+        if (document.getElementById('framing-modal').style.display === 'block') {
+            if (typeof aladin !== 'undefined' && aladin) updateFramingChart(false);
+        }
+    });
+
+    // --- CHECK DATABASE FOR SAVED FRAMING BUTTON ---
+    checkAndShowFramingButton();
+});
