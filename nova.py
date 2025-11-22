@@ -350,6 +350,30 @@ class Location(Base):
     horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_location_name'),)
 
+
+class SavedFraming(Base):
+    __tablename__ = 'saved_framings'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
+    object_name = Column(String(256), nullable=False)
+
+    # Framing Data
+    rig_id = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True)
+    rig_name = Column(String(256), nullable=True)
+    ra = Column(Float, nullable=True)
+    dec = Column(Float, nullable=True)
+    rotation = Column(Float, nullable=True)
+
+    # Survey Data
+    survey = Column(String(256), nullable=True)
+    blend_survey = Column(String(256), nullable=True)
+    blend_opacity = Column(Float, nullable=True)
+
+    updated_at = Column(Date, default=datetime.utcnow)
+
+    user = relationship("DbUser", backref="saved_framings")
+    __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object_framing'),)
+
 class HorizonPoint(Base):
     __tablename__ = 'horizon_points'
     id = Column(Integer, primary_key=True)
@@ -807,6 +831,16 @@ def ensure_db_initialized_unified():
                     "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
                 )
             except Exception:
+                pass
+
+            try:
+                cols_framing = conn.exec_driver_sql("PRAGMA table_info(saved_framings);").fetchall()
+                colnames_framing = {row[1] for row in cols_framing}
+                if "rig_name" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_name VARCHAR(256);")
+                    print("[DB PATCH] Added missing column saved_framings.rig_name")
+            except Exception as e:
+                # Table might not exist yet if it's a fresh install, which is fine
                 pass
 
             # --- Add new columns to 'components' table ---
@@ -1295,6 +1329,85 @@ def _migrate_locations(db, user: DbUser, config: dict):
             print(f"[MIGRATION] Skip/repair location '{name}': {e}")
 
 
+def _heal_saved_framings(db, user: DbUser):
+    """
+    Scans for SavedFraming records that have a rig_name but no rig_id
+    (orphaned because config was imported before rigs) and tries to link them.
+    """
+    try:
+        orphans = db.query(SavedFraming).filter(
+            SavedFraming.user_id == user.id,
+            SavedFraming.rig_name != None,
+            SavedFraming.rig_id == None
+        ).all()
+
+        count = 0
+        for f in orphans:
+            # Try to find the rig by name
+            rig = db.query(Rig).filter_by(user_id=user.id, rig_name=f.rig_name).one_or_none()
+            if rig:
+                f.rig_id = rig.id
+                count += 1
+
+        if count > 0:
+            print(f"[MIGRATION] Healed {count} saved framing links (connected to newly imported rigs).")
+            db.flush()
+    except Exception as e:
+        print(f"[MIGRATION] Error healing saved framings: {e}")
+
+
+def _migrate_saved_framings(db, user: DbUser, config: dict):
+    framings = config.get("saved_framings", []) or []
+
+    for f in framings:
+        try:
+            obj_name = f.get("object_name")
+            if not obj_name: continue
+
+            # Resolve rig_id from rig_name if possible
+            rig_name_str = f.get("rig_name")
+            rig_id = None
+            if rig_name_str:
+                rig = db.query(Rig).filter_by(user_id=user.id, rig_name=rig_name_str).one_or_none()
+                if rig:
+                    rig_id = rig.id
+
+            # Upsert Logic
+            existing = db.query(SavedFraming).filter_by(
+                user_id=user.id,
+                object_name=obj_name
+            ).one_or_none()
+
+            if existing:
+                existing.rig_id = rig_id
+                existing.rig_name = rig_name_str  # <-- Always save the name
+                existing.ra = f.get("ra")
+                existing.dec = f.get("dec")
+                existing.rotation = f.get("rotation")
+                existing.survey = f.get("survey")
+                existing.blend_survey = f.get("blend_survey")
+                existing.blend_opacity = f.get("blend_opacity")
+            else:
+                new_sf = SavedFraming(
+                    user_id=user.id,
+                    object_name=obj_name,
+                    rig_id=rig_id,
+                    rig_name=rig_name_str,  # <-- Always save the name
+                    ra=f.get("ra"),
+                    dec=f.get("dec"),
+                    rotation=f.get("rotation"),
+                    survey=f.get("survey"),
+                    blend_survey=f.get("blend_survey"),
+                    blend_opacity=f.get("blend_opacity")
+                )
+                db.add(new_sf)
+
+        except Exception as e:
+            print(f"[MIGRATION] Error migrating saved framing for {f.get('object_name')}: {e}")
+
+    db.flush()
+
+
 def _migrate_objects(db, user: DbUser, config: dict):
     """
     Idempotently migrates astronomical objects from a YAML configuration dictionary to the database.
@@ -1695,6 +1808,8 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
         except Exception as e:
             print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
 
+    _heal_saved_framings(db, user)
+
 
 def _migrate_saved_views(db, user: DbUser, config: dict):
     """
@@ -2018,6 +2133,26 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
         # CONFIG (locations + objects + defaults)
         locs = db.query(Location).filter_by(user_id=u.id).all()
         default_loc = next((l.name for l in locs if l.is_default), None)
+        saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
+        saved_framings_list = []
+        for sf in saved_framings_db:
+            # Resolve rig name for portability (ID is local to DB)
+            r_name = None
+            if sf.rig_id:
+                # We can query efficiently or just let it be lazy if N is small
+                rig_obj = db.get(Rig, sf.rig_id)
+                if rig_obj: r_name = rig_obj.rig_name
+
+            saved_framings_list.append({
+                "object_name": sf.object_name,
+                "rig_name": r_name,
+                "ra": sf.ra,
+                "dec": sf.dec,
+                "rotation": sf.rotation,
+                "survey": sf.survey,
+                "blend_survey": sf.blend_survey,
+                "blend_opacity": sf.blend_opacity
+            })
         cfg = {
             "default_location": default_loc,
             "locations": {
@@ -2029,7 +2164,8 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             },
             "objects": [
                 o.to_dict() for o in db.query(AstroObject).filter_by(user_id=u.id).all()
-            ]
+            ],
+            "saved_framings": saved_framings_list
         }
         cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
         _atomic_write_yaml(os.path.join(out_dir, cfg_file), cfg)
@@ -2152,6 +2288,7 @@ def import_user_from_yaml(username: str,
         _migrate_locations(db, user, cfg_data)
         _migrate_objects(db, user, cfg_data)
         _migrate_components_and_rigs(db, user, rigs_data, username)
+        _migrate_saved_framings(db, user, cfg_data)
         _migrate_journal(db, user, jrn_data)
         _migrate_ui_prefs(db, user, cfg_data)
         db.commit()
@@ -6119,13 +6256,35 @@ def download_config():
         db_objects = db.query(AstroObject).filter_by(user_id=u.id).order_by(AstroObject.object_name).all()
         config_doc["objects"] = [o.to_dict() for o in db_objects]
 
-        # --- 4. ADD THIS BLOCK: Load Saved Views ---
+        # --- 4. Load Saved Framings (NEW) ---
+        saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
+        saved_framings_list = []
+        for sf in saved_framings_db:
+            # Resolve rig name for portability (ID is local to DB)
+            r_name = None
+            if sf.rig_id:
+                rig_obj = db.get(Rig, sf.rig_id)
+                if rig_obj: r_name = rig_obj.rig_name
+
+            saved_framings_list.append({
+                "object_name": sf.object_name,
+                "rig_name": r_name,
+                "ra": sf.ra,
+                "dec": sf.dec,
+                "rotation": sf.rotation,
+                "survey": sf.survey,
+                "blend_survey": sf.blend_survey,
+                "blend_opacity": sf.blend_opacity
+            })
+        config_doc["saved_framings"] = saved_framings_list
+
+        # --- 5. Load Saved Views ---
         db_views = db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
         config_doc["saved_views"] = [
             {"name": v.name, "settings": json.loads(v.settings_json)} for v in db_views
         ]
 
-        # --- 5. Create in-memory file ---
+        # --- 6. Create in-memory file ---
         yaml_string = yaml.dump(config_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
         str_io = io.BytesIO(yaml_string.encode('utf-8'))
 
@@ -6390,6 +6549,10 @@ def import_config():
             # 5. Import the saved views ---
             _migrate_saved_views(db, user, new_config)
 
+            # 6. Import Saved Framings (THIS WAS MISSING) ---
+            _migrate_saved_framings(db, user, new_config)
+            # ----------------------------------------------
+
             # --- FIX: Capture ID before closing session ---
             user_id_for_thread = user.id
             # ----------------------------------------------
@@ -6412,8 +6575,6 @@ def import_config():
             if not os.path.exists(cache_filepath):
                 print(f"    -> New location '{loc_name}' found. Triggering Outlook cache update.")
 
-                # --- FIX START: Use captured variables ---
-                # We use user_id_for_thread (captured above) and username (available in function scope)
                 user_log_key = f"({user_id_for_thread} | {username})"
                 safe_log_key = f"{user_id_for_thread}_{username}"
                 status_key = f"{user_log_key}_{loc_name}"
@@ -6422,7 +6583,6 @@ def import_config():
                                           args=(user_id_for_thread, status_key, cache_filepath, loc_name,
                                                 user_config_for_thread,
                                                 g.sampling_interval))
-                # --- FIX END ---
                 thread.start()
 
         return redirect(url_for('config_form'))
@@ -10228,6 +10388,83 @@ def seed_guest_account_command():
         print(f"❌ FATAL ERROR: {e}")
         print("Database has been rolled back. No changes were saved.")
         traceback.print_exc()
+    finally:
+        db.close()
+
+
+@app.route('/api/save_framing', methods=['POST'])
+@login_required
+def save_framing():
+    db = get_db()
+    try:
+        data = request.get_json()
+        object_name = data.get('object_name')
+
+        # Find existing framing or create new
+        framing = db.query(SavedFraming).filter_by(
+            user_id=g.db_user.id,
+            object_name=object_name
+        ).one_or_none()
+
+        if not framing:
+            framing = SavedFraming(user_id=g.db_user.id, object_name=object_name)
+            db.add(framing)
+
+        # Update fields
+        rig_id_val = int(data.get('rig')) if data.get('rig') else None
+
+        # Lookup rig_name so we save it for portability (Backup/Restore)
+        rig_name_val = None
+        if rig_id_val:
+            r = db.get(Rig, rig_id_val)
+            if r:
+                rig_name_val = r.rig_name
+
+        framing.rig_id = rig_id_val
+        framing.rig_name = rig_name_val  # <-- Important: Saves name for portability
+
+        framing.ra = float(data.get('ra')) if data.get('ra') else None
+        framing.dec = float(data.get('dec')) if data.get('dec') else None
+        framing.rotation = float(data.get('rotation')) if data.get('rotation') else 0.0
+        framing.survey = data.get('survey')
+        framing.blend_survey = data.get('blend')
+        framing.blend_opacity = float(data.get('blend_op')) if data.get('blend_op') else 0.0
+        framing.updated_at = datetime.now(UTC)
+
+        db.commit()
+        return jsonify({"status": "success", "message": "Framing saved."})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@app.route('/api/get_framing/<path:object_name>')
+@login_required
+def get_framing(object_name):
+    db = get_db()
+    try:
+        framing = db.query(SavedFraming).filter_by(
+            user_id=g.db_user.id,
+            object_name=object_name
+        ).one_or_none()
+
+        if framing:
+            return jsonify({
+                "status": "found",
+                "rig": framing.rig_id,
+                "ra": framing.ra,
+                "dec": framing.dec,
+                "rotation": framing.rotation,
+                "survey": framing.survey,
+                "blend": framing.blend_survey,
+                "blend_op": framing.blend_opacity
+            })
+        else:
+            return jsonify({"status": "empty"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
 
