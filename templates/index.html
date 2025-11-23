@@ -1810,6 +1810,23 @@ function populateJournalTable() {
                     else if (/^\d+$/.test(filterValue)) { return numericRating === parseInt(filterValue, 10); }
                     return String(opp.rating || '').toLowerCase().includes(filterValue);
                 }
+
+                // --- FIX: Strict filtering for Object Type ---
+                if (key === 'type') {
+                    const cellText = String(opp[key] || '').toLowerCase();
+                    // 1. Split the user's filter into distinct terms (e.g. "S", "G", "SNR")
+                    const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
+                    if (filterTypes.length > 0) {
+                        // 2. Split the object's type into distinct words (e.g. "SNR")
+                        const cellTokens = cellText.split(/[\s,]+/).filter(t => t.length > 0);
+                        // 3. Check if ANY filter term exists EXACTLY in the object's type words
+                        // This prevents "S" from matching "SNR"
+                        return filterTypes.some(term => cellTokens.includes(term));
+                    }
+                    return true;
+                }
+                // --- END FIX ---
+
                 const cellValue = String(opp[key] || '').toLowerCase();
                 if (config && config.numeric) {
                     const cellNumber = parseFloat(cellValue); if (isNaN(cellNumber)) return false;
