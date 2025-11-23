@@ -1827,6 +1827,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
 def _migrate_saved_views(db, user: DbUser, config: dict):
     """
     Idempotent import of saved views. Deletes all existing views and replaces them.
+    Now includes description and sharing status.
     """
     # 1. Delete all existing views for this user
     db.query(SavedView).filter_by(user_id=user.id).delete()
@@ -1842,6 +1843,11 @@ def _migrate_saved_views(db, user: DbUser, config: dict):
         try:
             name = view_entry.get("name")
             settings = view_entry.get("settings")
+
+            # --- New Fields ---
+            description = view_entry.get("description")
+            is_shared = bool(view_entry.get("is_shared", False))
+
             if not name or not settings:
                 print(f"[MIGRATION] Skipping invalid saved view (missing name or settings): {view_entry}")
                 continue
@@ -1852,6 +1858,8 @@ def _migrate_saved_views(db, user: DbUser, config: dict):
             new_view = SavedView(
                 user_id=user.id,
                 name=name,
+                description=description,  # <-- Added
+                is_shared=is_shared,  # <-- Added
                 settings_json=settings_str
             )
             db.add(new_view)
@@ -2125,7 +2133,7 @@ def build_user_config_from_db(username: str) -> dict:
             objects.append(o.to_dict())
         user_config["objects"] = objects
 
-        # --- 4. Load Saved Framings (NEW) ---
+        # --- 4. Load Saved Framings ---
         saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
         saved_framings_list = []
         for sf in saved_framings_db:
@@ -2149,6 +2157,17 @@ def build_user_config_from_db(username: str) -> dict:
                 "blend_opacity": sf.blend_opacity
             })
         user_config["saved_framings"] = saved_framings_list
+
+        # --- 5. Load Saved Views (NEW) ---
+        saved_views_db = db.query(SavedView).filter_by(user_id=u.id).all()
+        user_config["saved_views"] = [
+            {
+                "name": v.name,
+                "description": v.description,
+                "is_shared": v.is_shared,
+                "settings": json.loads(v.settings_json)
+            } for v in saved_views_db
+        ]
 
         return user_config
     finally:
@@ -2203,7 +2222,16 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             "objects": [
                 o.to_dict() for o in db.query(AstroObject).filter_by(user_id=u.id).all()
             ],
-            "saved_framings": saved_framings_list
+            "saved_framings": saved_framings_list,
+            "saved_views": [
+                {
+                    "name": v.name,
+                    "description": v.description,
+                    "is_shared": v.is_shared,
+                    "settings": json.loads(v.settings_json)
+                }
+                for v in db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
+            ]
         }
         cfg_file = "config_default.yaml" if (SINGLE_USER_MODE and username == "default") else f"config_{username}.yaml"
         _atomic_write_yaml(os.path.join(out_dir, cfg_file), cfg)
@@ -6373,7 +6401,12 @@ def download_config():
         # --- 5. Load Saved Views ---
         db_views = db.query(SavedView).filter_by(user_id=u.id).order_by(SavedView.name).all()
         config_doc["saved_views"] = [
-            {"name": v.name, "settings": json.loads(v.settings_json)} for v in db_views
+            {
+                "name": v.name,
+                "description": v.description,
+                "is_shared": v.is_shared,
+                "settings": json.loads(v.settings_json)
+            } for v in db_views
         ]
 
         # --- 6. Create in-memory file ---
