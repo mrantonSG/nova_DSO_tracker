@@ -685,10 +685,27 @@
         window.location.reload();
     }
 
-    async function handleSaveView() {
-        const viewName = prompt("Enter a name for this view:", "");
-        if (!viewName || viewName.trim() === "") return;
+    // Updated to open modal
+    function handleSaveView() {
+        const modal = document.getElementById('save-view-modal');
+        document.getElementById('modal-view-name').value = '';
+        document.getElementById('modal-view-desc').value = '';
+        if(document.getElementById('modal-view-shared')) document.getElementById('modal-view-shared').checked = false;
+        modal.style.display = 'block';
+    }
 
+    function closeSaveViewModal() {
+        document.getElementById('save-view-modal').style.display = 'none';
+    }
+
+    async function confirmSaveView() {
+        const viewName = document.getElementById('modal-view-name').value.trim();
+        const description = document.getElementById('modal-view-desc').value.trim();
+        const isShared = document.getElementById('modal-view-shared') ? document.getElementById('modal-view-shared').checked : false;
+
+        if (!viewName) { alert("Name is required"); return; }
+
+        closeSaveViewModal();
         const currentSettings = getCurrentSettingsSnapshot();
 
         try {
@@ -697,6 +714,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: viewName,
+                    description: description,
+                    is_shared: isShared,
                     settings: currentSettings
                 })
             });
@@ -2136,6 +2155,25 @@ function populateJournalTable() {
           style="width: 100%; max-width:1500px; height: 1000px; border: none;"
           title="Graph">
   </iframe>
+</div>
+
+<div id="save-view-modal" class="modal-backdrop" onclick="closeSaveViewModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000;">
+    <div class="modal-content" onclick="event.stopPropagation()" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:8px; width:400px;">
+        <h3 style="margin-top:0;">Save Current View</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <label>Name: <input type="text" id="modal-view-name" style="width:100%; padding:5px;"></label>
+            <label>Description: <textarea id="modal-view-desc" rows="3" style="width:100%; padding:5px;" placeholder="Describe what this filter does..."></textarea></label>
+            {% if not SINGLE_USER_MODE %}
+            <label style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="modal-view-shared"> Share this view with others
+            </label>
+            {% endif %}
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
+                <button onclick="confirmSaveView()" style="background:#28a745; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Save</button>
+                <button onclick="closeSaveViewModal()" style="background:#6c757d; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cancel</button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 </body> </html>
