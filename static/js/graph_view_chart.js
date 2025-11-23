@@ -1129,27 +1129,6 @@ function startCurrentTimeUpdater(chartInstance) {
     updateLine();
     currentTimeUpdateInterval = setInterval(updateLine, 60000);
 }
-function startCurrentTimeUpdater(chartInstance) {
-    if (!chartInstance) return;
-    if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
-
-    const updateLine = () => {
-        if (!chartInstance || !chartInstance.options || !chartInstance.options.plugins?.annotation?.annotations) {
-            if (currentTimeUpdateInterval) clearInterval(currentTimeUpdateInterval);
-            currentTimeUpdateInterval = null;
-            return;
-        }
-        const nowMs = luxon.DateTime.now().setZone(plotTz).toMillis();
-        const annotations = chartInstance.options.plugins.annotation.annotations;
-        if (annotations.currentTimeLine) {
-            annotations.currentTimeLine.xMin = nowMs;
-            annotations.currentTimeLine.xMax = nowMs;
-            chartInstance.update('none');
-        }
-    };
-    updateLine();
-    currentTimeUpdateInterval = setInterval(updateLine, 60000);
-}
 
 function saveFramingToDB() {
     const objectName = NOVA_GRAPH_DATA.objectName;
