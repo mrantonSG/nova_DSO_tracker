@@ -57,7 +57,7 @@
     }
     .config-section h2, .config-section h3 {
         color: #333;
-        font-size: 16px;
+        font-size: 20px;
         font-weight: bold;
         margin-top: 0;
         margin-bottom: 1.5em;
@@ -1063,6 +1063,35 @@
               </table>
           </div>
 
+          <h3 style="margin-top: 30px;">Shared Views</h3>
+          <div class="table-wrapper">
+              <table class="data-table" id="shared-views-table">
+                  <thead>
+                      <tr>
+                          <th style="width: 25%;">View Name</th>
+                          <th style="width: 35%;">Description</th>
+                          <th style="width: 20%;">Shared By</th>
+                          <th class="action-cell">Action</th>
+                      </tr>
+                      <tr class="filter-row">
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="name" placeholder="Filter name..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="description" placeholder="Filter desc..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="shared_by_user" placeholder="Filter user..."></th>
+                          <th style="text-align: center;">
+                              <select onchange="filterSharedTables()" data-table="views" data-col="status" style="width: 95%;">
+                                  <option value="all">All</option>
+                                  <option value="unimported">Not Imported</option>
+                                  <option value="imported">Imported</option>
+                              </select>
+                          </th>
+                      </tr>
+                  </thead>
+                  <tbody id="shared-views-body">
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                  </tbody>
+              </table>
+          </div>
+
           <h3 style="margin-top: 30px;">Shared Components</h3>
           <div class="table-wrapper">
               <table class="data-table" id="shared-components-table">
@@ -1113,6 +1142,7 @@
 
 <script>
     // --- Global variables ---
+    const CURRENT_USERNAME = "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}";
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
     let rigSort = localStorage.getItem('rigSort') || 'name-asc';
@@ -1372,17 +1402,27 @@
             .then(data => {
                 const objectsBody = document.getElementById('shared-objects-body');
                 const componentsBody = document.getElementById('shared-components-body');
+                const viewsBody = document.getElementById('shared-views-body');
 
                 const importedObjectIds = new Set(data.imported_object_ids || []);
                 const importedComponentIds = new Set(data.imported_component_ids || []);
+                const importedViewIds = new Set(data.imported_view_ids || []);
 
+                // --- Render Shared Objects ---
                 if (data.objects && data.objects.length > 0) {
                     objectsBody.innerHTML = data.objects.map(obj => {
                         const isImported = importedObjectIds.has(obj.id);
+                        const isOwner = (obj.shared_by_user === CURRENT_USERNAME);
                         const status = isImported ? 'imported' : 'unimported';
-                        const actionButton = isImported
-                            ? `<button class="imported-button" disabled>Imported</button>`
-                            : `<button class="action-button import-button" onclick="importSharedItem(${obj.id}, 'object', this)">Import</button>`;
+
+                        let actionButton = '';
+                        if (isOwner) {
+                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                        } else if (isImported) {
+                            actionButton = `<button class="imported-button" disabled>Imported</button>`;
+                        } else {
+                            actionButton = `<button class="action-button import-button" onclick="importSharedItem(${obj.id}, 'object', this)">Import</button>`;
+                        }
 
                         const dataAttrs = `
                             data-id="${obj.id}"
@@ -1394,9 +1434,6 @@
                             data-shared_by_user="${obj.shared_by_user}"
                         `;
 
-                        // --- START OF FIX ---
-                        // We move data-notes="..." from the <span> directly onto the <button>
-                        // and change the onclick to pass this.dataset.notes.
                         return `
                         <tr ${dataAttrs}>
                             <td><strong>${obj.object_name}</strong></td>
@@ -1406,26 +1443,33 @@
                             <td>${obj.shared_by_user}</td>
                             <td class="notes-cell">
                                 <button class="action-button notes-button"
-                                        data-notes="${(obj.shared_notes || '').replace(/"/g, '"')}"
+                                        data-notes="${(obj.shared_notes || '').replace(/"/g, '&quot;')}"
                                         onclick="showSharedNotes('${obj.object_name}', this.dataset.notes)">
                                     View
                                 </button>
                             </td>
                             <td class="action-cell">${actionButton}</td>
                         </tr>`;
-                        // --- END OF FIX ---
                     }).join('');
                 } else {
                     objectsBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
                 }
 
+                // --- Render Shared Components ---
                 if (data.components && data.components.length > 0) {
                     componentsBody.innerHTML = data.components.map(comp => {
                         const isImported = importedComponentIds.has(comp.id);
+                        const isOwner = (comp.shared_by_user === CURRENT_USERNAME);
                         const status = isImported ? 'imported' : 'unimported';
-                        const actionButton = isImported
-                            ? `<button class="imported-button" disabled>Imported</button>`
-                            : `<button class="action-button import-button" onclick="importSharedItem(${comp.id}, 'component', this)">Import</button>`;
+
+                        let actionButton = '';
+                        if (isOwner) {
+                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                        } else if (isImported) {
+                            actionButton = `<button class="imported-button" disabled>Imported</button>`;
+                        } else {
+                            actionButton = `<button class="action-button import-button" onclick="importSharedItem(${comp.id}, 'component', this)">Import</button>`;
+                        }
 
                         const dataAttrs = `
                             data-id="${comp.id}"
@@ -1446,11 +1490,48 @@
                 } else {
                     componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared components found from other users.</td></tr>';
                 }
+
+                // --- Render Shared Views ---
+                if (data.views && data.views.length > 0) {
+                    viewsBody.innerHTML = data.views.map(view => {
+                        const isImported = importedViewIds.has(view.id);
+                        const isOwner = (view.shared_by_user === CURRENT_USERNAME);
+                        const status = isImported ? 'imported' : 'unimported';
+
+                        let actionButton = '';
+                        if (isOwner) {
+                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                        } else if (isImported) {
+                            actionButton = `<button class="imported-button" disabled>Imported</button>`;
+                        } else {
+                            actionButton = `<button class="action-button import-button" onclick="importSharedItem(${view.id}, 'view', this)">Import</button>`;
+                        }
+
+                        const dataAttrs = `
+                            data-id="${view.id}"
+                            data-status="${status}"
+                            data-name="${view.name}"
+                            data-description="${view.description || ''}"
+                            data-shared_by_user="${view.shared_by_user}"
+                        `;
+
+                        return `
+                        <tr ${dataAttrs}>
+                            <td><strong>${view.name}</strong></td>
+                            <td>${view.description || '-'}</td>
+                            <td>${view.shared_by_user}</td>
+                            <td class="action-cell">${actionButton}</td>
+                        </tr>`;
+                    }).join('');
+                } else {
+                    viewsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared views found from other users.</td></tr>';
+                }
             })
             .catch(error => {
                 console.error("Error fetching shared items:", error);
                 document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
                 document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
+                document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
             });
     }
 
@@ -1502,7 +1583,7 @@
     }
 
     function filterSharedTables() {
-        ['objects', 'components'].forEach(type => {
+        ['objects', 'components', 'views'].forEach(type => {
             const tableId = `shared-${type}-table`;
             const bodyId = `shared-${type}-body`;
             const table = document.getElementById(tableId);

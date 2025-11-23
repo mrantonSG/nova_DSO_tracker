@@ -44,9 +44,8 @@ import platform
 from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
-from flask import session, Response
+from flask import session
 from flask import Flask, send_from_directory, has_request_context
-import hashlib
 
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation
@@ -55,11 +54,10 @@ import astropy.units as u
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session, selectinload
+from sqlalchemy.orm import selectinload
 from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
 import jwt
-from bleach.css_sanitizer import CSSSanitizer
 
 from modules.astro_calculations import (
     calculate_transit_time,
@@ -75,7 +73,6 @@ from modules.astro_calculations import (
 
 
 from modules import nova_data_fetcher
-from modules import rig_config
 
 # === DB: Unified SQLAlchemy setup ============================================
 from sqlalchemy import (
@@ -86,7 +83,6 @@ from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
 
-import tempfile
 try:
     import fcntl  # POSIX-only; no-op lock on Windows if import fails
     _HAS_FCNTL = True
@@ -293,7 +289,8 @@ class DbUser(Base):
     locations = relationship("Location", back_populates="user", cascade="all, delete-orphan")
     objects = relationship("AstroObject", foreign_keys="AstroObject.user_id", back_populates="user",
                            cascade="all, delete-orphan")
-    saved_views = relationship("SavedView", back_populates="user", cascade="all, delete-orphan")
+    saved_views = relationship("SavedView", foreign_keys="SavedView.user_id", back_populates="user",
+                               cascade="all, delete-orphan")
     components = relationship("Component", foreign_keys="Component.user_id", back_populates="user",
                               cascade="all, delete-orphan")
     rigs = relationship("Rig", back_populates="user", cascade="all, delete-orphan")
@@ -330,8 +327,12 @@ class SavedView(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     name = Column(String(256), nullable=False)
+    description = Column(String(500), nullable=True) # <-- New
     settings_json = Column(Text, nullable=False)
-    user = relationship("DbUser", back_populates="saved_views")
+    is_shared = Column(Boolean, nullable=False, default=False, index=True) # <-- New
+    original_user_id = Column(Integer, ForeignKey('users.id', ondelete="SET NULL"), nullable=True, index=True) # <-- New
+    original_item_id = Column(Integer, nullable=True, index=True) # <-- New
+    user = relationship("DbUser", foreign_keys=[user_id], back_populates="saved_views")
     __table_args__ = (UniqueConstraint('user_id', 'name', name='uq_user_view_name'),)
 
 class Location(Base):
@@ -832,6 +833,18 @@ def ensure_db_initialized_unified():
                 )
             except Exception:
                 pass
+
+                # --- SavedView Patches ---
+                cols_views = conn.exec_driver_sql("PRAGMA table_info(saved_views);").fetchall()
+                colnames_views = {row[1] for row in cols_views}
+                if "description" not in colnames_views:
+                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN description VARCHAR(500);")
+                if "is_shared" not in colnames_views:
+                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+                if "original_user_id" not in colnames_views:
+                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_user_id INTEGER;")
+                if "original_item_id" not in colnames_views:
+                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_item_id INTEGER;")
 
             try:
                 cols_framing = conn.exec_driver_sql("PRAGMA table_info(saved_framings);").fetchall()
@@ -9335,6 +9348,11 @@ def save_saved_view():
         data = request.get_json()
         view_name = data.get('name')
         settings = data.get('settings')
+
+        # --- NEW: Capture description and sharing status ---
+        description = data.get('description', '')
+        is_shared = bool(data.get('is_shared', False))
+
         if not view_name or not settings:
             return jsonify({"status": "error", "message": "Missing view name or settings."}), 400
 
@@ -9345,18 +9363,28 @@ def save_saved_view():
 
         if existing_view:
             existing_view.settings_json = settings_str
+
+            # Only update description/sharing if it is NOT an imported view
+            # (Imported views preserve their original metadata)
+            if not existing_view.original_user_id:
+                existing_view.description = description
+                existing_view.is_shared = is_shared
+
             message = "View updated"
         else:
             new_view = SavedView(
                 user_id=g.db_user.id,
                 name=view_name,
-                settings_json=settings_str
+                description=description,  # <-- New field
+                settings_json=settings_str,
+                is_shared=is_shared  # <-- New field
             )
             db.add(new_view)
             message = "View saved"
 
         db.commit()
         return jsonify({"status": "success", "message": message})
+
     except Exception as e:
         db.rollback()
         print(f"Error saving view: {e}")
@@ -9823,29 +9851,28 @@ def get_uploaded_image(username, filename):
 
     return "Not Found", 404
 
-
 @app.route('/api/get_shared_items')
 @login_required
 def get_shared_items():
     if SINGLE_USER_MODE:
-        return jsonify({"objects": [], "components": [], "imported_object_ids": [], "imported_component_ids": []})
+        return jsonify({"objects": [], "components": [], "views": [], "imported_object_ids": [], "imported_component_ids": [], "imported_view_ids": []})
 
     db = get_db()
     try:
         current_user_id = g.db_user.id
 
-        # --- 1. Get all items shared by OTHER users ---
+        # --- 1. Get ALL Shared Objects (Including own) ---
         shared_objects_db = db.query(AstroObject, DbUser.username).join(
             DbUser, AstroObject.user_id == DbUser.id
         ).filter(
-            AstroObject.is_shared == True,
-            AstroObject.user_id != current_user_id
+            AstroObject.is_shared == True
+            # Removed: AstroObject.user_id != current_user_id
         ).all()
 
         shared_objects_list = []
         for obj, username in shared_objects_db:
             shared_objects_list.append({
-                "id": obj.id,  # This is the ID of the *original* item
+                "id": obj.id,
                 "object_name": obj.object_name,
                 "common_name": obj.common_name,
                 "type": obj.type,
@@ -9853,26 +9880,44 @@ def get_shared_items():
                 "ra": obj.ra_hours,
                 "dec": obj.dec_deg,
                 "shared_by_user": username,
-                "shared_notes": obj.shared_notes or ""  # Include the shared notes
+                "shared_notes": obj.shared_notes or ""
             })
 
+        # --- 2. Get ALL Shared Components (Including own) ---
         shared_components_db = db.query(Component, DbUser.username).join(
             DbUser, Component.user_id == DbUser.id
         ).filter(
-            Component.is_shared == True,
-            Component.user_id != current_user_id
+            Component.is_shared == True
+            # Removed: Component.user_id != current_user_id
         ).all()
 
         shared_components_list = []
         for comp, username in shared_components_db:
             shared_components_list.append({
-                "id": comp.id,  # This is the ID of the *original* item
+                "id": comp.id,
                 "name": comp.name,
                 "kind": comp.kind,
                 "shared_by_user": username
             })
 
-        # --- 2. Get all IDs of items this user has ALREADY imported ---
+        # --- 3. Get ALL Shared Views (Including own) ---
+        shared_views_db = db.query(SavedView, DbUser.username).join(
+            DbUser, SavedView.user_id == DbUser.id
+        ).filter(
+            SavedView.is_shared == True
+            # Removed: SavedView.user_id != current_user_id
+        ).all()
+
+        shared_views_list = []
+        for view, username in shared_views_db:
+            shared_views_list.append({
+                "id": view.id,
+                "name": view.name,
+                "description": view.description,
+                "shared_by_user": username
+            })
+
+        # --- 4. Get IDs of items ALREADY imported by CURRENT user ---
         imported_objects = db.query(AstroObject.original_item_id).filter(
             AstroObject.user_id == current_user_id,
             AstroObject.original_item_id != None
@@ -9885,15 +9930,23 @@ def get_shared_items():
         ).all()
         imported_component_ids = {item_id for (item_id,) in imported_components}
 
+        imported_views = db.query(SavedView.original_item_id).filter(
+            SavedView.user_id == current_user_id,
+            SavedView.original_item_id != None
+        ).all()
+        imported_view_ids = {item_id for (item_id,) in imported_views}
+
         return jsonify({
             "objects": shared_objects_list,
             "components": shared_components_list,
+            "views": shared_views_list,
             "imported_object_ids": list(imported_object_ids),
-            "imported_component_ids": list(imported_component_ids)
+            "imported_component_ids": list(imported_component_ids),
+            "imported_view_ids": list(imported_view_ids)
         })
-
     except Exception as e:
         print(f"ERROR in get_shared_items: {e}")
+        import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
     finally:
@@ -9976,6 +10029,28 @@ def import_item():
                 original_item_id=original_comp.id  # <-- THE FIX
             )
             db.add(new_comp)
+
+        elif item_type == 'view':
+            # --- Import a View ---
+            original_view = db.query(SavedView).filter_by(id=item_id, is_shared=True).one_or_none()
+            if not original_view:
+                return jsonify({"status": "error", "message": "View not found"}), 404
+
+            existing = db.query(SavedView).filter_by(user_id=current_user_id, name=original_view.name).one_or_none()
+            if existing:
+                return jsonify(
+                    {"status": "error", "message": f"You already have a view named '{original_view.name}'"}), 409
+
+            new_view = SavedView(
+                user_id=current_user_id,
+                name=original_view.name,
+                description=original_view.description,
+                settings_json=original_view.settings_json,
+                is_shared=False,
+                original_user_id=original_view.user_id,
+                original_item_id=original_view.id
+            )
+            db.add(new_view)
 
         else:
             return jsonify({"status": "error", "message": "Invalid item type"}), 400
