@@ -1197,7 +1197,23 @@ async function fetchData() {
             if (filterValue === "n/a" || filterValue === "na") { if (cellText !== "n/a") { showRow = false; break; } continue; }
             if (config.dataKey === 'Type') {
                 const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
-                if (filterTypes.length > 0) { let typeMatch = false; for (const typeTerm of filterTypes) { if (cellText === typeTerm || cellText.includes(typeTerm)) { typeMatch = true; break; } } if (!typeMatch) { showRow = false; break; } }
+
+                if (filterTypes.length > 0) {
+                    let typeMatch = false;
+
+                    // Split the cell text into specific tokens (words) to prevent "G" matching "GlC"
+                    // cellText is already lowercased at the start of the loop
+                    const cellTokens = cellText.split(/[\s,]+/).filter(t => t.length > 0);
+
+                    for (const typeTerm of filterTypes) {
+                        // Check if the search term exists exactly in the list of cell tokens
+                        if (cellTokens.includes(typeTerm)) {
+                            typeMatch = true;
+                            break;
+                        }
+                    }
+                    if (!typeMatch) { showRow = false; break; }
+                }
             } else {
                 const numericFilterKeys = [
                     'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
