@@ -4887,7 +4887,7 @@ def project_detail(project_id):
         total_integration_str = f"{hours}h {minutes}m"
 
         # Fetch all linked sessions eagerly to display them
-        sessions = db.query(JournalSession).filter_by(project_id=project_id).order_by(
+        sessions = db.query(JournalSession).filter_by(project_id=project_id, user_id=g.db_user.id).order_by(
             JournalSession.date_utc.desc()).all()
 
         # --- Handle POST Request (Update Project) ---
@@ -8488,7 +8488,7 @@ def graph_dashboard(object_name):
 
                 # --- NEW: Fetch all sessions for this project to explain the integration time ---
                 project_sessions_db = db.query(JournalSession).filter_by(
-                    project_id=selected_project_data_journal.id
+                    project_id=selected_project_data_journal.id, user_id=user.id
                 ).order_by(JournalSession.date_utc.desc()).all()
 
                 project_sessions_list_journal = []
@@ -8877,7 +8877,7 @@ def show_project_report_page(project_id):
             return "Project not found", 404
 
         # 2. Fetch Sessions
-        sessions = db.query(JournalSession).filter_by(project_id=project.id).order_by(
+        sessions = db.query(JournalSession).filter_by(project_id=project.id, user_id=g.db_user.id).order_by(
             JournalSession.date_utc.asc()).all()
 
         # 3. Calculate Stats
