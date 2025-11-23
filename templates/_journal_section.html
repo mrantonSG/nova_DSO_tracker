@@ -125,7 +125,10 @@
     <div class="session-list-column">
         <div class="history-header">
             <h4>Session History:</h4>
-            <button type="button" class="inline-button" onclick="setupAddMode()">Add New Session</button>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="inline-button" style="padding: 6px 12px; font-size: 13px;" onclick="setupAddProjectMode()">Add New Project</button>
+                <button type="button" class="inline-button" style="padding: 6px 12px; font-size: 13px;" onclick="setupAddMode()">Add New Session</button>
+            </div>
         </div>
         <div class="table-wrapper" style="border-top: 1px solid #dee2e6;">
             <table class="session-history-table">
@@ -514,6 +517,40 @@
                 <p class="view-mode" style="color: #6c757d; margin-top: 20px;">Select a session or project from the list on the left to view details, or click 'Add New Session'.</p>
             {% endif %}
 
+            {# --- ADD FORM (PROJECT) --- #}
+            <div id="journal-project-add-mode" style="display:none;">
+               <form id="journal-project-add-form" method="POST" action="{{ url_for('add_project_from_journal') }}">
+                    <div class="detail-header">
+                        <h4 style="margin:0;">Add New Project</h4>
+                        <div class="action-button-group">
+                            <button type="submit" class="inline-button" style="background-color:#28a745;">Create Project</button>
+                            <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="cancelForm()">Cancel</button>
+                        </div>
+                    </div>
+                    <input type="hidden" name="target_object_id" value="{{ object_name }}">
+
+                    <div class="journal-project-notes-section">
+                        <h3>Metadata</h3>
+                        <div class="form-group"><label for="new-project-name-add">Project Name:</label><input type="text" id="new-project-name-add" name="name" required placeholder="e.g., M31 Broadband" style="width:100%;"></div>
+                        <div class="form-group"><label for="new-project-status-add">Status:</label>
+                            <select id="new-project-status-add" name="status" style="width:100%;">
+                                <option value="In Progress" selected>In Progress</option>
+                                <option value="On Hold">On Hold</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Abandoned">Abandoned</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="journal-project-notes-section">
+                        <div class="form-group trix-editor-container"><label>Goals & Status:</label>
+                            <input type="hidden" id="goals-hidden-add" name="goals">
+                            <trix-editor input="goals-hidden-add" id="goals-editor-add" style="min-height: 100px; background-color: #fff;"></trix-editor>
+                        </div>
+                    </div>
+               </form>
+            </div>
+
             {# --- EDIT/ADD FORM (SESSION) --- #}
             <form id="journal-detail-form" class="edit-mode-form" method="POST" action="" enctype="multipart/form-data">
                  <div class="detail-header">
@@ -707,6 +744,10 @@
         // Hide ALL view modes (session and project)
         document.querySelectorAll('.view-mode, #journal-project-view-wrapper').forEach(el => el.style.display = 'none');
 
+        // Hide Project Add Form if active
+        const projAdd = document.getElementById('journal-project-add-mode');
+        if(projAdd) projAdd.style.display = 'none';
+
         const initialDetailHeader = wrapper.querySelector('.detail-header:not(form .detail-header)');
         if(initialDetailHeader) initialDetailHeader.style.display = 'none';
         const placeholder = wrapper.querySelector('p.view-mode');
@@ -878,6 +919,14 @@
             });
         }
 
+        // New Project Form Listener
+        const projectAddForm = document.getElementById('journal-project-add-form');
+        if (projectAddForm) {
+            projectAddForm.addEventListener('submit', function(e) {
+                document.getElementById('goals-hidden-add').value = document.getElementById('goals-editor-add').value;
+            });
+        }
+
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
 
@@ -896,6 +945,32 @@
             showDetailTab('summary');
         }
     });
+
+    function setupAddProjectMode() {
+        const wrapper = document.getElementById('session-detail-wrapper');
+        const addProjDiv = document.getElementById('journal-project-add-mode');
+
+        if (!wrapper || !addProjDiv) return;
+
+        // 1. Hide View Elements
+        document.querySelectorAll('.view-mode, #journal-project-view-wrapper').forEach(el => el.style.display = 'none');
+
+        // 2. Hide Session Forms
+        const sessForm = document.getElementById('journal-detail-form');
+        if (sessForm) sessForm.style.display = 'none';
+
+        // 3. Show Project Add Form
+        addProjDiv.style.display = 'block';
+
+        // 4. Hide headers
+        const initialDetailHeader = wrapper.querySelector('.detail-header:not(form .detail-header)');
+        if(initialDetailHeader) initialDetailHeader.style.display = 'none';
+
+        // 5. Reset Form
+        document.getElementById('journal-project-add-form').reset();
+        const trix = document.getElementById('goals-editor-add');
+        if(trix && trix.editor) trix.editor.loadHTML('');
+    }
 
 // --- New function for Project Detail Tabs ---
     function showProjectTab(tabName) {

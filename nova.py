@@ -5780,6 +5780,60 @@ def journal_edit(session_id):
     finally:
         db.close()
 
+
+@app.route('/journal/add_project', methods=['POST'])
+@login_required
+def add_project_from_journal():
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+
+        name = request.form.get('name')
+        target_object_id = request.form.get('target_object_id')
+        status = request.form.get('status', 'In Progress')
+        goals = request.form.get('goals')
+
+        if not name:
+            flash("Project name is required.", "error")
+            return redirect(url_for('graph_dashboard', object_name=target_object_id, tab='journal'))
+
+        existing = db.query(Project).filter_by(user_id=user.id, name=name).first()
+        if existing:
+            flash(f"A project named '{name}' already exists.", "error")
+            return redirect(url_for('graph_dashboard', object_name=target_object_id, tab='journal'))
+
+        new_project = Project(
+            id=uuid.uuid4().hex,
+            user_id=user.id,
+            name=name,
+            target_object_name=target_object_id,
+            status=status,
+            goals=goals
+        )
+        db.add(new_project)
+
+        # Auto-activate object if project is In Progress
+        if target_object_id and status == 'In Progress':
+            obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=target_object_id).first()
+            if obj and not obj.active_project:
+                obj.active_project = True
+                trigger_outlook_update_for_user(username)
+
+        db.commit()
+        flash(f"Project '{name}' created successfully.", "success")
+        return redirect(
+            url_for('graph_dashboard', object_name=target_object_id, tab='journal', project_id=new_project.id))
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error creating project: {e}", "error")
+        return redirect(url_for('graph_dashboard', object_name=request.form.get('target_object_id'), tab='journal'))
+    finally:
+        db.close()
+
+
+
 @app.route('/journal/delete/<int:session_id>', methods=['POST'])
 @login_required
 def journal_delete(session_id):
