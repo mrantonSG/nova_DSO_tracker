@@ -6,3 +6,4 @@
 *.iml
 /instance/
 /tests/instance/
+/.run/
