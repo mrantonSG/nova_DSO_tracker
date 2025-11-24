@@ -731,7 +731,13 @@ function openFramingAssistant(optionalQueryString) {
         const rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec')), rot = parseFloat(q.get('rot')), surv = q.get('survey'), blend = q.get('blend'), blendOp = parseFloat(q.get('blend_op'));
         if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
         if (!Number.isNaN(rot)) { const rotInput = document.getElementById('framing-rotation'), signed = toSigned180(rot); if (rotInput) rotInput.value = signed; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`; haveRot = true; }
-        if (surv) { if (typeof setSurvey === 'function') setSurvey(surv); else { const s = document.getElementById('survey-select'); if (s) s.value = surv; } }
+        if (surv) {
+            // Explicitly sync the dropdown UI first
+            const sSel = document.getElementById('survey-select');
+            if (sSel) sSel.value = surv;
+            // Then update the Aladin layer
+            if (typeof setSurvey === 'function') setSurvey(surv);
+        }
         try { const bsel = document.getElementById('blend-survey-select'), bop = document.getElementById('blend-opacity'); if (blend && bsel) { bsel.value = blend; if (typeof ensureBlendLayer === 'function') ensureBlendLayer(); } if (!Number.isNaN(blendOp) && bop) { bop.value = String(Math.max(0, Math.min(1, blendOp))); if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value); } } catch (e) {}
         try { const bop2 = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop2) setBlendOpacity(bop2.value); } catch (e) {}
         if (!Number.isNaN(ra) && !Number.isNaN(dec)) { fovCenter = {ra, dec}; haveCenter = true; } else fovCenter = null;
