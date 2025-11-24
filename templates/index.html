@@ -3,6 +3,7 @@
 {% block title %}DSO Altitude Tracker{% endblock %}
 
 {% block head_extra %}
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -770,6 +771,7 @@
         const dsoLoadingDiv = document.getElementById('table-loading');
         const journalTableWrapper = document.getElementById('journal-table-wrapper');
         const outlookWrapper = document.getElementById('outlook-wrapper');
+        const heatmapWrapper = document.getElementById('heatmap-tab-content');
 
         document.querySelectorAll('.tab-button').forEach(button => {
             button.classList.toggle('active', button.dataset.tab === activeTab);
@@ -779,6 +781,7 @@
         if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
         if (journalTableWrapper) journalTableWrapper.style.display = 'none';
         if (outlookWrapper) outlookWrapper.style.display = 'none';
+        if (heatmapWrapper) heatmapWrapper.style.display = 'none';
 
         if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
 
@@ -795,6 +798,12 @@
         } else if (activeTab === 'outlook') {
             if (outlookWrapper) outlookWrapper.style.display = 'block';
             if (!outlookDataLoaded) fetchOutlookData();
+        } else if (activeTab === 'heatmap') {
+            if (heatmapWrapper) heatmapWrapper.style.display = 'block';
+            // fetchAndRenderHeatmap is defined in _heatmap_section.html
+            if (typeof fetchAndRenderHeatmap === 'function') {
+                fetchAndRenderHeatmap();
+            }
         }
 
         localStorage.setItem('activeTab', activeTab);
@@ -1373,6 +1382,7 @@ function setLocation() {
     console.log(`Location select changed to: ${selectedLocation}`);
     sessionStorage.setItem('selectedLocation', selectedLocation);
     outlookDataLoaded = false; // Reset outlook flag for the new location
+    if (typeof resetHeatmapState === 'function') resetHeatmapState();
 
     // --- NEW LOGIC ---
     // If data is already being fetched, just update the loading message and stop.
@@ -1408,7 +1418,9 @@ function setLocation() {
     if (activeTab === 'journal') {
        populateJournalTable();
     } else if (activeTab === 'outlook') {
-       fetchOutlookData(); // Re-fetch outlook for the new location
+       fetchOutlookData();
+    } else if (activeTab === 'heatmap') {
+       fetchAndRenderHeatmap();
     }
 }
 
@@ -2029,6 +2041,7 @@ function populateJournalTable() {
     <button class="tab-button active" data-tab="position">Position</button>
     <button class="tab-button" data-tab="properties">Properties</button>
     <button class="tab-button" data-tab="outlook">Outlook</button>
+    <button class="tab-button" data-tab="heatmap">Heatmap</button>
     <button class="tab-button" data-tab="journal">Journal</button>
 
     <div id="saved-views-container">
@@ -2145,6 +2158,8 @@ function populateJournalTable() {
                 </tbody>
         </table>
     </div>
+    {% include '_heatmap_section.html' %}
+
     <div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
       Loading...
     </div>

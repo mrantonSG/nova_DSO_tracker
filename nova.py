@@ -9550,6 +9550,171 @@ def get_monthly_plot_data(object_name):
     })
 
 
+@app.route('/api/get_yearly_heatmap')
+@login_required
+def get_yearly_heatmap():
+    load_full_astro_context()
+
+    # 1. Location & Cache Setup
+    try:
+        # Prefer explicit location name from request, fallback to g.selected_location
+        req_loc_name = request.args.get('location_name')
+
+        # Resolve coordinates
+        if req_loc_name and req_loc_name in g.locations:
+            loc_data = g.locations[req_loc_name]
+            lat = loc_data['lat']
+            lon = loc_data['lon']
+            tz_name = loc_data['timezone']
+            horizon_mask = loc_data.get('horizon_mask')
+            selected_loc_key = req_loc_name
+        else:
+            # Fallback to globals
+            lat = float(request.args.get('lat', g.lat))
+            lon = float(request.args.get('lon', g.lon))
+            tz_name = request.args.get('tz', g.tz_name)
+            horizon_mask = None
+            if g.selected_location and g.selected_location in g.locations:
+                horizon_mask = g.locations[g.selected_location].get('horizon_mask')
+            selected_loc_key = g.selected_location or "default"
+
+        local_tz = pytz.timezone(tz_name)
+
+        # Create a unique cache key based on User + Location + Object Count
+        # (If user adds an object, the count changes, invalidating cache)
+        db = get_db()
+        user_id = g.db_user.id
+        obj_count = db.query(AstroObject).filter_by(user_id=user_id).count()
+
+        loc_safe = selected_loc_key.lower().replace(' ', '_')
+        cache_filename = os.path.join(CACHE_DIR, f"heatmap_{user_id}_{loc_safe}_{obj_count}.json")
+
+        # Check Cache (Valid for 24 hours)
+        if os.path.exists(cache_filename):
+            mtime = os.path.getmtime(cache_filename)
+            if (time.time() - mtime) < 86400:  # 24 hours
+                with open(cache_filename, 'r') as f:
+                    # print(f"[HEATMAP] Serving from cache: {cache_filename}")
+                    return jsonify(json.load(f))
+
+    except Exception as e:
+        return jsonify({"error": f"Invalid location or cache error: {e}"}), 400
+
+    # 2. Settings
+    altitude_threshold = g.user_config.get("altitude_threshold", 20)
+    sampling_interval = 60  # Coarse for performance (1 hour steps)
+
+    try:
+        # Fetch objects
+        all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
+        # Filter strictly for valid coordinates
+        valid_objects = [
+            o for o in all_objects
+            if o.ra_hours is not None and o.dec_deg is not None
+        ]
+
+        # Sort by RA (Ascending) to create the waterfall effect
+        valid_objects.sort(key=lambda x: float(x.ra_hours))
+
+        if not valid_objects:
+            return jsonify({"x": [], "y": [], "z": [], "moon_phases": [], "ids": [], "active": []})
+
+        # 3. Time Grid Generation
+        now = datetime.now(local_tz)
+        # Find the nearest Monday to start the chart
+        start_date = now.date() - timedelta(days=now.weekday())
+
+        weeks_x = []
+        target_dates = []
+        moon_phases = []
+
+        for i in range(52):
+            d = start_date + timedelta(weeks=i)
+            date_str = d.strftime('%Y-%m-%d')
+
+            weeks_x.append(d.strftime('%b %d'))
+            target_dates.append(date_str)
+
+            try:
+                # Calculate moon phase at midnight local time
+                dt_moon = local_tz.localize(datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
+                m = ephem.Moon(dt_moon)
+                moon_phases.append(round(m.phase, 1))
+            except:
+                moon_phases.append(0)
+
+        # 4. Matrix Calculation
+        z_scores = []
+        y_names = []
+        meta_ids = []
+        meta_active = []
+
+        # print(f"[HEATMAP] Calculating for {len(valid_objects)} objects over 52 weeks...")
+
+        for obj in valid_objects:
+            # Label: "M31 [Galaxy]"
+            display_name = obj.common_name or obj.object_name
+            if obj.type:
+                display_name += f" [{obj.type}]"
+            y_names.append(display_name)
+
+            meta_ids.append(obj.object_name)  # Use Object Name as ID for linking
+            meta_active.append(1 if obj.active_project else 0)
+
+            obj_scores = []
+            ra = float(obj.ra_hours)
+            dec = float(obj.dec_deg)
+
+            for i, date_str in enumerate(target_dates):
+                # Calculate Visibility
+                obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
+                    ra, dec, lat, lon, date_str, tz_name,
+                    altitude_threshold, sampling_interval, horizon_mask
+                )
+
+                duration_mins = obs_dur.total_seconds() / 60 if obs_dur else 0
+
+                # Strict scoring cutoff
+                if max_alt is None or max_alt < altitude_threshold or duration_mins < 45:
+                    score = 0
+                else:
+                    # Weighted Score: 40% Altitude, 60% Duration
+                    norm_alt = min((max_alt - altitude_threshold) / (90 - altitude_threshold), 1.0)
+                    norm_dur = min(duration_mins / 480, 1.0)
+                    score = (0.4 * norm_alt + 0.6 * norm_dur) * 100
+
+                    # Moon Penalty
+                    current_moon = moon_phases[i]
+                    if current_moon > 60:
+                        penalty_factor = ((current_moon - 60) / 40) * 0.9
+                        score *= (1 - penalty_factor)
+
+                obj_scores.append(round(score, 1))
+
+            z_scores.append(obj_scores)
+
+        result_data = {
+            "x": weeks_x,
+            "y": y_names,
+            "z": z_scores,
+            "moon_phases": moon_phases,
+            "ids": meta_ids,
+            "active": meta_active
+        }
+
+        # Write to cache
+        with open(cache_filename, 'w') as f:
+            json.dump(result_data, f)
+
+        return jsonify(result_data)
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/get_yearly_plot_data/<path:object_name>')
 def get_yearly_plot_data(object_name):
     load_full_astro_context()

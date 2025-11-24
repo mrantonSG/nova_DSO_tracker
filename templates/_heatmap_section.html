@@ -1,0 +1,245 @@
+<style>
+    #heatmap-tab-content {
+        position: relative;
+        min-height: 600px;
+    }
+    #heatmap-wrapper {
+        width: 100%;
+        /* Height is set dynamically by JS */
+    }
+    #heatmap-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #eee;
+    }
+    #heatmap-legend-text {
+        font-size: 0.9em;
+        color: #666;
+    }
+    #yearly-heatmap-plot {
+        width: 100%;
+        min-height: 600px;
+    }
+
+    /* Fixed Loader Styling */
+    #heatmap-loading {
+        display: none;
+        position: absolute;
+        /* FIX: Fixed distance from top, not percentage/center of the huge scrollable area */
+        top: 150px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255,255,255,0.95);
+        padding: 20px 40px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        z-index: 100;
+        text-align: center;
+        color: #6795a4;
+        font-weight: bold;
+        border: 1px solid #ddd;
+    }
+</style>
+
+<div id="heatmap-tab-content" style="display:none;">
+    <div id="heatmap-loading">
+        Generating Heatmap...<br>
+        <small style="color:#666; font-weight:normal;">(Calculating 52 weeks x All Objects. Please wait.)</small>
+    </div>
+
+    <div id="heatmap-wrapper">
+        <div id="heatmap-controls">
+            <div style="display:flex; gap:15px; align-items:center;">
+                <label style="font-size: 14px; font-weight: bold; color: #333; cursor: pointer; display: flex; align-items: center;">
+                    <input type="checkbox" id="heatmap-active-only" onchange="updateHeatmapFilter()" style="margin-right: 8px;">
+                    Show Active Projects Only
+                </label>
+            </div>
+            <span id="heatmap-legend-text">* Vertical light bands = Full Moon (Washed out). Darker Green = Best Quality. Click object names to view details.</span>
+        </div>
+        <div id="yearly-heatmap-plot"></div>
+    </div>
+</div>
+
+<script>
+    let heatmapLoaded = false;
+    let globalHeatmapData = null;
+
+    // Store the filtered arrays globally so the click handler can access them
+    let currentFilteredIds = [];
+    let currentFilteredY = [];
+
+    function updateHeatmapFilter() {
+        renderHeatmapFromCache();
+    }
+
+    function fetchAndRenderHeatmap() {
+        const plotDiv = document.getElementById('yearly-heatmap-plot');
+        const loadingDiv = document.getElementById("heatmap-loading");
+        const currentLoc = sessionStorage.getItem('selectedLocation') || '';
+
+        if (heatmapLoaded && globalHeatmapData && globalHeatmapData._location === currentLoc) {
+            Plotly.Plots.resize(plotDiv);
+            return;
+        }
+
+        plotDiv.innerHTML = "";
+        if (loadingDiv) loadingDiv.style.display = "block";
+
+        fetch(`/api/get_yearly_heatmap?location_name=${encodeURIComponent(currentLoc)}`)
+            .then(res => res.json())
+            .then(data => {
+                if (loadingDiv) loadingDiv.style.display = "none";
+                data._location = currentLoc;
+                globalHeatmapData = data;
+                renderHeatmapFromCache();
+            })
+            .catch(err => {
+                console.error(err);
+                if (loadingDiv) loadingDiv.style.display = "none";
+                plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">Error loading heatmap: ${err.message}</div>`;
+            });
+    }
+
+    function renderHeatmapFromCache() {
+        const data = globalHeatmapData;
+        const plotDiv = document.getElementById('yearly-heatmap-plot');
+        const onlyActive = document.getElementById('heatmap-active-only').checked;
+
+        if (!data || data.error) {
+            plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? data.error : 'No Data'}</div>`;
+            return;
+        }
+
+        if (!data.z || data.z.length === 0) {
+            plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px;">No objects found with valid coordinates.</div>`;
+            return;
+        }
+
+        // Reset filtered arrays
+        let filteredY = [];
+        let filteredZ = [];
+        let filteredIds = [];
+
+        for(let i=0; i < data.y.length; i++) {
+            if (onlyActive && data.active[i] === 0) {
+                continue;
+            }
+            filteredY.push(data.y[i]);
+            filteredZ.push(data.z[i]);
+            filteredIds.push(data.ids[i]);
+        }
+
+        if (filteredY.length === 0) {
+             plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">No active projects found.<br><br><small>Uncheck 'Show Active Projects Only' to see all objects.</small></div>`;
+             return;
+        } else {
+            plotDiv.innerHTML = "";
+        }
+
+        // Update Globals for Click Handler
+        currentFilteredIds = filteredIds;
+        currentFilteredY = filteredY;
+
+        // --- Moon Overlays ---
+        const shapes = [];
+        data.moon_phases.forEach((phase, index) => {
+            if (phase > 80) {
+                shapes.push({
+                    type: 'rect',
+                    xref: 'x',
+                    yref: 'paper',
+                    x0: index - 0.5,
+                    x1: index + 0.5,
+                    y0: 0,
+                    y1: 1,
+                    fillcolor: 'rgba(255, 255, 255, 0.75)',
+                    line: { width: 0 },
+                    layer: 'above'
+                });
+            }
+        });
+
+        // --- Nova Green Color Scale ---
+        const novaColorScale = [
+            [0.0, '#ffffff'],
+            [0.1, '#f0f4f5'],
+            [0.3, '#dce5eb'],
+            [0.6, '#83b4c5'],
+            [1.0, '#5a8491']
+        ];
+
+        const trace = {
+            z: filteredZ,
+            x: data.x,
+            y: filteredY,
+            type: 'heatmap',
+            colorscale: novaColorScale,
+            showscale: false,
+            xgap: 1,
+            ygap: 1,
+            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br>Score: %{z:.0f}/100<extra></extra>'
+        };
+
+        // --- DYNAMIC HEIGHT ---
+        const calculatedHeight = Math.max(600, filteredY.length * 25);
+
+        const layout = {
+            title: { text: 'Yearly Imaging Opportunities (RA Waterfall)', font: { size: 16, color: '#333' } },
+            height: calculatedHeight,
+            xaxis: {
+                title: '',
+                tickangle: -90,
+                fixedrange: true,
+                tickfont: { size: 11, color: '#555' }
+            },
+            yaxis: {
+                automargin: true,
+                fixedrange: false,
+                tickfont: { size: 11, color: '#333' }
+            },
+            margin: { l: 180, r: 20, b: 80, t: 40 },
+            shapes: shapes,
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)'
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
+            heatmapLoaded = true;
+
+            // --- FIX: ROBUST CLICK HANDLER ---
+            plotDiv.on('plotly_click', function(evt){
+                if(evt.points && evt.points.length > 0) {
+                    // Get the clicked name (Y-axis label)
+                    const clickedLabel = evt.points[0].y;
+
+                    // Find index in our current filtered list
+                    const index = currentFilteredY.indexOf(clickedLabel);
+
+                    if (index !== -1) {
+                        const objectId = currentFilteredIds[index];
+                        // Force navigation
+                        window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}`);
+                    }
+                }
+            });
+        });
+    }
+
+    function resetHeatmapState() {
+        heatmapLoaded = false;
+        globalHeatmapData = null;
+        const plotDiv = document.getElementById('yearly-heatmap-plot');
+        if(plotDiv) plotDiv.innerHTML = "";
+    }
+</script>
