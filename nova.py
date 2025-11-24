@@ -59,6 +59,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import getpass
 import jwt
 
+from skyfield.api import Loader
 from modules.astro_calculations import (
     calculate_transit_time,
     get_utc_time_for_local_11pm,
@@ -9602,6 +9603,23 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         if not os.path.exists(tasks_ran_flag_path):
             # This worker is the first one. Run the tasks.
             print("[STARTUP] Acquired lock, startup flag not found. Running one-time init tasks...")
+
+            # --- FIX: Pre-fetch Skyfield data to prevent thread race conditions ---
+            print("[STARTUP] Pre-fetching Earth rotation data (finals2000A.all)...")
+            try:
+                # Try current directory first (default Skyfield location)
+                load_root = Loader('.')
+                load_root.download('finals2000A.all')
+                load_root.download('Leap_Second.dat')
+
+                # Also try CACHE_DIR just in case the module uses that path
+                if os.path.exists(CACHE_DIR):
+                    load_cache = Loader(CACHE_DIR)
+                    load_cache.download('finals2000A.all')
+                    load_cache.download('Leap_Second.dat')
+            except Exception as e:
+                print(f"[STARTUP] WARN: Skyfield pre-fetch failed: {e}")
+            # --- END FIX ---
 
             migrate_journal_data()
             trigger_startup_cache_workers()  # This runs second
