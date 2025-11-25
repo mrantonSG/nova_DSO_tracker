@@ -6843,14 +6843,60 @@ def get_ra_dec(object_name, objects_map=None): # <-- ADD objects_map=None parame
     project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
     active_project_to_use = obj_entry.get("ActiveProject", default_active_project) if obj_entry else default_active_project
     try:
-        custom_simbad = Simbad(); custom_simbad.ROW_LIMIT = 1; custom_simbad.TIMEOUT = 60
-        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+        custom_simbad = Simbad();
+        custom_simbad.ROW_LIMIT = 1;
+        custom_simbad.TIMEOUT = 60
+        # We explicitly ask for decimal degrees.
+        # Even if Simbad renames the column to 'ra', the VALUE will be in degrees.
+        custom_simbad.add_votable_fields('main_id', 'ra(d)', 'dec(d)', 'otype')
+
         result = custom_simbad.query_object(object_name)
         if result is None or len(result) == 0: raise ValueError(f"No results for '{object_name}' in SIMBAD.")
-        ra_col = 'RA' if 'RA' in result.colnames else 'ra'; dec_col = 'DEC' if 'DEC' in result.colnames else 'dec'
-        ra_value_simbad = str(result[ra_col][0]); dec_value_simbad = str(result[dec_col][0])
-        ra_hours_simbad = hms_to_hours(ra_value_simbad); dec_degrees_simbad = dms_to_degrees(dec_value_simbad)
+
+        # Find the columns (handling the rename to generic 'ra'/'dec')
+        ra_col = next((c for c in result.colnames if c.lower() in ['ra', 'ra(d)', 'ra_d']), 'ra')
+        dec_col = next((c for c in result.colnames if c.lower() in ['dec', 'dec(d)', 'dec_d']), 'dec')
+
+        val_ra = result[ra_col][0]
+        val_dec = result[dec_col][0]
+
+        # --- CRITICAL FIX: FORCE DEGREE CONVERSION ---
+        # Since we requested ra(d), any numeric result IS degrees.
+        # We unconditionally divide numeric results by 15.0 to get hours.
+        try:
+            # Try to treat as pure decimal degrees
+            ra_float = float(val_ra)
+            ra_hours_simbad = ra_float / 15.0  # 14.75 deg / 15 = 0.98 hours
+
+            dec_degrees_simbad = float(val_dec)  # Dec is already in degrees
+
+            # print(f"[SIMBAD FIX] Converted {ra_float}° RA to {ra_hours_simbad:.4f} hours")
+        except (ValueError, TypeError):
+            # If Simbad ignored us and sent a string (e.g. "00 59 01"), use the parser
+            ra_hours_simbad = hms_to_hours(str(val_ra))
+            dec_degrees_simbad = dms_to_degrees(str(val_dec))
+
         simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
+        try:
+            coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
+            constellation_simbad = get_constellation(coords, short_name=True)
+        except Exception:
+            constellation_simbad = "N/A"
+
+        return {
+            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
+            "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
+            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
+    except Exception as ex:
+        return {
+            "Object": object_name, "Constellation": "N/A",
+            "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
+            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
+
         try:
             coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
             constellation_simbad = get_constellation(coords, short_name=True)
