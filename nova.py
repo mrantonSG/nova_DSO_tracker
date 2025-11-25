@@ -214,7 +214,7 @@ def get_weather_data_with_retries(lat: float, lon: float, product: str = "meteo"
 
         if data is not None:
             # Success!
-            print(f"[Weather Func] Successfully fetched data for lat={lat}, lon={lon} on attempt {i + 1} (product={product})")
+            # print(f"[Weather Func] Successfully fetched data for lat={lat}, lon={lon} on attempt {i + 1} (product={product})")
             return data
 
         # If data is None, it failed. Log and retry (if not the last attempt).
@@ -3688,7 +3688,7 @@ def get_open_meteo_data(lat: float, lon: float) -> dict | None:
     Fetches weather data from Open-Meteo with basic error handling.
     Returns parsed JSON data on success, None on failure.
     """
-    print(f"[Weather Fallback] Attempting fetch from Open-Meteo for lat={lat}, lon={lon}")
+    # print(f"[Weather Fallback] Attempting fetch from Open-Meteo for lat={lat}, lon={lon}")
     try:
         # Request cloud cover at different levels, temperature, and relative humidity
         # We get hourly data for the next 7 days
@@ -3717,7 +3717,7 @@ def get_open_meteo_data(lat: float, lon: float) -> dict | None:
             print(f"[Weather Fallback] ERROR (Open-Meteo): Invalid data structure received.")
             return None
 
-        print(f"[Weather Fallback] Successfully fetched data from Open-Meteo.")
+        # print(f"[Weather Fallback] Successfully fetched data from Open-Meteo.")
         return data
 
     except requests.exceptions.RequestException as e:
@@ -3739,7 +3739,7 @@ def get_hybrid_weather_forecast(lat, lon):
     rounded_lat = round(lat, 5)
     rounded_lon = round(lon, 5)
     cache_key = f"hybrid_{rounded_lat}_{rounded_lon}"
-    print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}")
+    # print(f"[Weather Func] Using cache key: '{cache_key}' for lat={lat}, lon={lon}")
 
     # --- Cache Check (No change) ---
     now = datetime.now(UTC)
@@ -3764,7 +3764,7 @@ def get_hybrid_weather_forecast(lat, lon):
     def _update_cache_ok(data, ttl_hours=3):
         expiry_time = datetime.now(UTC) + timedelta(hours=ttl_hours)
         weather_cache[cache_key] = {'data': data, 'expires': expiry_time, 'last_err_ts': None}
-        print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}")
+        # print(f"[Weather Func] Cache UPDATED for '{cache_key}', expires {expiry_time.isoformat()}")
 
     def _rate_limited_error(msg):
         nonlocal last_err_ts
@@ -3784,7 +3784,7 @@ def get_hybrid_weather_forecast(lat, lon):
     # --- END FIX ---
 
     # === 1. Always fetch Open-Meteo for reliable cloud data ===
-    print(f"[Weather Func] Fetching base cloud data from Open-Meteo for key '{cache_key}'")
+    # print(f"[Weather Func] Fetching base cloud data from Open-Meteo for key '{cache_key}'")
     open_meteo_data = get_open_meteo_data(lat, lon)
 
     if open_meteo_data and 'hourly' in open_meteo_data:
@@ -3854,7 +3854,7 @@ def get_hybrid_weather_forecast(lat, lon):
                 translated_dataseries[timepoint] = block  # Store by timepoint
 
             base_dataseries = translated_dataseries
-            print(f"[Weather Func] Successfully translated {len(base_dataseries)} blocks from Open-Meteo.")
+            # print(f"[Weather Func] Successfully translated {len(base_dataseries)} blocks from Open-Meteo.")
 
         except Exception as e:
             _rate_limited_error(f"[Weather Func] ERROR: Failed to translate Open-Meteo data: {e}")
@@ -3865,7 +3865,7 @@ def get_hybrid_weather_forecast(lat, lon):
         # base_dataseries is still {}
 
     # === 2. Attempt to fetch 7Timer! 'astro' for seeing/transparency ===
-    print(f"[Weather Func] Fetching enhancement data (seeing) from 7Timer! 'astro' for key '{cache_key}'")
+    # print(f"[Weather Func] Fetching enhancement data (seeing) from 7Timer! 'astro' for key '{cache_key}'")
     astro_data_7t = get_weather_data_with_retries(lat, lon, product="astro")
 
     if astro_data_7t and astro_data_7t.get('dataseries'):
@@ -3925,7 +3925,7 @@ def get_hybrid_weather_forecast(lat, lon):
                 except Exception as e:
                     print(f"[Weather Func] WARN: Skipping 7Timer! block, could not align timepoints. Error: {e}")
 
-        print(f"[Weather Func] Merge complete.")
+        # print(f"[Weather Func] Merge complete.")
     else:
         _rate_limited_error(
             f"[Weather Func] WARN: 7Timer! 'astro' (enhancement) fetch failed for key '{cache_key}'. Seeing data will be unavailable.")
@@ -3970,7 +3970,7 @@ def weather_cache_worker():
                 # --- Pass the rounded lat/lon to the function ---
                 # Although get_hybrid_weather_forecast now rounds internally,
                 # passing the rounded values makes the log message below accurate.
-                print(f"[Weather Worker] Refreshing for rounded lat={lat}, lon={lon}") # Log rounded values
+                # print(f"[Weather Worker] Refreshing for rounded lat={lat}, lon={lon}") # Log rounded values
                 get_hybrid_weather_forecast(lat, lon) # Call with potentially rounded values
                 # --- End Pass Rounded ---
                 refreshed_count += 1
@@ -9739,69 +9739,7 @@ def get_yearly_heatmap_chunk():
     finally:
         if 'db' in locals(): db.close()
 
-# =============================================================================
-# Main Entry Point
-# =============================================================================
-if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-    # Use a lock to protect a "flag file" check
-    startup_lock_path = os.path.join(INSTANCE_PATH, "startup.lock")
-    tasks_ran_flag_path = os.path.join(INSTANCE_PATH, "startup.done")
 
-    with _FileLock(startup_lock_path):
-        # This 'with' block now acts as a mutex, ensuring only one
-        # worker at a time can perform this check.
-
-        if not os.path.exists(tasks_ran_flag_path):
-            # This worker is the first one. Run the tasks.
-            print("[STARTUP] Acquired lock, startup flag not found. Running one-time init tasks...")
-
-            # --- FIX: Pre-fetch Skyfield data to prevent thread race conditions ---
-            print("[STARTUP] Pre-fetching Earth rotation data (finals2000A.all)...")
-            try:
-                # Try current directory first (default Skyfield location)
-                load_root = Loader('.')
-                load_root.download('finals2000A.all')
-                load_root.download('Leap_Second.dat')
-
-                # Also try CACHE_DIR just in case the module uses that path
-                if os.path.exists(CACHE_DIR):
-                    load_cache = Loader(CACHE_DIR)
-                    load_cache.download('finals2000A.all')
-                    load_cache.download('Leap_Second.dat')
-            except Exception as e:
-                print(f"[STARTUP] WARN: Skyfield pre-fetch failed: {e}")
-            # --- END FIX ---
-
-            migrate_journal_data()
-            trigger_startup_cache_workers()  # This runs second
-
-            # --- MOVED FROM OUTSIDE ---
-            # Start the background thread to check for updates
-            print("[STARTUP] Starting background update check thread...")
-            update_thread = threading.Thread(target=check_for_updates)
-            update_thread.daemon = True
-            update_thread.start()
-
-            # --- MOVED FROM OUTSIDE ---
-            print("[STARTUP] Starting background weather worker thread...")
-            weather_thread = threading.Thread(target=weather_cache_worker)
-            weather_thread.daemon = True
-            weather_thread.start()
-            # --- END MOVED BLOCKS ---
-
-            # Create the flag file *before* releasing the lock
-            try:
-                with open(tasks_ran_flag_path, 'w') as f:
-                    f.write(datetime.now(timezone.utc).isoformat())
-            except Exception as e:
-                print(f"[STARTUP] CRITICAL: Could not write startup flag file! Error: {e}")
-
-            print("[STARTUP] One-time init complete. Created flag. Releasing lock.")
-
-        else:
-            # The flag file already exists, so another worker has
-            # already started the tasks. Skip.
-            print("[STARTUP] Startup flag file found. Skipping init tasks.")
 
 if not SINGLE_USER_MODE:
     @app.cli.command("init-db")
@@ -10944,7 +10882,16 @@ def heatmap_background_worker():
                                     visible_objects.append(obj)
                             visible_objects.sort(key=lambda x: float(x.ra_hours))
 
-                            local_tz = pytz.timezone(task['tz'])
+                            # Validate Timezone (Fix for 'Greenland/Sermersooq' crash)
+                            try:
+                                local_tz = pytz.timezone(task['tz'])
+                                valid_tz = task['tz']
+                            except Exception:
+                                print(
+                                    f"[HEATMAP WORKER] WARN: Invalid timezone '{task['tz']}' for '{task['loc_name']}'. Using UTC.")
+                                local_tz = pytz.utc
+                                valid_tz = 'UTC'
+
                             now = datetime.now(local_tz)
                             start_date_year = now.date() - timedelta(days=now.weekday())
 
@@ -10979,7 +10926,7 @@ def heatmap_background_worker():
                                     obj_scores = []
                                     for i, date_str in enumerate(target_dates):
                                         obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
-                                            ra, dec, task['lat'], task['lon'], date_str, task['tz'],
+                                            ra, dec, task['lat'], task['lon'], date_str, valid_tz,
                                             task['alt_threshold'], 60, horizon_mask=task['mask']
                                         )
                                         score = 0
@@ -11047,12 +10994,67 @@ def heatmap_background_worker():
         print("[HEATMAP WORKER] Cycle done. Sleeping 4 hours.")
         time.sleep(4 * 60 * 60)
 
-if __name__ == '__main__':
-    # Start the background thread to check for updates
+
+# =============================================================================
+# Main Entry Point
+# =============================================================================
+if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+    # Use a lock to protect a "flag file" check
+    startup_lock_path = os.path.join(INSTANCE_PATH, "startup.lock")
+    tasks_ran_flag_path = os.path.join(INSTANCE_PATH, "startup.done")
+
+    # --- ONE-TIME INITIALIZATION (Runs only once per install/wipe) ---
+    with _FileLock(startup_lock_path):
+        if not os.path.exists(tasks_ran_flag_path):
+            print("[STARTUP] Acquired lock, startup flag not found. Running one-time init tasks...")
+
+            print("[STARTUP] Pre-fetching Earth rotation data (finals2000A.all)...")
+            try:
+                load_root = Loader('.')
+                load_root.download('finals2000A.all')
+                load_root.download('Leap_Second.dat')
+                if os.path.exists(CACHE_DIR):
+                    load_cache = Loader(CACHE_DIR)
+                    load_cache.download('finals2000A.all')
+                    load_cache.download('Leap_Second.dat')
+            except Exception as e:
+                print(f"[STARTUP] WARN: Skyfield pre-fetch failed: {e}")
+
+            migrate_journal_data()
+
+            # Note: Cache warming should ideally run per-worker or be managed differently,
+            # but we keep it here to avoid load spikes on restart.
+            trigger_startup_cache_workers()
+
+            try:
+                with open(tasks_ran_flag_path, 'w') as f:
+                    f.write(datetime.now(timezone.utc).isoformat())
+            except Exception as e:
+                print(f"[STARTUP] CRITICAL: Could not write startup flag file! Error: {e}")
+
+            print("[STARTUP] One-time init complete. Created flag. Releasing lock.")
+        else:
+            print("[STARTUP] Startup flag file found. Skipping init tasks.")
+
+    # --- BACKGROUND THREADS (Must start on EVERY process launch) ---
+    # These are moved OUTSIDE the "startup.done" check so they run even if the server restarts.
+
+    print("[STARTUP] Starting background update check thread...")
+    update_thread = threading.Thread(target=check_for_updates)
+    update_thread.daemon = True
+    update_thread.start()
+
+    print("[STARTUP] Starting background weather worker thread...")
+    weather_thread = threading.Thread(target=weather_cache_worker)
+    weather_thread.daemon = True
+    weather_thread.start()
+
     print("[STARTUP] Starting background heatmap maintenance thread...")
     heatmap_thread = threading.Thread(target=heatmap_background_worker)
     heatmap_thread.daemon = True
     heatmap_thread.start()
+
+if __name__ == '__main__':
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
 
