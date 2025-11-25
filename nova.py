@@ -11036,24 +11036,49 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         else:
             print("[STARTUP] Startup flag file found. Skipping init tasks.")
 
-    # --- BACKGROUND THREADS (Must start on EVERY process launch) ---
-    # These are moved OUTSIDE the "startup.done" check so they run even if the server restarts.
+    # --- BACKGROUND THREADS (Single-Worker Locking) ---
+    # We use a non-blocking file lock to ensure only ONE gunicorn worker
+    # spawns the background threads, preventing duplicate logs/tasks.
 
-    print("[STARTUP] Starting background update check thread...")
-    update_thread = threading.Thread(target=check_for_updates)
-    update_thread.daemon = True
-    update_thread.start()
+    scheduler_lock_path = os.path.join(INSTANCE_PATH, "scheduler.lock")
+    scheduler_lock_fh = None
+    should_start_threads = False
 
-    print("[STARTUP] Starting background weather worker thread...")
-    weather_thread = threading.Thread(target=weather_cache_worker)
-    weather_thread.daemon = True
-    weather_thread.start()
+    if _HAS_FCNTL:
+        try:
+            # Open file for locking. We keep this file handle OPEN to hold the lock.
+            # If the worker dies, the OS releases the lock automatically.
+            scheduler_lock_fh = open(scheduler_lock_path, "a+")
+            fcntl.flock(scheduler_lock_fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            should_start_threads = True
+            print("[STARTUP] Acquired scheduler lock. This worker will run background tasks.")
+        except (IOError, BlockingIOError):
+            print("[STARTUP] Scheduler lock held by another worker. Skipping background threads.")
+            # Close the handle since we didn't get the lock
+            if scheduler_lock_fh:
+                try:
+                    scheduler_lock_fh.close()
+                except:
+                    pass
+    else:
+        # Fallback for Windows or non-POSIX systems (Always start to ensure functionality)
+        should_start_threads = True
 
-    print("[STARTUP] Starting background heatmap maintenance thread...")
-    heatmap_thread = threading.Thread(target=heatmap_background_worker)
-    heatmap_thread.daemon = True
-    heatmap_thread.start()
+    if should_start_threads:
+        print("[STARTUP] Starting background update check thread...")
+        update_thread = threading.Thread(target=check_for_updates)
+        update_thread.daemon = True
+        update_thread.start()
 
+        print("[STARTUP] Starting background weather worker thread...")
+        weather_thread = threading.Thread(target=weather_cache_worker)
+        weather_thread.daemon = True
+        weather_thread.start()
+
+        print("[STARTUP] Starting background heatmap maintenance thread...")
+        heatmap_thread = threading.Thread(target=heatmap_background_worker)
+        heatmap_thread.daemon = True
+        heatmap_thread.start()
 if __name__ == '__main__':
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"
