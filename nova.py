@@ -3788,7 +3788,7 @@ def get_hybrid_weather_forecast(lat, lon):
     open_meteo_data = get_open_meteo_data(lat, lon)
 
     if open_meteo_data and 'hourly' in open_meteo_data:
-        print(f"[Weather Func] Open-Meteo succeeded. Translating data...")
+        # print(f"[Weather Func] Open-Meteo succeeded. Translating data...")
         try:
             translated_dataseries = {}  # Use a dict for easier merging
             om_hourly = open_meteo_data['hourly']
@@ -3871,7 +3871,7 @@ def get_hybrid_weather_forecast(lat, lon):
     if astro_data_7t and astro_data_7t.get('dataseries'):
         # print("[DEBUG] 7Timer! RAW DATA (first 5 blocks):")
         # print(astro_data_7t['dataseries'][:5])
-        print(f"[Weather Func] 7Timer! 'astro' succeeded. Merging data...")
+        # print(f"[Weather Func] 7Timer! 'astro' succeeded. Merging data...")
 
         # --- START FIX: Calculate 7Timer! init time ---
         astro_init_str = astro_data_7t.get('init')
