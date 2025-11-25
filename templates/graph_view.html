@@ -1039,6 +1039,8 @@
                 <label for="survey-select">Survey:</label>
                 <select id="survey-select" onchange="setSurvey(this.value)">
                     <option value="P/DSS2/color">DSS2 (color)</option>
+                    <option value="P/DESI-Legacy-Surveys/DR10/color">Legacy Survey DR10 (Deep/Sharp)</option>
+                    <option value="P/DES/DR2/Color">Dark Energy Survey DR2 (Deep)</option>
                     <option value="P/allWISE/color">AllWISE (color)</option>
                     <option value="P/2MASS/color">2MASS (color)</option>
 
@@ -1292,10 +1294,23 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // --- Tab Initialization ---
     const params = new URLSearchParams(window.location.search);
     const tabFromUrl = params.get('tab');
+    const periodFromUrl = params.get('period'); // Get the period (e.g., 'yearly')
+
     const lastTab = localStorage.getItem('lastActiveTab-{{ object_name|tojson }}');
     const tabToShow = tabFromUrl || lastTab || 'chart';
 
     showTab(tabToShow);
+
+    // --- Auto-Switch Chart View ---
+    if (tabToShow === 'chart' && periodFromUrl === 'yearly') {
+        // Wait briefly for the external chart script to load
+        setTimeout(() => {
+            if (typeof changeView === 'function') {
+                console.log("Auto-switching to Year View based on URL parameter.");
+                changeView('year');
+            }
+        }, 300);
+    }
 
     // --- Initialize Project Notes Editor (Trix) ---
     const projectEditor = document.getElementById('project-field-editor');

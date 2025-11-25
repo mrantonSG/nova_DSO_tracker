@@ -9652,19 +9652,16 @@ def get_yearly_heatmap():
         # print(f"[HEATMAP] Calculating for {len(valid_objects)} objects over 52 weeks...")
 
         for obj in valid_objects:
-            # Label: "M31 [Galaxy]"
+            # Label Construction: "M31 [Galaxy]"
             display_name = obj.common_name or obj.object_name
             if obj.type:
                 display_name += f" [{obj.type}]"
-            y_names.append(display_name)
-
-            meta_ids.append(obj.object_name)  # Use Object Name as ID for linking
-            meta_active.append(1 if obj.active_project else 0)
 
             obj_scores = []
             ra = float(obj.ra_hours)
             dec = float(obj.dec_deg)
 
+            # Calculate scores for all 52 weeks
             for i, date_str in enumerate(target_dates):
                 # Calculate Visibility
                 obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
@@ -9691,7 +9688,12 @@ def get_yearly_heatmap():
 
                 obj_scores.append(round(score, 1))
 
-            z_scores.append(obj_scores)
+            # FILTER: Only include object if it is visible at least once in the year (score > 0)
+            if max(obj_scores) > 0:
+                y_names.append(display_name)
+                meta_ids.append(obj.object_name)
+                meta_active.append(1 if obj.active_project else 0)
+                z_scores.append(obj_scores)
 
         result_data = {
             "x": weeks_x,
@@ -9699,7 +9701,8 @@ def get_yearly_heatmap():
             "z": z_scores,
             "moon_phases": moon_phases,
             "ids": meta_ids,
-            "active": meta_active
+            "active": meta_active,
+            "dates": target_dates  # <-- New: Sends ["2025-11-24", "2025-12-01", ...]
         }
 
         # Write to cache

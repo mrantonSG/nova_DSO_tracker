@@ -49,7 +49,7 @@
 <div id="heatmap-tab-content" style="display:none;">
     <div id="heatmap-loading">
         Generating Heatmap...<br>
-        <small style="color:#666; font-weight:normal;">(Calculating 52 weeks x All Objects. Please wait.)</small>
+        <small style="color:#666; font-weight:normal;">(Calculating 52 weeks for all Objects. Please wait.)</small>
     </div>
 
     <div id="heatmap-wrapper">
@@ -69,6 +69,14 @@
 <script>
     let heatmapLoaded = false;
     let globalHeatmapData = null;
+
+    // Force Plotly to resize when the browser window changes
+    window.addEventListener('resize', function() {
+        const plotDiv = document.getElementById('yearly-heatmap-plot');
+        if (heatmapLoaded && plotDiv) {
+            Plotly.Plots.resize(plotDiv);
+        }
+    });
 
     // Store the filtered arrays globally so the click handler can access them
     let currentFilteredIds = [];
@@ -187,7 +195,7 @@
         };
 
         // --- DYNAMIC HEIGHT ---
-        const calculatedHeight = Math.max(600, filteredY.length * 25);
+        const calculatedHeight = Math.max(600, filteredY.length * 15);
 
         const layout = {
             title: { text: 'Yearly Imaging Opportunities (RA Waterfall)', font: { size: 16, color: '#333' } },
@@ -200,9 +208,10 @@
             },
             yaxis: {
                 automargin: true,
-                fixedrange: false,
+                fixedrange: true,
                 tickfont: { size: 11, color: '#333' }
             },
+            dragmode: false,
             margin: { l: 180, r: 20, b: 80, t: 40 },
             shapes: shapes,
             paper_bgcolor: 'rgba(0,0,0,0)',
@@ -217,19 +226,31 @@
         Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
             heatmapLoaded = true;
 
-            // --- FIX: ROBUST CLICK HANDLER ---
+            // --- CLICK HANDLER ---
             plotDiv.on('plotly_click', function(evt){
                 if(evt.points && evt.points.length > 0) {
-                    // Get the clicked name (Y-axis label)
-                    const clickedLabel = evt.points[0].y;
+                    const point = evt.points[0];
 
-                    // Find index in our current filtered list
-                    const index = currentFilteredY.indexOf(clickedLabel);
+                    // 1. Resolve Object ID (Row)
+                    // Find which object was clicked in our filtered list
+                    const yIndex = currentFilteredY.indexOf(point.y);
 
-                    if (index !== -1) {
-                        const objectId = currentFilteredIds[index];
-                        // Force navigation
-                        window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}`);
+                    // 2. Resolve Date (Column)
+                    // Find which week column was clicked. point.x is the label (e.g., "Nov 24").
+                    // We map this back to the raw 'dates' array from the server.
+                    const xIndex = globalHeatmapData.x.indexOf(point.x);
+
+                    if (yIndex !== -1 && xIndex !== -1) {
+                        const objectId = currentFilteredIds[yIndex];
+                        const dateStr = globalHeatmapData.dates[xIndex]; // Format: "YYYY-MM-DD"
+
+                        if (dateStr) {
+                            const [year, month, day] = dateStr.split('-');
+
+                            // Navigate to Graph Dashboard -> Chart Tab -> Specific Date
+                            // (This implicitly loads the Day View for that date)
+                            window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}`);
+                        }
                     }
                 }
             });
