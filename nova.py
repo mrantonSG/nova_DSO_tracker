@@ -9580,46 +9580,29 @@ def get_yearly_heatmap_chunk():
 
         local_tz = pytz.timezone(tz_name)
 
-        # 2. CACHE CHECK (Fast Path)
+        # 2. GENERATE CACHE KEY (Per Chunk)
         db = get_db()
         user_id = g.db_user.id
         obj_count = db.query(AstroObject).filter_by(user_id=user_id).count()
         loc_safe = selected_loc_key.lower().replace(' ', '_')
-        # Using v5 cache file
-        cache_filename = os.path.join(CACHE_DIR, f"heatmap_v5_{user_id}_{loc_safe}_{obj_count}.json")
 
-        if os.path.exists(cache_filename):
-            mtime = os.path.getmtime(cache_filename)
+        # Base filename
+        base_cache_name = f"heatmap_v5_{user_id}_{loc_safe}_{obj_count}"
+        # Specific chunk filename
+        chunk_cache_filename = os.path.join(CACHE_DIR, f"{base_cache_name}.part{chunk_idx}.json")
+
+        # 3. FAST PATH: Read existing chunk from disk
+        if os.path.exists(chunk_cache_filename):
+            mtime = os.path.getmtime(chunk_cache_filename)
             if (time.time() - mtime) < 86400:  # 24 hours
                 try:
-                    with open(cache_filename, 'r') as f:
-                        full_data = json.load(f)
-
-                    total_weeks = len(full_data["x"])
-                    weeks_per_chunk = total_weeks // total_chunks
-                    remainder = total_weeks % total_chunks
-                    start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
-                    end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
-
-                    return jsonify({
-                        "chunk_index": chunk_idx,
-                        "x": full_data["x"][start_week:end_week],
-                        "dates": full_data["dates"][start_week:end_week],
-                        "moon_phases": full_data["moon_phases"][start_week:end_week],
-                        "z_chunk": [row[start_week:end_week] for row in full_data["z"]],
-                        "y": full_data["y"],
-                        "ids": full_data["ids"],
-                        "active": full_data["active"],
-                        "types": full_data.get("types", []),
-                        "cons": full_data.get("cons", []),
-                        "mags": full_data.get("mags", []),
-                        "sizes": full_data.get("sizes", []),
-                        "sbs": full_data.get("sbs", [])
-                    })
+                    with open(chunk_cache_filename, 'r') as f:
+                        # print(f"[HEATMAP] Serving chunk {chunk_idx} from cache: {chunk_cache_filename}")
+                        return jsonify(json.load(f))
                 except Exception as e:
-                    print(f"Error reading cache for chunking: {e}")
+                    print(f"[HEATMAP] Error reading chunk cache: {e}")
 
-        # 3. LIVE CALCULATION (Slow Path)
+        # 4. SLOW PATH: Live Calculation
         now = datetime.now(local_tz)
         start_date_year = now.date() - timedelta(days=now.weekday())
 
@@ -9643,28 +9626,27 @@ def get_yearly_heatmap_chunk():
             except:
                 moon_phases.append(0)
 
-        # --- OBJECT FILTERING ---
+        # --- Object Selection ---
         altitude_threshold = g.user_config.get("altitude_threshold", 20)
         sampling_interval = 60
 
         all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
 
-        # 1. Basic Validity Check
+        # Validity Check
         valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
 
-        # 2. Geometric Visibility Check
+        # Geometric Visibility Filter (Consistent across all chunks)
         visible_objects = []
         for obj in valid_objects:
             dec = float(obj.dec_deg)
             # Max theoretical altitude = 90 - |Lat - Dec|
             max_theoretical_alt = 90 - abs(lat - dec)
-
             if max_theoretical_alt >= altitude_threshold:
                 visible_objects.append(obj)
 
         visible_objects.sort(key=lambda x: float(x.ra_hours))
 
-        # --- DATA GENERATION ---
+        # --- Data Generation ---
         z_scores_chunk = []
         y_names = []
         meta_ids = []
@@ -9725,7 +9707,7 @@ def get_yearly_heatmap_chunk():
             except:
                 meta_sbs.append(999.0)
 
-        return jsonify({
+        result_data = {
             "chunk_index": chunk_idx,
             "x": weeks_x,
             "z_chunk": z_scores_chunk,
@@ -9739,7 +9721,17 @@ def get_yearly_heatmap_chunk():
             "mags": meta_mags,
             "sizes": meta_sizes,
             "sbs": meta_sbs
-        })
+        }
+
+        # 5. SAVE CHUNK TO DISK
+        try:
+            with open(chunk_cache_filename, 'w') as f:
+                json.dump(result_data, f)
+            print(f"[HEATMAP] Saved chunk {chunk_idx} to {chunk_cache_filename}")
+        except Exception as e:
+            print(f"[HEATMAP] Failed to write cache file: {e}")
+
+        return jsonify(result_data)
 
     except Exception as e:
         traceback.print_exc()
