@@ -49,7 +49,10 @@
 <div id="heatmap-tab-content" style="display:none;">
     <div id="heatmap-loading">
         Generating Heatmap...<br>
-        <small style="color:#666; font-weight:normal;">(Calculating 52 weeks for all Objects. Please wait.)</small>
+        <small style="color:#666; font-weight:normal;">
+            Calculating 52 weeks for all objects.<br>
+            (Results are cached for 24 hours for instant reloading.)
+        </small>
     </div>
 
     <div id="heatmap-wrapper">
@@ -198,10 +201,11 @@
         const calculatedHeight = Math.max(600, filteredY.length * 15);
 
         const layout = {
-            title: { text: 'Yearly Imaging Opportunities (RA Waterfall)', font: { size: 16, color: '#333' } },
+            // Title removed per request
             height: calculatedHeight,
             xaxis: {
                 title: '',
+                side: 'top', // Moves X-axis labels to the top
                 tickangle: -90,
                 fixedrange: true,
                 tickfont: { size: 11, color: '#555' }
@@ -212,7 +216,7 @@
                 tickfont: { size: 11, color: '#333' }
             },
             dragmode: false,
-            margin: { l: 180, r: 20, b: 80, t: 40 },
+            margin: { l: 180, r: 20, b: 80, t: 80 },
             shapes: shapes,
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)'
