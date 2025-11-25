@@ -2160,8 +2160,8 @@ function populateJournalTable() {
     </div>
     {% include '_heatmap_section.html' %}
 
-    <div id="table-loading" style="display:none; color: #6795a4; font-weight: normal; margin-top: 30px; margin-left: 10px;">
-      Loading...
+    <div id="table-loading" style="display:none; position: fixed; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; text-align: center; color: #6795a4; font-weight: bold; border: 1px solid #ddd;">
+      Updating data...
     </div>
 </div> {# End of list-section #}
 
