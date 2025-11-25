@@ -9560,158 +9560,7 @@ def get_yearly_heatmap_chunk():
         chunk_idx = int(request.args.get('chunk_index', 0))  # 0 to 11 (Month index)
         total_chunks = 12
 
-        # Location Setup (Same as before)
-        req_loc_name = request.args.get('location_name')
-        if req_loc_name and req_loc_name in g.locations:
-            loc_data = g.locations[req_loc_name]
-            lat, lon, tz_name = loc_data['lat'], loc_data['lon'], loc_data['timezone']
-            horizon_mask = loc_data.get('horizon_mask')
-        else:
-            lat = float(request.args.get('lat', g.lat))
-            lon = float(request.args.get('lon', g.lon))
-            tz_name = request.args.get('tz', g.tz_name)
-            horizon_mask = None
-            if g.selected_location and g.selected_location in g.locations:
-                horizon_mask = g.locations[g.selected_location].get('horizon_mask')
-
-        local_tz = pytz.timezone(tz_name)
-
-        # 2. Determine Date Range for THIS Chunk
-        now = datetime.now(local_tz)
-        start_date_year = now.date() - timedelta(days=now.weekday())
-
-        # Calculate weeks for this specific chunk (approx 4-5 weeks per chunk)
-        weeks_per_chunk = 52 // total_chunks  # Base 4
-        # Distribute remainder weeks
-        remainder = 52 % total_chunks
-
-        # Calculate start/end week indices
-        start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
-        end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
-
-        weeks_x = []
-        target_dates = []
-        moon_phases = []
-
-        # Generate dates only for this chunk
-        for i in range(start_week, end_week):
-            d = start_date_year + timedelta(weeks=i)
-            weeks_x.append(d.strftime('%b %d'))
-            target_dates.append(d.strftime('%Y-%m-%d'))
-            try:
-                dt_moon = local_tz.localize(datetime.combine(d, datetime.min.time())).astimezone(pytz.utc)
-                m = ephem.Moon(dt_moon)
-                moon_phases.append(round(m.phase, 1))
-            except:
-                moon_phases.append(0)
-
-        # 3. Calculate Scores for Objects
-        db = get_db()
-        user_id = g.db_user.id
-        all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
-        valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
-        valid_objects.sort(key=lambda x: float(x.ra_hours))
-
-        z_scores_chunk = []
-        y_names = []
-        meta_ids = []
-        meta_active = []
-        meta_types = []
-        meta_cons = []
-        meta_mags = []
-        meta_sizes = []
-        meta_sbs = []
-
-        altitude_threshold = g.user_config.get("altitude_threshold", 20)
-        sampling_interval = 60
-
-        for obj in valid_objects:
-            ra = float(obj.ra_hours)
-            dec = float(obj.dec_deg)
-            obj_scores = []
-
-            for i, date_str in enumerate(target_dates):
-                obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
-                    ra, dec, lat, lon, date_str, tz_name,
-                    altitude_threshold, sampling_interval, horizon_mask
-                )
-
-                duration_mins = obs_dur.total_seconds() / 60 if obs_dur else 0
-
-                if max_alt is None or max_alt < altitude_threshold or duration_mins < 45:
-                    score = 0
-                else:
-                    norm_alt = min((max_alt - altitude_threshold) / (90 - altitude_threshold), 1.0)
-                    norm_dur = min(duration_mins / 480, 1.0)
-                    score = (0.4 * norm_alt + 0.6 * norm_dur) * 100
-
-                    current_moon = moon_phases[i]
-                    if current_moon > 60:
-                        penalty_factor = ((current_moon - 60) / 40) * 0.9
-                        score *= (1 - penalty_factor)
-
-                obj_scores.append(round(score, 1))
-
-            # Always append data rows, filtering happens on client side or final assembly
-            # Ideally we send ALL data and let client stitch it to ensure alignment
-            z_scores_chunk.append(obj_scores)
-
-            # Metadata (Sent with every chunk, or could be optimized to send once)
-            # Sending every time is safer for statelessness
-            display_name = obj.common_name or obj.object_name
-            if obj.type: display_name += f" [{obj.type}]"
-            y_names.append(display_name)
-            meta_ids.append(obj.object_name)
-            meta_active.append(1 if obj.active_project else 0)
-            meta_types.append(str(obj.type or ""))
-            meta_cons.append(str(obj.constellation or ""))
-            try:
-                meta_mags.append(float(obj.magnitude))
-            except:
-                meta_mags.append(999.0)
-            try:
-                meta_sizes.append(float(obj.size))
-            except:
-                meta_sizes.append(0.0)
-            try:
-                meta_sbs.append(float(obj.sb))
-            except:
-                meta_sbs.append(999.0)
-
-        return jsonify({
-            "chunk_index": chunk_idx,
-            "x": weeks_x,
-            "z_chunk": z_scores_chunk,  # Only this slice of time
-            "y": y_names,  # Full list of objects
-            "moon_phases": moon_phases,
-            "ids": meta_ids,
-            "active": meta_active,
-            "dates": target_dates,
-            "types": meta_types,
-            "cons": meta_cons,
-            "mags": meta_mags,
-            "sizes": meta_sizes,
-            "sbs": meta_sbs
-        })
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-    finally:
-        if 'db' in locals(): db.close()
-
-
-@app.route('/api/get_yearly_heatmap_chunk')
-@login_required
-def get_yearly_heatmap_chunk():
-    load_full_astro_context()
-
-    try:
-        # 1. Parse Request Parameters
-        chunk_idx = int(request.args.get('chunk_index', 0))  # 0 to 11 (Month index)
-        total_chunks = 12
-
-        # Prefer explicit location name from request, fallback to g.selected_location
+        # Prefer explicit location name from request
         req_loc_name = request.args.get('location_name')
         if req_loc_name and req_loc_name in g.locations:
             loc_data = g.locations[req_loc_name]
@@ -9732,13 +9581,11 @@ def get_yearly_heatmap_chunk():
         local_tz = pytz.timezone(tz_name)
 
         # 2. CACHE CHECK (Fast Path)
-        # Create unique cache key based on User + Location + Object Count
         db = get_db()
         user_id = g.db_user.id
         obj_count = db.query(AstroObject).filter_by(user_id=user_id).count()
-
         loc_safe = selected_loc_key.lower().replace(' ', '_')
-        # Use v5 cache file (compatible with previous full generation)
+        # Using v5 cache file
         cache_filename = os.path.join(CACHE_DIR, f"heatmap_v5_{user_id}_{loc_safe}_{obj_count}.json")
 
         if os.path.exists(cache_filename):
@@ -9748,23 +9595,18 @@ def get_yearly_heatmap_chunk():
                     with open(cache_filename, 'r') as f:
                         full_data = json.load(f)
 
-                    # Calculate slice indices
                     total_weeks = len(full_data["x"])
                     weeks_per_chunk = total_weeks // total_chunks
                     remainder = total_weeks % total_chunks
                     start_week = chunk_idx * weeks_per_chunk + min(chunk_idx, remainder)
                     end_week = start_week + weeks_per_chunk + (1 if chunk_idx < remainder else 0)
 
-                    # Return sliced data
                     return jsonify({
                         "chunk_index": chunk_idx,
                         "x": full_data["x"][start_week:end_week],
                         "dates": full_data["dates"][start_week:end_week],
                         "moon_phases": full_data["moon_phases"][start_week:end_week],
-                        # Slice the 2D array: For each object row, take the column slice
                         "z_chunk": [row[start_week:end_week] for row in full_data["z"]],
-
-                        # Metadata is passed through fully
                         "y": full_data["y"],
                         "ids": full_data["ids"],
                         "active": full_data["active"],
@@ -9776,10 +9618,8 @@ def get_yearly_heatmap_chunk():
                     })
                 except Exception as e:
                     print(f"Error reading cache for chunking: {e}")
-                    # Fallback to live calculation if cache read fails
 
-        # 3. LIVE CALCULATION (Slow Path - if no cache exists)
-        # Determine Date Range for THIS Chunk
+        # 3. LIVE CALCULATION (Slow Path)
         now = datetime.now(local_tz)
         start_date_year = now.date() - timedelta(days=now.weekday())
 
@@ -9803,11 +9643,28 @@ def get_yearly_heatmap_chunk():
             except:
                 moon_phases.append(0)
 
-        # Calculate Scores
-        all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
-        valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
-        valid_objects.sort(key=lambda x: float(x.ra_hours))
+        # --- OBJECT FILTERING ---
+        altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        sampling_interval = 60
 
+        all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
+
+        # 1. Basic Validity Check
+        valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
+
+        # 2. Geometric Visibility Check
+        visible_objects = []
+        for obj in valid_objects:
+            dec = float(obj.dec_deg)
+            # Max theoretical altitude = 90 - |Lat - Dec|
+            max_theoretical_alt = 90 - abs(lat - dec)
+
+            if max_theoretical_alt >= altitude_threshold:
+                visible_objects.append(obj)
+
+        visible_objects.sort(key=lambda x: float(x.ra_hours))
+
+        # --- DATA GENERATION ---
         z_scores_chunk = []
         y_names = []
         meta_ids = []
@@ -9818,10 +9675,7 @@ def get_yearly_heatmap_chunk():
         meta_sizes = []
         meta_sbs = []
 
-        altitude_threshold = g.user_config.get("altitude_threshold", 20)
-        sampling_interval = 60
-
-        for obj in valid_objects:
+        for obj in visible_objects:
             ra = float(obj.ra_hours)
             dec = float(obj.dec_deg)
             obj_scores = []
