@@ -557,12 +557,19 @@
         const allFilterInputs = document.querySelectorAll('#data-table .filter-row input, #journal-filter-row input');
 
         for (const input of allFilterInputs) {
-            // Check only filterable inputs
             if (input.value.trim() !== '') {
                 isAnyFilterActive = true;
-                break; // Found an active filter, no need to check further
+                break;
             }
         }
+
+        // --- FIX: Also show button if a Saved View is active ---
+        const svDropdown = document.getElementById('saved-views-dropdown');
+        if (svDropdown && svDropdown.value !== "") {
+            isAnyFilterActive = true;
+        }
+        // --- END FIX ---
+
         btnContainer.style.display = isAnyFilterActive ? 'block' : 'none';
     }
 
@@ -588,12 +595,20 @@
         // --- MODIFIED: Reset saved views dropdown AND clear persistent view name ---
         if (savedViewsDropdown) savedViewsDropdown.value = '';
         if (deleteViewBtn) deleteViewBtn.style.display = 'none';
-        localStorage.removeItem('nova_last_applied_view'); // <-- THIS LINE IS ADDED
-        // --- END OF MODIFICATION ---
+        localStorage.removeItem('nova_last_applied_view');
+
+        // --- FIX: If on Heatmap, force a re-render to show "All" ---
+        if (activeTab === 'heatmap' && typeof updateHeatmapFilter === 'function') {
+            updateHeatmapFilter();
+        }
+        // --- END FIX ---
 
         // Refresh the tables to reflect the cleared filters
         filterTable();
         filterJournalTable();
+
+        // Ensure button state updates immediately
+        updateRemoveFiltersButtonVisibility();
     }
 
     // ========================================================================
@@ -616,7 +631,8 @@
         try {
             const response = await fetch('/api/get_saved_views');
             if (!response.ok) throw new Error('Failed to fetch views');
-            allSavedViews = await response.json(); // Store in global cache
+            allSavedViews = await response.json(); // Store in local variable
+            window.allSavedViews = allSavedViews;  // FIX: Expose to Heatmap script
 
             savedViewsDropdown.innerHTML = '<option value="">-- Saved Views --</option>';
             const viewNames = Object.keys(allSavedViews).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
@@ -1790,14 +1806,32 @@ function populateJournalTable() {
       if (deleteViewBtn) deleteViewBtn.addEventListener('click', handleDeleteView);
       if (savedViewsDropdown) savedViewsDropdown.addEventListener('change', () => {
           const viewName = savedViewsDropdown.value;
+
+          // Handle Delete Button Visibility
           if (!viewName) {
               if (deleteViewBtn) deleteViewBtn.style.display = 'none';
+          } else {
+              if (deleteViewBtn) deleteViewBtn.style.display = 'inline-block';
+          }
+
+          // --- FIX: Update "Remove Filter" button visibility immediately ---
+          updateRemoveFiltersButtonVisibility();
+
+          // --- LOGIC SPLIT ---
+          // If on Heatmap, update in-place without reloading the page
+          if (activeTab === 'heatmap') {
+              if (typeof updateHeatmapFilter === 'function') {
+                  updateHeatmapFilter();
+              }
               return;
-            }
-            // Show delete button immediately
-            if (deleteViewBtn) deleteViewBtn.style.display = 'inline-block';
-            // Trigger the load
+          }
+
+          // If on standard List tabs (Position/Properties/Journal), perform standard reload
+          if (viewName) {
             loadView(viewName);
+          } else {
+            clearAllFilters();
+          }
       });
       // --- END OF ADD ---
 

@@ -9581,20 +9581,19 @@ def get_yearly_heatmap():
         local_tz = pytz.timezone(tz_name)
 
         # Create a unique cache key based on User + Location + Object Count
-        # (If user adds an object, the count changes, invalidating cache)
         db = get_db()
         user_id = g.db_user.id
         obj_count = db.query(AstroObject).filter_by(user_id=user_id).count()
 
         loc_safe = selected_loc_key.lower().replace(' ', '_')
-        cache_filename = os.path.join(CACHE_DIR, f"heatmap_{user_id}_{loc_safe}_{obj_count}.json")
+        # Version 4 to force refresh with new filtering logic
+        cache_filename = os.path.join(CACHE_DIR, f"heatmap_v4_{user_id}_{loc_safe}_{obj_count}.json")
 
         # Check Cache (Valid for 24 hours)
         if os.path.exists(cache_filename):
             mtime = os.path.getmtime(cache_filename)
             if (time.time() - mtime) < 86400:  # 24 hours
                 with open(cache_filename, 'r') as f:
-                    # print(f"[HEATMAP] Serving from cache: {cache_filename}")
                     return jsonify(json.load(f))
 
     except Exception as e:
@@ -9649,7 +9648,12 @@ def get_yearly_heatmap():
         meta_ids = []
         meta_active = []
 
-        # print(f"[HEATMAP] Calculating for {len(valid_objects)} objects over 52 weeks...")
+        # Metadata for Saved View filtering
+        meta_types = []
+        meta_cons = []
+        meta_mags = []
+        meta_sizes = []
+        meta_sbs = []
 
         for obj in valid_objects:
             # Label Construction: "M31 [Galaxy]"
@@ -9695,6 +9699,25 @@ def get_yearly_heatmap():
                 meta_active.append(1 if obj.active_project else 0)
                 z_scores.append(obj_scores)
 
+                # Sync Metadata for filtering
+                meta_types.append(str(obj.type or ""))
+                meta_cons.append(str(obj.constellation or ""))
+
+                try:
+                    meta_mags.append(float(obj.magnitude))
+                except:
+                    meta_mags.append(999.0)
+
+                try:
+                    meta_sizes.append(float(obj.size))
+                except:
+                    meta_sizes.append(0.0)
+
+                try:
+                    meta_sbs.append(float(obj.sb))
+                except:
+                    meta_sbs.append(999.0)
+
         result_data = {
             "x": weeks_x,
             "y": y_names,
@@ -9702,7 +9725,13 @@ def get_yearly_heatmap():
             "moon_phases": moon_phases,
             "ids": meta_ids,
             "active": meta_active,
-            "dates": target_dates  # <-- New: Sends ["2025-11-24", "2025-12-01", ...]
+            "dates": target_dates,
+            # Metadata
+            "types": meta_types,
+            "cons": meta_cons,
+            "mags": meta_mags,
+            "sizes": meta_sizes,
+            "sbs": meta_sbs
         }
 
         # Write to cache
