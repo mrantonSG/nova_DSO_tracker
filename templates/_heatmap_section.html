@@ -5,7 +5,6 @@
     }
     #heatmap-wrapper {
         width: 100%;
-        /* Height is set dynamically by JS */
     }
     #heatmap-controls {
         display: flex;
@@ -30,7 +29,6 @@
     #heatmap-loading {
         display: none;
         position: absolute;
-        /* FIX: Fixed distance from top, not percentage/center of the huge scrollable area */
         top: 150px;
         left: 50%;
         transform: translateX(-50%);
@@ -60,9 +58,9 @@
             <div style="display:flex; gap:15px; align-items:center;">
                 <label style="font-size: 14px; font-weight: bold; color: #333; cursor: pointer; display: flex; align-items: center;">
                     <input type="checkbox" id="heatmap-active-only" onchange="updateHeatmapFilter()" style="margin-right: 8px;">
-                    Show Active Projects Only
+                    Active Only
                 </label>
-            </div>
+                </div>
             <span id="heatmap-legend-text">* Vertical light bands = Full Moon (Washed out). Darker Green = Best Quality. Click object names to view details.</span>
         </div>
         <div id="yearly-heatmap-plot"></div>
@@ -73,6 +71,10 @@
     let heatmapLoaded = false;
     let globalHeatmapData = null;
 
+    // Store the filtered arrays globally so the click handler can access them
+    let currentFilteredIds = [];
+    let currentFilteredY = [];
+
     // Force Plotly to resize when the browser window changes
     window.addEventListener('resize', function() {
         const plotDiv = document.getElementById('yearly-heatmap-plot');
@@ -80,10 +82,6 @@
             Plotly.Plots.resize(plotDiv);
         }
     });
-
-    // Store the filtered arrays globally so the click handler can access them
-    let currentFilteredIds = [];
-    let currentFilteredY = [];
 
     function updateHeatmapFilter() {
         renderHeatmapFromCache();
@@ -122,6 +120,16 @@
         const plotDiv = document.getElementById('yearly-heatmap-plot');
         const onlyActive = document.getElementById('heatmap-active-only').checked;
 
+        // --- INTEGRATION: Read from Main Dropdown ---
+        const mainDropdown = document.getElementById('saved-views-dropdown');
+        const selectedViewName = mainDropdown ? mainDropdown.value : '';
+
+        // Get View Settings from Global 'allSavedViews' (defined in index.html)
+        let viewSettings = null;
+        if (selectedViewName && window.allSavedViews && window.allSavedViews[selectedViewName]) {
+            viewSettings = window.allSavedViews[selectedViewName].settings;
+        }
+
         if (!data || data.error) {
             plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? data.error : 'No Data'}</div>`;
             return;
@@ -132,22 +140,62 @@
             return;
         }
 
-        // Reset filtered arrays
+        // --- Helper to check if a row matches Saved View criteria ---
+        const checkViewMatch = (i) => {
+            if (!viewSettings) return true;
+
+            // Type Filter
+            const typeFilter = viewSettings['dso_filter_col_key_Type'];
+            if (typeFilter) {
+                const cellText = (data.types[i] || "").toLowerCase();
+                const filterTerms = typeFilter.toLowerCase().split(/[\s,]+/).filter(t => t.length > 0);
+                if (filterTerms.length > 0) {
+                    const cellTokens = cellText.split(/[\s,]+/).filter(t => t.length > 0);
+                    const match = filterTerms.some(term => cellTokens.some(token => token.includes(term)));
+                    if (!match) return false;
+                }
+            }
+
+            // Constellation Filter
+            const conFilter = viewSettings['dso_filter_col_key_Constellation'];
+            if (conFilter) {
+                if (!(data.cons[i] || "").toLowerCase().includes(conFilter.toLowerCase())) return false;
+            }
+
+            // Numeric Filters
+            const checkNumeric = (val, filter) => {
+                if (!filter) return true;
+                if (typeof matchesNumericFilter === 'function') {
+                    return matchesNumericFilter(val, filter);
+                }
+                if (filter.startsWith('>')) return val > parseFloat(filter.substring(1));
+                if (filter.startsWith('<')) return val < parseFloat(filter.substring(1));
+                return true;
+            };
+
+            if (!checkNumeric(data.mags[i], viewSettings['dso_filter_col_key_Magnitude'])) return false;
+            if (!checkNumeric(data.sizes[i], viewSettings['dso_filter_col_key_Size'])) return false;
+            if (!checkNumeric(data.sbs[i], viewSettings['dso_filter_col_key_SB'])) return false;
+
+            return true;
+        };
+
+        // --- Filtering ---
         let filteredY = [];
         let filteredZ = [];
         let filteredIds = [];
 
         for(let i=0; i < data.y.length; i++) {
-            if (onlyActive && data.active[i] === 0) {
-                continue;
-            }
+            if (onlyActive && data.active[i] === 0) continue;
+            if (!checkViewMatch(i)) continue;
+
             filteredY.push(data.y[i]);
             filteredZ.push(data.z[i]);
             filteredIds.push(data.ids[i]);
         }
 
         if (filteredY.length === 0) {
-             plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">No active projects found.<br><br><small>Uncheck 'Show Active Projects Only' to see all objects.</small></div>`;
+             plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">No active projects found matching criteria.<br><br><small>Uncheck 'Active Only' or clear Saved View filter.</small></div>`;
              return;
         } else {
             plotDiv.innerHTML = "";
@@ -159,24 +207,25 @@
 
         // --- Moon Overlays ---
         const shapes = [];
-        data.moon_phases.forEach((phase, index) => {
-            if (phase > 80) {
-                shapes.push({
-                    type: 'rect',
-                    xref: 'x',
-                    yref: 'paper',
-                    x0: index - 0.5,
-                    x1: index + 0.5,
-                    y0: 0,
-                    y1: 1,
-                    fillcolor: 'rgba(255, 255, 255, 0.75)',
-                    line: { width: 0 },
-                    layer: 'above'
-                });
-            }
-        });
+        if (data.moon_phases) {
+            data.moon_phases.forEach((phase, index) => {
+                if (phase > 80) {
+                    shapes.push({
+                        type: 'rect',
+                        xref: 'x',
+                        yref: 'paper',
+                        x0: index - 0.5,
+                        x1: index + 0.5,
+                        y0: 0,
+                        y1: 1,
+                        fillcolor: 'rgba(255, 255, 255, 0.75)',
+                        line: { width: 0 },
+                        layer: 'above'
+                    });
+                }
+            });
+        }
 
-        // --- Nova Green Color Scale ---
         const novaColorScale = [
             [0.0, '#ffffff'],
             [0.1, '#f0f4f5'],
@@ -197,15 +246,13 @@
             hovertemplate: '<b>%{y}</b><br>Week: %{x}<br>Score: %{z:.0f}/100<extra></extra>'
         };
 
-        // --- DYNAMIC HEIGHT ---
         const calculatedHeight = Math.max(600, filteredY.length * 15);
 
         const layout = {
-            // Title removed per request
             height: calculatedHeight,
             xaxis: {
                 title: '',
-                side: 'top', // Moves X-axis labels to the top
+                side: 'top',
                 tickangle: -90,
                 fixedrange: true,
                 tickfont: { size: 11, color: '#555' }
@@ -216,7 +263,7 @@
                 tickfont: { size: 11, color: '#333' }
             },
             dragmode: false,
-            margin: { l: 180, r: 20, b: 80, t: 80 },
+            margin: { l: 180, r: 20, b: 20, t: 100 },
             shapes: shapes,
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)'
@@ -230,32 +277,25 @@
         Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
             heatmapLoaded = true;
 
+            plotDiv.removeAllListeners('plotly_click');
+
             // --- CLICK HANDLER ---
             plotDiv.on('plotly_click', function(evt){
                 if(evt.points && evt.points.length > 0) {
                     const point = evt.points[0];
-
-                    // 1. Resolve Object ID (Row)
-                    // Find which object was clicked in our filtered list
                     const yIndex = currentFilteredY.indexOf(point.y);
-
-                    // 2. Resolve Date (Column)
-                    // Find which week column was clicked. point.x is the label (e.g., "Nov 24").
-                    // We map this back to the raw 'dates' array from the server.
                     const xIndex = globalHeatmapData.x.indexOf(point.x);
 
                     if (yIndex !== -1 && xIndex !== -1) {
                         const objectId = currentFilteredIds[yIndex];
-                        const dateStr = globalHeatmapData.dates[xIndex]; // Format: "YYYY-MM-DD"
 
-                        if (dateStr) {
+                        if (globalHeatmapData.dates && globalHeatmapData.dates[xIndex]) {
+                            const dateStr = globalHeatmapData.dates[xIndex];
                             const [year, month, day] = dateStr.split('-');
 
-                            // FIX: Retrieve current location from session storage
                             const currentLoc = sessionStorage.getItem('selectedLocation');
                             const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
 
-                            // Navigate with location parameter
                             window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
                         }
                     }
