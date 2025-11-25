@@ -251,9 +251,12 @@
                         if (dateStr) {
                             const [year, month, day] = dateStr.split('-');
 
-                            // Navigate to Graph Dashboard -> Chart Tab -> Specific Date
-                            // (This implicitly loads the Day View for that date)
-                            window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}`);
+                            // FIX: Retrieve current location from session storage
+                            const currentLoc = sessionStorage.getItem('selectedLocation');
+                            const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
+
+                            // Navigate with location parameter
+                            window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
                         }
                     }
                 }
