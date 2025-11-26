@@ -474,32 +474,36 @@ def test_mobile_pages_load_when_logged_in(client, route):
     # Check for the header from mobile_base.html
     assert b"Nova Pocket" in response.data
 
-
-def test_mobile_up_now_renders_data_from_server(client):
+def test_mobile_up_now_renders_via_api(client):
     """
-    Tests our new high-performance "Up Now" page.
-    It confirms that the data (M42 from the fixture) is rendered
-    by the server directly into the HTML.
+    Tests the mobile "Up Now" page and its data source.
+    Since we moved to Client-Side Rendering, we check:
+    1. The page loads (200 OK).
+    2. The API endpoint returns the correct JSON data.
     """
-    # 1. ACT
+    # 1. Page Load Check (Skeleton)
     response = client.get('/m/up_now')
-
-    # 2. ASSERT
     assert response.status_code == 200
+    # We no longer check for "M42" or data attributes in response.data because it's loaded via JS now.
 
-    # Check that M42 (from the 'client' fixture) is in the HTML
-    assert b"M42" in response.data
-    assert b"Orion Nebula" in response.data
+    # 2. API Data Check
+    # Request the first chunk of data
+    api_response = client.get('/api/mobile_data_chunk?offset=0&limit=10')
+    assert api_response.status_code == 200
 
-    # Check that our new data attributes for sorting are present
-    assert b"data-sort-alt=" in response.data
-    assert b"data-sort-dur=" in response.data
+    json_data = api_response.get_json()
+    assert "data" in json_data
+    assert "total" in json_data
 
-    # CRITICAL: Check that the *old* slow JavaScript fetch loop is GONE.
-    # This proves we are using the new server-side-rendered template.
-    assert b"fetchAllObjects" not in response.data
-    assert b"fetch(fetchUrlBase" not in response.data
+    # 3. Verify Content
+    # Iterate through results to find the fixture object (M42)
+    found_m42 = False
+    for item in json_data['data']:
+        if item.get('Object') == 'M42' or 'Orion Nebula' in item.get('Common Name', ''):
+            found_m42 = True
+            break
 
+    assert found_m42, "API did not return M42/Orion Nebula data"
 
 # ===================================================================
 # --- NEW SAVED VIEWS API TESTS ---
@@ -833,6 +837,36 @@ def test_api_save_framing_stores_rig_name(client, db_session):
     assert framing.rig_name == "Test Scope 2000"
 
 
+def test_get_desktop_data_batch_success(client):
+    """
+    Tests the new high-performance batch endpoint for the desktop dashboard.
+    Verifies it returns the correct structure and data (M42).
+    """
+    # 1. Act
+    # Request the first batch of 50 objects
+    response = client.get('/api/get_desktop_data_batch?offset=0&limit=50')
+
+    # 2. Assert
+    assert response.status_code == 200
+    data = response.get_json()
+
+    # Check structure
+    assert 'results' in data
+    assert 'total' in data
+    assert data['total'] > 0
+
+    # Check content (Find M42 from the fixture)
+    m42_found = False
+    for item in data['results']:
+        if item.get('Object') == 'M42':
+            m42_found = True
+            # Verify calculation fields exist
+            assert 'Altitude Current' in item
+            assert 'Azimuth Current' in item
+            assert item['error'] is False
+            break
+
+    assert m42_found, "Batch API did not return M42"
 
 def test_moon_api_bug_with_no_ra(client):
     pass
