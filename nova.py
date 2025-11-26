@@ -7614,6 +7614,193 @@ def get_object_data(object_name):
         }), 500
     finally:
         db.close()
+
+
+@app.route('/api/get_desktop_data_batch')
+@login_required
+def get_desktop_data_batch():
+    """
+    Batch processor for the desktop dashboard.
+    Calculates data for 50 objects internally to prevent HTTP request flooding.
+    """
+    load_full_astro_context()
+
+    # 1. Get Pagination Params
+    try:
+        offset = int(request.args.get('offset', 0))
+        limit = int(request.args.get('limit', 50))
+    except ValueError:
+        offset = 0
+        limit = 50
+
+    user = g.db_user
+    if not user: return jsonify({"error": "User not found", "results": []}), 404
+
+    # 2. Determine Location
+    requested_loc_name = request.args.get('location')
+    # Fallback logic: Request Param -> Session (g) -> Default
+    if not requested_loc_name:
+        requested_loc_name = g.selected_location
+
+    db = get_db()
+    try:
+        location_obj = db.query(Location).options(
+            selectinload(Location.horizon_points)
+        ).filter_by(user_id=user.id, name=requested_loc_name).one_or_none()
+
+        if not location_obj: return jsonify({"error": "Location not found", "results": []}), 404
+
+        # 3. Get Object Slice
+        objects_query = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name)
+        total_count = objects_query.count()
+        batch_objects = objects_query.offset(offset).limit(limit).all()
+
+        # 4. Prepare Calculation Variables
+        results = []
+        lat, lon, tz_name = location_obj.lat, location_obj.lon, location_obj.timezone
+        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in
+                        sorted(location_obj.horizon_points, key=lambda p: p.az_deg)]
+        altitude_threshold = location_obj.altitude_threshold if location_obj.altitude_threshold is not None else g.user_config.get(
+            "altitude_threshold", 20)
+
+        try:
+            local_tz = pytz.timezone(tz_name)
+        except:
+            local_tz = pytz.utc
+
+        current_datetime_local = datetime.now(local_tz)
+        local_date = current_datetime_local.strftime('%Y-%m-%d')
+
+        # Adjust date if "night of" (past midnight logic)
+        dawn_today = calculate_sun_events_cached(local_date, tz_name, lat, lon).get("astronomical_dawn")
+        if dawn_today:
+            try:
+                dawn_dt = local_tz.localize(
+                    datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today, "%H:%M").time()))
+                if current_datetime_local < dawn_dt:
+                    local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+            except:
+                pass
+
+        sampling_interval = 15 if SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
+        fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+
+        # Moon / Ephem Prep
+        time_obj_now = Time(datetime.now(pytz.utc))
+        loc_earth = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        moon_coord = get_body('moon', time_obj_now, loc_earth)
+        frame_now = AltAz(obstime=time_obj_now, location=loc_earth)
+        moon_in_frame = moon_coord.transform_to(frame_now)
+        location_key = location_obj.name.lower().replace(' ', '_')
+
+        # 5. Process Batch
+        for obj in batch_objects:
+            try:
+                item = obj.to_dict()
+                ra, dec = obj.ra_hours, obj.dec_deg
+
+                if ra is None or dec is None:
+                    item.update({'error': True, 'Common Name': 'Error: Missing RA/DEC'})
+                    results.append(item)
+                    continue
+
+                # Calculate / Cache
+                cache_key = f"{obj.object_name.lower()}_{local_date}_{location_key}"
+
+                cached = None
+                if cache_key in nightly_curves_cache:
+                    cached = nightly_curves_cache[cache_key]
+                else:
+                    obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+                        ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval, horizon_mask
+                    )
+                    transit = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+                    alt_11, az_11 = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+
+                    is_obst_11 = False
+                    if horizon_mask:
+                        req_alt = interpolate_horizon(az_11, sorted(horizon_mask, key=lambda p: p[0]),
+                                                      altitude_threshold)
+                        if alt_11 >= altitude_threshold and alt_11 < req_alt: is_obst_11 = True
+
+                    times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+                    sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    aa_frame = AltAz(obstime=times_utc, location=loc_earth)
+                    alts = sky_c.transform_to(aa_frame).alt.deg
+                    azs = sky_c.transform_to(aa_frame).az.deg
+
+                    cached = {
+                        "times_local": times_local, "altitudes": alts, "azimuths": azs,
+                        "transit_time": transit,
+                        "obs_duration_minutes": int(obs_duration.total_seconds() / 60) if obs_duration else 0,
+                        "max_altitude": round(max_alt, 1) if max_alt is not None else "N/A",
+                        "alt_11pm": f"{alt_11:.2f}", "az_11pm": f"{az_11:.2f}",
+                        "is_obstructed_at_11pm": is_obst_11
+                    }
+                    nightly_curves_cache[cache_key] = cached
+
+                # Current Position (Fast Interpolation)
+                now_utc = datetime.now(pytz.utc)
+                idx = np.argmin([abs((t - now_utc).total_seconds()) for t in cached["times_local"]])
+                cur_alt = cached["altitudes"][idx]
+                cur_az = cached["azimuths"][idx]
+
+                next_idx = min(idx + 1, len(cached["altitudes"]) - 1)
+                trend = '–'
+                if abs(cached["altitudes"][next_idx] - cur_alt) > 0.01:
+                    trend = '↑' if cached["altitudes"][next_idx] > cur_alt else '↓'
+
+                is_obst_now = False
+                if horizon_mask:
+                    req = interpolate_horizon(cur_az, sorted(horizon_mask, key=lambda p: p[0]), altitude_threshold)
+                    if cur_alt >= altitude_threshold and cur_alt < req: is_obst_now = True
+
+                sep = "N/A"
+                try:
+                    sky_c = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+                    sep = round(sky_c.transform_to(frame_now).separation(moon_in_frame).deg)
+                except:
+                    pass
+
+                best_m = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"][
+                    int(ra / 2) % 12]
+                max_culm = 90.0 - abs(lat - dec)
+
+                item.update({
+                    'Altitude Current': f"{cur_alt:.2f}",
+                    'Azimuth Current': f"{cur_az:.2f}",
+                    'Trend': trend,
+                    'Altitude 11PM': cached['alt_11pm'],
+                    'Azimuth 11PM': cached['az_11pm'],
+                    'Transit Time': cached['transit_time'],
+                    'Observable Duration (min)': cached['obs_duration_minutes'],
+                    'Max Altitude (°)': cached['max_altitude'],
+                    'Angular Separation (°)': sep,
+                    'is_obstructed_now': is_obst_now,
+                    'is_obstructed_at_11pm': cached['is_obstructed_at_11pm'],
+                    'best_month_ra': best_m,
+                    'max_culmination_alt': max_culm,
+                    'error': False
+                })
+                results.append(item)
+
+            except Exception as e:
+                print(f"Batch Error {obj.object_name}: {e}")
+                results.append({'Object': obj.object_name, 'Common Name': 'Error: Calc failed', 'error': True})
+
+        return jsonify({
+            "results": results,
+            "total": total_count,
+            "offset": offset,
+            "limit": limit
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/')
 def index():
     load_full_astro_context()

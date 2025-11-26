@@ -919,138 +919,125 @@ async function fetchData(isBackground = false) {
     const loadingTotal = document.getElementById("loading-total");
     const loadingMessage = document.getElementById("loading-message");
 
-    // 1. CANCEL PREVIOUS REQUESTS
-    // If a new fetch starts, kill the old one immediately.
+    // Cancel previous pending requests
     if (activeFetchController) {
         activeFetchController.abort();
     }
     activeFetchController = new AbortController();
     const signal = activeFetchController.signal;
 
-    // Set loading state (allows UI to know we are busy)
     tbody.dataset.loading = 'true';
 
     const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+    // Cache for 1 minute to match update interval
     const CACHE_KEY = `nova_desktop_cache_${currentSelectedLocation || 'default'}`;
     const CACHE_EXPIRY = 60 * 1000;
 
     console.log(`Fetch requested for location: ${currentSelectedLocation}`);
 
-    let allObjectData = null;
+    // 1. Try Cache First
+    let cachedData = null;
+    try {
+        const raw = sessionStorage.getItem(CACHE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Date.now() - parsed.timestamp < CACHE_EXPIRY) {
+                cachedData = parsed.data;
+            }
+        }
+    } catch(e) {}
+
+    if (cachedData) {
+        renderRows(cachedData);
+        finalizeFetch();
+        return;
+    }
+
+    // 2. Network Fetch (BATCH MODE)
+    // Fetch 50 items at a time. Server handles the loop.
+    const BATCH_SIZE = 50;
+    let offset = 0;
+    let total = 1; // Will be updated by first response
+    let allData = [];
+
+    // Determine if we show the loader
+    const shouldShowLoader = !isBackground || tbody.innerHTML.trim() === '';
+    if (shouldShowLoader) {
+        if(loadingDiv) loadingDiv.style.display = 'block';
+        if(loadingMessage) loadingMessage.textContent = "Calculating...";
+        if(progressBar) progressBar.style.width = "5%";
+    }
+
+    // Clear table ONLY if we are showing loader (fresh load)
+    if (shouldShowLoader) tbody.innerHTML = '';
 
     try {
-        // 2. Cache Check
-        const cachedRaw = sessionStorage.getItem(CACHE_KEY);
-        if (cachedRaw) {
-            try {
-                const cached = JSON.parse(cachedRaw);
-                if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
-                    allObjectData = cached.data;
-                }
-            } catch (e) { }
-        }
-
-        // 3. Network Fetch
-        if (!allObjectData) {
-            const shouldShowLoader = !isBackground || tbody.innerHTML.trim() === '';
-
-            if (shouldShowLoader) {
-                if(loadingDiv) loadingDiv.style.display = 'block';
-                if(loadingMessage) loadingMessage.textContent = "Fetching object list...";
-                if(progressBar) progressBar.style.width = "0%";
-            }
-
-            // A. Fetch List
-            const listResponse = await fetch('/api/get_object_list', { signal });
-            if (!listResponse.ok) throw new Error(`HTTP error fetching list!`);
-            const listData = await listResponse.json();
-
-            const totalObjects = listData.objects.length;
-            if(loadingTotal) loadingTotal.textContent = totalObjects;
-            if(loadingMessage) loadingMessage.textContent = `Calculating details...`;
-
-            // --- B. ROBUST WORKER POOL WITH RETRIES ---
-            const CONCURRENCY_LIMIT = 3; // Conservative limit to prevent "Network Error"
-            const objectsToFetch = [...listData.objects];
-            const results = [];
-            let completedObjects = 0;
-
-            // Helper: Fetch with Retry
-            // If network fails, wait 1s and try again (up to 3 times)
-            const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
-                for (let i = 0; i < retries; i++) {
-                    try {
-                        const res = await fetch(url, { signal });
-                        if (!res.ok) {
-                            // If 404/500, don't retry, just return error result
-                            return { error: true, status: res.status, message: `Error: ${res.status}` };
-                        }
-                        return await res.json();
-                    } catch (err) {
-                        if (err.name === 'AbortError') throw err; // Pass abort up
-                        if (i === retries - 1) throw err; // Throw on last attempt
-                        // Wait before retry
-                        await new Promise(r => setTimeout(r, delay));
-                    }
-                }
-            };
-
-            const worker = async () => {
-                while (objectsToFetch.length > 0) {
-                    if (signal.aborted) return;
-                    const objName = objectsToFetch.shift();
-
-                    try {
-                        const url = `/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`;
-                        const data = await fetchWithRetry(url);
-
-                        if (data.error) {
-                            results.push({ Object: objName, error: true, 'Common Name': data.message });
-                        } else {
-                            results.push(data);
-                        }
-                    } catch (error) {
-                        if (error.name === 'AbortError') return;
-                        console.warn(`Failed ${objName}:`, error);
-                        results.push({ Object: objName, error: true, 'Common Name': 'Error: Network' });
-                    } finally {
-                        if (!signal.aborted) {
-                            completedObjects++;
-                            if (shouldShowLoader && progressBar) {
-                                const percent = Math.round((completedObjects / totalObjects) * 100);
-                                progressBar.style.width = `${percent}%`;
-                                if(loadingCount) loadingCount.textContent = completedObjects;
-                            }
-                        }
-                    }
-                }
-            };
-
-            // Start Workers
-            const workers = [];
-            for (let i = 0; i < Math.min(CONCURRENCY_LIMIT, totalObjects); i++) {
-                workers.push(worker());
-            }
-
-            await Promise.all(workers);
+        while (offset < total) {
             if (signal.aborted) return;
 
-            allObjectData = results;
+            // Call the new Batch Endpoint
+            const url = `/api/get_desktop_data_batch?offset=${offset}&limit=${BATCH_SIZE}&location=${encodeURIComponent(currentSelectedLocation || '')}`;
+            const res = await fetch(url, { signal });
 
-            try {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: allObjectData
-                }));
-            } catch (e) { console.warn("Cache save failed"); }
+            if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+
+            const json = await res.json();
+            total = json.total; // Update total count from server
+
+            const chunkData = json.results || [];
+            allData = allData.concat(chunkData);
+
+            // Render this chunk immediately (Stream effect)
+            if (shouldShowLoader) {
+                appendRows(chunkData);
+            }
+
+            // Update Progress UI
+            offset += BATCH_SIZE;
+            if (shouldShowLoader && progressBar) {
+                const percent = Math.min(100, Math.round((allData.length / total) * 100));
+                progressBar.style.width = `${percent}%`;
+                if(loadingCount) loadingCount.textContent = allData.length;
+                if(loadingTotal) loadingTotal.textContent = total;
+            }
         }
 
-        // 4. Render
-        if (signal.aborted) return;
+        // Fetch complete - Save to Cache
+        try {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(),
+                data: allData
+            }));
+        } catch (e) { console.warn("Cache full"); }
 
+        // If background refresh, replace table now
+        if (!shouldShowLoader) {
+            renderRows(allData);
+        }
+
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            console.error("Batch Fetch Error:", error);
+            if(tbody.innerHTML === '') {
+                tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Data Load Failed: ${error.message}</td></tr>`;
+            }
+        }
+    } finally {
+        if (activeFetchController && activeFetchController.signal === signal) {
+            finalizeFetch();
+            activeFetchController = null;
+        }
+    }
+
+    // --- Helper: Render All (Replaces Table) ---
+    function renderRows(data) {
         tbody.innerHTML = '';
-        const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
+        appendRows(data);
+    }
 
+    // --- Helper: Append Rows (Adds to existing) ---
+    function appendRows(data) {
+        const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
         const columnOrder = [
             'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
             'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
@@ -1058,7 +1045,7 @@ async function fetchData(isBackground = false) {
             'Best Month', 'Max Altitude'
         ];
 
-        allObjectData.forEach(objectData => {
+        data.forEach(objectData => {
             if (!objectData) return;
 
             const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-');
@@ -1066,14 +1053,15 @@ async function fetchData(isBackground = false) {
             row.id = `row-${sanitizedId}`;
             row.className = 'clickable-row';
 
-             if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
+            if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
                 row.style.backgroundColor = "#f8d7da";
                 row.style.color = "#721c24";
                 row.style.cursor = 'default';
             } else {
                 const ap = objectData.ActiveProject;
-                const isActive = (ap === true) || (ap === 1) || (ap === '1') || (ap === 'true') || (ap === 'True');
-                if (isActive) row.classList.add('active-project-row');
+                if ((ap === true) || (ap === 1) || (ap === '1') || (ap === 'true')) {
+                    row.classList.add('active-project-row');
+                }
                 row.onclick = () => { showGraph(objectData.Object); };
             }
 
@@ -1083,69 +1071,58 @@ async function fetchData(isBackground = false) {
 
                 const td = document.createElement('td');
                 td.dataset.columnKey = columnKey;
-
-                if (columnKey === 'Object' || columnKey === 'Common Name') {
-                    td.style.textAlign = 'left';
-                } else {
-                    td.style.textAlign = 'center';
-                }
+                td.style.textAlign = (columnKey === 'Object' || columnKey === 'Common Name') ? 'left' : 'center';
 
                 const rawValue = objectData[config.dataKey];
-                let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
-                                   ? 'N/A'
-                                   : (config.format ? config.format(rawValue) : rawValue);
+                const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
+                                     ? 'N/A'
+                                     : (config.format ? config.format(rawValue) : rawValue);
                 td.textContent = displayValue;
 
                 if (columnKey === 'Common Name' && rawValue) td.setAttribute('title', String(rawValue));
 
+                // Highlights
                 const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
-
-                if (config.dataKey === 'Altitude Current' && isAboveThreshold && objectData.error !== true) {
+                if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
                     td.classList.add('highlight');
                     if (objectData.is_obstructed_now) td.classList.add('obstructed');
                 }
-
-                if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && objectData.error !== true) {
+                if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && !objectData.error) {
                     td.classList.add('highlight');
                     if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
                 }
 
-                const numericSortKeys = [
-                    'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
-                    'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
-                    'Magnitude', 'Size', 'SB', 'Max Altitude'
-                ];
+                // Sort helpers
+                const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
+                                         'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
+                                         'Magnitude', 'Size', 'SB', 'Max Altitude'];
 
-                 if (numericSortKeys.includes(columnKey)) {
-                     if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) td.dataset.rawValue = 'N/A';
-                     else if (typeof rawValue === 'number') td.dataset.rawValue = rawValue;
-                     else if (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
-                     else td.dataset.rawValue = rawValue;
-                 } else if (rawValue === 'N/A' || rawValue === null) {
-                     td.dataset.rawValue = 'N/A';
+                if (numericSortKeys.includes(columnKey)) {
+                    if (rawValue === 'N/A' || rawValue == null) td.dataset.rawValue = 'N/A';
+                    else if (!isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
+                    else td.dataset.rawValue = rawValue;
+                } else if (rawValue === 'N/A' || rawValue == null) {
+                    td.dataset.rawValue = 'N/A';
                 }
 
                 row.appendChild(td);
             });
             tbody.appendChild(row);
         });
+    }
 
-    } catch (error) {
-        // Only log if it's NOT an AbortError (which is intentional)
-        if (error.name !== 'AbortError') {
-            console.error("Fetch error:", error);
-            tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
-        }
-    } finally {
-        // Only finish up if this is still the ACTIVE controller
-        if (activeFetchController && activeFetchController.signal === signal) {
-            if(loadingDiv) loadingDiv.style.display = 'none';
-            applyDsoColumnVisibility();
-            sortTable(currentSort.columnKey, false);
-            filterTable();
-            tbody.dataset.loading = 'false';
-            fetchSunEvents();
-            activeFetchController = null;
+    function finalizeFetch() {
+        if(loadingDiv) loadingDiv.style.display = 'none';
+        applyDsoColumnVisibility();
+        sortTable(currentSort.columnKey, false);
+        filterTable();
+        tbody.dataset.loading = 'false';
+        fetchSunEvents();
+
+        const finalSelectedLocation = sessionStorage.getItem('selectedLocation');
+        if (finalSelectedLocation !== currentSelectedLocation) {
+            console.log(`Location changed to ${finalSelectedLocation}. Re-triggering...`);
+            setLocation();
         }
     }
 }
