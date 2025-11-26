@@ -428,6 +428,7 @@
     const IS_GUEST_USER = {{ is_guest | tojson }};
     let activeTab = localStorage.getItem('activeTab') || 'position';
     let outlookDataLoaded = false;
+    let activeFetchController = null; // Controls network cancellation
 
     // --- ADDED FOR SAVED VIEWS ---
     let savedViewsDropdown, saveViewBtn, deleteViewBtn;
@@ -918,87 +919,135 @@ async function fetchData(isBackground = false) {
     const loadingTotal = document.getElementById("loading-total");
     const loadingMessage = document.getElementById("loading-message");
 
-    // Prevent multiple simultaneous fetches
-    if (!tbody || !loadingDiv || tbody.dataset.loading === 'true') return;
+    // 1. CANCEL PREVIOUS REQUESTS
+    // If a new fetch starts, kill the old one immediately.
+    if (activeFetchController) {
+        activeFetchController.abort();
+    }
+    activeFetchController = new AbortController();
+    const signal = activeFetchController.signal;
 
+    // Set loading state (allows UI to know we are busy)
     tbody.dataset.loading = 'true';
 
-    // --- 1. Setup Cache Key based on Location ---
     const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
-    // Use a unique key for desktop to avoid collisions with mobile if they differ
     const CACHE_KEY = `nova_desktop_cache_${currentSelectedLocation || 'default'}`;
-    const CACHE_EXPIRY = 60 * 1000; // 1 Minute (Matches the auto-refresh timer)
+    const CACHE_EXPIRY = 60 * 1000;
 
     console.log(`Fetch requested for location: ${currentSelectedLocation}`);
 
     let allObjectData = null;
 
     try {
-        // --- 2. Check Browser Cache First ---
+        // 2. Cache Check
         const cachedRaw = sessionStorage.getItem(CACHE_KEY);
         if (cachedRaw) {
             try {
                 const cached = JSON.parse(cachedRaw);
                 if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
-                    console.log("Loading data from browser cache (instant).");
                     allObjectData = cached.data;
                 }
-            } catch (e) { console.warn("Cache parse failed"); }
+            } catch (e) { }
         }
 
-        // --- 3. Fetch from Network if Cache Miss ---
+        // 3. Network Fetch
         if (!allObjectData) {
-            // Determine if we should show the loader
-            // Show it if: (It is NOT a background refresh) OR (The table is currently empty/first load)
             const shouldShowLoader = !isBackground || tbody.innerHTML.trim() === '';
 
             if (shouldShowLoader) {
-                loadingDiv.style.display = 'block';
-                loadingMessage.textContent = "Fetching object list...";
-                progressBar.style.width = "0%";
+                if(loadingDiv) loadingDiv.style.display = 'block';
+                if(loadingMessage) loadingMessage.textContent = "Fetching object list...";
+                if(progressBar) progressBar.style.width = "0%";
             }
 
             // A. Fetch List
-            const listResponse = await fetch('/api/get_object_list');
-            if (!listResponse.ok) throw new Error(`HTTP error fetching list! status: ${listResponse.status}`);
+            const listResponse = await fetch('/api/get_object_list', { signal });
+            if (!listResponse.ok) throw new Error(`HTTP error fetching list!`);
             const listData = await listResponse.json();
 
             const totalObjects = listData.objects.length;
+            if(loadingTotal) loadingTotal.textContent = totalObjects;
+            if(loadingMessage) loadingMessage.textContent = `Calculating details...`;
+
+            // --- B. ROBUST WORKER POOL WITH RETRIES ---
+            const CONCURRENCY_LIMIT = 3; // Conservative limit to prevent "Network Error"
+            const objectsToFetch = [...listData.objects];
+            const results = [];
             let completedObjects = 0;
 
-            loadingTotal.textContent = totalObjects;
-            loadingMessage.textContent = `Calculating details for ${totalObjects} objects...`;
+            // Helper: Fetch with Retry
+            // If network fails, wait 1s and try again (up to 3 times)
+            const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const res = await fetch(url, { signal });
+                        if (!res.ok) {
+                            // If 404/500, don't retry, just return error result
+                            return { error: true, status: res.status, message: `Error: ${res.status}` };
+                        }
+                        return await res.json();
+                    } catch (err) {
+                        if (err.name === 'AbortError') throw err; // Pass abort up
+                        if (i === retries - 1) throw err; // Throw on last attempt
+                        // Wait before retry
+                        await new Promise(r => setTimeout(r, delay));
+                    }
+                }
+            };
 
-            // B. Fetch Details in Parallel
-            const fetchPromises = listData.objects.map(objName =>
-                fetch(`/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`)
-                .then(res => {
-                    if (!res.ok) return { Object: objName, error: true, 'Common Name': `Error: ${res.status}` };
-                    return res.json();
-                })
-                .catch(error => {
-                    return { Object: objName, error: true, 'Common Name': 'Error: Network failed' };
-                })
-                .finally(() => {
-                    completedObjects++;
-                    const percent = Math.round((completedObjects / totalObjects) * 100);
-                    if(progressBar) progressBar.style.width = `${percent}%`;
-                    if(loadingCount) loadingCount.textContent = completedObjects;
-                })
-            );
+            const worker = async () => {
+                while (objectsToFetch.length > 0) {
+                    if (signal.aborted) return;
+                    const objName = objectsToFetch.shift();
 
-            allObjectData = await Promise.all(fetchPromises);
+                    try {
+                        const url = `/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`;
+                        const data = await fetchWithRetry(url);
 
-            // C. Save to Cache
+                        if (data.error) {
+                            results.push({ Object: objName, error: true, 'Common Name': data.message });
+                        } else {
+                            results.push(data);
+                        }
+                    } catch (error) {
+                        if (error.name === 'AbortError') return;
+                        console.warn(`Failed ${objName}:`, error);
+                        results.push({ Object: objName, error: true, 'Common Name': 'Error: Network' });
+                    } finally {
+                        if (!signal.aborted) {
+                            completedObjects++;
+                            if (shouldShowLoader && progressBar) {
+                                const percent = Math.round((completedObjects / totalObjects) * 100);
+                                progressBar.style.width = `${percent}%`;
+                                if(loadingCount) loadingCount.textContent = completedObjects;
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Start Workers
+            const workers = [];
+            for (let i = 0; i < Math.min(CONCURRENCY_LIMIT, totalObjects); i++) {
+                workers.push(worker());
+            }
+
+            await Promise.all(workers);
+            if (signal.aborted) return;
+
+            allObjectData = results;
+
             try {
                 sessionStorage.setItem(CACHE_KEY, JSON.stringify({
                     timestamp: Date.now(),
                     data: allObjectData
                 }));
-            } catch (e) { console.warn("Cache save failed (quota?)", e); }
+            } catch (e) { console.warn("Cache save failed"); }
         }
 
-        // --- 4. Render Data (Shared for Cache & Network) ---
+        // 4. Render
+        if (signal.aborted) return;
+
         tbody.innerHTML = '';
         const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
 
@@ -1082,24 +1131,21 @@ async function fetchData(isBackground = false) {
         });
 
     } catch (error) {
-        console.error("Failed to fetch and render data:", error);
-        tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
+        // Only log if it's NOT an AbortError (which is intentional)
+        if (error.name !== 'AbortError') {
+            console.error("Fetch error:", error);
+            tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
+        }
     } finally {
-        // Hide loader
-        loadingDiv.style.display = 'none';
-
-        // Standard UI updates
-        applyDsoColumnVisibility();
-        sortTable(currentSort.columnKey, false);
-        filterTable();
-        tbody.dataset.loading = 'false';
-        fetchSunEvents();
-
-        // Handle location change mid-fetch
-        const finalSelectedLocation = sessionStorage.getItem('selectedLocation');
-        if (finalSelectedLocation !== currentSelectedLocation) {
-            console.log(`Location changed to ${finalSelectedLocation} during processing. Re-triggering...`);
-            setLocation();
+        // Only finish up if this is still the ACTIVE controller
+        if (activeFetchController && activeFetchController.signal === signal) {
+            if(loadingDiv) loadingDiv.style.display = 'none';
+            applyDsoColumnVisibility();
+            sortTable(currentSort.columnKey, false);
+            filterTable();
+            tbody.dataset.loading = 'false';
+            fetchSunEvents();
+            activeFetchController = null;
         }
     }
 }
