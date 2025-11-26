@@ -7682,59 +7682,60 @@ def index():
 @app.route('/m/up_now')
 @login_required
 def mobile_up_now():
-    """Renders the mobile 'Up Now' dashboard."""
-    load_full_astro_context()  # This loads g.db_user, g.user_config, g.objects_list, g.locations, g.selected_location
+    """Renders the mobile 'Up Now' dashboard skeleton (data fetched via API)."""
+    load_full_astro_context()
+    # Render template immediately with empty data; JS will fetch it.
+    return render_template('mobile_up_now.html')
 
-    objects_data_list = []  # Default to empty
 
-    try:
-        # --- 1. Get user, location, and prefs from 'g' ---
-        user = g.db_user
-        location_name = g.selected_location
-        all_locations = g.locations
-        user_prefs = g.user_config or {}
+@app.route('/api/mobile_data_chunk')
+@login_required
+def api_mobile_data_chunk():
+    """Fetches a specific slice of object data for the mobile progress bar."""
+    load_full_astro_context()
 
-        # --- 2. Get all AstroObject records from the DB ---
-        # g.objects_list is just a list of dicts, we need the DB objects
+    offset = int(request.args.get('offset', 0))
+    limit = int(request.args.get('limit', 10))
+
+    user = g.db_user
+    location_name = g.selected_location
+    user_prefs = g.user_config or {}
+
+    results = []
+    total_count = 0
+
+    if user and location_name:
         db = get_db()
         try:
-            all_objects = db.query(AstroObject).filter_by(user_id=user.id).all()
+            # 1. Get Location
+            location_db_obj = db.query(Location).options(
+                selectinload(Location.horizon_points)
+            ).filter_by(user_id=user.id, name=location_name).one_or_none()
+
+            if location_db_obj:
+                # 2. Get All Objects (to count and slice)
+                all_objects_query = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.id)
+                total_count = all_objects_query.count()
+
+                # 3. Get Slice
+                sliced_objects = all_objects_query.offset(offset).limit(limit).all()
+
+                # 4. Calculate Data for this slice
+                results = get_all_mobile_up_now_data(
+                    user,
+                    location_db_obj,
+                    user_prefs,
+                    sliced_objects
+                )
         finally:
             db.close()
 
-        # --- 3. Check for valid data ---
-        if user and location_name and all_locations and all_objects:
-            # --- 4. Get DB Location object (needed for horizon points) ---
-            db = get_db()
-            try:
-                # We need the full DB object to get the horizon_points relationship
-                location_db_obj = db.query(Location).options(
-                    selectinload(Location.horizon_points)
-                ).filter_by(user_id=user.id, name=location_name).one_or_none()
-
-                if location_db_obj:
-                    # --- 5. Call the new server-side helper function ---
-                    objects_data_list = get_all_mobile_up_now_data(
-                        user,
-                        location_db_obj,
-                        user_prefs,
-                        all_objects
-                    )
-                else:
-                    print(f"[Mobile Up Now] Could not find location DB object for {location_name}")
-
-            finally:
-                db.close()
-        else:
-            print("[Mobile Up Now] Missing g context (user, location, or objects)")
-
-    except Exception as e:
-        print(f"Error in mobile_up_now route: {e}")
-        traceback.print_exc()
-        # objects_data_list remains empty, page will show "no objects"
-
-    # --- 6. Pass the complete data list to the template ---
-    return render_template('mobile_up_now.html', objects_data=objects_data_list)
+    return jsonify({
+        "data": results,
+        "total": total_count,
+        "offset": offset,
+        "limit": limit
+    })
 
 @app.route('/m/location')
 @login_required
