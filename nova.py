@@ -7679,8 +7679,6 @@ def index():
 # =============================================================================
 # MOBILE COMPANION ROUTES
 # =============================================================================
-
-@app.route('/m')
 @app.route('/m/up_now')
 @login_required
 def mobile_up_now():
@@ -7747,8 +7745,8 @@ def mobile_location():
                            locations=g.active_locations,
                            selected_location_name=g.selected_location)
 
+@app.route('/m')
 @app.route('/m/add_object')
-@login_required
 @login_required
 def mobile_add_object():
     """Renders the mobile 'Add Object' page."""
