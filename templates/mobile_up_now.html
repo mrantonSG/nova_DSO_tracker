@@ -15,14 +15,14 @@
         font-size: 1rem;
         border: 1px solid var(--border-color);
         border-radius: 5px;
-        box-sizing: border-box; /* Important */
+        box-sizing: border-box;
     }
 
     /* --- Sort Bar --- */
     .sort-bar {
-        display: grid; /* Use grid for 3 buttons */
-        grid-template-columns: 1fr 1fr 1fr; /* 3 equal columns */
-        gap: 8px; /* A little less gap */
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
         padding: 10px 20px 0 20px;
     }
     .sort-button {
@@ -32,7 +32,7 @@
         background-color: var(--card-bg);
         border-radius: 5px;
         text-align: center;
-        color: var(--text-color); /* Fixes blue font color */
+        color: var(--text-color);
     }
     .sort-button.active {
         background-color: var(--primary-dark);
@@ -43,6 +43,14 @@
 {% endblock %}
 
 {% block content %}
+    <div id="mobile-loading" style="padding: 20px; text-align: center;">
+        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;">Scanning Sky...</div>
+        <div style="width: 100%; height: 8px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
+            <div id="progress-fill" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.3s ease;"></div>
+        </div>
+        <small id="loading-text" style="display: block; margin-top: 8px; color: var(--text-muted);">Initializing...</small>
+    </div>
+
     <div class="search-bar">
         <input type="text" id="search-input" placeholder="Search by name (e.g., M42 or Orion)...">
     </div>
@@ -53,34 +61,7 @@
         <button class="sort-button" id="filter-active">Active Only</button>
     </div>
 
-    <ul class="item-list" id="object-list" style="margin-top: 15px;">
-
-        {% if objects_data %}
-            {% for obj in objects_data %}
-                <li class="item-card"
-                    data-sort-alt="{{ obj['Altitude Current'] | float }}"
-                    data-sort-dur="{{ obj['Observable Duration (min)'] | int }}"
-                    data-is-active="{{ 'true' if obj.ActiveProject else 'false' }}"
-                    data-search-text="{{ obj['Common Name'].lower() }} {{ obj['Object'].lower() }}">
-
-                    {% set editUrl = url_for('mobile_edit_notes', object_name=obj.Object) %}
-                    <a href="{{ editUrl }}" class="edit-button">Edit</a>
-
-                    <h3>{{ obj['Common Name'] }} ({{ obj['Object'] }})</h3>
-
-                    <div class="item-card-grid">
-                        <div><strong>Altitude:</strong> {{ obj['Altitude Current'] }}° {{ obj['Trend'] }}</div>
-                        <div><strong>Azimuth:</strong> {{ obj['Azimuth Current'] }}°</div>
-                        <div><strong>Max Alt:</strong> {{ obj['Max Altitude (°)'] }}°</div>
-                        {% if obj['Observable Duration (min)'] == 0 %}
-                            <div><strong>Duration:</strong> Not visible</div>
-                        {% else %}
-                            <div><strong>Duration:</strong> {{ obj['Observable Duration (min)'] }} min</div>
-                        {% endif %}
-                    </div>
-                </li>
-            {% endfor %}
-        {% endif %}
+    <ul class="item-list" id="object-list" style="margin-top: 15px; display: none;">
         <li class="message" id="loading-indicator" style="display: none;">
             No objects found.
         </li>
@@ -91,32 +72,36 @@
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('object-list');
+        const loadingContainer = document.getElementById('mobile-loading');
+        const progressFill = document.getElementById('progress-fill');
+        const loadingText = document.getElementById('loading-text');
+
         const sortAltButton = document.getElementById('sort-alt');
         const sortDurButton = document.getElementById('sort-dur');
         const filterActiveButton = document.getElementById('filter-active');
-        const searchInput = document.getElementById('search-input'); // <-- ADDED
+        const searchInput = document.getElementById('search-input');
 
-        // Get all list items. They are already in the DOM.
-        const allItems = Array.from(list.querySelectorAll('.item-card'));
         const noObjectsMessage = document.getElementById('loading-indicator');
+
+        // Items are now stored here after fetching
+        let allItems = [];
 
         let currentSort = 'alt';
         let filterActive = false;
-        let currentSearch = ''; // <-- ADDED
+        let currentSearch = '';
 
         function renderList() {
-            // 1. Apply Search Filter first
+            // 1. Apply Search Filter
             let searchedItems = [];
             if (currentSearch === '') {
                 searchedItems = [...allItems];
             } else {
                 searchedItems = allItems.filter(item => {
-                    // Check our new data attribute
                     return item.dataset.searchText.includes(currentSearch);
                 });
             }
 
-            // 2. Apply Active Filter to the *searched* results
+            // 2. Apply Active Filter
             let itemsToShow = [];
             if (filterActive) {
                 itemsToShow = searchedItems.filter(item => item.dataset.isActive === 'true');
@@ -124,7 +109,7 @@
                 itemsToShow = [...searchedItems];
             }
 
-            // 3. Apply Sort to the final list
+            // 3. Apply Sort
             if (currentSort === 'alt') {
                 itemsToShow.sort((a, b) => {
                     return parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt);
@@ -139,21 +124,21 @@
                 sortAltButton.classList.remove('active');
             }
 
-            // 4. Update DOM (hide all, then show the ones that passed)
-            allItems.forEach(item => item.style.display = 'none');
+            // 4. Update DOM
+            allItems.forEach(item => item.style.display = 'none'); // Hide all first
 
             itemsToShow.forEach(item => {
                 item.style.display = 'block';
-                list.appendChild(item); // This re-orders them in the list
+                list.appendChild(item); // Re-append in order
             });
 
-            // 5. Update the "No objects" message
+            // 5. Update Message
             if (noObjectsMessage) {
                 if (allItems.length === 0) {
+                    // If fetch is done but no items at all
                     noObjectsMessage.textContent = "No objects found. Try adding one!";
                     noObjectsMessage.style.display = 'block';
                 } else if (itemsToShow.length === 0) {
-                    // Show a different message if it's due to search vs. filter
                     if (searchedItems.length === 0) {
                         noObjectsMessage.textContent = "No objects match your search.";
                     } else {
@@ -165,13 +150,11 @@
                 }
             }
 
-            // 6. Update filter button state
+            // 6. Update Buttons
             filterActiveButton.classList.toggle('active', filterActive);
         }
 
-        // --- Click/Input Listeners ---
-
-        // ADDED: Listen for typing in the search box
+        // --- Event Listeners ---
         searchInput.addEventListener('input', () => {
             currentSearch = searchInput.value.trim().toLowerCase();
             renderList();
@@ -192,13 +175,128 @@
         });
 
         filterActiveButton.addEventListener('click', () => {
-            filterActive = !filterActive; // Toggle the filter state
-            renderList(); // Re-render the list
+            filterActive = !filterActive;
+            renderList();
         });
 
-        // --- Initial Render ---
-        // Run once on load to apply default sort and hide/show message
-        renderList();
+        // --- Chunked Data Fetching & Caching ---
+        const CHUNK_SIZE = 5;
+
+        // Cache key includes location to ensure data matches selected site
+        const activeLoc = sessionStorage.getItem('nova_mobile_location') || 'default';
+        const CACHE_KEY = `nova_mobile_cache_${activeLoc}`;
+        const CACHE_EXPIRY = 5 * 60 * 1000; // 5 Minutes
+
+        async function fetchMobileData() {
+            // 1. Try loading from Cache first
+            const cachedRaw = sessionStorage.getItem(CACHE_KEY);
+            if (cachedRaw) {
+                try {
+                    const cached = JSON.parse(cachedRaw);
+                    // Check if cache is fresh (less than 5 mins old)
+                    if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
+                        // Restore from cache
+                        loadingContainer.style.display = 'none';
+                        list.style.display = 'block';
+
+                        cached.data.forEach(obj => createListItem(obj));
+                        refreshListItemsAndSort();
+                        return; // Exit early, no fetching needed
+                    }
+                } catch (e) { console.warn("Cache parse failed, fetching fresh."); }
+            }
+
+            // 2. Fetch Fresh Data (if no cache or expired)
+            let offset = 0;
+            let total = 1;
+            let gatheredData = []; // Store data here to save to cache later
+
+            loadingContainer.style.display = 'block';
+            list.style.display = 'none';
+
+            try {
+                while (offset < total) {
+                    const response = await fetch(`{{ url_for('api_mobile_data_chunk') }}?offset=${offset}&limit=${CHUNK_SIZE}`);
+                    const json = await response.json();
+
+                    if (!json.data) break;
+
+                    total = json.total;
+
+                    json.data.forEach(obj => {
+                        createListItem(obj);
+                        gatheredData.push(obj); // Add to cache array
+                    });
+
+                    offset += CHUNK_SIZE;
+                    const percentage = Math.min(100, Math.round((offset / total) * 100));
+                    progressFill.style.width = `${percentage}%`;
+                    loadingText.textContent = `Calculated ${Math.min(offset, total)} of ${total} objects...`;
+                }
+
+                // Save to Session Storage
+                try {
+                    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                        timestamp: Date.now(),
+                        data: gatheredData
+                    }));
+                } catch (e) { console.warn("Cache save failed (quota?)", e); }
+
+                setTimeout(() => {
+                    loadingContainer.style.display = 'none';
+                    list.style.display = 'block';
+                    refreshListItemsAndSort();
+                }, 500);
+
+            } catch (e) {
+                loadingText.textContent = "Error loading data.";
+                console.error(e);
+            }
+        }
+
+        function createListItem(obj) {
+            const li = document.createElement('li');
+            li.className = 'item-card';
+
+            li.dataset.sortAlt = parseFloat(obj['Altitude Current']) || 0;
+            li.dataset.sortDur = parseInt(obj['Observable Duration (min)']) || 0;
+            li.dataset.isActive = obj.ActiveProject ? 'true' : 'false';
+            li.dataset.searchText = (obj['Common Name'] + ' ' + obj['Object']).toLowerCase();
+            li.style.display = 'block';
+
+            // Construct Edit URL: /m/edit_notes/<object_name>
+            // We use a placeholder replacement strategy to be safe with JS variables
+            const baseEditUrl = "{{ url_for('mobile_edit_notes', object_name='__OBJ__') }}";
+            const editUrl = baseEditUrl.replace('__OBJ__', encodeURIComponent(obj.Object));
+
+            let durHtml = `<div><strong>Duration:</strong> ${obj['Observable Duration (min)']} min</div>`;
+            if (obj['Observable Duration (min)'] == 0) {
+                durHtml = `<div><strong>Duration:</strong> Not visible</div>`;
+            }
+
+            li.innerHTML = `
+                <a href="${editUrl}" class="edit-button">Edit</a>
+                <h3>${obj['Common Name']} (${obj['Object']})</h3>
+                <div class="item-card-grid">
+                    <div><strong>Altitude:</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
+                    <div><strong>Azimuth:</strong> ${obj['Azimuth Current']}°</div>
+                    <div><strong>Max Alt:</strong> ${obj['Max Altitude (°)']}°</div>
+                    ${durHtml}
+                </div>
+            `;
+
+            list.appendChild(li);
+        }
+
+        function refreshListItemsAndSort() {
+            // Grab the newly created elements from DOM and put them in our array
+            const currentItems = Array.from(list.querySelectorAll('.item-card'));
+            allItems = currentItems;
+            renderList();
+        }
+
+        // Start the process
+        fetchMobileData();
     });
 </script>
 {% endblock %}
