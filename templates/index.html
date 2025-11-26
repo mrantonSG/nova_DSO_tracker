@@ -912,161 +912,149 @@
 async function fetchData() {
     const tbody = document.getElementById("data-body");
     const loadingDiv = document.getElementById("table-loading");
+    const progressBar = document.getElementById("loading-progress-bar");
+    const loadingCount = document.getElementById("loading-count");
+    const loadingTotal = document.getElementById("loading-total");
+    const loadingMessage = document.getElementById("loading-message");
+
     // Prevent multiple simultaneous fetches
     if (!tbody || !loadingDiv || tbody.dataset.loading === 'true') return;
 
-    tbody.dataset.loading = 'true'; // Mark as loading
+    tbody.dataset.loading = 'true';
 
-    // --- NEW: Remember which location we are STARTING to fetch ---
-    const locationBeingFetched = sessionStorage.getItem('selectedLocation');
-    console.log(`Starting fetch for location: ${locationBeingFetched}`);
+    // --- 1. Setup Cache Key based on Location ---
+    const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+    // Use a unique key for desktop to avoid collisions with mobile if they differ
+    const CACHE_KEY = `nova_desktop_cache_${currentSelectedLocation || 'default'}`;
+    const CACHE_EXPIRY = 60 * 1000; // 1 Minute (Matches the auto-refresh timer)
 
-    // --- Define columnOrder here so it's available in catch block if needed ---
-    const columnOrder = [
-        'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
-        'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
-        'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
-        'Best Month', 'Max Altitude'
-    ];
+    console.log(`Fetch requested for location: ${currentSelectedLocation}`);
+
+    let allObjectData = null;
 
     try {
-        // Show loading indicator only if the table is currently empty
-        if (tbody.innerHTML.trim() === '') loadingDiv.style.display = 'block';
-
-        // 1. Fetch the list of all object names first
-        const listResponse = await fetch('/api/get_object_list');
-        if (!listResponse.ok) throw new Error(`HTTP error fetching object list! status: ${listResponse.status}`);
-        const listData = await listResponse.json(); // Gets { objects: ["name1", "name2", ...] }
-
-        // --- Get the currently selected location from browser session storage ---
-        const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
-        // --- End location retrieval ---
-
-        // 2. Start fetching detailed data for EACH object in parallel, passing the location
-        const fetchPromises = listData.objects.map(objName =>
-            // --- Pass location as a query parameter ---
-            fetch(`/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`)
-            // --- End URL modification ---
-            .then(res => { // Handle the response for each object
-                if (!res.ok) { // Check if the server reported an error for this specific object
-                    console.error(`Error fetching data for ${objName}: ${res.status}`);
-                    // Return a placeholder error object so Promise.all doesn't fail completely
-                    return { Object: objName, error: true, 'Common Name': `Error: ${res.status}` };
+        // --- 2. Check Browser Cache First ---
+        const cachedRaw = sessionStorage.getItem(CACHE_KEY);
+        if (cachedRaw) {
+            try {
+                const cached = JSON.parse(cachedRaw);
+                if (Date.now() - cached.timestamp < CACHE_EXPIRY) {
+                    console.log("Loading data from browser cache (instant).");
+                    allObjectData = cached.data;
                 }
-                return res.json(); // If okay, parse the JSON data
-            })
-            .catch(error => { // Catch network errors (e.g., server down) for individual requests
-                console.error(`Network error fetching data for ${objName}:`, error);
-                // Return a placeholder error object
-                return { Object: objName, error: true, 'Common Name': 'Error: Network failed' };
-            })
-        );
+            } catch (e) { console.warn("Cache parse failed"); }
+        }
 
-        // 3. Wait for ALL the individual detail fetches to complete
-        const allObjectData = await Promise.all(fetchPromises);
+        // --- 3. Fetch from Network if Cache Miss ---
+        if (!allObjectData) {
+            // Show loading indicator
+            loadingDiv.style.display = 'block';
+            loadingMessage.textContent = "Fetching object list...";
+            progressBar.style.width = "0%";
 
-        // 4. Clear the table body, ready for the new rows
+            // A. Fetch List
+            const listResponse = await fetch('/api/get_object_list');
+            if (!listResponse.ok) throw new Error(`HTTP error fetching list! status: ${listResponse.status}`);
+            const listData = await listResponse.json();
+
+            const totalObjects = listData.objects.length;
+            let completedObjects = 0;
+
+            loadingTotal.textContent = totalObjects;
+            loadingMessage.textContent = `Calculating details for ${totalObjects} objects...`;
+
+            // B. Fetch Details in Parallel
+            const fetchPromises = listData.objects.map(objName =>
+                fetch(`/api/get_object_data/${encodeURIComponent(objName)}?location=${encodeURIComponent(currentSelectedLocation || '')}`)
+                .then(res => {
+                    if (!res.ok) return { Object: objName, error: true, 'Common Name': `Error: ${res.status}` };
+                    return res.json();
+                })
+                .catch(error => {
+                    return { Object: objName, error: true, 'Common Name': 'Error: Network failed' };
+                })
+                .finally(() => {
+                    completedObjects++;
+                    const percent = Math.round((completedObjects / totalObjects) * 100);
+                    if(progressBar) progressBar.style.width = `${percent}%`;
+                    if(loadingCount) loadingCount.textContent = completedObjects;
+                })
+            );
+
+            allObjectData = await Promise.all(fetchPromises);
+
+            // C. Save to Cache
+            try {
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: allObjectData
+                }));
+            } catch (e) { console.warn("Cache save failed (quota?)", e); }
+        }
+
+        // --- 4. Render Data (Shared for Cache & Network) ---
         tbody.innerHTML = '';
-
-        // Get the altitude threshold (needed for highlighting) from the template/global scope if possible
-        // Fallback to 20 if not defined
         const altitudeThreshold = {{ g.altitude_threshold | default(20) }};
 
-        // 5. Loop through the data for each object and build the table row
+        const columnOrder = [
+            'Object', 'Common Name', 'Altitude Current', 'Azimuth Current', 'Trend', 'Altitude 11PM',
+            'Azimuth 11PM', 'Transit Time', 'Observable Duration (min)', 'Max Altitude (°)',
+            'Angular Separation (°)', 'Constellation', 'Type', 'Magnitude', 'Size', 'SB',
+            'Best Month', 'Max Altitude'
+        ];
+
         allObjectData.forEach(objectData => {
-            // Skip if data is missing or marked as an error from the fetch stage
-            if (!objectData) {
-                console.warn("Skipping row due to missing objectData.");
-                return;
-            }
-             // Handle explicit errors returned from fetch promises
-             if (objectData.error === true) {
-                 console.warn(`Skipping row for ${objectData.Object} due to fetch error: ${objectData['Common Name']}`);
-                 // Optionally, you could still add a row indicating the error here
-                 // return; // Let's still add the row to show the error
-             }
+            if (!objectData) return;
 
-
-            // Create the table row element
-            const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-'); // Handle potential missing Object field
+            const sanitizedId = String(objectData.Object || 'unknown').replace(/\s+/g, '-');
             const row = document.createElement('tr');
             row.id = `row-${sanitizedId}`;
             row.className = 'clickable-row';
 
-            // Style rows indicating errors differently
              if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
-                row.style.backgroundColor = "#f8d7da"; // Light red for errors
+                row.style.backgroundColor = "#f8d7da";
                 row.style.color = "#721c24";
+                row.style.cursor = 'default';
             } else {
-                // Apply active project highlighting if not an error row
                 const ap = objectData.ActiveProject;
                 const isActive = (ap === true) || (ap === 1) || (ap === '1') || (ap === 'true') || (ap === 'True');
-                if (isActive) {
-                    row.classList.add('active-project-row');
-                }
+                if (isActive) row.classList.add('active-project-row');
+                row.onclick = () => { showGraph(objectData.Object); };
             }
 
-
-            // Make rows clickable to go to the graph view, unless it's an error row
-             if (objectData.error !== true && !(objectData['Common Name'] && String(objectData['Common Name']).toLowerCase().startsWith("error:"))) {
-                row.onclick = () => {
-                    showGraph(objectData.Object);
-                };
-            } else {
-                row.style.cursor = 'default'; // Not clickable if error
-            }
-
-
-            // 6. Create a table cell (td) for each column in the defined order
             columnOrder.forEach(columnKey => {
-                const config = columnConfig[columnKey]; // Get config (header, formatting, etc.)
-                if (!config) {
-                    console.warn(`Missing columnConfig for key: ${columnKey}`);
-                    return; // Skip this cell if config is missing
-                }
+                const config = columnConfig[columnKey];
+                if (!config) return;
 
                 const td = document.createElement('td');
-                td.dataset.columnKey = columnKey; // Store key for filtering/sorting
+                td.dataset.columnKey = columnKey;
 
-                // Set text alignment based on column
                 if (columnKey === 'Object' || columnKey === 'Common Name') {
                     td.style.textAlign = 'left';
                 } else {
                     td.style.textAlign = 'center';
                 }
 
-                // Get the raw value, handle potential undefined/null
                 const rawValue = objectData[config.dataKey];
-
-                // Format the value for display (use formatter if defined, handle N/A)
                 let displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
                                    ? 'N/A'
                                    : (config.format ? config.format(rawValue) : rawValue);
                 td.textContent = displayValue;
 
-                // Add tooltip for potentially truncated Common Name
-                if (columnKey === 'Common Name' && rawValue !== null && rawValue !== undefined) {
-                    td.setAttribute('title', String(rawValue));
-                }
+                if (columnKey === 'Common Name' && rawValue) td.setAttribute('title', String(rawValue));
 
-                // Apply highlighting and obstruction styling based on altitude and obstruction flags
                 const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
 
                 if (config.dataKey === 'Altitude Current' && isAboveThreshold && objectData.error !== true) {
                     td.classList.add('highlight');
-                    if (objectData.is_obstructed_now) {
-                        td.classList.add('obstructed');
-                    }
+                    if (objectData.is_obstructed_now) td.classList.add('obstructed');
                 }
 
                 if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && objectData.error !== true) {
                     td.classList.add('highlight');
-                    if (objectData.is_obstructed_at_11pm) {
-                        td.classList.add('obstructed');
-                    }
+                    if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
                 }
 
-                // Store raw numeric value in data attribute for accurate sorting
                 const numericSortKeys = [
                     'Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
                     'Observable Duration (min)', 'Max Altitude (°)', 'Angular Separation (°)',
@@ -1074,50 +1062,39 @@ async function fetchData() {
                 ];
 
                  if (numericSortKeys.includes(columnKey)) {
-                     if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
-                        td.dataset.rawValue = 'N/A';
-                     } else if (typeof rawValue === 'number') {
-                         td.dataset.rawValue = rawValue;
-                     } else if (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))) {
-                         td.dataset.rawValue = parseFloat(rawValue);
-                     } else {
-                        // Store the original string if it's not clearly numeric or N/A
-                         td.dataset.rawValue = rawValue;
-                     }
-                 } else if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) {
-                     td.dataset.rawValue = 'N/A'; // Ensure N/A sorts correctly for text columns too
+                     if (rawValue === 'N/A' || rawValue === null || rawValue === undefined) td.dataset.rawValue = 'N/A';
+                     else if (typeof rawValue === 'number') td.dataset.rawValue = rawValue;
+                     else if (typeof rawValue === 'string' && !isNaN(parseFloat(rawValue))) td.dataset.rawValue = parseFloat(rawValue);
+                     else td.dataset.rawValue = rawValue;
+                 } else if (rawValue === 'N/A' || rawValue === null) {
+                     td.dataset.rawValue = 'N/A';
                 }
 
-
-                row.appendChild(td); // Add the cell to the row
+                row.appendChild(td);
             });
-            tbody.appendChild(row); // Add the completed row to the table body
+            tbody.appendChild(row);
         });
 
     } catch (error) {
-        // Handle errors during the overall fetch process (e.g., fetching the object list failed)
         console.error("Failed to fetch and render data:", error);
-        tbody.innerHTML = `<tr><td colspan="${columnOrder.length}" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Error loading data: ${error.message}</td></tr>`;
     } finally {
-        // 7. Hide loading indicator, apply column visibility, sort, and filter
+        // Hide loader
         loadingDiv.style.display = 'none';
-        applyDsoColumnVisibility(); // Show/hide columns based on the active tab
-        sortTable(currentSort.columnKey, false); // Apply the current sort order
-        filterTable(); // Apply any active filters
-        tbody.dataset.loading = 'false'; // Mark loading as complete
+
+        // Standard UI updates
+        applyDsoColumnVisibility();
+        sortTable(currentSort.columnKey, false);
+        filterTable();
+        tbody.dataset.loading = 'false';
         fetchSunEvents();
 
-        // --- NEW: Check if location changed *during* this fetch ---
+        // Handle location change mid-fetch
         const finalSelectedLocation = sessionStorage.getItem('selectedLocation');
-        if (finalSelectedLocation !== locationBeingFetched) {
-            console.log(`Location changed to ${finalSelectedLocation} during fetch. Re-triggering...`);
-            // Call setLocation() again. Since loading is now false,
-            // it will immediately start the new fetch.
+        if (finalSelectedLocation !== currentSelectedLocation) {
+            console.log(`Location changed to ${finalSelectedLocation} during processing. Re-triggering...`);
             setLocation();
-        } else {
-            console.log(`Finished fetch for location: ${locationBeingFetched}`);
         }
-        // --- END NEW LOGIC ---
     }
 }
 
@@ -1394,21 +1371,22 @@ function setLocation() {
     const selectedLocation = document.getElementById('location-select').value;
 
     // Always store the user's *latest* choice in sessionStorage.
-    // This is what we'll check when the current fetch finishes.
     console.log(`Location select changed to: ${selectedLocation}`);
     sessionStorage.setItem('selectedLocation', selectedLocation);
     outlookDataLoaded = false; // Reset outlook flag for the new location
     if (typeof resetHeatmapState === 'function') resetHeatmapState();
 
-    // --- NEW LOGIC ---
-    // If data is already being fetched, just update the loading message and stop.
-    // The `fetchData` function will see this change when it finishes.
+    // Helper elements
+    const loadingDiv = document.getElementById('table-loading');
+    const loadingMessage = document.getElementById("loading-message");
+    const progressBar = document.getElementById("loading-progress-bar");
+
+    // --- If data is already being fetched ---
     if (tbody.dataset.loading === 'true') {
         console.log(`Location change to ${selectedLocation} queued (data load in progress).`);
-        const loadingDiv = document.getElementById('table-loading');
         if (loadingDiv) {
-            loadingDiv.innerHTML = `Switching to ${selectedLocation}...`;
             loadingDiv.style.display = "block";
+            if (loadingMessage) loadingMessage.textContent = `Switching to ${selectedLocation}...`;
         }
         return; // Do NOT trigger another fetch
     }
@@ -1421,11 +1399,11 @@ function setLocation() {
     document.getElementById('journal-data-body').innerHTML = '';
     document.getElementById('outlook-body').innerHTML = '';
 
-    // Show loading indicator
-    const loadingDiv = document.getElementById('table-loading');
+    // Show loading indicator WITHOUT destroying the progress bar structure
     if (loadingDiv) {
-        loadingDiv.innerHTML = "Updating location...";
         loadingDiv.style.display = "block";
+        if (loadingMessage) loadingMessage.textContent = "Updating location...";
+        if (progressBar) progressBar.style.width = "0%";
     }
 
     // Trigger the data fetches for the new location
@@ -2194,8 +2172,16 @@ function populateJournalTable() {
     </div>
     {% include '_heatmap_section.html' %}
 
-    <div id="table-loading" style="display:none; position: fixed; top: 50px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; text-align: center; color: #6795a4; font-weight: bold; border: 1px solid #ddd;">
-      Updating data...
+    <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; width: 300px; text-align: center; border: 1px solid #ddd;">
+        <div style="font-weight: bold; color: #6795a4; margin-bottom: 10px;" id="loading-message">Updating data...</div>
+
+        <div style="width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden;">
+            <div id="loading-progress-bar" style="width: 0%; height: 100%; background: #6795a4; transition: width 0.1s ease;"></div>
+        </div>
+
+        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+            <span id="loading-count">0</span> / <span id="loading-total">0</span>
+        </div>
     </div>
 </div> {# End of list-section #}
 
