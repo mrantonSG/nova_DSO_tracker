@@ -909,7 +909,8 @@
     }
 
 
-async function fetchData() {
+// Accepted parameter: isBackground (default false)
+async function fetchData(isBackground = false) {
     const tbody = document.getElementById("data-body");
     const loadingDiv = document.getElementById("table-loading");
     const progressBar = document.getElementById("loading-progress-bar");
@@ -947,10 +948,15 @@ async function fetchData() {
 
         // --- 3. Fetch from Network if Cache Miss ---
         if (!allObjectData) {
-            // Show loading indicator
-            loadingDiv.style.display = 'block';
-            loadingMessage.textContent = "Fetching object list...";
-            progressBar.style.width = "0%";
+            // Determine if we should show the loader
+            // Show it if: (It is NOT a background refresh) OR (The table is currently empty/first load)
+            const shouldShowLoader = !isBackground || tbody.innerHTML.trim() === '';
+
+            if (shouldShowLoader) {
+                loadingDiv.style.display = 'block';
+                loadingMessage.textContent = "Fetching object list...";
+                progressBar.style.width = "0%";
+            }
 
             // A. Fetch List
             const listResponse = await fetch('/api/get_object_list');
@@ -1685,7 +1691,7 @@ function populateJournalTable() {
 
       // This is the 60-second interval to fetch data
       setInterval(() => {
-        fetchData();
+        fetchData(true); // <--- TRUE enables background mode (no progress bar)
         fetchSunEvents();
         timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
         if (timerSpan) timerSpan.textContent = `in ${timeToNextUpdate}s`; // Update text immediately
