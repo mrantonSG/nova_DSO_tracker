@@ -71,11 +71,11 @@
             document.getElementById('nav-location').classList.add('active');
         } else if (path.includes('/m/outlook')) {
             document.getElementById('nav-outlook').classList.add('active');
-        } else if (path.includes('/m/add_object')) {
-            document.getElementById('nav-add-object').classList.add('active');
-        } else {
-            // Default to 'Up Now'
+        } else if (path.includes('/m/up_now')) {
             document.getElementById('nav-up-now').classList.add('active');
+        } else {
+            // Default to 'Add Object'
+            document.getElementById('nav-add-object').classList.add('active');
         }
     });
 </script>
