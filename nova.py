@@ -5857,6 +5857,9 @@ def journal_edit(session_id):
 def add_project_from_journal():
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
+    # Capture location to persist view state on redirect
+    current_location = request.form.get('current_location')
+
     try:
         user = db.query(DbUser).filter_by(username=username).one()
 
@@ -5867,12 +5870,14 @@ def add_project_from_journal():
 
         if not name:
             flash("Project name is required.", "error")
-            return redirect(url_for('graph_dashboard', object_name=target_object_id, tab='journal'))
+            return redirect(
+                url_for('graph_dashboard', object_name=target_object_id, tab='journal', location=current_location))
 
         existing = db.query(Project).filter_by(user_id=user.id, name=name).first()
         if existing:
             flash(f"A project named '{name}' already exists.", "error")
-            return redirect(url_for('graph_dashboard', object_name=target_object_id, tab='journal'))
+            return redirect(
+                url_for('graph_dashboard', object_name=target_object_id, tab='journal', location=current_location))
 
         new_project = Project(
             id=uuid.uuid4().hex,
@@ -5885,21 +5890,37 @@ def add_project_from_journal():
         db.add(new_project)
 
         # Auto-activate object if project is In Progress
+        should_trigger_outlook = False
         if target_object_id and status == 'In Progress':
             obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=target_object_id).first()
             if obj and not obj.active_project:
                 obj.active_project = True
-                trigger_outlook_update_for_user(username)
+                should_trigger_outlook = True
 
         db.commit()
+
+        if should_trigger_outlook:
+            trigger_outlook_update_for_user(username)
+
         flash(f"Project '{name}' created successfully.", "success")
-        return redirect(
-            url_for('graph_dashboard', object_name=target_object_id, tab='journal', project_id=new_project.id))
+
+        # Build redirect args explicitly to ensure clean URL construction
+        redirect_args = {
+            'object_name': target_object_id,
+            'tab': 'journal',
+            'project_id': new_project.id
+        }
+        if current_location:
+            redirect_args['location'] = current_location
+
+        return redirect(url_for('graph_dashboard', **redirect_args))
 
     except Exception as e:
         db.rollback()
+        print(f"Error creating project in journal: {e}")  # Log error for debugging
         flash(f"Error creating project: {e}", "error")
-        return redirect(url_for('graph_dashboard', object_name=request.form.get('target_object_id'), tab='journal'))
+        return redirect(url_for('graph_dashboard', object_name=request.form.get('target_object_id'), tab='journal',
+                                location=current_location))
     finally:
         db.close()
 
@@ -8797,6 +8818,10 @@ def graph_dashboard(object_name):
         requested_session_id = request.args.get('session_id')
         requested_project_id_journal = request.args.get('project_id')
 
+        # Auto-select the primary project if no specific session/project is requested
+        if not requested_session_id and not requested_project_id_journal and project_record:
+            requested_project_id_journal = project_record.id
+
         selected_session_data = None
         selected_session_data_dict = None
 
@@ -8879,9 +8904,18 @@ def graph_dashboard(object_name):
 
         projects_map = {p.id: p.name for p in all_projects_for_user}
         grouped_sessions_dict = {}
+
+        # 1. Add sessions to their respective projects
         for session in object_specific_sessions_list:
             project_id = session.get('project_id')
             grouped_sessions_dict.setdefault(project_id, []).append(session)
+
+        # 2. Explicitly ensure empty projects targeting this object appear in the list
+        # This fixes the issue where a newly created project (with no sessions yet) remains invisible
+        target_projects = [p for p in all_projects_for_user if p.target_object_name == object_name]
+        for tp in target_projects:
+            if tp.id not in grouped_sessions_dict:
+                grouped_sessions_dict[tp.id] = []
 
         grouped_sessions_for_template = []
         sorted_project_ids = sorted([pid for pid in grouped_sessions_dict if pid],
