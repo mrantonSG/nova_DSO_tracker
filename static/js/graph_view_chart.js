@@ -1306,6 +1306,121 @@ function saveFramingToDB() {
     });
 }
 
+function formatRaAsiair(raDeg) {
+    const totalSec = raDeg / 15 * 3600;
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = (totalSec % 60).toFixed(2);
+    return `${h}h ${m}m ${s}s`;
+}
+
+function formatDecAsiair(decDeg) {
+    const sign = decDeg >= 0 ? '+' : '-';
+    const abs = Math.abs(decDeg);
+    const d = Math.floor(abs);
+    const m = Math.floor((abs - d) * 60);
+    const s = ((abs - d) * 60 - m) * 60;
+    return `${sign}${d}° ${m}' ${s.toFixed(2)}"`;
+}
+
+function copyAsiairMosaic() {
+    // 1. Get Grid Config
+    const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
+    const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
+    const overlap = parseFloat(document.getElementById('mosaic-overlap')?.value || 0) / 100;
+
+    // 2. Get Rig Config (FOV)
+    const sel = document.getElementById('framing-rig-select');
+    if (!sel || sel.selectedIndex < 0) { alert("No rig selected."); return; }
+    const opt = sel.options[sel.selectedIndex];
+    const fovWidthArcmin = parseFloat(opt.dataset.fovw);
+    const fovHeightArcmin = parseFloat(opt.dataset.fovh);
+
+    // 3. Get Center & Rotation
+    const center = getFrameCenterRaDec();
+    if (!center) { alert("No valid center coordinates found."); return; }
+    const rotDeg = parseFloat(document.getElementById('framing-rotation')?.value || 0);
+
+    // 4. Math Setup (Tangent Plane Projection)
+    const wDeg = (fovWidthArcmin / 60);
+    const hDeg = (fovHeightArcmin / 60);
+    const wStep = wDeg * (1 - overlap);
+    const hStep = hDeg * (1 - overlap);
+
+    const ang = rotDeg * Math.PI / 180;
+    const ra0 = center.ra * Math.PI / 180;
+    const dec0 = center.dec * Math.PI / 180;
+
+    const cX = Math.cos(dec0) * Math.cos(ra0);
+    const cY = Math.cos(dec0) * Math.sin(ra0);
+    const cZ = Math.sin(dec0);
+    const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
+    const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
+
+    let clipboardText = "";
+    const baseName = NOVA_GRAPH_DATA.objectName.replace(/\s+/g, '_');
+
+    // 5. Iterate Grid
+    let paneCount = 1;
+    // Loop order: Rows then Cols (Standard reading order logic, though ASIAIR accepts any list)
+    // Logic matches drawFovFootprint: r=0 is bottom, c=0 is left
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // Center of pane relative to mosaic center (unrotated)
+            const cx_off = (c - (cols - 1) / 2) * wStep;
+            const cy_off = (r - (rows - 1) / 2) * hStep;
+
+            // Rotate offset
+            // Note: In Aladin drawing we inverted X in planeToSky depending on projection,
+            // but mathematically for standard tangent plane:
+            // X increases East (Left on sky), Y increases North.
+            const rx = cx_off * Math.cos(ang) - cy_off * Math.sin(ang);
+            const ry = cx_off * Math.sin(ang) + cy_off * Math.cos(ang);
+
+            // Project back to Sky (RA/Dec)
+            // We use standard Gnomonic de-projection
+            // dx, dy in degrees converted to radians
+            const dx = -rx * Math.PI / 180; // Negate X because RA increases East (Left)
+            const dy = ry * Math.PI / 180;
+            const rad = Math.hypot(dx, dy);
+
+            let paneRa, paneDec;
+
+            if (rad < 1e-9) {
+                paneRa = center.ra;
+                paneDec = center.dec;
+            } else {
+                const dirX = (dx * eX + dy * nX) / rad;
+                const dirY = (dx * eY + dy * nY) / rad;
+                const dirZ = (dx * eZ + dy * nZ) / rad;
+                const sinC = Math.sin(rad), cosC = Math.cos(rad);
+                const pX = cosC * cX + sinC * dirX;
+                const pY = cosC * cY + sinC * dirY;
+                const pZ = cosC * cZ + sinC * dirZ;
+
+                let raRad = Math.atan2(pY, pX);
+                if (raRad < 0) raRad += 2 * Math.PI;
+                paneRa = raRad * 180 / Math.PI;
+                paneDec = Math.asin(pZ) * 180 / Math.PI;
+            }
+
+            // Format for ASIAIR
+            // Format: Name_PaneX
+            //         RA: ... DEC: ...
+            clipboardText += `${baseName}_P${paneCount}\n`;
+            clipboardText += `RA: ${formatRaAsiair(paneRa)} DEC: ${formatDecAsiair(paneDec)}\n`;
+            paneCount++;
+        }
+    }
+
+    navigator.clipboard.writeText(clipboardText).then(() => {
+        alert(`Copied ${paneCount-1} pane coordinates to clipboard.\n\nOpen ASIAIR > Plan > Import > Paste.`);
+    }).catch(err => {
+        console.error('Clipboard write failed:', err);
+        alert("Failed to copy to clipboard. See console.");
+    });
+}
+
 function deleteSavedFraming() {
     const objectName = NOVA_GRAPH_DATA.objectName;
     if (!confirm("Are you sure you want to delete the saved framing for this object?")) return;
