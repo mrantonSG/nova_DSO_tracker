@@ -54,7 +54,7 @@
 
     /* ASIAIR Button Style */
     .asiair-btn {
-        background-color: #c0392b; /* Red */
+        background-color: var(--primary-dark);
         color: white;
         padding: 6px 10px;
         border-radius: 4px;
@@ -334,7 +334,7 @@
 
             // Only show ASIAIR button if framing exists
             if (obj.has_framing) {
-                actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">ASIAIR</a>` + actionsHtml;
+                actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">Framing</a>` + actionsHtml;
             }
 
             li.innerHTML = `
