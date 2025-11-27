@@ -371,6 +371,11 @@ class SavedFraming(Base):
     blend_survey = Column(String(256), nullable=True)
     blend_opacity = Column(Float, nullable=True)
 
+    # Mosaic Data
+    mosaic_cols = Column(Integer, default=1)
+    mosaic_rows = Column(Integer, default=1)
+    mosaic_overlap = Column(Float, default=10.0)
+
     updated_at = Column(Date, default=datetime.utcnow)
 
     user = relationship("DbUser", backref="saved_framings")
@@ -853,6 +858,12 @@ def ensure_db_initialized_unified():
                 if "rig_name" not in colnames_framing:
                     conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_name VARCHAR(256);")
                     print("[DB PATCH] Added missing column saved_framings.rig_name")
+                if "mosaic_cols" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_cols INTEGER DEFAULT 1;")
+                if "mosaic_rows" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_rows INTEGER DEFAULT 1;")
+                if "mosaic_overlap" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_overlap FLOAT DEFAULT 10.0;")
             except Exception as e:
                 # Table might not exist yet if it's a fresh install, which is fine
                 pass
@@ -4250,6 +4261,15 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             # --- Extract Objects List from ARGUMENTS ---
             all_objects_from_config = user_config.get("objects", [])
 
+            # Fetch framing status for Outlook
+            framed_objects = set()
+            db = get_db()
+            try:
+                rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
+                framed_objects = {r[0] for r in rows}
+            finally:
+                db.close()
+
             # --- START FIX: Build object map for this thread ---
             local_objects_map = {
                 str(o.get("Object", "")).lower(): o
@@ -4356,6 +4376,7 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
                             # --- End ensure native floats ---
                             good_night_opportunity = {
                                 "object_name": object_name, "common_name": obj_details.get("Common Name", object_name),
+                                "has_framing": object_name in framed_objects,
                                 "date": date_str, "score": opportunity_score, "rating": "★" * stars + "☆" * (5 - stars),
                                 "rating_num": stars, "max_alt": round(opportunity_max_alt, 1),
                                 "obs_dur": int(obs_duration.total_seconds() / 60),
@@ -5073,7 +5094,15 @@ def get_outlook_data():
             if not is_stale:
                 with open(cache_filename, 'r') as f:
                     data = json.load(f)
-                return jsonify({"status": "complete", "results": data.get("opportunities", [])})
+
+                # Check if cache is from older version (missing has_framing)
+                # We look at the first opportunity to see if it has the key
+                opportunities = data.get("opportunities", [])
+                if opportunities and 'has_framing' not in opportunities[0]:
+                    print(f"[OUTLOOK] Cache for {status_key} is missing 'has_framing'. Forcing update.")
+                    # Fall through to trigger new worker
+                else:
+                    return jsonify({"status": "complete", "results": opportunities})
             else:
                 print(f"[OUTLOOK] Cache for {status_key} is stale. Will start new worker.")
         except (json.JSONDecodeError, IOError, OSError) as e:
@@ -7874,7 +7903,6 @@ def mobile_up_now():
     # Render template immediately with empty data; JS will fetch it.
     return render_template('mobile_up_now.html')
 
-
 @app.route('/api/mobile_data_chunk')
 @login_required
 def api_mobile_data_chunk():
@@ -7912,7 +7940,8 @@ def api_mobile_data_chunk():
                     user,
                     location_db_obj,
                     user_prefs,
-                    sliced_objects
+                    sliced_objects,
+                    db  # Pass DB session
                 )
         finally:
             db.close()
@@ -7993,12 +8022,18 @@ def mobile_edit_notes(object_name):
     finally:
         db.close()
 
-
-def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list):
+def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db=None):
     """
     Server-side function to get all data for the mobile 'Up Now' page in one pass.
-    This avoids the N+1 request problem from the client.
     """
+    # Pre-fetch framing status for the user
+    framed_objects = set()
+    if db:
+        try:
+            rows = db.query(SavedFraming.object_name).filter_by(user_id=user.id).all()
+            framed_objects = {r[0] for r in rows}
+        except Exception:
+            pass
 
     # --- 1. Get Location & Time Details ---
     try:
@@ -8121,6 +8156,7 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list):
                 "Object": obj_record.object_name,
                 "Common Name": obj_record.common_name or obj_record.object_name,
                 "ActiveProject": obj_record.active_project,
+                "has_framing": obj_record.object_name in framed_objects,
 
                 # Calculated data
                 'Altitude Current': f"{current_alt:.2f}",
@@ -10964,6 +11000,12 @@ def save_framing():
         framing.survey = data.get('survey')
         framing.blend_survey = data.get('blend')
         framing.blend_opacity = float(data.get('blend_op')) if data.get('blend_op') else 0.0
+
+        # Mosaic fields
+        framing.mosaic_cols = int(data.get('mosaic_cols')) if data.get('mosaic_cols') else 1
+        framing.mosaic_rows = int(data.get('mosaic_rows')) if data.get('mosaic_rows') else 1
+        framing.mosaic_overlap = float(data.get('mosaic_overlap')) if data.get('mosaic_overlap') is not None else 10.0
+
         framing.updated_at = datetime.now(UTC)
 
         db.commit()
@@ -10973,7 +11015,6 @@ def save_framing():
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
-
 
 @app.route('/api/get_framing/<path:object_name>')
 @login_required
@@ -10986,6 +11027,7 @@ def get_framing(object_name):
         ).one_or_none()
 
         if framing:
+            # Helper: format mosaic columns if present
             return jsonify({
                 "status": "found",
                 "rig": framing.rig_id,
@@ -10994,7 +11036,10 @@ def get_framing(object_name):
                 "rotation": framing.rotation,
                 "survey": framing.survey,
                 "blend": framing.blend_survey,
-                "blend_op": framing.blend_opacity
+                "blend_op": framing.blend_opacity,
+                "mosaic_cols": framing.mosaic_cols or 1,
+                "mosaic_rows": framing.mosaic_rows or 1,
+                "mosaic_overlap": framing.mosaic_overlap if framing.mosaic_overlap is not None else 10
             })
         else:
             return jsonify({"status": "empty"})
@@ -11226,6 +11271,128 @@ def heatmap_background_worker():
         print("[HEATMAP WORKER] Cycle done. Sleeping 4 hours.")
         time.sleep(4 * 60 * 60)
 
+
+# --- Mobile Mosaic Helper ---
+def _format_ra_asiair(ra_deg):
+    total_sec = (ra_deg / 15.0) * 3600
+    h = int(total_sec // 3600)
+    m = int((total_sec % 3600) // 60)
+    s = total_sec % 60
+    return f"{h}h {m}m {s:.2f}s"
+
+
+def _format_dec_asiair(dec_deg):
+    sign = '+' if dec_deg >= 0 else '-'
+    abs_dec = abs(dec_deg)
+    d = int(abs_dec)
+    m = int((abs_dec - d) * 60)
+    s = ((abs_dec - d) * 60 - m) * 60
+    return f"{sign}{d}° {m}' {s:.2f}\""
+
+
+import math
+
+
+@app.route('/m/mosaic/<path:object_name>')
+@login_required
+def mobile_mosaic_view(object_name):
+    """Mobile-optimized page to copy the ASIAIR mosaic plan string."""
+    db = get_db()
+    try:
+        framing = db.query(SavedFraming).filter_by(
+            user_id=g.db_user.id, object_name=object_name
+        ).one_or_none()
+
+        if not framing:
+            return f"<h3>No saved framing found for {object_name}</h3><p>Please save a framing on the desktop first.</p>"
+
+        # Get Rig Data
+        rig = db.get(Rig, framing.rig_id) if framing.rig_id else None
+        if not rig or not rig.fov_w_arcmin:
+            return "<h3>Error: Rig data missing in saved framing.</h3>"
+
+        # Math Setup
+        fov_w_deg = rig.fov_w_arcmin / 60.0
+        # If height is missing (older DBs), estimate based on sensor ratio or square
+        fov_h_deg = (rig.fov_w_arcmin / 60.0)  # Default square if missing
+
+        # Try to be precise if components exist
+        if rig.camera and rig.camera.sensor_height_mm and rig.effective_focal_length:
+            fov_h_deg = math.degrees(2 * math.atan((rig.camera.sensor_height_mm / 2.0) / rig.effective_focal_length))
+
+        cols = framing.mosaic_cols or 1
+        rows = framing.mosaic_rows or 1
+        overlap = (framing.mosaic_overlap or 10.0) / 100.0
+
+        w_step = fov_w_deg * (1 - overlap)
+        h_step = fov_h_deg * (1 - overlap)
+
+        # Invert angle for CW rotation to match frontend
+        rot_rad = math.radians(-(framing.rotation or 0))
+        center_ra_rad = math.radians(framing.ra)
+        center_dec_rad = math.radians(framing.dec)
+
+        # Tangent Plane Projection (Matches JS logic)
+        cX = math.cos(center_dec_rad) * math.cos(center_ra_rad)
+        cY = math.cos(center_dec_rad) * math.sin(center_ra_rad)
+        cZ = math.sin(center_dec_rad)
+        eX = -math.sin(center_ra_rad);
+        eY = math.cos(center_ra_rad);
+        eZ = 0
+        nX = -math.sin(center_dec_rad) * math.cos(center_ra_rad)
+        nY = -math.sin(center_dec_rad) * math.sin(center_ra_rad)
+        nZ = math.cos(center_dec_rad)
+
+        output_lines = []
+        base_name = object_name.replace(" ", "_")
+        pane_count = 1
+
+        for r in range(rows):
+            for c in range(cols):
+                cx_off = (c - (cols - 1) / 2.0) * w_step
+                cy_off = (r - (rows - 1) / 2.0) * h_step
+
+                # Rotation
+                rx = cx_off * math.cos(rot_rad) - cy_off * math.sin(rot_rad)
+                ry = cx_off * math.sin(rot_rad) + cy_off * math.cos(rot_rad)
+
+                # De-projection
+                dx = math.radians(-rx)  # Negate X for RA
+                dy = math.radians(ry)
+                rad = math.hypot(dx, dy)
+
+                if rad < 1e-9:
+                    p_ra = framing.ra
+                    p_dec = framing.dec
+                else:
+                    sinC = math.sin(rad);
+                    cosC = math.cos(rad)
+                    dirX = (dx * eX + dy * nX) / rad
+                    dirY = (dx * eY + dy * nY) / rad
+                    dirZ = (dx * eZ + dy * nZ) / rad
+
+                    pX = cosC * cX + sinC * dirX
+                    pY = cosC * cY + sinC * dirY
+                    pZ = cosC * cZ + sinC * dirZ
+
+                    ra_rad_res = math.atan2(pY, pX)
+                    if ra_rad_res < 0: ra_rad_res += 2 * math.pi
+                    p_ra = math.degrees(ra_rad_res)
+                    p_dec = math.degrees(math.asin(pZ))
+
+                output_lines.append(f"{base_name}_P{pane_count}")
+                output_lines.append(f"RA: {_format_ra_asiair(p_ra)} DEC: {_format_dec_asiair(p_dec)}")
+                pane_count += 1
+
+        full_text = "\n".join(output_lines)
+
+        return render_template('mobile_mosaic_copy.html',
+                               object_name=object_name,
+                               mosaic_text=full_text,
+                               info=f"{cols}x{rows} Mosaic @ {framing.rotation}°")
+
+    finally:
+        db.close()
 
 # =============================================================================
 # Main Entry Point

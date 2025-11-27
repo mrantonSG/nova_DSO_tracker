@@ -20,10 +20,22 @@
 
     /* --- Sort Bar --- */
     .sort-bar {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        display: flex;
         gap: 8px;
         padding: 10px 20px 0 20px;
+    }
+    .sort-button {
+        flex: 1; /* Equal width */
+        padding: 10px 5px; /* Reduced horizontal padding for small screens */
+        font-size: 0.85rem; /* Slightly smaller font */
+        white-space: nowrap; /* Prevent text wrap */
+        overflow: hidden;
+        text-overflow: ellipsis; /* Handle overflow gracefully */
+        border: 1px solid var(--border-color);
+        background-color: var(--card-bg);
+        border-radius: 5px;
+        text-align: center;
+        color: var(--text-color);
     }
     .sort-button {
         padding: 10px;
@@ -38,6 +50,34 @@
         background-color: var(--primary-dark);
         color: white;
         border-color: var(--primary-dark);
+    }
+
+    /* ASIAIR Button Style */
+    .asiair-btn {
+        background-color: #c0392b; /* Red */
+        color: white;
+        padding: 6px 10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    /* Container to fix overlap */
+    .card-actions {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    /* Reset individual positioning */
+    .item-card .edit-button {
+        position: static;
+        float: none;
+        margin: 0;
     }
 </style>
 {% endblock %}
@@ -59,6 +99,7 @@
         <button class="sort-button active" id="sort-alt">Sort by Altitude</button>
         <button class="sort-button" id="sort-dur">Sort by Duration</button>
         <button class="sort-button" id="filter-active">Active Only</button>
+        <button class="sort-button" id="filter-framing">With Framing</button>
     </div>
 
     <ul class="item-list" id="object-list" style="margin-top: 15px; display: none;">
@@ -79,6 +120,7 @@
         const sortAltButton = document.getElementById('sort-alt');
         const sortDurButton = document.getElementById('sort-dur');
         const filterActiveButton = document.getElementById('filter-active');
+        const filterFramingButton = document.getElementById('filter-framing');
         const searchInput = document.getElementById('search-input');
 
         const noObjectsMessage = document.getElementById('loading-indicator');
@@ -88,6 +130,7 @@
 
         let currentSort = 'alt';
         let filterActive = false;
+        let filterFraming = false;
         let currentSearch = '';
 
         function renderList() {
@@ -101,12 +144,15 @@
                 });
             }
 
-            // 2. Apply Active Filter
-            let itemsToShow = [];
+            // 2. Apply Filters
+            let itemsToShow = [...searchedItems];
+
             if (filterActive) {
-                itemsToShow = searchedItems.filter(item => item.dataset.isActive === 'true');
-            } else {
-                itemsToShow = [...searchedItems];
+                itemsToShow = itemsToShow.filter(item => item.dataset.isActive === 'true');
+            }
+
+            if (filterFraming) {
+                itemsToShow = itemsToShow.filter(item => item.dataset.hasFraming === 'true');
             }
 
             // 3. Apply Sort
@@ -152,6 +198,7 @@
 
             // 6. Update Buttons
             filterActiveButton.classList.toggle('active', filterActive);
+            filterFramingButton.classList.toggle('active', filterFraming);
         }
 
         // --- Event Listeners ---
@@ -176,6 +223,11 @@
 
         filterActiveButton.addEventListener('click', () => {
             filterActive = !filterActive;
+            renderList();
+        });
+
+        filterFramingButton.addEventListener('click', () => {
+            filterFraming = !filterFraming;
             renderList();
         });
 
@@ -261,22 +313,35 @@
             li.dataset.sortAlt = parseFloat(obj['Altitude Current']) || 0;
             li.dataset.sortDur = parseInt(obj['Observable Duration (min)']) || 0;
             li.dataset.isActive = obj.ActiveProject ? 'true' : 'false';
+            li.dataset.hasFraming = obj.has_framing ? 'true' : 'false';
             li.dataset.searchText = (obj['Common Name'] + ' ' + obj['Object']).toLowerCase();
             li.style.display = 'block';
 
-            // Construct Edit URL: /m/edit_notes/<object_name>
-            // We use a placeholder replacement strategy to be safe with JS variables
+            // Construct URLs
+            const safeObj = encodeURIComponent(obj.Object);
             const baseEditUrl = "{{ url_for('mobile_edit_notes', object_name='__OBJ__') }}";
-            const editUrl = baseEditUrl.replace('__OBJ__', encodeURIComponent(obj.Object));
+            const editUrl = baseEditUrl.replace('__OBJ__', safeObj);
+
+            const baseMosaicUrl = "{{ url_for('mobile_mosaic_view', object_name='__OBJ__') }}";
+            const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj);
 
             let durHtml = `<div><strong>Duration:</strong> ${obj['Observable Duration (min)']} min</div>`;
             if (obj['Observable Duration (min)'] == 0) {
                 durHtml = `<div><strong>Duration:</strong> Not visible</div>`;
             }
 
+            let actionsHtml = `<a href="${editUrl}" class="edit-button">Edit</a>`;
+
+            // Only show ASIAIR button if framing exists
+            if (obj.has_framing) {
+                actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">ASIAIR</a>` + actionsHtml;
+            }
+
             li.innerHTML = `
-                <a href="${editUrl}" class="edit-button">Edit</a>
-                <h3>${obj['Common Name']} (${obj['Object']})</h3>
+                <div class="card-actions">
+                    ${actionsHtml}
+                </div>
+                <h3 style="margin-right: 130px;">${obj['Common Name']} (${obj['Object']})</h3>
                 <div class="item-card-grid">
                     <div><strong>Altitude:</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
                     <div><strong>Azimuth:</strong> ${obj['Azimuth Current']}°</div>

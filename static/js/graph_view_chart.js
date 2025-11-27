@@ -873,9 +873,12 @@ function saveFramingToDB() {
         survey: document.getElementById('survey-select')?.value || '',
         blend: document.getElementById('blend-survey-select')?.value || '',
         blend_op: parseFloat(document.getElementById('blend-opacity')?.value || 0),
-        // Get current center coordinates
-        ra: getFrameCenterRaDec().ra,
-        dec: getFrameCenterRaDec().dec
+        ra: center.ra,
+        dec: center.dec,
+        // Mosaic Fields
+        mosaic_cols: parseInt(document.getElementById('mosaic-cols')?.value || 1),
+        mosaic_rows: parseInt(document.getElementById('mosaic-rows')?.value || 1),
+        mosaic_overlap: parseFloat(document.getElementById('mosaic-overlap')?.value || 10)
     };
 
     // 2. Send to DB
@@ -928,7 +931,11 @@ function checkAndShowFramingButton() {
                     if(data.blend) params.set('blend', data.blend);
                     params.set('blend_op', data.blend_op);
 
-                    // Open assistant directly with these params
+                    // Restore Mosaic
+                    if(data.mosaic_cols) params.set('m_cols', data.mosaic_cols);
+                    if(data.mosaic_rows) params.set('m_rows', data.mosaic_rows);
+                    if(data.mosaic_overlap) params.set('m_ov', data.mosaic_overlap);
+
                     openFramingAssistant(params.toString());
                 };
                 container.appendChild(btn);
@@ -953,7 +960,8 @@ function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) 
     const wStep = wDeg * (1 - overlap);
     const hStep = hDeg * (1 - overlap);
 
-    const ang = rotationDeg * Math.PI / 180;
+    // Invert angle to match CSS rotation (CSS is Clockwise, Standard Math is Counter-Clockwise)
+    const ang = -rotationDeg * Math.PI / 180;
     const ra0 = center.ra * Math.PI / 180, dec0 = center.dec * Math.PI / 180;
 
     // Tangent plane vectors at center
@@ -1286,7 +1294,11 @@ function saveFramingToDB() {
         blend: document.getElementById('blend-survey-select')?.value || '',
         blend_op: parseFloat(document.getElementById('blend-opacity')?.value || 0),
         ra: center.ra,
-        dec: center.dec
+        dec: center.dec,
+        // Mosaic Fields
+        mosaic_cols: parseInt(document.getElementById('mosaic-cols')?.value || 1),
+        mosaic_rows: parseInt(document.getElementById('mosaic-rows')?.value || 1),
+        mosaic_overlap: parseFloat(document.getElementById('mosaic-overlap')?.value || 10)
     };
 
     // 2. Send to DB
@@ -1347,7 +1359,8 @@ function copyAsiairMosaic() {
     const wStep = wDeg * (1 - overlap);
     const hStep = hDeg * (1 - overlap);
 
-    const ang = rotDeg * Math.PI / 180;
+    // Invert angle for CW rotation
+    const ang = -rotDeg * Math.PI / 180;
     const ra0 = center.ra * Math.PI / 180;
     const dec0 = center.dec * Math.PI / 180;
 
@@ -1475,6 +1488,11 @@ function checkAndShowFramingButton() {
                     if(data.survey) params.set('survey', data.survey);
                     if(data.blend) params.set('blend', data.blend);
                     params.set('blend_op', data.blend_op);
+
+                    // Restore Mosaic
+                    if(data.mosaic_cols) params.set('m_cols', data.mosaic_cols);
+                    if(data.mosaic_rows) params.set('m_rows', data.mosaic_rows);
+                    if(data.mosaic_overlap) params.set('m_ov', data.mosaic_overlap);
 
                     openFramingAssistant(params.toString());
                 };
