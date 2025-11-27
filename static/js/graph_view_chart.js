@@ -720,7 +720,29 @@ function openFramingAssistant(optionalQueryString) {
         (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
         (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
     }
-    function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN }); const qp = new URLSearchParams(); if (rig) qp.set('rig', rig); if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6)); if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6)); qp.set('rot', String(Math.round(to360(rot)))); if (survey) qp.set('survey', survey); if (blend) qp.set('blend', blend); qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op)))); return '?' + qp.toString(); }
+    function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
+        const cols = document.getElementById('mosaic-cols')?.value || 1;
+    const rows = document.getElementById('mosaic-rows')?.value || 1;
+    const overlap = document.getElementById('mosaic-overlap')?.value || 10;
+
+    const qp = new URLSearchParams();
+    if (rig) qp.set('rig', rig);
+    if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
+    if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
+    qp.set('rot', String(Math.round(to360(rot))));
+    if (survey) qp.set('survey', survey);
+    if (blend) qp.set('blend', blend);
+    qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
+
+    // Mosaic Params
+    if (cols > 1 || rows > 1) {
+        qp.set('m_cols', cols);
+        qp.set('m_rows', rows);
+        qp.set('m_ov', overlap);
+    }
+
+    return '?' + qp.toString();
+}
 
     let haveCenter = false, haveRot = false, haveRigRestored = false;
     try {
@@ -729,6 +751,11 @@ function openFramingAssistant(optionalQueryString) {
         // -------------------------------------------------------------------------------------
 
         const rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec')), rot = parseFloat(q.get('rot')), surv = q.get('survey'), blend = q.get('blend'), blendOp = parseFloat(q.get('blend_op'));
+
+        // Restore Mosaic
+        if (q.has('m_cols')) document.getElementById('mosaic-cols').value = q.get('m_cols');
+        if (q.has('m_rows')) document.getElementById('mosaic-rows').value = q.get('m_rows');
+        if (q.has('m_ov')) document.getElementById('mosaic-overlap').value = q.get('m_ov');
         if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
         if (!Number.isNaN(rot)) { const rotInput = document.getElementById('framing-rotation'), signed = toSigned180(rot); if (rotInput) rotInput.value = signed; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`; haveRot = true; }
         if (surv) {
@@ -911,13 +938,33 @@ function checkAndShowFramingButton() {
 function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
     if (!aladin || !fovLayer || !center) return;
     fovLayer.removeAll();
-    const halfW = (fovWidthArcmin / 60) / 2, halfH = (fovHeightArcmin / 60) / 2, ang = rotationDeg * Math.PI / 180;
+
+    const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
+    const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
+    const overlap = parseFloat(document.getElementById('mosaic-overlap')?.value || 0) / 100;
+
+    // Pane dimensions in degrees
+    const wDeg = (fovWidthArcmin / 60);
+    const hDeg = (fovHeightArcmin / 60);
+    const halfW = wDeg / 2;
+    const halfH = hDeg / 2;
+
+    // Step sizes (effective width/height after overlap)
+    const wStep = wDeg * (1 - overlap);
+    const hStep = hDeg * (1 - overlap);
+
+    const ang = rotationDeg * Math.PI / 180;
     const ra0 = center.ra * Math.PI / 180, dec0 = center.dec * Math.PI / 180;
+
+    // Tangent plane vectors at center
     const cX = Math.cos(dec0) * Math.cos(ra0), cY = Math.cos(dec0) * Math.sin(ra0), cZ = Math.sin(dec0);
     const eX = -Math.sin(ra0), eY = Math.cos(ra0), eZ = 0;
     const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
-    function rot2d(x, y) { return [x * Math.cos(ang) - y * Math.sin(ang), x * Math.sin(ang) + y * Math.cos(ang)]; }
-    const raw = [[-halfW, -halfH], [halfW, -halfH], [halfW, halfH], [-halfW, halfH]].map(([x, y]) => rot2d(x, y));
+
+    function rot2d(x, y) {
+        return [x * Math.cos(ang) - y * Math.sin(ang), x * Math.sin(ang) + y * Math.cos(ang)];
+    }
+
     function planeToSky(x_deg, y_deg) {
         const dx = x_deg * Math.PI / 180, dy = y_deg * Math.PI / 180, r = Math.hypot(dx, dy);
         if (r < 1e-12) return [center.ra, center.dec];
@@ -927,41 +974,130 @@ function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) 
         let ra = Math.atan2(pY, pX); if (ra < 0) ra += 2 * Math.PI; const dec = Math.asin(pZ);
         return [ra * 180 / Math.PI, dec * 180 / Math.PI];
     }
-    const polyCoords = raw.map(([x, y]) => planeToSky(x, y));
-    polyCoords.push(polyCoords[0]);
-    const fovPolygon = A.polygon(polyCoords, {color: '#83b4c5', lineWidth: 3});
-    const fovFootprint = A.footprint(fovPolygon);
-    fovLayer.add(fovFootprint);
+
+    // Generate Mosaic Grid
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            // Calculate offset of this pane's center from mosaic center (unrotated)
+            // We index 0,0 at bottom-left (standard sky coords, RA increases left, Dec up)
+            // Visual logic: Row 0 is bottom, Col 0 is left (East if looking South/North up)
+            const cx_off = (c - (cols - 1) / 2) * wStep;
+            // Standard Cartesian: r=0 is bottom.
+            const cy_off = (r - (rows - 1) / 2) * hStep;
+
+            // 4 Corners relative to this pane's center
+            // Note: in Aladin/Sky, X is RA. RA increases to the East (Left on chart).
+            // Standard plot X increases Right.
+            // We use standard XY for rotation, then map to RA/Dec.
+            // Corner offsets:
+            const corners = [
+                [-halfW, -halfH], [halfW, -halfH], [halfW, halfH], [-halfW, halfH]
+            ];
+
+            const polyCoords = corners.map(([kx, ky]) => {
+                // Offset from pane center + Pane center offset from mosaic center
+                const totalX = kx + cx_off;
+                const totalY = ky + cy_off;
+                // Rotate around mosaic center
+                const [rx, ry] = rot2d(totalX, totalY);
+                // Project to sky
+                return planeToSky(-rx, ry); // Negate X for RA direction if needed, usually Aladin handles standard projection
+            });
+
+            polyCoords.push(polyCoords[0]);
+            const fovPolygon = A.polygon(polyCoords, {color: '#83b4c5', lineWidth: 2});
+            fovLayer.add(fovPolygon);
+        }
+    }
     updateReadoutFromCenter?.();
 }
+
 let lockFovEnabled = false, lockRafId = null;
 function updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotationDeg) {
-        const host = document.getElementById('aladin-lite-div');
-        const rectEl = document.getElementById('screen-fov-rect');
-        if (!host || !rectEl) return;
+    const host = document.getElementById('aladin-lite-div');
+    const rectEl = document.getElementById('screen-fov-rect');
+    if (!host || !rectEl) return;
 
-        const wpx = host.clientWidth || 1;
-        const hpx = host.clientHeight || 1;
+    const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
+    const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
+    const overlap = parseFloat(document.getElementById('mosaic-overlap')?.value || 0) / 100;
 
-        const gf = aladin.getFov();
-        const viewWdeg = Array.isArray(gf) ? (gf[0] ?? 1) : (gf ?? 1);
+    const wpx = host.clientWidth || 1;
+    const hpx = host.clientHeight || 1;
 
-        // This is the corrected logic
-        const viewHdeg = viewWdeg * (hpx / wpx); // Calculate the view's height in degrees
-        const fovWdeg = (parseFloat(fovWidthArcmin) || 0) / 60;
-        const fovHdeg = (parseFloat(fovHeightArcmin) || 0) / 60;
-        if (!(fovWdeg > 0 && fovHdeg > 0)) return;
+    const gf = aladin.getFov();
+    const viewWdeg = Array.isArray(gf) ? (gf[0] ?? 1) : (gf ?? 1);
+    const viewHdeg = viewWdeg * (hpx / wpx);
 
-        const pxW = Math.max(2, (fovWdeg / viewWdeg) * wpx);
-        const pxH = Math.max(2, (fovHdeg / viewHdeg) * hpx); // <-- THIS LINE IS FIXED
+    const fovWdeg = (parseFloat(fovWidthArcmin) || 0) / 60;
+    const fovHdeg = (parseFloat(fovHeightArcmin) || 0) / 60;
+    if (!(fovWdeg > 0 && fovHdeg > 0)) return;
 
-        rectEl.style.display = 'block';
-        rectEl.style.width = pxW + 'px';
-        rectEl.style.height = pxH + 'px';
-        rectEl.style.marginLeft = (-pxW / 2) + 'px';
-        rectEl.style.marginTop = (-pxH / 2) + 'px';
-        rectEl.style.transform = `translate(0,0) rotate(${rotationDeg || 0}deg)`;
+    // Base Pane Size in Pixels
+    const panePxW = (fovWdeg / viewWdeg) * wpx;
+    const panePxH = (fovHdeg / viewHdeg) * hpx;
+
+    // Calculate Grid Dimensions
+    const stepW = panePxW * (1 - overlap);
+    const stepH = panePxH * (1 - overlap);
+
+    const totalW = panePxW + (cols - 1) * stepW;
+    const totalH = panePxH + (rows - 1) * stepH;
+
+    // Configure the container (rectEl) to be the center of rotation
+    // We make it 0x0 size so rotation logic is simpler around the center
+    rectEl.style.display = 'block';
+    rectEl.style.width = '0px';
+    rectEl.style.height = '0px';
+    rectEl.style.border = 'none'; // Container has no border
+    rectEl.style.left = '50%';
+    rectEl.style.top = '50%';
+    rectEl.style.marginLeft = '0px';
+    rectEl.style.marginTop = '0px';
+    rectEl.style.transform = `rotate(${rotationDeg || 0}deg)`;
+
+    // Clear previous children
+    rectEl.innerHTML = '';
+
+    // Generate Panes
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const div = document.createElement('div');
+
+            // Calculate center offset in pixels relative to mosaic center
+            // In CSS, Y increases downwards. To match the sky logic where r=0 is bottom,
+            // we must map r=0 to the highest Y value (bottom of container).
+            // Visual grid: (0,0) is Bottom-Left.
+
+            const cx_off = (c - (cols - 1) / 2) * stepW;
+            // Invert Y for screen coords (0 at center, +Y is down, -Y is up)
+            // Sky: r=0 is bottom (negative offset). Screen: r=0 is bottom (positive Y offset).
+            const cy_off = -1 * (r - (rows - 1) / 2) * stepH;
+
+            div.style.position = 'absolute';
+            div.style.boxSizing = 'border-box';
+            div.style.border = '2px solid #83b4c5'; // Pane border
+            if (cols > 1 || rows > 1) {
+                div.style.background = 'rgba(131, 180, 197, 0.1)'; // Slight fill for mosaic
+                div.innerText = `${c+1},${r+1}`;
+                div.style.color = 'rgba(131, 180, 197, 0.8)';
+                div.style.fontSize = '10px';
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.justifyContent = 'center';
+            }
+
+            div.style.width = panePxW + 'px';
+            div.style.height = panePxH + 'px';
+
+            // Center the div at the calculated offset
+            div.style.left = (cx_off - panePxW/2) + 'px';
+            div.style.top = (cy_off - panePxH/2) + 'px';
+
+            rectEl.appendChild(div);
+        }
     }
+}
 function startLockOverlayLoop() { if (lockRafId) return; const tick = () => { if (!lockToObject) { lockRafId = null; return; } const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } updateReadoutFromCenter(); lockRafId = requestAnimationFrame(tick); }; lockRafId = requestAnimationFrame(tick); }
 function stopLockOverlayLoop() { if (lockRafId) { cancelAnimationFrame(lockRafId); lockRafId = null; } }
 function setSurvey(hipsId) {
