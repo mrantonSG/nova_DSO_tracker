@@ -7848,12 +7848,17 @@ def get_desktop_data_batch():
                 print(f"Batch Error {obj.object_name}: {e}")
                 results.append({'Object': obj.object_name, 'Common Name': 'Error: Calc failed', 'error': True})
 
-        return jsonify({
+        response_data = {
             "results": results,
             "total": total_count,
             "offset": offset,
             "limit": limit
-        })
+        }
+
+        # Ensure no NumPy types exist in the response
+        response_data = recursively_clean_numpy_types(response_data)
+
+        return jsonify(response_data)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

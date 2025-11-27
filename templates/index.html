@@ -1081,6 +1081,10 @@ async function fetchData(isBackground = false) {
 
                 if (columnKey === 'Common Name' && rawValue) td.setAttribute('title', String(rawValue));
 
+                // Immediate Visibility Check (Prevents flash of hidden columns during loading)
+                const isVisible = (config.type === 'always-visible' || config.type === activeTab);
+                td.style.display = isVisible ? 'table-cell' : 'none';
+
                 // Highlights
                 const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
                 if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
