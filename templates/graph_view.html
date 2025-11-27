@@ -1020,34 +1020,36 @@
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
             <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="saveFramingToDB()">Save Framing</button>
-        </div>
-        <div class="framing-controls">
-            <div>
-                <label for="framing-rig-select">Select Rig:</label>
-                <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();">
+
+            <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid #ccc;">
+                <label for="framing-rig-select" style="font-weight:bold;">Rig:</label>
+                <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();" style="max-width:240px; font-size:14px;">
                     {% if available_rigs %}{% for rig in available_rigs %}
                     <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
                     {% endfor %}{% else %}<option value="">No rigs configured</option>{% endif %}
                 </select>
             </div>
+        </div>
+        <div class="framing-controls">
             <div>
               <label for="framing-rotation">Rotation:</label>
               <input type="range" id="framing-rotation" min="-90" max="90" value="0" step="0.5" oninput="onRotationInput(this.value)" onchange="onRotationInput(this.value)"/>
               <span id="rotation-value">0°</span>
             </div>
-            <div style="display:flex; align-items:center; gap:8px; border-left: 1px solid #ccc; padding-left: 12px;">
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <label style="font-size:11px; color:#666; line-height:1;">Mosaic (Col x Row)</label>
+            <div style="display:flex; align-items:center; gap:10px; border-left: 1px solid #ccc; padding-left: 14px;">
+                <div style="display:flex; flex-direction:column; gap:3px;">
+                    <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Mosaic (Col x Row)</label>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:34px; padding:2px;" onchange="updateFramingChart(false)" title="Columns">
-                        <span style="font-size:12px;">x</span>
-                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:34px; padding:2px;" onchange="updateFramingChart(false)" title="Rows">
+                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" onchange="updateFramingChart(false)" title="Columns">
+                        <span style="font-size:14px; font-weight:bold;">x</span>
+                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" onchange="updateFramingChart(false)" title="Rows">
                     </div>
                 </div>
-                <div style="display:flex; flex-direction:column; gap:2px;">
-                    <label style="font-size:11px; color:#666; line-height:1;">Overlap %</label>
-                    <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:44px; padding:2px;" onchange="updateFramingChart(false)">
+                <div style="display:flex; flex-direction:column; gap:3px;">
+                    <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Overlap %</label>
+                    <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" onchange="updateFramingChart(false)">
                 </div>
+                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" onclick="copyAsiairMosaic()" title="Copy coordinates for ASIAIR Plan import">Copy for ASIAIR</button>
             </div>
             <div>
                 <label for="survey-select">Survey:</label>
@@ -1093,8 +1095,10 @@
             <div><label>Gamma</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" oninput="updateImageAdjustments()"></div>
             <div><label>Saturation</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <label>RA</label><input id="ra-readout" type="text" style="width:160px;" readonly>
-                <label>Dec</label><input id="dec-readout" type="text" style="width:160px;" readonly>
+                <label style="font-size:14px; font-weight:bold;">RA</label>
+                <input id="ra-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
+                <label style="font-size:14px; font-weight:bold;">Dec</label>
+                <input id="dec-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
                 <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
