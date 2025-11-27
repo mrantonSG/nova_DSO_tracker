@@ -6,7 +6,7 @@
 {% block head %}
 <style>
     .asiair-btn {
-        background-color: #c0392b;
+        background-color: var(--primary-dark);
         color: white;
         padding: 6px 10px;
         border-radius: 4px;
@@ -93,7 +93,7 @@
 
                     let actionsHtml = '';
                     if (item.has_framing) {
-                        actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">ASIAIR</a>`;
+                        actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">Framing</a>`;
                     }
 
                     li.className = 'item-card';
