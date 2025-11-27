@@ -442,7 +442,7 @@
                     {# --- EDIT MODE: PROJECT (Unchanged, just kept in correct nesting) --- #}
                     <div id="journal-project-edit-mode" style="display:none;">
                        <form id="journal-project-edit-form" method="POST"
-                              action="{{ url_for('project_detail', project_id=selected_project_data_journal.id, next=url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=selected_project_data_journal.id)) }}"
+                              action="{{ url_for('project_detail', project_id=selected_project_data_journal.id, next=url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=selected_project_data_journal.id, location=header_location_name)) }}"
                               enctype="multipart/form-data">
 
                             <div class="detail-header">

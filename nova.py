@@ -6340,6 +6340,15 @@ def set_location_api():
     try:
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if user:
+            # 1. Update the Locations table (Source of Truth for Dashboard Fallback)
+            # Reset all locations for this user to is_default=False
+            db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
+
+            # Set the new location to is_default=True
+            db.query(Location).filter_by(user_id=user.id, name=location_name).update(
+                {Location.is_default: True})
+
+            # 2. Update UiPref (for consistency/legacy reads)
             prefs = db.query(UiPref).filter_by(user_id=user.id).first()
             if not prefs:
                 prefs = UiPref(user_id=user.id, json_blob='{}')
@@ -6352,6 +6361,7 @@ def set_location_api():
 
             settings['default_location'] = location_name
             prefs.json_blob = json.dumps(settings)
+
             db.commit()
         else:
             # User not found, but we can't save. Log it.
