@@ -67,15 +67,28 @@
     // Set the 'active' class on the correct nav item
     document.addEventListener('DOMContentLoaded', () => {
         const path = window.location.pathname;
+        const params = new URLSearchParams(window.location.search);
+
         if (path.includes('/m/location')) {
             document.getElementById('nav-location').classList.add('active');
         } else if (path.includes('/m/outlook')) {
             document.getElementById('nav-outlook').classList.add('active');
         } else if (path.includes('/m/up_now')) {
             document.getElementById('nav-up-now').classList.add('active');
+        } else if (path.includes('/m/mosaic/')) {
+            // Highlight based on the source parameter
+            if (params.get('from') === 'outlook') {
+                document.getElementById('nav-outlook').classList.add('active');
+            } else {
+                document.getElementById('nav-up-now').classList.add('active');
+            }
+        } else if (path.includes('/m/edit_notes/')) {
+            // Edit notes is accessed from Up Now
+            document.getElementById('nav-up-now').classList.add('active');
         } else {
-            // Default to 'Add Object'
-            document.getElementById('nav-add-object').classList.add('active');
+            // Default to 'Add Object' only for /m or /m/add_object
+            const btn = document.getElementById('nav-add-object');
+            if (btn) btn.classList.add('active');
         }
     });
 </script>
