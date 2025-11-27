@@ -5557,6 +5557,8 @@ def journal_add():
                 project_id=project_id_for_session,
                 date_utc=parsed_date_utc,  # <-- Use the validated date
                 object_name=request.form.get("target_object_id", "").strip(),
+                # Fix: Capture location name from form
+                location_name=request.form.get("location_name"),
                 notes=request.form.get("general_notes_problems_learnings"),
                 seeing_observed_fwhm=safe_float(request.form.get("seeing_observed_fwhm")),
                 sky_sqm_observed=safe_float(request.form.get("sky_sqm_observed")),
@@ -5714,6 +5716,8 @@ def journal_edit(session_id):
             # --- Update ALL fields from the form ---
             session_to_edit.date_utc = parsed_date_utc
             session_to_edit.object_name = request.form.get("target_object_id", "").strip()
+            # Fix: Update location name from form
+            session_to_edit.location_name = request.form.get("location_name")
             session_to_edit.notes = request.form.get("general_notes_problems_learnings")
 
             form = request.form
@@ -6340,15 +6344,16 @@ def set_location_api():
     try:
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if user:
-            # 1. Update the Locations table (Source of Truth for Dashboard Fallback)
-            # Reset all locations for this user to is_default=False
+            # --- CRITICAL FIX START ---
+            # 1. Strip 'is_default' from ALL locations for this user
             db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
 
-            # Set the new location to is_default=True
+            # 2. Set 'is_default' ONLY for the selected location
             db.query(Location).filter_by(user_id=user.id, name=location_name).update(
                 {Location.is_default: True})
+            # --- CRITICAL FIX END ---
 
-            # 2. Update UiPref (for consistency/legacy reads)
+            # 3. Update UiPref (JSON) for consistency
             prefs = db.query(UiPref).filter_by(user_id=user.id).first()
             if not prefs:
                 prefs = UiPref(user_id=user.id, json_blob='{}')
@@ -6361,10 +6366,9 @@ def set_location_api():
 
             settings['default_location'] = location_name
             prefs.json_blob = json.dumps(settings)
-
             db.commit()
         else:
-            # User not found, but we can't save. Log it.
+    # User not found, but we can't save. Log it.
             print(f"[set_location] ERROR: Could not find user '{username}' to save default location.")
     except Exception as e:
         db.rollback()

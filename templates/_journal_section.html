@@ -140,7 +140,8 @@
                             class="{{ 'project-header-clickable' if group.is_project else '' }} {{ 'current-project-item' if group.is_project and group.project_id|string == current_project_id|string else '' }}"
                             style="padding: 8px 5px; border-top: 1px solid #ddd;"
                             {% if group.is_project %}
-                            onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=group.project_id) }}'"
+                            {# Fix: Pass current location to prevent fallback to default #}
+                            onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=group.project_id, location=header_location_name) }}'"
                             title="Click to view project details"
                             {% endif %}
                         >
@@ -152,7 +153,8 @@
                     </tr>
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
-                            onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id) }}&tab=journal"'>
+                            {# Fix: Force the specific session location #}
+                            onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id, location=session_item.location_name) }}&tab=journal"'>
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:#555;">{{ session_item.location_name | default("-") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
@@ -565,7 +567,7 @@
                 <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
                 <div class="form-row">
                     <div class="form-group"><label for="session_date">Session Date:</label><input type="date" id="session_date" name="session_date" onchange="updateMoonData()" value="{{ today_date }}"></div>
-                    <div class="form-group"><label for="location_name">Location:</label><select id="location_name" name="location_name" onchange="updateMoonData()">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}" {{ 'selected' if loc.name == default_location else '' }}>{{ loc.name }}{{ ' (Inactive)' if not loc.active else '' }}</option>{% endfor %}</select></div>
+                    <div class="form-group"><label for="location_name">Location:</label><select id="location_name" name="location_name" onchange="updateMoonData()">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ ' (Inactive)' if not loc.active else '' }}</option>{% endfor %}</select></div>
                 </div>
                 <div class="form-group full-width"><label for="project_selection">Link to Project (Optional)</label><select name="project_selection" id="project_selection" onchange="toggleNewProjectField()"><option value="standalone">-- Standalone Session --</option>{% for project in all_projects %}<option value="{{ project.id }}">{{ project.name }}</option>{% endfor %}<option value="new_project">-- Create New Project --</option></select></div>
                 <div class="form-group full-width" id="new_project_name_group" style="display: none;"><label for="new_project_name">New Project Name:</label><input type="text" name="new_project_name" id="new_project_name" placeholder="e.g., M31 Galaxy - 2025"></div>
@@ -693,6 +695,12 @@
     function populateEditForm(data) {
         if (!data) return;
         const form = document.getElementById('journal-detail-form');
+
+        // Fix: Explicitly set the location select value
+        if (data.location_name) {
+            form.elements['location_name'].value = data.location_name;
+        }
+
         form.elements['seeing_observed_fwhm'].value = data.seeing_observed_fwhm || '';
         form.elements['sky_sqm_observed'].value = data.sky_sqm_observed || '';
         form.elements['moon_illumination_session'].value = data.moon_illumination_session || '';
@@ -765,7 +773,8 @@
         form.action = '{{ url_for("journal_add_for_target", object_name=object_name) }}';
         form.elements.session_id.value = '';
         form.elements.session_date.value = '{{ today_date }}';
-        form.elements.location_name.value = '{{ default_location or (available_locations[0].name if available_locations else "") }}';
+        // Use the current header location first, fall back to default
+        form.elements.location_name.value = '{{ header_location_name or default_location or (available_locations[0].name if available_locations else "") }}';
         form.elements['project_selection'].value = 'standalone';
 
         const deleteCheckbox = form.elements['delete_session_image']; if (deleteCheckbox) deleteCheckbox.checked = false;

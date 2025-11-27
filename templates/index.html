@@ -1610,6 +1610,8 @@ function populateJournalTable() {
             row.classList.add('clickable-row');
             row.setAttribute('data-session-id', session.id);
             row.setAttribute('data-target-object-id', session.object_name);
+            // Store the specific location recorded for this session
+            row.setAttribute('data-session-location', session.location_name || '');
 
             let showFullTargetInfoThisRow = true;
 
@@ -1667,8 +1669,15 @@ function populateJournalTable() {
             row.addEventListener('click', function() {
                 const targetId = this.getAttribute('data-target-object-id');
                 const sessionId = this.getAttribute('data-session-id');
+                const sessionLoc = this.getAttribute('data-session-location');
+
                 if (targetId && sessionId) {
-                    window.location.href = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
+                    let url = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
+                    // If this session has a specific location, force the dashboard to use it
+                    if (sessionLoc) {
+                        url += `&location=${encodeURIComponent(sessionLoc)}`;
+                    }
+                    window.location.href = url;
                 }
             });
             tableBody.appendChild(row);
