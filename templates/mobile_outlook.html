@@ -3,6 +3,34 @@
 {% block title %}Outlook{% endblock %}
 {% block header_title %}Imaging Outlook{% endblock %}
 
+{% block head %}
+<style>
+    .asiair-btn {
+        background-color: #c0392b;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: bold;
+    }
+
+    /* Container to fix overlap */
+    .card-actions {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .item-card {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
     <ul class="item-list" id="outlook-list">
         <li class="loading" id="loading-indicator">
@@ -57,9 +85,23 @@
 
                 for (const item of results) {
                     const li = document.createElement('li');
+
+                    // Construct Mosaic URL
+                    const safeObj = encodeURIComponent(item.object_name);
+                    const baseMosaicUrl = "{{ url_for('mobile_mosaic_view', object_name='__OBJ__') }}";
+                    const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj);
+
+                    let actionsHtml = '';
+                    if (item.has_framing) {
+                        actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">ASIAIR</a>`;
+                    }
+
                     li.className = 'item-card';
                     li.innerHTML = `
-                        <h3>${item.common_name} (${formatDate(item.date)})</h3>
+                        <div class="card-actions">
+                            ${actionsHtml}
+                        </div>
+                        <h3 style="margin-right: 80px;">${item.common_name} (${formatDate(item.date)})</h3>
                         <div class="item-card-grid">
                             <div><strong>Rating:</strong> ${item.rating}</div>
                             <div><strong>Max Alt:</strong> ${item.max_alt}°</div>
