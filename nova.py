@@ -11386,10 +11386,19 @@ def mobile_mosaic_view(object_name):
 
         full_text = "\n".join(output_lines)
 
+        # Determine back link based on source
+        source = request.args.get('from')
+        if source == 'outlook':
+            back_url = url_for('mobile_outlook')
+        else:
+            # Default to up_now for direct access or 'up_now' source
+            back_url = url_for('mobile_up_now')
+
         return render_template('mobile_mosaic_copy.html',
                                object_name=object_name,
                                mosaic_text=full_text,
-                               info=f"{cols}x{rows} Mosaic @ {framing.rotation}°")
+                               info=f"{cols}x{rows} Mosaic @ {framing.rotation}°",
+                               back_url=back_url)
 
     finally:
         db.close()

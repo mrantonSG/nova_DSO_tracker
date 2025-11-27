@@ -89,7 +89,8 @@
                     // Construct Mosaic URL
                     const safeObj = encodeURIComponent(item.object_name);
                     const baseMosaicUrl = "{{ url_for('mobile_mosaic_view', object_name='__OBJ__') }}";
-                    const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj);
+                    // Append source param
+                    const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=outlook";
 
                     let actionsHtml = '';
                     if (item.has_framing) {

@@ -323,7 +323,8 @@
             const editUrl = baseEditUrl.replace('__OBJ__', safeObj);
 
             const baseMosaicUrl = "{{ url_for('mobile_mosaic_view', object_name='__OBJ__') }}";
-            const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj);
+            // Append source param
+            const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=up_now";
 
             let durHtml = `<div><strong>Duration:</strong> ${obj['Observable Duration (min)']} min</div>`;
             if (obj['Observable Duration (min)'] == 0) {
