@@ -1,6 +1,65 @@
 
 let currentTimeUpdateInterval = null;
 
+// --- Nova Precession Helpers (J2000 <-> JNow) ---
+function getPrecessionMatrix(jd) {
+    const T = (jd - 2451545.0) / 36525.0;
+    const zeta = (2306.2181 * T + 0.30188 * T * T + 0.017998 * T * T * T) * (Math.PI / 180 / 3600);
+    const z    = (2306.2181 * T + 1.09468 * T * T + 0.018203 * T * T * T) * (Math.PI / 180 / 3600);
+    const theta= (2004.3109 * T - 0.42665 * T * T - 0.041833 * T * T * T) * (Math.PI / 180 / 3600);
+
+    const cosZ = Math.cos(z), sinZ = Math.sin(z);
+    const cosTh = Math.cos(theta), sinTh = Math.sin(theta);
+    const cosZe = Math.cos(zeta), sinZe = Math.sin(zeta);
+
+    return [
+        [ cosZe * cosTh * cosZ - sinZe * sinZ, -sinZe * cosTh * cosZ - cosZe * sinZ, -sinTh * cosZ ],
+        [ cosZe * cosTh * sinZ + sinZe * cosZ, -sinZe * cosTh * sinZ + cosZe * cosZ, -sinTh * sinZ ],
+        [ cosZe * sinTh, -sinZe * sinTh, cosTh ]
+    ];
+}
+
+function applyMatrix(m, v) {
+    return [
+        m[0][0]*v[0] + m[0][1]*v[1] + m[0][2]*v[2],
+        m[1][0]*v[0] + m[1][1]*v[1] + m[1][2]*v[2],
+        m[2][0]*v[0] + m[2][1]*v[1] + m[2][2]*v[2]
+    ];
+}
+
+function convertJ2000ToJNow(raDeg, decDeg) {
+    const jdNow = (new Date().getTime() / 86400000.0) + 2440587.5;
+    const m = getPrecessionMatrix(jdNow);
+    const raRad = raDeg * Math.PI / 180.0, decRad = decDeg * Math.PI / 180.0;
+    const x = Math.cos(decRad) * Math.cos(raRad);
+    const y = Math.cos(decRad) * Math.sin(raRad);
+    const z = Math.sin(decRad);
+    const v2 = applyMatrix(m, [x, y, z]);
+    const r = Math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]);
+    let raNow = Math.atan2(v2[1], v2[0]);
+    if (raNow < 0) raNow += 2 * Math.PI;
+    const decNow = Math.atan2(v2[2], r);
+    return { ra: raNow * 180.0 / Math.PI, dec: decNow * 180.0 / Math.PI };
+}
+
+function convertJNowToJ2000(raDeg, decDeg) {
+    const jdNow = (new Date().getTime() / 86400000.0) + 2440587.5;
+    const m = getPrecessionMatrix(jdNow);
+    // Transpose matrix for inverse rotation
+    const mt = [ [m[0][0], m[1][0], m[2][0]], [m[0][1], m[1][1], m[2][1]], [m[0][2], m[1][2], m[2][2]] ];
+    const raRad = raDeg * Math.PI / 180.0, decRad = decDeg * Math.PI / 180.0;
+    const x = Math.cos(decRad) * Math.cos(raRad);
+    const y = Math.cos(decRad) * Math.sin(raRad);
+    const z = Math.sin(decRad);
+    const v2 = applyMatrix(mt, [x, y, z]);
+    const r = Math.sqrt(v2[0]*v2[0] + v2[1]*v2[1]);
+    let raJ2000 = Math.atan2(v2[1], v2[0]);
+    if (raJ2000 < 0) raJ2000 += 2 * Math.PI;
+    const decJ2000 = Math.atan2(v2[2], r);
+    return { ra: raJ2000 * 180.0 / Math.PI, dec: decJ2000 * 180.0 / Math.PI };
+}
+// --- End Precession Helpers ---
+
 const weatherOverlayPlugin = {
   id: 'weatherOverlay',
   beforeDatasetsDraw(chart) {
@@ -1188,7 +1247,12 @@ function updateImageAdjustments() {
         }
     }
 }
-function updateReadout(raDeg, decDeg) { document.getElementById('ra-readout').value = formatRA(raDeg); document.getElementById('dec-readout').value = formatDec(decDeg); }
+function updateReadout(raDeg, decDeg) {
+    // Convert the J2000 coordinates from Aladin to JNow for the UI display
+    const jNow = convertJ2000ToJNow(raDeg, decDeg);
+    document.getElementById('ra-readout').value = formatRA(jNow.ra);
+    document.getElementById('dec-readout').value = formatDec(jNow.dec);
+}
 function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } else if (fovCenter && isFinite(fovCenter.ra) && isFinite(fovCenter.dec)) center = fovCenter; else { const rc = aladin.getRaDec(); center = { ra: rc[0], dec: rc[1] }; } updateReadout(center.ra, center.dec); }
 function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
 function changeView(view) {
@@ -1197,7 +1261,16 @@ function changeView(view) {
     if (view === 'day') renderClientSideChart();
     else renderMonthlyYearlyChart(view);
 }
-function useReadoutAsFovCenter() { const raStr = document.getElementById('ra-readout').value, decStr = document.getElementById('dec-readout').value, sky = parseRaDec(raStr, decStr); if (!sky) return; fovCenter = {ra: sky.ra, dec: sky.dec}; updateFramingChart(false); updateReadoutFromCenter(); }
+function useReadoutAsFovCenter() {
+    const raStr = document.getElementById('ra-readout').value, decStr = document.getElementById('dec-readout').value;
+    const skyJNow = parseRaDec(raStr, decStr); // Parsed as JNow
+    if (!skyJNow) return;
+    // Convert back to J2000 for Aladin positioning
+    const skyJ2000 = convertJNowToJ2000(skyJNow.ra, skyJNow.dec);
+    fovCenter = {ra: skyJ2000.ra, dec: skyJ2000.dec};
+    updateFramingChart(false);
+    updateReadoutFromCenter();
+}
 function resetFovCenterToObject() { fovCenter = null; updateFramingChart(true); updateFovVsObjectLabel(); }
 function nudgeFov(dxArcmin, dyArcmin) {
     if (lockToObject && objectCoords) { fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec}; updateFramingChart(false); updateReadoutFromCenter(); return; }
@@ -1417,11 +1490,14 @@ function copyAsiairMosaic() {
                 paneDec = Math.asin(pZ) * 180 / Math.PI;
             }
 
+            // Convert Calculated J2000 Pane Center to JNow before export
+            const paneJNow = convertJ2000ToJNow(paneRa, paneDec);
+
             // Format for ASIAIR
             // Format: Name_PaneX
             //         RA: ... DEC: ...
             clipboardText += `${baseName}_P${paneCount}\n`;
-            clipboardText += `RA: ${formatRaAsiair(paneRa)} DEC: ${formatDecAsiair(paneDec)}\n`;
+            clipboardText += `RA: ${formatRaAsiair(paneJNow.ra)} DEC: ${formatDecAsiair(paneJNow.dec)}\n`;
             paneCount++;
         }
     }
