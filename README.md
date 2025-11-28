@@ -88,7 +88,7 @@ Version 4.3.0 introduced the Yearly Heatmap to assist with long-term planning.
   * **Integrated Filtering:** You can apply your "Saved Views" directly to this heatmap to narrow down targets (e.g., only show "Galaxies").
   * **Active Only:** A checkbox allows you to quickly filter the view to show only your currently active projects.
 
-![Screenshot_44_heatmap.jpg](docs/Screenshot_44_heatmap.jpg)
+![Screenshot_44_heatmap.png](docs/Screenshot_44_heatmap.png)
 
 ### Projects & Imaging Journal (New in v4.2)
 
@@ -145,7 +145,7 @@ Once your framing or mosaic is set, use the **"Copy Plan (CSV)"** button. This g
   * **ASIAIR:** Import via Plan -\> Import.
   * **N.I.N.A.:** Import into the Sequencer.
 
-![Screenshot_44_framing.jpg](docs/Screenshot_44_framing.jpg)
+![Screenshot_44_mosaic.png](docs/Screenshot_44_mosaic.png)
 
 ### Configuration
 
