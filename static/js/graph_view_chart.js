@@ -1444,7 +1444,9 @@ function copyAsiairMosaic() {
     const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
 
     let clipboardText = "";
-    const baseName = NOVA_GRAPH_DATA.objectName.replace(/\s+/g, '_');
+    // Append Rotation to the plan name so it is visible in ASIAIR
+    const rotInt = Math.round(rotDeg);
+    const baseName = `${NOVA_GRAPH_DATA.objectName.replace(/\s+/g, '_')}_Rot${rotInt}`;
 
     // 5. Iterate Grid
     let paneCount = 1;
