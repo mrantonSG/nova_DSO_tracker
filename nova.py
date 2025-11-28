@@ -5641,7 +5641,9 @@ def journal_add():
 
             db.commit()
             flash("New journal entry added successfully!", "success")
-            return redirect(url_for('graph_dashboard', object_name=new_session.object_name, session_id=new_session.id))
+            # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
+            return redirect(url_for('graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
+                                    location=new_session.location_name))
 
         # --- GET Request Logic ---
         target_object = request.args.get('target')
@@ -5841,8 +5843,10 @@ def journal_edit(session_id):
 
             db.commit()
             flash("Journal entry updated successfully!", "success")
+            # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
             return redirect(
-                url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id))
+                url_for('graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id,
+                        location=session_to_edit.location_name))
 
         # --- GET Request Logic ---
         if not session_to_edit.object_name:
@@ -6326,72 +6330,68 @@ def telemetry_startup_ping_once():
         except Exception:
             pass
 
+
 @app.route('/set_location', methods=['POST'])
+@login_required
 def set_location_api():
     data = request.get_json()
     location_name = data.get("location")
-    if location_name not in g.locations:
+
+    # Validation: Ensure location exists in the user's loaded context
+    if not hasattr(g, 'locations') or location_name not in g.locations:
         return jsonify({"status": "error", "message": "Invalid location"}), 404
 
-    # Update in-memory config and selection
-    g.user_config['default_location'] = location_name
-    g.selected_location = location_name
+    # Use the Global User (Source of Truth)
+    # This guarantees we update the SAME user that is viewing the page
+    user_id = g.db_user.id
+    username = g.db_user.username
 
-    # Save to database
-    username = "default" if SINGLE_USER_MODE else (
-        current_user.username if current_user.is_authenticated else 'guest_user')
+    print(f"[SET LOCATION] Attempting to set default for user '{username}' (ID: {user_id}) to '{location_name}'")
+
     db = get_db()
     try:
-        user = db.query(DbUser).filter_by(username=username).one_or_none()
-        if user:
-            # --- CRITICAL FIX START ---
-            # 1. Strip 'is_default' from ALL locations for this user
-            db.query(Location).filter_by(user_id=user.id).update({Location.is_default: False})
+        # 1. Database Transaction: Reset ALL defaults for this user
+        # synchronize_session=False forces the SQL execution immediately against the DB
+        reset_count = db.query(Location).filter_by(user_id=user_id).update(
+            {"is_default": False}, synchronize_session=False
+        )
 
-            # 2. Set 'is_default' ONLY for the selected location
-            db.query(Location).filter_by(user_id=user.id, name=location_name).update(
-                {Location.is_default: True})
-            # --- CRITICAL FIX END ---
+        # 2. Database Transaction: Set NEW default
+        update_count = db.query(Location).filter_by(user_id=user_id, name=location_name).update(
+            {"is_default": True}, synchronize_session=False
+        )
 
-            # 3. Update UiPref (JSON) for consistency
-            prefs = db.query(UiPref).filter_by(user_id=user.id).first()
-            if not prefs:
-                prefs = UiPref(user_id=user.id, json_blob='{}')
-                db.add(prefs)
+        print(f"[SET LOCATION] Reset {reset_count} locations. Set new default: {update_count} rows updated.")
 
-            try:
-                settings = json.loads(prefs.json_blob or '{}')
-            except json.JSONDecodeError:
-                settings = {}
+        # 3. Update JSON Preferences (Legacy/Backup)
+        prefs = db.query(UiPref).filter_by(user_id=user_id).first()
+        if not prefs:
+            prefs = UiPref(user_id=user_id, json_blob='{}')
+            db.add(prefs)
 
-            settings['default_location'] = location_name
-            prefs.json_blob = json.dumps(settings)
-            db.commit()
-        else:
-    # User not found, but we can't save. Log it.
-            print(f"[set_location] ERROR: Could not find user '{username}' to save default location.")
+        try:
+            settings = json.loads(prefs.json_blob or '{}')
+        except json.JSONDecodeError:
+            settings = {}
+
+        settings['default_location'] = location_name
+        prefs.json_blob = json.dumps(settings)
+
+        db.commit()
+
+        # 4. Update in-memory global state for immediate use
+        if hasattr(g, 'user_config'):
+            g.user_config['default_location'] = location_name
+        g.selected_location = location_name
+
+        return jsonify({"status": "success", "message": f"Location set to {location_name}"})
+
     except Exception as e:
         db.rollback()
-        print(f"[set_location] ERROR: {e}")
+        print(f"[SET LOCATION] CRITICAL ERROR: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
-
-    # Proactively warm the weather cache for the new location in the background.
-    try:
-        new_loc_details = g.locations.get(location_name, {})
-        new_lat = new_loc_details.get("lat")
-        new_lon = new_loc_details.get("lon")
-        if new_lat is not None and new_lon is not None:
-            # Run the weather fetch in a separate thread so it doesn't block
-            # the current request. We don't need its return value here.
-            thread = threading.Thread(target=get_hybrid_weather_forecast, args=(new_lat, new_lon))
-            thread.start()
-            print(f"[CACHE WARMING] Triggered background weather fetch for new location: {location_name}")
-    except Exception as e:
-        print(f"[CACHE WARMING] Failed to trigger background weather fetch: {e}")
-
-    return jsonify({"status": "success", "message": f"Location set to {location_name}"})
 
 
 @app.route('/favicon.ico')
