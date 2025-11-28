@@ -4,7 +4,9 @@
 A Flask-based web application designed specifically for astrophotographers, providing essential data for tracking deep-sky objects (DSOs), planning imaging projects, and logging sessions.
 
 ## Features
-
+  * **New in 4.4.0: Mosaic Planning & Export:** Plan multi-pane mosaics directly in the Framing Assistant. Export plans as CSV for import into ASIAIR, or N.I.N.A.
+  * **New in 4.3.0: Yearly Heatmap:** A "Waterfall Heatmap" visualization for long-term target visibility assessment over the next 12 months.
+  * **New in 4.3.0: Integrated Filtering:** Apply "Saved Views" and "Active Only" filters directly to the heatmap visualization.
   * **New in 4.2.0: Core Database Architecture:** A complete migration from flat YAML files to a robust **SQLite database backend**. This ensures faster performance, data safety, and enables complex features like project grouping.
   * **New in 4.1.0: Project Management:** Move beyond simple session logging. Group multiple imaging sessions into dedicated **Projects** (e.g., "Mosaic of M31"). Track total integration time, set goals, and monitor status (In Progress, Completed, Abandoned).
   * **New in 4.1.0: Rig Snapshots:** When you log a session, Nova now takes a "snapshot" of your equipment specs (Focal Length, F-Ratio, Image Scale) at that exact moment. If you change your telescope later, your historical session data remains accurate.
@@ -77,6 +79,17 @@ When opening Nova, you see a list of DSOs sorted by default by their current alt
     3.  Save the view (e.g., "Good Nebulae").
     4.  **Sharing:** You can mark a view as "Shared" to let other users on your server use it.
 
+### Long-Term Planning: The Yearly Heatmap
+
+Version 4.3.0 introduced the Yearly Heatmap to assist with long-term planning.
+
+  * **Waterfall Visualization:** This chart visualizes target visibility over the next 12 months. Darker green indicates higher quality imaging time, while vertical white bands highlight full moon periods where imaging may be difficult.
+  * **Data Loading:** To ensure performance, data is loaded in chunks and stored for 24hrs.
+  * **Integrated Filtering:** You can apply your "Saved Views" directly to this heatmap to narrow down targets (e.g., only show "Galaxies").
+  * **Active Only:** A checkbox allows you to quickly filter the view to show only your currently active projects.
+
+![Screenshot_44_heatmap.jpg](docs/Screenshot_44_heatmap.jpg)
+
 ### Projects & Imaging Journal (New in v4.2)
 
 The Journal has been completely overhauled. It is no longer just a flat list of entries; it is a **Project Management System**.
@@ -118,6 +131,22 @@ The "Show Framing" button opens the Aladin-based framing tool.
   * **Overlays:** You can overlay **other objects** from your database onto the image. This is incredibly useful for planning mosaics or checking if a nearby bright star is in your Field of View.
 
 ![Screenshot _42_framing.png](docs/Screenshot%20_42_framing.png)
+
+**Mosaic Planning (New in v4.4):**
+You can now plan multi-panel mosaics directly within Nova.
+
+1.  **Grid Configuration:** Define the number of columns and rows (e.g., 2x2).
+2.  **Overlap:** Set the percentage of overlap between panels (default 10%).
+3.  **Rotation:** Adjust the camera rotation angle.
+
+**Exporting Plans:**
+Once your framing or mosaic is set, use the **"Copy Plan (CSV)"** button. This generates a CSV format compatible with:
+
+  * **ASIAIR:** Import via Plan -\> Import.
+  * **N.I.N.A.:** Import into the Sequencer.
+
+![Screenshot_44_framing.jpg](docs/Screenshot_44_framing.jpg)
+
 ### Configuration
 
 The Configuration page is the control center for your data.
