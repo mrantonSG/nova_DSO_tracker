@@ -820,7 +820,15 @@ function openFramingAssistant(optionalQueryString) {
         if (q.has('m_rows')) document.getElementById('mosaic-rows').value = q.get('m_rows');
         if (q.has('m_ov')) document.getElementById('mosaic-overlap').value = q.get('m_ov');
         if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
-        if (!Number.isNaN(rot)) { const rotInput = document.getElementById('framing-rotation'), signed = toSigned180(rot); if (rotInput) rotInput.value = signed; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `${Math.round(signed)}°`; haveRot = true; }
+        if (!Number.isNaN(rot)) {
+            const rotInput = document.getElementById('framing-rotation');
+            // Normalize to 0-360 positive
+            const normRot = (rot % 360 + 360) % 360;
+            if (rotInput) rotInput.value = normRot;
+            const rotSpan = document.getElementById('rotation-value');
+            if (rotSpan) rotSpan.textContent = `${Math.round(normRot)}°`;
+            haveRot = true;
+        }
         if (surv) {
             // Explicitly sync the dropdown UI first
             const sSel = document.getElementById('survey-select');
@@ -1415,54 +1423,58 @@ function formatDecAsiair(decDeg) {
     return `${sign}${d}° ${m}' ${s.toFixed(2)}"`;
 }
 
-// CSV Formatters (Colons instead of h/m/s symbols)
+// CSV Formatters (Exact Telescopius Match)
 function formatRaCsv(raDeg) {
     const totalSec = raDeg / 15 * 3600;
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
-    const s = (totalSec % 60).toFixed(2);
-    return `${pad(h)}:${pad(m)}:${pad(s, 5)}`;
+    const s = Math.round(totalSec % 60); // Integer seconds to match "52""
+    // Format: 00hr 47' 52"
+    return `${pad(h)}hr ${pad(m)}' ${pad(s)}"`;
 }
 
 function formatDecCsv(decDeg) {
-    const sign = decDeg >= 0 ? '+' : '-';
     const abs = Math.abs(decDeg);
     const d = Math.floor(abs);
     const m = Math.floor((abs - d) * 60);
-    const s = ((abs - d) * 60 - m) * 60;
-    // Fix precision to 2 decimal places before padding
-    return `${sign}${pad(d)}:${pad(m)}:${pad(s.toFixed(2), 5)}`;
+    const s = Math.round(((abs - d) * 60 - m) * 60);
+
+    // Telescopius Format: 41º 53' 27" (No '+' for positive, uses º ordinal)
+    const signStr = decDeg < 0 ? '-' : '';
+    return `${signStr}${d}º ${pad(m)}' ${pad(s)}"`;
 }
 
 function copyAsiairMosaic() {
-    // 1. Get Grid Config
+    if (!aladin || !fovCenter) return;
+
     const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
     const rows = parseInt(document.getElementById('mosaic-rows')?.value || 1);
-    const overlap = parseFloat(document.getElementById('mosaic-overlap')?.value || 0) / 100;
-
-    // 2. Get Rig Config (FOV)
-    const sel = document.getElementById('framing-rig-select');
-    if (!sel || sel.selectedIndex < 0) { alert("No rig selected."); return; }
-    const opt = sel.options[sel.selectedIndex];
-    const fovWidthArcmin = parseFloat(opt.dataset.fovw);
-    const fovHeightArcmin = parseFloat(opt.dataset.fovh);
-
-    // 3. Get Center & Rotation
-    const center = getFrameCenterRaDec();
-    if (!center) { alert("No valid center coordinates found."); return; }
+    const overlapPercent = parseFloat(document.getElementById('mosaic-overlap')?.value || 0);
+    const overlap = overlapPercent / 100;
     const rotDeg = parseFloat(document.getElementById('framing-rotation')?.value || 0);
 
-    // 4. Math Setup (Tangent Plane Projection)
-    const wDeg = (fovWidthArcmin / 60);
-    const hDeg = (fovHeightArcmin / 60);
-    const wStep = wDeg * (1 - overlap);
-    const hStep = hDeg * (1 - overlap);
+    const fovRigSel = document.getElementById('framing-rig-select');
+    if (!fovRigSel || fovRigSel.selectedIndex < 0) {
+        alert("Please select a rig first.");
+        return;
+    }
+    const opt = fovRigSel.options[fovRigSel.selectedIndex];
+    // Keep raw arcmin for CSV output
+    const fovWArcmin = parseFloat(opt.dataset.fovw);
+    const fovHArcmin = parseFloat(opt.dataset.fovh);
 
-    // Invert angle for CW rotation
-    const ang = -rotDeg * Math.PI / 180;
+    const fovW = fovWArcmin / 60; // degrees
+    const fovH = fovHArcmin / 60; // degrees
+
+    const wStep = fovW * (1 - overlap);
+    const hStep = fovH * (1 - overlap);
+
+    const center = fovCenter;
+    const ang = -rotDeg * Math.PI / 180; // Standard math (CCW) vs Screen (CW)
     const ra0 = center.ra * Math.PI / 180;
     const dec0 = center.dec * Math.PI / 180;
 
+    // Tangent plane vectors
     const cX = Math.cos(dec0) * Math.cos(ra0);
     const cY = Math.cos(dec0) * Math.sin(ra0);
     const cZ = Math.sin(dec0);
@@ -1470,67 +1482,53 @@ function copyAsiairMosaic() {
     const nX = -Math.sin(dec0) * Math.cos(ra0), nY = -Math.sin(dec0) * Math.sin(ra0), nZ = Math.cos(dec0);
 
     let clipboardText = "";
-    // Append Rotation to the plan name so it is visible in ASIAIR
-    const rotInt = Math.round(rotDeg);
-    const baseName = `${NOVA_GRAPH_DATA.objectName.replace(/\s+/g, '_')}_Rot${rotInt}`;
+    // Exact Telescopius Header
+    clipboardText += "Pane, RA, DEC, Position Angle (East), Pane width (arcmins), Pane height (arcmins), Overlap, Row, Column\n";
 
-    // 5. Iterate Grid
+    // Prepare Base Name
+    const rotInt = Math.round((rotDeg % 360 + 360) % 360);
+    const safeName = (NOVA_GRAPH_DATA.objectName || "Target").replace(/\s+/g, '_');
+
     let paneCount = 1;
-    // Loop order: Rows then Cols (Standard reading order logic, though ASIAIR accepts any list)
-    // Logic matches drawFovFootprint: r=0 is bottom, c=0 is left
+
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-            // Center of pane relative to mosaic center (unrotated)
-            const cx_off = (c - (cols - 1) / 2) * wStep;
-            const cy_off = (r - (rows - 1) / 2) * hStep;
-
-            // Rotate offset
-            // Note: In Aladin drawing we inverted X in planeToSky depending on projection,
-            // but mathematically for standard tangent plane:
-            // X increases East (Left on sky), Y increases North.
+            // ... Grid Logic ...
+            const cx_off = (c - (cols - 1) / 2.0) * wStep;
+            const cy_off = (r - (rows - 1) / 2.0) * hStep;
             const rx = cx_off * Math.cos(ang) - cy_off * Math.sin(ang);
             const ry = cx_off * Math.sin(ang) + cy_off * Math.cos(ang);
-
-            // Project back to Sky (RA/Dec)
-            // We use standard Gnomonic de-projection
-            // dx, dy in degrees converted to radians
-            const dx = -rx * Math.PI / 180; // Negate X because RA increases East (Left)
-            const dy = ry * Math.PI / 180;
+            const dx = (rx * Math.PI / 180);
+            const dy = (ry * Math.PI / 180);
             const rad = Math.hypot(dx, dy);
-
-            let paneRa, paneDec;
-
-            if (rad < 1e-9) {
-                paneRa = center.ra;
-                paneDec = center.dec;
-            } else {
+            let paneRa = center.ra;
+            let paneDec = center.dec;
+            if (rad > 1e-9) {
+                const sinC = Math.sin(rad), cosC = Math.cos(rad);
                 const dirX = (dx * eX + dy * nX) / rad;
                 const dirY = (dx * eY + dy * nY) / rad;
                 const dirZ = (dx * eZ + dy * nZ) / rad;
-                const sinC = Math.sin(rad), cosC = Math.cos(rad);
                 const pX = cosC * cX + sinC * dirX;
                 const pY = cosC * cY + sinC * dirY;
                 const pZ = cosC * cZ + sinC * dirZ;
-
                 let raRad = Math.atan2(pY, pX);
                 if (raRad < 0) raRad += 2 * Math.PI;
                 paneRa = raRad * 180 / Math.PI;
                 paneDec = Math.asin(pZ) * 180 / Math.PI;
             }
 
-            // Convert Calculated J2000 Pane Center to JNow before export
-            const paneJNow = convertJ2000ToJNow(paneRa, paneDec);
+            // Full Row Construction (Match spacing)
+            const pName = `${safeName}_Rot${rotInt}_P${paneCount}`;
+            const pRa = formatRaCsv(paneRa);
+            const pDec = formatDecCsv(paneDec);
+            const pRot = rotInt.toFixed(2);
+            const pW = fovWArcmin.toFixed(2);
+            const pH = fovHArcmin.toFixed(2);
+            const pOv = `${Math.round(overlapPercent)}%`; // Telescopius uses 15% (int)
+            const pRow = r + 1;
+            const pCol = c + 1;
 
-            // Format for Universal CSV (Telescopius Standard)
-            // Header (Implicit): Name, RA, Dec, Rotation
-            // We use semicolons or commas. ASIAIR accepts commas.
-            // Format: Name, HH:MM:SS, DD:MM:SS, Rot
-
-            // Note: We use the rotation value from the UI (rotDeg) for the CSV.
-            // ASIAIR expects 0-360.
-            let csvRot = (rotDeg % 360 + 360) % 360;
-
-            clipboardText += `${baseName}_P${paneCount},${formatRaCsv(paneJNow.ra)},${formatDecCsv(paneJNow.dec)},${Math.round(csvRot)}\n`;
+            clipboardText += `${pName}, ${pRa}, ${pDec}, ${pRot}, ${pW}, ${pH}, ${pOv}, ${pRow}, ${pCol}\n`;
             paneCount++;
         }
     }
@@ -1540,7 +1538,7 @@ function copyAsiairMosaic() {
             `Copied ${paneCount-1} pane(s) to clipboard (CSV Format).\n\n` +
             `• ASIAIR: Go to Plan > Import > Paste.\n` +
             `• N.I.N.A.: Save as .csv and import into Sequencer.\n\n` +
-            `NOTE: Coordinates are JNow. Rotation is included.`
+            `NOTE: Coordinates are J2000. Rotation is included.`
         );
     }).catch(err => {
         console.error('Clipboard write failed:', err);
