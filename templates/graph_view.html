@@ -1050,7 +1050,7 @@
                     <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Overlap %</label>
                     <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" onchange="updateFramingChart(false)">
                 </div>
-                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" onclick="copyAsiairMosaic()" title="Copy coordinates for ASIAIR Plan import">Copy for ASIAIR</button>
+                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" onclick="copyAsiairMosaic()" title="Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.">Copy Plan (CSV)</button>
             </div>
             <div>
                 <label for="survey-select">Survey:</label>
@@ -1163,7 +1163,7 @@
         allObjects: {{ framing_objects | tojson }}
     };
 </script>
-<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=jnow_rot_v2"></script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=jnow_rot_v4"></script>
 <script>
 // --- Sub-Tab Control Logic ---
 function showProjectSubTab(tabName) {
