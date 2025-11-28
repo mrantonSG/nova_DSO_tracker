@@ -46,7 +46,7 @@ from flask import render_template, jsonify, request, send_file, redirect, url_fo
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
-
+import math
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5
 from astropy.time import Time
@@ -11342,23 +11342,27 @@ def _format_dec_asiair(dec_deg):
     s = ((abs_dec - d) * 60 - m) * 60
     return f"{sign}{d}° {m}' {s:.2f}\""
 
+
 def _format_ra_csv(ra_deg):
-    total_sec = (ra_deg / 15.0) * 3600
-    h = int(total_sec // 3600)
-    m = int((total_sec % 3600) // 60)
-    s = total_sec % 60
-    return f"{h:02d}:{m:02d}:{s:05.2f}"
+    # Round to nearest second to avoid floating point issues (e.g. 59.999s)
+    total_seconds = round((ra_deg / 15.0) * 3600)
+    h = int(total_seconds // 3600)
+    m = int((total_seconds % 3600) // 60)
+    s = int(total_seconds % 60)
+    # Telescopius Format: 00hr 00' 00" (Pad with zeros)
+    return f"{h:02d}hr {m:02d}' {s:02d}\""
+
 
 def _format_dec_csv(dec_deg):
-    sign = '+' if dec_deg >= 0 else '-'
-    abs_dec = abs(dec_deg)
-    d = int(abs_dec)
-    m = int((abs_dec - d) * 60)
-    s = ((abs_dec - d) * 60 - m) * 60
-    return f"{sign}{d:02d}:{m:02d}:{s:05.2f}"
-
-
-import math
+    sign = '-' if dec_deg < 0 else ''
+    dec_abs = abs(dec_deg)
+    # Round to nearest second
+    total_seconds = round(dec_abs * 3600)
+    d = int(total_seconds // 3600)
+    m = int((total_seconds % 3600) // 60)
+    s = int(total_seconds % 60)
+    # Telescopius Format: 41º 53' 27" (Uses ordinal º, no plus sign for positive)
+    return f"{sign}{d}º {m:02d}' {s:02d}\""
 
 
 @app.route('/m/mosaic/<path:object_name>')
@@ -11415,6 +11419,10 @@ def mobile_mosaic_view(object_name):
         base_name = object_name.replace(" ", "_")
         pane_count = 1
 
+        # CSV Header - Exact Telescopius Format (9 Columns)
+        output_lines.append(
+            "Pane, RA, DEC, Position Angle (East), Pane width (arcmins), Pane height (arcmins), Overlap, Row, Column")
+
         for r in range(rows):
             for c in range(cols):
                 cx_off = (c - (cols - 1) / 2.0) * w_step
@@ -11448,25 +11456,31 @@ def mobile_mosaic_view(object_name):
                     p_ra = math.degrees(ra_rad_res)
                     p_dec = math.degrees(math.asin(pZ))
 
-                    # --- PRECESSION (J2000 -> JNow) ---
-                    # Calculate JNow for this pane center to match mount coordinates
-                c_j2000 = SkyCoord(ra=p_ra * u.deg, dec=p_dec * u.deg, frame='icrs')
-                c_jnow = c_j2000.transform_to(FK5(equinox=Time.now()))
-                p_ra_now = c_jnow.ra.deg
-                p_dec_now = c_jnow.dec.deg
-
-                # --- UNIVERSAL CSV FORMAT ---
-                # Format: Name, RA, Dec, Rotation
                 # Ensure Rotation is 0-360 positive for ASIAIR
                 csv_rot = int(round((framing.rotation or 0) % 360))
                 if csv_rot < 0: csv_rot += 360
 
-                # Append formatted line
-                line = f"{base_name}_P{pane_count},{_format_ra_csv(p_ra_now)},{_format_dec_csv(p_dec_now)},{csv_rot}"
+                # Format Data Columns using J2000 (ASIAIR handles JNow internally)
+                p_name = f"{base_name}_P{pane_count}"
+                p_ra_str = _format_ra_csv(p_ra)
+                p_dec_str = _format_dec_csv(p_dec)
+                p_rot = f"{csv_rot:.2f}"
+
+                # Rig Dimensions
+                rig_w = f"{rig.fov_w_arcmin:.2f}" if rig and rig.fov_w_arcmin else "0.00"
+                rig_h = f"{fov_h_deg * 60:.2f}"
+
+                # Overlap and Grid Index
+                p_ov = f"{int(framing.mosaic_overlap)}%"
+                p_row = r + 1
+                p_col = c + 1
+
+                # Construct CSV Line (with spaces after commas)
+                line = f"{p_name}, {p_ra_str}, {p_dec_str}, {p_rot}, {rig_w}, {rig_h}, {p_ov}, {p_row}, {p_col}"
                 output_lines.append(line)
                 pane_count += 1
 
-            full_text = "\n".join(output_lines)
+        full_text = "\n".join(output_lines)
 
         # Determine back link based on source
         source = request.args.get('from')
@@ -11484,7 +11498,6 @@ def mobile_mosaic_view(object_name):
 
     finally:
         db.close()
-
 # =============================================================================
 # Main Entry Point
 # =============================================================================
