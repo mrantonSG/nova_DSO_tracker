@@ -704,7 +704,11 @@ function scheduleRotationUpdate(deg) {
     });
 }
 function onRotationInput(val) {
-    const v = Math.max(-90, Math.min(90, Number(val) || 0));
+    // Allow full 0-360 range to match ASIAIR PA
+    let v = Number(val) || 0;
+    // Normalize to 0-360 just in case
+    v = ((v % 360) + 360) % 360;
+
     const span = document.getElementById('rotation-value');
     if (span) span.textContent = v.toFixed(1).replace(/\.0$/, '') + '°';
     scheduleRotationUpdate(v);
@@ -730,7 +734,7 @@ function openFramingAssistant(optionalQueryString) {
     const framingRigSelect = document.getElementById('framing-rig-select');
     if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") { alert("Please configure at least one rig on the Configuration page first."); return; }
 
-    (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '-90'); slider.setAttribute('max', '90'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
+    (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '0'); slider.setAttribute('max', '360'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
     if (!aladin) {
         aladin = A.aladin('#aladin-lite-div', { survey: "P/DSS2/color", fov: 1.5, cooFrame: 'ICRS', showFullscreenControl: false, showGotoControl: false });
         (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
@@ -844,7 +848,7 @@ function openFramingAssistant(optionalQueryString) {
     if (!haveCenter) applyLockToObject(true);
 }
 function closeFramingAssistant() { document.getElementById('framing-modal').style.display = 'none'; }
-function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; if (v > 90) v = -90; slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
+function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; v = v % 360; slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
 function applyRigFovZoom(fovW_arcmin, fovH_arcmin, rotationDeg = 0, margin = 1.06) {
     if (!aladin) return; const host = document.getElementById('aladin-lite-div'); if (!host) return;
     const wpx = host.clientWidth, hpx = host.clientHeight; if (!(wpx > 0 && hpx > 0)) return; const aspect = wpx / hpx;
@@ -862,7 +866,10 @@ window.updateFramingChart = function (recenter = true) {
     const fovWidthArcmin = parseFloat(selectedOption.dataset.fovw), fovHeightArcmin = parseFloat(selectedOption.dataset.fovh);
     const vNum = (rotationSlider && typeof rotationSlider.valueAsNumber === 'number') ? rotationSlider.valueAsNumber : NaN;
     const rotation = Number.isFinite(vNum) ? vNum : (Number.isFinite(parseFloat(rotationSlider.value)) ? parseFloat(rotationSlider.value) : 0);
-    (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), txt = `${Math.round(toSigned180(rotation))}°`; if (el) el.textContent = txt; if (sliderEl) sliderEl.title = `Rotation: ${txt}`; })();
+
+    // Update badge with simple 0-360 value
+    (function updateRotationBadge(){ const el = document.getElementById('rotation-value'), sliderEl = document.getElementById('framing-rotation'), txt = `${Math.round(rotation)}°`; if (el) el.textContent = txt; if (sliderEl) sliderEl.title = `Rotation: ${txt}`; })();
+
     if (recenter) applyRigFovZoom(fovWidthArcmin, fovHeightArcmin, rotation);
     if (recenter) {
         // --- START OF FIX ---
