@@ -1415,6 +1415,25 @@ function formatDecAsiair(decDeg) {
     return `${sign}${d}° ${m}' ${s.toFixed(2)}"`;
 }
 
+// CSV Formatters (Colons instead of h/m/s symbols)
+function formatRaCsv(raDeg) {
+    const totalSec = raDeg / 15 * 3600;
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = (totalSec % 60).toFixed(2);
+    return `${pad(h)}:${pad(m)}:${pad(s, 5)}`;
+}
+
+function formatDecCsv(decDeg) {
+    const sign = decDeg >= 0 ? '+' : '-';
+    const abs = Math.abs(decDeg);
+    const d = Math.floor(abs);
+    const m = Math.floor((abs - d) * 60);
+    const s = ((abs - d) * 60 - m) * 60;
+    // Fix precision to 2 decimal places before padding
+    return `${sign}${pad(d)}:${pad(m)}:${pad(s.toFixed(2), 5)}`;
+}
+
 function copyAsiairMosaic() {
     // 1. Get Grid Config
     const cols = parseInt(document.getElementById('mosaic-cols')?.value || 1);
@@ -1502,17 +1521,27 @@ function copyAsiairMosaic() {
             // Convert Calculated J2000 Pane Center to JNow before export
             const paneJNow = convertJ2000ToJNow(paneRa, paneDec);
 
-            // Format for ASIAIR
-            // Format: Name_PaneX
-            //         RA: ... DEC: ...
-            clipboardText += `${baseName}_P${paneCount}\n`;
-            clipboardText += `RA: ${formatRaAsiair(paneJNow.ra)} DEC: ${formatDecAsiair(paneJNow.dec)}\n`;
+            // Format for Universal CSV (Telescopius Standard)
+            // Header (Implicit): Name, RA, Dec, Rotation
+            // We use semicolons or commas. ASIAIR accepts commas.
+            // Format: Name, HH:MM:SS, DD:MM:SS, Rot
+
+            // Note: We use the rotation value from the UI (rotDeg) for the CSV.
+            // ASIAIR expects 0-360.
+            let csvRot = (rotDeg % 360 + 360) % 360;
+
+            clipboardText += `${baseName}_P${paneCount},${formatRaCsv(paneJNow.ra)},${formatDecCsv(paneJNow.dec)},${Math.round(csvRot)}\n`;
             paneCount++;
         }
     }
 
     navigator.clipboard.writeText(clipboardText).then(() => {
-        alert(`Copied ${paneCount-1} pane coordinates to clipboard.\n\nOpen ASIAIR > Plan > Import > Paste.`);
+        alert(
+            `Copied ${paneCount-1} pane(s) to clipboard (CSV Format).\n\n` +
+            `• ASIAIR: Go to Plan > Import > Paste.\n` +
+            `• N.I.N.A.: Save as .csv and import into Sequencer.\n\n` +
+            `NOTE: Coordinates are JNow. Rotation is included.`
+        );
     }).catch(err => {
         console.error('Clipboard write failed:', err);
         alert("Failed to copy to clipboard. See console.");

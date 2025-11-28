@@ -48,7 +48,7 @@ from flask import session
 from flask import Flask, send_from_directory, has_request_context
 
 from astroquery.simbad import Simbad
-from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5
 from astropy.time import Time
 import astropy.units as u
 
@@ -11342,6 +11342,21 @@ def _format_dec_asiair(dec_deg):
     s = ((abs_dec - d) * 60 - m) * 60
     return f"{sign}{d}° {m}' {s:.2f}\""
 
+def _format_ra_csv(ra_deg):
+    total_sec = (ra_deg / 15.0) * 3600
+    h = int(total_sec // 3600)
+    m = int((total_sec % 3600) // 60)
+    s = total_sec % 60
+    return f"{h:02d}:{m:02d}:{s:05.2f}"
+
+def _format_dec_csv(dec_deg):
+    sign = '+' if dec_deg >= 0 else '-'
+    abs_dec = abs(dec_deg)
+    d = int(abs_dec)
+    m = int((abs_dec - d) * 60)
+    s = ((abs_dec - d) * 60 - m) * 60
+    return f"{sign}{d:02d}:{m:02d}:{s:05.2f}"
+
 
 import math
 
@@ -11433,11 +11448,25 @@ def mobile_mosaic_view(object_name):
                     p_ra = math.degrees(ra_rad_res)
                     p_dec = math.degrees(math.asin(pZ))
 
-                output_lines.append(f"{base_name}_P{pane_count}")
-                output_lines.append(f"RA: {_format_ra_asiair(p_ra)} DEC: {_format_dec_asiair(p_dec)}")
+                    # --- PRECESSION (J2000 -> JNow) ---
+                    # Calculate JNow for this pane center to match mount coordinates
+                c_j2000 = SkyCoord(ra=p_ra * u.deg, dec=p_dec * u.deg, frame='icrs')
+                c_jnow = c_j2000.transform_to(FK5(equinox=Time.now()))
+                p_ra_now = c_jnow.ra.deg
+                p_dec_now = c_jnow.dec.deg
+
+                # --- UNIVERSAL CSV FORMAT ---
+                # Format: Name, RA, Dec, Rotation
+                # Ensure Rotation is 0-360 positive for ASIAIR
+                csv_rot = int(round((framing.rotation or 0) % 360))
+                if csv_rot < 0: csv_rot += 360
+
+                # Append formatted line
+                line = f"{base_name}_P{pane_count},{_format_ra_csv(p_ra_now)},{_format_dec_csv(p_dec_now)},{csv_rot}"
+                output_lines.append(line)
                 pane_count += 1
 
-        full_text = "\n".join(output_lines)
+            full_text = "\n".join(output_lines)
 
         # Determine back link based on source
         source = request.args.get('from')
