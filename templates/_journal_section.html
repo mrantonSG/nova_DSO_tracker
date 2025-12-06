@@ -1,8 +1,10 @@
 <style>
     .journal-container { display: flex; gap: 25px; align-items: flex-start; }
-    .session-list-column { flex: 0 0 450px; }
+    .session-list-column { flex: 0 0 450px; max-height: 950px; overflow-y: auto; }
     .session-detail-column {
         flex: 1 1 auto;
+        max-height: 950px;
+        overflow-y: auto;
         padding-right: 15px;
     }
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
@@ -610,58 +612,133 @@
 </div>
 
 <script>
-    // --- MODIFIED PDF FUNCTION (Accepts iframeId) ---
-    function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
+    // --- ROBUST PDF GENERATOR: SPACER, SLICE & PAGE NUMBERS ---
+    async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
             alert('PDF libraries missing.');
             return;
         }
 
-        // Find the specific iframe passed in the arguments
         const iframe = document.getElementById(iframeId);
-
-        if (!iframe) {
-             console.error("Iframe not found with ID:", iframeId);
-             alert("Error: Report frame not found.");
+        if (!iframe || !iframe.contentWindow) {
+             alert("Report frame not found.");
              return;
         }
 
-        // Check if content is loaded
-        if (!iframe.contentWindow || iframe.contentWindow.document.readyState !== 'complete') {
-            alert("Report is still loading. Please wait a moment and try again.");
-            return;
-        }
-
-        const originalButtonText = buttonElement.textContent;
-        buttonElement.textContent = "Generating...";
+        const buttonOriginalText = buttonElement.textContent;
+        buttonElement.textContent = "Formatting...";
         buttonElement.disabled = true;
 
         try {
             const doc = iframe.contentWindow.document;
-            const reportContent = doc.getElementById('report-content');
+            const contentDiv = doc.getElementById('report-content');
 
-            if (!reportContent) {
-                throw new Error('Could not find report content in the frame.');
+            // 1. Reset any previous spacers/clones
+            doc.querySelectorAll('.pdf-spacer, .pdf-header-clone').forEach(el => el.remove());
+            doc.querySelectorAll('.report-block').forEach(el => el.style.marginTop = '0px');
+
+            // 2. A4 Dimensions calculation
+            const reportWidth = contentDiv.offsetWidth;
+            const a4Ratio = 297 / 210;
+            const pageHeightPx = reportWidth * a4Ratio;
+
+            // 3. Identify Blocks
+            // Note: We include stat-box-container explicitly
+            const blocks = doc.querySelectorAll('.report-block, .stat-box-container, .master-image-container, .footer');
+            const headerOriginal = doc.querySelector('.header-table');
+            const headerLine = doc.querySelector('.header-line');
+
+            let accumulatedHeight = 0;
+
+            // Initial Header Height on Page 1
+            accumulatedHeight += (headerOriginal.offsetHeight + headerLine.offsetHeight + 20);
+
+            // 4. Spacer Insertion Loop
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
+                const blockHeight = block.offsetHeight;
+                const currentBottom = accumulatedHeight + blockHeight;
+                const pageBoundary = Math.ceil(accumulatedHeight / pageHeightPx) * pageHeightPx;
+
+                if (currentBottom > pageBoundary) {
+                    const spaceNeeded = pageBoundary - accumulatedHeight;
+
+                    const headerClone = headerOriginal.cloneNode(true);
+                    const lineClone = headerLine.cloneNode(true);
+                    headerClone.classList.add('pdf-header-clone');
+                    lineClone.classList.add('pdf-header-clone');
+
+                    const spacer = doc.createElement('div');
+                    spacer.className = 'pdf-spacer';
+                    spacer.style.height = spaceNeeded + 'px';
+                    spacer.style.width = '100%';
+                    spacer.style.display = 'block';
+
+                    block.parentNode.insertBefore(spacer, block);
+                    block.parentNode.insertBefore(headerClone, block);
+                    block.parentNode.insertBefore(lineClone, block);
+
+                    accumulatedHeight = pageBoundary + headerClone.offsetHeight + lineClone.offsetHeight + 20;
+                    accumulatedHeight += blockHeight;
+                } else {
+                    accumulatedHeight += blockHeight;
+                }
             }
 
-            html2canvas(reportContent, { scale: 2, useCORS: true, allowTaint: true }).then(canvas => {
+            // 5. Render PDF
+            buttonElement.textContent = "Generating PDF...";
+
+            html2canvas(contentDiv, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                scrollY: 0
+            }).then(canvas => {
                 const { jsPDF } = window.jspdf;
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+                const pdf = new jsPDF('p', 'mm', 'a4');
                 const pdfWidth = pdf.internal.pageSize.getWidth();
-                const canvasRatio = canvas.height / canvas.width;
-                const imgHeight = pdfWidth * canvasRatio;
+                const pdfHeight = pdf.internal.pageSize.getHeight();
 
-                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight);
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+                const ratio = pdfWidth / imgWidth;
+                const totalPdfHeight = imgHeight * ratio;
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+                let heightLeft = totalPdfHeight;
+                let position = 0;
+
+                // Add content pages
+                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, totalPdfHeight);
+                heightLeft -= pdfHeight;
+
+                while (heightLeft > 0) {
+                    position -= pdfHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, totalPdfHeight);
+                    heightLeft -= pdfHeight;
+                }
+
+                // 6. Add Page Numbers
+                const totalPages = pdf.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(9);
+                    pdf.setTextColor(150);
+                    // Print centered at bottom
+                    pdf.text(`Page ${i} of ${totalPages}`, pdfWidth / 2, pdfHeight - 10, { align: 'center' });
+                }
+
                 pdf.save(defaultFilename);
-
-                buttonElement.textContent = originalButtonText;
+                buttonElement.textContent = buttonOriginalText;
                 buttonElement.disabled = false;
             });
+
         } catch (err) {
             console.error(err);
             alert("Error creating PDF: " + err.message);
-            buttonElement.textContent = originalButtonText;
+            buttonElement.textContent = buttonOriginalText;
             buttonElement.disabled = false;
         }
     }
