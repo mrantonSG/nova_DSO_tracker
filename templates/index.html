@@ -966,6 +966,10 @@ async function fetchData(isBackground = false) {
         if(loadingDiv) loadingDiv.style.display = 'block';
         if(loadingMessage) loadingMessage.textContent = "Calculating...";
         if(progressBar) progressBar.style.width = "5%";
+    } else {
+        // SAFETY: If a background fetch takes over an aborted foreground fetch,
+        // we must ensure the previous loader is hidden to prevent it from getting stuck.
+        if(loadingDiv) loadingDiv.style.display = 'none';
     }
 
     // Clear table ONLY if we are showing loader (fresh load)
