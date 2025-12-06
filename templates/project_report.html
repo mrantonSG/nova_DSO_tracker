@@ -5,7 +5,8 @@
     <title>Project Report</title>
     <style>
         body { background-color: #f0f2f5; display: flex; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; font-size: 11px; }
-        /* Remove min-height constraint to allow spacers to expand the page naturally */
+
+        /* NOTE: The padding here (15mm) is read by the JS script to position headers on Page 2+ */
         .a4-page { width: 210mm; background-color: #ffffff; padding: 15mm; box-sizing: border-box; margin-bottom: 20px; }
 
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
@@ -17,7 +18,14 @@
         .project-title { text-align: center; font-size: 24px; font-weight: 700; color: #222; margin-bottom: 5px; }
         .project-meta { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
 
-        .stat-box-container { display: flex !important; flex-direction: row !important; justify-content: center; gap: 20px; margin-bottom: 25px; }
+        /* GRID LAYOUT: Forces 3 columns, preventing vertical stacking */
+        .stat-box-container {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr 1fr; /* Exactly 3 equal columns */
+            gap: 20px;
+            margin-bottom: 25px;
+            width: 100%;
+        }
         .stat-box { background: #f8f9fa; border: 1px solid #eee; padding: 8px 15px; border-radius: 4px; text-align: center; min-width: 100px; }
         .stat-value { display: block; font-size: 14px; font-weight: 700; color: #333; }
         .stat-label { display: block; font-size: 9px; text-transform: uppercase; color: #777; margin-top: 2px; }
@@ -32,11 +40,7 @@
         .session-table th { background: #f4f4f4; text-align: left; padding: 6px; border: 1px solid #ddd; font-weight: 700; }
         .session-table td { padding: 6px; border: 1px solid #ddd; vertical-align: top; }
 
-        /* Report Block: The atomic unit for pagination */
         .report-block { display: block; background-color: #fff; margin-bottom: 5px; }
-
-        /* Ensure clones have spacing */
-        .pdf-header-clone { margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -54,11 +58,22 @@
             <div class="project-meta">Target: {{ project.target_object_name or 'Various' }} | Status: {{ project.status }}</div>
         </div>
 
-        <div class="stat-box-container">
-            <div class="stat-box"><span class="stat-value">{{ total_integration }}</span><span class="stat-label">Total Integration</span></div>
-            <div class="stat-box"><span class="stat-value">{{ session_count }}</span><span class="stat-label">Total Sessions</span></div>
-            <div class="stat-box"><span class="stat-value">{{ first_date }} - {{ last_date }}</span><span class="stat-label">Date Range</span></div>
-        </div>
+        <table class="stat-box-container" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 20px 0;">
+            <tr>
+                <td style="background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 10px 25px; text-align: center; vertical-align: middle; min-width: 100px;">
+                    <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; white-space: nowrap;">{{ total_integration }}</span>
+                    <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Integration</span>
+                </td>
+                <td style="background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 10px 25px; text-align: center; vertical-align: middle; min-width: 100px;">
+                    <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; white-space: nowrap;">{{ session_count }}</span>
+                    <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Sessions</span>
+                </td>
+                <td style="background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 10px 25px; text-align: center; vertical-align: middle; min-width: 100px;">
+                    <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
+                    <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Date Range</span>
+                </td>
+            </tr>
+        </table>
 
         {% if project_image_url %}
         <div class="master-image-container report-block">
