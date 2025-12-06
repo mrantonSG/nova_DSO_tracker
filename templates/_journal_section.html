@@ -1,10 +1,19 @@
 <style>
     .journal-container { display: flex; gap: 25px; align-items: flex-start; }
-    .session-list-column { flex: 0 0 450px; max-height: 950px; overflow-y: auto; }
+    /* FIX: Sticky Left Column */
+    .session-list-column {
+        flex: 0 0 450px;
+        /* Keeps the list pinned to the screen while you scroll the long report on the right */
+        position: sticky;
+        top: 20px;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+
+    /* FIX: Uncapped Right Column */
     .session-detail-column {
         flex: 1 1 auto;
-        max-height: 950px;
-        overflow-y: auto;
+        /* Removing max-height/overflow here eliminates the nested "double" scrollbar */
         padding-right: 15px;
     }
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
