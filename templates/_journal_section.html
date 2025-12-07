@@ -697,6 +697,31 @@
                                 wrapper.appendChild(child.cloneNode(true));
                             });
 
+                            // E. INJECT EXACT SESSION CHART
+                            // Extract date and location from the row dataset or text
+                            const sessDate = sessionRows[i].cells[0].innerText.trim().split('\n')[0]; // Handle possible newlines
+                            const sessLoc = sessionRows[i].cells[1].innerText.trim();
+
+                            // Generate Chart Image
+                            const chartImgData = await generateExactSessionChart(sessDate, sessLoc);
+
+                            if (chartImgData) {
+                                const chartDiv = doc.createElement('div');
+                                chartDiv.className = 'report-block';
+                                chartDiv.style.marginTop = '15px';
+                                chartDiv.style.border = '1px solid #eee';
+                                chartDiv.style.padding = '10px';
+                                chartDiv.style.breakInside = 'avoid';
+
+                                const img = doc.createElement('img');
+                                img.src = chartImgData;
+                                img.style.width = '100%';
+                                img.style.height = 'auto';
+
+                                chartDiv.appendChild(img);
+                                wrapper.appendChild(chartDiv);
+                            }
+
                             appendedContainer.appendChild(wrapper);
                         }
                     }
@@ -1063,6 +1088,147 @@
             // Fallback for safety
             console.warn("Iframe resize failed", e);
             obj.style.height = '1400px';
+        }
+    }
+// --- EXACT CHART GENERATOR (Uses real API & Chart.js) ---
+    async function generateExactSessionChart(dateStr, locName) {
+        // 1. Resolve Location Coordinates & Timezone
+        // We scrape the dropdown to find the matching Lat/Lon/TZ for the session's location name
+        let coords = { lat: window.NOVA_GRAPH_DATA.plotLat, lon: window.NOVA_GRAPH_DATA.plotLon, tz: window.NOVA_GRAPH_DATA.plotTz }; // Default
+        const select = document.getElementById('location_name');
+        if (select) {
+            for (let opt of select.options) {
+                if (opt.value === locName) {
+                    coords = { lat: opt.dataset.lat, lon: opt.dataset.lon, tz: opt.dataset.tz };
+                    break;
+                }
+            }
+        }
+
+        // 2. Prepare Date & API URL
+        const dateObj = new Date(dateStr);
+        const day = dateObj.getDate();
+        const month = dateObj.getMonth() + 1;
+        const year = dateObj.getFullYear();
+        const objectName = window.NOVA_GRAPH_DATA.objectName;
+
+        const apiUrl = `/api/get_plot_data/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}&plot_lat=${coords.lat}&plot_lon=${coords.lon}&plot_tz=${encodeURIComponent(coords.tz)}`;
+
+        try {
+            // 3. Fetch Real Data
+            const resp = await fetch(apiUrl);
+            if (!resp.ok) return null;
+            const data = await resp.json();
+
+            // 4. Setup Canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 1000;
+            canvas.height = 400; // 2.5:1 Aspect Ratio
+
+            // 5. Replicate "Night Shade" Plugin (Gray background for day/twilight)
+            const DateTime = luxon.DateTime;
+            const nightShadePlugin = {
+                id: 'nightShade',
+                beforeDraw(chart) {
+                    const {ctx, chartArea, scales} = chart;
+                    if (!chartArea) return;
+
+                    const x = scales.x;
+                    const left = x.getPixelForValue(x.min);
+                    const right = x.getPixelForValue(x.max);
+
+                    // Parse times from API response
+                    const baseDt = DateTime.fromISO(data.date, {zone: coords.tz});
+                    const nextDt = baseDt.plus({days: 1});
+                    const parseTime = (base, tStr) => {
+                        if (!tStr || !tStr.includes(':')) return null;
+                        const [h, m] = tStr.split(':').map(Number);
+                        return base.set({hour: h, minute: m, second: 0}).toMillis();
+                    };
+
+                    // Logic: Draw gray box from Start->Dusk and Dawn->End to simulate "Night" window
+                    let duskMs = parseTime(baseDt, data.sun_events.current.astronomical_dusk);
+                    const sunsetMs = parseTime(baseDt, data.sun_events.current.sunset);
+                    if (duskMs && sunsetMs && duskMs < sunsetMs) duskMs = parseTime(nextDt, data.sun_events.current.astronomical_dusk); // Rollover
+
+                    const dawnMs = parseTime(nextDt, data.sun_events.next.astronomical_dawn);
+
+                    const duskPx = duskMs ? x.getPixelForValue(duskMs) : right;
+                    const dawnPx = dawnMs ? x.getPixelForValue(dawnMs) : left;
+
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(211, 211, 211, 0.5)'; // Light gray shade
+
+                    // Fill the "Daytime" areas
+                    if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
+                    if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
+                    ctx.restore();
+                }
+            };
+
+            // 6. Render Chart (Identical Config to Main View)
+            const toMs = (val) => (typeof val === 'string') ? DateTime.fromISO(val, { zone: coords.tz }).toMillis() : val;
+
+            new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels: data.times.map(toMs),
+                    datasets: [
+                        {
+                            label: `${objectName} Altitude`,
+                            data: data.object_alt,
+                            borderColor: '#36A2EB', // Blue
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Moon Altitude',
+                            data: data.moon_alt,
+                            borderColor: '#FFC107', // Yellow
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Horizon',
+                            data: Array(data.times.length).fill(0),
+                            borderColor: 'black',
+                            borderWidth: 2,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                plugins: [nightShadePlugin],
+                options: {
+                    animation: false, // Instant render
+                    responsive: false,
+                    adapters: { date: { zone: coords.tz } },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'hour', displayFormats: { hour: 'HH:mm' } },
+                            grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2, 2] },
+                            title: { display: true, text: `Local Time (${coords.tz})` }
+                        },
+                        y: {
+                            min: 0, max: 90,
+                            title: { display: true, text: 'Altitude (°)' },
+                            grid: { color: 'rgba(128,128,128,0.5)', borderDash: [2, 2] }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'bottom' },
+                        title: { display: true, text: `Visibility: ${dateStr}` }
+                    }
+                }
+            });
+
+            return canvas.toDataURL('image/png');
+
+        } catch (e) {
+            console.error("Report Chart Error:", e);
+            return null;
         }
     }
 
