@@ -697,31 +697,6 @@
                                 wrapper.appendChild(child.cloneNode(true));
                             });
 
-                            // E. INJECT EXACT SESSION CHART
-                            // Extract date and location from the row dataset or text
-                            const sessDate = sessionRows[i].cells[0].innerText.trim().split('\n')[0]; // Handle possible newlines
-                            const sessLoc = sessionRows[i].cells[1].innerText.trim();
-
-                            // Generate Chart Image
-                            const chartImgData = await generateExactSessionChart(sessDate, sessLoc);
-
-                            if (chartImgData) {
-                                const chartDiv = doc.createElement('div');
-                                chartDiv.className = 'report-block';
-                                chartDiv.style.marginTop = '15px';
-                                chartDiv.style.border = '1px solid #eee';
-                                chartDiv.style.padding = '10px';
-                                chartDiv.style.breakInside = 'avoid';
-
-                                const img = doc.createElement('img');
-                                img.src = chartImgData;
-                                img.style.width = '100%';
-                                img.style.height = 'auto';
-
-                                chartDiv.appendChild(img);
-                                wrapper.appendChild(chartDiv);
-                            }
-
                             appendedContainer.appendChild(wrapper);
                         }
                     }
