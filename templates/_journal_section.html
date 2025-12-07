@@ -50,8 +50,8 @@
     .report-iframe {
         width: 100%;
         max-width: 210mm;
-        /* FIX: Increase height to match column height increase */
-        height: 1400px; /* Increased from 1200px */
+        /* FIX: Height is now handled by JS auto-resize */
+        min-height: 800px;
         border: none;
         background-color: white;
         box-shadow: 0 0 10px rgba(0,0,0,0.3);
@@ -361,7 +361,7 @@
                                     Download PDF
                                 </button>
                             </div>
-                            <iframe id="report-preview-frame" data-src="{{ url_for('show_journal_report_page', session_id=entry.id) }}" class="report-iframe"></iframe>
+                            <iframe id="report-preview-frame" data-src="{{ url_for('show_journal_report_page', session_id=entry.id) }}" class="report-iframe" onload="resizeIframe(this)"></iframe>
                         </div>
                     </div>
                 </div>
@@ -445,7 +445,7 @@
                                     Download PDF
                                 </button>
                             </div>
-                            <iframe id="project-report-frame" data-src="{{ url_for('show_project_report_page', project_id=selected_project_data_journal.id) }}" class="report-iframe"></iframe>
+                            <iframe id="project-report-frame" data-src="{{ url_for('show_project_report_page', project_id=selected_project_data_journal.id) }}" class="report-iframe" onload="resizeIframe(this)"></iframe>
                         </div>
                     </div>
 
@@ -1051,6 +1051,19 @@
         document.getElementById('journal-project-add-form').reset();
         const trix = document.getElementById('goals-editor-add');
         if(trix && trix.editor) trix.editor.loadHTML('');
+    }
+
+// FIX: Auto-resize iframe to eliminate double scrollbars
+    function resizeIframe(obj) {
+        if (!obj || !obj.contentWindow) return;
+        try {
+            // Reset to allow shrinking if content changed, then match content height
+            obj.style.height = (obj.contentWindow.document.body.scrollHeight + 50) + 'px';
+        } catch(e) {
+            // Fallback for safety
+            console.warn("Iframe resize failed", e);
+            obj.style.height = '1400px';
+        }
     }
 
 // --- New function for Project Detail Tabs ---
