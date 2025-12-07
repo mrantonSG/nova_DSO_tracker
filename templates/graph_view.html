@@ -932,7 +932,7 @@
         <div class="content-section project-notes-section">
             <h3>{{ alt_name | default(object_name, True) }} - Notes</h3>
 
-            <input type="hidden" id="project-field-hidden" name="project_notes_from_config">
+            <input type="hidden" id="project-field-hidden" name="project_notes_from_config" value="{{ project_notes_from_config | default('', True) | e }}">
             <trix-editor input="project-field-hidden" id="project-field-editor"
                          style="min-height: 150px; height: auto;"></trix-editor>
 
@@ -1333,15 +1333,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     // --- Initialize Project Notes Editor (Trix) ---
-    const projectEditor = document.getElementById('project-field-editor');
-    if (projectEditor) {
-        projectEditor.addEventListener('trix-initialize', () => {
-            const projectHtml = {{ project_notes_from_config | tojson }};
-            if (projectHtml) {
-                projectEditor.editor.loadHTML(projectHtml);
-            }
-        });
-    }
+    // Content is now loaded natively via the 'value' attribute on the hidden input #project-field-hidden
+    // This prevents race conditions where Trix initializes before JS can inject content.
 
     // --- Initialize Project Sub-Tab ---
     if (tabToShow === 'framing') {
