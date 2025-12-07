@@ -621,13 +621,8 @@
 </div>
 
 <script>
-    // --- PDF GENERATOR: TOLERANCE FIX & FOOTER ALIGNMENT ---
+    // --- NATIVE PRINT: ROBUST & CLEAN PDF GENERATION ---
     async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
-        if (typeof jspdf === 'undefined' || typeof html2canvas === 'undefined') {
-            alert('PDF libraries missing.');
-            return;
-        }
-
         const iframe = document.getElementById(iframeId);
         if (!iframe || !iframe.contentWindow) {
              alert("Report frame not found.");
@@ -635,123 +630,111 @@
         }
 
         const buttonOriginalText = buttonElement.textContent;
-        buttonElement.textContent = "Formatting...";
+        buttonElement.textContent = "Preparing Print View...";
         buttonElement.disabled = true;
 
         try {
             const doc = iframe.contentWindow.document;
             const contentDiv = doc.getElementById('report-content');
+            const appendedContainer = doc.getElementById('appended-session-reports');
 
-            // 1. Reset
-            doc.querySelectorAll('.pdf-spacer, .pdf-header-clone, .pdf-top-margin').forEach(el => el.remove());
+            // 1. FETCH & APPEND SESSIONS (If project report and not already loaded)
+            const sessionRows = doc.querySelectorAll('.session-data-row');
 
-            // 2. Metrics
-            const contentRect = contentDiv.getBoundingClientRect();
-            const contentTop = contentRect.top;
+            if (sessionRows.length > 0 && appendedContainer && appendedContainer.children.length === 0) {
+                // Fetch Helper
+                const fetchReport = async (url) => {
+                    try { const response = await fetch(url); return await response.text(); }
+                    catch (e) { console.error("Failed load: " + url); return null; }
+                };
 
-            const reportWidth = contentDiv.offsetWidth;
-            const a4Ratio = 297 / 210;
-            const pageHeightPx = reportWidth * a4Ratio;
-            const topMarginPx = (reportWidth / 210) * 15;
+                for (let i = 0; i < sessionRows.length; i++) {
+                    const reportUrl = sessionRows[i].dataset.reportUrl;
+                    buttonElement.textContent = `Merging Session ${i+1}/${sessionRows.length}...`;
+                    if (!reportUrl) continue;
 
-            // 3. Select Blocks
-            const blocks = doc.querySelectorAll('.report-block, table.stat-box-container, .master-image-container, .footer');
-            const headerOriginal = doc.querySelector('.header-table');
-            const headerLine = doc.querySelector('.header-line');
+                    const htmlContent = await fetchReport(reportUrl);
+                    if (htmlContent) {
+                        const parser = new DOMParser();
+                        const sessionDoc = parser.parseFromString(htmlContent, 'text/html');
+                        const sessionContent = sessionDoc.getElementById('report-content');
 
-            // 4. Pagination Loop
-            for (let i = 0; i < blocks.length; i++) {
-                const block = blocks[i];
-                const blockRect = block.getBoundingClientRect();
-                const relativeTop = blockRect.top - contentTop;
-                const blockHeight = blockRect.height;
-                const relativeBottom = relativeTop + blockHeight;
+                        if (sessionContent) {
+                            // A. Inject Session CSS (Only once) to fix column layouts
+                            if (i === 0) {
+                                sessionDoc.querySelectorAll('style').forEach(s => {
+                                    const newStyle = doc.createElement('style');
+                                    newStyle.textContent = s.textContent;
+                                    doc.head.appendChild(newStyle);
+                                });
+                            }
 
-                const startPage = Math.floor(relativeTop / pageHeightPx);
-                const endPage = Math.floor(relativeBottom / pageHeightPx);
+                            // B. Create Wrapper with FORCED PAGE BREAK
+                            const wrapper = doc.createElement('div');
+                            wrapper.className = 'session-appendix-wrapper';
+                            // CSS 'break-before: page' handles the magic automatically
+                            wrapper.style.breakBefore = 'page';
+                            wrapper.style.pageBreakBefore = 'always';
+                            wrapper.style.marginTop = '20px';
 
-                if (endPage > startPage) {
-                    const boundaryLimit = endPage * pageHeightPx;
-                    const spaceToFill = boundaryLimit - relativeTop;
+                            // C. Add Clean Title
+                            const title = doc.createElement('h3');
+                            title.innerText = `APPENDIX: SESSION ${i+1}`;
+                            title.style.color = '#888';
+                            title.style.borderBottom = '1px solid #eee';
+                            title.style.paddingBottom = '5px';
+                            title.style.marginBottom = '15px';
+                            wrapper.appendChild(title);
 
-                    const spacer = doc.createElement('div');
-                    spacer.className = 'pdf-spacer';
-                    spacer.style.height = Math.max(0, spaceToFill) + 'px';
-                    spacer.style.display = 'block';
+                            // D. Append Content (Stripping Duplicate Headers)
+                            Array.from(sessionContent.children).forEach(child => {
+                                if (child.classList.contains('header-table') ||
+                                    child.classList.contains('header-line') ||
+                                    child.classList.contains('footer') ||
+                                    child.classList.contains('target-info')) {
+                                    return; // Skip duplicates
+                                }
+                                wrapper.appendChild(child.cloneNode(true));
+                            });
 
-                    const topMarginDiv = doc.createElement('div');
-                    topMarginDiv.className = 'pdf-top-margin';
-                    topMarginDiv.style.height = topMarginPx + 'px';
-                    topMarginDiv.style.display = 'block';
-                    topMarginDiv.style.backgroundColor = '#ffffff';
-
-                    const headerClone = headerOriginal.cloneNode(true);
-                    const lineClone = headerLine.cloneNode(true);
-                    headerClone.classList.add('pdf-header-clone');
-                    lineClone.classList.add('pdf-header-clone');
-
-                    block.parentNode.insertBefore(spacer, block);
-                    block.parentNode.insertBefore(topMarginDiv, block);
-                    block.parentNode.insertBefore(headerClone, block);
-                    block.parentNode.insertBefore(lineClone, block);
+                            appendedContainer.appendChild(wrapper);
+                        }
+                    }
                 }
             }
 
-            // 5. Render
-            buttonElement.textContent = "Generating PDF...";
+            // 2. INJECT PRINT-SPECIFIC CSS (The "Better Formatting" Logic)
+            const printStyle = doc.createElement('style');
+            printStyle.textContent = `
+                @media print {
+                    @page { margin: 10mm; size: A4; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff; }
+                    .a4-page { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
 
-            html2canvas(contentDiv, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff',
-                scrollY: 0,
-                windowHeight: contentDiv.scrollHeight + 100
-            }).then(canvas => {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
+                    /* Prevent blocks from breaking internally */
+                    .report-block, table, .info-box, .session-image-container { break-inside: avoid; page-break-inside: avoid; }
 
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-                const totalPdfHeight = (imgHeight * pdfWidth) / imgWidth;
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    /* Force Sessions to start on new pages */
+                    .session-appendix-wrapper { break-before: page; page-break-before: always; display: block; }
 
-                let heightLeft = totalPdfHeight;
-                let position = 0;
-
-                pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, totalPdfHeight);
-                heightLeft -= pdfHeight;
-
-                // FIX 1: Add Tolerance (> 2mm) to prevent tiny overflows creating blank pages
-                // If less than 2mm of content is left, we assume it's just whitespace/margin error
-                while (heightLeft >= 2) {
-                    position -= pdfHeight;
-                    pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, totalPdfHeight);
-                    heightLeft -= pdfHeight;
+                    /* Hide non-print elements */
+                    .footer { display: none; }
                 }
+            `;
+            doc.head.appendChild(printStyle);
 
-                // 6. Add Page Numbers
-                const totalPages = pdf.internal.getNumberOfPages();
-                for (let i = 1; i <= totalPages; i++) {
-                    pdf.setPage(i);
-                    pdf.setFontSize(8);
-                    pdf.setTextColor(128);
-
-                    // FIX 2: Align Right to avoid overwriting centered footer text
-                    // Position: (Width - Margin, Bottom - 10mm)
-                    pdf.text(`Page ${i} of ${totalPages}`, pdfWidth - 15, pdfHeight - 10, { align: 'right' });
-                }
-
-                pdf.save(defaultFilename);
+            // 3. TRIGGER BROWSER PRINT
+            buttonElement.textContent = "Check Popup...";
+            setTimeout(() => {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
                 buttonElement.textContent = buttonOriginalText;
                 buttonElement.disabled = false;
-            });
+            }, 500);
 
         } catch (err) {
             console.error(err);
-            alert("Error creating PDF: " + err.message);
+            alert("Error preparing print view: " + err.message);
             buttonElement.textContent = buttonOriginalText;
             buttonElement.disabled = false;
         }

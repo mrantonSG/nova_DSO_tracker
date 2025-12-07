@@ -5,8 +5,6 @@
     <title>Project Report</title>
     <style>
         body { background-color: #f0f2f5; display: flex; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; font-size: 11px; }
-
-        /* NOTE: The padding here (15mm) is read by the JS script to position headers on Page 2+ */
         .a4-page { width: 210mm; background-color: #ffffff; padding: 15mm; box-sizing: border-box; margin-bottom: 20px; }
 
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
@@ -17,18 +15,6 @@
 
         .project-title { text-align: center; font-size: 24px; font-weight: 700; color: #222; margin-bottom: 5px; }
         .project-meta { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
-
-        /* GRID LAYOUT: Forces 3 columns, preventing vertical stacking */
-        .stat-box-container {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr 1fr; /* Exactly 3 equal columns */
-            gap: 20px;
-            margin-bottom: 25px;
-            width: 100%;
-        }
-        .stat-box { background: #f8f9fa; border: 1px solid #eee; padding: 8px 15px; border-radius: 4px; text-align: center; min-width: 100px; }
-        .stat-value { display: block; font-size: 14px; font-weight: 700; color: #333; }
-        .stat-label { display: block; font-size: 9px; text-transform: uppercase; color: #777; margin-top: 2px; }
 
         .master-image-container { text-align: center; margin-bottom: 30px; background: #000; padding: 10px; border-radius: 4px; }
         .master-image-container img { max-width: 100%; max-height: 500px; object-fit: contain; }
@@ -41,6 +27,7 @@
         .session-table td { padding: 6px; border: 1px solid #ddd; vertical-align: top; }
 
         .report-block { display: block; background-color: #fff; margin-bottom: 5px; }
+        .pdf-header-clone { margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -58,22 +45,24 @@
             <div class="project-meta">Target: {{ project.target_object_name or 'Various' }} | Status: {{ project.status }}</div>
         </div>
 
-        <table class="stat-box-container" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 20px 0;">
-            <tr>
-                <td style="background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 10px 25px; text-align: center; vertical-align: middle; min-width: 100px;">
-                    <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; white-space: nowrap;">{{ total_integration }}</span>
-                    <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Integration</span>
-                </td>
-                <td style="background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 10px 25px; text-align: center; vertical-align: middle; min-width: 100px;">
-                    <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; white-space: nowrap;">{{ session_count }}</span>
-                    <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Sessions</span>
-                </td>
-                <td style="background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 10px 25px; text-align: center; vertical-align: middle; min-width: 100px;">
-                    <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 2px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
-                    <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Date Range</span>
-                </td>
-            </tr>
-        </table>
+        <div style="width: 100%; text-align: center;">
+            <table class="stat-box-table" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 20px 0;">
+                <tr>
+                    <td style="width: 220px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
+                        <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 3px; white-space: nowrap;">{{ total_integration }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Integration</span>
+                    </td>
+                    <td style="width: 220px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
+                        <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 3px; white-space: nowrap;">{{ session_count }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Sessions</span>
+                    </td>
+                    <td style="width: 220px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
+                        <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 3px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Date Range</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         {% if project_image_url %}
         <div class="master-image-container report-block">
@@ -116,7 +105,7 @@
                 </thead>
                 <tbody>
                     {% for session in sessions %}
-                    <tr>
+                    <tr class="session-data-row" data-report-url="{{ url_for('show_journal_report_page', session_id=session.id) }}">
                         <td>{{ session.date_utc | date_eu }}</td>
                         <td>{{ session.location_name }}</td>
                         <td>{{ session.calculated_integration_time_minutes | round(0) }}m</td>
@@ -130,6 +119,8 @@
                 </tbody>
             </table>
         </div>
+
+        <div id="appended-session-reports"></div>
 
         <div class="footer report-block" style="margin-top: 30px; text-align: center; font-size: 10px; color: #999;">
             Generated by Nova DSO Tracker on {{ today_date }}
