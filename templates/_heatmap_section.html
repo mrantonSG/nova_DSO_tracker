@@ -82,7 +82,7 @@
     // Force Plotly to resize when the browser window changes
     window.addEventListener('resize', function() {
         const plotDiv = document.getElementById('yearly-heatmap-plot');
-        if (heatmapLoaded && plotDiv) {
+        if (heatmapLoaded && plotDiv && typeof Plotly !== 'undefined') {
             Plotly.Plots.resize(plotDiv);
         }
     });
@@ -357,6 +357,11 @@
             responsive: true,
             displayModeBar: false
         };
+
+        if (typeof Plotly === 'undefined') {
+            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            return;
+        }
 
         Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
             heatmapLoaded = true;
