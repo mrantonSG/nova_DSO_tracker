@@ -98,7 +98,7 @@ import re
 
 APP_VERSION = "4.4.1"
 
-INSTANCE_PATH = globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
+INSTANCE_PATH = os.environ.get("INSTANCE_PATH") or globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
 DB_PATH = os.path.join(INSTANCE_PATH, 'app.db')
 DB_URI = f"sqlite:///{DB_PATH}"
