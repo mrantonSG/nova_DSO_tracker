@@ -7444,7 +7444,6 @@ def get_object_list():
     # g.objects is already loaded by the @app.before_request
     return jsonify({"objects": g.objects})
 
-
 @app.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):
     # --- 1. Determine User (No change needed here) ---
@@ -7531,17 +7530,17 @@ def get_object_data(object_name):
                 'error': True
             }), 400
 
-            # --- 5. Perform Calculations (Largely unchanged, but uses specific object/location) ---
-            local_tz = pytz.timezone(tz_name)
-            current_datetime_local = datetime.now(local_tz)
+        # --- 5. Perform Calculations (FIXED DATE LOGIC) ---
+        local_tz = pytz.timezone(tz_name)
+        current_datetime_local = datetime.now(local_tz)
 
-            # Determine "Observing Night" Date
-            # If it's before noon, we associate this time with the previous night's session
-            # to ensure the time array (which starts at noon) covers the current moment.
-            if current_datetime_local.hour < 12:
-                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-            else:
-                local_date = current_datetime_local.strftime('%Y-%m-%d')
+        # Determine "Observing Night" Date
+        # If it's before noon, we associate this time with the previous night's session
+        # to ensure the time array (which starts at noon) covers the current moment.
+        if current_datetime_local.hour < 12:
+            local_date = (current_datetime_local.date() - timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            local_date = current_datetime_local.strftime('%Y-%m-%d')
 
         # Load UI Prefs specifically for altitude_threshold and sampling_interval
         prefs_record = db.query(UiPref).filter_by(user_id=user.id).first()
@@ -8079,17 +8078,13 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
         return []  # Return empty on location error
 
     current_datetime_local = datetime.now(local_tz)
-    today_str = current_datetime_local.strftime('%Y-%m-%d')
-    dawn_today_str = calculate_sun_events_cached(today_str, tz_name, lat, lon).get("astronomical_dawn")
-    local_date = today_str
-    if dawn_today_str:
-        try:
-            dawn_today_dt = local_tz.localize(
-                datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
-            if current_datetime_local < dawn_today_dt:
-                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-        except (ValueError, TypeError):
-            pass
+
+    # Determine "Observing Night" Date (Noon-to-Noon Logic)
+    # Fixes bug where morning observations were snapping to the wrong day's noon
+    if current_datetime_local.hour < 12:
+        local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+    else:
+        local_date = current_datetime_local.strftime('%Y-%m-%d')
 
     # --- 2. Get Calculation Settings ---
     altitude_threshold = user_prefs_dict.get("altitude_threshold", 20)
