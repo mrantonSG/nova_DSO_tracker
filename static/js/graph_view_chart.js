@@ -1272,7 +1272,14 @@ function updateReadoutFromCenter() { let center; if (lockToObject) { const rc = 
 function copyRaDec() { const text = `${document.getElementById('ra-readout').value} ${document.getElementById('dec-readout').value}`; navigator.clipboard.writeText(text); }
 function changeView(view) {
     const day = document.getElementById('day-select').value, month = document.getElementById('month-select').value, year = document.getElementById('year-select').value, objectName = NOVA_GRAPH_DATA.objectName;
-    fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`).then(response => response.json()).then(data => { document.getElementById("phase-display").innerText = data.phase + "%"; document.getElementById("dusk-display").innerText = data.astronomical_dusk; document.getElementById("dawn-display").innerText = data.astronomical_dawn; });
+    fetch(`/get_date_info/${encodeURIComponent(objectName)}?day=${day}&month=${month}&year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("phase-display").innerText = data.phase + "%";
+            document.getElementById("dusk-display").innerText = data.astronomical_dusk;
+            document.getElementById("dawn-display").innerText = data.astronomical_dawn;
+            if (data.date_display) document.getElementById("date-display").innerText = data.date_display;
+        });
     if (view === 'day') renderClientSideChart();
     else renderMonthlyYearlyChart(view);
 }

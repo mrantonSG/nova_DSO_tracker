@@ -3377,9 +3377,16 @@ def get_plot_data(object_name):
         return jsonify({"error": f"Invalid location or timezone data: {e}"}), 400
 
     now_local = datetime.now(local_tz)
-    day = int(request.args.get('day', now_local.day))
-    month = int(request.args.get('month', now_local.month))
-    year = int(request.args.get('year', now_local.year))
+
+    # Determine default date based on Noon-to-Noon logic (consistent with dashboard)
+    if now_local.hour < 12:
+        default_date = now_local.date() - timedelta(days=1)
+    else:
+        default_date = now_local.date()
+
+    day = int(request.args.get('day', default_date.day))
+    month = int(request.args.get('month', default_date.month))
+    year = int(request.args.get('year', default_date.year))
     try:
         local_date_obj = datetime(year, month, day)
         local_date = local_date_obj.strftime('%Y-%m-%d')
@@ -9109,10 +9116,16 @@ def get_date_info(object_name):
     phase = round(ephem.Moon(local_time).phase)
 
     local_date_str = f"{year}-{month:02d}-{day:02d}"
-    sun_events = calculate_sun_events_cached(local_date_str,g.tz_name, g.lat, g.lon)
+    sun_events = calculate_sun_events_cached(local_date_str, g.tz_name, g.lat, g.lon)
+
+    # Calculate display string for the UI (e.g. "11.12.2025 - 12.12.2025")
+    curr_dt = datetime(year, month, day)
+    next_dt = curr_dt + timedelta(days=1)
+    date_display_str = f"{curr_dt.strftime('%d.%m.%Y')} - {next_dt.strftime('%d.%m.%Y')}"
 
     return jsonify({
         "date": local_date_str,
+        "date_display": date_display_str,
         "phase": phase,
         "astronomical_dawn": sun_events.get("astronomical_dawn", "N/A"),
         "astronomical_dusk": sun_events.get("astronomical_dusk", "N/A")
