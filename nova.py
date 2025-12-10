@@ -7531,20 +7531,17 @@ def get_object_data(object_name):
                 'error': True
             }), 400
 
-        # --- 5. Perform Calculations (Largely unchanged, but uses specific object/location) ---
-        local_tz = pytz.timezone(tz_name)
-        current_datetime_local = datetime.now(local_tz)
-        today_str = current_datetime_local.strftime('%Y-%m-%d')
-        dawn_today_str = calculate_sun_events_cached(today_str, tz_name, lat, lon).get("astronomical_dawn")
-        local_date = today_str
-        if dawn_today_str:
-            try:
-                dawn_today_dt = local_tz.localize(
-                    datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today_str, "%H:%M").time()))
-                if current_datetime_local < dawn_today_dt:
-                    local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-            except (ValueError, TypeError):
-                pass
+            # --- 5. Perform Calculations (Largely unchanged, but uses specific object/location) ---
+            local_tz = pytz.timezone(tz_name)
+            current_datetime_local = datetime.now(local_tz)
+
+            # Determine "Observing Night" Date
+            # If it's before noon, we associate this time with the previous night's session
+            # to ensure the time array (which starts at noon) covers the current moment.
+            if current_datetime_local.hour < 12:
+                local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+            else:
+                local_date = current_datetime_local.strftime('%Y-%m-%d')
 
         # Load UI Prefs specifically for altitude_threshold and sampling_interval
         prefs_record = db.query(UiPref).filter_by(user_id=user.id).first()
@@ -7733,18 +7730,14 @@ def get_desktop_data_batch():
             local_tz = pytz.utc
 
         current_datetime_local = datetime.now(local_tz)
-        local_date = current_datetime_local.strftime('%Y-%m-%d')
 
-        # Adjust date if "night of" (past midnight logic)
-        dawn_today = calculate_sun_events_cached(local_date, tz_name, lat, lon).get("astronomical_dawn")
-        if dawn_today:
-            try:
-                dawn_dt = local_tz.localize(
-                    datetime.combine(current_datetime_local.date(), datetime.strptime(dawn_today, "%H:%M").time()))
-                if current_datetime_local < dawn_dt:
-                    local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
-            except:
-                pass
+        # Determine "Observing Night" Date
+        # If it's before noon, we associate this time with the previous night's session
+        # to ensure the time array (which starts at noon) covers the current moment.
+        if current_datetime_local.hour < 12:
+            local_date = (current_datetime_local.date() - timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            local_date = current_datetime_local.strftime('%Y-%m-%d')
 
         sampling_interval = 15 if SINGLE_USER_MODE else int(os.environ.get('CALCULATION_PRECISION', 15))
         fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
