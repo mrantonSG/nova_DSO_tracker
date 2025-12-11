@@ -3087,7 +3087,13 @@ def load_global_request_context():
     elif hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
         username = current_user.username
         g.is_guest = False
+    elif not SINGLE_USER_MODE and request.path.startswith('/sso/login'):
+        # Do not allow provisioning during the SSO login redirect itself,
+        # as it happens *before* current_user is set for the *next* request.
+        g.db_user = None
+        return
     else:
+        # Fallback for unauthenticated multi-user or authenticated single-user.
         username = "guest_user"
         g.is_guest = True
 
@@ -3098,7 +3104,8 @@ def load_global_request_context():
     # 4. Get DB user and UI preferences (FAST queries)
     db = get_db()
     try:
-        # Get or create the user in app.db
+        # Get or create the user in app.db. This is the crucial line.
+        # It handles provisioning/seeding if the user doesn't exist.
         app_db_user = get_or_create_db_user(db, username)
         g.db_user = app_db_user
 
