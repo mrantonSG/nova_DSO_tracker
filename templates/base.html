@@ -91,8 +91,21 @@
         }
 
         /* Markdown Content Styling */
-        .help-body h1 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .help-body h2 { font-size: 1.2em; margin-top: 1.5em; color: #444; }
+        .help-body h1 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0; }
+        .help-body h2 { font-size: 1.3em; margin-top: 1.5em; margin-bottom: 0.5em; color: #333; border-bottom: 1px solid #f0f0f0; }
+
+        /* FIX: Add styles for H3, H4 used in your markdown */
+        .help-body h3 { font-size: 1.2em; margin-top: 1.5em; margin-bottom: 0.5em; color: #444; font-weight: bold; }
+        .help-body h4 { font-size: 1.1em; margin-top: 1.2em; margin-bottom: 0.5em; color: #555; font-weight: bold; }
+
+        /* FIX: Ensure paragraphs have breathing room */
+        .help-body p { margin-bottom: 1em; line-height: 1.6; color: #333; }
+
+        /* FIX: Restore bullets and indentation for lists */
+        .help-body ul, .help-body ol { margin-left: 20px; margin-bottom: 1em; padding-left: 20px; list-style-position: outside; }
+        .help-body ul { list-style-type: disc; }
+        .help-body li { margin-bottom: 0.5em; line-height: 1.5; }
+
         .help-body code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
         .help-body pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
 
