@@ -41,6 +41,7 @@ from modules.config_validation import validate_config
 import uuid
 from pathlib import Path
 import platform
+import markdown
 from math import atan, degrees
 from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
@@ -96,7 +97,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.4.2"
+APP_VERSION = "4.5.0"
 
 INSTANCE_PATH = os.environ.get("INSTANCE_PATH") or globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -7457,6 +7458,36 @@ def get_object_list():
     """
     # g.objects is already loaded by the @app.before_request
     return jsonify({"objects": g.objects})
+
+
+@app.route('/api/help/<topic_id>')
+def get_help_content(topic_id):
+    """
+    Reads a markdown file from help_docs/, converts it to HTML, and returns it.
+    """
+    # 1. Sanitize input to prevent directory traversal
+    safe_topic = "".join([c for c in topic_id if c.isalnum() or c in "_-"])
+
+    # 2. Build file path
+    # Assumes help_docs is in the same directory as nova.py
+    file_path = os.path.join(os.path.dirname(__file__), 'help_docs', f'{safe_topic}.md')
+
+    # 3. Check if file exists
+    if not os.path.exists(file_path):
+        return jsonify({
+            "error": True,
+            "html": f"<h3>Topic Not Found</h3><p>No help file found for ID: <code>{safe_topic}</code></p>"
+        }), 404
+
+    # 4. Read and convert
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            text = f.read()
+            # Extensions: 'fenced_code' adds support for ```code blocks```
+            html_content = markdown.markdown(text, extensions=['fenced_code', 'tables'])
+            return jsonify({"status": "success", "html": html_content})
+    except Exception as e:
+        return jsonify({"error": True, "html": f"<p>Error reading help file: {str(e)}</p>"}), 500
 
 @app.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):

@@ -50,7 +50,78 @@
         border-bottom: 1px solid #e0e0e0;
         box-sizing: border-box;
       }
-      /* --- END OF NEW CSS --- */
+        /* Help Modal Styles */
+        #universal-help-modal {
+            display: none;
+            position: fixed;
+            inset: 0; /* Shorthand for top:0; left:0; right:0; bottom:0; */
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+
+            /* FLEXBOX CENTERING MAGIC */
+            align-items: center;     /* Centers vertically */
+            justify-content: center; /* Centers horizontally */
+        }
+
+        #universal-help-modal.is-visible {
+            display: flex; /* Changed from 'block' to 'flex' to enable centering */
+            opacity: 1;
+        }
+
+        #universal-help-modal .modal-content {
+            position: relative; /* Reset absolute positioning if inherited */
+            background: #fff;
+            padding: 25px;
+            width: 90%;
+            max-width: 700px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            overflow-y: auto;
+
+            /* Reset margins that might push it off-center */
+            margin: 0;
+
+            /* FIX: Reset layout properties inherited from generic .modal-content styles */
+            top: auto;
+            left: auto;
+            transform: none;
+        }
+
+        /* Markdown Content Styling */
+        .help-body h1 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .help-body h2 { font-size: 1.2em; margin-top: 1.5em; color: #444; }
+        .help-body code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        .help-body pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .help-trigger { cursor: pointer; color: #83b4c5; font-size: 1.2em; margin-left: 5px; vertical-align: middle; }
+        .help-trigger:hover { color: #5a8b9c; }
+
+        /* Global Help Badge Style */
+        .help-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1px solid #83b4c5;
+            color: #83b4c5;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: serif;
+            cursor: pointer;
+            margin-left: 5px;
+            vertical-align: middle;
+            background: transparent;
+            transition: all 0.2s;
+        }
+
+        .help-badge:hover {
+            background-color: #83b4c5;
+            color: white;
+        }
 
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -92,7 +163,45 @@
             })
             .catch(error => console.error("Update check failed:", error));
     });
+    function openHelp(topicId) {
+    const modal = document.getElementById('universal-help-modal');
+    const body = document.getElementById('help-modal-body');
+
+    // 1. Reset and show loading state
+    body.innerHTML = '<div style="text-align:center; padding: 40px; color: #666;">Loading help content...</div>';
+    modal.classList.add('is-visible');
+
+    // 2. Fetch content
+    fetch(`/api/help/${topicId}`)
+        .then(response => response.json())
+        .then(data => {
+            if(data.html) {
+                body.innerHTML = data.html;
+            } else {
+                body.innerHTML = '<p style="color:red">Error: Help content returned empty.</p>';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            body.innerHTML = `<p style="color:red">Network Error: Could not load help topic '${topicId}'.</p>`;
+        });
+}
+
+function closeHelpModal() {
+    document.getElementById('universal-help-modal').classList.remove('is-visible');
+}
+
+
     </script>
     {% block scripts %}{% endblock %}
+      <div id="universal-help-modal" onclick="closeHelpModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div id="help-modal-body" class="help-body">
+                </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="action-button" onclick="closeHelpModal()">Close</button>
+            </div>
+        </div>
+    </div>
   </body>
 </html>
