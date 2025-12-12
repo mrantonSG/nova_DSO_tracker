@@ -7459,6 +7459,10 @@ def get_object_list():
     # g.objects is already loaded by the @app.before_request
     return jsonify({"objects": g.objects})
 
+@app.route('/api/help/img/<path:filename>')
+def get_help_image(filename):
+    """Serves images located in the help_docs directory."""
+    return send_from_directory(os.path.join(os.path.dirname(__file__), 'help_docs'), filename)
 
 @app.route('/api/help/<topic_id>')
 def get_help_content(topic_id):
