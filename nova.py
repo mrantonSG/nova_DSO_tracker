@@ -6691,10 +6691,13 @@ def download_journal():
                 "rig_fr_snapshot": s.rig_fr_snapshot,
                 "rig_scale_snapshot": s.rig_scale_snapshot,
                 "rig_fov_w_snapshot": s.rig_fov_w_snapshot,
-                "rig_fov_h_snapshot": s.rig_fov_h_snapshot
+                "rig_fov_h_snapshot": s.rig_fov_h_snapshot,
+                "telescope_name_snapshot": s.telescope_name_snapshot,
+                "reducer_name_snapshot": s.reducer_name_snapshot,
+                "camera_name_snapshot": s.camera_name_snapshot
             })
 
-        journal_doc = {"projects": projects_list, "sessions": sessions_list}
+            journal_doc = {"projects": projects_list, "sessions": sessions_list}
 
         # --- 3. Create in-memory file ---
         yaml_string = yaml.dump(journal_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
