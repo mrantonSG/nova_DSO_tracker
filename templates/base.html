@@ -95,6 +95,17 @@
         .help-body h2 { font-size: 1.2em; margin-top: 1.5em; color: #444; }
         .help-body code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
         .help-body pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+
+        /* FIX: Constrain images to modal width/height */
+        .help-body img {
+            max-width: 100%;      /* Never wider than the modal */
+            max-height: 60vh;     /* Limit height to 60% of viewport */
+            height: auto;         /* Maintain aspect ratio */
+            display: block;       /* Fixes spacing issues */
+            margin: 10px auto;    /* Centers the image */
+            border-radius: 4px;   /* Optional: nice rounded corners */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Optional: subtle shadow */
+        }
         .help-trigger { cursor: pointer; color: #83b4c5; font-size: 1.2em; margin-left: 5px; vertical-align: middle; }
         .help-trigger:hover { color: #5a8b9c; }
 
