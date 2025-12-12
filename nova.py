@@ -6092,9 +6092,9 @@ def show_journal_report_page(session_id):
         except Exception:
             pass
 
-            # Sanitize notes
+        # Sanitize notes
         raw_journal_notes = session_dict.get('notes') or ""
-        if not raw_journal_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+        if not raw_journal_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>")):
             escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
             sanitized_notes = escaped_text.replace("\n", "<br>")
         else:
@@ -8087,7 +8087,9 @@ def mobile_edit_notes(object_name):
 
         # Handle Trix/HTML conversion for old plain text notes
         raw_project_notes = obj_record.project_name or ""
-        if not raw_project_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+        if not raw_project_notes.strip().startswith(
+                ("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>",
+                 "<h6>")):
             escaped_text = bleach.clean(raw_project_notes, tags=[], strip=True)
             project_notes_for_editor = escaped_text.replace("\n", "<br>")
         else:
@@ -8576,7 +8578,9 @@ def config_form():
         for o in db_objects:
             # --- START: Rich Text Upgrade for Private Notes ---
             raw_private_notes = o.project_name or ""
-            if not raw_private_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+            if not raw_private_notes.strip().startswith(
+                    ("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>",
+                     "<h6>")):
                 escaped_text = bleach.clean(raw_private_notes, tags=[], strip=True)
                 private_notes_html = escaped_text.replace("\n", "<br>")
             else:
@@ -8855,7 +8859,9 @@ def graph_dashboard(object_name):
 
         # Notes Upgrader
         raw_project_notes = obj_record.project_name or ""
-        if not raw_project_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+        if not raw_project_notes.strip().startswith(
+                ("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>",
+                 "<h6>")):
             escaped_text = bleach.clean(raw_project_notes, tags=[], strip=True)
             project_notes_for_editor = escaped_text.replace("\n", "<br>")
         else:
@@ -8896,7 +8902,10 @@ def graph_dashboard(object_name):
                                               selected_session_data.__table__.columns}
                 # ... (Session Note Sanitization Logic - same as before) ...
                 raw_journal_notes = selected_session_data_dict.get('notes') or ""
-                if not raw_journal_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>")):
+                # FIX: Added <figure>, <blockquote>, and headers to HTML detection
+                if not raw_journal_notes.strip().startswith(
+                        ("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>",
+                         "<h5>", "<h6>")):
                     escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
                     sanitized_notes = escaped_text.replace("\n", "<br>")
                 else:
