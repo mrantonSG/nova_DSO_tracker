@@ -8,7 +8,7 @@ The **Framing Assistant** is a powerful visual tool that lets you preview exactl
 1.  **Select a Rig:** Use the dropdown at the top to choose one of your pre-configured equipment profiles. The rectangle on the screen represents your sensor's field of view.
 2.  **Move & Center:**
     * **Click & Drag:** By default, **Lock FOV** is enabled. This means the sensor rectangle stays fixed in the center of your screen, while dragging the mouse moves the sky *behind* it. This simulates how your telescope moves across the sky to frame the target.
-    * **Nudge Controls:** Use the arrow buttons (↑ ↓ ← →) in the toolbar (or your keyboard arrow keys) to make fine adjustments in 1-arcminute steps.
+    * **Nudge Controls:** (Lock FOV off) Use the arrow buttons (↑ ↓ ← →) in the toolbar (or your keyboard arrow keys) to make fine adjustments in 1-arcminute steps.
     * **Recenter:** Click "Recenter to object" to snap the view back to the target's catalog coordinates.
 
 **Composition Controls**
