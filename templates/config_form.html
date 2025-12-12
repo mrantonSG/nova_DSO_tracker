@@ -816,15 +816,18 @@
 
             <div class="inline-fields">
                  <div class="location-id"></div>
-                 <div style="display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 5px;">
-                    <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">Horizon Mask:</label>
+                 <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
+                    <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">
+                        Horizon Mask:
+                        <span class="help-badge" onclick="openHelp('horizon_mask')" title="Help">?</span>
+                    </label>
                     <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
                  </div>
             </div>
 
             <div class="inline-fields">
                  <div class="location-id"></div>
-                 <div style="display: grid; grid-template-columns: 91px 1fr; align-items: start; gap: 5px;">
+                 <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                     <label class="short-label" for="new_comments" style="padding-top: 5px;">Comments:</label>
                     <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="new-comment-counter"></textarea>
                     <div></div>
@@ -873,14 +876,14 @@
               </div>
                 <div class="inline-fields">
                     <div class="location-id"></div>
-                    <div style="display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 5px;">
+                    <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                         <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
                         <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
                     </div>
                 </div>
                 <div class="inline-fields">
                     <div class="location-id"></div>
-                    <div style="display: grid; grid-template-columns: 91px 1fr; align-items: start; gap: 5px;">
+                    <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                         <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
                         <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
                         <div></div>
