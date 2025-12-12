@@ -2253,20 +2253,30 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
         # RIGS/COMPONENTS
         comps = db.query(Component).filter_by(user_id=u.id).all()
         rigs = db.query(Rig).filter_by(user_id=u.id).all()
-        def bykind(k): return [c for c in comps if c.kind == k]
+
+        # Create a lookup map for component names by ID to ensure portable exports
+        comp_map = {c.id: c.name for c in comps}
+
+        def bykind(k):
+            return [c for c in comps if c.kind == k]
+
         rigs_doc = {
             "components": {
                 "telescopes": [
-                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm, "is_shared": c.is_shared, "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
+                    {"id": c.id, "name": c.name, "aperture_mm": c.aperture_mm, "focal_length_mm": c.focal_length_mm,
+                     "is_shared": c.is_shared, "original_user_id": c.original_user_id,
+                     "original_item_id": c.original_item_id}
                     for c in bykind("telescope")
                 ],
                 "cameras": [
                     {"id": c.id, "name": c.name, "sensor_width_mm": c.sensor_width_mm,
-                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um, "is_shared": c.is_shared, "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
+                     "sensor_height_mm": c.sensor_height_mm, "pixel_size_um": c.pixel_size_um, "is_shared": c.is_shared,
+                     "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
                     for c in bykind("camera")
                 ],
                 "reducers_extenders": [
-                    {"id": c.id, "name": c.name, "factor": c.factor, "is_shared": c.is_shared, "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
+                    {"id": c.id, "name": c.name, "factor": c.factor, "is_shared": c.is_shared,
+                     "original_user_id": c.original_user_id, "original_item_id": c.original_item_id}
                     for c in bykind("reducer_extender")
                 ],
             },
@@ -2274,8 +2284,11 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 {
                     "rig_name": r.rig_name,
                     "telescope_id": r.telescope_id,
+                    "telescope_name": comp_map.get(r.telescope_id),  # Export name for portability
                     "camera_id": r.camera_id,
+                    "camera_name": comp_map.get(r.camera_id),  # Export name for portability
                     "reducer_extender_id": r.reducer_extender_id,
+                    "reducer_extender_name": comp_map.get(r.reducer_extender_id),  # Export name
                     "effective_focal_length": r.effective_focal_length,
                     "f_ratio": r.f_ratio,
                     "image_scale": r.image_scale,
@@ -2312,13 +2325,46 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             "projects": projects_list,
             "sessions": [
                 {
-                    "date": s.date_utc.isoformat(), "object_name": s.object_name, "notes": s.notes,
-                    "session_id": s.external_id or s.id,  # Ensure ID is preserved
-                    "project_id": s.project_id,  # Link is preserved
+                    "date": s.date_utc.isoformat(),
                     "object_name": s.object_name,
                     "notes": s.notes,
+                    "session_id": s.external_id or s.id,
+                    "project_id": s.project_id,
+
+                    # Capture Details
                     "number_of_subs_light": s.number_of_subs_light,
                     "exposure_time_per_sub_sec": s.exposure_time_per_sub_sec,
+                    "filter_used_session": s.filter_used_session,
+                    "gain_setting": s.gain_setting,
+                    "offset_setting": s.offset_setting,
+                    "binning_session": s.binning_session,
+                    "camera_temp_setpoint_c": s.camera_temp_setpoint_c,
+                    "camera_temp_actual_avg_c": s.camera_temp_actual_avg_c,
+                    "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
+
+                    # Environmental & Location
+                    "location_name": s.location_name,
+                    "seeing_observed_fwhm": s.seeing_observed_fwhm,
+                    "sky_sqm_observed": s.sky_sqm_observed,
+                    "transparency_observed_scale": s.transparency_observed_scale,
+                    "moon_illumination_session": s.moon_illumination_session,
+                    "moon_angular_separation_session": s.moon_angular_separation_session,
+                    "weather_notes": s.weather_notes,
+
+                    # Gear & Guiding
+                    "telescope_setup_notes": s.telescope_setup_notes,
+                    "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
+                    "guiding_equipment": s.guiding_equipment,
+                    "dither_details": s.dither_details,
+                    "acquisition_software": s.acquisition_software,
+
+                    # Calibration Strategy
+                    "darks_strategy": s.darks_strategy,
+                    "flats_strategy": s.flats_strategy,
+                    "bias_darkflats_strategy": s.bias_darkflats_strategy,
+                    "session_rating_subjective": s.session_rating_subjective,
+
+                    # Mono Filters
                     "filter_L_subs": s.filter_L_subs, "filter_L_exposure_sec": s.filter_L_exposure_sec,
                     "filter_R_subs": s.filter_R_subs, "filter_R_exposure_sec": s.filter_R_exposure_sec,
                     "filter_G_subs": s.filter_G_subs, "filter_G_exposure_sec": s.filter_G_exposure_sec,
@@ -2326,7 +2372,15 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                     "filter_Ha_subs": s.filter_Ha_subs, "filter_Ha_exposure_sec": s.filter_Ha_exposure_sec,
                     "filter_OIII_subs": s.filter_OIII_subs, "filter_OIII_exposure_sec": s.filter_OIII_exposure_sec,
                     "filter_SII_subs": s.filter_SII_subs, "filter_SII_exposure_sec": s.filter_SII_exposure_sec,
-                    "calculated_integration_time_minutes": s.calculated_integration_time_minutes,
+
+                    # Rig Snapshots
+                    "rig_id_snapshot": s.rig_id_snapshot,
+                    "rig_name_snapshot": s.rig_name_snapshot,
+                    "rig_efl_snapshot": s.rig_efl_snapshot,
+                    "rig_fr_snapshot": s.rig_fr_snapshot,
+                    "rig_scale_snapshot": s.rig_scale_snapshot,
+                    "rig_fov_w_snapshot": s.rig_fov_w_snapshot,
+                    "rig_fov_h_snapshot": s.rig_fov_h_snapshot,
                     "telescope_name_snapshot": s.telescope_name_snapshot,
                     "reducer_name_snapshot": s.reducer_name_snapshot,
                     "camera_name_snapshot": s.camera_name_snapshot,
