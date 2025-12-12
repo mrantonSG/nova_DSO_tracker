@@ -4,6 +4,7 @@
 This is the central control room for your target library. Here you can refine object details, organize your projects, and keep your database clean.
 
 **Filtering Your Library**
+
 If you have a large library, use the filter bar at the top to find specific targets quickly. You can filter by:
 
 * **ID or Name:** (e.g., "M42" or "Orion")
@@ -12,6 +13,7 @@ If you have a large library, use the filter bar at the top to find specific targ
 * **Source:** Find objects from specific catalogs (e.g., "messier").
 
 **Editing Object Data**
+
 You can edit most fields directly in the list without leaving the page:
 
 * **Coordinates & Stats:** Updates to RA/DEC, Magnitude, Size, or Surface Brightness are useful if you want to refine position accuracy or add missing data.
