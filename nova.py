@@ -5029,8 +5029,8 @@ def project_detail(project_id):
         # Helper to sanitize rich text for passing to the editor/view
         def _sanitize_for_display(html_content):
             if not html_content: return ""
-            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
-            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style', 'class']}
             SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
             css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
             return bleach.clean(html_content, tags=SAFE_TAGS, attributes=SAFE_ATTRS, css_sanitizer=css_sanitizer)
@@ -6098,8 +6098,8 @@ def show_journal_report_page(session_id):
             escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
             sanitized_notes = escaped_text.replace("\n", "<br>")
         else:
-            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
-            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style', 'class']}
             SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
             css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
             sanitized_notes = bleach.clean(raw_journal_notes, tags=SAFE_TAGS, attributes=SAFE_ATTRS,
@@ -8843,8 +8843,8 @@ def graph_dashboard(object_name):
 
         def _sanitize_for_display(html_content):
             if not html_content: return ""
-            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
-            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style', 'class']}
             SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
                         'margin-right']
             css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
@@ -8909,8 +8909,10 @@ def graph_dashboard(object_name):
                     escaped_text = bleach.clean(raw_journal_notes, tags=[], strip=True)
                     sanitized_notes = escaped_text.replace("\n", "<br>")
                 else:
-                    SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption']
-                    SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style']}
+                    SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption',
+                                 'span']
+                    SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'],
+                                  '*': ['style', 'class']}
                     SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left',
                                 'margin-right']
                     css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
