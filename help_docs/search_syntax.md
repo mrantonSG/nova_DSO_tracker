@@ -12,6 +12,7 @@ This is your mission control. The main dashboard gives you a real-time overview 
 * **Observable Time:** Total minutes the object is above your configured horizon limit.
 
 **Advanced Filtering**
+
 The filter row below the headers is powerful. You can use special operators to refine your list:
 
 * **Text Search:** Type normally to find matches (e.g., `M31`, `Nebula`).
@@ -29,6 +30,7 @@ The filter row below the headers is powerful. You can use special operators to r
     * Example: `Nebula, Cluster` in *Type* shows both nebulae and clusters.
 
 **Saved Views**
+
 Once you create a useful filter set (e.g., "Galaxies High in South"), click the **Save** button next to the "Saved Views" dropdown. You can name this view and instantly recall it later.
 
 **Tabs**
