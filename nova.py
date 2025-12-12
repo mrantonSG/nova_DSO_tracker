@@ -42,8 +42,9 @@ import uuid
 from pathlib import Path
 import platform
 import markdown
+import csv
 from math import atan, degrees
-from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app
+from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app, make_response
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
@@ -11636,6 +11637,77 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         heatmap_thread = threading.Thread(target=heatmap_background_worker)
         heatmap_thread.daemon = True
         heatmap_thread.start()
+
+
+@app.route('/journal/download_csv/<string:item_type>/<string:item_id>')
+@login_required
+def download_csv(item_type, item_id):
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+        sessions_to_export = []
+        filename = "export.csv"
+
+        if item_type == 'session':
+            session = db.query(JournalSession).filter_by(id=item_id, user_id=user_id).one_or_none()
+            if not session:
+                flash("Session not found.", "error")
+                return redirect(url_for('index'))
+            sessions_to_export = [session]
+            filename = f"Session_{session.date_utc}_{session.object_name.replace(' ', '_')}.csv"
+
+        elif item_type == 'project':
+            project = db.query(Project).filter_by(id=item_id, user_id=user_id).one_or_none()
+            if not project:
+                flash("Project not found.", "error")
+                return redirect(url_for('index'))
+            sessions_to_export = db.query(JournalSession).filter_by(project_id=item_id, user_id=user_id).order_by(
+                JournalSession.date_utc.asc()).all()
+            filename = f"Project_{project.name.replace(' ', '_')}_Sessions.csv"
+
+        else:
+            return "Invalid type", 400
+
+        # Define CSV Columns
+        columns = [
+            "Date", "Object", "Location", "Integration (min)", "Rating",
+            "Telescope", "Camera", "Filter",
+            "Seeing", "SQM", "Moon %",
+            "Subs", "Exposure (s)", "Gain", "Offset", "Temp (C)",
+            "Project ID", "Notes (Stripped)"
+        ]
+
+        # Generate CSV in memory
+        si = io.StringIO()
+        cw = csv.writer(si)
+        cw.writerow(columns)
+
+        for s in sessions_to_export:
+            # Strip HTML from notes
+            notes_clean = bleach.clean(s.notes or "", tags=[], strip=True).replace("\n", " | ")
+
+            row = [
+                s.date_utc, s.object_name, s.location_name, s.calculated_integration_time_minutes,
+                s.session_rating_subjective,
+                s.telescope_name_snapshot, s.camera_name_snapshot, s.filter_used_session,
+                s.seeing_observed_fwhm, s.sky_sqm_observed, s.moon_illumination_session,
+                s.number_of_subs_light, s.exposure_time_per_sub_sec, s.gain_setting, s.offset_setting,
+                s.camera_temp_actual_avg_c,
+                s.project_id, notes_clean
+            ]
+            cw.writerow(row)
+
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        output.headers["Content-type"] = "text/csv"
+        return output
+
+    except Exception as e:
+        print(f"Error generating CSV: {e}")
+        return redirect(url_for('index'))
+    finally:
+        db.close()
+
 if __name__ == '__main__':
     # Automatically disable debugger and reloader if set by the updater
     disable_debug = os.environ.get("NOVA_NO_DEBUG") == "1"

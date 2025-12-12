@@ -379,6 +379,9 @@
                     <div id="report-tab" class="detail-tab-content">
                         <div class="report-preview-container">
                             <div class="report-toolbar">
+                                <a href="{{ url_for('download_csv', item_type='session', item_id=entry.id) }}" class="inline-button" style="background-color:#17a2b8; text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
+                                    Download CSV
+                                </a>
                                 <button type="button" class="inline-button" style="background-color:#007bff;"
                                         onclick="downloadVisibleReport('Nova_Report_{{ object_name | replace(' ', '_') }}_{{ entry.date_utc }}.pdf', this, 'report-preview-frame')">
                                     Download PDF
@@ -465,6 +468,9 @@
                     <div id="project-report-tab" class="project-tab-content" style="display:none;">
                         <div class="report-preview-container">
                             <div class="report-toolbar">
+                                <a href="{{ url_for('download_csv', item_type='project', item_id=selected_project_data_journal.id) }}" class="inline-button" style="background-color:#17a2b8; text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
+                                    Download CSV
+                                </a>
                                 <button type="button" class="inline-button" style="background-color:#007bff;"
                                         onclick="downloadVisibleReport('Nova_Project_{{ selected_project_data_journal.name | replace(' ', '_') }}.pdf', this, 'project-report-frame')">
                                     Download PDF
