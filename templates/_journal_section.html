@@ -128,14 +128,27 @@
         display: flex; flex-direction: column; gap: 15px;
     }
 
-    /* FIX: Constrain images in notes and hide Trix metadata */
-    .notes-block img, .notes-content img, trix-editor img, .trix-content img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 4px;
+    /* FIX: Constrain images in notes (View & Edit modes) */
+    trix-editor figure, trix-editor figure.attachment, .trix-content figure.attachment, .project-notes-section figure.attachment {
+        max-width: 100% !important;
+        width: auto !important;
+        margin: 0 auto 1em auto;
     }
+
+    trix-editor img, .trix-content img, .notes-block img, .notes-content img, .project-notes-section img {
+        max-width: 100% !important;
+        height: auto !important;
+        width: auto !important;
+        border-radius: 4px;
+        display: block;
+    }
+
+    /* FIX: Hide Trix metadata (filenames) - High Specificity for Edit Mode */
+    trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .attachment__size,
+    .trix-content .attachment__caption, .trix-content .attachment__name, .trix-content .attachment__size,
     .attachment__caption, .attachment__name, .attachment__size {
         display: none !important;
+        visibility: hidden !important; /* Extra measure to ensure invisibility */
     }
 </style>
 
@@ -414,8 +427,10 @@
                             </div>
 
                             <div class="journal-project-notes-section">
-                                <h3>Goals & Status</h3>
-                                <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals set.', true) | safe }}</div>
+                                <div class="form-group trix-editor-container"><label>Goals & Status:</label>
+                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | e }}">
+                                    <trix-editor input="goals-hidden-journal" id="goals-editor-journal" style="min-height: 100px;"></trix-editor>
+                                </div>
                             </div>
 
                             {% if selected_project_data_journal.final_image_file %}
@@ -508,21 +523,21 @@
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>Project Story & Learnings:</label>
-                                    <input type="hidden" id="description-hidden-journal" name="description_notes" value="{{ project_journal_html_fields.description | safe }}">
+                                    <input type="hidden" id="description-hidden-journal" name="description_notes" value="{{ project_journal_html_fields.description | e }}">
                                     <trix-editor input="description-hidden-journal" id="description-editor-journal" style="min-height: 150px;"></trix-editor>
                                 </div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>Framing Notes:</label>
-                                    <input type="hidden" id="framing-hidden-journal" name="framing_notes" value="{{ project_journal_html_fields.framing | safe }}">
+                                    <input type="hidden" id="framing-hidden-journal" name="framing_notes" value="{{ project_journal_html_fields.framing | e }}">
                                     <trix-editor input="framing-hidden-journal" id="framing-editor-journal" style="min-height: 150px;"></trix-editor>
                                 </div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>Processing Notes:</label>
-                                    <input type="hidden" id="processing-hidden-journal" name="processing_notes" value="{{ project_journal_html_fields.processing | safe }}">
+                                    <input type="hidden" id="processing-hidden-journal" name="processing_notes" value="{{ project_journal_html_fields.processing | e }}">
                                     <trix-editor input="processing-hidden-journal" id="processing-editor-journal" style="min-height: 150px;"></trix-editor>
                                 </div>
                             </div>
