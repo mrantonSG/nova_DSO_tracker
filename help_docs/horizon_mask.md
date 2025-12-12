@@ -34,7 +34,8 @@ The data is entered as a simple list of coordinate pairs. You don't need to be a
 Here is the raw data used to generate the graphic above. You can copy this structure and change the numbers to match your sky:
 
 ```text
-[[0.0, 0.0], [30.0, 30.0], [60.0, 36.0], [80.0, 25.0], [83.0, 30.0], [85.0, 20.0], [88.0, 0.0], [120.0, 30.0], [130.0, 20.0], [132.0, 0.0]]
+[[0.0, 0.0], [30.0, 30.0], [60.0, 36.0], [80.0, 25.0], [83.0, 30.0], [85.0, 20.0], 
+[88.0, 0.0], [120.0, 30.0], [130.0, 20.0], [132.0, 0.0]]
 ```
 
 ### Key Rules for a Good Mask
@@ -46,7 +47,7 @@ Here is the raw data used to generate the graphic above. You can copy this struc
 
 ## The "Net Observable Time"
 
-You might notice a setting in your config called **Altitude Threshold** (the default is usually 20 degrees).
+You might notice a setting in your config called **Altitude Threshold** (the default is default 20 degrees - you can set it under "General").
 
   * **Altitude Threshold:** This is the global minimum height an object must reach to be considered good for imaging (to avoid thick atmosphere/muck near the horizon).
   * **Horizon Mask:** This cuts out specific chunks of sky *above* that threshold.
