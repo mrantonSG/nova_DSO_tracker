@@ -77,9 +77,18 @@
 
 <div class="config-section" style="padding-top: 1em;">
     <div class="detail-tabs-container">
-        <button class="detail-tab-button active" data-tab="manage" onclick="showObjectSubTab('manage')">Manage My Objects</button>
-        <button class="detail-tab-button" data-tab="add" onclick="showObjectSubTab('add')">Add New Object</button>
-        <button class="detail-tab-button" data-tab="import" onclick="showObjectSubTab('import')">Import from Catalog</button>
+        <button class="detail-tab-button active" data-tab="manage" onclick="showObjectSubTab('manage')">
+            Manage My Objects
+            <span class="help-badge" onclick="openHelp('objects_manage'); event.stopPropagation();" title="Help">?</span>
+        </button>
+        <button class="detail-tab-button" data-tab="add" onclick="showObjectSubTab('add')">
+            Add New Object
+            <span class="help-badge" onclick="openHelp('objects_add'); event.stopPropagation();" title="Help">?</span>
+        </button>
+        <button class="detail-tab-button" data-tab="import" onclick="showObjectSubTab('import')">
+            Import from Catalog
+            <span class="help-badge" onclick="openHelp('objects_import'); event.stopPropagation();" title="Help">?</span>
+        </button>
     </div>
 
     <div id="manage-object-subtab" class="detail-tab-content active">
