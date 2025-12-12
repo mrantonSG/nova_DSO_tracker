@@ -1641,29 +1641,30 @@ window.addEventListener('load', () => {
 
     changeView('day');
 
-    // Trix File Upload Logic
-    try {
-        const trixEditor = document.querySelector("#project-field-editor");
-        if (trixEditor) {
-            trixEditor.addEventListener("trix-attachment-add", function(event) {
-                if (event.attachment.file) uploadTrixFile(event.attachment);
-            });
-            const journalEditor = document.querySelector("#journal-notes-editor");
-            if (journalEditor) {
-                journalEditor.addEventListener("trix-attachment-add", function(event) {
-                    if (event.attachment.file) uploadTrixFile(event.attachment);
-                });
-            }
-            function uploadTrixFile(attachment) {
-                const formData = new FormData();
-                formData.append("file", attachment.file);
-                fetch("/upload_editor_image", { method: "POST", body: formData })
-                .then(r => r.ok ? r.json() : Promise.reject(r))
-                .then(data => { if(data.url) attachment.setAttributes({ url: data.url, href: data.url }); })
-                .catch(e => { console.error("Trix upload failed", e); attachment.remove(); });
-            }
+    // Global Trix File Upload Logic (Handles all editors on the page)
+    document.addEventListener("trix-attachment-add", function(event) {
+        if (event.attachment.file) {
+            uploadTrixFile(event.attachment);
         }
-    } catch (e) {}
+    });
+
+    function uploadTrixFile(attachment) {
+        const formData = new FormData();
+        formData.append("file", attachment.file);
+
+        fetch("/upload_editor_image", { method: "POST", body: formData })
+        .then(r => r.ok ? r.json() : Promise.reject(r))
+        .then(data => {
+            if(data.url) {
+                attachment.setAttributes({ url: data.url, href: data.url });
+            }
+        })
+        .catch(e => {
+            console.error("Trix upload failed", e);
+            alert("Image upload failed. See console for details.");
+            attachment.remove();
+        });
+    }
 
     // General UI
     const lockBox = document.getElementById('lock-to-object');
