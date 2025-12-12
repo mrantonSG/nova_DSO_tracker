@@ -127,6 +127,16 @@
     .journal-project-container {
         display: flex; flex-direction: column; gap: 15px;
     }
+
+    /* FIX: Constrain images in notes and hide Trix metadata */
+    .notes-block img, .notes-content img, trix-editor img, .trix-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+    }
+    .attachment__caption, .attachment__name, .attachment__size {
+        display: none !important;
+    }
 </style>
 
 <div class="journal-container">

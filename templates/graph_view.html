@@ -833,6 +833,16 @@
         margin-bottom: 15px;
         opacity: 0.5;
     }
+
+    /* FIX: Constrain images in notes and hide Trix metadata */
+    .notes-block img, .notes-content img, .project-notes-section img, trix-editor img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+    }
+    .attachment__caption, .attachment__name, .attachment__size {
+        display: none !important;
+    }
 </style>
 {% endblock %}
 
