@@ -5948,7 +5948,56 @@ def add_project_from_journal():
     finally:
         db.close()
 
+@app.route('/journal/duplicate/<int:session_id>', methods=['POST'])
+@login_required
+def journal_duplicate(session_id):
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    try:
+        user = db.query(DbUser).filter_by(username=username).one()
+        source_session = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
+        if not source_session:
+            flash("Session to duplicate not found.", "error")
+            return redirect(url_for('index'))
+
+        # Create new instance
+        new_session = JournalSession()
+
+        # Fields to EXCLUDE from copy
+        exclude_cols = {'id', 'external_id', 'session_image_file', '_sa_instance_state'}
+
+        # Dynamically copy all other columns
+        for col in source_session.__table__.columns:
+            if col.name not in exclude_cols:
+                setattr(new_session, col.name, getattr(source_session, col.name))
+
+        # Set new unique values
+        new_session.external_id = uuid.uuid4().hex
+        new_session.date_utc = datetime.now().date()  # Default to today for the new session
+
+        # Append note to indicate copy
+        # if new_session.notes:
+        #     new_session.notes += "<br><p><em>(Duplicated Session)</em></p>"
+
+        db.add(new_session)
+        db.commit()
+
+        flash("Session duplicated successfully.", "success")
+
+        # Redirect to Graph Dashboard with 'edit=true' to open the form immediately
+        return redirect(url_for('graph_dashboard',
+                                object_name=new_session.object_name,
+                                session_id=new_session.id,
+                                location=new_session.location_name,
+                                edit='true'))
+
+    except Exception as e:
+        db.rollback()
+        flash(f"Error duplicating session: {e}", "error")
+        return redirect(url_for('index'))
+    finally:
+        db.close()
 
 @app.route('/journal/delete/<int:session_id>', methods=['POST'])
 @login_required

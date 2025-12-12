@@ -218,6 +218,9 @@
                     <h4 id="detail-title">Details for Session: {{ entry.date_utc | date_eu }}</h4>
                     <div class="action-button-group">
                         <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="setupEditMode()">Edit This Session</button>
+                        <form action="{{ url_for('journal_duplicate', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;">
+                            <button type="submit" class="inline-button" style="background-color:#17a2b8;" title="Create a copy of this session">Duplicate</button>
+                        </form>
                         <form action="{{ url_for('journal_delete', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;" onsubmit="return confirm('Are you sure you want to delete this session permanently?');">
                             <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
                         </form>
@@ -1042,11 +1045,31 @@
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
 
-        // Initial visibility logic
-        if (wrapper && form && wrapper.querySelector('.view-mode .detail-header')) {
-             form.style.display = 'none';
-        } else if (form) {
-             form.style.display = 'none';
+        // Initial visibility & population logic
+        const startInEditMode = wrapper && wrapper.classList.contains('is-editing');
+
+        if (startInEditMode) {
+            // If we loaded in edit mode (e.g. duplicate), ensure form is visible and populated
+            if (form) form.style.display = 'block';
+
+            if (window.selectedSessionData) {
+                const formDetailTitle = document.getElementById('form-detail-title');
+                if (formDetailTitle) {
+                    formDetailTitle.textContent = 'Editing Session: ' + new Date(window.selectedSessionData.date_utc).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                }
+                if (form) {
+                    form.action = `/journal/edit/${window.selectedSessionData.id}`;
+                    form.elements.session_id.value = window.selectedSessionData.id;
+                    form.elements.session_date.value = window.selectedSessionData.date_utc.split('T')[0];
+                    if (form.elements.location_name && window.selectedSessionData.location_name) {
+                        form.elements.location_name.value = window.selectedSessionData.location_name;
+                    }
+                }
+                populateEditForm(window.selectedSessionData);
+            }
+        } else {
+            // Standard view mode: hide the form initially
+            if (form) form.style.display = 'none';
         }
 
          if (wrapper && (wrapper.classList.contains('is-adding') || wrapper.classList.contains('is-editing'))) {
