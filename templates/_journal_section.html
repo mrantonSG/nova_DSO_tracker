@@ -927,7 +927,10 @@
     }
 
     function cancelForm() {
-        window.location.reload();
+        // Remove 'edit' parameter to ensure we return to View Mode (fixes loop after Duplicate)
+        const url = new URL(window.location.href);
+        url.searchParams.delete('edit');
+        window.location.href = url.toString();
     }
 
     async function updateMoonData() {
