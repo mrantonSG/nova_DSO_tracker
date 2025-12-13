@@ -98,7 +98,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.5.0"
+APP_VERSION = "4.6.0"
 
 INSTANCE_PATH = os.environ.get("INSTANCE_PATH") or globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -413,6 +413,7 @@ class AstroObject(Base):
     original_item_id = Column(Integer, nullable=True, index=True)
     catalog_sources = Column(Text, nullable=True)
     catalog_info = Column(Text, nullable=True)
+    enabled = Column(Boolean, nullable=False, default=True, index=True)  # New State Flag
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
 
     def to_dict(self):
@@ -446,7 +447,8 @@ class AstroObject(Base):
 
             # Catalog metadata
             "catalog_sources": self.catalog_sources,
-            "catalog_info": self.catalog_info
+            "catalog_info": self.catalog_info,
+            "enabled": self.enabled
         }
 
 
@@ -922,6 +924,10 @@ def ensure_db_initialized_unified():
             if "catalog_info" not in colnames_objects:
                 conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_info TEXT;")
                 print("[DB PATCH] Added missing column astro_objects.catalog_info")
+
+            if "enabled" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN enabled BOOLEAN DEFAULT 1;")
+                print("[DB PATCH] Added missing column astro_objects.enabled")
 
             # --- Project Model Patches ---
             cols_projects = conn.exec_driver_sql("PRAGMA table_info(projects);").fetchall()
@@ -4525,6 +4531,10 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
 
         # --- 3. PROCESS ALL OBJECTS (LOOP) ---
         for obj_entry in user_config.get("objects", []):
+            # Skip disabled objects to save CPU
+            if not obj_entry.get("enabled", True):
+                continue
+
             time.sleep(0.01)
             obj_name = obj_entry.get("Object")
             if not obj_name: continue
@@ -7557,14 +7567,56 @@ def fetch_all_details():
 
     return redirect(url_for('config_form'))
 
+
 @app.route('/api/get_object_list')
 def get_object_list():
     load_full_astro_context()
     """
     A new, very fast endpoint that just returns the list of object names.
     """
-    # g.objects is already loaded by the @app.before_request
-    return jsonify({"objects": g.objects})
+    # Filter g.objects_list to return only enabled object names
+    enabled_names = [o['Object'] for o in g.objects_list if o.get('enabled', True)]
+    return jsonify({"objects": enabled_names})
+
+
+@app.route('/api/bulk_update_objects', methods=['POST'])
+@login_required
+def bulk_update_objects():
+    data = request.get_json()
+    action = data.get('action')  # 'enable', 'disable', 'delete'
+    object_ids = data.get('object_ids', [])
+
+    if not action or not object_ids:
+        return jsonify({"status": "error", "message": "Missing action or object_ids"}), 400
+
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+
+        query = db.query(AstroObject).filter(
+            AstroObject.user_id == user_id,
+            AstroObject.object_name.in_(object_ids)
+        )
+
+        if action == 'delete':
+            count = query.delete(synchronize_session=False)
+            msg = f"Deleted {count} objects."
+        elif action == 'enable':
+            count = query.update({AstroObject.enabled: True}, synchronize_session=False)
+            msg = f"Enabled {count} objects."
+        elif action == 'disable':
+            count = query.update({AstroObject.enabled: False}, synchronize_session=False)
+            msg = f"Disabled {count} objects."
+        else:
+            return jsonify({"status": "error", "message": "Invalid action"}), 400
+
+        db.commit()
+        return jsonify({"status": "success", "message": msg})
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
 
 @app.route('/api/help/img/<path:filename>')
 def get_help_image(filename):
@@ -7866,8 +7918,8 @@ def get_desktop_data_batch():
 
         if not location_obj: return jsonify({"error": "Location not found", "results": []}), 404
 
-        # 3. Get Object Slice
-        objects_query = db.query(AstroObject).filter_by(user_id=user.id).order_by(AstroObject.object_name)
+        # 3. Get Object Slice (Only Enabled Objects)
+        objects_query = db.query(AstroObject).filter_by(user_id=user.id, enabled=True).order_by(AstroObject.object_name)
         total_count = objects_query.count()
         batch_objects = objects_query.offset(offset).limit(limit).all()
 
@@ -11320,8 +11372,8 @@ def heatmap_background_worker():
                         # Get Active Locations
                         locs = db.query(Location).filter_by(user_id=u.id, active=True).all()
 
-                        # Get Object Count (for cache key)
-                        obj_count = db.query(AstroObject).filter_by(user_id=u.id).count()
+                        # Get Object Count (for cache key) - Only Enabled
+                        obj_count = db.query(AstroObject).filter_by(user_id=u.id, enabled=True).count()
 
                         for loc in locs:
                             tasks.append({
@@ -11362,7 +11414,8 @@ def heatmap_background_worker():
                     with app.app_context():
                         db = get_db()
                         try:
-                            all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
+                            # Only calculate heatmap for enabled objects
+                            all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
                             valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
 
                             # Filter Invisible (Geometric) - Critical for consistency

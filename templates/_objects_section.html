@@ -123,7 +123,30 @@
                 <label class="short-label" for="object-filter-source">Source:</label>
                 <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier">
               </div>
+              <div>
+                <label class="short-label" for="object-filter-mag">Mag &lt;:</label>
+                <input type="number" id="object-filter-mag" onkeyup="filterObjectsList()" placeholder="15" style="width: 60px;">
+              </div>
+              <div>
+                <label class="short-label" for="object-filter-size">Size &gt;:</label>
+                <input type="number" id="object-filter-size" onkeyup="filterObjectsList()" placeholder="5" style="width: 60px;">
+              </div>
             </div>
+
+            <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: #e9ecef; padding: 8px; border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button type="button" class="file-button" onclick="selectAllVisibleObjects()">Select Visible</button>
+                    <button type="button" class="file-button" onclick="deselectAllObjects()">Deselect All</button>
+                    <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: #555;">0 Selected</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 14px; color: #555;">Selection Actions:</span>
+                    <button type="button" class="action-button" style="background-color: #27ae60;" onclick="executeBulkAction('enable')">Enable</button>
+                    <button type="button" class="action-button" style="background-color: #f39c12;" onclick="executeBulkAction('disable')">Disable</button>
+                    <button type="button" class="delete-btn" onclick="executeBulkAction('delete')">Delete</button>
+                </div>
+            </div>
+
             <div id="object-count-display" style="margin-top: 10px; padding: 5px 0 0 0; color: #555;"></div>
           </div>
 
@@ -133,8 +156,15 @@
                 <div class="block object-grid-container">
                   <div>
                     <div class="inline-fields">
+                      <div style="margin-right: 8px; display: flex; align-items: center;">
+                          <input type="checkbox" class="bulk-select-checkbox" data-object-id="{{ obj.Object | e }}">
+                      </div>
+
                       <div class="object-id">
                         <strong>{{ obj.Object }}</strong>
+                        {% if not obj.enabled %}
+                            <span class="badge" style="background-color: #bdc3c7; color: white; font-size: 10px; margin-left: 5px;">Disabled</span>
+                        {% endif %}
                         {% if obj.original_user_id %}
                           <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="Imported from another user">Imported</span>
                         {% elif obj.is_shared %}
@@ -189,8 +219,11 @@
                       {% endif %}
                     </div>
                       <div class="inline-fields second-row-fields">
-                        <div>
-                            <label class="short-label" for="delete_{{ obj.Object }}">Del:</label> <input type="checkbox" name="delete_{{ obj.Object }}" id="delete_{{ obj.Object }}">
+                        <div style="display: flex; align-items: center;">
+                            <label class="short-label" for="enabled_{{ obj.Object }}" style="color: {{ '#27ae60' if obj.enabled else '#7f8c8d' }}; font-weight: bold;">
+                                {{ 'Enabled' if obj.enabled else 'Disabled' }}
+                            </label>
+                            <input type="hidden" name="enabled_{{ obj.Object }}" value="{{ 'on' if obj.enabled else 'off' }}">
                         </div>
 
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
@@ -497,9 +530,14 @@
         const filterName = document.getElementById('object-filter-name').value.toLowerCase();
         const filterCon = document.getElementById('object-filter-con').value.toLowerCase();
         const filterType = document.getElementById('object-filter-type').value.toLowerCase();
-        // --- NEW ---
         const filterShared = document.getElementById('object-filter-shared').value;
         const filterSource = document.getElementById('object-filter-source').value.toLowerCase();
+
+        // Numerical Filters
+        const filterMagStr = document.getElementById('object-filter-mag').value;
+        const filterSizeStr = document.getElementById('object-filter-size').value;
+        const filterMag = filterMagStr ? parseFloat(filterMagStr) : null;
+        const filterSize = filterSizeStr ? parseFloat(filterSizeStr) : null;
 
         // 2. Get all object blocks
         const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
@@ -527,6 +565,12 @@
             const con = conInputEl ? conInputEl.value.toLowerCase() : '';
             const type = typeInputEl ? typeInputEl.value.toLowerCase() : '';
 
+            // Get Numerical Values
+            const magInput = block.querySelector('input[id^="magnitude_"]');
+            const sizeInput = block.querySelector('input[id^="size_"]');
+            const magVal = magInput && magInput.value ? parseFloat(magInput.value) : 999;
+            const sizeVal = sizeInput && sizeInput.value ? parseFloat(sizeInput.value) : 0;
+
             // --- NEW: Get values for new filters ---
             let sharedStatus = 'private'; // Default
             if (sharedIndicator) {
@@ -544,9 +588,14 @@
             if (show && filterName && !name.includes(filterName)) show = false;
             if (show && filterCon && !con.includes(filterCon)) show = false;
             if (show && filterType && !type.includes(filterType)) show = false;
-            // --- NEW ---
             if (show && filterShared !== 'all' && sharedStatus !== filterShared) show = false;
             if (show && filterSource && !source.includes(filterSource)) show = false;
+
+            // Apply Numerical Filters
+            // Show if Mag < Filter (fainter is higher number, but user usually wants "Bright objects < Mag 10")
+            if (show && filterMag !== null && magVal > filterMag) show = false;
+            // Show if Size > Filter (user usually wants "Big objects > 5 arcmin")
+            if (show && filterSize !== null && sizeVal < filterSize) show = false;
 
             // 5. Show or hide the block
             block.style.display = show ? '' : 'none';
@@ -593,6 +642,69 @@
         const m = parseFloat(parts[1]) || 0;
         const s = parseFloat(parts[2]) || 0;
         return sign * (d + m/60 + s/3600);
+    }
+
+    // --- Bulk Action Functions ---
+
+    function updateSelectionCount() {
+        const count = document.querySelectorAll('.bulk-select-checkbox:checked').length;
+        document.getElementById('selection-count').textContent = `${count} Selected`;
+    }
+
+    // Attach listener to checkbox changes dynamically
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('bulk-select-checkbox')) {
+            updateSelectionCount();
+        }
+    });
+
+    function selectAllVisibleObjects() {
+        const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
+        objectBlocks.forEach(block => {
+            if (block.style.display !== 'none') {
+                const cb = block.querySelector('.bulk-select-checkbox');
+                if (cb) cb.checked = true;
+            }
+        });
+        updateSelectionCount();
+    }
+
+    function deselectAllObjects() {
+        document.querySelectorAll('.bulk-select-checkbox').forEach(cb => cb.checked = false);
+        updateSelectionCount();
+    }
+
+    function executeBulkAction(action) {
+        const selectedCheckboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
+        const objectIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.objectId);
+
+        if (objectIds.length === 0) {
+            alert("No objects selected.");
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to ${action.toUpperCase()} ${objectIds.length} objects?`)) {
+            return;
+        }
+
+        fetch('/api/bulk_update_objects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: action, object_ids: objectIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload(); // Reload to reflect state changes and re-run jinja logic
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Bulk action failed:', err);
+            alert('Bulk action failed. See console.');
+        });
     }
 
     function resetAddObjectForm() {
