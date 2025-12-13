@@ -1502,6 +1502,8 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 shared_notes = link_pattern.sub(replacement_str, shared_notes)
             # === END: Link Rewriting Application ===
 
+            # Default to True for backward compatibility with old backups
+            enabled = bool(o.get("enabled", True))
             is_shared = bool(o.get("is_shared", False))
             original_user_id = _as_int(o.get("original_user_id"))
             original_item_id = _as_int(o.get("original_item_id"))
@@ -1567,6 +1569,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.original_item_id = original_item_id
                 existing.catalog_sources = catalog_sources
                 existing.catalog_info = catalog_info
+                existing.enabled = enabled
             else:
                 # INSERT PATH: The object is new, so we create a new database record.
                 new_object = AstroObject(
@@ -1588,6 +1591,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     original_item_id=original_item_id,
                     catalog_sources=catalog_sources,
                     catalog_info=catalog_info,
+                    enabled=enabled,
                 )
                 db.add(new_object)
                 db.flush()
