@@ -37,6 +37,7 @@ import shutil
 import subprocess
 import sys
 import time
+import warnings
 from modules.config_validation import validate_config
 import uuid
 from pathlib import Path
@@ -11473,10 +11474,13 @@ def heatmap_background_worker():
                                     ra, dec = float(obj.ra_hours), float(obj.dec_deg)
                                     obj_scores = []
                                     for i, date_str in enumerate(target_dates):
-                                        obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
-                                            ra, dec, task['lat'], task['lon'], date_str, valid_tz,
-                                            task['alt_threshold'], 60, horizon_mask=task['mask']
-                                        )
+                                        # Suppress IERS future data warnings (precision irrelevant for heatmap)
+                                        with warnings.catch_warnings():
+                                            warnings.filterwarnings("ignore", message=".*Tried to get polar motions.*")
+                                            obs_dur, max_alt, _, _ = calculate_observable_duration_vectorized(
+                                                ra, dec, task['lat'], task['lon'], date_str, valid_tz,
+                                                task['alt_threshold'], 60, horizon_mask=task['mask']
+                                            )
                                         score = 0
                                         duration_mins = obs_dur.total_seconds() / 60 if obs_dur else 0
                                         if max_alt is not None and max_alt >= task[
