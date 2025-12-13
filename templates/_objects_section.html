@@ -89,6 +89,10 @@
             Import from Catalog
             <span class="help-badge" onclick="openHelp('objects_import'); event.stopPropagation();" title="Help">?</span>
         </button>
+        <button class="detail-tab-button" onclick="openDuplicateChecker()">
+            Find Duplicates
+            <span class="help-badge" onclick="openHelp('objects_duplicates'); event.stopPropagation();" title="Help">?</span>
+        </button>
     </div>
 
     <div id="manage-object-subtab" class="detail-tab-content active">
@@ -409,7 +413,30 @@
     </div>
 
 </div>
+<div id="notes-modal" class="modal-backdrop" onclick="closeNotesModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 id="notes-modal-title">Shared Notes</h3>
+        <div id="notes-modal-content" class="modal-notes-content"></div>
+        <button class="inline-button modal-close-btn" onclick="closeNotesModal()">Close</button>
+    </div>
+</div>
 
+<div id="duplicates-modal" class="modal-backdrop" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
+        <h3>Potential Duplicates</h3>
+        <p style="font-size: 14px; color: #666;">
+            These pairs are located within 2.5 arcminutes of each other.
+            Merging will move all journals, projects, and framings to the "Kept" object and delete the other.
+        </p>
+        <div id="duplicates-loading" style="text-align: center; padding: 20px; display: none;">
+            Scanning catalog... (this may take a few seconds)
+        </div>
+        <div id="duplicates-list" style="max-height: 50vh; overflow-y: auto;"></div>
+          <div style="margin-top: 15px; text-align: right;">
+              <button class="action-button" style="background-color: #83b4c5;" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">Close</button>
+          </div>
+      </div>
+  </div>
 <script>
     function normalizeObjectNameJS(name) {
         if (!name) return null;
@@ -723,6 +750,87 @@
             console.error('Bulk action failed:', err);
             alert('Bulk action failed. See console.');
         });
+    }
+
+    // --- Duplicate Checker Logic ---
+
+    function openDuplicateChecker() {
+        document.getElementById('duplicates-modal').classList.add('is-visible');
+        document.getElementById('duplicates-list').innerHTML = '';
+        document.getElementById('duplicates-loading').style.display = 'block';
+
+        fetch('/api/find_duplicates')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('duplicates-loading').style.display = 'none';
+            const list = document.getElementById('duplicates-list');
+
+            if (data.duplicates.length === 0) {
+                list.innerHTML = '<p style="text-align: center; padding: 20px;">No potential duplicates found based on coordinates.</p>';
+                return;
+            }
+
+            let html = '<table class="config-table"><thead><tr><th>Object A</th><th>Sep</th><th>Object B</th><th>Action</th></tr></thead><tbody>';
+
+            data.duplicates.forEach((pair, idx) => {
+                const rowId = `dup-row-${idx}`;
+                const nameA = pair.object_a.Object;
+                const nameB = pair.object_b.Object;
+
+                html += `<tr id="${rowId}">
+                    <td>
+                        <strong>${nameA}</strong><br>
+                        <small>${pair.object_a['Common Name'] || ''}</small><br>
+                        <small class="muted-text">Src: ${pair.object_a.catalog_sources || 'Manual'}</small>
+                    </td>
+                    <td style="text-align: center; vertical-align: middle;">
+                        ${pair.separation_arcmin}'
+                    </td>
+                    <td>
+                        <strong>${nameB}</strong><br>
+                        <small>${pair.object_b['Common Name'] || ''}</small><br>
+                        <small class="muted-text">Src: ${pair.object_b.catalog_sources || 'Manual'}</small>
+                    </td>
+                    <td style="vertical-align: middle; text-align: center;">
+                        <button class="action-button" style="font-size: 11px; margin-bottom: 5px;" onclick="mergeObjects('${nameA}', '${nameB}', '${rowId}')">Keep A, Merge B</button><br>
+                        <button class="action-button" style="font-size: 11px;" onclick="mergeObjects('${nameB}', '${nameA}', '${rowId}')">Keep B, Merge A</button>
+                    </td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            list.innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('duplicates-loading').style.display = 'none';
+            document.getElementById('duplicates-list').innerHTML = '<p style="color: red; text-align: center;">Error scanning for duplicates.</p>';
+        });
+    }
+
+    function mergeObjects(keepId, mergeId, rowId) {
+        if (!confirm(`Merge '${mergeId}' INTO '${keepId}'?\n\nThis will:\n1. Re-link journals/projects from ${mergeId} to ${keepId}\n2. Copy notes from ${mergeId}\n3. DELETE ${mergeId} permanently`)) {
+            return;
+        }
+
+        fetch('/api/merge_objects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keep_id: keepId, merge_id: mergeId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const row = document.getElementById(rowId);
+                if (row) row.remove();
+                if (document.querySelectorAll('#duplicates-list tr').length <= 1) {
+                    document.getElementById('duplicates-list').innerHTML = '<p style="text-align: center; padding: 20px;">All duplicates resolved!</p>';
+                }
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => alert('Merge failed: ' + err));
     }
 
     function resetAddObjectForm() {
