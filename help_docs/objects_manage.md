@@ -9,8 +9,16 @@ If you have a large library, use the filter bar at the top to find specific targ
 
 * **ID or Name:** (e.g., "M42" or "Orion")
 * **Constellation or Type:** (e.g., "Cyg" or "Nebula")
-* **Status:** Quickly see objects that are **Private**, **Shared** by you, or **Imported** from others.
+* **Status:** Filter by **Enabled** or **Disabled** objects, or see which items are **Shared** or **Imported**.
 * **Source:** Find objects from specific catalogs (e.g., "messier").
+
+**Disabling Objects (Performance)**
+
+To keep the Nova App running fast, you can **Disable** objects that you aren't currently imaging but don't want to delete.
+
+* **Why Disable?** Disabled objects are skipped during heavy calculations (like the Dashboard and Outlook), significantly increasing software performance.
+* **Journal Safe:** You can safely disable an object without losing data. Your existing **Journal** entries and logs for that object will remain fully functional and visible.
+* **How to:** You can toggle the **Enabled/Disabled** status on a single object, or use the **Selection Actions** bar at the top to Enable or Disable many objects at once.
 
 **Editing Object Data**
 
@@ -28,4 +36,4 @@ You can edit most fields directly in the list without leaving the page:
 
 * **Single Update:** Click the **Update** button inside an object's box to save changes for just that target.
 * **Bulk Update:** Click the large **Update Objects** button at the very bottom to save changes across the entire list.
-* **Deleting:** Check the **Del** box and click Update to remove an object permanently.
+* **Deleting:** Check the **Del** box (or use the Bulk Delete button) to remove an object permanently.
