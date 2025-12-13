@@ -114,6 +114,9 @@
                 <label class="short-label" for="object-filter-shared">Status:</label>
                 <select id="object-filter-shared" onchange="filterObjectsList()">
                   <option value="all">All Statuses</option>
+                  <option value="enabled">Enabled Only</option>
+                  <option value="disabled">Disabled Only</option>
+                  <option disabled>──────────</option>
                   <option value="private">Private</option>
                   <option value="shared">Shared by Me</option>
                   <option value="imported">Imported</option>
@@ -583,12 +586,27 @@
             }
             const source = sourceBadge ? sourceBadge.textContent.toLowerCase() : '';
 
+            // Get Enabled Status
+            const enabledInput = block.querySelector('input[name^="enabled_"]');
+            const isEnabled = enabledInput ? enabledInput.value === 'on' : true;
+
             // 4. Apply filters
             if (filterId && !objectId.includes(filterId)) show = false;
             if (show && filterName && !name.includes(filterName)) show = false;
             if (show && filterCon && !con.includes(filterCon)) show = false;
             if (show && filterType && !type.includes(filterType)) show = false;
-            if (show && filterShared !== 'all' && sharedStatus !== filterShared) show = false;
+
+            // --- NEW: Status Logic ---
+            if (show && filterShared !== 'all') {
+                if (filterShared === 'disabled') {
+                    if (isEnabled) show = false;
+                } else if (filterShared === 'enabled') {
+                    if (!isEnabled) show = false;
+                } else if (sharedStatus !== filterShared) {
+                    show = false;
+                }
+            }
+
             if (show && filterSource && !source.includes(filterSource)) show = false;
 
             // Apply Numerical Filters
