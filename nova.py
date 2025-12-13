@@ -51,7 +51,7 @@ from flask import session
 from flask import Flask, send_from_directory, has_request_context
 import math
 from astroquery.simbad import Simbad
-from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5, search_around_sky
 from astropy.time import Time
 import astropy.units as u
 
@@ -7619,6 +7619,122 @@ def bulk_update_objects():
         return jsonify({"status": "success", "message": msg})
     except Exception as e:
         db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        db.close()
+
+
+@app.route('/api/find_duplicates')
+@login_required
+def find_duplicates():
+    load_full_astro_context()
+    user_id = g.db_user.id
+
+    # 1. Get all objects with valid coordinates
+    all_objects = [o for o in g.objects_list if o.get('RA (hours)') is not None and o.get('DEC (degrees)') is not None]
+
+    if len(all_objects) < 2:
+        return jsonify({"status": "success", "duplicates": []})
+
+    # 2. Create SkyCoord objects
+    ra_vals = [o['RA (hours)'] * 15.0 for o in all_objects]  # Convert to degrees
+    dec_vals = [o['DEC (degrees)'] for o in all_objects]
+
+    coords = SkyCoord(ra=ra_vals * u.deg, dec=dec_vals * u.deg)
+
+    # 3. Find matches within 2.5 arcminutes
+    # search_around_sky finds all pairs (i, j) where distance < limit
+    # This includes (i, i) self-matches and (i, j) + (j, i) duplicates
+    idx1, idx2, d2d, d3d = search_around_sky(coords, coords, seplimit=2.5 * u.arcmin)
+
+    potential_duplicates = []
+    seen_pairs = set()
+
+    for i, j, dist in zip(idx1, idx2, d2d):
+        if i >= j: continue  # Skip self-matches and reverse duplicates
+
+        obj_a = all_objects[i]
+        obj_b = all_objects[j]
+
+        # Create a unique key for this pair
+        pair_key = tuple(sorted([obj_a['Object'], obj_b['Object']]))
+        if pair_key in seen_pairs: continue
+        seen_pairs.add(pair_key)
+
+        potential_duplicates.append({
+            "object_a": obj_a,
+            "object_b": obj_b,
+            "separation_arcmin": round(dist.to(u.arcmin).value, 2)
+        })
+
+    return jsonify({"status": "success", "duplicates": potential_duplicates})
+
+
+@app.route('/api/merge_objects', methods=['POST'])
+@login_required
+def merge_objects():
+    data = request.get_json()
+    keep_id = data.get('keep_id')
+    merge_id = data.get('merge_id')
+
+    if not keep_id or not merge_id:
+        return jsonify({"status": "error", "message": "Missing object IDs"}), 400
+
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+
+        # 1. Fetch Objects
+        obj_keep = db.query(AstroObject).filter_by(user_id=user_id, object_name=keep_id).one_or_none()
+        obj_merge = db.query(AstroObject).filter_by(user_id=user_id, object_name=merge_id).one_or_none()
+
+        if not obj_keep or not obj_merge:
+            return jsonify({"status": "error", "message": "One or both objects not found."}), 404
+
+        print(f"[MERGE] Merging '{merge_id}' INTO '{keep_id}'...")
+
+        # 2. Re-link Journals
+        journals = db.query(JournalSession).filter_by(user_id=user_id, object_name=merge_id).all()
+        for j in journals:
+            j.object_name = keep_id
+        print(f"   -> Moved {len(journals)} journal sessions.")
+
+        # 3. Re-link Projects
+        projects = db.query(Project).filter_by(user_id=user_id, target_object_name=merge_id).all()
+        for p in projects:
+            p.target_object_name = keep_id
+        print(f"   -> Updated {len(projects)} projects.")
+
+        # 4. Handle Framings
+        framing_keep = db.query(SavedFraming).filter_by(user_id=user_id, object_name=keep_id).one_or_none()
+        framing_merge = db.query(SavedFraming).filter_by(user_id=user_id, object_name=merge_id).one_or_none()
+
+        if framing_merge:
+            if not framing_keep:
+                # Move framing to the kept object
+                framing_merge.object_name = keep_id
+                print(f"   -> Moved framing from {merge_id} to {keep_id}.")
+            else:
+                # Conflict: Keep existing framing on target, delete merged one
+                db.delete(framing_merge)
+                print(f"   -> Deleted conflicting framing from {merge_id}.")
+
+        # 5. Merge Notes (Append if different)
+        if obj_merge.project_name:
+            if not obj_keep.project_name:
+                obj_keep.project_name = obj_merge.project_name
+            elif obj_merge.project_name not in obj_keep.project_name:
+                obj_keep.project_name += f"<br><hr><strong>Merged Notes ({merge_id}):</strong><br>{obj_merge.project_name}"
+
+        # 6. Delete the Merged Object
+        db.delete(obj_merge)
+
+        db.commit()
+        return jsonify({"status": "success", "message": f"Successfully merged '{merge_id}' into '{keep_id}'."})
+
+    except Exception as e:
+        db.rollback()
+        print(f"[MERGE ERROR] {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
