@@ -3472,7 +3472,7 @@ def get_plot_data(object_name):
     # --- 3) Build time grid and object series ---
     sampling_interval = getattr(g, 'sampling_interval', 15)
     times_local, times_utc = get_common_time_arrays(tz_name, local_date,
-                                                    sampling_interval_minutes=5)
+                                                    sampling_interval_minutes=sampling_interval)
     location = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
     altaz_frame = AltAz(obstime=times_utc, location=location)
     sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
@@ -3525,12 +3525,15 @@ def get_plot_data(object_name):
         if not times_utc or len(times_utc) == 0:
             raise ValueError("times_utc array is empty or invalid for Moon calculation.")
 
-        for t in times_utc:
-            t_ast = Time(t)
-            moon_icrs = get_body('moon', t_ast, location=location)
-            moon_altaz = moon_icrs.transform_to(AltAz(obstime=t_ast, location=location))
-            moon_altitudes.append(moon_altaz.alt.deg)
-            moon_azimuths.append((moon_altaz.az.deg + 360.0) % 360.0)
+        # Vectorized calculation (1 call instead of ~288 calls)
+        t_ast_array = Time(times_utc)
+        # altaz_frame is already defined in step 3 using times_utc, so we can reuse it or rely on the Time array
+        moon_icrs = get_body('moon', t_ast_array, location=location)
+        moon_altaz = moon_icrs.transform_to(altaz_frame)
+
+        moon_altitudes = moon_altaz.alt.deg.tolist()
+        moon_azimuths = ((moon_altaz.az.deg + 360.0) % 360.0).tolist()
+
     except Exception as moon_err:
         print(f"[API Plot Data] ERROR calculating Moon series: {moon_err}")
         moon_altitudes = [None] * len(altitudes)
