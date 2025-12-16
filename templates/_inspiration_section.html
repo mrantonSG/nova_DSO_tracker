@@ -1,0 +1,617 @@
+<style>
+    /* --- Grid & Tile Styles --- */
+    #inspiration-wrapper {
+        padding: 20px 0;
+        width: 100%;
+        min-height: 200px;
+    }
+
+    .inspiration-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .astro-tile {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .astro-tile:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    .tile-image {
+        width: 100%;
+        height: 200px;
+        background-color: #2c3e50; /* Dark background for space images */
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px solid #eee;
+    }
+
+    .tile-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Attribution Badge overlay on image */
+    .img-source-badge {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background: rgba(0, 0, 0, 0.6);
+        color: rgba(255, 255, 255, 0.8);
+        padding: 2px 6px;
+        font-size: 10px;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+
+    .tile-content {
+        padding: 15px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 4px;
+    }
+
+    .tile-title { font-size: 1.2em; font-weight: 700; color: #2c3e50; }
+    .tile-type { font-size: 0.75em; text-transform: uppercase; color: #83b4c5; font-weight: 600; background: #f0f8fa; padding: 2px 6px; border-radius: 4px; }
+    .tile-common-name { font-size: 0.9em; color: #666; font-style: italic; margin-bottom: 10px; }
+
+    .tile-summary {
+        font-size: 0.85em;
+        color: #555;
+        line-height: 1.5;
+        margin-bottom: 15px;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .tile-stats {
+        display: flex;
+        gap: 8px;
+        margin-top: auto;
+        font-size: 0.8em;
+        color: #555;
+    }
+
+    .tile-stat-pill {
+        background: #f7f9fa;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #e1e8ed;
+    }
+
+    /* --- Modal Styles --- */
+    .insp-modal-backdrop {
+        display: none;
+        position: fixed;
+        z-index: 3000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        backdrop-filter: blur(2px);
+    }
+
+    .insp-modal-content {
+        background-color: #fff;
+        margin: 5vh auto;
+        width: 90%;
+        max-width: 800px;
+        border-radius: 12px;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: 90vh;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .insp-modal-body {
+        display: flex;
+        flex-direction: row;
+        overflow-y: auto;
+    }
+
+    .insp-modal-image {
+        width: 40%;
+        background: #000;
+        min-height: 300px;
+        position: relative;
+    }
+
+    .insp-modal-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .insp-modal-details {
+        width: 60%;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .insp-modal-title { font-size: 2em; font-weight: bold; margin: 0 0 5px 0; color: #2c3e50; }
+    .insp-modal-subtitle { font-size: 1.2em; color: #666; font-style: italic; margin-bottom: 20px; }
+
+    .insp-modal-text {
+        font-size: 1em;
+        line-height: 1.6;
+        color: #444;
+        margin-bottom: 25px;
+    }
+
+    .insp-data-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+    }
+
+    .insp-data-item strong { display: block; font-size: 0.8em; color: #888; text-transform: uppercase; }
+    .insp-data-item span { font-size: 1.1em; font-weight: 600; color: #333; }
+
+    .insp-modal-footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between; /* Space out attribution and buttons */
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-attribution {
+        font-size: 0.8em;
+        color: #999;
+    }
+
+    .modal-attribution a {
+        color: #999;
+        text-decoration: underline;
+    }
+
+    .btn-close-modal {
+        background: transparent;
+        border: 1px solid #ccc;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .btn-view-graph {
+        background: #83b4c5;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .btn-view-graph:hover { background: #6795a4; }
+
+    /* Skeleton Loading State */
+    .skeleton-pulse { animation: pulse 1.5s infinite ease-in-out; background-color: #eee; }
+    @keyframes pulse { 0% { background-color: #eee; } 50% { background-color: #ddd; } 100% { background-color: #eee; } }
+
+    @media (max-width: 700px) {
+        .insp-modal-body { flex-direction: column; }
+        .insp-modal-image, .insp-modal-details { width: 100%; }
+        .insp-modal-image { height: 200px; }
+    }
+</style>
+
+<div id="inspiration-tab-content" style="display:none;">
+    <div id="inspiration-controls" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
+        <button type="button" onclick="renderInspirationGrid(event)" style="padding: 10px 20px; border:1px solid #ccc; border-radius:4px; font-size:14px; background:#fff; cursor: pointer;">
+            ↻ Refresh Suggestions
+        </button>
+    </div>
+
+    <div id="inspiration-wrapper">
+        <div id="inspiration-grid" class="inspiration-grid"></div>
+        <div id="inspiration-loading" style="display:none; text-align:center; padding:40px; color:#666;">
+            Processing targets...
+        </div>
+    </div>
+</div>
+
+<div id="inspiration-modal" class="insp-modal-backdrop" onclick="closeInspirationModal()">
+    <div class="insp-modal-content" onclick="event.stopPropagation()">
+        <div class="insp-modal-body">
+            <div class="insp-modal-image">
+                <img id="modal-img" src="" alt="Object Image">
+            </div>
+            <div class="insp-modal-details">
+                <h2 id="modal-title" class="insp-modal-title"></h2>
+                <div id="modal-subtitle" class="insp-modal-subtitle"></div>
+
+                <div id="modal-text" class="insp-modal-text"></div>
+
+                <div class="insp-data-grid">
+                    <div class="insp-data-item"><strong>Max Altitude</strong><span id="modal-alt"></span></div>
+                    <div class="insp-data-item"><strong>Transit Time</strong><span id="modal-transit"></span></div>
+                    <div class="insp-data-item"><strong>Duration</strong><span id="modal-dur"></span></div>
+                    <div class="insp-data-item"><strong>Constellation</strong><span id="modal-const"></span></div>
+                </div>
+
+                <div class="insp-modal-footer">
+                    <div id="modal-attribution" class="modal-attribution">Source: Wiki</div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-close-modal" onclick="closeInspirationModal()">Close</button>
+                        <button class="btn-view-graph" id="modal-graph-btn">View Charts &rarr;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========================================================================
+    // 1. STRICT CATALOG NORMALIZER & VALIDATION
+    // ========================================================================
+    function normalizeObjectId(id) {
+        if (!id) return "";
+        let clean = id.trim();
+
+        // Messier: M31 -> Messier 31
+        if (/^M\d+$/.test(clean)) return clean.replace("M", "Messier ");
+        // Caldwell: C34 -> Caldwell 34
+        if (/^C\d+$/.test(clean)) return clean.replace("C", "Caldwell ");
+        // Sharpless: SH2-132, SH 2-132 -> Sharpless 132
+        if (/^SH\s?2?[- ]?(\d+)$/i.test(clean)) return clean.replace(/^SH\s?2?[- ]?(\d+)$/i, "Sharpless $1");
+        // IC: IC 434
+        if (/^IC(\d+)$/i.test(clean)) return clean.replace(/^IC(\d+)$/i, "IC $1");
+        // NGC: NGC 224
+        if (/^NGC(\d+)$/i.test(clean)) return clean.replace(/^NGC(\d+)$/i, "NGC $1");
+
+        return clean;
+    }
+
+    function isImageValid(url) {
+        if (!url) return false;
+        const lower = url.toLowerCase();
+        // Reject generic diagrams, charts, and non-space imagery
+        const badKeywords = [
+            "telescope", "observatory", "map", "chart", "diagram", "plot",
+            "spectrum", "graph", "icon", "stub", "logo", "equatorial",
+            "hertzsprung", "curve", "simbad", "vizier", "aladin", "defaut",
+            "symbol_question", "constellation_shape"
+        ];
+        if (lower.endsWith(".svg")) return false; // SVGs are almost always charts/icons on Wiki
+        return !badKeywords.some(keyword => lower.includes(keyword));
+    }
+
+    function getAladinFallbackUrl(ra, dec, sizeArcmin) {
+        if (ra == null || dec == null) return null;
+        let size = parseFloat(sizeArcmin) || 15;
+        if (size < 5) size = 5;
+        if (size > 60) size = 60;
+        return `https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=${ra}&d=${dec}&e=J2000&h=${size}&w=${size}&f=gif&c=none`;
+    }
+
+    // ========================================================================
+    // 2. API FETCHERS (Wiki -> NASA)
+    // ========================================================================
+    async function fetchWikiData(formalName) {
+        if (!formalName) return null;
+        const endpoint = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages|extracts&pithumbsize=600&exintro&explaintext&redirects=1&origin=*&titles=${encodeURIComponent(formalName)}`;
+
+        try {
+            const res = await fetch(endpoint);
+            const data = await res.json();
+            const pages = data.query.pages;
+            const pageId = Object.keys(pages)[0];
+
+            if (pageId === "-1") return null; // Not found
+
+            const page = pages[pageId];
+
+            // Check for valid image
+            let imageUrl = page.thumbnail ? page.thumbnail.source : null;
+            if (imageUrl && !isImageValid(imageUrl)) imageUrl = null;
+
+            return {
+                title: page.title,
+                extract: page.extract,
+                imageUrl: imageUrl,
+                pageUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`
+            };
+        } catch (e) {
+            console.error("Wiki Error:", e);
+            return null;
+        }
+    }
+
+    async function fetchNasaData(formalName) {
+        if (!formalName) return null;
+        // Strict keyword search
+        const endpoint = `https://images-api.nasa.gov/search?q=${encodeURIComponent(formalName)}&media_type=image`;
+
+        try {
+            const res = await fetch(endpoint);
+            const data = await res.json();
+
+            if (data.collection && data.collection.items) {
+                for (let item of data.collection.items) {
+                    const dataObj = item.data[0];
+                    const links = item.links;
+
+                    if (!dataObj || !links) continue;
+
+                    // Simple Validation: Title matches object?
+                    // We assume NASA search results are relevant, but we skip "Charts"
+                    const titleLower = dataObj.title.toLowerCase();
+                    if (titleLower.includes("chart") || titleLower.includes("spectrum")) continue;
+
+                    const imgLink = links.find(l => l.rel === "preview" || l.render === "image");
+                    if (imgLink && isImageValid(imgLink.href)) {
+                        return {
+                            title: dataObj.title,
+                            extract: dataObj.description ? dataObj.description.substring(0, 300) + "..." : "NASA Image",
+                            imageUrl: imgLink.href,
+                            pageUrl: "https://images.nasa.gov/"
+                        };
+                    }
+                }
+            }
+            return null;
+        } catch (e) {
+            console.error("NASA Error:", e);
+            return null;
+        }
+    }
+
+    // ========================================================================
+    // 3. MAIN LOGIC (Failsafe)
+    // ========================================================================
+    async function renderInspirationGrid(event) {
+        if(event) { event.preventDefault(); event.stopPropagation(); }
+
+        const grid = document.getElementById('inspiration-grid');
+        const loading = document.getElementById('inspiration-loading');
+        if (!grid) return;
+
+        try {
+            grid.innerHTML = '';
+            loading.style.display = 'block';
+            loading.textContent = "Analyzing targets...";
+
+            // 1. Get Data (Safety Check)
+            let dataSource = window.currentFilteredData;
+            if (!dataSource || dataSource.length === 0) dataSource = window.latestDSOData || [];
+
+            if (dataSource.length === 0) {
+                loading.style.display = 'none';
+                grid.innerHTML = '<div class="empty-state"><p>Data is loading or empty. Please wait a moment and click Refresh.</p></div>';
+                return;
+            }
+
+            // 2. Filter Candidates (with fallback)
+            let candidates = filterCandidates(dataSource, 40, 45); // Gold
+            if (candidates.length === 0) candidates = filterCandidates(dataSource, 25, 30); // Silver
+            if (candidates.length === 0) candidates = filterCandidates(dataSource, 15, 1); // Bronze
+
+            // Failsafe: If filtering removed EVERYTHING (e.g. day time), pick ANY object
+            // This prevents the "blank screen" issue.
+            if (candidates.length === 0) {
+                console.warn("[Inspiration] No visible targets found. Showing unfiltered fallback.");
+                candidates = dataSource.slice(0, 50); // Just take top 50 raw items
+            }
+
+            // Sort & Shuffle
+            // Sort by Altitude Descending (best ones first)
+            candidates.sort((a, b) => {
+                const altA = parseFloat(a['Max Altitude (°)']) || 0;
+                const altB = parseFloat(b['Max Altitude (°)']) || 0;
+                return altB - altA;
+            });
+
+            // Shuffle top pool
+            const poolSize = Math.min(candidates.length, 30);
+            const topPool = candidates.slice(0, poolSize);
+            for (let i = topPool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [topPool[i], topPool[j]] = [topPool[j], topPool[i]];
+            }
+            const topPicks = topPool.slice(0, 12);
+
+            loading.style.display = 'none';
+
+            // 3. Render Tiles
+            for (const obj of topPicks) {
+                const raDeg = (parseFloat(obj['RA (hours)']) || 0) * 15;
+                const decDeg = parseFloat(obj['DEC (degrees)']) || 0;
+                const dssUrl = getAladinFallbackUrl(raDeg, decDeg, obj.Size);
+                const hasCoords = (dssUrl !== null);
+
+                // Create Skeleton
+                const tile = document.createElement('div');
+                tile.className = 'astro-tile';
+                tile.innerHTML = `
+                    <div class="tile-image skeleton-pulse">
+                        <img style="opacity:0;">
+                        <div class="img-source-badge" style="display:none;"></div>
+                    </div>
+                    <div class="tile-content">
+                        <div class="tile-header">
+                            <span class="tile-title">${obj.Object}</span>
+                            <span class="tile-type">${obj.Type || ''}</span>
+                        </div>
+                        <div class="tile-common-name">${obj['Common Name'] || ''}</div>
+                        <div class="tile-summary skeleton-text">Loading...</div>
+                        <div class="tile-stats">
+                            <div class="tile-stat-pill">Alt: ${obj['Max Altitude (°)']}</div>
+                            <div class="tile-stat-pill">Dur: ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}h</div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(tile);
+
+                // Async Resolve
+                (async () => {
+                    const imgEl = tile.querySelector('img');
+                    const badgeEl = tile.querySelector('.img-source-badge');
+                    const sumEl = tile.querySelector('.tile-summary');
+
+                    // 1. Strict ID Search
+                    const formalName = normalizeObjectId(obj.Object);
+                    let finalImg = null;
+                    let finalSource = "";
+                    let finalText = "";
+                    let finalLink = "";
+
+                    // 0. Curated Data (Gold Standard)
+                    // If we have a verified image URL in the DB, use it immediately.
+                    if (obj.image_url) {
+                        finalImg = obj.image_url;
+                        // Use the credit field, or default to "Curated"
+                        finalSource = obj.image_credit || "Curated Catalog";
+                        finalText = obj.description_text || "";
+                        finalLink = obj.image_source_link || "";
+                    }
+
+                    // 2. Try Wiki (Strict) - Only runs if we didn't find a curated image
+                    if (!finalImg) {
+                        const wikiData = await fetchWikiData(formalName);
+                    if (wikiData) {
+                        // Only use Wiki data if it looks valid
+                        if (wikiData.imageUrl) {
+                            finalImg = wikiData.imageUrl;
+                            finalSource = "Wiki";
+                            finalText = wikiData.extract; // Keep text/image consistent
+                            finalLink = wikiData.pageUrl;
+                        }
+                    }
+
+                    // 3. Try NASA (If Wiki didn't provide an image)
+                    if (!finalImg) {
+                        const nasaData = await fetchNasaData(formalName);
+                        if (nasaData) {
+                            finalImg = nasaData.imageUrl;
+                            finalSource = "NASA";
+                            finalText = nasaData.extract; // Use NASA text with NASA image
+                            finalLink = nasaData.pageUrl;
+                        }
+                    }
+
+                    // 4. Fallback DSS2
+                    if (!finalImg && hasCoords) {
+                        finalImg = dssUrl;
+                        finalSource = "DSS2";
+                        // Keep text empty or generic if we fell back to DSS
+                    }
+
+                    // 5. Update UI
+                    imgEl.onload = () => {
+                        imgEl.style.opacity = '1';
+                        tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
+                    };
+
+                    if (finalImg) {
+                        imgEl.src = finalImg;
+                        badgeEl.textContent = finalSource;
+                        badgeEl.style.display = 'block';
+                    } else {
+                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">No Image</div>';
+                    }
+
+                    if (finalText) {
+                        sumEl.textContent = finalText;
+                    } else {
+                        sumEl.textContent = `Type: ${obj.Type || 'DSO'}. Located in ${obj.Constellation || 'unknown'}.`;
+                    }
+                    sumEl.classList.remove('skeleton-text');
+
+                    tile.onclick = () => openInspirationModal(obj, finalImg, finalText || sumEl.textContent, finalSource, finalLink);
+
+                })();
+            }
+        } catch (err) {
+            console.error("Critical Grid Error:", err);
+            grid.innerHTML = '<div class="empty-state"><p>Error rendering grid. Check console.</p></div>';
+            loading.style.display = 'none';
+        }
+    }
+
+    // --- Helpers (Unchanged) ---
+    function filterCandidates(data, minAlt, minDur) {
+        return data.filter(obj => {
+            if (obj.error) return false;
+            const maxAlt = parseFloat(obj['Max Altitude (°)']);
+            const duration = parseFloat(obj['Observable Duration (min)']);
+            return !isNaN(maxAlt) && maxAlt > minAlt && !isNaN(duration) && duration > minDur;
+        });
+    }
+
+    function openInspirationModal(obj, imgSrc, summary, source, wikiUrl) {
+        const modal = document.getElementById('inspiration-modal');
+        document.getElementById('modal-img').src = imgSrc || "";
+        document.getElementById('modal-img').style.display = imgSrc ? 'block' : 'none';
+
+        document.getElementById('modal-title').textContent = obj.Object;
+        document.getElementById('modal-subtitle').textContent = obj['Common Name'] || "";
+        document.getElementById('modal-alt').textContent = obj['Max Altitude (°)'];
+        document.getElementById('modal-transit').textContent = obj['Transit Time'];
+        document.getElementById('modal-dur').textContent = Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*10)/10 + " hrs";
+        document.getElementById('modal-const').textContent = obj.Constellation || "N/A";
+        document.getElementById('modal-text').textContent = summary;
+
+        const attrib = document.getElementById('modal-attribution');
+        if (source === "Wiki") {
+            attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">Wikipedia</a>`;
+        } else if (source === "NASA") {
+            attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">NASA</a>`;
+        } else if (source === "DSS2") {
+            attrib.innerHTML = `Source: Aladin Sky Atlas / DSS2`;
+        } else {
+            // Handle Curated Attribution
+            // If we have a specific link (wikiUrl variable holds the link passed to this function), use it.
+            if (wikiUrl) {
+                attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">${source}</a>`;
+            } else {
+                attrib.innerHTML = `Source: ${source}`;
+            }
+        }
+
+        document.getElementById('modal-graph-btn').onclick = () => showGraph(obj.Object, null, 'chart');
+        modal.style.display = 'block';
+    }
+
+    function closeInspirationModal() {
+        document.getElementById('inspiration-modal').style.display = 'none';
+    }
+</script>

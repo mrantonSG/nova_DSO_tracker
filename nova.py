@@ -415,6 +415,16 @@ class AstroObject(Base):
     catalog_sources = Column(Text, nullable=True)
     catalog_info = Column(Text, nullable=True)
     enabled = Column(Boolean, nullable=False, default=True, index=True)  # New State Flag
+
+    # Curation & Attribution
+    image_url = Column(String(500), nullable=True)
+    image_credit = Column(String(256), nullable=True)
+    image_source_link = Column(String(500), nullable=True)
+
+    description_text = Column(Text, nullable=True)
+    description_credit = Column(String(256), nullable=True)
+    description_source_link = Column(String(500), nullable=True)
+
     __table_args__ = (UniqueConstraint('user_id', 'object_name', name='uq_user_object'),)
 
     def to_dict(self):
@@ -449,7 +459,15 @@ class AstroObject(Base):
             # Catalog metadata
             "catalog_sources": self.catalog_sources,
             "catalog_info": self.catalog_info,
-            "enabled": self.enabled
+            "enabled": self.enabled,
+
+            # Curation & Attribution (Exposed to API)
+            "image_url": self.image_url,
+            "image_credit": self.image_credit,
+            "image_source_link": self.image_source_link,
+            "description_text": self.description_text,
+            "description_credit": self.description_credit,
+            "description_source_link": self.description_source_link
         }
 
 
@@ -929,6 +947,19 @@ def ensure_db_initialized_unified():
             if "enabled" not in colnames_objects:
                 conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN enabled BOOLEAN DEFAULT 1;")
                 print("[DB PATCH] Added missing column astro_objects.enabled")
+
+                # Curation Fields Patch
+            if "image_url" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_url VARCHAR(500);")
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_credit VARCHAR(256);")
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_source_link VARCHAR(500);")
+                print("[DB PATCH] Added image curation columns")
+
+            if "description_text" not in colnames_objects:
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_text TEXT;")
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_credit VARCHAR(256);")
+                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_source_link VARCHAR(500);")
+                print("[DB PATCH] Added description curation columns")
 
             # --- Project Model Patches ---
             cols_projects = conn.exec_driver_sql("PRAGMA table_info(projects);").fetchall()
@@ -2513,7 +2544,25 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
             raw_catalog_sources = o.get("catalog_sources")
             raw_catalog_info = o.get("catalog_info") or o.get("Info") or o.get("info")
 
+            # Curation Extraction
+            c_img_url = o.get("image_url")
+            c_img_credit = o.get("image_credit")
+            c_img_link = o.get("image_source_link")
+            c_desc_text = o.get("description_text")
+            c_desc_credit = o.get("description_credit")
+            c_desc_link = o.get("description_source_link")
+
             if existing:
+                # Backfill curation if missing on existing object
+                if not existing.image_url and c_img_url:
+                    existing.image_url = c_img_url
+                    existing.image_credit = c_img_credit
+                    existing.image_source_link = c_img_link
+
+                if not existing.description_text and c_desc_text:
+                    existing.description_text = c_desc_text
+                    existing.description_credit = c_desc_credit
+                    existing.description_source_link = c_desc_link
                 # Non-destructive: do not overwrite any user fields.
                 # Only update catalog_sources to include this pack_id.
                 existing_catalog_sources = existing.catalog_sources
@@ -2551,6 +2600,13 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 original_item_id=None,
                 catalog_sources=catalog_sources_merged,
                 catalog_info=catalog_info,
+                # Curation
+                image_url=c_img_url,
+                image_credit=c_img_credit,
+                image_source_link=c_img_link,
+                description_text=c_desc_text,
+                description_credit=c_desc_credit,
+                description_source_link=c_desc_link,
             )
             db.add(new_object)
             created += 1
