@@ -435,8 +435,9 @@
     let allSavedViews = {}; // Global cache for view settings
     // --- END OF ADD ---
 
-    let allOutlookOpportunities = []; // To store the full list of results
-    let currentOutlookSort = { columnKey: 'date', ascending: true }; // Default sort
+    let allOutlookOpportunities = [];
+    window.latestDSOData = []; // <--- EXPOSE DATA GLOBALLY for Inspiration Tab
+    let currentOutlookSort = { columnKey: 'date', ascending: true };
     const outlookColumnConfig = {
         'object_name':  { dataKey: 'object_name',  sortable: true, filterable: true, numeric: false },
         'common_name':  { dataKey: 'common_name',  sortable: true, filterable: true, numeric: false },
@@ -789,6 +790,7 @@
         const journalTableWrapper = document.getElementById('journal-table-wrapper');
         const outlookWrapper = document.getElementById('outlook-wrapper');
         const heatmapWrapper = document.getElementById('heatmap-tab-content');
+        const inspirationWrapper = document.getElementById('inspiration-tab-content'); // NEW
 
         document.querySelectorAll('.tab-button').forEach(button => {
             button.classList.toggle('active', button.dataset.tab === activeTab);
@@ -799,6 +801,7 @@
         if (journalTableWrapper) journalTableWrapper.style.display = 'none';
         if (outlookWrapper) outlookWrapper.style.display = 'none';
         if (heatmapWrapper) heatmapWrapper.style.display = 'none';
+        if (inspirationWrapper) inspirationWrapper.style.display = 'none'; // NEW
 
         if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
 
@@ -817,9 +820,13 @@
             if (!outlookDataLoaded) fetchOutlookData();
         } else if (activeTab === 'heatmap') {
             if (heatmapWrapper) heatmapWrapper.style.display = 'block';
-            // fetchAndRenderHeatmap is defined in _heatmap_section.html
             if (typeof fetchAndRenderHeatmap === 'function') {
                 fetchAndRenderHeatmap();
+            }
+        } else if (activeTab === 'inspiration') { // NEW BLOCK
+            if (inspirationWrapper) inspirationWrapper.style.display = 'block';
+            if (typeof renderInspirationGrid === 'function') {
+                renderInspirationGrid();
             }
         }
 
@@ -1014,9 +1021,17 @@ async function fetchData(isBackground = false) {
             }));
         } catch (e) { console.warn("Cache full"); }
 
+        // CRITICAL FIX: Ensure global data is always updated for other tabs
+        window.latestDSOData = allData;
+
         // If background refresh, replace table now
         if (!shouldShowLoader) {
             renderRows(allData);
+        } else {
+            // If streaming finished, check if we need to auto-load inspiration
+            if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+                renderInspirationGrid();
+            }
         }
 
     } catch (error) {
@@ -1035,8 +1050,12 @@ async function fetchData(isBackground = false) {
 
     // --- Helper: Render All (Replaces Table) ---
     function renderRows(data) {
+        window.latestDSOData = data; // <--- CAPTURE DATA HERE
         tbody.innerHTML = '';
         appendRows(data);
+
+        // NOTE: Auto-refresh for Inspiration tab removed to prevent jarring shuffles.
+        // The user must click "Refresh" to see new suggestions.
     }
 
     // --- Helper: Append Rows (Adds to existing) ---
@@ -1314,6 +1333,28 @@ async function fetchData(isBackground = false) {
             }
         } rows[i].style.display = showRow ? "" : "none";
       }
+
+      // --- EXPOSE FILTERED DATA FOR INSPIRATION TAB ---
+      // We reconstruct the list of currently visible objects based on the table rows
+      const filteredObjects = [];
+      // We use window.latestDSOData (the full source) and check against the current filters
+      // A more efficient way is to grab the dataset from the visible rows directly
+      if (window.latestDSOData && window.latestDSOData.length > 0) {
+          const visibleObjectNames = new Set();
+          for (let i = 0; i < rows.length; i++) {
+              if (rows[i].style.display !== "none") {
+                  // The row ID is row-{objectNameSanitized}.
+                  // Ideally we grab the raw text from the first cell or dataset
+                  const nameCell = rows[i].querySelector('td[data-column-key="Object"]');
+                  if (nameCell) visibleObjectNames.add(nameCell.innerText.trim());
+              }
+          }
+          window.currentFilteredData = window.latestDSOData.filter(obj => visibleObjectNames.has(obj.Object));
+      } else {
+          window.currentFilteredData = window.latestDSOData || [];
+      }
+      // ------------------------------------------------
+
       updateRemoveFiltersButtonVisibility();
       if (outlookDataLoaded) { renderOutlookTable(); }
     }
@@ -2100,7 +2141,7 @@ function populateJournalTable() {
     <button class="tab-button" data-tab="properties">Properties</button>
     <button class="tab-button" data-tab="outlook">Outlook</button>
     <button class="tab-button" data-tab="heatmap">Heatmap</button>
-    <button class="tab-button" data-tab="journal">Journal</button>
+    <button class="tab-button" data-tab="inspiration">Inspiration</button> <button class="tab-button" data-tab="journal">Journal</button>
 
     <span class="help-badge" onclick="openHelp('search_syntax')" title="Search Syntax Guide" style="margin-left: 10px;">?</span>
 
@@ -2219,6 +2260,7 @@ function populateJournalTable() {
         </table>
     </div>
     {% include '_heatmap_section.html' %}
+    {% include '_inspiration_section.html' %}
 
     <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; width: 300px; text-align: center; border: 1px solid #ddd;">
         <div style="font-weight: bold; color: #6795a4; margin-bottom: 10px;" id="loading-message">Updating data...</div>
