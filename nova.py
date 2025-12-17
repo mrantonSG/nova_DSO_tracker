@@ -10343,10 +10343,11 @@ def get_monthly_plot_data(object_name):
         "moon_alt": moon_altitudes
     })
 
-
 @app.route('/api/get_yearly_heatmap_chunk')
-@login_required
 def get_yearly_heatmap_chunk():
+    # --- Manual Auth Check for Guest Support ---
+    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
     load_full_astro_context()
 
     try:
