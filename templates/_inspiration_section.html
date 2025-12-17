@@ -231,6 +231,55 @@
         .insp-modal-image, .insp-modal-details { width: 100%; }
         .insp-modal-image { height: 200px; }
     }
+
+    /* --- New Educational States --- */
+    .inspiration-banner {
+        background: #f0f8fa;
+        border: 1px solid #bce8f1;
+        color: #31708f;
+        padding: 15px 20px;
+        margin-bottom: 25px;
+        border-radius: 8px;
+        display: flex;
+        align-items: start;
+        gap: 15px;
+        font-size: 14px;
+        line-height: 1.5;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    .inspiration-banner strong { color: #245269; font-size: 15px; }
+    .inspiration-banner .close-banner {
+        cursor: pointer;
+        font-weight: bold;
+        color: #31708f;
+        opacity: 0.5;
+        margin-left: auto;
+        font-size: 18px;
+        line-height: 1;
+    }
+    .inspiration-banner .close-banner:hover { opacity: 1; }
+
+    .empty-state-styled {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+        background: #f9f9f9;
+        border-radius: 12px;
+        border: 2px dashed #e0e0e0;
+        margin-top: 20px;
+    }
+    .empty-state-icon { font-size: 48px; margin-bottom: 15px; opacity: 0.8; }
+    .empty-state-box {
+        text-align: left;
+        display: inline-block;
+        max-width: 450px;
+        font-size: 14px;
+        background: #fff;
+        padding: 20px 25px;
+        border-radius: 8px;
+        border: 1px solid #eee;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    }
 </style>
 
 <div id="inspiration-tab-content" style="display:none;">
@@ -312,13 +361,33 @@
                 dataSource = window.latestDSOData || [];
             }
 
+            // Remove any existing banners from previous renders
+            const existingBanner = document.querySelector('.inspiration-banner');
+            if (existingBanner) existingBanner.remove();
+
             if (dataSource.length === 0) {
                 loading.style.display = 'none';
-                if (window.isListFiltered) {
-                    grid.innerHTML = '<div class="empty-state"><p>No objects match your current filters.</p></div>';
-                } else {
-                    grid.innerHTML = '<div class="empty-state"><p>Data is loading or empty. Please wait a moment and click Refresh.</p></div>';
-                }
+
+                // --- RICH EMPTY STATE ---
+                let title = window.isListFiltered ? "No Matching Targets" : "Waiting for Data...";
+                let reason = window.isListFiltered
+                    ? "Your current filters (Position Tab) are too restrictive."
+                    : "Data is loading or your database is empty.";
+
+                grid.innerHTML = `
+                    <div class="empty-state-styled">
+                        <div class="empty-state-icon">🔭</div>
+                        <h3 style="margin: 0 0 10px 0; color: #333;">${title}</h3>
+                        <p style="margin: 0 0 25px 0;">${reason}</p>
+                        <div class="empty-state-box">
+                            <strong style="color:#333;">How to populate this gallery:</strong>
+                            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #555; line-height:1.6;">
+                                <li><strong>Check Filters:</strong> Clear filters on the Position tab.</li>
+                                <li><strong>Check Database:</strong> Ensure you have objects in <em>Configuration</em>.</li>
+                                <li><strong>Wait for Night:</strong> We only show objects observable <em>tonight</em>.</li>
+                            </ul>
+                        </div>
+                    </div>`;
                 return;
             }
 
@@ -352,6 +421,28 @@
             const topPicks = topPool.slice(0, 12);
 
             loading.style.display = 'none';
+
+            // --- ONBOARDING BANNER CHECK ---
+            // Check if ANY candidate has a custom image. If not, show the educational banner.
+            const hasCustomImages = candidates.some(obj => obj.image_url && obj.image_url.trim() !== "");
+
+            if (!hasCustomImages && candidates.length > 0) {
+                const wrapper = document.getElementById('inspiration-wrapper');
+                const banner = document.createElement('div');
+                banner.className = 'inspiration-banner';
+                banner.innerHTML = `
+                    <div style="font-size: 24px;"></div>
+                    <div>
+                        <strong>Add Your Own Inspiration!</strong><br>
+                        You are currently seeing automated survey images (DSS2).<br>
+                        Did you know you can display your own astrophotos or favorite reference images here?<br>
+                        <span style="color:#555; font-size:0.9em; margin-top:4px; display:block;">Go to <strong>Configuration &gt; Manage Objects</strong> to add "Inspiration Content" (Image URLs, Credits, Descriptions) to your targets.</span>
+                    </div>
+                    <span class="close-banner" onclick="this.parentElement.remove()">✕</span>
+                `;
+                // Insert before the grid container
+                wrapper.insertBefore(banner, grid);
+            }
 
             // 3. Render Tiles
             for (const obj of topPicks) {
