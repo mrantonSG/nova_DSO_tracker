@@ -280,6 +280,18 @@
         border: 1px solid #eee;
         box-shadow: 0 4px 10px rgba(0,0,0,0.03);
     }
+
+    /* Loading Spinner */
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    .insp-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px auto;
+    }
 </style>
 
 <div id="inspiration-tab-content" style="display:none;">
@@ -367,21 +379,36 @@
             const existingBanner = document.querySelector('.inspiration-banner');
             if (existingBanner) existingBanner.remove();
 
+            // Check global loading state from main app
+            const isGlobalLoading = document.getElementById("data-body")?.dataset.loading === 'true';
+
             if (dataSource.length === 0) {
                 loading.style.display = 'none';
 
                 // --- RICH EMPTY STATE ---
-                // Only blame filters if we actually HAVE data that was filtered out
                 const isTrueFilterZero = window.isListFiltered && totalDataCount > 0;
 
-                let title = isTrueFilterZero ? "No Matching Targets" : "Waiting for Data...";
-                let reason = isTrueFilterZero
-                    ? "Your current filters (Position Tab) are too restrictive."
-                    : "Data is loading or your database is empty.";
+                // Dynamic Loading State Handling
+                let iconHtml = '<div class="empty-state-icon">🔭</div>';
+                let title = "No Matching Targets";
+                let reason = "Your current filters (Position Tab) are too restrictive.";
+
+                if (!isTrueFilterZero) {
+                    if (isGlobalLoading) {
+                        // Active Loading State
+                        iconHtml = '<div class="insp-spinner"></div>';
+                        title = "Loading Object Database...";
+                        reason = "Please wait while we calculate visibility and fetch data.";
+                    } else {
+                        // Truly Empty DB State
+                        title = "Database Empty";
+                        reason = "No objects found in your configuration.";
+                    }
+                }
 
                 grid.innerHTML = `
                     <div class="empty-state-styled">
-                        <div class="empty-state-icon">🔭</div>
+                        ${iconHtml}
                         <h3 style="margin: 0 0 10px 0; color: #333;">${title}</h3>
                         <p style="margin: 0 0 25px 0;">${reason}</p>
                         <div class="empty-state-box">
@@ -428,13 +455,18 @@
             loading.style.display = 'none';
 
             // --- ONBOARDING BANNER CHECK ---
-            // Check if ANY candidate has a custom image. If not, show the educational banner.
+            // 1. Check current visible candidates
             const hasCustomImages = candidates.some(obj => obj.image_url && obj.image_url.trim() !== "");
+
+            // 2. Check GLOBAL dataset (prevents banner if user has images elsewhere but filtered out)
+            //    This stops the banner from annoying users who already know how to use the feature.
+            const globalHasCustom = (window.latestDSOData || []).some(obj => obj.image_url && obj.image_url.trim() !== "");
 
             // Check if data is still streaming (prevents banner flicker on partial loads)
             const isLoading = document.getElementById("data-body")?.dataset.loading === 'true';
 
-            if (!hasCustomImages && candidates.length > 0 && !isLoading) {
+            // Only show if: No custom images in current set, No custom images globally, Data exists, and Not loading
+            if (!hasCustomImages && !globalHasCustom && candidates.length > 0 && !isLoading) {
                 const wrapper = document.getElementById('inspiration-wrapper');
                 const banner = document.createElement('div');
                 banner.className = 'inspiration-banner';

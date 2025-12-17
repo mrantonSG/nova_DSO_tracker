@@ -1263,6 +1263,10 @@ def normalize_object_name(name: str) -> str:
     match = re.match(r'^(NGC)(\d+)$', name_str)
     if match: return f"NGC {match.group(2)}"
 
+    # IC 1805 -> IC1805 (Fix: IC + 1 or more digits)
+    match = re.match(r'^(IC)(\d+)$', name_str)
+    if match: return f"IC {match.group(2)}"
+
     # VDB 1 -> VDB1
     match = re.match(r'^(VDB)(\d+)$', name_str)
     if match: return f"VDB {match.group(2)}"
@@ -11312,6 +11316,9 @@ def repair_corrupt_ids_command():
 
         # NGC 1976 -> NGC1976
         (re.compile(r'^(NGC)(\d+)$'), r'NGC \2'),
+
+        # IC 1805 -> IC1805
+        (re.compile(r'^(IC)(\d+)$'), r'IC \2'),
 
         # GUM 16 -> GUM16
         (re.compile(r'^(GUM)(\d+)$'), r'GUM \2'),
