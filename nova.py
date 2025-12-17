@@ -740,10 +740,7 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
     """
     Finds a user in the `DbUser` table by username or creates them if they don't exist.
     If created, transactionally seeds them with data from the 'guest_user' template.
-    This function is defined AFTER the DB models, so it can safely query them.
-
-    Returns:
-        The SQLAlchemy DbUser object for the given username.
+    For 'guest_user' specifically, it seeds from the YAML files to ensure the template source exists.
     """
     if not username:
         return None
@@ -751,13 +748,44 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
     # Try to find the user in our application database
     user = db_session.query(DbUser).filter_by(username=username).one_or_none()
 
+    # --- HELPER: Logic to seed guest_user from YAML ---
+    def _seed_guest_from_yaml(target_user):
+        try:
+            print(f"[PROVISIONING] Seeding '{target_user.username}' directly from YAML files...")
+            cfg_path = os.path.join(CONFIG_DIR, "config_guest_user.yaml")
+            rigs_path = os.path.join(CONFIG_DIR, "rigs_guest_user.yaml")
+            jrn_path = os.path.join(CONFIG_DIR, "journal_guest_user.yaml")
+
+            cfg_data, _ = _read_yaml(cfg_path)
+            rigs_data, _ = _read_yaml(rigs_path)
+            jrn_data, _ = _read_yaml(jrn_path)
+
+            if cfg_data:
+                _migrate_locations(db_session, target_user, cfg_data)
+                _migrate_objects(db_session, target_user, cfg_data)
+                _migrate_components_and_rigs(db_session, target_user, rigs_data, target_user.username)
+                _migrate_saved_framings(db_session, target_user, cfg_data)
+                _migrate_journal(db_session, target_user, jrn_data)
+                _migrate_ui_prefs(db_session, target_user, cfg_data)
+                print(f"   -> [SEEDING] YAML import complete.")
+            else:
+                print(f"   -> [SEEDING] WARNING: config_guest_user.yaml empty or missing.")
+        except Exception as e:
+            print(f"   -> [SEEDING] ERROR importing from YAML: {e}")
+            raise e
+
     if user:
-        # The user already exists, just return them
+        # REPAIR: If this is the guest_user but they have NO locations (broken state), re-seed from YAML.
+        if username == "guest_user":
+            loc_count = db_session.query(Location).filter_by(user_id=user.id).count()
+            if loc_count == 0:
+                print(f"[PROVISIONING] Detected empty guest_user. Attempting repair from YAML...")
+                _seed_guest_from_yaml(user)
+                db_session.commit()
         return user
 
     # --- New User Provisioning Path ---
     try:
-        # User exists in Auth DB but not here. Create them now.
         print(f"[PROVISIONING] User '{username}' not found in app.db. Creating new record.")
         new_user = DbUser(username=username)
         db_session.add(new_user)
@@ -765,18 +793,20 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
 
         print(f"   -> User record created with ID {new_user.id}. Now seeding data...")
 
-        # Call the helper function to ADD all default data to the session
-        _seed_user_from_guest_data(db_session, new_user)
+        if username == "guest_user":
+            # Guest user MUST be seeded from disk (YAML) to act as the template for others
+            _seed_guest_from_yaml(new_user)
+        else:
+            # Normal users are seeded from the database template (the guest_user record)
+            _seed_user_from_guest_data(db_session, new_user)
 
-        # Commit the ENTIRE transaction (new user + all default data)
         db_session.commit()
 
         print(f"   -> Successfully provisioned and seeded '{username}'.")
-        # We need to re-fetch to get the fully loaded object
         return db_session.query(DbUser).filter_by(username=username).one()
 
     except Exception as e:
-        db_session.rollback()  # Roll back the entire transaction on any failure
+        db_session.rollback()
         print(f"   -> FAILED to provision '{username}'. Rolled back. Error: {e}")
         traceback.print_exc()
         return None
@@ -8111,10 +8141,11 @@ def get_object_data(object_name):
     finally:
         db.close()
 
-
 @app.route('/api/get_desktop_data_batch')
-@login_required
 def get_desktop_data_batch():
+    # --- Manual Auth Check for Guest Support ---
+    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"error": "Unauthorized"}), 401
     """
     Batch processor for the desktop dashboard.
     Calculates data for 50 objects internally to prevent HTTP request flooding.
@@ -9083,10 +9114,11 @@ def get_object_list_from_config():
         return g.user_config.get("objects", [])
     return []
 
-
 @app.route('/api/get_moon_data')
-@login_required
 def get_moon_data_for_session():
+    # --- Manual Auth Check for Guest Support ---
+    if not (current_user.is_authenticated or SINGLE_USER_MODE or getattr(g, 'is_guest', False)):
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
     try:
         date_str = request.args.get('date')
         tz_name = request.args.get('tz')
