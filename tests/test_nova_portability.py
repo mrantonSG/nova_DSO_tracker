@@ -549,7 +549,8 @@ def test_import_catalog_pack(client, monkeypatch):
 
     # 3. ASSERT (First import)
     assert response_first.status_code == 200
-    assert b"Catalog &#39;My Mock Catalog&#39; imported: 1 new object(s), 0 skipped." in response_first.data
+    # Updated to match current nova.py flash message format: "Catalog '{name}': {c} new, {e} enriched (updated), {s} skipped."
+    assert b"Catalog &#39;My Mock Catalog&#39;: 1 new, 0 enriched (updated), 0 skipped." in response_first.data
 
     # Check the database
     new_obj = db.query(AstroObject).filter_by(user_id=user.id, object_name="CAT_OBJ_1").one_or_none()
@@ -566,7 +567,8 @@ def test_import_catalog_pack(client, monkeypatch):
 
     # 5. ASSERT (Second import)
     assert response_second.status_code == 200
-    assert b"Catalog &#39;My Mock Catalog&#39; imported: 0 new object(s), 1 skipped." in response_second.data
+    # Updated to match current nova.py flash message format
+    assert b"Catalog &#39;My Mock Catalog&#39;: 0 new, 0 enriched (updated), 1 skipped." in response_second.data
 
     # Check that no new objects were created
     count = db.query(AstroObject).filter_by(user_id=user.id, object_name="CAT_OBJ_1").count()
