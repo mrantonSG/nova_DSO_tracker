@@ -4419,8 +4419,12 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             framed_objects = set()
             db = get_db()
             try:
-                rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
-                framed_objects = {r[0] for r in rows}
+                try:
+                    rows = db.query(SavedFraming.object_name).filter_by(user_id=user_id).all()
+                    framed_objects = {r[0] for r in rows}
+                except Exception as e:
+                    # Fail gracefully if table is missing (e.g. during tests/migrations)
+                    print(f"[OUTLOOK WORKER {status_key}] WARN: Could not fetch framings: {e}")
             finally:
                 db.close()
 
