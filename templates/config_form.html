@@ -519,7 +519,36 @@
     .form-group.trix-group trix-editor {
         grid-column: 1 / -1;
     }
-
+    /* --- Styles for Inspiration Fields --- */
+    .inspiration-container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 10px;
+    }
+    .inspiration-container label {
+        font-weight: bold;
+        color: #555;
+        font-size: 0.85em;
+        margin-bottom: 4px;
+        display: block;
+    }
+    .inspiration-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .inspiration-row > div {
+        flex: 1;
+    }
+    .inspiration-input {
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 13px;
+    }
     /* --- Styles for Sharing UI --- */
     .share-control {
         display: flex;
@@ -1688,6 +1717,70 @@
                 fileInput.value = "";
             }
         }
+    // --- Save Logic for Objects (API) ---
+    function saveObjectData(btn, objectName) {
+        const originalText = btn.textContent;
+        btn.textContent = "Saving...";
+        btn.disabled = true;
+
+        // Helper to safely get value by ID
+        const getVal = (id) => {
+            const el = document.getElementById(id);
+            return el ? (el.type === 'checkbox' ? el.checked : el.value) : "";
+        };
+
+        // Gather ALL fields to prevent overwriting with nulls
+        // Note: IDs match the standard naming convention (e.g. ra_M31)
+        const payload = {
+            object_id: objectName,
+            name: getVal(`name_${objectName}`),
+            ra: getVal(`ra_${objectName}`),
+            dec: getVal(`dec_${objectName}`),
+            constellation: getVal(`constellation_${objectName}`),
+            type: getVal(`type_${objectName}`),
+            magnitude: getVal(`magnitude_${objectName}`),
+            size: getVal(`size_${objectName}`),
+            sb: getVal(`sb_${objectName}`),
+            is_active: getVal(`active_project_${objectName}`),
+            project_notes: getVal(`project_${objectName}`), // Trix updates hidden input
+            is_shared: getVal(`is_shared_${objectName}`),
+            shared_notes: getVal(`shared_notes_${objectName}`),
+
+            // --- NEW INSPIRATION FIELDS ---
+            image_url: getVal(`image_url_${objectName}`),
+            image_credit: getVal(`image_credit_${objectName}`),
+            description_text: getVal(`description_text_${objectName}`)
+        };
+
+        fetch('/api/update_object', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Flash success button state
+                btn.textContent = "Saved!";
+                btn.style.backgroundColor = "#28a745";
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.backgroundColor = ""; // Reset to default
+                    btn.disabled = false;
+                }, 2000);
+            } else {
+                alert("Error saving: " + data.message);
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Network error saving object.");
+            btn.textContent = originalText;
+            btn.disabled = false;
+        });
+    }
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
 
