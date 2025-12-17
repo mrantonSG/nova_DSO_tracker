@@ -239,12 +239,40 @@
                                    {% if obj.ActiveProject %}checked{% endif %}>
                         </div>
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
-                            <button type="button" class="action-button update-single-object-btn" data-object-id="{{ obj.Object | e }}">Update</button>
-                            <span class="update-status-msg" data-object-id="{{ obj.Object | e }}" style="font-style: italic; color: #28a745; font-size: 13px; white-space: nowrap;"></span>
+                            <button type="button" class="action-button" onclick="saveObjectData(this, '{{ obj.Object }}')">Update</button>
                         </div>
                     </div>
                   </div>
                   <div>
+                    <div class="inspiration-container" style="background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+                            <label style="font-weight:bold; color:#555; font-size:0.85em; margin:0;">Inspiration Content</label>
+                            <span class="help-badge" onclick="openHelp('objects_inspiration'); event.stopPropagation();" title="Help">?</span>
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                            <div style="flex: 2;">
+                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <input type="text" id="image_credit_{{ obj.Object }}" value="{{ obj.image_credit or '' }}" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                             <input type="text" id="image_source_link_{{ obj.Object }}" value="{{ obj.image_source_link or '' }}" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                        </div>
+                        <div style="margin-bottom: 8px;">
+                            <textarea id="description_text_{{ obj.Object }}" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <input type="text" id="description_credit_{{ obj.Object }}" value="{{ obj.description_credit or '' }}" placeholder="Text Credit (e.g. Wikipedia)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                            </div>
+                            <div style="flex: 2;">
+                                <input type="text" id="description_source_link_{{ obj.Object }}" value="{{ obj.description_source_link or '' }}" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                            </div>
+                        </div>
+                    </div>
+
                     {% if obj.catalog_info %}
                     <div class="form-group trix-group">
                         <label>Catalog Info:</label>
@@ -331,6 +359,36 @@
                   <input type="checkbox" name="new_is_active" id="new_is_active" checked>
                   <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">Active Project</label>
               </div>
+
+              <div class="inspiration-container" style="background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+                  <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
+                      <label style="font-weight:bold; color:#555; font-size:0.85em; margin:0;">Inspiration Content (Optional)</label>
+                      <span class="help-badge" onclick="openHelp('objects_inspiration'); event.stopPropagation();" title="Help">?</span>
+                  </div>
+                  <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                      <div style="flex: 2;">
+                          <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                      </div>
+                      <div style="flex: 1;">
+                          <input type="text" id="new_image_credit" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                      </div>
+                  </div>
+                  <div style="margin-bottom: 8px;">
+                       <input type="text" id="new_image_source_link" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                  </div>
+                  <div style="margin-bottom: 8px;">
+                      <textarea id="new_description_text" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; font-family: inherit;"></textarea>
+                  </div>
+                  <div style="display: flex; gap: 10px;">
+                      <div style="flex: 1;">
+                          <input type="text" id="new_description_credit" placeholder="Text Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                      </div>
+                      <div style="flex: 2;">
+                          <input type="text" id="new_description_source_link" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                      </div>
+                  </div>
+              </div>
+
               <div>
                   <button id="submit_new_object" type="button" class="action-button">Search</button>
                   <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
@@ -837,7 +895,9 @@
         const fieldsToClear = [
             'new_object', 'new_name', 'new_ra', 'new_dec', 'new_constellation',
             'new_type', 'new_magnitude', 'new_size', 'new_sb',
-            'new_project_hidden', 'new_shared_notes_hidden'
+            'new_project_hidden', 'new_shared_notes_hidden',
+            'new_image_url', 'new_image_credit', 'new_image_source_link',
+            'new_description_text', 'new_description_credit', 'new_description_source_link'
         ];
 
         fieldsToClear.forEach(id => {
@@ -1041,8 +1101,15 @@
                         shared_notes: document.getElementById('new_shared_notes_hidden') ? document.getElementById('new_shared_notes_hidden').value : '',
                         is_shared: document.getElementById('new_is_shared') ? document.getElementById('new_is_shared').checked : false,
                         // --- NEW: Include Active Project Status ---
-                        is_active: document.getElementById('new_is_active') ? document.getElementById('new_is_active').checked : false
+                        is_active: document.getElementById('new_is_active') ? document.getElementById('new_is_active').checked : false,
                         // --- END NEW ---
+                        // --- NEW: Inspiration Fields ---
+                        image_url: document.getElementById('new_image_url').value,
+                        image_credit: document.getElementById('new_image_credit').value,
+                        image_source_link: document.getElementById('new_image_source_link').value,
+                        description_text: document.getElementById('new_description_text').value,
+                        description_credit: document.getElementById('new_description_credit').value,
+                        description_source_link: document.getElementById('new_description_source_link').value
                     };
 
                     fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -1068,97 +1135,7 @@
                 });
             }
 
-            // --- Update Single Object Button Logic ---
-            // Use event delegation on the object list container
-            const objectListContainer = document.querySelector('.objects-list');
-            if (objectListContainer) {
-                objectListContainer.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('update-single-object-btn')) {
-                        const button = e.target;
-                        const objectId = button.dataset.objectId;
-
-                        button.disabled = true;
-                        button.textContent = 'Updating...';
-                        const statusMsg = document.querySelector(`.update-status-msg[data-object-id="${objectId}"]`);
-                        if (statusMsg) {
-                            statusMsg.textContent = '';
-                            statusMsg.style.color = '#28a745';
-                        }
-
-                        const projectInputEl = document.getElementById(`project_${objectId}_hidden`);
-                        const projectHtml = projectInputEl ? projectInputEl.value : '';
-
-                        let sharedNotesHtml = '';
-                        let isShared = false;
-
-                        // --- NEW: Get Active Project State ---
-                        let isActive = false;
-                        const isActiveCheckbox = document.getElementById(`active_project_${objectId}`);
-                        if (isActiveCheckbox) isActive = isActiveCheckbox.checked;
-                        // --- END NEW ---
-
-                        const sharedInputEl = document.getElementById(`shared_notes_${objectId}_hidden`);
-                        if (sharedInputEl) sharedNotesHtml = sharedInputEl.value;
-
-                        const isSharedCheckbox = document.getElementById(`is_shared_${objectId}`);
-                        if (isSharedCheckbox) isShared = isSharedCheckbox.checked;
-
-                        const payload = {
-                            object_id: objectId,
-                            name: document.getElementById(`name_${objectId}`).value,
-                            ra: document.getElementById(`ra_${objectId}`).value,
-                            dec: document.getElementById(`dec_${objectId}`).value,
-                            constellation: document.getElementById(`constellation_${objectId}`).value,
-                            type: document.getElementById(`type_${objectId}`).value,
-                            magnitude: document.getElementById(`magnitude_${objectId}`).value,
-                            size: document.getElementById(`size_${objectId}`).value,
-                            sb: document.getElementById(`sb_${objectId}`).value,
-                            project_notes: projectHtml,
-                            shared_notes: sharedNotesHtml,
-                            is_shared: isShared,
-                            // --- NEW: Include Active Project Status ---
-                            is_active: isActive
-                            // --- END NEW ---
-                        };
-
-                        fetch("{{ url_for('update_object') }}", {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        })
-                        .then(response => {
-                            if (!response.ok) return response.json().then(err => { throw new Error(err.message || 'Server error'); });
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.status === 'success') {
-                                if (statusMsg) statusMsg.textContent = 'Saved!';
-                                setTimeout(() => { if (statusMsg) statusMsg.textContent = ''; }, 2000);
-                            } else {
-                                throw new Error(data.message);
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Update failed:', err);
-                            if (statusMsg) {
-                                statusMsg.textContent = 'Error!';
-                                statusMsg.style.color = '#dc3545';
-                            }
-                            alert(`Error updating ${objectId}: ${err.message}`);
-                            setTimeout(() => {
-                                if (statusMsg) {
-                                    statusMsg.textContent = '';
-                                    statusMsg.style.color = '#28a745';
-                                }
-                            }, 4000);
-                        })
-                        .finally(() => {
-                            button.disabled = false;
-                            button.textContent = 'Update';
-                        });
-                    }
-                });
-            }
+            // (Old 'update-single-object-btn' listener removed; using 'saveObjectData' from config_form.html)
         });
     }
 </script>

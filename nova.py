@@ -1542,6 +1542,14 @@ def _migrate_objects(db, user: DbUser, config: dict):
             catalog_sources = o.get("catalog_sources")
             catalog_info = o.get("catalog_info")
 
+            # --- Curation Fields (Backup/Restore Support) ---
+            image_url = o.get("image_url")
+            image_credit = o.get("image_credit")
+            image_source_link = o.get("image_source_link")
+            description_text = o.get("description_text")
+            description_credit = o.get("description_credit")
+            description_source_link = o.get("description_source_link")
+
             ra_f = float(ra_val) if ra_val is not None else None
             dec_f = float(dec_val) if dec_val is not None else None
 
@@ -1602,6 +1610,14 @@ def _migrate_objects(db, user: DbUser, config: dict):
                 existing.catalog_sources = catalog_sources
                 existing.catalog_info = catalog_info
                 existing.enabled = enabled
+
+                # Restore Curation
+                existing.image_url = image_url
+                existing.image_credit = image_credit
+                existing.image_source_link = image_source_link
+                existing.description_text = description_text
+                existing.description_credit = description_credit
+                existing.description_source_link = description_source_link
             else:
                 # INSERT PATH: The object is new, so we create a new database record.
                 new_object = AstroObject(
@@ -1624,6 +1640,13 @@ def _migrate_objects(db, user: DbUser, config: dict):
                     catalog_sources=catalog_sources,
                     catalog_info=catalog_info,
                     enabled=enabled,
+                    # Restore Curation
+                    image_url=image_url,
+                    image_credit=image_credit,
+                    image_source_link=image_source_link,
+                    description_text=description_text,
+                    description_credit=description_credit,
+                    description_source_link=description_source_link,
                 )
                 db.add(new_object)
                 db.flush()
@@ -2476,110 +2499,101 @@ def import_user_from_yaml(username: str,
     finally:
         db.close()
 
-def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id: str) -> tuple[int, int]:
-    """Import a catalog pack into a user's library in a non-destructive way.
-
-    - Adds new objects that do not already exist for the user (by object_name, case-insensitive).
-    - If an object already exists, it is skipped (user data is not overwritten), but
-      catalog_sources can be updated to include the pack_id for tracking.
-
-    Returns (created_count, skipped_count).
+def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id: str) -> tuple[int, int, int]:
+    """
+    Import a catalog pack. Returns (created_count, enriched_count, skipped_count).
+    Enrichment is NON-DESTRUCTIVE: it only fills missing (empty) fields.
     """
     created = 0
+    enriched = 0
     skipped = 0
 
     objs = (catalog_config or {}).get("objects", []) or []
 
     def _merge_sources(current: str | None, new_id: str) -> str:
-        if not new_id:
-            return current or ""
-        if not current:
-            return new_id
+        if not new_id: return current or ""
+        if not current: return new_id
         parts = {p.strip() for p in str(current).split(',') if p.strip()}
         parts.add(new_id)
         return ",".join(sorted(parts))
 
     for o in objs:
         try:
+            # --- 1. Parse Common Data ---
             ra_val = o.get("RA") if o.get("RA") is not None else o.get("RA (hours)")
             dec_val = o.get("DEC") if o.get("DEC") is not None else o.get("DEC (degrees)")
 
             raw_obj_name = o.get("Object") or o.get("object") or o.get("object_name")
             if not raw_obj_name or not str(raw_obj_name).strip():
-                print(f"[CATALOG IMPORT][SKIP] Entry is missing an 'Object' identifier: {o}")
                 skipped += 1
                 continue
 
             object_name = normalize_object_name(raw_obj_name)
 
-            common_name = o.get("Common Name") or o.get("Name") or o.get("common_name")
-            # If common_name is still blank, use the raw (pretty) object name as a fallback
-            if not common_name or not str(common_name).strip():
-                common_name = str(raw_obj_name).strip()
+            # --- 2. Check for Existing Object ---
+            existing = db.query(AstroObject).filter_by(
+                user_id=user.id,
+                object_name=object_name
+            ).one_or_none()
 
-            obj_type = o.get("Type") or o.get("type")
-            constellation = o.get("Constellation") or o.get("constellation")
-            magnitude = o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude")
-            size = o.get("Size") if o.get("Size") is not None else o.get("size")
-            sb = o.get("SB") if o.get("SB") is not None else o.get("sb")
+            # --- 3. Extract Curation Data from Pack ---
+            pack_img_url = o.get("image_url")
+            pack_img_credit = o.get("image_credit")
+            pack_img_link = o.get("image_source_link")
+            pack_desc_text = o.get("description_text")
+            pack_desc_credit = o.get("description_credit")
+            pack_desc_link = o.get("description_source_link")
 
+            if existing:
+                # --- ENRICHMENT LOGIC (Non-Destructive) ---
+                was_enriched = False
+
+                # Only update if the user's field is empty AND the pack has data
+                if not existing.image_url and pack_img_url:
+                    existing.image_url = pack_img_url
+                    existing.image_credit = pack_img_credit
+                    existing.image_source_link = pack_img_link
+                    was_enriched = True
+
+                if not existing.description_text and pack_desc_text:
+                    existing.description_text = pack_desc_text
+                    existing.description_credit = pack_desc_credit
+                    existing.description_source_link = pack_desc_link
+                    was_enriched = True
+
+                # Always update source tracking
+                existing.catalog_sources = _merge_sources(existing.catalog_sources, pack_id)
+
+                if was_enriched:
+                    enriched += 1
+                else:
+                    skipped += 1
+                continue
+
+            # --- 4. Create New Object ---
+            # (Only if RA/DEC exist)
             ra_f = float(ra_val) if ra_val is not None else None
             dec_f = float(dec_val) if dec_val is not None else None
 
-            # Compute constellation if missing but coordinates exist
+            if (ra_f is None) or (dec_f is None):
+                skipped += 1
+                continue
+
+            # Basic Fields
+            common_name = o.get("Common Name") or o.get("Name") or o.get("common_name") or str(raw_obj_name).strip()
+            obj_type = o.get("Type") or o.get("type")
+            constellation = o.get("Constellation") or o.get("constellation")
+            magnitude = str(o.get("Magnitude") if o.get("Magnitude") is not None else o.get("magnitude") or "")
+            size = str(o.get("Size") if o.get("Size") is not None else o.get("size") or "")
+            sb = str(o.get("SB") if o.get("SB") is not None else o.get("sb") or "")
+
+            # Constellation Calc
             if (not constellation) and (ra_f is not None) and (dec_f is not None):
                 try:
                     coords = SkyCoord(ra=ra_f * u.hourangle, dec=dec_f * u.deg)
                     constellation = get_constellation(coords)
                 except Exception:
                     constellation = None
-
-            # Look up existing object by normalized name for this user
-            existing = db.query(AstroObject).filter_by(
-                user_id=user.id,
-                object_name=object_name
-            ).one_or_none()
-
-            # Catalog info: allow explicit fields but always ensure pack_id is recorded
-            raw_catalog_sources = o.get("catalog_sources")
-            raw_catalog_info = o.get("catalog_info") or o.get("Info") or o.get("info")
-
-            # Curation Extraction
-            c_img_url = o.get("image_url")
-            c_img_credit = o.get("image_credit")
-            c_img_link = o.get("image_source_link")
-            c_desc_text = o.get("description_text")
-            c_desc_credit = o.get("description_credit")
-            c_desc_link = o.get("description_source_link")
-
-            if existing:
-                # Backfill curation if missing on existing object
-                if not existing.image_url and c_img_url:
-                    existing.image_url = c_img_url
-                    existing.image_credit = c_img_credit
-                    existing.image_source_link = c_img_link
-
-                if not existing.description_text and c_desc_text:
-                    existing.description_text = c_desc_text
-                    existing.description_credit = c_desc_credit
-                    existing.description_source_link = c_desc_link
-                # Non-destructive: do not overwrite any user fields.
-                # Only update catalog_sources to include this pack_id.
-                existing_catalog_sources = existing.catalog_sources
-                merged_sources = _merge_sources(existing_catalog_sources, pack_id)
-                existing.catalog_sources = merged_sources
-                # Keep existing.catalog_info as-is; do not overwrite.
-                skipped += 1
-                continue
-
-            # New object: we require RA/DEC to be usable
-            if (ra_f is None) or (dec_f is None):
-                print(f"[CATALOG IMPORT][SKIP] Object '{object_name}' has no RA/DEC, skipping.")
-                skipped += 1
-                continue
-
-            catalog_sources_merged = _merge_sources(str(raw_catalog_sources) if raw_catalog_sources else None, pack_id)
-            catalog_info = raw_catalog_info
 
             new_object = AstroObject(
                 user_id=user.id,
@@ -2589,33 +2603,33 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
                 dec_deg=dec_f,
                 type=obj_type,
                 constellation=constellation,
-                magnitude=str(magnitude) if magnitude is not None else None,
-                size=str(size) if size is not None else None,
-                sb=str(sb) if sb is not None else None,
+                magnitude=magnitude if magnitude else None,
+                size=size if size else None,
+                sb=sb if sb else None,
                 active_project=False,
                 project_name=None,
                 is_shared=False,
                 shared_notes=None,
                 original_user_id=None,
                 original_item_id=None,
-                catalog_sources=catalog_sources_merged,
-                catalog_info=catalog_info,
+                catalog_sources=pack_id,
+                catalog_info=o.get("catalog_info"),
                 # Curation
-                image_url=c_img_url,
-                image_credit=c_img_credit,
-                image_source_link=c_img_link,
-                description_text=c_desc_text,
-                description_credit=c_desc_credit,
-                description_source_link=c_desc_link,
+                image_url=pack_img_url,
+                image_credit=pack_img_credit,
+                image_source_link=pack_img_link,
+                description_text=pack_desc_text,
+                description_credit=pack_desc_credit,
+                description_source_link=pack_desc_link,
             )
             db.add(new_object)
             created += 1
 
         except Exception as e:
-            print(f"[CATALOG IMPORT] Could not process object entry '{o}'. Error: {e}")
+            print(f"[CATALOG IMPORT] Error processing '{o}': {e}")
             skipped += 1
 
-    return (created, skipped)
+    return (created, enriched, skipped)
 
 def repair_journals(dry_run: bool = False):
     """
@@ -7023,11 +7037,11 @@ def import_catalog(pack_id):
             flash("Catalog pack not found or invalid.", "error")
             return redirect(url_for('config_form'))
 
-        created, skipped = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
+        created, enriched, skipped = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
         db.commit()
 
         pack_name = (meta or {}).get("name") or pack_id
-        msg = f"Catalog '{pack_name}' imported: {created} new object(s), {skipped} skipped."
+        msg = f"Catalog '{pack_name}': {created} new, {enriched} enriched (updated), {skipped} skipped."
         flash(msg, "success")
     except Exception as e:
         db.rollback()
@@ -7483,6 +7497,14 @@ def confirm_object():
         is_shared = req.get('is_shared') == True
         active_project = req.get('is_active') == True
 
+        # Inspiration Fields
+        image_url = req.get('image_url')
+        image_credit = req.get('image_credit')
+        image_source_link = req.get('image_source_link')
+        description_text = req.get('description_text')
+        description_credit = req.get('description_credit')
+        description_source_link = req.get('description_source_link')
+
         if existing:
             existing.common_name = common_name
             existing.ra_hours = ra_float
@@ -7496,6 +7518,13 @@ def confirm_object():
             existing.shared_notes = shared_notes_html
             existing.is_shared = is_shared
             existing.active_project = active_project
+            # Update inspiration fields if provided (or clear them if empty string passed)
+            if image_url is not None: existing.image_url = image_url
+            if image_credit is not None: existing.image_credit = image_credit
+            if image_source_link is not None: existing.image_source_link = image_source_link
+            if description_text is not None: existing.description_text = description_text
+            if description_credit is not None: existing.description_credit = description_credit
+            if description_source_link is not None: existing.description_source_link = description_source_link
         else:
             new_obj = AstroObject(
                 user_id=app_db_user.id,
@@ -7511,7 +7540,13 @@ def confirm_object():
                 sb=sb,
                 shared_notes=shared_notes_html,
                 is_shared=is_shared,
-                active_project = active_project
+                active_project=active_project,
+                image_url=image_url,
+                image_credit=image_credit,
+                image_source_link=image_source_link,
+                description_text=description_text,
+                description_credit=description_credit,
+                description_source_link=description_source_link
             )
             db.add(new_obj)
 
@@ -7559,6 +7594,15 @@ def update_object():
         obj.active_project = data.get('is_active')
         # Update notes (JS sends the raw HTML from Trix)
         obj.project_name = data.get('project_notes')
+
+        # --- Curation Fields ---
+        obj.image_url = data.get('image_url')
+        obj.image_credit = data.get('image_credit')
+        obj.image_source_link = data.get('image_source_link')
+        obj.description_text = data.get('description_text')
+        obj.description_credit = data.get('description_credit')
+        obj.description_source_link = data.get('description_source_link')
+        # -----------------------
 
         if not SINGLE_USER_MODE:
             # Only update sharing if it's not an imported item
