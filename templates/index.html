@@ -694,8 +694,13 @@
 
         // 2. Apply all settings from the snapshot to localStorage
         for (const key in viewData.settings) {
+            // Prevent the saved view from overwriting your current tab
+            if (key === 'activeTab') continue;
             localStorage.setItem(key, viewData.settings[key]);
         }
+
+        // Explicitly ensure the current tab persists across the reload
+        localStorage.setItem('activeTab', activeTab);
 
         // 3. Store the name to be selected on reload in localStorage (to persist)
         localStorage.setItem('nova_last_applied_view', viewName); // <-- THIS LINE IS CHANGED
@@ -1001,6 +1006,9 @@ async function fetchData(isBackground = false) {
             // Render this chunk immediately (Stream effect)
             if (shouldShowLoader) {
                 appendRows(chunkData);
+                // FIX: Re-apply filters immediately so the DOM state is correct
+                // This prevents the Inspiration tab from reading visible rows that should be hidden
+                filterTable();
             }
 
             // Update Progress UI
@@ -1027,12 +1035,9 @@ async function fetchData(isBackground = false) {
         // If background refresh, replace table now
         if (!shouldShowLoader) {
             renderRows(allData);
-        } else {
-            // If streaming finished, check if we need to auto-load inspiration
-            if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
-                renderInspirationGrid();
-            }
         }
+        // Logic for triggering inspiration update moved to finalizeFetch
+        // to ensure filters are applied first.
 
     } catch (error) {
         if (error.name !== 'AbortError') {
@@ -1142,9 +1147,17 @@ async function fetchData(isBackground = false) {
         if(loadingDiv) loadingDiv.style.display = 'none';
         applyDsoColumnVisibility();
         sortTable(currentSort.columnKey, false);
+
+        // 1. Apply filters (calculates window.currentFilteredData)
         filterTable();
+
         tbody.dataset.loading = 'false';
         fetchSunEvents();
+
+        // 2. NOW it is safe to update the Inspiration grid with filtered data
+        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+            renderInspirationGrid();
+        }
 
         const finalSelectedLocation = sessionStorage.getItem('selectedLocation');
         if (finalSelectedLocation !== currentSelectedLocation) {
@@ -1223,8 +1236,11 @@ async function fetchData(isBackground = false) {
             const cellA_element = a.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
             const cellB_element = b.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
             if (!cellA_element || !cellB_element) return 0;
-            let valA_str = cellA_element.dataset.rawValue !== undefined ? cellA_element.dataset.rawValue : cellA_element.innerText.trim();
-            let valB_str = cellB_element.dataset.rawValue !== undefined ? cellB_element.dataset.rawValue : cellB_element.innerText.trim();
+
+            // FIX: Use textContent for sorting hidden tables
+            let valA_str = cellA_element.dataset.rawValue !== undefined ? cellA_element.dataset.rawValue : cellA_element.textContent.trim();
+            let valB_str = cellB_element.dataset.rawValue !== undefined ? cellB_element.dataset.rawValue : cellB_element.textContent.trim();
+
             const isNA_A = valA_str === 'N/A' || valA_str === ''; const isNA_B = valB_str === 'N/A' || valB_str === '';
             if (isNA_A && isNA_B) return 0; if (isNA_A) return currentSort.ascending ? 1 : -1; if (isNA_B) return currentSort.ascending ? -1 : 1;
             let valA = valA_str; let valB = valB_str;
@@ -1251,6 +1267,9 @@ async function fetchData(isBackground = false) {
     }
 
     function filterTable() { // DSO Table
+      // --- FIX: Initialize global filter flag ---
+      window.isListFiltered = false;
+
       const tbody = document.getElementById("data-body");
       if (!tbody) return;
       const rows = tbody.getElementsByTagName("tr");
@@ -1270,7 +1289,11 @@ async function fetchData(isBackground = false) {
             if (!config) continue;
             const cellElement = rows[i].querySelector(`td[data-column-key="${columnKeyInFilter}"]`);
             if (!cellElement) { showRow = false; break; }
-            let cellText = (cellElement.dataset.rawValue || cellElement.innerText).trim().toLowerCase();
+
+            // FIX: Use textContent instead of innerText.
+            // innerText returns "" if the table is hidden (e.g. Inspiration Tab), causing filters to fail.
+            let cellText = (cellElement.dataset.rawValue || cellElement.textContent).trim().toLowerCase();
+
             if (filterValue === "n/a" || filterValue === "na") { if (cellText !== "n/a") { showRow = false; break; } continue; }
             if (config.dataKey === 'Type') {
                 const filterTypes = filterValue.split(/[\s,]+/).filter(t => t.length > 0);
@@ -1335,23 +1358,33 @@ async function fetchData(isBackground = false) {
       }
 
       // --- EXPOSE FILTERED DATA FOR INSPIRATION TAB ---
-      // We reconstruct the list of currently visible objects based on the table rows
-      const filteredObjects = [];
-      // We use window.latestDSOData (the full source) and check against the current filters
-      // A more efficient way is to grab the dataset from the visible rows directly
+
+      // 1. Set Flag: Filters are active if activeFilters has keys
+      window.isListFiltered = (Object.keys(activeFilters).length > 0);
+
+      // 2. Reconstruct visible list robustly
       if (window.latestDSOData && window.latestDSOData.length > 0) {
-          const visibleObjectNames = new Set();
+          const filteredList = [];
+          // Create a map for O(1) lookup of source data by Object Name
+          const dataMap = new Map(window.latestDSOData.map(item => [String(item.Object), item]));
+
           for (let i = 0; i < rows.length; i++) {
+              // Check the style we *just set* in the loop above.
+              // This is valid even if the parent container is hidden (display: none).
               if (rows[i].style.display !== "none") {
-                  // The row ID is row-{objectNameSanitized}.
-                  // Ideally we grab the raw text from the first cell or dataset
                   const nameCell = rows[i].querySelector('td[data-column-key="Object"]');
-                  if (nameCell) visibleObjectNames.add(nameCell.innerText.trim());
+                  if (nameCell) {
+                      const objName = nameCell.textContent.trim();
+                      const dataObj = dataMap.get(objName);
+                      if (dataObj) {
+                          filteredList.push(dataObj);
+                      }
+                  }
               }
           }
-          window.currentFilteredData = window.latestDSOData.filter(obj => visibleObjectNames.has(obj.Object));
+          window.currentFilteredData = filteredList;
       } else {
-          window.currentFilteredData = window.latestDSOData || [];
+          window.currentFilteredData = [];
       }
       // ------------------------------------------------
 
@@ -1813,6 +1846,24 @@ function populateJournalTable() {
           if (deleteViewBtn) deleteViewBtn.style.display = 'none';
       }
 
+      // --- FIX: Restore filters BEFORE fetching data ---
+      // This ensures that when the data arrives, the filters are already in place
+      for (const key in columnConfig) {
+        if (columnConfig[key].filterable) {
+            const val = localStorage.getItem("dso_filter_col_key_" + key);
+            const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`);
+            if (val && inputEl) inputEl.value = val;
+        }
+      }
+      for (const key in journalColumnConfig) {
+        if (journalColumnConfig[key].filterable) {
+            const val = localStorage.getItem("journal_filter_col_key_" + key);
+            const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`);
+            if (val && inputEl) inputEl.value = val;
+        }
+      }
+      // --- END FIX ---
+
       fetchLocations();
       fetchSunEvents();
       fetchData();
@@ -1900,12 +1951,7 @@ function populateJournalTable() {
       });
       // --- END OF ADD ---
 
-      for (const key in columnConfig) {
-        if (columnConfig[key].filterable) { const val = localStorage.getItem("dso_filter_col_key_" + key); const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
-      }
-      for (const key in journalColumnConfig) {
-        if (journalColumnConfig[key].filterable) { const val = localStorage.getItem("journal_filter_col_key_" + key); const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`); if (val && inputEl) inputEl.value = val; }
-      }
+      // [Deleted the duplicate filter restoration block that was here]
 
        // --- (MOVED) Populate the dropdown. If viewToApplyOnLoad has a value, it will be selected. ---
        // This was moved to earlier in the function, right after fetchData()

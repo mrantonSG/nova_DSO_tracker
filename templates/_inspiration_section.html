@@ -305,11 +305,20 @@
 
             // 1. Get Data (Safety Check)
             let dataSource = window.currentFilteredData;
-            if (!dataSource || dataSource.length === 0) dataSource = window.latestDSOData || [];
+
+            // FIX: Only fallback to full data if NO filters are active.
+            // If filters ARE active but returned 0 results, dataSource should remain empty.
+            if ((!dataSource || dataSource.length === 0) && !window.isListFiltered) {
+                dataSource = window.latestDSOData || [];
+            }
 
             if (dataSource.length === 0) {
                 loading.style.display = 'none';
-                grid.innerHTML = '<div class="empty-state"><p>Data is loading or empty. Please wait a moment and click Refresh.</p></div>';
+                if (window.isListFiltered) {
+                    grid.innerHTML = '<div class="empty-state"><p>No objects match your current filters.</p></div>';
+                } else {
+                    grid.innerHTML = '<div class="empty-state"><p>Data is loading or empty. Please wait a moment and click Refresh.</p></div>';
+                }
                 return;
             }
 
