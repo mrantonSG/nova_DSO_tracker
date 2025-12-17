@@ -75,87 +75,93 @@
     }
 </style>
 
-<div class="config-section" style="padding-top: 1em;">
-    <div class="detail-tabs-container">
-        <button class="detail-tab-button active" data-tab="manage" onclick="showObjectSubTab('manage')">
-            Manage My Objects
-            <span class="help-badge" onclick="openHelp('objects_manage'); event.stopPropagation();" title="Help">?</span>
-        </button>
-        <button class="detail-tab-button" data-tab="add" onclick="showObjectSubTab('add')">
-            Add New Object
-            <span class="help-badge" onclick="openHelp('objects_add'); event.stopPropagation();" title="Help">?</span>
-        </button>
-        <button class="detail-tab-button" data-tab="import" onclick="showObjectSubTab('import')">
-            Import from Catalog
-            <span class="help-badge" onclick="openHelp('objects_import'); event.stopPropagation();" title="Help">?</span>
-        </button>
-        <button class="detail-tab-button" onclick="openDuplicateChecker()">
-            Find Duplicates
-            <span class="help-badge" onclick="openHelp('objects_duplicates'); event.stopPropagation();" title="Help">?</span>
-        </button>
-    </div>
+    <div class="config-section" style="padding-top: 1em;">
+        <div class="detail-tabs-container">
+            <button class="detail-tab-button active" data-tab="manage" onclick="showObjectSubTab('manage')">
+                Manage My Objects
+                <span class="help-badge" onclick="openHelp('objects_manage'); event.stopPropagation();" title="Help">?</span>
+            </button>
+            <button class="detail-tab-button" data-tab="add" onclick="showObjectSubTab('add')">
+                Add New Object
+                <span class="help-badge" onclick="openHelp('objects_add'); event.stopPropagation();" title="Help">?</span>
+            </button>
+            <button class="detail-tab-button" data-tab="import" onclick="showObjectSubTab('import')">
+                Import from Catalog
+                <span class="help-badge" onclick="openHelp('objects_import'); event.stopPropagation();" title="Help">?</span>
+            </button>
+            <button class="detail-tab-button" onclick="openDuplicateChecker()">
+                Find Duplicates
+                <span class="help-badge" onclick="openHelp('objects_duplicates'); event.stopPropagation();" title="Help">?</span>
+            </button>
+        </div>
 
-    <div id="manage-object-subtab" class="detail-tab-content active">
-        <div class="block" id="object-filter-bar">
-            <div class="inline-fields">
-              <div>
-                <label class="short-label" for="object-filter-id">Filter ID:</label>
-                <input type="text" id="object-filter-id" onkeyup="filterObjectsList()" placeholder="e.g., M42">
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-name">Name:</label>
-                <input type="text" id="object-filter-name" onkeyup="filterObjectsList()" placeholder="e.g., Orion">
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-con">Con:</label>
-                <input type="text" id="object-filter-con" onkeyup="filterObjectsList()" placeholder="e.g., Cyg">
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-type">Type:</label>
-                <input type="text" id="object-filter-type" onkeyup="filterObjectsList()" placeholder="e.g., PN">
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-shared">Status:</label>
-                <select id="object-filter-shared" onchange="filterObjectsList()">
-                  <option value="all">All Statuses</option>
-                  <option value="enabled">Enabled Only</option>
-                  <option value="disabled">Disabled Only</option>
-                  <option disabled>──────────</option>
-                  <option value="private">Private</option>
-                  <option value="shared">Shared by Me</option>
-                  <option value="imported">Imported</option>
-                </select>
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-source">Source:</label>
-                <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier">
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-mag">Mag &lt;:</label>
-                <input type="number" id="object-filter-mag" onkeyup="filterObjectsList()" placeholder="15" style="width: 60px;">
-              </div>
-              <div>
-                <label class="short-label" for="object-filter-size">Size &gt;:</label>
-                <input type="number" id="object-filter-size" onkeyup="filterObjectsList()" placeholder="5" style="width: 60px;">
-              </div>
-            </div>
-
-            <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: #e9ecef; padding: 8px; border-radius: 4px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <button type="button" class="file-button" onclick="selectAllVisibleObjects()">Select Visible</button>
-                    <button type="button" class="file-button" onclick="deselectAllObjects()">Deselect All</button>
-                    <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: #555;">0 Selected</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 14px; color: #555;">Selection Actions:</span>
-                    <button type="button" class="action-button" style="background-color: #27ae60;" onclick="executeBulkAction('enable')">Enable</button>
-                    <button type="button" class="action-button" style="background-color: #f39c12;" onclick="executeBulkAction('disable')">Disable</button>
-                    <button type="button" class="delete-btn" onclick="executeBulkAction('delete')">Delete</button>
-                </div>
-            </div>
-
-            <div id="object-count-display" style="margin-top: 10px; padding: 5px 0 0 0; color: #555;"></div>
+        <div id="manage-object-subtab" class="detail-tab-content active">
+            <div class="block" id="object-filter-bar">
+        <div class="inline-fields">
+          <div>
+            <label class="short-label" for="object-filter-id">Filter ID:</label>
+            <input type="text" id="object-filter-id" onkeyup="filterObjectsList()" placeholder="e.g., M42">
           </div>
+          <div>
+            <label class="short-label" for="object-filter-name">Name:</label>
+            <input type="text" id="object-filter-name" onkeyup="filterObjectsList()" placeholder="e.g., Orion">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-con">Con:</label>
+            <input type="text" id="object-filter-con" onkeyup="filterObjectsList()" placeholder="e.g., Cyg">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-type">Type:</label>
+            <input type="text" id="object-filter-type" onkeyup="filterObjectsList()" placeholder="e.g., PN">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-shared">Status:</label>
+            <select id="object-filter-shared" onchange="filterObjectsList()">
+              <option value="all">All Statuses</option>
+              <option value="enabled">Enabled Only</option>
+              <option value="disabled">Disabled Only</option>
+              <option disabled>──────────</option>
+              <option value="private">Private</option>
+              <option value="shared">Shared by Me</option>
+              <option value="imported">Imported</option>
+            </select>
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-source">Source:</label>
+            <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier">
+          </div>
+
+          <div style="flex: 0 0 485px;">
+            <label class="short-label" for="object-filter-notes">Notes:</label>
+            <input type="text" id="object-filter-notes" onkeyup="filterObjectsList()" placeholder="Search notes (use * for all)..." style="width: 100%;">
+          </div>
+
+          <div>
+            <label class="short-label" for="object-filter-mag">Mag &lt;:</label>
+            <input type="number" id="object-filter-mag" onkeyup="filterObjectsList()" placeholder="15" style="width: 60px;">
+          </div>
+          <div>
+            <label class="short-label" for="object-filter-size">Size &gt;:</label>
+            <input type="number" id="object-filter-size" onkeyup="filterObjectsList()" placeholder="5" style="width: 60px;">
+          </div>
+        </div>
+
+        <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: #e9ecef; padding: 8px; border-radius: 4px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="file-button" onclick="selectAllVisibleObjects()">Select Visible</button>
+                <button type="button" class="file-button" onclick="deselectAllObjects()">Deselect All</button>
+                <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: #555;">0 Selected</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 14px; color: #555;">Selection Actions:</span>
+                <button type="button" class="action-button" style="background-color: #27ae60;" onclick="executeBulkAction('enable')">Enable</button>
+                <button type="button" class="action-button" style="background-color: #f39c12;" onclick="executeBulkAction('disable')">Disable</button>
+                <button type="button" class="delete-btn" onclick="executeBulkAction('delete')">Delete</button>
+            </div>
+        </div>
+
+        <div id="object-count-display" style="margin-top: 10px; padding: 5px 0 0 0; color: #555;"></div>
+    </div>
 
         <form method="post">
             <div class="objects-list">
@@ -621,6 +627,9 @@
         const filterShared = document.getElementById('object-filter-shared').value;
         const filterSource = document.getElementById('object-filter-source').value.toLowerCase();
 
+        // --- NEW: Get Notes Filter ---
+        const filterNotes = document.getElementById('object-filter-notes').value.toLowerCase();
+
         // Numerical Filters
         const filterMagStr = document.getElementById('object-filter-mag').value;
         const filterSizeStr = document.getElementById('object-filter-size').value;
@@ -630,10 +639,9 @@
         // 2. Get all object blocks
         const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
 
-        // --- START: COUNTER LOGIC ---
+        // Counter Logic
         let visibleCount = 0;
         const totalCount = objectBlocks.length;
-        // --- END: COUNTER LOGIC ---
 
         // 3. Loop through each block and check
         objectBlocks.forEach(block => {
@@ -644,34 +652,37 @@
             const nameInputEl = block.querySelector('input[id^="name_"]');
             const conInputEl = block.querySelector('input[id^="constellation_"]');
             const typeInputEl = block.querySelector('input[id^="type_"]');
-            // --- NEW ---
             const sharedIndicator = block.querySelector('.shared-indicator');
             const sourceBadge = block.querySelector('.catalog-source-badge');
+
+            // --- NEW: Find the Private Notes Hidden Input ---
+            // Matches input IDs like "project_M42_hidden"
+            const notesInput = block.querySelector('input[id^="project_"][id$="_hidden"]');
 
             const objectId = objectIdEl ? objectIdEl.textContent.toLowerCase() : '';
             const name = nameInputEl ? nameInputEl.value.toLowerCase() : '';
             const con = conInputEl ? conInputEl.value.toLowerCase() : '';
             const type = typeInputEl ? typeInputEl.value.toLowerCase() : '';
 
-            // Get Numerical Values
+            // --- NEW: Get Notes Content ---
+            // We search the value directly. Since Trix saves HTML, this will search the text
+            // (and technically html tags, but that is usually fine for this purpose).
+            const notesContent = notesInput ? notesInput.value.toLowerCase() : '';
+
+            // Numerical Values
             const magInput = block.querySelector('input[id^="magnitude_"]');
             const sizeInput = block.querySelector('input[id^="size_"]');
             const magVal = magInput && magInput.value ? parseFloat(magInput.value) : 999;
             const sizeVal = sizeInput && sizeInput.value ? parseFloat(sizeInput.value) : 0;
 
-            // --- NEW: Get values for new filters ---
-            let sharedStatus = 'private'; // Default
+            let sharedStatus = 'private';
             if (sharedIndicator) {
                 const indicatorText = sharedIndicator.textContent.toLowerCase();
-                if (indicatorText.includes('imported')) {
-                    sharedStatus = 'imported';
-                } else if (indicatorText.includes('shared')) {
-                    sharedStatus = 'shared';
-                }
+                if (indicatorText.includes('imported')) sharedStatus = 'imported';
+                else if (indicatorText.includes('shared')) sharedStatus = 'shared';
             }
             const source = sourceBadge ? sourceBadge.textContent.toLowerCase() : '';
 
-            // Get Enabled Status
             const enabledInput = block.querySelector('input[name^="enabled_"]');
             const isEnabled = enabledInput ? enabledInput.value === 'on' : true;
 
@@ -681,7 +692,17 @@
             if (show && filterCon && !con.includes(filterCon)) show = false;
             if (show && filterType && !type.includes(filterType)) show = false;
 
-            // --- NEW: Status Logic ---
+            // --- NEW: Check Notes ---
+            if (show && filterNotes) {
+                if (filterNotes === '*') {
+                    // Wildcard: Show only if notes are NOT empty
+                    if (!notesContent || notesContent.trim() === '') show = false;
+                } else {
+                    // Standard search
+                    if (!notesContent.includes(filterNotes)) show = false;
+                }
+            }
+
             if (show && filterShared !== 'all') {
                 if (filterShared === 'disabled') {
                     if (isEnabled) show = false;
@@ -693,24 +714,16 @@
             }
 
             if (show && filterSource && !source.includes(filterSource)) show = false;
-
-            // Apply Numerical Filters
-            // Show if Mag < Filter (fainter is higher number, but user usually wants "Bright objects < Mag 10")
             if (show && filterMag !== null && magVal > filterMag) show = false;
-            // Show if Size > Filter (user usually wants "Big objects > 5 arcmin")
             if (show && filterSize !== null && sizeVal < filterSize) show = false;
 
-            // 5. Show or hide the block
+            // 5. Show or hide
             block.style.display = show ? '' : 'none';
 
-            // --- START: INCREMENT COUNTER ---
-            if (show) {
-                visibleCount++;
-            }
-            // --- END: INCREMENT COUNTER ---
+            if (show) visibleCount++;
         });
 
-        // --- START: UPDATE DISPLAY ---
+        // Update Display
         const countDisplay = document.getElementById('object-count-display');
         if (countDisplay) {
             if (visibleCount === totalCount) {
@@ -719,7 +732,6 @@
                 countDisplay.textContent = `Showing ${visibleCount} of ${totalCount} objects`;
             }
         }
-        // --- END: UPDATE DISPLAY ---
     }
 
     function parseRAToDecimal(raStr) {
