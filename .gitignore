@@ -4,6 +4,6 @@
 # PyCharm/IntelliJ IDE files
 .idea/
 *.iml
-/instance_/
+/instance/
 /tests/instance/
 /.run/
