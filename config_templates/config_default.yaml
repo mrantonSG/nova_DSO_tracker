@@ -37,7 +37,7 @@ locations:
     comments: None
     horizon_mask: []
 objects:
-- Object: ABELL 21
+- Object: ABELL21
   Common Name: Medusa Nebula
   RA (hours): 0.34409600000000007
   DEC (degrees): 28.694579999999995
@@ -46,20 +46,10 @@ objects:
   Magnitude: '14.4'
   Size: '18.94'
   SB: '20.52'
-  Name: Medusa Nebula
-  RA: 0.34409600000000007
-  DEC: 28.694579999999995
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Abell21_-_Noaoann09008a.jpg/960px-Abell21_-_Noaoann09008a.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit: T. A. Rector/University of Alaska Anchorage and H. Schweiker/NOIRLab/NSF/AURA
+    and NOIRLab/NSF/AURA (CC BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Medusa%20Nebula
   description_text: 'The Medusa Nebula is a planetary nebula in the constellation
     of Gemini. It is also known as Abell 21 and Sharpless 2-274. It was originally
@@ -82,18 +72,7 @@ objects:
   Magnitude: '3.08'
   Size: Not Found
   SB: Not Found
-  Name: Double Star
-  RA: 19.51202100093389
-  DEC: 27.959673631221666
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=292.68031501400833&d=27.959673631221666&e=J2000&h=15&w=15&f=gif&c=none
   image_credit: DSS / SDSS
   image_source_link: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=292.68031501400833&d=27.959673631221666&e=J2000&h=15&w=15&f=gif&c=none
@@ -107,7 +86,7 @@ objects:
     trinary system, makes a striking colour contrast with its fainter blue companion.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Albireo
-- Object: BARNARD 33
+- Object: BARNARD33
   Common Name: Horse Head Nebula
   RA (hours): 5.683055555555556
   DEC (degrees): -2.4583333333333335
@@ -116,20 +95,9 @@ objects:
   Magnitude: '17.91'
   Size: '6.0'
   SB: '21.54'
-  Name: Horse Head Nebula
-  RA: 5.683055555555556
-  DEC: -2.4583333333333335
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Nebulosa_testa_di_cavallo_con_SPECULOOS.jpg/960px-Nebulosa_testa_di_cavallo_con_SPECULOOS.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Horsehead%20Nebula
   description_text: 'The Horsehead Nebula (also known as Barnard 33 or B33) is a small
     dark nebula in the constellation Orion. The nebula is located just to the south
@@ -146,7 +114,7 @@ objects:
     '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Horsehead%20Nebula
-- Object: GUM 16
+- Object: GUM16
   Common Name: 'Vela Supernova Remnant '
   RA (hours): 8.55
   DEC (degrees): -44.1
@@ -155,20 +123,9 @@ objects:
   Magnitude: Not Found
   Size: Not Found
   SB: Not Found
-  Name: 'Vela Supernova Remnant '
-  RA: 8.55
-  DEC: -44.1
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Vela_supernova_-_VST_-_Eso2214a.jpg/960px-Vela_supernova_-_VST_-_Eso2214a.jpg
-  image_credit: Wikipedia
+  image_credit: (Credit) ESO/TIMER survey (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Vela%20supernova%20remnant
   description_text: 'The Vela supernova remnant is a supernova remnant in the southern
     constellation Vela. Its source Type II supernova exploded approximately 11,000
@@ -199,20 +156,9 @@ objects:
   Magnitude: '99.0'
   Size: '16.5'
   SB: '104.83'
-  Name: Reflection Nebula in Saggitarius
-  RA: 18.29433888888889
-  DEC: -19.672027777777778
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/IC1284_%28NGC6589%2C_NGC6590%29_-_VST_-_Glowing_rosy_in_the_dark_%28potw2340a%29.jpg/960px-IC1284_%28NGC6589%2C_NGC6590%29_-_VST_-_Glowing_rosy_in_the_dark_%28potw2340a%29.jpg
-  image_credit: Wikipedia
+  image_credit: ESO/VPHAS+ team (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Sh%202-37
   description_text: 'Sh 2-37, also known by the designation IC 1284, or the common
     name Twiddlebug Nebula, is an emission nebula in the constellation Sagittarius.
@@ -234,20 +180,9 @@ objects:
   Magnitude: '3.5'
   Size: '146.0'
   SB: '14.06'
-  Name: Elephant Trunk Nebula
-  RA: 21.64966666666667
-  DEC: 57.514
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Elephant%27s_Trunk_nebula.jpg/960px-Elephant%27s_Trunk_nebula.jpg
-  image_credit: Wikipedia
+  image_credit: Ram samudrala (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%201396
   description_text: 'IC 1396 is a large emission nebulae, a region of ionized gas,
     located in the constellation Cepheus about 2,400 light years away from Earth.
@@ -278,20 +213,9 @@ objects:
   Magnitude: '6.5'
   Size: '13.3'
   SB: '11.86'
-  Name: Heart Nebula
-  RA: 2.5473333333333334
-  DEC: 61.47099999999999
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Heart_Nebula_%282020-08-11%29.jpg/960px-Heart_Nebula_%282020-08-11%29.jpg
-  image_credit: Wikipedia
+  image_credit: Ram samudrala (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Heart%20Nebula
   description_text: 'The Heart Nebula (also known as the Running Dog Nebula, Sharpless
     2-190) is an emission nebula, 7,500 light-years (2,300 pc) away from Earth and
@@ -330,20 +254,9 @@ objects:
   Magnitude: '6.5'
   Size: '24.0'
   SB: '13.14'
-  Name: Soul Nebula
-  RA: 2.8569999999999993
-  DEC: 60.419
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Celestial_Valentine.jpg/960px-Celestial_Valentine.jpg
-  image_credit: Wikipedia
+  image_credit: NASA/JPL-Caltech/Harvard-Smithsonian (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Westerhout%205
   description_text: 'Westerhout 5 (also known as W5, Sharpless 2-199, LBN 667, or
     Soul Nebula) is an emission nebula located in Cassiopeia. Several small open clusters
@@ -376,20 +289,9 @@ objects:
   Magnitude: '8.0'
   Size: '180.0'
   SB: '19.01'
-  Name: Witch Head Nebula
-  RA: 5.033333333333333
-  DEC: -7.9
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Starless_witch_head_stack_ks_Final_4.jpg/960px-Starless_witch_head_stack_ks_Final_4.jpg
-  image_credit: Wikipedia
+  image_credit: Sousajp7 (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%202118
   description_text: 'IC 2118 (also known as Witch Head Nebula due to its shape) is
     an extremely faint reflection nebula believed to be an ancient supernova remnant
@@ -422,20 +324,9 @@ objects:
   Magnitude: '99.0'
   Size: Not Found
   SB: Not Found
-  Name: Toby Jug Nebula
-  RA: 7.947583333333333
-  DEC: -59.125277777777775
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/The_Toby_Jug_Nebula_as_seen_with_ESO%27s_Very_Large_Telescope.jpg/960px-The_Toby_Jug_Nebula_as_seen_with_ESO%27s_Very_Large_Telescope.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%202220
   description_text: IC 2220, also known as the Toby Jug Nebula, is a reflection nebula
     located 1200 light years away in the southern constellation of Carina. The nebula
@@ -455,20 +346,9 @@ objects:
   Magnitude: '1.9'
   Size: '173.9'
   SB: '12.84'
-  Name: Southern Pleiades
-  RA: 10.707533333333334
-  DEC: -64.426
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/The_Southern_Pleiades_%28IC_2602%29.jpg/960px-The_Southern_Pleiades_%28IC_2602%29.jpg
-  image_credit: Wikipedia
+  image_credit: Tel Lekatsas (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%202602
   description_text: IC 2602 (also known as the Southern Pleiades, Theta Carinae Cluster,
     or Caldwell 102) is an open cluster in the constellation Carina. Discovered by
@@ -486,20 +366,9 @@ objects:
   Magnitude: '15.88'
   Size: '40.0'
   SB: '23.63'
-  Name: Running Chicken Nebula
-  RA: 11.638888666666666
-  DEC: -63.37278
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/The_Very_Large_Telescope_Snaps_a_Stellar_Nursery_and_Celebrates_Fifteen_Years_of_Operations.jpg/960px-The_Very_Large_Telescope_Snaps_a_Stellar_Nursery_and_Celebrates_Fifteen_Years_of_Operations.jpg
-  image_credit: Wikipedia
+  image_credit: European Southern Observatory (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%202944
   description_text: 'IC 2944, also known as the Running Chicken Nebula, the Lambda
     Centauri Nebula or the λ Centauri Nebula, is an open cluster with an associated
@@ -531,20 +400,9 @@ objects:
   Magnitude: '6.0'
   Size: '50.0'
   SB: '14.23'
-  Name: Flaming Star Nebula
-  RA: 5.29
-  DEC: 34.38333333333333
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/22/Flaming_Star_Nebula%2C_IC_405.png/960px-Flaming_Star_Nebula%2C_IC_405.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%20405
   description_text: 'IC 405 (also known as the Flaming Star Nebula, SH 2-229, or Caldwell
     31) is an emission and reflection nebula in the constellation Auriga north of
@@ -567,18 +425,7 @@ objects:
   Magnitude: '17.7'
   Size: '40.0'
   SB: '25.45'
-  Name: Tadpole Nebula
-  RA: 5.366666666666666
-  DEC: 33.483333333333334
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://images-assets.nasa.gov/image/PIA13110/PIA13110~medium.jpg
   image_credit: NASA
   image_source_link: https://images.nasa.gov/
@@ -596,20 +443,9 @@ objects:
   Magnitude: '15.98'
   Size: '45.0'
   SB: '23.98'
-  Name: Jellyfish Nebula
-  RA: 6.283333333333333
-  DEC: 22.5699996948
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/IC443_Final_with_copyright.jpg/960px-IC443_Final_with_copyright.jpg
-  image_credit: Wikipedia
+  image_credit: Siderevs nuncivs (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%20443
   description_text: 'IC 443 (also known as the Jellyfish Nebula and Sharpless 248
     (Sh2-248)) is a galactic supernova remnant (SNR) in the constellation Gemini.
@@ -620,7 +456,10 @@ objects:
     IC 443 may be the remains of a supernova that occurred 30,000 - 35,000 years ago.
     The same supernova event likely created the neutron star CXOU J061705.3+222127,
     the collapsed remnant of the stellar core. IC 443 is one of the best-studied cases
-    of supernova remnants interacting with surrounding molecular clouds.'
+    of supernova remnants interacting with surrounding molecular clouds.
+
+
+    '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/IC%20443
 - Object: IC4592
@@ -632,20 +471,9 @@ objects:
   Magnitude: '4.03'
   Size: '60.0'
   SB: '12.66'
-  Name: Blue Horse Nebula
-  RA: 16.216666666666665
-  DEC: -19.3
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/IC_4592_Blue_Horsehead_Nebula.jpg/960px-IC_4592_Blue_Horsehead_Nebula.jpg
-  image_credit: Wikipedia
+  image_credit: Giuseppe Donatiello (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%204592
   description_text: IC 4592 (also known as the Blue Horsehead Nebula) is a reflection
     nebula in the constellation of Scorpius that is lit by Nu Scorpii.
@@ -660,18 +488,7 @@ objects:
   Magnitude: '4.61'
   Size: '60.0'
   SB: '13.24'
-  Name: Rho Ophiuchi
-  RA: 16.433333333333334
-  DEC: -23.4
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://images-assets.nasa.gov/image/PIA10181/PIA10181~medium.jpg
   image_credit: NASA
   image_source_link: https://images.nasa.gov/
@@ -688,20 +505,9 @@ objects:
   Magnitude: '17.24'
   Size: '60.7'
   SB: '25.89'
-  Name: Open Cluster near Rho Ophiuchi
-  RA: 17.77026666666666
-  DEC: 5.615
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/IC_4665.png/867px-IC_4665.png
-  image_credit: Wikipedia
+  image_credit: Roberto Mura (CC BY-SA 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%204665
   description_text: 'IC 4665 (Collinder 349 / Melotte 179), also known as the Summer
     Beehive Cluster or Poseidon''s Trident , is an open cluster of stars in the constellation
@@ -734,20 +540,10 @@ objects:
   Magnitude: '7.2'
   Size: '8.2'
   SB: '11.51'
-  Name: Cocoon Nebula
-  RA: 21.891466666666663
-  DEC: 47.246
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/Ic5146s.jpg/960px-Ic5146s.jpg
-  image_credit: Wikipedia
+  image_credit: Credit Line and Copyright        Adam Block/Mount Lemmon SkyCenter/University
+    of Arizona (CC BY-SA 3.0 us) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IC%205146
   description_text: "IC 5146 (also Caldwell 19, Sh 2-125, Barnard 168, and the Cocoon\
     \ Nebula) is a reflection/emission nebula and Caldwell object in the constellation\
@@ -760,7 +556,8 @@ objects:
     \ years ago; the nebula is about 12 arcmins across, which is equivalent to a span\
     \ of 15 light years.  \nWhen viewing IC 5146, dark nebula Barnard 168 (B168) is\
     \ an inseparable part of the experience, forming a dark lane that surrounds the\
-    \ cluster and projects westward forming the appearance of a trail behind the Cocoon."
+    \ cluster and projects westward forming the appearance of a trail behind the Cocoon.\n\
+    \n"
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/IC%205146
 - Object: IRAS05437+2502
@@ -772,20 +569,9 @@ objects:
   Magnitude: '20.13'
   Size: Not Found
   SB: Not Found
-  Name: Mysterious Nebula in Taurus
-  RA: 5.780990666666667
-  DEC: 25.06325
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Nebula_in_Taurus.jpg/960px-Nebula_in_Taurus.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Hubble and NASA (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/IRAS%2005437%2B2502
   description_text: IRAS 05437+2502 is a reflection nebula in the constellation Taurus.
     Astronomers think that a young star coming from the nebula could have been traveling
@@ -802,18 +588,7 @@ objects:
   Magnitude: '20.36'
   Size: Not Found
   SB: Not Found
-  Name: Drunken Dragon Nebula
-  RA: 3.0
-  DEC: 17.2
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: null
   image_credit: null
   image_source_link: null
@@ -829,18 +604,7 @@ objects:
   Magnitude: '5.0'
   Size: '10.0'
   SB: '9.74'
-  Name: Giraffe Nebula
-  RA: 0.7466666666666666
-  DEC: 52.43333333333333
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: null
   image_credit: null
   image_source_link: null
@@ -856,20 +620,9 @@ objects:
   Magnitude: '6.0'
   Size: '8.5'
   SB: '10.38'
-  Name: Dark Nebula in Orion
-  RA: 5.774166666666667
-  DEC: 0.04666666666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Messier_78_in_Orion.jpg/960px-Messier_78_in_Orion.jpg
-  image_credit: Wikipedia
+  image_credit: Keesscherer (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202064
   description_text: NGC 2064  (also designated as LBN 1627) is a reflection nebula
     that is located 1600 light years away from earth in the constellation Orion.  It
@@ -880,7 +633,7 @@ objects:
     of 8.2.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202064
-- Object: LHA 120-N 70
+- Object: LHA120N70
   Common Name: Superbubble in the LMC
   RA (hours): 5.721527777777777
   DEC (degrees): -67.84666666666666
@@ -889,20 +642,9 @@ objects:
   Magnitude: '15.26'
   Size: '7.0'
   SB: '19.22'
-  Name: Superbubble in the LMC
-  RA: 5.721527777777777
-  DEC: -67.84666666666666
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Henize_N70_Superbubble_Nebula.jpg/960px-Henize_N70_Superbubble_Nebula.jpg
-  image_credit: Wikipedia
+  image_credit: Dylan O'Donnell (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Henize%2070
   description_text: Henize 70 (N70) is a faint emission nebula and superbubble located
     in the Large Magellanic Cloud in the constellation of Dorado.
@@ -917,18 +659,7 @@ objects:
   Magnitude: '0.4'
   Size: '322.83'
   SB: '12.68'
-  Name: Large Magellanic Cloud
-  RA: 5.392944444444444
-  DEC: -69.75611111111111
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Eso1021d.jpg/960px-Eso1021d.jpg
   image_credit: Wikipedia
   image_source_link: https://en.wikipedia.org/wiki/Large%20Magellanic%20Cloud
@@ -963,20 +694,10 @@ objects:
   Magnitude: '8.4'
   Size: '7.0'
   SB: '12.36'
-  Name: Crab Nebula
-  RA: 5.575493333333333
-  DEC: 22.0174
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Crab_Nebula.jpg/960px-Crab_Nebula.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA, J. Hester and A. Loll (Arizona State University) (Public
+    domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Crab%20Nebula
   description_text: 'The Crab Nebula (catalogue designations M1, NGC 1952, Taurus
     A) is a supernova remnant and pulsar wind nebula in the constellation of Taurus.
@@ -1004,7 +725,10 @@ objects:
     radiation allows detailed study of celestial bodies that occult it. In the 1950s
     and 1960s, the Sun''s corona was mapped from observations of the Crab Nebula''s
     radio waves passing through it, and in 2003, the thickness of the atmosphere of
-    Saturn''s moon Titan was measured as it blocked out X-rays from the nebula.'
+    Saturn''s moon Titan was measured as it blocked out X-rays from the nebula.
+
+
+    '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Crab%20Nebula
 - Object: M10
@@ -1016,20 +740,9 @@ objects:
   Magnitude: '4.98'
   Size: '15.1'
   SB: '10.61'
-  Name: Globular Cluster
-  RA: 16.95251388888889
-  DEC: -4.100305555555555
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/39/M10_H%C3%B6cherl.jpg/678px-M10_H%C3%B6cherl.jpg
-  image_credit: Wikipedia
+  image_credit: Manfred Höcherl (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2010
   description_text: 'Messier 10 or M10 (also designated NGC 6254) is a globular cluster
     of stars in the equatorial constellation of Ophiuchus. The object was discovered
@@ -1082,20 +795,14 @@ objects:
   Magnitude: '7.86'
   Size: '21.88'
   SB: '14.3'
-  Name: Pinwheel Galaxy
-  RA: 14.05349527777778
-  DEC: 54.34875
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/M101_hires_STScI-PRC2006-10a.jpg/960px-M101_hires_STScI-PRC2006-10a.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit:Image: European Space Agency & NASAAcknowledgements:Project
+    Investigators for the original Hubble data: K.D. Kuntz (GSFC), F. Bresolin (University
+    of Hawaii), J. Trauger (JPL), J. Mould (NOAO), and Y.-H. Chu (University of Illinois,
+    Urbana)Image processing: Davide De Martin (ESA/Hubble)CFHT image: Canada-France-Hawaii
+    Telescope/J.-C. Cuillandre/CoelumNOAO image: George Jacoby, Bruce Bohannan, Mark
+    Hanna/NOAO/AURA/NSF (CC BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Pinwheel%20Galaxy
   description_text: 'The Pinwheel Galaxy (also known as Messier 101, M101 or NGC 5457)
     is a face-on, counterclockwise intermediate spiral galaxy located 21 million light-years
@@ -1119,20 +826,9 @@ objects:
   Magnitude: '8.0'
   Size: '8.51'
   SB: '12.39'
-  Name: Sombrero galaxy
-  RA: 12.666508849727775
-  DEC: -11.623054494444448
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Sombrero_Galaxy_%28heic2506a%29.jpg/960px-Sombrero_Galaxy_%28heic2506a%29.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Hubble & NASA, K. Noll (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Sombrero%20Galaxy
   description_text: "The Sombrero Galaxy (also known as Messier Object 104, M104 or\
     \ NGC 4594) is a peculiar galaxy of unclear classification in the constellation\
@@ -1163,20 +859,11 @@ objects:
   Magnitude: '8.41'
   Size: '17.78'
   SB: '14.4'
-  Name: Spiral galaxy in the constellation Canes Venatici
-  RA: 12.316005555555554
-  DEC: 47.30371944444444
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Messier_106_visible_and_infrared_composite.jpg/960px-Messier_106_visible_and_infrared_composite.jpg
-  image_credit: Wikipedia
+  image_credit: 'NASA, ESA, the Hubble Heritage Team (STScI/AURA), and R. Gendler
+    (for the Hubble Heritage Team). Acknowledgment: J. GaBany (Public domain) via
+    Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Messier%20106
   description_text: 'Messier 106 (also known as NGC 4258) is an intermediate spiral
     galaxy in the constellation Canes Venatici. It was discovered by Pierre Méchain
@@ -1201,20 +888,9 @@ objects:
   Magnitude: '5.8'
   Size: '8.9'
   SB: '10.28'
-  Name: Wild Duck Cluster
-  RA: 18.851066666666668
-  DEC: -6.272
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Eso1430a.jpg/960px-Eso1430a.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Wild%20Duck%20Cluster
   description_text: 'The Wild Duck Cluster (also known as Messier 11, or NGC 6705)
     is an open cluster of stars in the constellation Scutum (the Shield). It was discovered
@@ -1250,20 +926,9 @@ objects:
   Magnitude: '8.07'
   Size: '3.33'
   SB: '10.42'
-  Name: Galaxy towards a Group of Galaxies
-  RA: 0.6727936763886666
-  DEC: 41.68541867226
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Not_So_Dead_After_All_%2848763200193%29.jpg/960px-Not_So_Dead_After_All_%2848763200193%29.jpg
-  image_credit: Wikipedia
+  image_credit: European Space Agency (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%20110
   description_text: Messier 110, or M110, also known as NGC 205, is a dwarf elliptical
     galaxy that is a satellite of the Andromeda Galaxy in the Local Group.
@@ -1278,20 +943,9 @@ objects:
   Magnitude: '6.07'
   Size: '14.5'
   SB: '11.61'
-  Name: Globular Cluster
-  RA: 16.787272222222224
-  DEC: -1.9485277777777774
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/M12_Adam_Block.jpg/960px-M12_Adam_Block.jpg
-  image_credit: Wikipedia
+  image_credit: Adam Block (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2012
   description_text: 'Messier 12 or M 12 (also designated NGC 6218) is a globular cluster
     in the constellation of Ophiuchus. It was discovered by the French astronomer
@@ -1325,20 +979,9 @@ objects:
   Magnitude: '5.8'
   Size: '33.0'
   SB: '13.13'
-  Name: Hercules Cluster
-  RA: 16.69489833333333
-  DEC: 36.46131944444445
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/M13-Globular-Cluster.png/960px-M13-Globular-Cluster.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2013
   description_text: Messier 13, or M13 (also designated NGC 6205 and sometimes called
     the Great Globular Cluster in Hercules, the Hercules Globular Cluster, or the
@@ -1355,20 +998,9 @@ objects:
   Magnitude: '5.73'
   Size: '13.5'
   SB: '11.12'
-  Name: Globular Cluster
-  RA: 17.626708333333337
-  DEC: -3.245916666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Messier_14.jpg/960px-Messier_14.jpg
-  image_credit: Wikipedia
+  image_credit: NOIRLAB / NSF / AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2014
   description_text: 'Messier 14 (also known as M14 or NGC 6402) is a globular cluster
     of stars in the constellation Ophiuchus. It was discovered by Charles Messier
@@ -1401,20 +1033,9 @@ objects:
   Magnitude: '6.4'
   Size: '12.3'
   SB: '11.59'
-  Name: Globular Cluster
-  RA: 21.499536111111112
-  DEC: 12.166999999999998
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/M15_Globular_Cluster_from_the_Mount_Lemmon_SkyCenter_Schulman_Telescope_courtesy_Adam_Block.jpg/960px-M15_Globular_Cluster_from_the_Mount_Lemmon_SkyCenter_Schulman_Telescope_courtesy_Adam_Block.jpg
-  image_credit: Wikipedia
+  image_credit: Ngc1535 (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2015
   description_text: Messier 15 or M15 (also designated NGC 7078 and sometimes known
     as the Great Pegasus Cluster) is a globular cluster in the constellation Pegasus.
@@ -1432,20 +1053,9 @@ objects:
   Magnitude: '6.0'
   Size: '80.0'
   SB: '15.25'
-  Name: Eagle Nebula
-  RA: 18.31253333333333
-  DEC: -13.792
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Eagle_Nebula_from_ESO.jpg/960px-Eagle_Nebula_from_ESO.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Eagle%20Nebula
   description_text: The Eagle Nebula (catalogued as Messier 16 or M16, and as NGC
     6611, and also known as the Star Queen Nebula) is a young open cluster of stars
@@ -1466,20 +1076,10 @@ objects:
   Magnitude: '6.0'
   Size: '1.63'
   SB: '6.8'
-  Name: Omega Nebula
-  RA: 18.34638888888889
-  DEC: -16.171666666666663
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/VST_image_of_the_spectacular_star-forming_region_Messier_17_%28Omega_Nebula%29.jpg/960px-VST_image_of_the_spectacular_star-forming_region_Messier_17_%28Omega_Nebula%29.jpg
-  image_credit: Wikipedia
+  image_credit: 'ESO/INAF-VST/OmegaCAM. Acknowledgement: OmegaCen/Astro-WISE/Kapteyn
+    Institute (CC BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Omega%20Nebula
   description_text: The Omega Nebula is an H II region in the constellation Sagittarius.
     It was discovered by Philippe Loys de Chéseaux in 1745. Charles Messier catalogued
@@ -1498,20 +1098,9 @@ objects:
   Magnitude: '16.15'
   Size: '5.0'
   SB: '19.38'
-  Name: Open Cluster
-  RA: 18.332599999999996
-  DEC: -17.089
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Messier_18.jpg/835px-Messier_18.jpg
-  image_credit: Wikipedia
+  image_credit: Fabian Rodriguez Frustaglia (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2018
   description_text: 'Messier 18 or M18, also designated NGC 6613 and sometimes known
     as the Black Swan Cluster, is an open cluster of stars in the constellation Sagittarius.
@@ -1546,20 +1135,10 @@ objects:
   Magnitude: '5.57'
   Size: '9.6'
   SB: '10.22'
-  Name: Globular Cluster
-  RA: 17.043802777777778
-  DEC: -26.267944444444442
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Messier_19.jpg/960px-Messier_19.jpg
-  image_credit: Wikipedia
+  image_credit: Doug Williams, REU Program / NOIRLAB / NSF / AURA (CC BY-SA 4.0) via
+    Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2019
   description_text: 'Messier 19 or M19 (also designated NGC 6273) is a globular cluster
     in the constellation Ophiuchus. It was discovered by Charles Messier on June 5,
@@ -1594,20 +1173,9 @@ objects:
   Magnitude: '6.25'
   Size: '12.9'
   SB: '11.54'
-  Name: Globular Cluster
-  RA: 21.557505555555558
-  DEC: -0.8232499999999998
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Messier2_-_HST_-_Potw1913a.jpg/960px-Messier2_-_HST_-_Potw1913a.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit: ESA/Hubble & NASA, G. Piotto et al. (CC BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Messier%202
   description_text: 'Messier 2 or M2 (also designated NGC 7089) is a globular cluster
     in the constellation Aquarius, five degrees north of the star Beta Aquarii. It
@@ -1627,20 +1195,9 @@ objects:
   Magnitude: '8.5'
   Size: '28.0'
   SB: '15.47'
-  Name: Trifid Nebula
-  RA: 18.045
-  DEC: -22.971666666666664
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Trifid_Nebula_%28noirlab2521ah%29.jpg/960px-Trifid_Nebula_%28noirlab2521ah%29.jpg
-  image_credit: Wikipedia
+  image_credit: RubinObs/NOIRLab/SLAC/NSF/DOE/AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Trifid%20Nebula
   description_text: 'The Trifid Nebula (catalogued as Messier 20 or M20 and as NGC
     6514) is an H II region in the north-west of Sagittarius in a star-forming region
@@ -1667,20 +1224,9 @@ objects:
   Magnitude: '5.9'
   Size: '110.0'
   SB: '15.84'
-  Name: Open Cluster
-  RA: 18.069066666666668
-  DEC: -22.505000000000003
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Trifid_and_Lagoon_Nebulae_Excerpt-_Messier_21_%28noirlab2521ag%29.jpg/960px-Trifid_and_Lagoon_Nebulae_Excerpt-_Messier_21_%28noirlab2521ag%29.jpg
-  image_credit: Wikipedia
+  image_credit: RubinObs/NOIRLab/SLAC/NSF/DOE/AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2021
   description_text: 'Messier 21 or M21, also designated NGC 6531 or Webb''s Cross,
     is an open cluster of stars located to the north-east of Sagittarius in the night
@@ -1716,20 +1262,9 @@ objects:
   Magnitude: '5.1'
   Size: '24.0'
   SB: '11.74'
-  Name: Globular Cluster
-  RA: 18.606650000000002
-  DEC: -23.90475
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/The_crammed_centre_of_Messier_22.jpg/960px-The_crammed_centre_of_Messier_22.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Hubble & NASA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2022
   description_text: 'Messier 22 or M22, also known as NGC 6656 or the Great Sagittarius
     Cluster, is an elliptical globular cluster of stars in the constellation Sagittarius,
@@ -1787,20 +1322,9 @@ objects:
   Magnitude: '15.58'
   Size: '35.0'
   SB: '23.04'
-  Name: Open Cluster
-  RA: 17.949133333333336
-  DEC: -18.986999999999995
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/M23_Open_Star_Cluster.png/960px-M23_Open_Star_Cluster.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2023
   description_text: 'Messier 23, also known as NGC 6494, is an open cluster of stars
     in the northwest of the southern constellation of Sagittarius. It was discovered
@@ -1832,20 +1356,9 @@ objects:
   Magnitude: '15.56'
   Size: '120.0'
   SB: '25.69'
-  Name: Sagittarius Star Cloud
-  RA: 18.279999999999998
-  DEC: -18.55
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/Messier_24_Colombari_crop_invert.jpg/646px-Messier_24_Colombari_crop_invert.jpg
-  image_credit: Wikipedia
+  image_credit: Roberto Colombari (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Small%20Sagittarius%20Star%20Cloud
   description_text: 'The Small Sagittarius Star Cloud (also known as Messier 24 and
     IC 4715) is a star cloud in the constellation of Sagittarius approximately 600
@@ -1901,20 +1414,9 @@ objects:
   Magnitude: '4.6'
   Size: '31.3'
   SB: '11.82'
-  Name: Open Cluster
-  RA: 18.529133333333334
-  DEC: -19.114
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/M025.jpg/960px-M025.jpg
-  image_credit: Wikipedia
+  image_credit: Starhopper (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2025
   description_text: 'Messier 25, also known as IC 4725, is an open cluster of stars
     in the southern constellation of Sagittarius. The first recorded observation of
@@ -1941,20 +1443,10 @@ objects:
   Magnitude: '8.87'
   Size: '7.1'
   SB: '12.86'
-  Name: Open Cluster
-  RA: 18.754466666666666
-  DEC: -9.386
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Messier_26.jpg/960px-Messier_26.jpg
-  image_credit: Wikipedia
+  image_credit: Hillary Mathis, Vanessa Harvey, REU program/NOIRLab/NSF/AURA (CC BY
+    4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2026
   description_text: 'Messier 26, also known as NGC 6694, is an open cluster of stars
     in the southern constellation of Scutum. It was discovered by Charles Messier
@@ -1985,20 +1477,9 @@ objects:
   Magnitude: '14.09'
   Size: '6.7'
   SB: '17.96'
-  Name: Dumbbell Nebula
-  RA: 19.993434218058
-  DEC: 22.721197794319995
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/M27_-_Noao-m27.jpg/960px-M27_-_Noao-m27.jpg
-  image_credit: Wikipedia
+  image_credit: Credit:REU program/NOIRLab/NSF/AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Dumbbell%20Nebula
   description_text: 'The Dumbbell Nebula (also known as the Apple Core Nebula, Messier
     27, and NGC 6853) is a planetary nebula (nebulosity surrounding a white dwarf)
@@ -2037,20 +1518,11 @@ objects:
   Magnitude: '6.9'
   Size: '11.2'
   SB: '11.88'
-  Name: Globular Cluster
-  RA: 18.409136111111106
-  DEC: -24.869833333333332
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/M28_-_HST-U-V-IR.jpg/960px-M28_-_HST-U-V-IR.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credits: NASA, ESA, STScI, R. Buonanno (Universita di Roma Tor Vergata),
+    K. Gebhardt (University of Texas at Austin), J. Grindlay (Harvard University),
+    and F. Ferraro (Universita di Bologna) (Public domain) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Messier%2028
   description_text: "Messier 28 or M28, also known as NGC 6626, is a globular cluster\
     \ of stars in the center-west of Sagittarius. It was discovered by French astronomer\
@@ -2084,20 +1556,9 @@ objects:
   Magnitude: '6.6'
   Size: '12.7'
   SB: '11.86'
-  Name: Open Cluster
-  RA: 20.3962
-  DEC: 38.487
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Messier_29.jpg/960px-Messier_29.jpg
-  image_credit: Wikipedia
+  image_credit: Veryoldphotons (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2029
   description_text: "Messier 29 or M29, also known as NGC 6913 or the Cooling Tower\
     \ Cluster, is a quite small, bright open cluster of stars just south of the central\
@@ -2145,20 +1606,10 @@ objects:
   Magnitude: '6.39'
   Size: '16.2'
   SB: '12.18'
-  Name: Globular Cluster
-  RA: 13.703227777777775
-  DEC: 28.37727777777778
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Messier_3_-_Adam_Block_-_Mount_Lemmon_SkyCenter_-_University_of_Arizona.jpg/960px-Messier_3_-_Adam_Block_-_Mount_Lemmon_SkyCenter_-_University_of_Arizona.jpg
-  image_credit: Wikipedia
+  image_credit: Credit Line and Copyright        Adam Block/Mount Lemmon SkyCenter/University
+    of Arizona (CC BY-SA 3.0 us) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%203
   description_text: Messier 3 (M3; also NGC 5272) is a globular cluster located 33.9
     thousand light years from Earth in the northern constellation of Canes Venatici.
@@ -2175,20 +1626,9 @@ objects:
   Magnitude: '7.1'
   Size: '11.0'
   SB: '12.04'
-  Name: Globular Cluster
-  RA: 21.672811111111113
-  DEC: -23.17986111111111
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/M30_NASA.jpg/960px-M30_NASA.jpg
-  image_credit: Wikipedia
+  image_credit: NASA/ESA (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2030
   description_text: "Messier 30 (also known as M30, NGC 7099, or the Jellyfish Cluster)\
     \ is a globular cluster of stars in the southeast of the southern constellation\
@@ -2229,20 +1669,9 @@ objects:
   Magnitude: '3.44'
   Size: '199.53'
   SB: '14.68'
-  Name: Andromeda Galaxy
-  RA: 0.7123138888888889
-  DEC: 41.268750000000004
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Andromeda_Galaxy_2025.png/960px-Andromeda_Galaxy_2025.png
-  image_credit: Wikipedia
+  image_credit: Brody Wesner (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Andromeda%20Galaxy
   description_text: 'The Andromeda Galaxy is a barred spiral galaxy and is the nearest
     major galaxy to the Milky Way. It was originally named the Andromeda Nebula and
@@ -2280,20 +1709,9 @@ objects:
   Magnitude: '8.08'
   Size: '3.38'
   SB: '10.46'
-  Name: Galaxy towards a Group of Galaxies
-  RA: 0.711618
-  DEC: 40.86517
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/M32_Francione_inverted.jpg/960px-M32_Francione_inverted.jpg
-  image_credit: Wikipedia
+  image_credit: Fabrizio Francione (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2032
   description_text: 'Messier 32 (also known as M32 and NGC 221) is a dwarf "early-type"
     galaxy about 2,490,000 light-years (760,000 pc) from the Solar System, appearing
@@ -2323,20 +1741,9 @@ objects:
   Magnitude: '5.72'
   Size: '60.26'
   SB: '14.36'
-  Name: Triangulum galaxy
-  RA: 1.5641379374786666
-  DEC: 30.660175111980003
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/64/VST_snaps_a_very_detailed_view_of_the_Triangulum_Galaxy.jpg/960px-VST_snaps_a_very_detailed_view_of_the_Triangulum_Galaxy.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Triangulum%20Galaxy
   description_text: 'The Triangulum Galaxy is a spiral galaxy 2.73 million light-years
     (ly) from Earth in the constellation Triangulum. It is catalogued as Messier 33
@@ -2363,20 +1770,9 @@ objects:
   Magnitude: '16.35'
   Size: '48.4'
   SB: '24.51'
-  Name: Open Cluster
-  RA: 2.7020666666666666
-  DEC: 42.722
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/M34_Mazur.jpg/960px-M34_Mazur.jpg
-  image_credit: Wikipedia
+  image_credit: Jim Mazur (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2034
   description_text: 'Messier 34 (also known as M34, NGC 1039, or the Spiral Cluster)
     is a large and relatively near open cluster in Perseus. It was probably discovered
@@ -2422,20 +1818,9 @@ objects:
   Magnitude: '5.1'
   Size: '38.3'
   SB: '12.75'
-  Name: Open Cluster Theia 203
-  RA: 6.151466666666667
-  DEC: 24.336
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/M35atlas.jpg/960px-M35atlas.jpg
-  image_credit: Wikipedia
+  image_credit: Unknown (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2035
   description_text: 'Messier 35 or M35, also known as NGC 2168 or the Shoe-Buckle
     Cluster, is a relatively close open cluster of stars in the west of Gemini, at
@@ -2473,20 +1858,9 @@ objects:
   Magnitude: '6.0'
   Size: '120.0'
   SB: '16.13'
-  Name: Open Cluster
-  RA: 5.6056
-  DEC: 34.135
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/M36-pinwheel-cluster.png/960px-M36-pinwheel-cluster.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2036
   description_text: 'Messier 36 or M36, also known as NGC 1960 or the Pinwheel Cluster,
     is an open cluster of stars in the somewhat northern Auriga constellation. It
@@ -2532,20 +1906,9 @@ objects:
   Magnitude: '5.6'
   Size: '19.3'
   SB: '11.77'
-  Name: Open Cluster
-  RA: 5.8716
-  DEC: 32.545
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/cd/M37_Mazur_full.jpg/960px-M37_Mazur_full.jpg
-  image_credit: Wikipedia
+  image_credit: Jim Mazur (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2037
   description_text: "Messier 37 (also known as M37, NGC 2099, or the Salt and Pepper\
     \ Cluster) is the brightest and richest open cluster in the constellation Auriga.\
@@ -2584,20 +1947,9 @@ objects:
   Magnitude: '6.4'
   Size: '19.6'
   SB: '12.6'
-  Name: Open Cluster Theia 874
-  RA: 5.4778
-  DEC: 35.824
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/IC_410_-_IC_417_-_NGC_1912_in_Auriga.jpg/960px-IC_410_-_IC_417_-_NGC_1912_in_Auriga.jpg
-  image_credit: Wikipedia
+  image_credit: gjdonatiello (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2038
   description_text: Messier 38 or M38, also known as NGC 1912 or Starfish Cluster,
     is an open cluster of stars in the constellation of Auriga. It was discovered
@@ -2618,20 +1970,9 @@ objects:
   Magnitude: '16.62'
   Size: '120.4'
   SB: '26.76'
-  Name: Open Cluster Theia 517
-  RA: 21.525933333333334
-  DEC: 48.247
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/M39-Star-Cluster.png/960px-M39-Star-Cluster.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2039
   description_text: 'Messier 39 or M39, also known as NGC 7092, is an open cluster
     of stars in the constellation of Cygnus, sometimes referred to as the Pyramid
@@ -2660,20 +2001,9 @@ objects:
   Magnitude: '5.9'
   Size: '26.3'
   SB: '12.74'
-  Name: Globular Cluster
-  RA: 16.393116666666668
-  DEC: -26.525750000000002
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Globular_star_cluster_Messier_4.jpg/960px-Globular_star_cluster_Messier_4.jpg
-  image_credit: Wikipedia
+  image_credit: ESO Imaging Survey (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%204
   description_text: 'Messier 4 or M4 (also known as NGC 6121 or the Spider Globular
     Cluster) is a globular cluster in the constellation of Scorpius. It was discovered
@@ -2693,20 +2023,9 @@ objects:
   Magnitude: '16.53'
   Size: Not Found
   SB: Not Found
-  Name: Object of Unknown Nature Winnecke 4
-  RA: 12.37
-  DEC: 58.083333333333336
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/M40_%28Winnecke_4%29_%28noao-m40%29.jpg/960px-M40_%28Winnecke_4%29_%28noao-m40%29.jpg
-  image_credit: Wikipedia
+  image_credit: NOIRLab/NSF/AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Winnecke%204
   description_text: 'Winnecke 4 (also known as Messier 40 or WNC 4) is an optical
     double star consisting of two unrelated stars in a northerly zone of the sky,
@@ -2740,20 +2059,9 @@ objects:
   Magnitude: '4.5'
   Size: '39.8'
   SB: '12.24'
-  Name: Open Cluster
-  RA: 6.7665999999999995
-  DEC: -20.716
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/M41-Open-Cluster-of-Stars.png/960px-M41-Open-Cluster-of-Stars.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2041
   description_text: Messier 41 (also known as M41 or NGC 2287) is an open cluster
     in the constellation Canis Major. Located approximately four degrees south of
@@ -2772,20 +2080,10 @@ objects:
   Magnitude: '4.0'
   Size: '66.0'
   SB: '12.84'
-  Name: Orion Nebula
-  RA: 5.588006666666667
-  DEC: -5.3876
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg/960px-Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA, M. Robberto (Space Telescope Science Institute/ESA) and
+    the Hubble Space Telescope Orion Treasury Project Team (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Orion%20Nebula
   description_text: 'The Orion Nebula (also known as Messier 42, M42, or NGC 1976)
     is a diffuse nebula in the Milky Way situated south of Orion''s Belt in the constellation
@@ -2814,20 +2112,9 @@ objects:
   Magnitude: '9.0'
   Size: '20.0'
   SB: '15.24'
-  Name: Mairan's Nebula
-  RA: 5.591944444444445
-  DEC: -5.27
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/M42-20050206-lrgb-900.jpg/900px-M42-20050206-lrgb-900.jpg
-  image_credit: Wikipedia
+  image_credit: Ole Nielsen (CC BY-SA 2.5) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2043
   description_text: 'Messier 43 or M43, also known as De Mairan''s Nebula and NGC
     1982, is a star-forming nebula with a prominent H II region in the equatorial
@@ -2859,20 +2146,11 @@ objects:
   Magnitude: '1.2'
   Size: '76.86'
   SB: '10.37'
-  Name: Pleiades
-  RA: 3.7733999999999996
-  DEC: 24.114
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Pleiades_large.jpg/960px-Pleiades_large.jpg
-  image_credit: Wikipedia
+  image_credit: 'NASA, ESA, AURA/Caltech, Palomar ObservatoryThe science team consists
+    of: D. Soderblom and E. Nelan (STScI), F. Benedict and B. Arthur (U. Texas), and
+    B. Jones (Lick Obs.) (Public domain) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Pleiades
   description_text: 'The Pleiades ( PLEE-ə-deez, PLAY-, PLY-), also known as Seven
     Sisters and Messier 45 (M45), is an asterism of an open star cluster containing
@@ -2911,20 +2189,9 @@ objects:
   Magnitude: '6.1'
   Size: '25.3'
   SB: '12.85'
-  Name: Open Cluster
-  RA: 7.696333333333333
-  DEC: -14.843999999999998
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/M46-star-cluster.png/880px-M46-star-cluster.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2046
   description_text: 'Messier 46 or M46, also known as NGC 2437, is an open cluster
     of stars in the slightly southern constellation of Puppis. It was discovered by
@@ -2964,20 +2231,9 @@ objects:
   Magnitude: '4.4'
   Size: '31.1'
   SB: '11.6'
-  Name: Open Cluster
-  RA: 7.609800000000001
-  DEC: -14.489000000000004
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Noao-m47.jpg/700px-Noao-m47.jpg
-  image_credit: Wikipedia
+  image_credit: NOIRLab / NSF / AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2047
   description_text: 'Messier 47 (M47 or NGC 2422), also known as NGC 2478 is an open
     cluster in the mildly southern constellation of Puppis. It was discovered by Giovanni
@@ -3009,20 +2265,9 @@ objects:
   Magnitude: '5.8'
   Size: '44.3'
   SB: '13.77'
-  Name: Open Cluster
-  RA: 8.227466666666666
-  DEC: -5.726
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/M48_Mazur.jpg/960px-M48_Mazur.jpg
-  image_credit: Wikipedia
+  image_credit: Jim Mazur (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2048
   description_text: 'Messier 48 or M48, also known as NGC 2548, is an open cluster
     of stars in the equatorial constellation of Hydra. It sits near Hydra''s westernmost
@@ -3064,20 +2309,9 @@ objects:
   Magnitude: '12.17'
   Size: '10.96'
   SB: '17.11'
-  Name: Seyfert 2 Galaxy
-  RA: 12.496326666666667
-  DEC: 8.0004
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Messier_94-Rubin_Observatory.png/960px-Messier_94-Rubin_Observatory.png
-  image_credit: Wikipedia
+  image_credit: RubinObs/NOIRLab/SLAC/NSF/DOE/AURA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2049
   description_text: 'Messier 49 (also known as M49 or NGC 4472) is a giant elliptical
     galaxy about 56 million light-years away in the equatorial constellation of Virgo.
@@ -3122,20 +2356,9 @@ objects:
   Magnitude: '5.95'
   Size: '17.4'
   SB: '11.89'
-  Name: Globular Cluster
-  RA: 15.309227777777782
-  DEC: 2.081027777777778
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/M5-Messier-5.png/960px-M5-Messier-5.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%205
   description_text: 'Messier 5 or M5 (also designated NGC 5904) is a globular cluster
     in the constellation Serpens. It was discovered by Gottfried Kirch in 1702.
@@ -3153,20 +2376,9 @@ objects:
   Magnitude: '8.36'
   Size: '10.0'
   SB: '13.1'
-  Name: Whirlpool Galaxy
-  RA: 13.497971666666666
-  DEC: 47.19525833333333
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Messier51_sRGB.jpg/960px-Messier51_sRGB.jpg
-  image_credit: Wikipedia
+  image_credit: NASA and European Space Agency (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Whirlpool%20Galaxy
   description_text: 'The Whirlpool Galaxy, also known as Messier 51a (M51a) or NGC
     5194, is an interacting grand-design spiral galaxy with a Seyfert 2 active galactic
@@ -3195,20 +2407,10 @@ objects:
   Magnitude: '15.77'
   Size: '1.15'
   SB: '15.82'
-  Name: Ring Nebula
-  RA: 18.893082434975334
-  DEC: 33.029134246539996
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Webb_captures_detailed_beauty_of_Ring_Nebula_%28NIRCam_image%29_%28weic2320b%29.jpg/960px-Webb_captures_detailed_beauty_of_Ring_Nebula_%28NIRCam_image%29_%28weic2320b%29.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Webb, NASA, CSA, M. Barlow, N. Cox, R. Wesson (CC BY 4.0) via
+    Wiki
   image_source_link: https://en.wikipedia.org/wiki/Ring%20Nebula
   description_text: 'The Ring Nebula is a planetary nebula in the northern constellation
     of Lyra,[C] positioned about mid-way between the prominent stars Beta and Gamma
@@ -3239,20 +2441,10 @@ objects:
   Magnitude: '9.66'
   Size: '5.62'
   SB: '13.15'
-  Name: Seyfert 2 Galaxy
-  RA: 12.628759999999998
-  DEC: 11.8183
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/M58s_%28visible%29.jpg/960px-M58s_%28visible%29.jpg
-  image_credit: Wikipedia
+  image_credit: Credit Line and Copyright        Adam Block/Mount Lemmon SkyCenter/University
+    of Arizona (CC BY-SA 3.0 us) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2058
   description_text: Messier 58 (also known as M58 and NGC 4579) is an intermediate
     barred spiral galaxy with a weak inner ring structure located within the constellation
@@ -3273,20 +2465,9 @@ objects:
   Magnitude: '9.8'
   Size: '5.5'
   SB: '13.24'
-  Name: Galaxy towards a Group of Galaxies
-  RA: 12.700627260421331
-  DEC: 11.64691930771
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Messier59_-_HST_-_Potw1921a.jpg/960px-Messier59_-_HST_-_Potw1921a.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit: ESA/Hubble & NASA, L. Ho et al. (CC BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Messier%2059
   description_text: 'Messier 59 or M59, also known as NGC 4621, is an elliptical galaxy
     in the equatorial constellation of Virgo. It is a member of the Virgo Cluster,
@@ -3331,20 +2512,9 @@ objects:
   Magnitude: '4.2'
   Size: '20.0'
   SB: '10.44'
-  Name: Butterfly Cluster
-  RA: 17.671266666666664
-  DEC: -32.242
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Messier_6_-_The_Butterfly_Cluster.jpg/960px-Messier_6_-_The_Butterfly_Cluster.jpg
-  image_credit: Wikipedia
+  image_credit: Giuseppe Donatiello from Oria (Brindisi), Italy (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Butterfly%20Cluster
   description_text: 'The Butterfly Cluster (cataloged as Messier 6 or M6, and as NGC
     6405) is an open cluster of stars in the southern constellation of Scorpius. Its
@@ -3389,20 +2559,10 @@ objects:
   Magnitude: '8.8'
   Size: '7.94'
   SB: '13.04'
-  Name: Galaxy in Pair of Galaxies
-  RA: 12.727768888888887
-  DEC: 11.552693333333336
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Messier_60_-_Hubble_%282013-9-24%29.jpg/960px-Messier_60_-_Hubble_%282013-9-24%29.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA, CXC, and J. Strader (Michigan State University) (Public
+    domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2060
   description_text: Messier 60 or M60, also known as NGC 4649, is an elliptical galaxy
     approximately 57 million light-years away in the equatorial constellation of Virgo.
@@ -3421,20 +2581,12 @@ objects:
   Magnitude: '8.59'
   Size: '13.18'
   SB: '13.93'
-  Name: Sunflower Galaxy
-  RA: 13.263687274831332
-  DEC: 42.02936891003
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/M63_%28NGC_5055%29.jpg/960px-M63_%28NGC_5055%29.jpg
-  image_credit: Wikipedia
+  image_credit: 'NASA/ESA - The Hubble Legacy Archive (HLA): Space Telescope Science
+    Institute (STScI), the Space Telescope European Coordinating Facility (ST-ECF),
+    and the Canadian Astronomy Data Centre (CADC) - zoranknez (Aladin software) (Public
+    domain) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Messier%2063
   description_text: 'Messier 63 or M63, also known as NGC 5055 or the seldom-used
     Sunflower Galaxy, is a spiral galaxy in the northern constellation of Canes Venatici
@@ -3487,20 +2639,9 @@ objects:
   Magnitude: '8.52'
   Size: '9.77'
   SB: '13.21'
-  Name: Black Eye Galaxy
-  RA: 12.94547111111111
-  DEC: 21.682658333333332
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/NGC_4826_-_HST.png/960px-NGC_4826_-_HST.png
-  image_credit: Wikipedia
+  image_credit: Judy Schmidt from USA (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Black%20Eye%20Galaxy
   description_text: 'The Black Eye Galaxy (also called Sleeping Beauty Galaxy or Evil
     Eye Galaxy and designated Messier 64, M64, or NGC 4826) is a relatively isolated
@@ -3552,20 +2693,9 @@ objects:
   Magnitude: '9.3'
   Size: '8.32'
   SB: '13.64'
-  Name: Galaxy in Pair of Galaxies
-  RA: 11.315530129299333
-  DEC: 13.092305751019998
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Messier_65_through_the_years.jpg/960px-Messier_65_through_the_years.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Hubble & NASA (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2065
   description_text: Messier 65 (also known as NGC 3623) is an intermediate spiral
     galaxy about 35 million light-years away in the constellation Leo, within its
@@ -3582,20 +2712,9 @@ objects:
   Magnitude: '8.92'
   Size: '8.51'
   SB: '13.31'
-  Name: Galaxy in Pair of Galaxies
-  RA: 11.337506666666666
-  DEC: 12.9915
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Phot-33c-03-fullres.jpg/960px-Phot-33c-03-fullres.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2066
   description_text: 'Messier 66 or M66, also known as NGC 3627, is an intermediate
     spiral galaxy in the southern, equatorial half of Leo. It was discovered by French
@@ -3628,20 +2747,9 @@ objects:
   Magnitude: '3.3'
   Size: '100.1'
   SB: '13.04'
-  Name: Ptolemy's Cluster
-  RA: 17.89646666666666
-  DEC: -34.841
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/The_star_cluster_Messier_7.jpg/960px-The_star_cluster_Messier_7.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit: ESO (CC BY 3.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Messier%207
   description_text: 'Messier 7 or M7, also designated NGC 6475 and sometimes known
     as Ptolemy''s Cluster, is an open cluster of stars in the constellation of Scorpius.
@@ -3661,20 +2769,9 @@ objects:
   Magnitude: '8.0'
   Size: '8.0'
   SB: '12.25'
-  Name: Caspar the friendly Ghost
-  RA: 5.779388888888889
-  DEC: 0.07916666666666666
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Messier_78.jpg/960px-Messier_78.jpg
-  image_credit: Wikipedia
+  image_credit: ESO/Igor Chekalin (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2078
   description_text: Messier 78 (also known as M78 or NGC 2068) is a reflection nebula
     in the constellation Orion. It is the brightest diffuse reflection nebula in a
@@ -3695,20 +2792,10 @@ objects:
   Magnitude: '6.0'
   Size: '90.0'
   SB: '15.51'
-  Name: Lagoon Nebula
-  RA: 18.060277777777777
-  DEC: -24.386666666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Trifid_Vera_Rubins.png/960px-Trifid_Vera_Rubins.png
-  image_credit: Wikipedia
+  image_credit: National Science Foundation - Department of Energy Vera C. Rubin Observatory
+    (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Lagoon%20Nebula
   description_text: The Lagoon Nebula (catalogued as Messier 8 or M8, NGC 6523, Sharpless
     25, RCW 146, and Gum 72) is a giant emission nebula with an H II region located
@@ -3726,20 +2813,10 @@ objects:
   Magnitude: '6.94'
   Size: '21.38'
   SB: '13.33'
-  Name: Bode's Galaxy
-  RA: 9.925881293236
-  DEC: 69.06529514038
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/Messier_81_HST.jpg/960px-Messier_81_HST.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA and the Hubble Heritage Team (STScI/AURA) (Public domain)
+    via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2081
   description_text: 'Messier 81 (also known as NGC 3031 or Bode''s Galaxy) is a grand
     design spiral galaxy about 12 million light-years away in the constellation Ursa
@@ -3762,20 +2839,10 @@ objects:
   Magnitude: '8.41'
   Size: '11.2'
   SB: '13.39'
-  Name: Cigar galaxy
-  RA: 9.931230555555555
-  DEC: 69.67970277777778
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/M82_HST_ACS_2006-14-a-large_web.jpg/960px-M82_HST_ACS_2006-14-a-large_web.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA, and The Hubble Heritage Team (STScI/AURA) (Public domain)
+    via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%2082
   description_text: 'Messier 82 (also known as NGC 3034, Cigar Galaxy or M82) is a
     starburst galaxy approximately 12 million light-years away in the constellation
@@ -3802,20 +2869,9 @@ objects:
   Magnitude: '8.42'
   Size: '8.7'
   SB: '12.86'
-  Name: Globular Cluster
-  RA: 17.31993888888889
-  DEC: -18.51625
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Globular_cluster_Messier_9_%28captured_by_the_Hubble_Space_Telescope%29.tif/lossy-page1-600px-Globular_cluster_Messier_9_%28captured_by_the_Hubble_Space_Telescope%29.tif.jpg
-  image_credit: Wikipedia
+  image_credit: NASA & ESA (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Messier%209
   description_text: 'Messier 9 or M9 (also designated NGC 6333) is a globular cluster
     in the constellation of Ophiuchus. It is positioned in the southern part of the
@@ -3853,20 +2909,9 @@ objects:
   Magnitude: '15.78'
   Size: '3.33'
   SB: '18.13'
-  Name: Owl Nebula
-  RA: 11.24658674855
-  DEC: 55.01902300891
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Noao-m97.tif/lossy-page1-600px-Noao-m97.tif.jpg
-  image_credit: Wikipedia
+  image_credit: NOIRLab / NSF / AURA (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Owl%20Nebula
   description_text: 'The Owl Nebula (also known as Messier 97, M97 or NGC 3587) is
     a planetary nebula approximately 2,030 light years away in the constellation Ursa
@@ -3892,7 +2937,7 @@ objects:
     disk.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Owl%20Nebula
-- Object: NGC 1055
+- Object: NGC1055
   Common Name: Spiral Galaxy in Cetus
   RA (hours): 2.695898055555556
   DEC (degrees): 0.4431805555555555
@@ -3901,20 +2946,10 @@ objects:
   Magnitude: '10.59'
   Size: '6.17'
   SB: '14.28'
-  Name: Spiral Galaxy in Cetus
-  RA: 2.695898055555556
-  DEC: 0.4431805555555555
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/NGC_1055_-_Eso1707a.tiff/lossy-page1-600px-NGC_1055_-_Eso1707a.tiff.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit: ESO / Acknowledgement: Flickr user Josh Barrington (CC BY
+    4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/NGC%201055
   description_text: 'NGC 1055 is an edge-on spiral galaxy located in the constellation
     Cetus. The galaxy has a prominent nuclear bulge crossed by a wide, knotty, dark
@@ -3942,7 +2977,7 @@ objects:
     is a small chance that it could be a LINER.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201055
-- Object: NGC 1316
+- Object: NGC1316
   Common Name: Lenticular Galaxy in Fornax
   RA (hours): 3.378274722222222
   DEC (degrees): -37.208200000000005
@@ -3951,18 +2986,7 @@ objects:
   Magnitude: '8.53'
   Size: '13.18'
   SB: '13.87'
-  Name: Lenticular Galaxy in Fornax
-  RA: 3.378274722222222
-  DEC: -37.208200000000005
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://images-assets.nasa.gov/image/PIA10116/PIA10116~small.jpg
   image_credit: NASA
   image_source_link: https://images.nasa.gov/
@@ -3972,7 +2996,7 @@ objects:
     sky. It was discovered by Scottish astronomer James Dunlop on 2 September 1826.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201316
-- Object: NGC 1333
+- Object: NGC1333
   Common Name: Embryo Nebula
   RA (hours): 3.486466666666666
   DEC (degrees): 31.31
@@ -3981,20 +3005,10 @@ objects:
   Magnitude: '9.5'
   Size: '480.0'
   SB: '22.64'
-  Name: Embryo Nebula
-  RA: 3.486466666666666
-  DEC: 31.31
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Peeking_into_Perseus_%28wide_field_view%29_%28potm2408b%29.jpg/960px-Peeking_into_Perseus_%28wide_field_view%29_%28potm2408b%29.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Webb, NASA & CSA, A. Scholz, K. Muzic, A. Langeveld, R. Jayawardhana
+    (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%201333
   description_text: "NGC 1333 is a reflection nebula located in the northern constellation\
     \ Perseus, positioned next to the southern constellation border with Taurus and\
@@ -4038,7 +3052,7 @@ objects:
     \ known so far."
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201333
-- Object: NGC 1360
+- Object: NGC1360
   Common Name: Robins Egg Nebula
   RA (hours): 3.554068570220667
   DEC (degrees): -25.87166045775
@@ -4047,20 +3061,9 @@ objects:
   Magnitude: '11.16'
   Size: '6.4'
   SB: '14.93'
-  Name: Robins Egg Nebula
-  RA: 3.554068570220667
-  DEC: -25.87166045775
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/NGC1360_Planetary_Nebula_from_the_Mount_Lemmon_SkyCenter_Schulman_Telescope_courtesy_Adam_Block.jpg/960px-NGC1360_Planetary_Nebula_from_the_Mount_Lemmon_SkyCenter_Schulman_Telescope_courtesy_Adam_Block.jpg
-  image_credit: Wikipedia
+  image_credit: Ngc1535 (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%201360
   description_text: 'NGC 1360, also known as the Robin''s Egg Nebula,  is a planetary
     nebula in the constellation of Fornax. It was identified as a planetary nebula
@@ -4076,7 +3079,7 @@ objects:
     Theodor Winnecke.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201360
-- Object: NGC 1365
+- Object: NGC1365
   Common Name: Great Barred Spiral Galaxy
   RA (hours): 3.560127222222222
   DEC (degrees): -36.140658333333334
@@ -4085,20 +3088,12 @@ objects:
   Magnitude: '9.63'
   Size: '10.72'
   SB: '14.52'
-  Name: Great Barred Spiral Galaxy
-  RA: 3.560127222222222
-  DEC: -36.140658333333334
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Portrait_of_the_Great_Barred_Spiral.jpg/960px-Portrait_of_the_Great_Barred_Spiral.jpg
-  image_credit: Wikipedia
+  image_credit: 'Dark Energy Survey/DOE/FNAL/DECam/CTIO/NOIRLab/NSF/AURAImage processing:
+    Travis Rector (University of Alaska Anchorage/NSF’s NOIRLab), Jen Miller (Gemini
+    Observatory/NSF’s NOIRLab), Mahdi Zamani & Davide de Martin (NSF’s NOIRLab) (CC
+    BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/NGC%201365
   description_text: NGC 1365, also known as the Fornax Propeller Galaxy or the Great
     Barred Spiral Galaxy, is a  double-barred spiral galaxy about  56 million light-years
@@ -4106,7 +3101,7 @@ objects:
     Dunlop on 2 September 1826.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201365
-- Object: NGC 1532
+- Object: NGC1532
   Common Name: Haley's Coronet
   RA (hours): 4.201211458105333
   DEC (degrees): -32.87415556696
@@ -4115,20 +3110,10 @@ objects:
   Magnitude: '12.1'
   Size: '12.3'
   SB: '17.29'
-  Name: Haley's Coronet
-  RA: 4.201211458105333
-  DEC: -32.87415556696
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/ESO_-_Ngc1532_gendler_%28by%29.jpg/960px-ESO_-_Ngc1532_gendler_%28by%29.jpg
-  image_credit: Wikipedia
+  image_credit: ESO/IDA/Danish 1.5 m/R.Gendler and J.-E. Ovaldsen (CC BY 4.0) via
+    Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%201532
   description_text: NGC 1532, also known as Haley's Coronet, is an edge-on barred
     spiral galaxy located approximately 58 million light-years from the Solar System
@@ -4136,7 +3121,7 @@ objects:
     October 1826.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201532
-- Object: NGC 1579
+- Object: NGC1579
   Common Name: Northern Trifid
   RA (hours): 4.500933333333333
   DEC (degrees): 35.325
@@ -4145,20 +3130,10 @@ objects:
   Magnitude: '8.5'
   Size: '13.4'
   SB: '13.87'
-  Name: Northern Trifid
-  RA: 4.500933333333333
-  DEC: 35.325
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/NGC_1579_The_Trifid_of_the_North.jpg/960px-NGC_1579_The_Trifid_of_the_North.jpg
-  image_credit: Wikipedia
+  image_credit: 'ESA/Hubble & NASAAcknowledgement: Bruno Conti (Public domain) via
+    Wiki'
   image_source_link: https://en.wikipedia.org/wiki/NGC%201579
   description_text: 'NGC 1579 (also known as the Northern Trifid) is a diffuse nebula
     located in the constellation of Perseus.  It is referred to as the Northern Trifid
@@ -4173,7 +3148,7 @@ objects:
     Cloud.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201579
-- Object: NGC 1851
+- Object: NGC1851
   Common Name: Globular Cluster in Columba
   RA (hours): 5.235211111111111
   DEC (degrees): -40.04655555555555
@@ -4182,20 +3157,9 @@ objects:
   Magnitude: '7.3'
   Size: '11.0'
   SB: '12.24'
-  Name: Globular Cluster in Columba
-  RA: 5.235211111111111
-  DEC: -40.04655555555555
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Caldwell_73_%2850291856937%29.jpg/960px-Caldwell_73_%2850291856937%29.jpg
-  image_credit: Wikipedia
+  image_credit: NASA Hubble Space Telescope (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%201851
   description_text: 'NGC 1851 (also known as Caldwell 73) is a relatively massive
     globular cluster located in the southern constellation of Columba. Astronomer
@@ -4236,7 +3200,7 @@ objects:
     there are actually three different populations of stars in the cluster.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%201851
-- Object: NGC 2070
+- Object: NGC2070
   Common Name: Tarantula Nebula
   RA (hours): 5.645
   DEC (degrees): -69.1
@@ -4245,20 +3209,9 @@ objects:
   Magnitude: '7.25'
   Size: '3.5'
   SB: '9.71'
-  Name: Tarantula Nebula
-  RA: 5.645
-  DEC: -69.1
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/NGC_2070_ESO.jpg/960px-NGC_2070_ESO.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202070
   description_text: NGC 2070 (also known as Caldwell 103) is a large open cluster
     and candidate super star cluster forming the heart of the bright region in the
@@ -4270,7 +3223,7 @@ objects:
     the second most massive star known, R136a1, at 215 M☉ and 6.16 million L☉.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202070
-- Object: NGC 2170
+- Object: NGC2170
   Common Name: Angel Nebula
   RA (hours): 6.13
   DEC (degrees): -6.385
@@ -4279,26 +3232,16 @@ objects:
   Magnitude: '9.5'
   Size: '2.0'
   SB: '10.74'
-  Name: Angel Nebula
-  RA: 6.13
-  DEC: -6.385
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/N2170s.jpg/960px-N2170s.jpg
-  image_credit: Wikipedia
+  image_credit: Credit Line and Copyright        Adam Block/Mount Lemmon SkyCenter/University
+    of Arizona (CC BY-SA 3.0 us) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202170
   description_text: NGC 2170 is a reflection nebula in the constellation Monoceros.  It
     was discovered on October 16, 1784 by William Herschel.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202170
-- Object: NGC 2175
+- Object: NGC2175
   Common Name: Monkey Head Nebula
   RA (hours): 6.160833333333334
   DEC (degrees): 20.486666666666668
@@ -4307,20 +3250,9 @@ objects:
   Magnitude: '6.8'
   Size: '40.0'
   SB: '14.55'
-  Name: Monkey Head Nebula
-  RA: 6.160833333333334
-  DEC: 20.486666666666668
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f8/Monkey_Head_Nebula_%2849545230921%29.jpg/960px-Monkey_Head_Nebula_%2849545230921%29.jpg
-  image_credit: Wikipedia
+  image_credit: Stephen Rahn from Macon, GA, USA (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202175
   description_text: 'Open Cluster NGC 2175 (also known as OCL 476 or Cr 84) is an
     open cluster in the Orion constellation, embedded in a diffusion nebula. It was
@@ -4340,7 +3272,7 @@ objects:
     Simbad uses NGC 2174 for the nebula and NGC 2175 for the star cluster.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202175
-- Object: NGC 2264
+- Object: NGC2264
   Common Name: Cone Nebula
   RA (hours): 6.681133333333334
   DEC (degrees): 9.877
@@ -4349,20 +3281,10 @@ objects:
   Magnitude: '14.92'
   Size: '240.0'
   SB: '26.56'
-  Name: Cone Nebula
-  RA: 6.681133333333334
-  DEC: 9.877
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/NGC_2264.jpg/960px-NGC_2264.jpg
-  image_credit: Wikipedia
+  image_credit: NASA - NASA/JPL-Caltech/P.S. Teixeira (Center for Astrophysics) (Public
+    domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202264
   description_text: 'NGC 2264 is the designation number of the New General Catalogue
     that identifies two astronomical objects as a single object: the Cone Nebula,
@@ -4375,7 +3297,7 @@ objects:
     2264 in the New General Catalogue refers to both objects and not the cluster alone.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202264
-- Object: NGC 2359
+- Object: NGC2359
   Common Name: Thors Helmet
   RA (hours): 7.308333333333334
   DEC (degrees): -13.226666666666667
@@ -4384,20 +3306,9 @@ objects:
   Magnitude: '99.0'
   Size: '10.0'
   SB: '103.74'
-  Name: Thors Helmet
-  RA: 7.308333333333334
-  DEC: -13.226666666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/NGC_2359.jpg/960px-NGC_2359.jpg
-  image_credit: Wikipedia
+  image_credit: Martin Rusterholz in CXIELO (CC BY-SA 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202359
   description_text: 'NGC 2359 (also known as Thor''s Helmet) is an emission nebula
     in the constellation Canis Major. The nebula is approximately 3,670 parsecs (11.96
@@ -4424,7 +3335,7 @@ objects:
     2359.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202359
-- Object: NGC 2392
+- Object: NGC2392
   Common Name: Eskimo Nebula
   RA (hours): 7.486324205502668
   DEC (degrees): 20.91179858002
@@ -4433,20 +3344,10 @@ objects:
   Magnitude: '9.68'
   Size: '0.34'
   SB: '7.05'
-  Name: Eskimo Nebula
-  RA: 7.486324205502668
-  DEC: 20.91179858002
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/16/Ngc2392.jpg/960px-Ngc2392.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA, Andrew Fruchter (STScI), and the ERO team (STScI + ST-ECF)
+    (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Eskimo%20Nebula
   description_text: 'The Eskimo Nebula (NGC 2392), also known as the Clown Face Nebula,
     Lion Nebula, or Caldwell 39, is a bipolar double-shell planetary nebula (PN).
@@ -4463,7 +3364,7 @@ objects:
     a spectral type of O(H)6f.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Eskimo%20Nebula
-- Object: NGC 2419
+- Object: NGC2419
   Common Name: Intergalactic Wanderer Globular Cluster
   RA (hours): 7.635697222222222
   DEC (degrees): 38.88191666666667
@@ -4472,20 +3373,9 @@ objects:
   Magnitude: '10.05'
   Size: '4.1'
   SB: '12.85'
-  Name: Intergalactic Wanderer Globular Cluster
-  RA: 7.635697222222222
-  DEC: 38.88191666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Caldwell_25.jpg/960px-Caldwell_25.jpg
-  image_credit: Wikipedia
+  image_credit: NASA Hubble (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202419
   description_text: 'NGC 2419 (also known as Caldwell 25) is a globular cluster in
     the constellation Lynx. It was discovered by William Herschel on December 31,
@@ -4521,7 +3411,7 @@ objects:
     questions on how this globular cluster was formed.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202419
-- Object: NGC 246
+- Object: NGC246
   Common Name: Skull Nebula
   RA (hours): 0.7842616761560001
   DEC (degrees): -11.871936423910004
@@ -4530,20 +3420,9 @@ objects:
   Magnitude: '11.76'
   Size: '3.73'
   SB: '14.36'
-  Name: Skull Nebula
-  RA: 0.7842616761560001
-  DEC: -11.871936423910004
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/NGC_246.jpg/678px-NGC_246.jpg
-  image_credit: Wikipedia
+  image_credit: Unknown (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%20246
   description_text: "NGC 246 (also known as the Skull Nebula or Caldwell 56) is a\
     \ planetary nebula in the constellation Cetus. It was discovered in 1785 by William\
@@ -4562,7 +3441,7 @@ objects:
     \ the surrounding star field."
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%20246
-- Object: NGC 2632
+- Object: NGC2632
   Common Name: Beehive Cluster
   RA (hours): 8.670266666666667
   DEC (degrees): 19.621
@@ -4571,20 +3450,9 @@ objects:
   Magnitude: '3.1'
   Size: '118.2'
   SB: '13.2'
-  Name: Beehive Cluster
-  RA: 8.670266666666667
-  DEC: 19.621
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/M44-Star-Cluster.png/960px-M44-Star-Cluster.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Beehive%20Cluster
   description_text: 'The Beehive Cluster (also known as Praesepe (Latin for "manger",
     "cot" or "crib"), M44, NGC 2632, or Cr 189) is an open cluster in the constellation
@@ -4613,7 +3481,7 @@ objects:
     or low-powered small telescopes. Regulus, Castor, and Pollux are guide stars.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Beehive%20Cluster
-- Object: NGC 2683
+- Object: NGC2683
   Common Name: UFO Galaxy
   RA (hours): 8.878140689710667
   DEC (degrees): 33.42183268931
@@ -4622,20 +3490,9 @@ objects:
   Magnitude: '9.79'
   Size: '8.71'
   SB: '14.23'
-  Name: UFO Galaxy
-  RA: 8.878140689710667
-  DEC: 33.42183268931
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/NGC_2683_Spiral_galaxy.jpg/960px-NGC_2683_Spiral_galaxy.jpg
-  image_credit: Wikipedia
+  image_credit: NASA (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202683
   description_text: 'NGC 2683 is a field spiral galaxy in the northern constellation
     of Lynx. It was nicknamed the "UFO Galaxy" by the Astronaut Memorial Planetarium
@@ -4650,7 +3507,7 @@ objects:
     Center at 375 km/s (233 mi/s).'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202683
-- Object: NGC 2736
+- Object: NGC2736
   Common Name: The Pencil Nebula
   RA (hours): 9.003333333333334
   DEC (degrees): -45.95
@@ -4659,20 +3516,10 @@ objects:
   Magnitude: '99.0'
   Size: '13.0'
   SB: '104.31'
-  Name: The Pencil Nebula
-  RA: 9.003333333333334
-  DEC: -45.95
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Pencil_hst_big.jpg/960px-Pencil_hst_big.jpg
-  image_credit: Wikipedia
+  image_credit: NASA and The Hubble Heritage Team (STScI/AURA) (Public domain) via
+    Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202736
   description_text: NGC 2736 (also known as the Pencil Nebula) is a small part of
     the Vela Supernova Remnant, located near the Vela Pulsar in the constellation
@@ -4683,7 +3530,7 @@ objects:
     per hour)
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202736
-- Object: NGC 2903
+- Object: NGC2903
   Common Name: Barred Galaxy in Leo
   RA (hours): 9.536141944444445
   DEC (degrees): 21.500830555555552
@@ -4692,20 +3539,9 @@ objects:
   Magnitude: '9.07'
   Size: '11.48'
   SB: '14.11'
-  Name: Barred Galaxy in Leo
-  RA: 9.536141944444445
-  DEC: 21.500830555555552
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/NGC_2903_GALEX.jpg/800px-NGC_2903_GALEX.jpg
-  image_credit: Wikipedia
+  image_credit: NASA/GALEX/WikiSky (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%202903
   description_text: 'NGC 2903 is an isolated barred spiral galaxy in the equatorial
     constellation of Leo, positioned about 1.5° due south of Lambda Leonis. It was
@@ -4734,7 +3570,7 @@ objects:
     separation of 25′ and nearly the same radial velocity.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%202903
-- Object: NGC 292
+- Object: NGC292
   Common Name: Small Magellanic Cloud
   RA (hours): 0.8772222222222222
   DEC (degrees): -72.80027777777778
@@ -4743,20 +3579,9 @@ objects:
   Magnitude: '2.2'
   Size: '158.11'
   SB: '12.93'
-  Name: Small Magellanic Cloud
-  RA: 0.8772222222222222
-  DEC: -72.80027777777778
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Small_Magellanic_Cloud_%28Digitized_Sky_Survey_2%29.jpg/960px-Small_Magellanic_Cloud_%28Digitized_Sky_Survey_2%29.jpg
-  image_credit: Wikipedia
+  image_credit: ESA/Hubble and Digitized Sky Survey 2 (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Small%20Magellanic%20Cloud
   description_text: 'The Small Magellanic Cloud (SMC) is a dwarf galaxy near the Milky
     Way. Classified as a dwarf irregular galaxy, the SMC has a D25 isophotal diameter
@@ -4778,7 +3603,7 @@ objects:
     of the LMC.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Small%20Magellanic%20Cloud
-- Object: NGC 3199
+- Object: NGC3199
   Common Name: Banana Nebula
   RA (hours): 10.275777777777778
   DEC (degrees): -57.93388888888889
@@ -4787,20 +3612,9 @@ objects:
   Magnitude: '16.35'
   Size: '15.0'
   SB: '21.97'
-  Name: Banana Nebula
-  RA: 10.275777777777778
-  DEC: -57.93388888888889
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/NGC3199_-_ESO_-_Potw1831a.jpg/960px-NGC3199_-_ESO_-_Potw1831a.jpg
-  image_credit: Wikipedia
+  image_credit: Credit:ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%203199
   description_text: NGC 3199 is an emission nebula in the constellation Carina. It
     is commonly known as the Banana Nebula or Carina's Smile. The object was discovered
@@ -4810,7 +3624,7 @@ objects:
     of local space, not because of the star's movement.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%203199
-- Object: NGC 3372
+- Object: NGC3372
   Common Name: Carina Nebula
   RA (hours): 10.750619444444444
   DEC (degrees): -59.699944444444434
@@ -4819,20 +3633,9 @@ objects:
   Magnitude: '13.89'
   Size: '120.0'
   SB: '24.02'
-  Name: Carina Nebula
-  RA: 10.750619444444444
-  DEC: -59.699944444444434
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Carina_Nebula_by_Harel_Boren_%28151851961%2C_modified%29.jpg/960px-Carina_Nebula_by_Harel_Boren_%28151851961%2C_modified%29.jpg
-  image_credit: Wikipedia
+  image_credit: Harel Boren (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Carina%20Nebula
   description_text: 'The Carina Nebula or Eta Carinae Nebula (catalogued as NGC 3372;
     also known as the Great Carina Nebula) is a large, complex area of bright and
@@ -4861,7 +3664,7 @@ objects:
     the Cosmic Cliffs.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Carina%20Nebula
-- Object: NGC 3576
+- Object: NGC3576
   Common Name: Statue of Liberty Nebula
   RA (hours): 11.19812
   DEC (degrees): -61.3072
@@ -4870,20 +3673,9 @@ objects:
   Magnitude: '99.0'
   Size: '170.0'
   SB: '109.89'
-  Name: Statue of Liberty Nebula
-  RA: 11.19812
-  DEC: -61.3072
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/ESO-NGC_3576-phot-17b-08-normal.jpg/960px-ESO-NGC_3576-phot-17b-08-normal.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%203576
   description_text: NGC 3576 is a bright emission nebula and star-forming region in
     the southern constellation of Carina. It was discovered by John Frederick William
@@ -4891,7 +3683,7 @@ objects:
     to 9.8 thousand light-years.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%203576
-- Object: NGC 3628
+- Object: NGC3628
   Common Name: Hamburger Galaxy (part of Leo triplet)
   RA (hours): 11.338060555555556
   DEC (degrees): 13.589488888888889
@@ -4900,18 +3692,7 @@ objects:
   Magnitude: '9.48'
   Size: '12.88'
   SB: '14.77'
-  Name: Hamburger Galaxy (part of Leo triplet)
-  RA: 11.338060555555556
-  DEC: 13.589488888888889
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=170.07090833333334&d=13.589488888888889&e=J2000&h=15&w=15&f=gif&c=none
   image_credit: DSS / SDSS
   image_source_link: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=170.07090833333334&d=13.589488888888889&e=J2000&h=15&w=15&f=gif&c=none
@@ -4938,7 +3719,7 @@ objects:
     most famous for the poem "The Old Astronomer:"'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%203628
-- Object: NGC 4565
+- Object: NGC4565
   Common Name: Needle Galaxy
   RA (hours): 12.605778888888887
   DEC (degrees): 25.987391666666667
@@ -4947,20 +3728,9 @@ objects:
   Magnitude: '12.43'
   Size: '13.8'
   SB: '17.87'
-  Name: Needle Galaxy
-  RA: 12.605778888888887
-  DEC: 25.987391666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Needle_Galaxy_4565.jpeg/960px-Needle_Galaxy_4565.jpeg
-  image_credit: Wikipedia
+  image_credit: Ken Crawford (CC BY-SA 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%204565
   description_text: NGC 4565 (also known as the Needle Galaxy or Caldwell 38) is an
     edge-on spiral galaxy about 30 to 50 million light-years away in the constellation
@@ -4970,7 +3740,7 @@ objects:
     astronomer William Herschel on 6 April 1785.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%204565
-- Object: NGC 4567
+- Object: NGC4567
   Common Name: Siamese Twin Galaxy (1)
   RA (hours): 12.609082776318667
   DEC (degrees): 11.25797673963
@@ -4979,20 +3749,9 @@ objects:
   Magnitude: '11.31'
   Size: '2.88'
   SB: '13.34'
-  Name: Siamese Twin Galaxy (1)
-  RA: 12.609082776318667
-  DEC: 11.25797673963
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/NGC_4567_%26_4568.png/960px-NGC_4567_%26_4568.png
-  image_credit: Wikipedia
+  image_credit: Judy Schmidt from USA (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%204567%20and%20NGC%204568
   description_text: "NGC 4567 and NGC 4568 (nicknamed the Butterfly Galaxies or Siamese\
     \ Twins) are a set of unbarred spiral galaxies about 60 million light-years away\
@@ -5005,7 +3764,7 @@ objects:
     \ single elliptical galaxy."
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%204567%20and%20NGC%204568
-- Object: NGC 4725
+- Object: NGC4725
   Common Name: ' Intermediate barred spiral galaxy'
   RA (hours): 12.840714343555332
   DEC (degrees): 25.50075919183
@@ -5014,20 +3773,10 @@ objects:
   Magnitude: '12.44'
   Size: '9.77'
   SB: '17.13'
-  Name: ' Intermediate barred spiral galaxy'
-  RA: 12.840714343555332
-  DEC: 25.50075919183
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/N4725s.jpg/960px-N4725s.jpg
-  image_credit: Wikipedia
+  image_credit: Credit Line and Copyright        Adam Block/Mount Lemmon SkyCenter/University
+    of Arizona (CC BY-SA 3.0 us) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%204725
   description_text: 'NGC 4725 is an intermediate barred spiral galaxy with a prominent
     ring structure,  located in the northern constellation of Coma Berenices near
@@ -5055,7 +3804,7 @@ objects:
     that is heavily obscured by dust.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%204725
-- Object: NGC 4755
+- Object: NGC4755
   Common Name: Jewel Box Cluster
   RA (hours): 12.894333333333332
   DEC (degrees): -60.37100000000001
@@ -5064,20 +3813,9 @@ objects:
   Magnitude: '4.2'
   Size: '10.3'
   SB: '9.0'
-  Name: Jewel Box Cluster
-  RA: 12.894333333333332
-  DEC: -60.37100000000001
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/A_Snapshot_of_the_Jewel_Box_cluster_with_the_ESO_VLT.jpg/960px-A_Snapshot_of_the_Jewel_Box_cluster_with_the_ESO_VLT.jpg
-  image_credit: Wikipedia
+  image_credit: ESO/Y. Beletsky (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Jewel%20Box%20(star%20cluster)
   description_text: 'The Jewel Box (also known as the Kappa Crucis cluster, NGC 4755,
     or Caldwell 94) is an open cluster in the constellation Crux, originally discovered
@@ -5094,7 +3832,7 @@ objects:
     years from Earth, and contains just over 100 stars.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Jewel%20Box%20(star%20cluster)
-- Object: NGC 5128
+- Object: NGC5128
   Common Name: Centaurus A
   RA (hours): 13.424337558455555
   DEC (degrees): -43.019112508083325
@@ -5103,20 +3841,10 @@ objects:
   Magnitude: '6.84'
   Size: '25.7'
   SB: '13.63'
-  Name: Centaurus A
-  RA: 13.424337558455555
-  DEC: -43.019112508083325
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/ESO_Centaurus_A_LABOCA.jpg/960px-ESO_Centaurus_A_LABOCA.jpg
-  image_credit: Wikipedia
+  image_credit: ESO/WFI (Optical); MPIfR/ESO/APEX/A.Weiss et al. (Submillimetre);
+    NASA/CXC/CfA/R.Kraft et al. (X-ray) (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Centaurus%20A
   description_text: 'Centaurus A (also known as NGC 5128 or Caldwell 77) is a galaxy
     in the constellation of Centaurus. It was discovered in 1826 by Scottish astronomer
@@ -5147,7 +3875,7 @@ objects:
     elliptical and a spiral galaxy are not fully understood.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Centaurus%20A
-- Object: NGC 5139
+- Object: NGC5139
   Common Name: Omega Centauri
   RA (hours): 13.446466666666664
   DEC (degrees): -47.47947222222223
@@ -5156,20 +3884,9 @@ objects:
   Magnitude: '3.7'
   Size: '36.3'
   SB: '11.24'
-  Name: Omega Centauri
-  RA: 13.446466666666664
-  DEC: -47.47947222222223
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Omega_Centauri_Stars.png/960px-Omega_Centauri_Stars.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Omega%20Centauri
   description_text: 'Omega Centauri (ω Cen, NGC 5139, or Caldwell 80) is a globular
     cluster in the constellation of Centaurus that was first identified as a non-stellar
@@ -5185,7 +3902,7 @@ objects:
     core of this cluster, although this is disputed.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Omega%20Centauri
-- Object: NGC 5985
+- Object: NGC5985
   Common Name: Leo Triplet
   RA (hours): 15.660292937282668
   DEC (degrees): 59.33200469074
@@ -5194,18 +3911,7 @@ objects:
   Magnitude: '14.22'
   Size: '4.57'
   SB: '17.26'
-  Name: Leo Triplet
-  RA: 15.660292937282668
-  DEC: 59.33200469074
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=234.90439405924002&d=59.33200469074&e=J2000&h=15&w=15&f=gif&c=none
   image_credit: DSS / SDSS
   image_source_link: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=234.90439405924002&d=59.33200469074&e=J2000&h=15&w=15&f=gif&c=none
@@ -5213,7 +3919,7 @@ objects:
     Draco. NGC 5985 was discovered by William Herschel in 1788.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%205985
-- Object: NGC 6302
+- Object: NGC6302
   Common Name: Butterfly Nebula
   RA (hours): 17.229026666666666
   DEC (degrees): -37.1031
@@ -5222,20 +3928,9 @@ objects:
   Magnitude: '13.0'
   Size: '0.47'
   SB: '11.11'
-  Name: Butterfly Nebula
-  RA: 17.229026666666666
-  DEC: -37.1031
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/NGC_6302_Hubble_2009.full.jpg/960px-NGC_6302_Hubble_2009.full.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA and the Hubble SM4 ERO Team (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%206302
   description_text: "NGC 6302 (also known as the Bug Nebula, Butterfly Nebula, or\
     \ Caldwell 69) is a bipolar type planetary nebula in the constellation Scorpius.\
@@ -5253,7 +3948,7 @@ objects:
     \ edges to the lobes."
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%206302
-- Object: NGC 6334
+- Object: NGC6334
   Common Name: Cat's Paw Nebula
   RA (hours): 17.347961543191886
   DEC (degrees): -36.13123371386014
@@ -5262,20 +3957,10 @@ objects:
   Magnitude: '99.0'
   Size: '18.3'
   SB: '105.05'
-  Name: Cat's Paw Nebula
-  RA: 17.347961543191886
-  DEC: -36.13123371386014
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/NGC-6334-JWST-NIRCam.jpg/960px-NGC-6334-JWST-NIRCam.jpg
-  image_credit: Wikipedia
+  image_credit: NASA and the Space Telescope Science Institute (STScI) (Public domain)
+    via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%206334
   description_text: 'NGC 6334 is a massive emission nebula and star-forming region
     located in the constellation Scorpius. It is colloquially known as the Cat''s
@@ -5300,7 +3985,7 @@ objects:
     form a single complex.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%206334
-- Object: NGC 6441
+- Object: NGC6441
   Common Name: Globular Cluster in Scorpius
   RA (hours): 17.83696111111111
   DEC (degrees): -37.051444444444435
@@ -5309,20 +3994,9 @@ objects:
   Magnitude: '7.4'
   Size: '7.8'
   SB: '11.6'
-  Name: Globular Cluster in Scorpius
-  RA: 17.83696111111111
-  DEC: -37.051444444444435
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/NGC_6441_HST_10775_R814B606.png/960px-NGC_6441_HST_10775_R814B606.png
-  image_credit: Wikipedia
+  image_credit: Own work (CC BY-SA 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%206441
   description_text: 'NGC 6441, sometimes also known as the Silver Nugget Cluster,
     is a globular cluster in the southern constellation of Scorpius. It was discovered
@@ -5358,7 +4032,7 @@ objects:
     planetary nebulas known to inhabit globular clusters in the Milky Way.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%206441
-- Object: NGC 6543
+- Object: NGC6543
   Common Name: Cats Eye Nebula
   RA (hours): 17.975945544091335
   DEC (degrees): 66.632986315
@@ -5367,18 +4041,7 @@ objects:
   Magnitude: '11.28'
   Size: '0.62'
   SB: '9.99'
-  Name: Cats Eye Nebula
-  RA: 17.975945544091335
-  DEC: 66.632986315
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=269.63918316137&d=66.632986315&e=J2000&h=15&w=15&f=gif&c=none
   image_credit: DSS / SDSS
   image_source_link: https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=269.63918316137&d=66.632986315&e=J2000&h=15&w=15&f=gif&c=none
@@ -5401,7 +4064,7 @@ objects:
     '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Cat's%20Eye%20Nebula
-- Object: NGC 660
+- Object: NGC660
   Common Name: Polar Ring Galaxy in Pisces
   RA (hours): 1.7173194444444448
   DEC (degrees): 13.645680555555558
@@ -5410,20 +4073,9 @@ objects:
   Magnitude: '11.16'
   Size: '6.31'
   SB: '14.9'
-  Name: Polar Ring Galaxy in Pisces
-  RA: 1.7173194444444448
-  DEC: 13.645680555555558
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/NGC_660_Polar_Galaxy_Gemini_Observatory.jpg/960px-NGC_660_Polar_Galaxy_Gemini_Observatory.jpg
-  image_credit: Wikipedia
+  image_credit: Gemini Observatory, AURA, NASA (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%20660
   description_text: 'NGC 660 is a peculiar and unique polar-ring galaxy located approximately
     45 million light-years from Earth in the Pisces constellation. It is the only
@@ -5459,7 +4111,7 @@ objects:
     NGC 660 is a member of the M74 Group.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%20660
-- Object: NGC 6744
+- Object: NGC6744
   Common Name: Pavo Galaxy
   RA (hours): 19.162814887514
   DEC (degrees): -63.85747141083999
@@ -5468,20 +4120,9 @@ objects:
   Magnitude: '8.25'
   Size: '17.38'
   SB: '14.19'
-  Name: Pavo Galaxy
-  RA: 19.162814887514
-  DEC: -63.85747141083999
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Wide_Field_Imager_view_of_a_Milky_Way_look-alike_NGC_6744.jpg/960px-Wide_Field_Imager_view_of_a_Milky_Way_look-alike_NGC_6744.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%206744
   description_text: 'NGC 6744 (also known as Caldwell 101 or the Pavo Galaxy) is an
     intermediate spiral galaxy in the constellation Pavo (Peacock). Its velocity with
@@ -5503,7 +4144,7 @@ objects:
     NGC 6744 lies within the Virgo Supercluster.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%206744
-- Object: NGC 6888
+- Object: NGC6888
   Common Name: Crescent Nebula
   RA (hours): 20.201944444444443
   DEC (degrees): 38.355000000000004
@@ -5512,20 +4153,9 @@ objects:
   Magnitude: '7.4'
   Size: '20.0'
   SB: '13.64'
-  Name: Crescent Nebula
-  RA: 20.201944444444443
-  DEC: 38.355000000000004
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/NGC_6888.png/960px-NGC_6888.png
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Crescent%20Nebula
   description_text: The Crescent Nebula (also known as NGC 6888, Caldwell 27, Sharpless
     105) is an emission nebula in the constellation Cygnus, about 5000 light-years
@@ -5537,7 +4167,7 @@ objects:
     wave heats the stellar wind to X-ray-emitting temperatures.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Crescent%20Nebula
-- Object: NGC 6960
+- Object: NGC6960
   Common Name: Veil Nebula
   RA (hours): 20.760555555555552
   DEC (degrees): 30.708333333333332
@@ -5546,20 +4176,9 @@ objects:
   Magnitude: '16.97'
   Size: '210.0'
   SB: '28.32'
-  Name: Veil Nebula
-  RA: 20.760555555555552
-  DEC: 30.708333333333332
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Veil_Nebula_-_NGC6960.jpg/960px-Veil_Nebula_-_NGC6960.jpg
-  image_credit: Wikipedia
+  image_credit: Ken Crawford (CC BY-SA 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Veil%20Nebula
   description_text: 'The Veil Nebula is a cloud of heated and ionized gas and dust
     in the constellation Cygnus.
@@ -5581,7 +4200,7 @@ objects:
     hydrogen. The Cygnus Loop is also a strong emitter of radio waves and x-rays.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Veil%20Nebula
-- Object: NGC 7000
+- Object: NGC7000
   Common Name: North America Nebula
   RA (hours): 20.97972222222222
   DEC (degrees): 44.330000000000005
@@ -5590,20 +4209,9 @@ objects:
   Magnitude: '4.0'
   Size: '120.0'
   SB: '14.13'
-  Name: North America Nebula
-  RA: 20.97972222222222
-  DEC: 44.330000000000005
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/North_America_2007_09_08-14.jpg/960px-North_America_2007_09_08-14.jpg
-  image_credit: Wikipedia
+  image_credit: Gil-Estel (CC BY 2.5) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/North%20America%20Nebula
   description_text: 'The North America Nebula (NGC 7000 or Caldwell 20) is an emission
     nebula in the constellation Cygnus, close to Deneb (the tail of the swan and its
@@ -5614,7 +4222,7 @@ objects:
     '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/North%20America%20Nebula
-- Object: NGC 7006
+- Object: NGC7006
   Common Name: Globular Cluster at the fringe of the Milky Way
   RA (hours): 21.024851388888887
   DEC (degrees): 16.18791388888889
@@ -5623,20 +4231,9 @@ objects:
   Magnitude: '10.46'
   Size: '1.11'
   SB: '10.42'
-  Name: Globular Cluster at the fringe of the Milky Way
-  RA: 21.024851388888887
-  DEC: 16.18791388888889
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Caldwell_42.jpg/960px-Caldwell_42.jpg
-  image_credit: Wikipedia
+  image_credit: NASA Hubble (CC BY 2.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%207006
   description_text: 'NGC 7006 (also known as Caldwell 42) is a globular cluster  in
     the constellation Delphinus. NGC 7006 resides in the outskirts of the Milky Way.
@@ -5650,7 +4247,7 @@ objects:
     the planet Poloda to determine the approximate location of Earth.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%207006
-- Object: NGC 7023
+- Object: NGC7023
   Common Name: Iris Nebula
   RA (hours): 21.02691666666667
   DEC (degrees): 68.16333333333334
@@ -5659,20 +4256,14 @@ objects:
   Magnitude: '6.8'
   Size: '10.0'
   SB: '11.54'
-  Name: Iris Nebula
-  RA: 21.02691666666667
-  DEC: 68.16333333333334
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Iris_Nebula_-_NGC_7023_-_Caldwell_4.jpg/960px-Iris_Nebula_-_NGC_7023_-_Caldwell_4.jpg
-  image_credit: Wikipedia
+  image_credit: Andreigusan This is a featured picture on the Persian language Wikipedia
+    (نگاره‌های برگزیده) and is considered one of the finest images. See its nomination
+    here.If you think this file should be featured on Wikimedia Commons as well, feel
+    free to nominate it.If you have an image of similar quality that can be published
+    under a suitable copyright license, be sure to upload it, tag it, and nominate
+    it. (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Iris%20Nebula
   description_text: 'The Iris Nebula (also known as NGC 7023 and Caldwell 4) is a
     bright reflection nebula in the constellation Cepheus. The designation NGC 7023
@@ -5685,7 +4276,7 @@ objects:
     1,300 light-years away and is six light-years across.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Iris%20Nebula
-- Object: NGC 7027
+- Object: NGC7027
   Common Name: Jewel Bug Nebula
   RA (hours): 21.11710332
   DEC (degrees): 42.236242000000004
@@ -5694,20 +4285,9 @@ objects:
   Magnitude: '8.83'
   Size: '0.2'
   SB: '5.06'
-  Name: Jewel Bug Nebula
-  RA: 21.11710332
-  DEC: 42.236242000000004
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/NGC7027_-_HST_-_Heic2011c.tif/lossy-page1-600px-NGC7027_-_HST_-_Heic2011c.tif.jpg
-  image_credit: Wikipedia
+  image_credit: 'Credit: NASA, ESA, and J. Kastner (RIT) (CC BY 4.0) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/NGC%207027
   description_text: NGC 7027, also known as the Jewel Bug Nebula or the Magic Carpet
     Nebula, is a very young and dense planetary nebula located around 3,000 light-years
@@ -5716,7 +4296,7 @@ objects:
     of the smallest planetary nebulae and by far the most extensively studied.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%207027
-- Object: NGC 7293
+- Object: NGC7293
   Common Name: Helix Nebula
   RA (hours): 22.494040390198666
   DEC (degrees): -20.837152011779995
@@ -5725,20 +4305,22 @@ objects:
   Magnitude: '13.52'
   Size: '13.4'
   SB: '18.9'
-  Name: Helix Nebula
-  RA: 22.494040390198666
-  DEC: -20.837152011779995
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/NGC7293_%282004%29.jpg/960px-NGC7293_%282004%29.jpg
-  image_credit: Wikipedia
+  image_credit: 'The HST data are from proposal 9700. Processed images may be obtained
+    from the Helix MAST web site. The Hubble Helix Team includes M. Meixner, H.E.
+    Bond, G. Chapman (STScI), Y.-H. Chu (U. Illinois, Urbana-Champaign), P. Cox (Institut
+    d''Astrophysique Spatiale, France), W. Crothers, L.M. Frattare, R.Gilliland (STScI),
+    M. Guerrero R. Gruendl (U. Illinois, Urbana-Champaign), F. Hamilton, (STScI),
+    R.Hook (STScI/ESO), P. Huggins (New York Univ.), I. Jordan, C.D. Keyes, A. Koekemoer
+    (STScI), K.Kwitter (Williams College), Z.G. Levay, P.R. McCullough, M. Mutchler,
+    K. Noll (STScI), C.R. O''Dell (Vanderbilt University), N. Panagia, M. Reinhart,
+    M. Robberto, K. Sahu, D. Soderblom, L. Stanghellini, C. Tyler, J. Valenti, A.
+    Welty, R. Williams (STScI). The CTIO data were taken by C.R. O''Dell (Vanderbilt
+    University) and L.M. Frattare (STScI). The science team includes C.R. O''Dell
+    (Vanderbilt University), P.R. McCullough and M. Meixner (STScI). Credit: NASA,
+    ESA, and C.R. O''Dell (Vanderbilt University) News Release Number: STScI-2004-32
+    (Public domain) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Helix%20Nebula
   description_text: 'The Helix Nebula (also known as NGC 7293 or Caldwell 63) is a
     planetary nebula (PN) located in the constellation Aquarius. Discovered by Karl
@@ -5754,7 +4336,7 @@ objects:
     '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Helix%20Nebula
-- Object: NGC 7331
+- Object: NGC7331
   Common Name: NGC 7331 & Stephans Quintet
   RA (hours): 22.61779183439133
   DEC (degrees): 34.41577779903001
@@ -5763,20 +4345,9 @@ objects:
   Magnitude: '9.48'
   Size: '10.47'
   SB: '14.32'
-  Name: NGC 7331 & Stephans Quintet
-  RA: 22.61779183439133
-  DEC: 34.41577779903001
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/NGC_7331_Acquired_with_the_Schulman_Telescope_at_the_Mount_Lemmon_SkyCenter.jpg/960px-NGC_7331_Acquired_with_the_Schulman_Telescope_at_the_Mount_Lemmon_SkyCenter.jpg
-  image_credit: Wikipedia
+  image_credit: Ngc1535 (CC BY 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%207331
   description_text: 'NGC 7331, also known as Caldwell 30, is an unbarred spiral galaxy
     about 13.427 megaparsecs (43.79 million light-years) away in the constellation
@@ -5794,7 +4365,7 @@ objects:
     the opposite side.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%207331
-- Object: NGC 7380
+- Object: NGC7380
   Common Name: Wizard Nebula
   RA (hours): 22.7878
   DEC (degrees): 58.125
@@ -5803,20 +4374,9 @@ objects:
   Magnitude: '7.2'
   Size: '10.8'
   SB: '12.1'
-  Name: Wizard Nebula
-  RA: 22.7878
-  DEC: 58.125
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Wizard_Nebula%2C_NGC_7380.jpg/960px-Wizard_Nebula%2C_NGC_7380.jpg
-  image_credit: Wikipedia
+  image_credit: Chuck Ayoub (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%207380
   description_text: 'NGC 7380 is a young open cluster of stars in the northern circumpolar
     constellation of Cepheus, discovered by Caroline Herschel in 1787. The surrounding
@@ -5838,7 +4398,7 @@ objects:
     while 17 are main sequence stars that are primarily B-type variables.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%207380
-- Object: NGC 7635
+- Object: NGC7635
   Common Name: Bubble Nebula
   RA (hours): 23.346749999999997
   DEC (degrees): 61.20166666666667
@@ -5847,20 +4407,9 @@ objects:
   Magnitude: '10.0'
   Size: '41.67'
   SB: '17.84'
-  Name: Bubble Nebula
-  RA: 23.346749999999997
-  DEC: 61.20166666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/The_Bubble_Nebula_-_NGC_7635_-_Heic1608a.jpg/960px-The_Bubble_Nebula_-_NGC_7635_-_Heic1608a.jpg
-  image_credit: Wikipedia
+  image_credit: NASA, ESA, Hubble Heritage Team (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Bubble%20Nebula
   description_text: 'NGC 7635, also known as the Bubble Nebula, Sharpless 162, or
     Caldwell 11, is an H II region emission nebula in the constellation Cassiopeia.
@@ -5875,50 +4424,6 @@ objects:
     '
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Bubble%20Nebula
-- Object: NGC 891
-  Common Name: Silver Sliver galaxy
-  RA (hours): 2.3758075
-  DEC (degrees): 42.34831944444444
-  Type: H2G
-  Constellation: Andromeda
-  Magnitude: '9.93'
-  Size: '12.3'
-  SB: '15.12'
-  Name: Silver Sliver galaxy
-  RA: 2.3758075
-  DEC: 42.34831944444444
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
-  catalog_info: null
-  enabled: true
-  image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/NGC891HunterWilson.jpg/960px-NGC891HunterWilson.jpg
-  image_credit: Wikipedia
-  image_source_link: https://en.wikipedia.org/wiki/NGC%20891
-  description_text: 'NGC 891 (also known as Caldwell 23, the Silver Sliver Galaxy,
-    and the Outer Limits Galaxy) is an edge-on unbarred spiral galaxy about 30 million
-    light-years away in the constellation Andromeda. It was discovered by William
-    Herschel on October 6, 1784. The galaxy is a member of the NGC 1023 group of galaxies
-    in the Local Supercluster. It has an H II nucleus.
-
-    The object is visible in small to moderate size telescopes as a faint elongated
-    smear of light with a dust lane visible in larger apertures.
-
-    In 1999, the Hubble Space Telescope imaged NGC 891 in infrared.
-
-    In 2005, due to its attractiveness and scientific interest, NGC 891 was selected
-    to be the first light image of the Large Binocular Telescope.
-
-    In 2012, it was again used as a first light image of the Lowell Discovery Telescope
-    with the Large Monolithic Imager.
-
-    Supernova SN 1986J was discovered on August 21, 1986 at apparent magnitude 14.'
-  description_credit: Wikipedia
-  description_source_link: https://en.wikipedia.org/wiki/NGC%20891
 - Object: NGC869/884
   Common Name: Double Cluster
   RA (hours): 2.341666666666667
@@ -5928,20 +4433,9 @@ objects:
   Magnitude: '17.57'
   Size: Not Found
   SB: Not Found
-  Name: Double Cluster
-  RA: 2.341666666666667
-  DEC: 57.13333333333333
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/H_and_%CF%87_Persei.jpg/960px-H_and_%CF%87_Persei.jpg
-  image_credit: Wikipedia
+  image_credit: Markus Pössel (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/NGC%20869
   description_text: 'NGC 869 (also known as h Persei) is an open cluster located around
     7,460 light years away in the constellation of Perseus. The cluster is around
@@ -5965,6 +4459,39 @@ objects:
     Dominated by bright blue stars, the cluster also hosts a few orange stars.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/NGC%20869
+- Object: NGC891
+  Common Name: Silver Sliver galaxy
+  RA (hours): 2.3758075
+  DEC (degrees): 42.34831944444444
+  Type: H2G
+  Constellation: Andromeda
+  Magnitude: '9.93'
+  Size: '12.3'
+  SB: '15.12'
+  catalog_info: null
+  image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/NGC891HunterWilson.jpg/960px-NGC891HunterWilson.jpg
+  image_credit: Hewholooks (CC BY-SA 3.0) via Wiki
+  image_source_link: https://en.wikipedia.org/wiki/NGC%20891
+  description_text: 'NGC 891 (also known as Caldwell 23, the Silver Sliver Galaxy,
+    and the Outer Limits Galaxy) is an edge-on unbarred spiral galaxy about 30 million
+    light-years away in the constellation Andromeda. It was discovered by William
+    Herschel on October 6, 1784. The galaxy is a member of the NGC 1023 group of galaxies
+    in the Local Supercluster. It has an H II nucleus.
+
+    The object is visible in small to moderate size telescopes as a faint elongated
+    smear of light with a dust lane visible in larger apertures.
+
+    In 1999, the Hubble Space Telescope imaged NGC 891 in infrared.
+
+    In 2005, due to its attractiveness and scientific interest, NGC 891 was selected
+    to be the first light image of the Large Binocular Telescope.
+
+    In 2012, it was again used as a first light image of the Lowell Discovery Telescope
+    with the Large Monolithic Imager.
+
+    Supernova SN 1986J was discovered on August 21, 1986 at apparent magnitude 14.'
+  description_credit: Wikipedia
+  description_source_link: https://en.wikipedia.org/wiki/NGC%20891
 - Object: PALOMAR5
   Common Name: Serpens Dwarf Globular Cluster
   RA (hours): 15.268138888888888
@@ -5974,20 +4501,9 @@ objects:
   Magnitude: '19.65'
   Size: '9.6'
   SB: '24.3'
-  Name: Serpens Dwarf Globular Cluster
-  RA: 15.268138888888888
-  DEC: -0.1113888888888889
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Pal5_-_SDSS_DR14_%28panorama%29.jpg/960px-Pal5_-_SDSS_DR14_%28panorama%29.jpg
-  image_credit: Wikipedia
+  image_credit: Sloan Digital Sky Survey (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Palomar%205
   description_text: 'Palomar 5 is a globular cluster in the constellation Serpens
     and a member of the Palomar Globular Clusters group. It was discovered by Walter
@@ -6002,7 +4518,7 @@ objects:
     ± 0.23 between its semimajor axis and semiminor axis.'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Palomar%205
-- Object: PN ARO 121
+- Object: PNARO121
   Common Name: Jones-Emberson 1
   RA (hours): 7.96433803437
   DEC (degrees): 53.42137513468
@@ -6011,20 +4527,9 @@ objects:
   Magnitude: '17.13'
   Size: '6.33'
   SB: '20.87'
-  Name: Jones-Emberson 1
-  RA: 7.96433803437
-  DEC: 53.42137513468
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Jones-Emberson1HunterWilson.jpg/850px-Jones-Emberson1HunterWilson.jpg
-  image_credit: Wikipedia
+  image_credit: Hewholooks (CC BY-SA 3.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Jones-Emberson%201
   description_text: Jones-Emberson 1 (PK 164+31.1), also known as the Headphone Nebula,
     is a 14th magnitude planetary nebula in the constellation Lynx at a distance of
@@ -6041,20 +4546,10 @@ objects:
   Magnitude: '99.0'
   Size: '60.0'
   SB: '107.63'
-  Name: 'Supernova Remnant '
-  RA: 8.401944444444444
-  DEC: -42.99666666666667
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/f/f9/Puppis_A_Chandra_%2B_ROSAT.jpg
-  image_credit: Wikipedia
+  image_credit: 'Chandra: NASA/CXC/GSFC/U.Hwang et al.; ROSAT: NASA/GSFC/S.Snowden
+    et al. (Public domain) via Wiki'
   image_source_link: https://en.wikipedia.org/wiki/Puppis%20A
   description_text: 'Puppis A (Pup A) is a supernova remnant (SNR) about 100 light-years
     in diameter and roughly 6500–7000 light-years distant.  Its apparent angular diameter
@@ -6075,18 +4570,7 @@ objects:
   Magnitude: '7.7'
   Size: '7.0'
   SB: '11.66'
-  Name: Ring Nebula in Carina
-  RA: 11.104778676434
-  DEC: -65.50978921723
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: null
   image_credit: null
   image_source_link: null
@@ -6102,20 +4586,9 @@ objects:
   Magnitude: '14.4'
   Size: '3.0'
   SB: '16.52'
-  Name: Super Nova Remnant (first observed)
-  RA: 14.674722222222222
-  DEC: -62.644999999999996
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/RCW_86.jpg/960px-RCW_86.jpg
-  image_credit: Wikipedia
+  image_credit: NASA/JPL-Caltech/UCLA (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/SN%20185
   description_text: SN 185 was a transient astronomical event observed in the year
     AD 185, likely a supernova. The transient occurred in the direction of Alpha Centauri,
@@ -6126,7 +4599,7 @@ objects:
     the first supernova for which records exist.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/SN%20185
-- Object: SH 2-106
+- Object: SH2106
   Common Name: Celestial Snow Angel
   RA (hours): 20.45745561643817
   DEC (degrees): 37.38024558325933
@@ -6135,18 +4608,7 @@ objects:
   Magnitude: '17.81'
   Size: '3.0'
   SB: '19.93'
-  Name: Celestial Snow Angel
-  RA: 20.45745561643817
-  DEC: 37.38024558325933
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e001800/GSFC_20171208_Archive_e001800~thumb.jpg
   image_credit: NASA
   image_source_link: https://images.nasa.gov/
@@ -6159,7 +4621,7 @@ objects:
     an “hourglass” shape.   To read ...
   description_credit: NASA
   description_source_link: https://images.nasa.gov/
-- Object: SH 2-129
+- Object: SH2129
   Common Name: Flying Bat Nebula
   RA (hours): 21.196666666666662
   DEC (degrees): 59.949999999999996
@@ -6168,20 +4630,9 @@ objects:
   Magnitude: '99.0'
   Size: '140.0'
   SB: '109.47'
-  Name: Flying Bat Nebula
-  RA: 21.196666666666662
-  DEC: 59.949999999999996
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/Flying_Bat_and_Squid_nebulae_narrowfield.jpg/960px-Flying_Bat_and_Squid_nebulae_narrowfield.jpg
-  image_credit: Wikipedia
+  image_credit: Ram samudrala (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Sh%202-129
   description_text: 'Sh 2-129 (also known as the Flying Bat Nebula), is a large emission
     nebula and H II region located in the constellation Cepheus. It is part of the
@@ -6193,7 +4644,7 @@ objects:
     HD 202214 (O9.5IV).'
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Sh%202-129
-- Object: SH 2-27
+- Object: SH227
   Common Name: giant Bubble in Scorpius
   RA (hours): 16.59911111111111
   DEC (degrees): -12.718055555555555
@@ -6202,20 +4653,9 @@ objects:
   Magnitude: '99.0'
   Size: '480.0'
   SB: '112.14'
-  Name: giant Bubble in Scorpius
-  RA: 16.59911111111111
-  DEC: -12.718055555555555
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Zeta_Oph_Runaway_Star.jpg/960px-Zeta_Oph_Runaway_Star.jpg
-  image_credit: Wikipedia
+  image_credit: NASA/JPL-Caltech (Public domain) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Sh%202-27
   description_text: Sh 2-27 is an emission nebula in the constellation Ophiuchus.
     It is extended around the region containing the star Zeta Ophiuchi. The star produces
@@ -6223,7 +4663,7 @@ objects:
     a portion of the Rho Ophiuchi cloud complex.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Sh%202-27
-- Object: SH 2-308
+- Object: SH2308
   Common Name: Dolphin Nebula
   RA (hours): 6.903623322455333
   DEC (degrees): -23.928339811070003
@@ -6232,20 +4672,9 @@ objects:
   Magnitude: '6.91'
   Size: '20.0'
   SB: '13.15'
-  Name: Dolphin Nebula
-  RA: 6.903623322455333
-  DEC: -23.928339811070003
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/SH2-308_Wide.jpg/960px-SH2-308_Wide.jpg
-  image_credit: Wikipedia
+  image_credit: Simbiosisgroup (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Sh%202-308
   description_text: Sh 2-308, also designated as Sharpless 308, RCW 11, or LBN 1052,
     and commonly known as the Dolphin-Head Nebula, is an H II region located near
@@ -6258,7 +4687,7 @@ objects:
     the nebula is as close as 1,875 ly (575 pc) from Earth.
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Sh%202-308
-- Object: SNR G180.0-01.7
+- Object: SNRG180.001.7
   Common Name: Spaghetti Nebula
   RA (hours): 5.65
   DEC (degrees): 27.833333333333332
@@ -6267,20 +4696,9 @@ objects:
   Magnitude: '14.55'
   Size: '180.0'
   SB: '25.56'
-  Name: Spaghetti Nebula
-  RA: 5.65
-  DEC: 27.833333333333332
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/S147_SH2-240_GeorgesAttard_Apod1012020.jpg/960px-S147_SH2-240_GeorgesAttard_Apod1012020.jpg
-  image_credit: Wikipedia
+  image_credit: Georges Attard (CC BY-SA 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Simeis%20147
   description_text: "Simeis 147, also known as the Spaghetti Nebula, SNR G180.0-01.7\
     \ or Sharpless 2-240, is a supernova remnant (SNR) in the Milky Way, straddling\
@@ -6301,7 +4719,7 @@ objects:
     \ a strong radio signal."
   description_credit: Wikipedia
   description_source_link: https://en.wikipedia.org/wiki/Simeis%20147
-- Object: TGU H1867
+- Object: TGUH1867
   Common Name: Coalsack Nebula
   RA (hours): 12.524999999999997
   DEC (degrees): -63.75000000000001
@@ -6310,20 +4728,9 @@ objects:
   Magnitude: Not Found
   Size: '403.8'
   SB: Not Found
-  Name: Coalsack Nebula
-  RA: 12.524999999999997
-  DEC: -63.75000000000001
-  ActiveProject: false
-  Project: null
-  is_shared: false
-  shared_notes: null
-  original_user_id: null
-  original_item_id: null
-  catalog_sources: null
   catalog_info: null
-  enabled: true
   image_url: https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Part_of_the_Coalsack_Nebula.jpg/960px-Part_of_the_Coalsack_Nebula.jpg
-  image_credit: Wikipedia
+  image_credit: ESO (CC BY 4.0) via Wiki
   image_source_link: https://en.wikipedia.org/wiki/Coalsack%20Nebula
   description_text: The Coalsack Nebula (Southern Coalsack, or simply the Coalsack)
     is a dark nebula, which is visible to the naked eye as a dark patch obscuring
