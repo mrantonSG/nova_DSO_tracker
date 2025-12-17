@@ -354,6 +354,8 @@
 
             // 1. Get Data (Safety Check)
             let dataSource = window.currentFilteredData;
+            // Check total count to distinguish between "Filtering" and "Loading/Empty DB"
+            const totalDataCount = (window.latestDSOData || []).length;
 
             // FIX: Only fallback to full data if NO filters are active.
             // If filters ARE active but returned 0 results, dataSource should remain empty.
@@ -369,8 +371,11 @@
                 loading.style.display = 'none';
 
                 // --- RICH EMPTY STATE ---
-                let title = window.isListFiltered ? "No Matching Targets" : "Waiting for Data...";
-                let reason = window.isListFiltered
+                // Only blame filters if we actually HAVE data that was filtered out
+                const isTrueFilterZero = window.isListFiltered && totalDataCount > 0;
+
+                let title = isTrueFilterZero ? "No Matching Targets" : "Waiting for Data...";
+                let reason = isTrueFilterZero
                     ? "Your current filters (Position Tab) are too restrictive."
                     : "Data is loading or your database is empty.";
 
@@ -426,7 +431,10 @@
             // Check if ANY candidate has a custom image. If not, show the educational banner.
             const hasCustomImages = candidates.some(obj => obj.image_url && obj.image_url.trim() !== "");
 
-            if (!hasCustomImages && candidates.length > 0) {
+            // Check if data is still streaming (prevents banner flicker on partial loads)
+            const isLoading = document.getElementById("data-body")?.dataset.loading === 'true';
+
+            if (!hasCustomImages && candidates.length > 0 && !isLoading) {
                 const wrapper = document.getElementById('inspiration-wrapper');
                 const banner = document.createElement('div');
                 banner.className = 'inspiration-banner';
