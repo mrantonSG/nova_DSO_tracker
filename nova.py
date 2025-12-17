@@ -10778,7 +10778,14 @@ def get_shared_items():
                 "ra": obj.ra_hours,
                 "dec": obj.dec_deg,
                 "shared_by_user": username,
-                "shared_notes": obj.shared_notes or ""
+                "shared_notes": obj.shared_notes or "",
+                # --- Inspiration Metadata ---
+                "image_url": obj.image_url,
+                "image_credit": obj.image_credit,
+                "image_source_link": obj.image_source_link,
+                "description_text": obj.description_text,
+                "description_credit": obj.description_credit,
+                "description_source_link": obj.description_source_link
             })
 
         # --- 2. Get ALL Shared Components (Including own) ---
@@ -10895,7 +10902,14 @@ def import_item():
                 original_user_id=original_obj.user_id,
                 original_item_id=original_obj.id,  # <-- THE FIX
                 is_shared=False,
-                project_name=""
+                project_name="",
+                # --- Inspiration Fields Transfer ---
+                image_url=original_obj.image_url,
+                image_credit=original_obj.image_credit,
+                image_source_link=original_obj.image_source_link,
+                description_text=original_obj.description_text,
+                description_credit=original_obj.description_credit,
+                description_source_link=original_obj.description_source_link
             )
             db.add(new_obj)
 
