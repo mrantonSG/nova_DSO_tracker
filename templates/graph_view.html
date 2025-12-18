@@ -853,6 +853,47 @@
         display: none !important;
         visibility: hidden !important;
     }
+
+    /* Inspiration Detail Styles */
+    .insp-detail-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .insp-detail-image-wrapper {
+        position: relative;
+        background-color: #000;
+        border-radius: 6px;
+        overflow: hidden;
+        max-height: 500px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .insp-detail-image-wrapper img {
+        max-width: 100%;
+        max-height: 500px;
+        object-fit: contain;
+    }
+    .insp-detail-badge {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: rgba(255, 255, 255, 0.9);
+        padding: 4px 8px;
+        font-size: 12px;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+    .insp-detail-text {
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        line-height: 1.6;
+        color: #444;
+    }
 </style>
 {% endblock %}
 
@@ -945,6 +986,7 @@
 
     <div class="detail-tabs-container">
         <button type="button" class="detail-tab-button active" data-tab="notes" onclick="showProjectSubTab('notes')">Notes & Framing</button>
+        <button type="button" class="detail-tab-button" data-tab="inspiration" onclick="showProjectSubTab('inspiration')">Inspiration</button>
         <button type="button" class="detail-tab-button" data-tab="framing-scout" onclick="showProjectSubTab('framing-scout')">Rig Data</button>
     </div>
 
@@ -971,6 +1013,47 @@
                 <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
             </div>
             <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+        </div>
+    </div>
+
+    <div id="inspiration-sub-tab" class="detail-tab-content">
+        <div class="content-section">
+            <h3 style="display:flex; justify-content:space-between; align-items:center;">
+                Inspiration Content
+                {% if not object_main_details.image_url and not object_main_details.description_text %}
+                <a href="{{ url_for('config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">Edit Object to Add Content</a>
+                {% endif %}
+            </h3>
+
+            {% if object_main_details.image_url or object_main_details.description_text %}
+            <div class="insp-detail-container">
+                {% if object_main_details.image_url %}
+                <div class="insp-detail-image-wrapper">
+                    <img src="{{ object_main_details.image_url }}" alt="Inspiration Image for {{ object_name }}">
+                    {% if object_main_details.image_credit %}
+                        <div class="insp-detail-badge">{{ object_main_details.image_credit }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if object_main_details.description_text %}
+                <div class="insp-detail-text">
+                    <h4 style="margin-top:0; color:#333;">Description</h4>
+                    <p style="white-space: pre-wrap;">{{ object_main_details.description_text }}</p>
+                    {% if object_main_details.image_source_link %}
+                        <p style="margin-top:15px; font-size:0.9em; color:#666;">
+                            Source: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or 'External Source' }}</a>
+                        </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div style="text-align:center; padding:40px; color:#666; border: 2px dashed #ddd; border-radius: 6px;">
+                <p>No inspiration content (custom image or description) has been added for this object yet.</p>
+                <p style="font-size: 0.9em;">Go to <strong>Configuration > Manage Objects</strong> to add one.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 
