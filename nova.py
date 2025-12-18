@@ -12083,6 +12083,86 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         heatmap_thread.start()
 
 
+@app.cli.command("reset-guest-from-template")
+def reset_guest_from_template_command():
+    """
+    COMPLETELY WIPES the 'guest_user' and re-seeds it strictly from the
+    source code's 'config_templates' directory.
+    Use this to force the guest view to match the shipped defaults.
+    """
+    print("--- [RESETTING GUEST FROM TEMPLATES] ---")
+    db = get_db()
+    try:
+        # 1. Ensure guest_user exists
+        guest_user = db.query(DbUser).filter_by(username="guest_user").one_or_none()
+        if not guest_user:
+            guest_user = DbUser(username="guest_user", active=True)
+            db.add(guest_user)
+            db.flush()
+            print(f"Created 'guest_user' (ID: {guest_user.id}).")
+        else:
+            print(f"Found 'guest_user' (ID: {guest_user.id}).")
+
+        # 2. WIPE ALL DATA
+        print("Wiping all existing data for guest_user...")
+        # Order matters for foreign keys
+        db.query(JournalSession).filter_by(user_id=guest_user.id).delete()
+        db.query(Project).filter_by(user_id=guest_user.id).delete()
+        db.query(SavedFraming).filter_by(user_id=guest_user.id).delete()
+        db.query(SavedView).filter_by(user_id=guest_user.id).delete()
+        db.query(Rig).filter_by(user_id=guest_user.id).delete()
+        db.query(Component).filter_by(user_id=guest_user.id).delete()
+        db.query(AstroObject).filter_by(user_id=guest_user.id).delete()
+        db.query(Location).filter_by(user_id=guest_user.id).delete()
+        db.query(UiPref).filter_by(user_id=guest_user.id).delete()
+        db.flush()
+        print("...Wipe complete.")
+
+        # 3. LOAD TEMPLATES
+        # We look for 'config_guest_user.yaml' first, fall back to 'config_default.yaml'
+        cfg_path = os.path.join(TEMPLATE_DIR, "config_guest_user.yaml")
+        if not os.path.exists(cfg_path):
+            cfg_path = os.path.join(TEMPLATE_DIR, "config_default.yaml")
+
+        rigs_path = os.path.join(TEMPLATE_DIR, "rigs_default.yaml")
+        jrn_path = os.path.join(TEMPLATE_DIR, "journal_default.yaml")
+
+        print(f"Loading Config from: {os.path.basename(cfg_path)}")
+        cfg_data, _ = _read_yaml(cfg_path)
+
+        print(f"Loading Rigs from: {os.path.basename(rigs_path)}")
+        rigs_data, _ = _read_yaml(rigs_path)
+
+        print(f"Loading Journal from: {os.path.basename(jrn_path)}")
+        jrn_data, _ = _read_yaml(jrn_path)
+
+        # 4. RE-SEED
+        if cfg_data:
+            print("Seeding Locations, Objects, Prefs...")
+            _migrate_locations(db, guest_user, cfg_data)
+            _migrate_objects(db, guest_user, cfg_data)
+            _migrate_ui_prefs(db, guest_user, cfg_data)
+            _migrate_saved_framings(db, guest_user, cfg_data)
+            _migrate_saved_views(db, guest_user, cfg_data)
+
+        if rigs_data:
+            print("Seeding Rigs...")
+            _migrate_components_and_rigs(db, guest_user, rigs_data, "guest_user")
+
+        if jrn_data:
+            print("Seeding Journal...")
+            _migrate_journal(db, guest_user, jrn_data)
+
+        db.commit()
+        print("✅ Guest user fully reset to template defaults.")
+
+    except Exception as e:
+        db.rollback()
+        print(f"❌ FATAL ERROR: {e}")
+        traceback.print_exc()
+    finally:
+        db.close()
+
 @app.route('/journal/download_csv/<string:item_type>/<string:item_id>')
 @login_required
 def download_csv(item_type, item_id):
