@@ -462,7 +462,7 @@
                     </td>
                     <td>{{ pack.object_count }}</td>
                     <td>
-                      <form method="post" action="{{ url_for('import_catalog', pack_id=pack.id) }}">
+                      <form method="post" action="{{ url_for('import_catalog', pack_id=pack.id) }}" data-pack-name="{{ pack.name or pack.id }}" onsubmit="return confirmCatalogImport(this);">
                         <button type="submit" class="action-button">Import</button>
                       </form>
                     </td>
@@ -1149,6 +1149,18 @@
 
             // (Old 'update-single-object-btn' listener removed; using 'saveObjectData' from config_form.html)
         });
+    }
+
+    function confirmCatalogImport(form) {
+        const packName = form.getAttribute('data-pack-name') || 'Catalog';
+        return confirm(
+            "Importing '" + packName + "'...\n\n" +
+            "This will update your library with data from the server:\n" +
+            "• New objects from this pack will be added.\n" +
+            "• Existing objects will be updated with the latest images/descriptions.\n" +
+            "• Your personal Project Notes, Status, and Framings remain safe.\n\n" +
+            "Do you want to proceed?"
+        );
     }
 </script>
 

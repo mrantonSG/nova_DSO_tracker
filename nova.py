@@ -2579,21 +2579,26 @@ def import_catalog_pack_for_user(db, user: DbUser, catalog_config: dict, pack_id
             pack_desc_link = o.get("description_source_link")
 
             if existing:
-                # --- ENRICHMENT LOGIC (Non-Destructive) ---
+                # --- UPDATE LOGIC (Authoritative for Inspiration) ---
                 was_enriched = False
 
-                # Only update if the user's field is empty AND the pack has data
-                if not existing.image_url and pack_img_url:
-                    existing.image_url = pack_img_url
-                    existing.image_credit = pack_img_credit
-                    existing.image_source_link = pack_img_link
-                    was_enriched = True
+                # Force update Inspiration fields if the pack provides them.
+                # We assume the catalog is the master source for these fields,
+                # while preserving user-specific data like Project Notes.
+                if pack_img_url:
+                    # Check if actually different to avoid unnecessary writes/counts
+                    if existing.image_url != pack_img_url or existing.image_credit != pack_img_credit:
+                        existing.image_url = pack_img_url
+                        existing.image_credit = pack_img_credit
+                        existing.image_source_link = pack_img_link
+                        was_enriched = True
 
-                if not existing.description_text and pack_desc_text:
-                    existing.description_text = pack_desc_text
-                    existing.description_credit = pack_desc_credit
-                    existing.description_source_link = pack_desc_link
-                    was_enriched = True
+                if pack_desc_text:
+                    if existing.description_text != pack_desc_text:
+                        existing.description_text = pack_desc_text
+                        existing.description_credit = pack_desc_credit
+                        existing.description_source_link = pack_desc_link
+                        was_enriched = True
 
                 # Always update source tracking
                 existing.catalog_sources = _merge_sources(existing.catalog_sources, pack_id)
