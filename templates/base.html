@@ -52,13 +52,14 @@
         .header-title-group {
             display: flex;
             align-items: baseline;
+            gap: 12px; /* Force consistent spacing between Nova and DSO Tracker */
         }
 
         .header-title-group h1, .header-title-group h3 {
             margin: 0;
         }
         .header-title-group h3 {
-            margin-left: 10px;
+            /* margin-left removed in favor of gap */
             font-weight: normal;
             white-space: nowrap;
         }
