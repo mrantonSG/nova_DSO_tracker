@@ -260,13 +260,18 @@
     .inspiration-banner .close-banner:hover { opacity: 1; }
 
     .empty-state-styled {
+        /* CRITICAL FIX: Force the box to span all grid columns (1 to end) */
+        grid-column: 1 / -1;
+
         text-align: center;
         padding: 60px 20px;
         color: #666;
         background: #f9f9f9;
         border-radius: 12px;
         border: 2px dashed #e0e0e0;
-        margin-top: 20px;
+        /* Center horizontally and limit width for better appearance */
+        margin: 40px auto;
+        max-width: 600px;
     }
     .empty-state-icon { font-size: 48px; margin-bottom: 15px; opacity: 0.8; }
     .empty-state-box {
@@ -416,7 +421,7 @@
                             <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #555; line-height:1.6;">
                                 <li><strong>Check Filters:</strong> Clear filters on the Position tab.</li>
                                 <li><strong>Check Database:</strong> Ensure you have objects in <em>Configuration</em>.</li>
-                                <li><strong>Wait for Night:</strong> We only show objects observable <em>tonight</em>.</li>
+                                <li><strong>Visibility:</strong> We only show objects observable during <em>tonight's session</em>.</li>
                             </ul>
                         </div>
                     </div>`;
