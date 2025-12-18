@@ -1064,6 +1064,7 @@
               <table class="data-table" id="shared-objects-table">
                   <thead>
                       <tr>
+                          <th style="width: 50px; text-align: center;">Img</th>
                           <th style="width: 20%;">Object ID</th>
                           <th style="width: 25%;">Common Name</th>
                           <th>Type</th>
@@ -1073,6 +1074,7 @@
                           <th class="action-cell">Action</th>
                       </tr>
                       <tr class="filter-row">
+                          <th></th>
                           <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="object_name" placeholder="Filter ID..."></th>
                           <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="common_name" placeholder="Filter name..."></th>
                           <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="type" placeholder="Filter type..."></th>
@@ -1089,7 +1091,7 @@
                       </tr>
                   </thead>
                   <tbody id="shared-objects-body">
-                      <tr><td colspan="7" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
@@ -1465,8 +1467,13 @@
                             data-shared_by_user="${obj.shared_by_user}"
                         `;
 
+                        const imgHtml = obj.image_url
+                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid #ddd;" title="Has image">`
+                            : '';
+
                         return `
                         <tr ${dataAttrs}>
+                            <td style="text-align: center; padding: 4px;">${imgHtml}</td>
                             <td><strong>${obj.object_name}</strong></td>
                             <td>${obj.common_name}</td>
                             <td>${obj.type || 'N/A'}</td>
@@ -1483,7 +1490,7 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    objectsBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
+                    objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
                 }
 
                 // --- Render Shared Components ---
@@ -1560,7 +1567,7 @@
             })
             .catch(error => {
                 console.error("Error fetching shared items:", error);
-                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
+                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
                 document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
                 document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
             });
@@ -1717,6 +1724,44 @@
                 fileInput.value = "";
             }
         }
+    // --- Image Upload Logic ---
+    function uploadObjectImage(fileInput, targetInputId) {
+        if (!fileInput.files[0]) return;
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const btn = fileInput.previousElementSibling; // The upload button
+        const originalText = btn.textContent;
+        btn.textContent = "...";
+        btn.disabled = true;
+
+        fetch("{{ url_for('upload_editor_image') }}", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.url) {
+                document.getElementById(targetInputId).value = data.url;
+                btn.textContent = "Done";
+                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1500);
+            } else {
+                alert("Upload error: " + (data.error || "Unknown error"));
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error("Upload failed:", err);
+            alert("Upload failed. See console.");
+            btn.textContent = originalText;
+            btn.disabled = false;
+        });
+
+        fileInput.value = ""; // Reset
+    }
+
     // --- Save Logic for Objects (API) ---
     function saveObjectData(btn, objectName) {
         const originalText = btn.textContent;
@@ -1749,7 +1794,10 @@
             // --- NEW INSPIRATION FIELDS ---
             image_url: getVal(`image_url_${objectName}`),
             image_credit: getVal(`image_credit_${objectName}`),
-            description_text: getVal(`description_text_${objectName}`)
+            image_source_link: getVal(`image_source_link_${objectName}`), // Ensure image link is saved
+            description_text: getVal(`description_text_${objectName}`),
+            description_credit: getVal(`description_credit_${objectName}`), // Ensure text credit is saved
+            description_source_link: getVal(`description_source_link_${objectName}`) // Ensure text link is saved
         };
 
         fetch('/api/update_object', {
