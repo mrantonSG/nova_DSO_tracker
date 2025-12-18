@@ -1045,6 +1045,9 @@ async function fetchData(isBackground = false) {
             if(tbody.innerHTML === '') {
                 tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Data Load Failed: ${error.message}</td></tr>`;
             }
+            // Ensure loader is hidden on error
+            if(loadingDiv) loadingDiv.style.display = 'none';
+            tbody.dataset.loading = 'false';
         }
     } finally {
         if (activeFetchController && activeFetchController.signal === signal) {
@@ -1492,17 +1495,8 @@ function setLocation() {
     const loadingMessage = document.getElementById("loading-message");
     const progressBar = document.getElementById("loading-progress-bar");
 
-    // --- If data is already being fetched ---
-    if (tbody.dataset.loading === 'true') {
-        console.log(`Location change to ${selectedLocation} queued (data load in progress).`);
-        if (loadingDiv) {
-            loadingDiv.style.display = "block";
-            if (loadingMessage) loadingMessage.textContent = `Switching to ${selectedLocation}...`;
-        }
-        return; // Do NOT trigger another fetch
-    }
-
-    // --- If we are NOT loading, proceed as normal ---
+    // --- (Removed blocking check) Always process the latest user request ---
+    // fetchData handles aborting previous requests automatically via AbortController.
     console.log(`Triggering fetch for new location: ${selectedLocation}`);
 
     // Clear existing data immediately
