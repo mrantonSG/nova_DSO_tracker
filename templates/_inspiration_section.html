@@ -521,22 +521,31 @@
                     const sumEl = tile.querySelector('.tile-summary');
 
                     let finalImg = null;
-                    let finalSource = "";
+                    let finalImgSource = "";
+                    let finalImgLink = "";
+
                     let finalText = "";
-                    let finalLink = "";
+                    let finalDescSource = "";
+                    let finalDescLink = "";
 
                     // 1. Database Content (Primary)
                     if (obj.image_url) {
                         finalImg = obj.image_url;
-                        finalSource = obj.image_credit || "Catalog";
-                        finalLink = obj.image_source_link || "";
+                        finalImgSource = obj.image_credit || "Catalog";
+                        finalImgLink = obj.image_source_link || "";
                     }
 
                     if (obj.description_text) {
                         finalText = obj.description_text;
+                        finalDescSource = obj.description_credit || "";
+                        finalDescLink = obj.description_source_link || "";
                     }
 
                     // 2. Fallback: DSS2 (Image Only)
+                    if (!finalImg && hasCoords) {
+                        finalImg = dssUrl;
+                        finalImgSource = "DSS2";
+                    }
                     if (!finalImg && hasCoords) {
                         finalImg = dssUrl;
                         finalSource = "DSS2";
@@ -550,7 +559,7 @@
 
                     if (finalImg) {
                         imgEl.src = finalImg;
-                        badgeEl.textContent = finalSource;
+                        badgeEl.textContent = finalImgSource;
                         badgeEl.style.display = 'block';
                     } else {
                         tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">No Image</div>';
@@ -563,7 +572,7 @@
                     }
                     sumEl.classList.remove('skeleton-text');
 
-                    tile.onclick = () => openInspirationModal(obj, finalImg, finalText || sumEl.textContent, finalSource, finalLink);
+                    tile.onclick = () => openInspirationModal(obj, finalImg, finalText || sumEl.textContent, finalImgSource, finalImgLink, finalDescSource, finalDescLink);
 
                 })();
             }
@@ -584,7 +593,7 @@
         });
     }
 
-    function openInspirationModal(obj, imgSrc, summary, source, wikiUrl) {
+    function openInspirationModal(obj, imgSrc, summary, imgSource, imgLink, descSource, descLink) {
         const modal = document.getElementById('inspiration-modal');
         document.getElementById('modal-img').src = imgSrc || "";
         document.getElementById('modal-img').style.display = imgSrc ? 'block' : 'none';
@@ -597,22 +606,27 @@
         document.getElementById('modal-const').textContent = obj.Constellation || "N/A";
         document.getElementById('modal-text').textContent = summary;
 
+        // --- ATTRIBUTION BUILDER ---
         const attrib = document.getElementById('modal-attribution');
-        if (source === "Wiki") {
-            attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">Wikipedia</a>`;
-        } else if (source === "NASA") {
-            attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">NASA</a>`;
-        } else if (source === "DSS2") {
-            attrib.innerHTML = `Source: Aladin Sky Atlas / DSS2`;
-        } else {
-            // Handle Curated Attribution
-            // If we have a specific link (wikiUrl variable holds the link passed to this function), use it.
-            if (wikiUrl) {
-                attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">${source}</a>`;
+        let htmlParts = [];
+
+        // 1. Image Attribution
+        if (imgSource && imgSource !== "Catalog") {
+            if (imgSource === "DSS2") {
+                htmlParts.push(`Image: Aladin Sky Atlas / DSS2`);
             } else {
-                attrib.innerHTML = `Source: ${source}`;
+                const iLabel = imgLink ? `<a href="${imgLink}" target="_blank">${imgSource}</a>` : imgSource;
+                htmlParts.push(`Image: ${iLabel}`);
             }
         }
+
+        // 2. Text Attribution
+        if (descSource) {
+            const dLabel = descLink ? `<a href="${descLink}" target="_blank">${descSource}</a>` : descSource;
+            htmlParts.push(`Text: ${dLabel}`);
+        }
+
+        attrib.innerHTML = htmlParts.length > 0 ? htmlParts.join('<br>') : "Source: Catalog";
 
         document.getElementById('modal-graph-btn').onclick = () => showGraph(obj.Object, null, 'chart');
         modal.style.display = 'block';

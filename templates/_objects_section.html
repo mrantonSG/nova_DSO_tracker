@@ -256,8 +256,10 @@
                             <span class="help-badge" onclick="openHelp('objects_inspiration'); event.stopPropagation();" title="Help">?</span>
                         </div>
                         <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                            <div style="flex: 2;">
-                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                            <div style="flex: 2; display: flex; gap: 5px;">
+                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                                <button type="button" class="file-button" onclick="document.getElementById('upload_file_{{ obj.Object }}').click()" title="Upload a personal image (Protects against catalog updates)">Upload</button>
+                                <input type="file" id="upload_file_{{ obj.Object }}" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'image_url_{{ obj.Object }}')">
                             </div>
                             <div style="flex: 1;">
                                 <input type="text" id="image_credit_{{ obj.Object }}" value="{{ obj.image_credit or '' }}" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
@@ -372,8 +374,10 @@
                       <span class="help-badge" onclick="openHelp('objects_inspiration'); event.stopPropagation();" title="Help">?</span>
                   </div>
                   <div style="display: flex; gap: 10px; margin-bottom: 8px;">
-                      <div style="flex: 2;">
-                          <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                      <div style="flex: 2; display: flex; gap: 5px;">
+                          <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                          <button type="button" class="file-button" onclick="document.getElementById('upload_file_new').click()" title="Upload a personal image">Upload</button>
+                          <input type="file" id="upload_file_new" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'new_image_url')">
                       </div>
                       <div style="flex: 1;">
                           <input type="text" id="new_image_credit" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
