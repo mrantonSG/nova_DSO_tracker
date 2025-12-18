@@ -15,5 +15,6 @@ The table displays available "Packs" (e.g., "Messier Objects", "Caldwell Catalog
 
 Click the **Import** button next to a pack to begin.
 
-* **Non-Destructive:** The import process is safe. If you already have an object with the same name (e.g., you already added "M42"), Nova will **skip** it to preserve your custom notes and coordinates.
-* **New Objects Only:** Only objects you do not currently have will be added to your database.
+* **New Objects:** Objects you do not currently have will be added to your library.
+* **Existing Objects (Updates):** If you already have an object (e.g., "M42"), Nova will **update** its "Inspiration" fields (Image URL, Description, Credits) with the high-quality data from the catalog.
+* **Safe for Custom Data:** Your personal Project Notes, Active Status, and Saved Framings are **never overwritten**. The import only enhances the static catalog data.
