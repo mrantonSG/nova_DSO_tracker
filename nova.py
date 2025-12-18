@@ -12012,9 +12012,7 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
 
             print("[STARTUP] Pre-fetching Earth rotation data (finals2000A.all)...")
             try:
-                load_root = Loader('.')
-                load_root.download('finals2000A.all')
-                load_root.download('Leap_Second.dat')
+                # Only download to the cache directory to keep root clean
                 if os.path.exists(CACHE_DIR):
                     load_cache = Loader(CACHE_DIR)
                     load_cache.download('finals2000A.all')
