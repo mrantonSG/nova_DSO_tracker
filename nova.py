@@ -9301,7 +9301,14 @@ def graph_dashboard(object_name):
             "Type": obj_record.type, "Constellation": obj_record.constellation,
             "Magnitude": obj_record.magnitude, "Size": obj_record.size, "SB": obj_record.sb,
             "ActiveProject": obj_record.active_project, "Project": obj_record.project_name,
-            "Name": obj_record.common_name, "RA": obj_record.ra_hours, "DEC": obj_record.dec_deg
+            "Name": obj_record.common_name, "RA": obj_record.ra_hours, "DEC": obj_record.dec_deg,
+            # Inspiration Fields
+            "image_url": obj_record.image_url,
+            "image_credit": obj_record.image_credit,
+            "image_source_link": obj_record.image_source_link,
+            "description_text": obj_record.description_text,
+            "description_credit": obj_record.description_credit,
+            "description_source_link": obj_record.description_source_link
         }
 
         # --- 5. Handle Journal Data ---
