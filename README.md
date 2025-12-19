@@ -4,51 +4,29 @@
 A Flask-based web application designed specifically for astrophotographers, providing essential data for tracking deep-sky objects (DSOs), planning imaging projects, and logging sessions.
 
 ## Features
-  * **New in 4.4.0: Mosaic Planning & Export:** Plan multi-pane mosaics directly in the Framing Assistant. Export plans as CSV for import into ASIAIR, or N.I.N.A.
-  * **New in 4.3.0: Yearly Heatmap:** A "Waterfall Heatmap" visualization for long-term target visibility assessment over the next 12 months.
-  * **New in 4.3.0: Integrated Filtering:** Apply "Saved Views" and "Active Only" filters directly to the heatmap visualization.
-  * **New in 4.2.0: Core Database Architecture:** A complete migration from flat YAML files to a robust **SQLite database backend**. This ensures faster performance, data safety, and enables complex features like project grouping.
-  * **New in 4.1.0: Project Management:** Move beyond simple session logging. Group multiple imaging sessions into dedicated **Projects** (e.g., "Mosaic of M31"). Track total integration time, set goals, and monitor status (In Progress, Completed, Abandoned).
-  * **New in 4.1.0: Rig Snapshots:** When you log a session, Nova now takes a "snapshot" of your equipment specs (Focal Length, F-Ratio, Image Scale) at that exact moment. If you change your telescope later, your historical session data remains accurate.
-  * **New in 4.1.0: Saved Views:** Save your complex filter and sorting configurations (e.g., "Galaxies \> 45° Altitude") as a "View" on the dashboard. These views can be shared with other users on the server.
-  * **New in 4.0.0: Smart Object Library:** Automatic duplicate detection. `M42`, `M 42`, and `m-42` are recognized as the same object, preventing database clutter.
-  * **New in 4.0.0: Enhanced Framing:** The Aladin-based framing assistant now uses your local, correct RA/Dec, includes new surveys (NSNS), and can overlay all objects from your database to find nearby targets.
-  * **PDF Reporting:** Generate professional PDF reports for individual sessions or complete project summaries.
-  * **Real-time Tracking:** Altitude and azimuth tracking for DSOs updated every minute.
-  * **Visibility Forecasts:** "Outlook" calculations based on altitude, moon illumination, and angular separation.
-  * **Integration:** Connects with Stellarium for live sky visualization and telescope slewing.
+
+* **New in 4.6.0: Night Explorer (Inspiration Tab):** A visual gallery displaying targets currently visible from your location. It prioritizes objects high in the sky and allows you to browse potential targets visually rather than by data lists alone.
+* **New in 4.6.0: Advanced Object Management:** A completely overhauled configuration interface allows for bulk actions. You can now filter objects by catalog source, select multiple items, and enable or disable them from calculations without deleting them.
+* **New in 4.6.0: Duplicate Management:** A dedicated tool to scan your database for objects with similar coordinates (e.g., M101 and NGC 5457) and merge them into a single entry.
+* **New in 4.6.0: Custom Imagery & Inspiration:** You can now link your own astrophotos to objects. These images appear in the Inspiration tab and the new "Inspiration" sub-tab within the object detail view.
+* **New in 4.6.0: Contextual Help:** Help badges have been added throughout the application to provide immediate documentation for specific features.
+* **New in 4.6.0: Dark Theme:** The interface now supports a dark mode for better usability during night imaging sessions.
+* **New in 4.4.0: Mosaic Planning & Export:** Plan multi-pane mosaics directly in the Framing Assistant. Export plans as CSV for import into ASIAIR or N.I.N.A.
+* **New in 4.3.0: Yearly Heatmap:** A "Waterfall Heatmap" visualization for long-term target visibility assessment over the next 12 months.
+* **New in 4.2.0: Core Database Architecture:** A complete migration from flat YAML files to a robust SQLite database backend.
+* **New in 4.1.0: Project Management:** Group multiple imaging sessions into dedicated Projects. Track total integration time, set goals, and monitor status.
+* **New in 4.1.0: Rig Snapshots:** Nova records equipment specs at the moment of logging a session, preserving historical data accuracy even if equipment changes later.
+* **Real-time Tracking:** Altitude and azimuth tracking for DSOs updated every minute.
+* **Visibility Forecasts:** "Outlook" calculations based on altitude, moon illumination, and angular separation.
 
 ## Technologies Used
 
-  * **Backend:** Python (Flask, SQLAlchemy, AstroPy, Ephem)
-  * **Database:** SQLite (v4.2+)
-  * **Frontend:** HTML5, JavaScript, Aladin Lite
-  * **Integrations:** SIMBAD (Object data), Stellarium (Planetarium control)
+* **Backend:** Python (Flask, SQLAlchemy, AstroPy, Ephem)
+* **Database:** SQLite
+* **Frontend:** HTML5, JavaScript, Aladin Lite
+* **Integrations:** SIMBAD (Object data), Stellarium (Planetarium control)
 
------
-
-## Upgrading to Version 4.2.0 (Data Migration)
-
-Version 4.2.0 introduces a significant architectural shift: **YAML files are no longer the primary storage.** All data is now stored in a SQLite database (`instance/app.db`).
-
-### Automatic Migration (Single-User)
-
-If you are running in **Single-User Mode** (default), the migration is automatic.
-
-1.  **Backup:** Download your current `config`, `rigs`, and `journal` YAML files as a precaution.
-2.  **Update:** Pull the new Docker image or update the code.
-3.  **Run:** Upon first startup, import the saved yaml files. 
-
-### Multi-User Migration
-
-If you are running a multi-user instance, the admin must trigger the migration manually to ensure data integrity across user accounts.
-
-```bash
-# Run this command inside the container or environment
-flask migrate-yaml-to-db
-```
-
------
+---
 
 # Nova DSO Tracker - User Guide
 
@@ -58,14 +36,15 @@ Nova helps track Deep Sky Objects (DSOs) positions throughout the night for astr
 
 ### Main Interface (The Dashboard)
 
-When opening Nova, you see a list of DSOs sorted by default by their current altitude (descending order).
+When opening Nova, you see a list of DSOs sorted by default by their current altitude.
 
-  * **Highlights:** Objects with active project notes are highlighted.
-  * **Altitude Color Coding:** Altitudes above your defined threshold (green) or below (white).
-  * **Horizon Mask:** If a Horizon Mask is defined and an object is obstructed by terrain, the field turns yellow.
-  * **Observable Window:** The "Observable" column shows the minutes an object is visible between astronomical dusk and dawn, accounting for your altitude threshold.
+* **Highlights:** Objects with active project notes are highlighted.
+* **Altitude Color Coding:** Altitudes above your defined threshold appear in green.
+* **Horizon Mask:** If a Horizon Mask is defined and an object is obstructed by terrain, the field turns yellow.
+* **Observable Window:** The "Observable" column shows the minutes an object is visible between astronomical dusk and dawn.
 
-![Screenshot _42_index.png](docs/Screenshot%20_42_index.png)
+![Screenshot_46_main.png](docs/Screenshot_46_main.png)
+![Screenshot_46_night.png](docs/Screenshot_46_night.png)
 
 ### Sorting, Filtering, and Saved Views
 
@@ -79,18 +58,30 @@ When opening Nova, you see a list of DSOs sorted by default by their current alt
     3.  Save the view (e.g., "Good Nebulae").
     4.  **Sharing:** You can mark a view as "Shared" to let other users on your server use it.
 
+### Visual Discovery: The Inspiration Tab (Night Explorer)
+
+The Inspiration Tab offers a visual way to browse potential targets. Instead of a data table, this view presents tiles for objects that are currently observable.
+
+* **Smart Sorting:** Objects are prioritized based on their current altitude and visibility duration.
+* **Imagery:** Tiles display survey images (DSS2) by default. If you have uploaded your own astrophoto for an object, it will be displayed here.
+* **Quick Info:** Each tile displays the object's type, current altitude, and constellation. Clicking a tile opens a detail modal with a summary and a link to the full charts.
+
+![Screenshot_46_inspire.png](docs/Screenshot_46_inspire.png)
+
+![Screenshot_46_tile_modal.png](docs/Screenshot_46_tile_modal.png)
+
 ### Long-Term Planning: The Yearly Heatmap
 
-Version 4.3.0 introduced the Yearly Heatmap to assist with long-term planning.
+The Yearly Heatmap visualizes target visibility over the next 12 months.
 
   * **Waterfall Visualization:** This chart visualizes target visibility over the next 12 months. Darker green indicates higher quality imaging time, while vertical white bands highlight full moon periods where imaging may be difficult.
   * **Data Loading:** To ensure performance, data is loaded in chunks and stored for 24hrs.
   * **Integrated Filtering:** You can apply your "Saved Views" directly to this heatmap to narrow down targets (e.g., only show "Galaxies").
   * **Active Only:** A checkbox allows you to quickly filter the view to show only your currently active projects.
 
-![Screenshot_44_heatmap.png](docs/Screenshot_44_heatmap.png)
+![Screenshot_46_heatmap.png](docs/Screenshot_46_heatmap.png)
 
-### Projects & Imaging Journal (New in v4.2)
+### Projects & Imaging Journal
 
 The Journal has been completely overhauled. It is no longer just a flat list of entries; it is a **Project Management System**.
 
@@ -147,9 +138,9 @@ Once your framing or mosaic is set, use the **"Copy Plan (CSV)"** button. This g
 
 ![Screenshot_44_mosaic.png](docs/Screenshot_44_mosaic.png)
 
-### Configuration
+### Configuration and Object Management
 
-The Configuration page is the control center for your data.
+The Configuration page manages your library of objects, locations, and equipment.
 
   * **Locations:** Manage observing sites. You can define **Horizon Masks** here (uploading a CSV/YAML list of Azimuth/Altitude points) to block out trees or buildings.
   * **Objects:**
@@ -160,8 +151,22 @@ The Configuration page is the control center for your data.
 ![Screenshot_42_rigs.png](docs/Screenshot_42_rigs.png)
 
 ![Screenshot_42_mu_sharing.png](docs/Screenshot_42_mu_sharing.png)
------
 
+**Manage Objects:**
+Version 4.6 introduces advanced management tools:
+
+* **Filtering:** Use the filter bar to find objects by ID, Name, Type, or **Source** (e.g., filter by 'Messier' to see only objects imported from that catalog).
+* **Bulk Actions:** Select multiple objects using the checkboxes. You can then **Enable** or **Disable** them. Disabled objects remain in your database but are excluded from calculations and the main dashboard list.
+* **Inspiration Content:** In the edit view of an object, you can now upload a custom image URL, credit, and description text.
+
+![Screenshot_46_object_list.png](docs/Screenshot_46_object_list.png)
+
+**Duplicate Manager:**
+Use the "Find Duplicates" button to scan your library. Nova identifies objects with coordinates within 2.5 arcminutes of each other (e.g., `M101` and `NGC5457`). You can choose which entry to keep; Nova will automatically migrate all journal entries and projects to the kept object before deleting the duplicate.
+
+![Screenshot_46_duplicates.png](docs/Screenshot_46_duplicates.png)
+
+---
 # Nova Astronomical Tracker Setup Guide
 
 The easiest way to install Nova DSO Tracker is via Docker.
@@ -181,54 +186,62 @@ A pre-built Docker image is available on Docker Hub for easy setup:
 See the Docker Hub page for instructions on how to run the container.
 
 
-### Docker Installation
 
-1.  **Pull the image:**
+### Manual Docker Installation
 
-    ```bash
-    docker pull mrantonsg/nova-dso-tracker
-    ```
+1. **Pull the image:**
+```bash
+docker pull mrantonsg/nova-dso-tracker
 
-2.  **Run the container:**
-    **Important:** You must mount a volume to `/app/instance` to persist your database (`app.db`).
+```
 
-    ```bash
-    docker run -d \
-      -p 5000:5000 \
-      -v nova_data:/app/instance \
-      --name nova \
-      mrantonsg/nova-dso-tracker
-    ```
+
+2. **Run the container:**
+You must mount a volume to `/app/instance` to persist your database.
+```bash
+docker run -d \
+  -p 5000:5000 \
+  -v nova_data:/app/instance \
+  --name nova \
+  mrantonsg/nova-dso-tracker
+
+```
+
+
 
 ### Manual Python Installation
 
-1.  **Clone the repository:**
+1. **Clone the repository:**
+```bash
+git clone https://github.com/mrantonSG/nova_DSO_tracker.git
+cd nova_DSO_tracker
 
-    ```bash
-    git clone https://github.com/mrantonSG/nova_DSO_tracker.git
-    cd nova_DSO_tracker
-    ```
+```
 
-2.  **Create a Virtual Environment:**
 
-    ```bash
-    python3 -m venv nova
-    source nova/bin/activate
-    ```
+2. **Create a Virtual Environment:**
+```bash
+python3 -m venv nova
+source nova/bin/activate
 
-3.  **Install Dependencies:**
+```
 
-    ```bash
-    pip install -r requirements.txt
-    ```
 
-4.  **Run the Application:**
+3. **Install Dependencies:**
+```bash
+pip install -r requirements.txt
 
-    ```bash
-    python nova.py
-    ```
+```
 
-    Access the application at `http://localhost:5001`.
+
+4. **Run the Application:**
+```bash
+python nova.py
+
+```
+
+
+Access the application at `http://localhost:5001`.
 
 ### User Modes
 
