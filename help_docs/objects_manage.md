@@ -10,7 +10,7 @@ If you have a large library, use the filter bar at the top to find specific targ
 * **ID or Name:** (e.g., "M42" or "Orion")
 * **Constellation or Type:** (e.g., "Cyg" or "Nebula")
 * **Status:** Filter by **Enabled** or **Disabled** objects, or see which items are **Shared** or **Imported**.
-* **Source:** Find objects from specific catalogs (e.g., "messier").
+* **Source:** Find objects from specific catalogs (e.g., "messier"). If you want to select specifically only one source, use "=messier".
 
 **Disabling Objects (Performance)**
 
