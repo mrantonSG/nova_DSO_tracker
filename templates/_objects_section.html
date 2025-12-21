@@ -128,7 +128,7 @@
           </div>
           <div>
             <label class="short-label" for="object-filter-source">Source:</label>
-            <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier">
+            <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier (use = for exact)">
           </div>
 
           <div style="flex: 0 0 485px;">
@@ -717,7 +717,15 @@
                 }
             }
 
-            if (show && filterSource && !source.includes(filterSource)) show = false;
+            if (show && filterSource) {
+                if (filterSource.startsWith('=')) {
+                    // Exact match: check if source equals the search term (minus the '=')
+                    if (source !== filterSource.substring(1)) show = false;
+                } else {
+                    // Standard fuzzy match
+                    if (!source.includes(filterSource)) show = false;
+                }
+            }
             if (show && filterMag !== null && magVal > filterMag) show = false;
             if (show && filterSize !== null && sizeVal < filterSize) show = false;
 
