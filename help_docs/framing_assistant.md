@@ -16,6 +16,9 @@ The **Framing Assistant** is a powerful visual tool that lets you preview exactl
 * **Rotation:** Use the slider to rotate your camera angle (0-360°).
     * **ASIAIR Compatibility:** The angle shown here correlates exactly with the "Framing Support" angle in the **ASIAIR** app, making it easy to replicate your plan in the field.
     * *Tip:* Tap the angle text next to the slider to quickly reset it to 0°.
+* **Geo Belt:** Check this box to overlay the Geostationary Satellite Belt (displayed as a purple dotted line).
+    * **Purpose:** Geostationary satellites stay fixed relative to the ground, meaning they will streak across your images as your telescope tracks the stars. Use this overlay to ensure your framing doesn't land directly on this "satellite highway."
+    * **Accuracy:** The line's position is automatically calculated and corrected for parallax based on your site's latitude.
 * **Surveys:** Change the background image source using the "Survey" dropdown.
     * **DSS2 (Color):** Good general-purpose optical view.
     * **H-alpha:** Excellent for seeing faint nebulosity structure.
