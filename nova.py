@@ -9537,6 +9537,58 @@ def graph_dashboard(object_name):
         except Exception:
             all_objects_for_framing = []
 
+            # --- [NATIVE APP SUPPORT] Return JSON if requested ---
+        if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
+
+            # Helper to serialize dates (Jinja2 does this automatically, JSON does not)
+            def serialize_session_list(sessions_in):
+                serialized = []
+                for s in sessions_in:
+                    s_copy = s.copy()
+                    # Convert date objects to ISO strings
+                    if isinstance(s_copy.get('date_utc'), (date, datetime)):
+                        s_copy['date_utc'] = s_copy['date_utc'].isoformat()
+                    serialized.append(s_copy)
+                return serialized
+
+            # 1. Clean up grouped sessions
+            # grouped_sessions_for_template contains nested objects we must serialize
+            json_grouped_sessions = []
+            for group in grouped_sessions_for_template:
+                json_group = group.copy()
+                json_group['sessions'] = serialize_session_list(group['sessions'])
+                json_grouped_sessions.append(json_group)
+
+            # 2. Clean up standalone/specific sessions
+            json_specific_sessions = serialize_session_list(object_specific_sessions_list)
+
+            return jsonify({
+                "meta": {
+                    "object_name": object_name,
+                    "location_name": effective_location_name,
+                    "is_guest": getattr(g, 'is_guest', False)
+                },
+                "object_details": object_main_details,
+                "ephemeris": {
+                    "today_date": datetime.now().strftime('%Y-%m-%d'),
+                    "selected_date": effective_date_obj.strftime('%Y-%m-%d'),
+                    "moon_phase": moon_phase_for_effective_date,
+                    "astro_dusk": sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
+                    "astro_dawn": sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
+                },
+                "rigs": sorted_rigs,
+                "project": {
+                    "data": project_data_for_template,
+                    "notes_html": project_notes_for_editor,
+                    "is_active": object_main_details.get('ActiveProject', False)
+                },
+                "sessions": {
+                    "grouped": json_grouped_sessions,
+                    "all_specific": json_specific_sessions,
+                    "selected_id": requested_session_id
+                }
+            })
+
         # --- 9. Render Template ---
         return render_template('graph_view.html',
                                object_name=object_name,
