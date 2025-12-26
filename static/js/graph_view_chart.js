@@ -682,6 +682,7 @@ async function renderMonthlyYearlyChart(view) {
 
 let baseSurvey = null;
 let blendLayer = null;
+let geoBeltLayer = null; // Layer for satellite belt
 let fovCenter = null;
 let lockToObject = false;
 let objectCoords = null;
@@ -854,9 +855,73 @@ function openFramingAssistant(optionalQueryString) {
     }
 
     if (!haveCenter) applyLockToObject(true);
+
+    // Restore Geo Belt State
+    const geoCheck = document.getElementById('show-geo-belt');
+    if (geoCheck && geoCheck.checked) {
+        toggleGeoBelt(true);
+    }
 }
 function closeFramingAssistant() { document.getElementById('framing-modal').style.display = 'none'; }
 function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; v = v % 360; slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
+
+function toggleGeoBelt(show) {
+    if (!aladin) return;
+
+    // 1. Cleanup (Handle both Overlay and Catalog types safely)
+    if (geoBeltLayer) {
+        try {
+            // Try removing as catalog first
+            if (aladin.removeCatalog) aladin.removeCatalog(geoBeltLayer);
+            // Fallback for overlays
+            if (aladin.removeOverlay) aladin.removeOverlay(geoBeltLayer);
+        } catch (e) {
+            console.warn("[Nova] Cleanup warning:", e);
+        }
+        geoBeltLayer = null;
+    }
+
+    if (!show) return;
+
+    try {
+        // 2. Calculate Declination
+        const rawLat = window.NOVA_GRAPH_DATA.plotLat || 0;
+        const latDeg = parseFloat(rawLat) || 0;
+
+        const latRad = latDeg * Math.PI / 180;
+        const Re = 6378;
+        const Rgeo = 42164;
+        const num = Re * Math.sin(latRad);
+        const den = Rgeo - (Re * Math.cos(latRad));
+        const parallaxRad = Math.atan2(num, den);
+
+        let apparentDec = -(parallaxRad * 180 / Math.PI);
+        if (isNaN(apparentDec)) apparentDec = 0;
+
+        console.log(`[Nova] Drawing Geo Belt (Catalog) at Dec: ${apparentDec.toFixed(2)}°`);
+
+        // 3. Create CATALOG Layer
+        geoBeltLayer = A.catalog({
+            name: 'Geostationary Belt',
+            color: '#e056fd',
+            sourceSize: 6,   // Safe minimum size to prevent canvas crash
+            shape: 'circle'
+        });
+        aladin.addCatalog(geoBeltLayer);
+
+        // 4. Generate High-Density Points (Simulates a line)
+        let sources = [];
+        // Create a point every 0.2 degrees (High density)
+        for (let ra = 0; ra < 360; ra += 0.2) {
+            sources.push(A.source(ra, apparentDec, {name: ''}));
+        }
+        geoBeltLayer.addSources(sources);
+
+    } catch (e) {
+        console.error("[Nova] Critical Error in toggleGeoBelt:", e);
+    }
+}
+
 function applyRigFovZoom(fovW_arcmin, fovH_arcmin, rotationDeg = 0, margin = 1.06) {
     if (!aladin) return; const host = document.getElementById('aladin-lite-div'); if (!host) return;
     const wpx = host.clientWidth, hpx = host.clientHeight; if (!(wpx > 0 && hpx > 0)) return; const aspect = wpx / hpx;

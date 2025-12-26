@@ -1123,6 +1123,7 @@
         </div>
         <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
             <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)" checked> Lock FOV</label>
+            <label style="display:flex;align-items:center;gap:6px;margin-left:8px;" title="Displays the approximate location of geostationary satellites (corrected for your latitude)"><input type="checkbox" id="show-geo-belt" onchange="toggleGeoBelt(this.checked)"> Geo Belt</label>
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
             <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="saveFramingToDB()">Save Framing</button>
@@ -1236,8 +1237,9 @@
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
-        // CORRECTED LINES: Use 'tojson' filter and remove surrounding quotes
-        objectName: {{ object_name | tojson }},
+    // CORRECTED LINES: Use 'tojson' filter and remove surrounding quotes
+    plotLat: {{ graph_lat_param | default(0, True) | tojson }},
+    objectName: {{ object_name | tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",
         plotLon: "{{ graph_lon_param | default('', True) }}",
