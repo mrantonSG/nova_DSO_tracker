@@ -780,7 +780,25 @@ function openFramingAssistant(optionalQueryString) {
         if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } }, 80); }); ro.observe(canvas); }
         (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = '3px solid #83b4c5'; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
         canvas.addEventListener('click', (ev) => { if (!ev.shiftKey) return; if (lockToObject) return; const rect = canvas.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top; const sky = aladin.pix2world(x, y); if (!sky) return; fovCenter = {ra: sky[0], dec: sky[1]}; updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } updateReadoutFromCenter(); });
-        window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) { e.preventDefault(); if (k === 'arrowup' || k === 'w') nudgeFov(0, +1); if (k === 'arrowdown' || k === 's') nudgeFov(0, -1); if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0); if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0); } });
+        window.addEventListener('keydown', (e) => {
+        // Check if the user is currently typing in a form element or Trix editor
+        const activeTag = document.activeElement.tagName.toLowerCase();
+        const isTyping = activeTag === 'input' ||
+                         activeTag === 'textarea' ||
+                         activeTag === 'trix-editor' ||
+                         document.activeElement.isContentEditable;
+
+        if (isTyping) return; // Exit immediately if the user is typing
+
+        const k = e.key.toLowerCase();
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
+            e.preventDefault();
+            if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
+            if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
+            if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
+            if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
+        }
+    });
         (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
         (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
     }
@@ -1755,7 +1773,13 @@ window.addEventListener('load', () => {
     // Modal Listeners
     const framingModal = document.getElementById('framing-modal');
     if (framingModal) {
-        window.addEventListener('click', e => { if (e.target == framingModal) closeFramingAssistant(); });
+        window.addEventListener('click', e => {
+            const framingModal = document.getElementById('framing-modal');
+            // Only close if the modal is actually visible and the click was on the dark backdrop
+            if (framingModal && framingModal.style.display === 'block' && e.target === framingModal) {
+                closeFramingAssistant();
+            }
+        });
     }
     window.addEventListener('resize', () => {
         if (document.getElementById('framing-modal').style.display === 'block') {
