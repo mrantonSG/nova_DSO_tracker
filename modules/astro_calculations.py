@@ -474,9 +474,9 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
         # Sort mask by azimuth just in case it's not already
         sorted_mask = sorted(copy.deepcopy(horizon_mask), key=lambda p: p[0])
 
-        # If any altitude in the mask is 0, replace it with the baseline threshold
+        # Ensure no mask point is lower than the baseline threshold (enforce floor)
         for point in sorted_mask:
-            if point[1] == 0:
+            if point[1] < altitude_threshold:
                 point[1] = altitude_threshold
 
         # Calculate the true minimum altitude for each point in time using the mask
@@ -518,9 +518,9 @@ def interpolate_horizon(azimuth, horizon_mask, default_altitude):
     # Create a deep copy to avoid modifying the original config data
     mask_copy = copy.deepcopy(horizon_mask)
 
-    # Check for the special '0' value and replace it with the baseline
+    # Ensure no mask point is lower than the baseline threshold
     for point in mask_copy:
-        if point[1] == 0:
+        if point[1] < default_altitude:
             point[1] = default_altitude
 
     # Sort the processed mask

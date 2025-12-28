@@ -3627,7 +3627,9 @@ def get_plot_data(object_name):
 
     if horizon_mask and isinstance(horizon_mask, list) and len(horizon_mask) > 1:
         try:
-            sorted_mask = sorted(horizon_mask, key=lambda p: p[0])
+            # Enforce the active threshold floor on the mask before processing
+            clamped_mask = [[p[0], max(p[1], altitude_threshold)] for p in horizon_mask]
+            sorted_mask = sorted(clamped_mask, key=lambda p: p[0])
             horizon_mask_altitudes = [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths]
         except Exception as hm_err:
             print(f"[API Plot Data] ERROR calculating horizon mask altitudes: {hm_err}")
