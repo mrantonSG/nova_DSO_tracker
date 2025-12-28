@@ -71,7 +71,7 @@
     .summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 20px; text-align: center; padding: 15px; background-color: #e9ecef; border-radius: 6px; margin-bottom: 25px; }
     .summary-box .stat-value { font-size: 1.4em; font-weight: 600; color: #343a40; display: block; }
     .summary-box .stat-label { font-size: 0.8em; color: #6c757d; text-transform: uppercase; }
-    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 12px 20px; align-items: baseline; }
+    .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 12px 20px; align-items: flex-start; }
     .detail-grid > dt { font-weight: 600; color: #495057; }
     .detail-grid > dd { margin: 0; color: #212529; }
     .notes-block { margin-top: 8px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; min-height: 60px; }
@@ -137,10 +137,12 @@
 
     trix-editor img, .trix-content img, .notes-block img, .notes-content img, .project-notes-section img {
         max-width: 100% !important;
+        max-height: 400px !important;
         height: auto !important;
         width: auto !important;
         border-radius: 4px;
         display: block;
+        object-fit: contain;
     }
 
     /* FIX: Hide Trix metadata (filenames) - High Specificity for Edit Mode */
