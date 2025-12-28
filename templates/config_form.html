@@ -269,13 +269,32 @@
     /* --- Styles for Shared Items Tab --- */
     #shared-tab-content .table-wrapper {
         overflow-x: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
     }
     .data-table {
         width: 100%;
-        min-width: 600px;
+        min-width: 1000px; /* Increase min-width to prevent squeezing text */
         border-collapse: collapse;
-        table-layout: fixed;
+        table-layout: fixed; /* Keep fixed layout for predictable column sizing */
     }
+    .data-table td {
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal; /* Allow internal wrapping for notes/names */
+        line-height: 1.3;
+    }
+    /* Specific Column Sizing to ensure readability */
+    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 50px; }  /* Img */
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 140px; } /* Object ID */
+    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 220px; } /* Common Name */
+    .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 80px; }  /* Type */
+    .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 60px; }  /* Con */
+    .data-table th:nth-child(6), .data-table td:nth-child(6) { width: 150px; } /* Shared By */
+    .data-table th:nth-child(7), .data-table td:nth-child(7) { width: 90px; }  /* Notes */
+    .data-table th:nth-child(8), .data-table td:nth-child(8) { width: 110px; } /* Action */
     .data-table th, .data-table td {
         border: 1px solid #ddd;
         padding: 8px 10px;
