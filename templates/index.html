@@ -1050,10 +1050,11 @@ async function fetchData(isBackground = false) {
             tbody.dataset.loading = 'false';
         }
     } finally {
+        // Ensure loader is hidden and state is reset even if the controller was rotated
         if (activeFetchController && activeFetchController.signal === signal) {
-            finalizeFetch();
             activeFetchController = null;
         }
+        finalizeFetch();
     }
 
     // --- Helper: Render All (Replaces Table) ---
