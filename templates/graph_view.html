@@ -782,14 +782,26 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(2px);
-        font: 600 18px/1.2 system-ui, sans-serif;
-        color: #334;
-        z-index: 2;
+        /* Slightly more opaque background to make the logo pop */
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(4px);
+        z-index: 10;
         opacity: 1;
         visibility: visible;
-        transition: opacity 200ms ease, visibility 200ms ease;
+        transition: opacity 300ms ease, visibility 300ms ease;
+    }
+
+    /* Pulse animation for the brand logo */
+    .loading-logo {
+        animation: nova-pulse 1.8s ease-in-out infinite;
+        background-color: transparent !important; /* Forces browser transparency */
+        mix-blend-mode: multiply; /* Optional: Knocks out pure white backgrounds if the export failed */
+    }
+
+    @keyframes nova-pulse {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.8; }
     }
 
     /* Styles for the new tab navigation */
@@ -957,7 +969,16 @@
         <div style="width: 100%; max-width: 1300px; margin-left: 0;">
             <div id="chart-area">
                 <canvas id="altitudeChartCanvas"></canvas>
-                <div id="chart-loading" class="loading-overlay">Loading chart...</div>
+                <div id="chart-loading" class="loading-overlay">
+                    <div style="text-align: center;">
+                        <img src="{{ url_for('static', filename='nova_logo.png') }}" alt="Nova Logo" class="loading-logo"
+                             style="width: 70px; height: auto; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+
+                        <div style="color: #83b4c5; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; font-size: 13px;">
+                            Loading Chart
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="date-controls" style="margin-top: 20px; padding-left: 20px; box-sizing: border-box;">
                 <label for="day-select">Day:</label>
