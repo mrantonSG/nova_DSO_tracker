@@ -663,7 +663,14 @@ def _seed_user_from_guest_data(db_session, user_to_seed: 'DbUser'):
                 ra_hours=g_obj.ra_hours, dec_deg=g_obj.dec_deg, type=g_obj.type,
                 constellation=g_obj.constellation, magnitude=g_obj.magnitude, size=g_obj.size,
                 sb=g_obj.sb, active_project=g_obj.active_project, project_name=g_obj.project_name,
-                is_shared=False, shared_notes=None, original_user_id=None, original_item_id=None
+                is_shared=False, shared_notes=None, original_user_id=None, original_item_id=None,
+                # Ensure inspiration metadata is carried over during provisioning
+                image_url=g_obj.image_url,
+                image_credit=g_obj.image_credit,
+                image_source_link=g_obj.image_source_link,
+                description_text=g_obj.description_text,
+                description_credit=g_obj.description_credit,
+                description_source_link=g_obj.description_source_link
             )
             db_session.add(new_obj)
             objects_added += 1
