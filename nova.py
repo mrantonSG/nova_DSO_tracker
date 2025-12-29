@@ -99,7 +99,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.6.0"
+APP_VERSION = "4.6.1"
 
 INSTANCE_PATH = os.environ.get("INSTANCE_PATH") or globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
