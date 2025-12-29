@@ -11935,7 +11935,8 @@ def _format_dec_csv(dec_deg):
     m = int((total_seconds % 3600) // 60)
     s = int(total_seconds % 60)
     # Telescopius Format: 41º 53' 27" (Uses ordinal º, no plus sign for positive)
-    return f"{sign}{d}º {m:02d}' {s:02d}\""
+    # FIX: Added padding {d:02d} to match strict 00º format required by importers
+    return f"{sign}{d:02d}º {m:02d}' {s:02d}\""
 
 
 @app.route('/m/mosaic/<path:object_name>')

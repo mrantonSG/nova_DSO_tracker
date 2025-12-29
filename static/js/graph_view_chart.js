@@ -1531,7 +1531,8 @@ function formatDecCsv(decDeg) {
 
     // Telescopius Format: 41º 53' 27" (No '+' for positive, uses º ordinal)
     const signStr = decDeg < 0 ? '-' : '';
-    return `${signStr}${d}º ${pad(m)}' ${pad(s)}"`;
+    // Fix: Use pad(d) to ensure degrees are 2 digits (e.g. 06º instead of 6º)
+    return `${signStr}${pad(d)}º ${pad(m)}' ${pad(s)}"`;
 }
 
 function copyAsiairMosaic() {
