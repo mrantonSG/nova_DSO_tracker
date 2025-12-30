@@ -110,7 +110,7 @@
                     <tr class="session-data-row" data-report-url="{{ url_for('show_journal_report_page', session_id=session.id) }}">
                         <td>{{ session.date_utc | date_eu }}</td>
                         <td>{{ session.location_name }}</td>
-                        <td>{{ session.calculated_integration_time_minutes | round(0) }}m</td>
+                        <td>{{ (session.calculated_integration_time_minutes or 0) | round(0) }}m</td>
                         <td style="color: #f39c12;">{{ session.session_rating_subjective or '-' }}★</td>
                         <td>
                             <strong>Rig:</strong> {{ session.rig_name_snapshot or session.telescope_setup_notes or '-' }}<br>
