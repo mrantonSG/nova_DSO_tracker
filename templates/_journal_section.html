@@ -435,10 +435,8 @@
                             </div>
 
                             <div class="journal-project-notes-section">
-                                <div class="form-group trix-editor-container"><label>Goals & Status:</label>
-                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | e }}">
-                                    <trix-editor input="goals-hidden-journal" id="goals-editor-journal" style="min-height: 100px;"></trix-editor>
-                                </div>
+                                <h3>Goals & Status</h3>
+                                <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals defined.', true) | safe }}</div>
                             </div>
 
                             {% if selected_project_data_journal.final_image_file %}
