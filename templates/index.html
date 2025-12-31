@@ -1109,7 +1109,80 @@ async function fetchData(isBackground = false) {
                 const displayValue = (rawValue === null || rawValue === undefined || String(rawValue).trim() === '')
                                      ? 'N/A'
                                      : (config.format ? config.format(rawValue) : rawValue);
-                td.textContent = displayValue;
+
+                if (columnKey === 'Common Name') {
+                    // Create flex container to hold text and icon side-by-side
+                    const container = document.createElement('div');
+                    container.style.display = 'flex';
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'space-between';
+                    container.style.width = '100%';
+
+                    // Text Span (Handles ellipsis)
+                    const spanText = document.createElement('span');
+                    spanText.textContent = displayValue;
+                    spanText.style.flex = '1';
+                    spanText.style.whiteSpace = 'nowrap';
+                    spanText.style.overflow = 'hidden';
+                    spanText.style.textOverflow = 'ellipsis';
+                    container.appendChild(spanText);
+
+                    // Check for available inspiration content (Custom Image OR Desc)
+                    const hasCustomContent = (objectData.image_url && objectData.image_url.trim() !== "") || (objectData.description_text && objectData.description_text.trim() !== "");
+
+                    // Only show the icon if there is CUSTOM content (ignore coordinates/fallbacks for the table view)
+                    if (hasCustomContent) {
+                        // Inspiration Icon
+                        const icon = document.createElement('span');
+                        icon.innerHTML = '&#9432;'; // Circled i
+                    icon.style.cursor = 'pointer';
+                    icon.style.marginLeft = '8px';
+                    icon.style.color = '#83b4c5';
+                    icon.style.fontSize = '1.2em';
+                    icon.style.lineHeight = '1';
+                    icon.title = "View Inspiration";
+
+                    // Click Handler: Stop propagation to prevent opening the graph
+                    icon.onclick = function(e) {
+                        e.stopPropagation();
+
+                        // 1. Resolve Image (Custom > DSS2 Fallback)
+                        let finalImg = objectData.image_url;
+                        let finalSource = objectData.image_credit || "Catalog";
+                        let finalLink = objectData.image_source_link || "";
+
+                        // If no custom image, try calculating DSS2 URL using helper from _inspiration_section.html
+                        if (!finalImg && typeof getAladinFallbackUrl === 'function') {
+                            const raDeg = (parseFloat(objectData['RA (hours)']) || 0) * 15;
+                            const decDeg = parseFloat(objectData['DEC (degrees)']) || 0;
+                            if (objectData['RA (hours)'] != null) {
+                                finalImg = getAladinFallbackUrl(raDeg, decDeg, objectData.Size);
+                                finalSource = "DSS2";
+                            }
+                        }
+
+                        // 2. Resolve Description Text
+                        let finalText = objectData.description_text;
+                        if (!finalText) {
+                             finalText = `Type: ${objectData.Type || 'DSO'}. Located in ${objectData.Constellation || 'unknown'}.`;
+                        }
+
+                        // 3. Open Modal
+                        if (typeof openInspirationModal === 'function') {
+                            openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
+                        } else {
+                            console.warn("Inspiration modal function not found.");
+                        }
+                    };
+
+                    container.appendChild(icon);
+                } // End if (hasCustomContent || hasCoordinates)
+
+                td.innerHTML = ''; // Clear any existing text
+                td.appendChild(container);
+            } else {
+                    td.textContent = displayValue;
+                }
 
                 if (columnKey === 'Common Name' && rawValue) td.setAttribute('title', String(rawValue));
 
