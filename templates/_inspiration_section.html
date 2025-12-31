@@ -551,10 +551,6 @@
                         finalImg = dssUrl;
                         finalImgSource = "DSS2";
                     }
-                    if (!finalImg && hasCoords) {
-                        finalImg = dssUrl;
-                        finalSource = "DSS2";
-                    }
 
                     // 5. Update UI
                     const setOfflineState = () => {
@@ -581,7 +577,7 @@
                         setOfflineState();
                     } else if (finalImg) {
                         imgEl.src = finalImg;
-                        badgeEl.textContent = finalSource;
+                        badgeEl.textContent = finalImgSource;
                         badgeEl.style.display = 'block';
                     } else {
                         // No image URL found
