@@ -2217,11 +2217,26 @@ function populateJournalTable() {
         graphDiv.style.maxHeight = '160px';
         graphDiv.style.flex = '0 0 160px';
 
-        graphDiv.style.marginTop = '15px';
+        graphDiv.style.marginTop = '2px';
         graphDiv.style.backgroundColor = '#ffffff';
-        graphDiv.style.marginBottom = '10px';
+        graphDiv.style.marginBottom = '15px';
         // Removed position:relative and zIndex to prevent creating a stacking context that covers the footer
         targetContainer.parentNode.insertBefore(graphDiv, targetContainer.nextSibling);
+
+        // Force a physical spacer at the very bottom of the container
+        // This ensures space AFTER the source text, which padding on the parent sometimes fails to do in specific flex contexts
+        let spacer = document.getElementById('inspiration-bottom-spacer');
+        if (!spacer) {
+            spacer = document.createElement('div');
+            spacer.id = 'inspiration-bottom-spacer';
+            spacer.style.height = '80px'; // Generous space to clear the footer
+            spacer.style.width = '100%';
+            spacer.style.flexShrink = '0'; // Prevent it from collapsing
+            targetContainer.parentNode.appendChild(spacer);
+        } else {
+            // Ensure it's always the last element if it already existed (moves it to the bottom)
+            targetContainer.parentNode.appendChild(spacer);
+        }
 
         // 3. Fetch Data
         graphDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Loading altitude data...</p>';
