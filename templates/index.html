@@ -2283,6 +2283,58 @@ function populateJournalTable() {
                 hoverinfo: 'text'
             };
 
+            // --- Calculate Day/Night Background Shapes ---
+            const shapes = [];
+            const duskEl = document.getElementById('dusk');
+            const dawnEl = document.getElementById('dawn');
+
+            if (times.length > 0 && duskEl && dawnEl) {
+                const duskText = duskEl.textContent.trim();
+                const dawnText = dawnEl.textContent.trim();
+
+                // Proceed only if we have valid time strings (e.g., "18:45")
+                if (duskText.includes(':') && dawnText.includes(':')) {
+                    const start = new Date(times[0]);
+                    const [duskH, duskM] = duskText.split(':').map(Number);
+                    const [dawnH, dawnM] = dawnText.split(':').map(Number);
+
+                    // Construct Date objects relative to the graph's start date
+                    const duskDate = new Date(start);
+                    duskDate.setHours(duskH, duskM, 0, 0);
+
+                    const dawnDate = new Date(start);
+                    dawnDate.setHours(dawnH, dawnM, 0, 0);
+
+                    // If dawn time is numerically smaller than dusk (e.g. 05:00 < 18:00), it implies the next day
+                    if (dawnDate < duskDate) {
+                        dawnDate.setDate(dawnDate.getDate() + 1);
+                    }
+
+                    const dayShapeStyle = {
+                        type: 'rect',
+                        xref: 'x',
+                        yref: 'paper',
+                        y0: 0,
+                        y1: 1,
+                        fillcolor: '#f4f4f4', // Subtle grey for daytime
+                        layer: 'below',       // Draw behind the data line
+                        line: { width: 0 }
+                    };
+
+                    // 1. Pre-Dusk (Start -> Dusk)
+                    if (duskDate > start) {
+                        shapes.push({ ...dayShapeStyle, x0: times[0], x1: duskDate.toISOString() });
+                    }
+
+                    // 2. Post-Dawn (Dawn -> End)
+                    const end = new Date(times[times.length - 1]);
+                    if (dawnDate < end) {
+                        shapes.push({ ...dayShapeStyle, x0: dawnDate.toISOString(), x1: times[times.length - 1] });
+                    }
+                }
+            }
+            // ---------------------------------------------
+
             // Find peak altitude for annotation placement
             let maxIdx = 0;
             let maxVal = -1;
@@ -2309,6 +2361,7 @@ function populateJournalTable() {
                 height: 160,
                 margin: { t: 20, b: 30, l: 35, r: 10 }, // Increased top margin to fit the label
                 annotations: annotations,
+                shapes: shapes, // Add the calculated background shapes
                 xaxis: {
                     type: 'date',
                     tickformat: '%H:%M',
