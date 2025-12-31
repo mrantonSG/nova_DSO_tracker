@@ -1170,6 +1170,10 @@ async function fetchData(isBackground = false) {
                         // 3. Open Modal
                         if (typeof openInspirationModal === 'function') {
                             openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
+                            // Trigger graph load after modal opens
+                            setTimeout(() => {
+                                loadInspirationGraph(objectData.Object);
+                            }, 100);
                         } else {
                             console.warn("Inspiration modal function not found.");
                         }
@@ -2170,6 +2174,154 @@ function populateJournalTable() {
                 tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error fetching data. Check console for details.</td></tr>`;
                 if (loadingDiv) loadingDiv.style.display = 'none';
             });
+    }
+
+    function degreesToCompass(deg) {
+        const val = Math.floor((deg / 22.5) + 0.5);
+        const arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+        return arr[val % 16];
+    }
+
+    async function loadInspirationGraph(objectName) {
+        // 1. Locate Insertion Point (Heuristic based on "Constellation" label)
+        // We look for elements containing the text "Constellation" to find the stats grid
+        const allElements = document.querySelectorAll('*');
+        let targetContainer = null;
+
+        for (const el of allElements) {
+            if (el.textContent.trim() === 'Constellation' && el.offsetParent !== null) {
+                // Found the label. Traverse up to find the main stats grid container.
+                // Assuming structure: Grid -> Stat Box -> Label
+                // We want to append AFTER the Grid.
+                const statBox = el.parentElement;
+                if(statBox) {
+                    const grid = statBox.parentElement;
+                    if(grid) targetContainer = grid;
+                }
+                break;
+            }
+        }
+
+        if (!targetContainer) return;
+
+        // 2. Prepare Container
+        let graphDiv = document.getElementById('inspiration-mini-graph');
+        if (graphDiv) graphDiv.remove(); // Clean up previous if exists
+
+        graphDiv = document.createElement('div');
+        graphDiv.id = 'inspiration-mini-graph';
+        graphDiv.style.width = '100%';
+        // Strict height enforcement to prevent flex stretching
+        graphDiv.style.height = '160px';
+        graphDiv.style.minHeight = '160px';
+        graphDiv.style.maxHeight = '160px';
+        graphDiv.style.flex = '0 0 160px';
+
+        graphDiv.style.marginTop = '15px';
+        graphDiv.style.backgroundColor = '#ffffff';
+        graphDiv.style.marginBottom = '10px';
+        // Removed position:relative and zIndex to prevent creating a stacking context that covers the footer
+        targetContainer.parentNode.insertBefore(graphDiv, targetContainer.nextSibling);
+
+        // 3. Fetch Data
+        graphDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Loading altitude data...</p>';
+
+        try {
+            const resp = await fetch(`/api/get_plot_data/${encodeURIComponent(objectName)}?plot_lat=${window.NOVA_GRAPH_DATA ? window.NOVA_GRAPH_DATA.plotLat : ''}&plot_lon=${window.NOVA_GRAPH_DATA ? window.NOVA_GRAPH_DATA.plotLon : ''}`);
+            if (!resp.ok) throw new Error("Data fetch failed");
+            const data = await resp.json();
+
+            // 4. Process Data
+            // We only want the upcoming night (dusk to dawn) or a logical 24h window
+            // The API returns ~24h from noon local.
+
+            const times = [];
+            const alts = [];
+            const azs = []; // Store azimuths for annotation lookup
+            const hoverTexts = [];
+
+            data.times.forEach((t, i) => {
+                const alt = data.object_alt[i];
+                if (alt !== null) {
+                    times.push(t);
+                    alts.push(alt);
+                    const az = data.object_az[i];
+                    azs.push(az); // Capture azimuth
+                    const dir = degreesToCompass(az);
+                    const timeStr = new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    hoverTexts.push(`Time: ${timeStr}<br>Alt: ${alt.toFixed(1)}°<br>Dir: ${dir} (${Math.round(az)}°)`);
+                }
+            });
+
+            graphDiv.innerHTML = ''; // Clear loading text
+
+            // 5. Render Plotly
+            const trace = {
+                x: times,
+                y: alts,
+                type: 'scatter',
+                mode: 'lines',
+                fill: 'tozeroy',
+                line: { color: '#83b4c5', width: 2 },
+                fillcolor: 'rgba(131, 180, 197, 0.2)',
+                text: hoverTexts,
+                hoverinfo: 'text'
+            };
+
+            // Find peak altitude for annotation placement
+            let maxIdx = 0;
+            let maxVal = -1;
+            for(let i=0; i<alts.length; i++) {
+                if(alts[i] > maxVal) { maxVal = alts[i]; maxIdx = i; }
+            }
+
+            const annotations = [];
+            if(maxVal > 0 && azs[maxIdx] !== undefined) {
+                const compassDir = degreesToCompass(azs[maxIdx]);
+                annotations.push({
+                    x: times[maxIdx],
+                    y: maxVal,
+                    xref: 'x',
+                    yref: 'y',
+                    text: compassDir, // e.g. "S"
+                    showarrow: false,
+                    font: { size: 11, color: '#666' },
+                    yshift: 8
+                });
+            }
+
+            const layout = {
+                height: 160,
+                margin: { t: 20, b: 30, l: 35, r: 10 }, // Increased top margin to fit the label
+                annotations: annotations,
+                xaxis: {
+                    type: 'date',
+                    tickformat: '%H:%M',
+                    showgrid: false,
+                    zeroline: false
+                },
+                yaxis: {
+                    title: 'Alt (°)',
+                    range: [0, 90],
+                    autorange: false, // STRICTLY disable autorange to enforce 0-90
+                    fixedrange: true,
+                    showgrid: true,
+                    gridcolor: '#eee'
+                },
+                hovermode: 'closest',
+                showlegend: false,
+                paper_bgcolor: '#ffffff',
+                plot_bgcolor: '#ffffff'
+            };
+
+            const config = { displayModeBar: false, responsive: true };
+
+            Plotly.newPlot('inspiration-mini-graph', [trace], layout, config);
+
+        } catch (e) {
+            console.error(e);
+            graphDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Altitude data unavailable.</p>';
+        }
     }
 
     // --- REPLACED: New flash message script ---
