@@ -1170,10 +1170,7 @@ async function fetchData(isBackground = false) {
                         // 3. Open Modal
                         if (typeof openInspirationModal === 'function') {
                             openInspirationModal(objectData, finalImg, finalText, finalSource, finalLink);
-                            // Trigger graph load after modal opens
-                            setTimeout(() => {
-                                loadInspirationGraph(objectData.Object);
-                            }, 100);
+                            // Graph load is now handled automatically by the global hook in window.onload
                         } else {
                             console.warn("Inspiration modal function not found.");
                         }
@@ -1865,6 +1862,25 @@ function populateJournalTable() {
     // window.onload Event Handler
     // ========================================================================
     window.onload = () => {
+      // --- Nova Hook: Auto-load graph for Inspiration Modal (from any tab) ---
+      // This wraps the original modal function to inject the graph logic globally
+      const originalOpenInspirationModal = window.openInspirationModal;
+      if (typeof originalOpenInspirationModal === 'function') {
+          window.openInspirationModal = function(data, img, text, source, link) {
+              // 1. Open the modal as usual
+              originalOpenInspirationModal(data, img, text, source, link);
+
+              // 2. Trigger graph load automatically
+              setTimeout(() => {
+                  // Handle data keys from both Table (.Object) and DB/Grid (.object_name)
+                  const targetName = data.Object || data.object_name;
+                  if (targetName && typeof loadInspirationGraph === 'function') {
+                      loadInspirationGraph(targetName);
+                  }
+              }, 100);
+          };
+      }
+      // -----------------------------------------------------------------------
       // --- ADDED FOR SAVED VIEWS ---
       // Check if we are reloading to apply a view
       let viewToApplyOnLoad = localStorage.getItem('nova_last_applied_view');
