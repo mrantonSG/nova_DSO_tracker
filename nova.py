@@ -7760,8 +7760,42 @@ def bulk_update_objects():
         )
 
         if action == 'delete':
-            count = query.delete(synchronize_session=False)
+            # Check for dependencies (Journals or Projects) before deleting
+            safe_to_delete = []
+            skipped_count = 0
+
+            # We need to iterate to check relationships since bulk delete bypasses Python-level checks
+            objects_to_check = query.all()
+
+            for obj in objects_to_check:
+                # Check for journal sessions using this object name
+                has_journals = db.query(JournalSession).filter_by(
+                    user_id=user_id, object_name=obj.object_name
+                ).first()
+
+                # Check for projects targeting this object
+                has_projects = db.query(Project).filter_by(
+                    user_id=user_id, target_object_name=obj.object_name
+                ).first()
+
+                if has_journals or has_projects:
+                    skipped_count += 1
+                else:
+                    safe_to_delete.append(obj.object_name)
+
+            if safe_to_delete:
+                # Perform the delete only on safe IDs
+                delete_q = db.query(AstroObject).filter(
+                    AstroObject.user_id == user_id,
+                    AstroObject.object_name.in_(safe_to_delete)
+                )
+                count = delete_q.delete(synchronize_session=False)
+            else:
+                count = 0
+
             msg = f"Deleted {count} objects."
+            if skipped_count > 0:
+                msg += f" (Skipped {skipped_count} objects used in Journals/Projects)"
         elif action == 'enable':
             count = query.update({AstroObject.enabled: True}, synchronize_session=False)
             msg = f"Enabled {count} objects."
