@@ -923,7 +923,7 @@
         <div class="secondary-info-line-main">
             <p><small>Location:</small> <span id="location-display">{{ header_location_name }}</span></p>
             <p><small>Date (Graph):</small> <span id="date-display">{{ header_date_display }}</span></p>
-            <p><small>Moon (for date):</small> <span id="phase-display">{{ header_moon_phase }}%</span></p>
+            <p><small>Moon:</small> <span id="phase-display">{{ header_moon_phase }}%</span> / <span id="separation-display" style="font-weight: bold;">{{ header_moon_separation }}° sep</span></p>
             <p><small>Astro Dusk:</small> <span id="dusk-display">{{ header_astro_dusk }}</span></p>
             <p><small>Astro Dawn:</small> <span id="dawn-display">{{ header_astro_dawn }}</span></p>
         </div>
@@ -1294,6 +1294,35 @@
 </script>
 <script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v1"></script>
 <script>
+    // --- Patch: Update Separation on Date Change ---
+    document.addEventListener("DOMContentLoaded", function() {
+        const updateSep = async () => {
+            const d = document.getElementById('day-select').value;
+            const m = document.getElementById('month-select').value;
+            const y = document.getElementById('year-select').value;
+            try {
+                const url = `/get_date_info/${encodeURIComponent(window.NOVA_GRAPH_DATA.objectName)}?day=${d}&month=${m}&year=${y}`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.separation && document.getElementById('separation-display')) {
+                    document.getElementById('separation-display').textContent = data.separation + "° sep";
+                }
+                // Redundancy: Ensure phase is strictly updated
+                if (data.phase !== undefined && document.getElementById('phase-display')) {
+                    document.getElementById('phase-display').textContent = data.phase + "%";
+                }
+            } catch(e) { console.error("Sep update failed", e); }
+        };
+
+        ['day-select', 'month-select', 'year-select'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('change', updateSep);
+        });
+        document.querySelectorAll('.view-button').forEach(btn => {
+            btn.addEventListener('click', () => setTimeout(updateSep, 500));
+        });
+    });
+
 // --- Sub-Tab Control Logic ---
 function showProjectSubTab(tabName) {
     document.querySelectorAll('#framing-tab .detail-tab-content').forEach(tab => tab.classList.remove('active'));

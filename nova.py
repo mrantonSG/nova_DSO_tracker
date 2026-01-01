@@ -9490,9 +9490,24 @@ def graph_dashboard(object_name):
             dusk_str = sun_events_for_effective_date.get("astronomical_dusk", "21:00")
             dusk_time_obj = datetime.strptime(dusk_str, "%H:%M").time()
             dt_for_moon_local = effective_local_tz.localize(datetime.combine(effective_date_obj.date(), dusk_time_obj))
-            moon_phase_for_effective_date = round(ephem.Moon(dt_for_moon_local.astimezone(pytz.utc)).phase, 1)
+            dt_utc_astropy = dt_for_moon_local.astimezone(pytz.utc)
+
+            # Moon Phase
+            moon_phase_for_effective_date = round(ephem.Moon(dt_utc_astropy).phase, 1)
+
+            # Angular Separation
+            time_obj_sep = Time(dt_utc_astropy)
+            loc_obj_sep = EarthLocation(lat=effective_lat * u.deg, lon=effective_lon * u.deg)
+            moon_coord_sep = get_body('moon', time_obj_sep, loc_obj_sep)
+            obj_coord_sep = SkyCoord(ra=obj_record.ra_hours * u.hourangle, dec=obj_record.dec_deg * u.deg)
+            frame_sep = AltAz(obstime=time_obj_sep, location=loc_obj_sep)
+
+            sep_val = obj_coord_sep.transform_to(frame_sep).separation(moon_coord_sep.transform_to(frame_sep)).deg
+            moon_separation_for_effective_date = round(sep_val)
+
         except Exception:
             moon_phase_for_effective_date = "N/A"
+            moon_separation_for_effective_date = "N/A"
 
         # --- 7. Load Rigs (No change) ---
         rigs_from_db = db.query(Rig).options(
@@ -9610,6 +9625,7 @@ def graph_dashboard(object_name):
                                header_location_name=effective_location_name,
                                header_date_display=f"{effective_date_obj.strftime('%d.%m.%Y')} - {next_day_obj.strftime('%d.%m.%Y')}",
                                header_moon_phase=moon_phase_for_effective_date,
+                               header_moon_separation=moon_separation_for_effective_date,
                                header_astro_dusk=sun_events_for_effective_date.get("astronomical_dusk", "N/A"),
                                header_astro_dawn=sun_events_for_effective_date.get("astronomical_dawn", "N/A"),
                                project_notes_from_config=project_notes_for_editor,
@@ -9673,10 +9689,27 @@ def get_date_info(object_name):
     next_dt = curr_dt + timedelta(days=1)
     date_display_str = f"{curr_dt.strftime('%d.%m.%Y')} - {next_dt.strftime('%d.%m.%Y')}"
 
+    # Calculate Angular Separation for the specific date
+    separation_val = "N/A"
+    obj_data = get_ra_dec(object_name)
+    if obj_data and obj_data.get("RA (hours)") is not None and obj_data.get("DEC (degrees)") is not None:
+        try:
+            dt_utc_astropy = local_time.astimezone(pytz.utc)
+            time_obj_sep = Time(dt_utc_astropy)
+            loc_obj_sep = EarthLocation(lat=g.lat * u.deg, lon=g.lon * u.deg)
+            moon_coord_sep = get_body('moon', time_obj_sep, loc_obj_sep)
+            obj_coord_sep = SkyCoord(ra=obj_data["RA (hours)"] * u.hourangle, dec=obj_data["DEC (degrees)"] * u.deg)
+            frame_sep = AltAz(obstime=time_obj_sep, location=loc_obj_sep)
+            sep_deg = obj_coord_sep.transform_to(frame_sep).separation(moon_coord_sep.transform_to(frame_sep)).deg
+            separation_val = f"{int(round(sep_deg))}"
+        except Exception:
+            pass
+
     return jsonify({
         "date": local_date_str,
         "date_display": date_display_str,
         "phase": phase,
+        "separation": separation_val,
         "astronomical_dawn": sun_events.get("astronomical_dawn", "N/A"),
         "astronomical_dusk": sun_events.get("astronomical_dusk", "N/A")
     })
