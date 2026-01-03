@@ -4671,6 +4671,9 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
             dec_list = []
             obj_names = []
 
+            # Check user preference for optimization
+            calc_invisible = user_config.get("calc_invisible", False)
+
             for obj in enabled_objects:
                 try:
                     r = float(obj.get("RA", 0))
@@ -4678,8 +4681,30 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
                     obj_name = obj.get("Object")
 
                     # --- GEOMETRIC PRE-FILTER (Smart Skip) ---
-                    # Calculate Max Theoretical Altitude (Culmination)
-                    max_culm = 90.0 - abs(lat - d)
+                    # Only run this check if the user has NOT disabled the optimization
+                    if not calc_invisible:
+                        # Calculate Max Theoretical Altitude (Culmination)
+                        max_culm = 90.0 - abs(lat - d)
+
+                        if max_culm < altitude_threshold:
+                            # Object never rises above threshold. Cache immediately as impossible.
+                            cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+                            nightly_curves_cache[cache_key] = {
+                                "times_local": [],
+                                "altitudes": [],
+                                "azimuths": [],
+                                "transit_time": "N/A",
+                                "obs_duration_minutes": 0,
+                                "max_altitude": round(max_culm, 1),
+                                "alt_11pm": "N/A",
+                                "az_11pm": "N/A",
+                                "is_obstructed_at_11pm": False,
+                                "is_geometrically_impossible": True
+                            }
+                            continue  # Skip adding to vectors
+
+                    # If visible (or optimization disabled), add to lists for heavy calculation
+                    ra_list.append(r)
 
                     if max_culm < altitude_threshold:
                         # Object never rises above threshold. Cache immediately as impossible.
@@ -8458,26 +8483,29 @@ def get_desktop_data_batch():
                     results.append(item)
                     continue
 
-                # --- GEOMETRIC PRE-FILTER (Live Request) ---
-                max_culm_geo = 90.0 - abs(lat - dec)
-                if max_culm_geo < altitude_threshold:
-                    # Skip heavy math, return "greyed out" state immediately
-                    item.update({
-                        'Altitude Current': 'N/A', 'Azimuth Current': 'N/A', 'Trend': '–',
-                        'Altitude 11PM': 'N/A', 'Azimuth 11PM': 'N/A', 'Transit Time': 'N/A',
-                        'Observable Duration (min)': 0,
-                        'Max Altitude (°)': round(max_culm_geo, 1),
-                        'Angular Separation (°)': 'N/A',
-                        'is_obstructed_now': False,
-                        'is_geometrically_impossible': True,  # <--- Flag for frontend
-                        'best_month_ra':
-                            ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"][
-                                int(ra / 2) % 12],
-                        'max_culmination_alt': round(max_culm_geo, 1),
-                        'error': False
-                    })
-                    results.append(item)
-                    continue
+                    # --- GEOMETRIC PRE-FILTER (Live Request) ---
+                calc_invisible = g.user_config.get("calc_invisible", False)
+
+                if not calc_invisible:
+                    max_culm_geo = 90.0 - abs(lat - dec)
+                    if max_culm_geo < altitude_threshold:
+                        # Skip heavy math, return "greyed out" state immediately
+                        item.update({
+                            'Altitude Current': 'N/A', 'Azimuth Current': 'N/A', 'Trend': '–',
+                            'Altitude 11PM': 'N/A', 'Azimuth 11PM': 'N/A', 'Transit Time': 'N/A',
+                            'Observable Duration (min)': 0,
+                            'Max Altitude (°)': round(max_culm_geo, 1),
+                            'Angular Separation (°)': 'N/A',
+                            'is_obstructed_now': False,
+                            'is_geometrically_impossible': True,
+                            'best_month_ra':
+                                ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"][
+                                    int(ra / 2) % 12],
+                            'max_culmination_alt': round(max_culm_geo, 1),
+                            'error': False
+                        })
+                        results.append(item)
+                        continue
 
                 # Calculate / Cache
                 cache_key = f"{obj.object_name.lower()}_{local_date}_{location_key}"
@@ -8634,11 +8662,15 @@ def index():
             observing_date_for_calcs = now_local.date()
         # --- END FIX ---
 
+        # Get hiding preference (safe default False)
+        hide_invisible_pref = g.user_config.get('hide_invisible', False)
+
         return render_template('index.html',
-                               journal_sessions=sessions_for_template,  # Pass the new list of dictionaries
+                               journal_sessions=sessions_for_template,
                                selected_day=observing_date_for_calcs.day,
                                selected_month=observing_date_for_calcs.month,
-                               selected_year=observing_date_for_calcs.year)
+                               selected_year=observing_date_for_calcs.year,
+                               hide_invisible=hide_invisible_pref)
     finally:
         db.close()
 
@@ -9079,9 +9111,14 @@ def config_form():
                     settings = {}
                 settings['altitude_threshold'] = int(request.form.get('altitude_threshold', 20))
                 settings['default_location'] = request.form.get('default_location', settings.get('default_location'))
+                # Settings available to ALL users
+                settings['calc_invisible'] = bool(request.form.get('calc_invisible'))
+                settings['hide_invisible'] = bool(request.form.get('hide_invisible'))
+
                 if SINGLE_USER_MODE:
                     settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))
                     settings.setdefault('telemetry', {})['enabled'] = bool(request.form.get('telemetry_enabled'))
+
                 imaging_criteria = settings.setdefault("imaging_criteria", {})
                 imaging_criteria["min_observable_minutes"] = int(request.form.get("min_observable_minutes", 60))
                 imaging_criteria["min_max_altitude"] = int(request.form.get("min_max_altitude", 30))
