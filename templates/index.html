@@ -2201,10 +2201,15 @@ function populateJournalTable() {
     async function loadInspirationGraph(objectName) {
         // 1. Locate Insertion Point (Heuristic based on "Constellation" label)
         // We look for elements containing the text "Constellation" to find the stats grid
-        const allElements = document.querySelectorAll('*');
+        // Fix: Scope to modal if found, or strictly exclude main tables to prevent background injection
+        const modal = document.getElementById('inspiration-modal');
+        const allElements = (modal) ? modal.querySelectorAll('*') : document.querySelectorAll('*');
         let targetContainer = null;
 
         for (const el of allElements) {
+            // Safety check: If we are searching the whole document, ignore the main table headers
+            if (!modal && (el.closest('#data-table') || el.closest('#outlook-table'))) continue;
+
             if (el.textContent.trim() === 'Constellation' && el.offsetParent !== null) {
                 // Found the label. Traverse up to find the main stats grid container.
                 // Assuming structure: Grid -> Stat Box -> Label
