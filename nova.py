@@ -4635,10 +4635,139 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
     """
     Warms the main data cache on startup and then triggers the Outlook cache
     update for the same location.
+    Refactored to use Vectorized Astropy operations for massive speedup.
     """
     # print(f"[CACHE WARMER] Starting for main data at location '{location_name}'.")
     try:
         # --- 1. DETERMINE LOCATION VARS (AND FIX BAD TIMEZONE) ---
+        try:
+            tz_name = user_config["locations"][location_name]["timezone"]
+            local_tz = pytz.timezone(tz_name)
+        except pytz.exceptions.UnknownTimeZoneError:
+            print(
+                f"❌ [CACHE WARMER] WARN: Invalid timezone '{tz_name}' for user '{username}' at location '{location_name}'. Falling back to UTC.")
+            local_tz = pytz.timezone("UTC")
+            tz_name = "UTC"
+
+        # --- 2. GET LOCATION & DATE VARS ---
+        observing_date_for_calcs = datetime.now(local_tz) - timedelta(hours=12)
+        local_date = observing_date_for_calcs.strftime('%Y-%m-%d')
+        lat = float(user_config["locations"][location_name]["lat"])
+        lon = float(user_config["locations"][location_name]["lon"])
+        altitude_threshold = user_config.get("altitude_threshold", 20)
+        try:
+            horizon_mask = user_config.get("locations", {}).get(location_name, {}).get("horizon_mask")
+        except Exception:
+            horizon_mask = None
+
+        # --- 3. PREPARE VECTORS ---
+        enabled_objects = [o for o in user_config.get("objects", []) if
+                           o.get("enabled", True) and o.get("Object")]
+
+        if not enabled_objects:
+            return
+
+        # Extract Arrays
+        ra_list = []
+        dec_list = []
+        obj_names = []
+
+        for obj in enabled_objects:
+            try:
+                r = float(obj.get("RA", 0))
+                d = float(obj.get("DEC", 0))
+                ra_list.append(r)
+                dec_list.append(d)
+                obj_names.append(obj.get("Object"))
+            except (ValueError, TypeError):
+                continue
+
+        if not ra_list:
+            return
+
+        # --- 4. VECTORIZED CALCULATION ---
+        # A. Time Grid (Once)
+        times_local, times_utc = get_common_time_arrays(tz_name, local_date, sampling_interval)
+        location_earth = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+
+        # B. Coordinate Frame (Broadcasting Time)
+        # Create AltAz frame with the time array. Astropy will broadcast this against the object array.
+        altaz_frame = AltAz(obstime=times_utc, location=location_earth)
+
+        # C. SkyCoords (Vectorized)
+        # Create one SkyCoord containing ALL objects
+        sky_coords = SkyCoord(ra=ra_list * u.hourangle, dec=dec_list * u.deg)
+
+        # D. Transform (The Heavy Lift)
+        # Result shape: (N_times, N_objects). We use newaxis to align the time dimension for broadcasting.
+        transformed = sky_coords.transform_to(altaz_frame[:, np.newaxis])
+
+        # Extract Data (Result is [Time, Object])
+        all_alts = transformed.alt.deg  # Shape: (T, N)
+        all_azs = transformed.az.deg  # Shape: (T, N)
+
+        # Transpose to (N, T) for easier processing per object
+        all_alts = all_alts.T
+        all_azs = all_azs.T
+
+        # --- 5. PROCESS RESULTS & CACHE ---
+        fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
+
+        # We assume single mask for simplicity in this specific block, as vectorizing the horizon mask interpolation
+        # requires moving interpolate_horizon to numpy.
+        sorted_mask = sorted(horizon_mask, key=lambda p: p[0]) if (
+                    horizon_mask and len(horizon_mask) > 1) else None
+
+        for i, obj_name in enumerate(obj_names):
+            ra = ra_list[i]
+            dec = dec_list[i]
+
+            cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+            if cache_key in nightly_curves_cache:
+                continue
+
+            # Extract specific arrays
+            altitudes = all_alts[i]
+            azimuths = all_azs[i]
+
+            # Calculate Visibility Mask
+            if sorted_mask:
+                # We still loop here for the mask because interpolate_horizon is Python-based.
+                # However, the heavy coordinate transform is already done.
+                min_alts = np.array(
+                    [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths])
+                visible_mask = altitudes >= min_alts
+            else:
+                visible_mask = altitudes >= altitude_threshold
+
+            obs_duration_minutes = np.sum(visible_mask) * sampling_interval
+            max_alt = np.max(altitudes)
+
+            # Transit (PyEphem is fast enough for single point, keep as is for accuracy consistency)
+            transit_time = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+
+            # 11 PM Logic
+            alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
+
+            is_obstructed_at_11pm = False
+            if sorted_mask:
+                required_altitude_11pm = interpolate_horizon(az_11pm, sorted_mask, altitude_threshold)
+                if alt_11pm >= altitude_threshold and alt_11pm < required_altitude_11pm:
+                    is_obstructed_at_11pm = True
+
+            nightly_curves_cache[cache_key] = {
+                "times_local": times_local,
+                "altitudes": altitudes,
+                "azimuths": azimuths,
+                "transit_time": transit_time,
+                "obs_duration_minutes": int(obs_duration_minutes),
+                "max_altitude": round(float(max_alt), 1),
+                "alt_11pm": f"{alt_11pm:.2f}",
+                "az_11pm": f"{az_11pm:.2f}",
+                "is_obstructed_at_11pm": is_obstructed_at_11pm
+            }
+
+        # --- 4. TRIGGER OUTLOOK CACHE (Unchanged) ---
         try:
             tz_name = user_config["locations"][location_name]["timezone"]
             local_tz = pytz.timezone(tz_name)
