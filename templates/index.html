@@ -1054,7 +1054,10 @@ async function fetchData(isBackground = false) {
         if (activeFetchController && activeFetchController.signal === signal) {
             activeFetchController = null;
         }
-        finalizeFetch();
+        // Fix: Do not hide the loader or reset UI if this request was aborted (e.g., by a new fetch)
+        if (!signal.aborted) {
+            finalizeFetch();
+        }
     }
 
     // --- Helper: Render All (Replaces Table) ---
