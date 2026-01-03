@@ -441,6 +441,7 @@
     // Configuration & Global State Variables
     // ========================================================================
     const IS_GUEST_USER = {{ is_guest | tojson }};
+    const HIDE_INVISIBLE_PREF = {{ hide_invisible | tojson }};
     let activeTab = localStorage.getItem('activeTab') || 'position';
     let outlookDataLoaded = false;
     let activeFetchController = null; // Controls network cancellation
@@ -1463,7 +1464,22 @@ async function fetchData(isBackground = false) {
                     }
                 }
             }
-        } rows[i].style.display = showRow ? "" : "none";
+        }
+
+        // --- HIDE INVISIBLE LOGIC ---
+        // If the row matches filters (showRow is true), AND the user wants to hide invisible objects,
+        // AND no specific filters are active (default view), then force hide it.
+        // If the user HAS typed a filter (activeFilters not empty), we let it show (override hiding).
+        if (showRow && HIDE_INVISIBLE_PREF) {
+            const isImpossible = rows[i].dataset.impossible === 'true';
+            const filtersActive = Object.keys(activeFilters).length > 0;
+
+            if (isImpossible && !filtersActive) {
+                showRow = false;
+            }
+        }
+
+        rows[i].style.display = showRow ? "" : "none";
       }
 
       // --- EXPOSE FILTERED DATA FOR INSPIRATION TAB ---

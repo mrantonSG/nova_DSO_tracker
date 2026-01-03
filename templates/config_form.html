@@ -780,6 +780,29 @@
                          value="{{ (config.imaging_criteria | default({}, true)).get('search_horizon_months', 6) }}" min="1" max="12">
                 </div>
               </div>
+              <hr>
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="calc_invisible">Calc. Invisible Objects:</label>
+                  <input type="checkbox" name="calc_invisible" id="calc_invisible"
+                         {% if config.get('calc_invisible', False) %}checked{% endif %}>
+                </div>
+                <small class="form-text text-muted">
+                  If checked, Nova will calculate curves for ALL objects, even those geometrically impossible to see from your location (disabling the "Smart Skip" optimization).
+                </small>
+              </div>
+
+              <div class="inline-fields">
+                <div>
+                  <label class="verylong-label" for="hide_invisible">Hide Invisible Objects:</label>
+                  <input type="checkbox" name="hide_invisible" id="hide_invisible"
+                         {% if config.get('hide_invisible', False) %}checked{% endif %}>
+                </div>
+                <small class="form-text text-muted">
+                  If checked, objects that are geometrically impossible to see will be hidden from the main list by default. They will still appear if you specifically search for them.
+                </small>
+              </div>
+
               {% if SINGLE_USER_MODE %}
               <hr>
               <div class="form-group">
@@ -796,6 +819,7 @@
                   Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
                 </small>
               </div>
+              <hr>
               {% endif %}
               {% if SINGLE_USER_MODE %}
               <hr>
