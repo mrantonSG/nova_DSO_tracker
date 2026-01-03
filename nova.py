@@ -4660,30 +4660,53 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         except Exception:
             horizon_mask = None
 
-        # --- 3. PREPARE VECTORS ---
-        enabled_objects = [o for o in user_config.get("objects", []) if
-                           o.get("enabled", True) and o.get("Object")]
+            # --- 3. PREPARE VECTORS ---
+            enabled_objects = [o for o in user_config.get("objects", []) if o.get("enabled", True) and o.get("Object")]
 
-        if not enabled_objects:
-            return
+            if not enabled_objects:
+                return
 
-        # Extract Arrays
-        ra_list = []
-        dec_list = []
-        obj_names = []
+            # Extract Arrays
+            ra_list = []
+            dec_list = []
+            obj_names = []
 
-        for obj in enabled_objects:
-            try:
-                r = float(obj.get("RA", 0))
-                d = float(obj.get("DEC", 0))
-                ra_list.append(r)
-                dec_list.append(d)
-                obj_names.append(obj.get("Object"))
-            except (ValueError, TypeError):
-                continue
+            for obj in enabled_objects:
+                try:
+                    r = float(obj.get("RA", 0))
+                    d = float(obj.get("DEC", 0))
+                    obj_name = obj.get("Object")
 
-        if not ra_list:
-            return
+                    # --- GEOMETRIC PRE-FILTER (Smart Skip) ---
+                    # Calculate Max Theoretical Altitude (Culmination)
+                    max_culm = 90.0 - abs(lat - d)
+
+                    if max_culm < altitude_threshold:
+                        # Object never rises above threshold. Cache immediately as impossible.
+                        cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
+                        nightly_curves_cache[cache_key] = {
+                            "times_local": [],
+                            "altitudes": [],
+                            "azimuths": [],
+                            "transit_time": "N/A",
+                            "obs_duration_minutes": 0,
+                            "max_altitude": round(max_culm, 1),
+                            "alt_11pm": "N/A",
+                            "az_11pm": "N/A",
+                            "is_obstructed_at_11pm": False,
+                            "is_geometrically_impossible": True  # <--- New Flag
+                        }
+                        continue  # Skip adding to vectors
+
+                    # If visible, add to lists for heavy calculation
+                    ra_list.append(r)
+                    dec_list.append(d)
+                    obj_names.append(obj_name)
+                except (ValueError, TypeError):
+                    continue
+
+            if not ra_list:
+                return
 
         # --- 4. VECTORIZED CALCULATION ---
         # A. Time Grid (Once)
@@ -8432,6 +8455,27 @@ def get_desktop_data_batch():
 
                 if ra is None or dec is None:
                     item.update({'error': True, 'Common Name': 'Error: Missing RA/DEC'})
+                    results.append(item)
+                    continue
+
+                # --- GEOMETRIC PRE-FILTER (Live Request) ---
+                max_culm_geo = 90.0 - abs(lat - dec)
+                if max_culm_geo < altitude_threshold:
+                    # Skip heavy math, return "greyed out" state immediately
+                    item.update({
+                        'Altitude Current': 'N/A', 'Azimuth Current': 'N/A', 'Trend': '–',
+                        'Altitude 11PM': 'N/A', 'Azimuth 11PM': 'N/A', 'Transit Time': 'N/A',
+                        'Observable Duration (min)': 0,
+                        'Max Altitude (°)': round(max_culm_geo, 1),
+                        'Angular Separation (°)': 'N/A',
+                        'is_obstructed_now': False,
+                        'is_geometrically_impossible': True,  # <--- Flag for frontend
+                        'best_month_ra':
+                            ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"][
+                                int(ra / 2) % 12],
+                        'max_culmination_alt': round(max_culm_geo, 1),
+                        'error': False
+                    })
                     results.append(item)
                     continue
 
