@@ -66,7 +66,9 @@ def test_warm_main_cache_calls_outlook_with_correct_args(strict_thread_mock, db_
         "locations": {
             "Default Test Loc": {"lat": 10, "lon": 10, "timezone": "UTC"}
         },
-        "objects": []
+        "objects": [
+            {"Object": "DummyObj", "RA": 10.0, "DEC": 10.0, "enabled": True}
+        ]
     }
 
     # Act: Call the function that spawns the thread
