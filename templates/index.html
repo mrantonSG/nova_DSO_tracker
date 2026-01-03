@@ -147,6 +147,21 @@
 
     .highlight { background-color: #83b4c5; }
     .active-project-row { background-color: #dce5eb !important; }
+
+    /* --- Geometrically Impossible Rows --- */
+    tr.geometrically-impossible {
+        background-color: #f9f9f9;
+        color: #aaa;
+    }
+    tr.geometrically-impossible td {
+        font-style: italic;
+    }
+    /* Allow clicking to view graph (to see why), but keep styling distinct */
+    tr.geometrically-impossible:hover {
+        background-color: #f0f0f0;
+        cursor: help;
+    }
+
     tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
     #graph-section { display: none; text-align: left; margin-left: 0px; }
     #back-button {
@@ -1088,10 +1103,18 @@ async function fetchData(isBackground = false) {
             row.id = `row-${sanitizedId}`;
             row.className = 'clickable-row';
 
+            // Store impossible status for sorting logic
+            row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
+
             if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
                 row.style.backgroundColor = "#f8d7da";
                 row.style.color = "#721c24";
                 row.style.cursor = 'default';
+            } else if (objectData.is_geometrically_impossible) {
+                // Apply "Greyed Out" styling
+                row.classList.add('geometrically-impossible');
+                row.title = "Object never rises above your altitude threshold.";
+                row.onclick = () => { showGraph(objectData.Object); }; // Still allow click to verify graph
             } else {
                 const ap = objectData.ActiveProject;
                 if ((ap === true) || (ap === 1) || (ap === '1') || (ap === 'true')) {
@@ -1314,6 +1337,11 @@ async function fetchData(isBackground = false) {
         const config = columnConfig[currentSort.columnKey];
 
         rows.sort((a, b) => {
+            // Priority Sort: Push "Geometrically Impossible" (greyed out) rows to the bottom always
+            const impA = a.dataset.impossible === 'true';
+            const impB = b.dataset.impossible === 'true';
+            if (impA !== impB) return impA ? 1 : -1;
+
             const cellA_element = a.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
             const cellB_element = b.querySelector(`td[data-column-key="${currentSort.columnKey}"]`);
             if (!cellA_element || !cellB_element) return 0;
