@@ -1,7 +1,9 @@
-
 #### Main Dashboard
 
 This is your mission control. The main dashboard gives you a real-time overview of your target library, calculated for your current location and time. It is designed to answer the question: *"What is best to image right now?"*
+
+**Visibility Note**
+By default, objects that are geometrically impossible to see from your current location (i.e., they never rise above your configured horizon threshold) are **hidden** to keep the list clean. These objects will reappear instantly if you explicitly search for them by name or ID.
 
 **Data Columns**
 
@@ -15,27 +17,19 @@ This is your mission control. The main dashboard gives you a real-time overview 
 
 The filter row below the headers is powerful. You can use special operators to refine your list:
 
-* **Text Search:** Type normally to find matches (e.g., `M31`, `Nebula`).
+* **Text Search:** Type normally to find matches (e.g., `M31`, `Nebula`). Note that searching for a specific object will override the "hidden invisible objects" setting.
 * **Numeric Comparisons:**
 * `>50`: Matches values greater than 50.
 * `<20`: Matches values less than 20.
 * `>=` / `<=`: Greater/Less than or equal to.
-
-
 * **Ranges (AND Logic):** Combine operators to find values within a specific window.
 * Example: `>140 <300` in the *Azimuth* column finds objects currently in the southern sky (between 140° and 300°).
-
-
 * **Exclusion (NOT Logic):** Start with `!` to exclude items.
 * Example: `!Galaxy` in the *Type* column hides all galaxies.
 * Example: `!Cyg` in *Constellation* hides targets in Cygnus.
-
-
 * **Multiple Terms (OR Logic):** Separate terms with commas.
 * Example: `M31, M33, M42` in *Object* shows only those three targets.
 * Example: `Nebula, Cluster` in *Type* shows both nebulae and clusters.
-
-
 
 **Saved Views**
 
