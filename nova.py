@@ -8731,7 +8731,7 @@ def index():
         # --- END FIX ---
 
         # Get hiding preference (safe default False)
-        hide_invisible_pref = g.user_config.get('hide_invisible', False)
+        hide_invisible_pref = g.user_config.get('hide_invisible', True)
 
         return render_template('index.html',
                                journal_sessions=sessions_for_template,
