@@ -857,7 +857,7 @@
                 <div>
                   <label class="verylong-label" for="hide_invisible">Hide Invisible Objects:</label>
                   <input type="checkbox" name="hide_invisible" id="hide_invisible"
-                         {% if config.get('hide_invisible', False) %}checked{% endif %}>
+                         {% if config.get('hide_invisible', True) %}checked{% endif %}>
                 </div>
                 <small class="form-text text-muted">
                   If checked, objects that are geometrically impossible to see will be hidden from the main list by default. They will still appear if you specifically search for them.
