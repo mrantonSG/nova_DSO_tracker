@@ -45,7 +45,7 @@ import platform
 import markdown
 import csv
 from math import atan, degrees
-from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app, make_response
+from flask import render_template, jsonify, request, send_file, redirect, url_for, flash, g, current_app, make_response, Response, stream_with_context
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
@@ -7877,6 +7877,91 @@ def update_object():
     finally:
         db.close()
 
+@app.route('/stream_fetch_details')
+@login_required
+def stream_fetch_details():
+    """
+    Streams progress of fetching object details via Server-Sent Events (SSE).
+    """
+
+    @stream_with_context
+    def generate():
+        username = "default" if SINGLE_USER_MODE else current_user.username
+        db = SessionLocal()  # Use a dedicated session for this generator
+        try:
+            app_db_user = db.query(DbUser).filter_by(username=username).one()
+            objects_to_check = db.query(AstroObject).filter_by(user_id=app_db_user.id).all()
+
+            total_count = len(objects_to_check)
+            modified_count = 0
+
+            # Send initial open event
+            yield f"data: {json.dumps({'progress': 0, 'message': 'Starting analysis...'})}\n\n"
+
+            refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+            for i, obj in enumerate(objects_to_check):
+                # Calculate percentage
+                pct = int((i / total_count) * 100)
+                yield f"data: {json.dumps({'progress': pct, 'message': f'Checking {obj.object_name}...'})}\n\n"
+
+                needs_update = (
+                        obj.type in refetch_triggers or
+                        obj.magnitude in refetch_triggers or
+                        obj.size in refetch_triggers or
+                        obj.sb in refetch_triggers or
+                        obj.constellation in refetch_triggers
+                )
+
+                if needs_update:
+                    item_modified = False
+                    try:
+                        # 1. Constellation Auto-Calc
+                        if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
+                            coords = SkyCoord(ra=obj.ra_hours * u.hourangle, dec=obj.dec_deg * u.deg)
+                            obj.constellation = get_constellation(coords, short_name=True)
+                            item_modified = True
+
+                        # 2. External API Fetch
+                        yield f"data: {json.dumps({'progress': pct, 'message': f'Fetching data for {obj.object_name}...'})}\n\n"
+                        fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
+
+                        if fetched_data.get("object_type"):
+                            obj.type = fetched_data["object_type"]
+                            item_modified = True
+                        if fetched_data.get("magnitude"):
+                            obj.magnitude = str(fetched_data["magnitude"])
+                            item_modified = True
+                        if fetched_data.get("size_arcmin"):
+                            obj.size = str(fetched_data["size_arcmin"])
+                            item_modified = True
+                        if fetched_data.get("surface_brightness"):
+                            obj.sb = str(fetched_data["surface_brightness"])
+                            item_modified = True
+
+                        if item_modified:
+                            modified_count += 1
+                            time.sleep(0.5)  # Polite delay
+
+                    except Exception as e:
+                        print(f"Failed details fetch for {obj.object_name}: {e}")
+                        # Continue stream despite individual object error
+
+            if modified_count > 0:
+                yield f"data: {json.dumps({'progress': 99, 'message': 'Saving changes...'})}\n\n"
+                db.commit()
+
+            # Send final done signal
+            yield f"data: {json.dumps({'progress': 100, 'message': 'Complete!', 'done': True, 'modified': modified_count})}\n\n"
+
+        except Exception as e:
+            print(f"Stream Fetch Error: {e}")
+            db.rollback()
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        finally:
+            db.close()
+
+    return Response(generate(), mimetype='text/event-stream')
 
 @app.route('/fetch_all_details', methods=['POST'])
 @login_required

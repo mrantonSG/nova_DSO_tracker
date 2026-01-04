@@ -395,6 +395,67 @@
         float: right;
     }
 
+    /* Progress Modal Styles */
+    #fetch-progress-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 3000;
+        align-items: center;
+        justify-content: center;
+    }
+    #fetch-progress-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        width: 350px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .progress-track {
+        width: 100%;
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: #83b4c5;
+        width: 5%; /* Start visible */
+    }
+
+    /* Active Animation Class */
+    .progress-fill.active {
+        background-image: linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.3) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0.3) 75%,
+            transparent 75%,
+            transparent
+        );
+        background-size: 40px 40px;
+        /* Run two animations: Stripes (movement) and Grow (width) */
+        animation:
+            progress-stripes 1s linear infinite,
+            progress-grow 1s ease-out forwards; /* Duration set by JS */
+    }
+
+    @keyframes progress-stripes {
+        from { background-position: 40px 0; }
+        to { background-position: 0 0; }
+    }
+
+    @keyframes progress-grow {
+        0% { width: 5%; }
+        100% { width: 98%; }
+    }
+
     .container { display: flex; gap: 2em; flex-wrap: wrap; }
     .column { background-color: #f9f9f9; padding: 1.5em; border-radius: 8px; flex: 1; min-width: 350px;}
     .column h2, .column h3 { color: #333; font-size: 16px; font-weight: bold; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
@@ -1214,6 +1275,16 @@
           <button class="inline-button modal-close-btn" onclick="closeNotesModal()">Close</button>
       </div>
   </div>
+
+  <div id="fetch-progress-modal">
+      <div id="fetch-progress-content">
+          <h3 style="margin-top:0; color:#333;">Fetching Details...</h3>
+          <div class="progress-track">
+              <div id="fetch-progress-bar" class="progress-fill"></div>
+          </div>
+          <p id="fetch-progress-text" style="color:#666; font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
+      </div>
+  </div>
   <br>
 
 <script>
@@ -1705,16 +1776,67 @@
     }
 
     function confirmAndFetchDetails(formElement) {
-        const numObjects = {{ config.objects|length if config and config.objects is defined else 0 }};
-        let estimatedTime = numObjects * 0.6;
-        let confirmationMessage = "Fetching all missing object details can take some time.\n";
-        if (numObjects > 0) confirmationMessage += `With ${numObjects} object(s), this may take ~${estimatedTime.toFixed(0)} seconds.\n`;
-        confirmationMessage += "Only empty or placeholder fields will be updated.\nAre you sure you want to proceed?";
-        if (confirm(confirmationMessage)) {
-            const button = document.getElementById('fetch-details-button');
-            if (button) { button.disabled = true; button.innerText = 'Processing...'; }
-            formElement.submit();
+        if (!confirm("This will scan all your objects and fetch missing details (Type, Magnitude, Size, etc.) from external databases.\n\nDepending on your library size, this may take a few moments.\n\nProceed?")) {
+            return;
         }
+
+        const button = document.getElementById('fetch-details-button');
+        const modal = document.getElementById('fetch-progress-modal');
+        const bar = document.getElementById('fetch-progress-bar');
+        const text = document.getElementById('fetch-progress-text');
+
+        if (button) { button.disabled = true; button.innerText = 'Connecting...'; }
+        if (modal) modal.style.display = 'flex';
+
+        // Reset bar visual state for manual control (disable CSS animation for width)
+        if (bar) {
+            bar.style.width = '0%';
+            bar.classList.add('active'); // Keep stripes
+            bar.style.animation = 'progress-stripes 1s linear infinite'; // Only stripes, no growth
+        }
+
+        const evtSource = new EventSource("{{ url_for('stream_fetch_details') }}");
+
+        evtSource.onmessage = function(e) {
+            try {
+                const data = JSON.parse(e.data);
+
+                if (data.error) {
+                    text.innerText = "Error: " + data.error;
+                    text.style.color = "red";
+                    evtSource.close();
+                    if(button) { button.disabled = false; button.innerText = 'Retry'; }
+                    return;
+                }
+
+                // Update UI
+                if (data.progress !== undefined && bar) {
+                    bar.style.width = data.progress + '%';
+                }
+                if (data.message && text) {
+                    text.innerText = data.message;
+                }
+
+                // Completion
+                if (data.done) {
+                    evtSource.close();
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
+                }
+            } catch (err) {
+                console.error("Stream parse error:", err);
+            }
+        };
+
+        evtSource.onerror = function(err) {
+            console.error("EventSource failed:", err);
+            evtSource.close();
+            if (text) {
+                text.innerText = "Connection lost. Refreshing page...";
+            }
+            setTimeout(() => window.location.reload(), 2000);
+        };
     }
     // --- NEW Import Handler (replaces setupImport) ---
         function handleImportSubmit(fileInput, entityName) {
