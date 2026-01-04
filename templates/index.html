@@ -60,7 +60,11 @@
     td[data-column-key="Object"] {
         width: 120px;
         min-width: 120px;
+        max-width: 120px; /* Enforce rigid width */
         text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     th[data-column-key="Common Name"],
     td[data-column-key="Common Name"] {
@@ -1212,7 +1216,10 @@ async function fetchData(isBackground = false) {
                     td.textContent = displayValue;
                 }
 
-                if (columnKey === 'Common Name' && rawValue) td.setAttribute('title', String(rawValue));
+                // Add tooltip for both Object and Common Name so truncated text can be read
+                if ((columnKey === 'Common Name' || columnKey === 'Object') && rawValue) {
+                    td.setAttribute('title', String(rawValue));
+                }
 
                 // Immediate Visibility Check (Prevents flash of hidden columns during loading)
                 const isVisible = (config.type === 'always-visible' || config.type === activeTab);
