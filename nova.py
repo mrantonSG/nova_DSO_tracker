@@ -4661,50 +4661,28 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
             horizon_mask = None
 
             # --- 3. PREPARE VECTORS ---
-            enabled_objects = [o for o in user_config.get("objects", []) if o.get("enabled", True) and o.get("Object")]
+        enabled_objects = [o for o in user_config.get("objects", []) if o.get("enabled", True) and o.get("Object")]
 
-            if not enabled_objects:
-                return
+        if not enabled_objects:
+            return
 
-            # Extract Arrays
-            ra_list = []
-            dec_list = []
-            obj_names = []
+        # Extract Arrays
+        ra_list = []
+        dec_list = []
+        obj_names = []
 
-            # Check user preference for optimization
-            calc_invisible = user_config.get("calc_invisible", False)
+        # Check user preference for optimization
+        calc_invisible = user_config.get("calc_invisible", False)
 
-            for obj in enabled_objects:
-                try:
-                    r = float(obj.get("RA", 0))
-                    d = float(obj.get("DEC", 0))
-                    obj_name = obj.get("Object")
+        for obj in enabled_objects:
+            try:
+                r = float(obj.get("RA", 0))
+                d = float(obj.get("DEC", 0))
+                obj_name = obj.get("Object")
 
-                    # --- GEOMETRIC PRE-FILTER (Smart Skip) ---
-                    # Only run this check if the user has NOT disabled the optimization
-                    if not calc_invisible:
-                        # Calculate Max Theoretical Altitude (Culmination)
-                        max_culm = 90.0 - abs(lat - d)
-
-                        if max_culm < altitude_threshold:
-                            # Object never rises above threshold. Cache immediately as impossible.
-                            cache_key = f"{obj_name.lower()}_{local_date}_{location_name.lower()}"
-                            nightly_curves_cache[cache_key] = {
-                                "times_local": [],
-                                "altitudes": [],
-                                "azimuths": [],
-                                "transit_time": "N/A",
-                                "obs_duration_minutes": 0,
-                                "max_altitude": round(max_culm, 1),
-                                "alt_11pm": "N/A",
-                                "az_11pm": "N/A",
-                                "is_obstructed_at_11pm": False,
-                                "is_geometrically_impossible": True
-                            }
-                            continue  # Skip adding to vectors
-
-                    # If visible (or optimization disabled), add to lists for heavy calculation
-                    ra_list.append(r)
+                # --- GEOMETRIC PRE-FILTER (Smart Skip) ---
+                if not calc_invisible:
+                    max_culm = 90.0 - abs(lat - d)
 
                     if max_culm < altitude_threshold:
                         # Object never rises above threshold. Cache immediately as impossible.
@@ -4719,19 +4697,19 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
                             "alt_11pm": "N/A",
                             "az_11pm": "N/A",
                             "is_obstructed_at_11pm": False,
-                            "is_geometrically_impossible": True  # <--- New Flag
+                            "is_geometrically_impossible": True
                         }
                         continue  # Skip adding to vectors
 
-                    # If visible, add to lists for heavy calculation
-                    ra_list.append(r)
-                    dec_list.append(d)
-                    obj_names.append(obj_name)
-                except (ValueError, TypeError):
-                    continue
+                # If visible, add to lists for heavy calculation
+                ra_list.append(r)
+                dec_list.append(d)
+                obj_names.append(obj_name)
+            except (ValueError, TypeError):
+                continue
 
-            if not ra_list:
-                return
+        if not ra_list:
+            return
 
         # --- 4. VECTORIZED CALCULATION ---
         # A. Time Grid (Once)
