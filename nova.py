@@ -7939,7 +7939,12 @@ def stream_fetch_details():
         finally:
             db.close()
 
-    return Response(generate(), mimetype='text/event-stream')
+    # --- FIX FOR NGINX BUFFERING ---
+    response = Response(generate(), mimetype='text/event-stream')
+    response.headers["X-Accel-Buffering"] = "no"  # Disable Nginx buffering
+    response.headers["Cache-Control"] = "no-cache" # Prevent browser caching
+    response.headers["Connection"] = "keep-alive" # Keep connection open
+    return response
 
 @app.route('/fetch_all_details', methods=['POST'])
 @login_required
