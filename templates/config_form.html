@@ -762,7 +762,7 @@
 
 {% block body %}
 
-    <div id="flash-message-container"
+    <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

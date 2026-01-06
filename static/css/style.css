@@ -2,3 +2,23 @@
 body {
   font-family: 'Roboto', system-ui, -apple-system, sans-serif;
 }
+
+/* FORCE floating behavior on the specific yellow alert banner */
+.alert, .alert-warning {
+  position: fixed !important;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  width: auto;
+  min-width: 400px;
+  max-width: 80%;
+  border-radius: 5px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  margin: 0;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
