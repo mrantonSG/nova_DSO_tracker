@@ -909,26 +909,43 @@
 </style>
 {% endblock %}
 
-{% block body %}
+{% block page_title %}
+    <h2>
+        {{ alt_name | default(object_name, True) }}
+        <span class="subtitle">({{ object_name }})</span>
+    </h2>
+{% endblock %}
 
-<div class="top-info-grid">
-    <div class="info-button-column">
-        <button class="inline-button" onclick='window.top.location.href="{{ url_for("index") }}"'>Back to Tracker</button>
+{% block header_actions %}
+    <button class="action-button" style="background-color: #7f8c8d;" onclick="window.location.href='{{ url_for('index') }}'">← Back to Dashboard</button>
+{% endblock %}
+
+{% block header_content %}
+<div class="status-strip">
+    <div class="status-item">
+        <span class="status-label">Location</span>
+        <span class="status-value" id="location-display">{{ header_location_name }}</span>
     </div>
-    <div class="info-details-column">
-        <div class="object-title-block-main">
-            <span class="object-common-name">{{ alt_name | default(object_name, True) }}</span>
-            <span class="object-id-name">({{ object_name }})</span>
-        </div>
-        <div class="secondary-info-line-main">
-            <p><small>Location:</small> <span id="location-display">{{ header_location_name }}</span></p>
-            <p><small>Date (Graph):</small> <span id="date-display">{{ header_date_display }}</span></p>
-            <p><small>Moon:</small> <span id="phase-display">{{ header_moon_phase }}%</span> / <span id="separation-display" style="font-weight: bold;">{{ header_moon_separation }}° sep</span></p>
-            <p><small>Astro Dusk:</small> <span id="dusk-display">{{ header_astro_dusk }}</span></p>
-            <p><small>Astro Dawn:</small> <span id="dawn-display">{{ header_astro_dawn }}</span></p>
-        </div>
+    <div class="status-item">
+        <span class="status-label">Graph Date</span>
+        <span class="status-value" id="date-display">{{ header_date_display }}</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Moon Phase</span>
+        <span class="status-value" id="phase-display">{{ header_moon_phase }}%</span>
+    </div>
+     <div class="status-item">
+        <span class="status-label">Moon Sep.</span>
+        <span class="status-value" id="separation-display">{{ header_moon_separation }}°</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Dark Window</span>
+        <span class="status-value"><span id="dusk-display">{{ header_astro_dusk }}</span> - <span id="dawn-display">{{ header_astro_dawn }}</span></span>
     </div>
 </div>
+{% endblock %}
+
+{% block body %}
 <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
