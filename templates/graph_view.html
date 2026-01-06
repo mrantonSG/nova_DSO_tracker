@@ -1207,10 +1207,12 @@
                     <option value="P/allWISE/color">AllWISE (color)</option>
                     <option value="P/2MASS/color">2MASS (color)</option>
 
-                    <!-- NSNS DR0.1 – use the HiPS service URLs, not the IVOA IDs -->
-                    <option value="https://www.simg.de/nebulae3/dr0_1/hbr8">NSNS DR0.1 (Ha+Cont.)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_1/halpha8">NSNS DR0.1 (H-alpha)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_1/tc8">NSNS DR0.1 (True Color)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/ohs8">NSNS DR0.2 (OHS)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/hbr8">NSNS DR0.2 (HBR)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/halpha8">NSNS DR0.2 (H-alpha)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/oiii8">NSNS DR0.2 ([OIII])</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/sii8">NSNS DR0.2 ([SII])</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/rgb8">NSNS DR0.2 (True Color)</option>
 
                     <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
                     <option value="P/PanSTARRS/DR1/color-z-zg-g">Pan-STARRS (color)</option>
@@ -1223,10 +1225,12 @@
                     <option value="P/DSS2/red">DSS2 (red)</option>
                     <option value="P/DSS2/blue">DSS2 (blue)</option>
 
-                    <!-- NSNS DR0.1 – correct HiPS service URLs -->
-                    <option value="https://www.simg.de/nebulae3/dr0_1/hbr8">NSNS DR0.1 (Ha+Cont.)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_1/halpha8">NSNS DR0.1 (H-alpha)</option>
-                    <option value="https://www.simg.de/nebulae3/dr0_1/tc8">NSNS DR0.1 (True Color)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/ohs8">NSNS DR0.2 (OHS)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/hbr8">NSNS DR0.2 (HBR)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/halpha8">NSNS DR0.2 (H-alpha)</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/oiii8">NSNS DR0.2 ([OIII])</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/sii8">NSNS DR0.2 ([SII])</option>
+                    <option value="https://www.simg.de/nebulae3/dr0_2/rgb8">NSNS DR0.2 (True Color)</option>
 
                     <option value="P/2MASS/color">2MASS (color)</option>
                     <option value="P/allWISE/color">WISE (color)</option>
@@ -1310,7 +1314,7 @@
         allObjects: {{ framing_objects | tojson }}
     };
 </script>
-<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v1"></script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v2"></script>
 <script>
     // --- Patch: Update Separation on Date Change ---
     document.addEventListener("DOMContentLoaded", function() {

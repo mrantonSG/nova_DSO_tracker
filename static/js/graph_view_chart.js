@@ -806,7 +806,6 @@ function openFramingAssistant(optionalQueryString) {
         const cols = document.getElementById('mosaic-cols')?.value || 1;
     const rows = document.getElementById('mosaic-rows')?.value || 1;
     const overlap = document.getElementById('mosaic-overlap')?.value || 10;
-
     const qp = new URLSearchParams();
     if (rig) qp.set('rig', rig);
     if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
@@ -830,15 +829,40 @@ function openFramingAssistant(optionalQueryString) {
     try {
         // --- FIX: Use optionalQueryString if provided, otherwise fallback to location.search ---
         const q = new URLSearchParams(optionalQueryString || location.search);
-        // -------------------------------------------------------------------------------------
 
-        const rig = q.get('rig'), ra = parseFloat(q.get('ra')), dec = parseFloat(q.get('dec')), rot = parseFloat(q.get('rot')), surv = q.get('survey'), blend = q.get('blend'), blendOp = parseFloat(q.get('blend_op'));
+        // --- 1. HANDLE LEGACY MAPPING (Mutable Variables) ---
+        const legacyMapping = {
+            "https://www.simg.de/nebulae3/dr0_1/hbr8": "https://www.simg.de/nebulae3/dr0_2/hbr8",
+            "https://www.simg.de/nebulae3/dr0_1/halpha8": "https://www.simg.de/nebulae3/dr0_2/halpha8",
+            "https://www.simg.de/nebulae3/dr0_1/tc8": "https://www.simg.de/nebulae3/dr0_2/rgb8"
+        };
+
+        let surv = q.get('survey');
+        if (legacyMapping[surv]) {
+            console.log("Upgrading legacy survey URL:", surv);
+            surv = legacyMapping[surv];
+        }
+
+        let blend = q.get('blend');
+        if (legacyMapping[blend]) {
+            blend = legacyMapping[blend];
+        }
+
+        // --- 2. HANDLE OTHER PARAMS (Const Variables) ---
+        // REMOVED 'surv' and 'blend' from this list to avoid overwriting the fix above
+        const rig = q.get('rig'),
+              ra = parseFloat(q.get('ra')),
+              dec = parseFloat(q.get('dec')),
+              rot = parseFloat(q.get('rot')),
+              blendOp = parseFloat(q.get('blend_op'));
 
         // Restore Mosaic
         if (q.has('m_cols')) document.getElementById('mosaic-cols').value = q.get('m_cols');
         if (q.has('m_rows')) document.getElementById('mosaic-rows').value = q.get('m_rows');
         if (q.has('m_ov')) document.getElementById('mosaic-overlap').value = q.get('m_ov');
+
         if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
+
         if (!Number.isNaN(rot)) {
             const rotInput = document.getElementById('framing-rotation');
             // Normalize to 0-360 positive
