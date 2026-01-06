@@ -217,7 +217,7 @@
         border-bottom: 2px solid #ccc;
     }
     .tab-button {
-        padding: 10px 20px;
+        padding: 8px 20px;
         cursor: pointer;
         border: 1px solid #ccc;
         border-bottom: none;
@@ -225,13 +225,22 @@
         margin-right: 5px;
         border-radius: 5px 5px 0 0;
         font-size: 16px;
+        color: #666;
+        margin-bottom: 0;
+    }
+    .tab-button:hover {
+        background-color: #dcdcdc;
     }
     .tab-button.active {
+        padding: 12px 20px;
         background-color: #fff;
         border-color: #ccc;
         border-bottom: 2px solid #fff;
         position: relative;
-        top: 1px;
+        top: 2px;
+        font-weight: bold;
+        color: #333;
+        z-index: 1;
     }
     .tab-content {
       display: none;
@@ -251,6 +260,7 @@
     }
     .tabs-left {
         display: flex;
+        align-items: flex-end; /* Ensures tabs grow upwards from the bottom line */
     }
     .tabs-right {
         display: flex;

@@ -19,11 +19,11 @@
         display: flex;
         margin-bottom: 15px;
         border-bottom: 2px solid #ccc;
-        align-items: center; /* This vertically centers all items */
+        align-items: flex-end; /* Align tabs to the bottom */
     }
 
     .tab-button {
-        padding: 10px 20px;
+        padding: 8px 20px; /* Reduced padding for inactive tabs */
         cursor: pointer;
         border: 1px solid #ccc;
         border-bottom: none;
@@ -31,14 +31,29 @@
         margin-right: 5px;
         border-radius: 5px 5px 0 0;
         font-size: 16px;
+        color: #666;
+        margin-bottom: 0;
+    }
+
+    .tab-button:hover {
+        background-color: #dcdcdc;
     }
 
     .tab-button.active {
+        padding: 12px 20px; /* Increased padding makes active tab taller */
         background-color: #fff;
         border-color: #ccc;
-        border-bottom: 2px solid #fff;
+        border-bottom: 2px solid #fff; /* Blends with container border */
         position: relative;
-        top: 1px;
+        top: 2px; /* Push down to cover the line */
+        font-weight: bold;
+        color: #333;
+        z-index: 1;
+    }
+
+    /* Adjust right-side controls to align with text, not bottom border */
+    #saved-views-container, #remove-filters-container, .help-badge {
+        margin-bottom: 5px;
     }
 
     #journal-data-table {
