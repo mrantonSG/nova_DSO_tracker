@@ -678,6 +678,8 @@
                 <form action="{{ url_for('logout') }}" method="post" style="display:inline; margin-left:5px;">
                     <button type="submit" style="background:none; border:none; color:#83b4c5; cursor:pointer; padding:0; text-decoration:underline; font-size:12px;">Logout</button>
                 </form>
+            {% elif SINGLE_USER_MODE %}
+                &nbsp;
             {% endif %}
           </div>
           <button id="theme-toggle-btn" class="action-button" onclick="toggleTheme()" title="Toggle Dark/Light Mode">Night View</button>
