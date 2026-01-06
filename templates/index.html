@@ -17,22 +17,33 @@
 
     .tab-container {
         display: flex;
+        flex-wrap: nowrap;     /* Prevent wrapping to maintain the tab bar layout */
+        overflow-x: auto;      /* Enable horizontal scrolling if space runs out */
         margin-bottom: 15px;
         border-bottom: 2px solid #ccc;
         align-items: flex-end; /* Align tabs to the bottom */
+        gap: 5px;              /* Consistent spacing between all items */
+    }
+
+    /* Optional: Hide scrollbar for a cleaner look on Mac/Chrome */
+    .tab-container::-webkit-scrollbar {
+        height: 0px;
+        background: transparent;
     }
 
     .tab-button {
-        padding: 8px 20px; /* Reduced padding for inactive tabs */
+        padding: 8px 20px;
         cursor: pointer;
         border: 1px solid #ccc;
         border-bottom: none;
         background-color: #e9e9e9;
-        margin-right: 5px;
+        /* margin-right removed in favor of container gap */
         border-radius: 5px 5px 0 0;
         font-size: 16px;
         color: #666;
         margin-bottom: 0;
+        white-space: nowrap; /* Prevent text from wrapping */
+        flex-shrink: 0;      /* Prevent tabs from being squeezed */
     }
 
     .tab-button:hover {
@@ -359,6 +370,9 @@
     #remove-filters-container {
       margin-left: auto;
       align-self: center;
+      flex-shrink: 0; /* Prevent button from being squeezed */
+      margin-bottom: 5px;
+      padding-right: 2px;
     }
 
     #remove-filters-btn {
@@ -414,10 +428,12 @@
 
     /* --- ADDED FOR SAVED VIEWS --- */
     #saved-views-container {
-        margin-left: 10px; /* Space from help icon */
+        margin-left: 10px;
         display: flex;
         align-items: center;
         gap: 5px;
+        flex-shrink: 0; /* Prevent controls from being squeezed */
+        margin-bottom: 5px;
     }
     #saved-views-container button {
         padding: 4px 10px;    /* Match user-info button */
