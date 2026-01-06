@@ -551,6 +551,88 @@
         .action-button:hover {
             background-color: #6795a4;
         }
+
+        /* --- NEW 2-ROW HEADER LAYOUT --- */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            background-color: #fff; /* Ensure solid background */
+        }
+
+        /* Left Side: Brand + Page Title */
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        /* Added 'gap: 6px' to fix spacing between Nova, DSO Tracker, and Version */
+        .brand-group h1 { font-size: 22px; margin: 0; color: #333; letter-spacing: -0.5px; line-height: 1; display: flex; align-items: baseline; gap: 6px; }
+        .brand-group h1 span { color: #83b4c5; }
+        .brand-group h1 small { color: #aaa; font-size: 11px; font-weight: normal; margin-left: 8px; letter-spacing: 0; }
+
+        /* Vertical Divider between Brand and Page Title */
+        .header-divider { height: 24px; width: 1px; background-color: #e0e0e0; }
+
+        /* The Page Title injected by other pages */
+        .injected-title h2 { margin: 0; font-size: 20px; color: #2c3e50; font-weight: 700; }
+        .injected-title .subtitle { font-size: 14px; color: #7f8c8d; font-weight: 400; margin-left: 8px; }
+
+        /* Right Side: Actions + Global Controls */
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .user-menu { font-size: 13px; color: #555; border-right: 1px solid #ddd; padding-right: 15px; }
+
+        /* Status Strip (Row 2) remains similar but tighter */
+        .status-strip {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .status-item { display: flex; flex-direction: column; line-height: 1.2; }
+        .status-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 700; margin-bottom: 2px; }
+        .status-value { font-weight: 500; color: #333; font-size: 14px; }
+        .status-strip select { font-size: 14px; border: none; background: transparent; font-weight: 600; color: #333; cursor: pointer; padding: 0;}
+
+        /* Dark Mode Updates */
+        html.dark-mode .app-header { background-color: #121212; border-bottom-color: #333; }
+        html.dark-mode .brand-group h1 { color: #fff; }
+        html.dark-mode .header-divider { background-color: #444; }
+        html.dark-mode .injected-title h2 { color: #e0e0e0; }
+        html.dark-mode .status-strip { background-color: #1e1e1e; border-color: #333; }
+        html.dark-mode .status-value, html.dark-mode .status-strip select { color: #ddd; }
+        html.dark-mode .status-strip select option { background-color: #1e1e1e; }
+        .brand-group h1 span { color: #83b4c5; }
+        .brand-group small { color: #888; font-size: 12px; font-weight: normal; margin-left: 10px;}
+
+        .header-controls { display: flex; align-items: center; gap: 15px; }
+        .user-menu { font-size: 13px; color: #555; text-align: right; border-right: 1px solid #ddd; padding-right: 15px;}
+
+        /* Row 2 & 3 Containers */
+        .action-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; }
+        .page-title { margin: 0; font-size: 22px; color: #2c3e50; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+        .page-subtitle { font-size: 16px; color: #7f8c8d; font-weight: 400; }
+
+        .status-strip { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 15px; display: flex; align-items: center; gap: 30px; margin-bottom: 25px; font-size: 14px; flex-wrap: wrap; }
+        .status-item { display: flex; flex-direction: column; line-height: 1.3; }
+        .status-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 600; }
+        .status-value { font-weight: 500; color: #333; font-size: 15px; }
+        .status-strip select { background: transparent; border: none; font-weight: bold; color: #333; font-size: 15px; padding: 0; cursor: pointer; }
+        .status-strip select:focus { outline: none; }
+
+        /* Dark Mode Overrides */
+        html.dark-mode .app-header { border-bottom-color: #333; }
+        html.dark-mode .brand-group h1 { color: #fff; }
+        html.dark-mode .page-title { color: #fff; }
+        html.dark-mode .page-subtitle { color: #aaa; }
+        html.dark-mode .status-strip { background-color: #2c2c2c; border-color: #444; }
+        html.dark-mode .status-value { color: #eee; }
+        html.dark-mode .status-strip select { color: #eee; }
+        html.dark-mode .status-strip select option { background-color: #2c2c2c; }
     </style>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -569,16 +651,41 @@
     {% endif %}
     {% endblock %}
 
-    <div class="header-container">
-      <div class="header-title-group">
-          <h1>Nova</h1>
-          <h3>DSO Tracker V{{ version }}<span id="update-notification"></span></h3>
+    <div class="app-header">
+      <div class="header-left">
+          <div class="brand-group">
+              <h1>
+                  <span>Nova</span> DSO Tracker
+                  <small>v{{ version }} <span id="update-notification"></span></small>
+              </h1>
+          </div>
+
+          <div class="header-divider"></div>
+
+          <div class="injected-title">
+              {% block page_title %}{% endblock %}
+          </div>
       </div>
-      <div class="theme-controls">
+
+      <div class="header-right">
+          {% block header_actions %}{% endblock %}
+
+          <div class="user-menu">
+            {% if is_guest %}
+                Guest Mode
+            {% elif not SINGLE_USER_MODE and current_user.is_authenticated %}
+                {{ current_user.username }}
+                <form action="{{ url_for('logout') }}" method="post" style="display:inline; margin-left:5px;">
+                    <button type="submit" style="background:none; border:none; color:#83b4c5; cursor:pointer; padding:0; text-decoration:underline; font-size:12px;">Logout</button>
+                </form>
+            {% endif %}
+          </div>
           <button id="theme-toggle-btn" class="action-button" onclick="toggleTheme()" title="Toggle Dark/Light Mode">Night View</button>
           <button id="red-mode-btn" class="action-button" onclick="toggleRedMode()" title="Toggle Red/Night Vision Mode">Red View</button>
       </div>
     </div>
+
+    {% block header_content %}{% endblock %}
 
     {% block body %}{% endblock %}
 

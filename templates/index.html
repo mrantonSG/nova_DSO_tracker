@@ -2483,9 +2483,43 @@ function populateJournalTable() {
     // --- END OF REPLACE ---
     </script>
 {% endblock %}
-</head>
-<body> {% block body %}
 
+{% block page_title %}
+    <h2>Dashboard</h2>
+{% endblock %}
+
+{% block header_actions %}
+    {% if SINGLE_USER_MODE or not is_guest %}
+       <button class="action-button" onclick="window.location.href='{{ url_for('config_form') }}'">Configuration</button>
+    {% endif %}
+{% endblock %}
+
+{% block header_content %}
+<div class="status-strip">
+    <div class="status-item" style="min-width: 150px;">
+        <span class="status-label">Location</span>
+        <select id="location-select" onchange="setLocation()"></select>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Local Time</span>
+        <span class="status-value"><span id="date"></span> <span id="time" style="margin-left:5px;"></span></span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Moon</span>
+        <span class="status-value" id="phase">--%</span>
+    </div>
+    <div class="status-item">
+        <span class="status-label">Astr. Dusk / Dawn</span>
+        <span class="status-value"><span id="dusk">--:--</span> <span style="color:#aaa; margin:0 5px;">|</span> <span id="dawn">--:--</span></span>
+    </div>
+    <div class="status-item" style="margin-left: auto;">
+        <span class="status-label">Update</span>
+        <span class="status-value" id="next-update-timer" style="color:#83b4c5;">60s</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block body %}
   <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
       {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -2497,53 +2531,7 @@ function populateJournalTable() {
           {% endif %}
       {% endwith %}
   </div>
-  <div class="info-bar-wrapper">
-      <div class="user-info">
-        {% if is_guest %}
-          Mode: <strong>Guest</strong> —
-          <button onclick="location.href='{{ url_for('login') }}'">
-            Log in
-          </button>
-          for full access.
-        {% elif SINGLE_USER_MODE %}
-          Mode: <strong>Single User</strong>
-        {% else %}
-          Mode: <strong>Multi User</strong> — Logged in as <strong>{{ current_user.username }}</strong>
-            <form action="{{ url_for('logout') }}" method="post" style="display: inline;">
-              <button type="submit">
-                Log Out
-              </button>
-            </form>
-        {% endif %}
-      </div>
-      <div class="info-bar-container">
-        {% if SINGLE_USER_MODE or not is_guest %}
-            <div>
-                <button type="button" id="back-button"
-                        onclick="window.location.href='{{ url_for('config_form') }}'">
-                  Configuration
-                </button>
-            </div>
-        {% endif %}
-        <div class="info-bar-location-datetime-group">
-            <p style="margin:0; display:flex; align-items:center; gap: 5px;">
-                <small>Location:</small>
-                <span>
-                  <select id="location-select" class="styled-select" onchange="setLocation()">
-                    </select>
-                </span>
-            </p>
-            <div class="info-values">
-                <p><small>Date:</small> <span id="date"></span></p>
-                <p><small>Time:</small> <span id="time"></span></p>
-                <p><small>Moon Illumination:</small> <span id="phase"></span></p>
-                <p><small>Astr. Dusk:</small> <span id="dusk"></span></p>
-                <p><small>Astr. Dawn:</small> <span id="dawn"></span></p>
-                <p><small>Next Update:</small> <span id="next-update-timer" style="font-weight:normal; font-size:14px; color:#555;">in 60s</span></p>
-            </div>
-        </div>
-      </div>
-  </div>
+
 
 <div class="tab-container">
     <button class="tab-button active" data-tab="position">Position</button>
