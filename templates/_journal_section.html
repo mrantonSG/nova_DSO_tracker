@@ -180,7 +180,7 @@
                         >
                             {% if group.is_project %}{% set project_total_h = (group.total_integration_time / 60) | round(1) %}
                                 Project: {{ group.project_name }}
-                                {% if project_total_h > 0 %}<span style="float: right; font-weight: normal; color: #555;">Total: {{ project_total_h }}h</span>{% endif %}
+                                {% if project_total_h > 0 %}<span style="font-weight: normal; color: #777; font-size: 0.9em; margin-left: 8px;">(Total: {{ project_total_h }}h)</span>{% endif %}
                             {% else %}{{ group.project_name }}{% endif %}
                         </th>
                     </tr>
