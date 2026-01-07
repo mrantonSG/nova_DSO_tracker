@@ -12607,6 +12607,7 @@ def reset_guest_from_template_command():
     finally:
         db.close()
 
+
 @app.route('/journal/download_csv/<string:item_type>/<string:item_id>')
 @login_required
 def download_csv(item_type, item_id):
@@ -12615,6 +12616,7 @@ def download_csv(item_type, item_id):
         user_id = g.db_user.id
         sessions_to_export = []
         filename = "export.csv"
+        project_framing_clean = ""
 
         if item_type == 'session':
             session = db.query(JournalSession).filter_by(id=item_id, user_id=user_id).one_or_none()
@@ -12629,6 +12631,9 @@ def download_csv(item_type, item_id):
             if not project:
                 flash("Project not found.", "error")
                 return redirect(url_for('index'))
+
+            project_framing_clean = bleach.clean(project.framing_notes or "", tags=[], strip=True).replace("\n", " | ")
+
             sessions_to_export = db.query(JournalSession).filter_by(project_id=item_id, user_id=user_id).order_by(
                 JournalSession.date_utc.asc()).all()
             filename = f"Project_{project.name.replace(' ', '_')}_Sessions.csv"
@@ -12642,7 +12647,7 @@ def download_csv(item_type, item_id):
             "Telescope", "Camera", "Filter",
             "Seeing", "SQM", "Moon %",
             "Subs", "Exposure (s)", "Gain", "Offset", "Temp (C)",
-            "Project ID", "Notes (Stripped)"
+            "Project ID", "Project Framing Notes", "Notes (Stripped)"
         ]
 
         # Generate CSV in memory
@@ -12661,7 +12666,7 @@ def download_csv(item_type, item_id):
                 s.seeing_observed_fwhm, s.sky_sqm_observed, s.moon_illumination_session,
                 s.number_of_subs_light, s.exposure_time_per_sub_sec, s.gain_setting, s.offset_setting,
                 s.camera_temp_actual_avg_c,
-                s.project_id, notes_clean
+                s.project_id, project_framing_clean, notes_clean
             ]
             cw.writerow(row)
 

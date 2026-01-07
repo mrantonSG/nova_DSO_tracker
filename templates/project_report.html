@@ -79,10 +79,18 @@
         </div>
         {% endif %}
 
+
         {% if project.description_notes %}
         <div class="report-block">
             <div class="section-header">Project Story</div>
             <div class="notes-content">{{ project.description_notes | safe }}</div>
+        </div>
+        {% endif %}
+
+        {% if project.framing_notes %}
+        <div class="report-block">
+            <div class="section-header">Framing & Composition</div>
+            <div class="notes-content">{{ project.framing_notes | safe }}</div>
         </div>
         {% endif %}
 
