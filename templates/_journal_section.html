@@ -645,7 +645,19 @@
                     <div class="form-group"><label>Bias / Dark Flats:</label><input type="text" name="bias_darkflats_strategy" placeholder="e.g., Library match"></div>
                     <div class="form-section-title">Outcome & Reflections</div>
                     <div class="form-group"><label>Session Rating (1-5 ★):</label><input type="number" min="1" max="5" name="session_rating_subjective"></div>
-                    <div class="form-group"><label>General Notes, Problems, Learnings:</label><input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings"><trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: #fff;"></trix-editor></div>
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                            <label style="margin-bottom:0;">General Notes, Problems, Learnings:</label>
+                            <div>
+                                <input type="file" id="asiair_log_input" style="display:none;" accept=".txt,.log">
+                                <button type="button" class="inline-button" style="font-size: 12px; padding: 4px 8px; background-color: #6f42c1;" onclick="document.getElementById('asiair_log_input').click()">
+                                    📂 Import ASIAIR Log
+                                </button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
+                        <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: #fff;"></trix-editor>
+                    </div>
                     {% if selected_session_data and selected_session_data.session_image_file %}<div class="form-group full-width"><label>Current Image:</label><div style="display: flex; align-items: center; gap: 15px;"><span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span><label style="color: #c0392b; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"><input type="checkbox" name="delete_session_image" value="1"> Delete Image</label></div></div>{% endif %}
                     <div class="form-group full-width"><label for="session_image">Upload New or Replace Image (optional, max 5MB)</label><input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif"></div>
                 </div>
@@ -1286,6 +1298,56 @@
     }
 
 // --- New function for Project Detail Tabs ---
+    // --- ASIAIR LOG IMPORT HANDLER ---
+    document.addEventListener('DOMContentLoaded', () => {
+        const logInput = document.getElementById('asiair_log_input');
+        if (logInput) {
+            logInput.addEventListener('change', async function() {
+                if (this.files.length === 0) return;
+
+                const formData = new FormData();
+                formData.append('file', this.files[0]);
+
+                // Show loading state on button
+                const btn = this.nextElementSibling;
+                const originalText = btn.textContent;
+                btn.textContent = "Parsing...";
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/parse_asiair_log', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) throw new Error("Parse failed");
+
+                    const data = await response.json();
+
+                    if (data.status === 'success') {
+                        const editor = document.getElementById('journal-notes-editor');
+                        if (editor && editor.editor) {
+                            // Insert content at the beginning
+                            editor.editor.setSelectedRange([0, 0]);
+                            editor.editor.insertHTML(data.html);
+                            // Add a break after
+                            editor.editor.insertLineBreak();
+                        }
+                    } else {
+                        alert("Error parsing log: " + data.message);
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert("Failed to upload/parse log file.");
+                } finally {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    this.value = ''; // Reset input
+                }
+            });
+        }
+    });
+
     function showProjectTab(tabName) {
         // 1. Hide all content divs
         document.querySelectorAll('.project-tab-content').forEach(el => el.style.display = 'none');
