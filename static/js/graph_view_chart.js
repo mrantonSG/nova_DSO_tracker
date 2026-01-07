@@ -1356,7 +1356,10 @@ function updateImageAdjustments() {
     };
 
     // 1. Apply settings to the main base survey layer
-    applySettings(baseSurvey);
+    if (aladin && typeof aladin.getBaseImageLayer === 'function') {
+        const currentBase = aladin.getBaseImageLayer();
+        applySettings(currentBase);
+    }
 
     // 2. Apply the *same* settings to the blend overlay layer, if it exists
     if (aladin && typeof aladin.getOverlayImageLayer === 'function') {
@@ -1365,7 +1368,6 @@ function updateImageAdjustments() {
             applySettings(blendLayer);
         } catch (e) {
             // This might fail if the layer hasn't been created, which is fine
-            // console.warn("Could not apply settings to blend layer (yet).", e);
         }
     }
 }
