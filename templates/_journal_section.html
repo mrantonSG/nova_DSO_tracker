@@ -748,8 +748,29 @@
                     /* Prevent blocks from breaking internally */
                     .report-block, table, .info-box, .session-image-container { break-inside: avoid; page-break-inside: avoid; }
 
-                    /* Force Sessions to start on new pages */
-                    .session-appendix-wrapper { break-before: page; page-break-before: always; display: block; }
+                    /* Force Sessions to start on new pages, but reduce top margin */
+                    .session-appendix-wrapper {
+                        break-before: page;
+                        page-break-before: always;
+                        display: block;
+                        margin-top: 0 !important;
+                    }
+
+                    /* Keep the Title with the immediate following content (the summary table) */
+                    .session-appendix-wrapper h3 {
+                        break-after: avoid;
+                        page-break-after: avoid;
+                        margin-bottom: 10px;
+                    }
+
+                    /* Constrain images in the appendix to fit on the same page as the summary */
+                    .session-appendix-wrapper img {
+                        max-height: 350px !important;
+                        width: auto !important;
+                        object-fit: contain;
+                        display: block;
+                        margin: 10px auto;
+                    }
 
                     /* Hide non-print elements */
                     .footer { display: none; }
