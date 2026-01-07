@@ -3492,7 +3492,234 @@ def get_imaging_criteria():
     except Exception:
         return dict(defaults)
 
+# --- ASIAIR Log Parsing Logic ---
+def _parse_asiair_log_content(content):
+    """Parses ASIAIR log content into a formatted HTML report."""
+    lines = content.splitlines()
+    events = []
 
+    # Metrics
+    start_dt = None
+    end_dt = None
+    target_name = "Unknown Target"
+    subs_count = 0
+    total_exposure_sec = 0
+
+    # Dithering
+    dither_starts = {}  # map index to time
+    dither_durations = []
+    current_dither_start = None
+
+    # Environmental
+    temps = []
+    focus_moves = []  # (temp, pos)
+    star_counts = []
+
+    # Errors & Key Events
+    timeline_events = []  # (dt, icon, text)
+
+    # Regex Patterns
+    # 2026/01/04 18:05:38
+    re_ts = re.compile(r'^(\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2})')
+
+    for i, line in enumerate(lines):
+        line = line.strip()
+        if not line: continue
+
+        match = re_ts.match(line)
+        if not match: continue
+
+        dt_str = match.group(1)
+        try:
+            dt = datetime.strptime(dt_str, '%Y/%m/%d %H:%M:%S')
+        except ValueError:
+            continue
+
+        if start_dt is None: start_dt = dt
+        end_dt = dt
+
+        msg = line[len(dt_str):].strip()
+
+        # --- Target / Session Start ---
+        if "[Autorun|Begin]" in msg:
+            # Format: [Autorun|Begin] TargetName Start
+            parts = msg.replace("[Autorun|Begin]", "").strip().split(" Start")
+            if parts: target_name = parts[0]
+            timeline_events.append((dt, "", "Session Start"))
+
+        elif "[Autorun|End]" in msg:
+            timeline_events.append((dt, "", "Session Ended"))
+
+        # --- Exposures ---
+        # Exposure 60.0s image 1#
+        if msg.startswith("Exposure"):
+            subs_count += 1
+            # Extract duration
+            dur_match = re.search(r'Exposure\s+([\d\.]+)s', msg)
+            if dur_match:
+                total_exposure_sec += float(dur_match.group(1))
+
+        # --- Dithering ---
+        if "[Guide] Dither" in msg and "Settle" not in msg:
+            current_dither_start = dt
+        elif "[Guide] Settle Done" in msg and current_dither_start:
+            dither_durations.append((dt - current_dither_start).total_seconds())
+            current_dither_start = None
+        elif "[Guide] Settle Timeout" in msg:
+            timeline_events.append((dt, "⚠️", "Guiding: Dither Settle Timeout"))
+            current_dither_start = None
+
+        # --- Temperature & AF ---
+        # Run AF when temperature changed 2 degrees, ... temperature -6.0℃
+        if "temperature" in msg and "℃" in msg:
+            temp_match = re.search(r'temperature\s+([-\d\.]+)℃', msg)
+            if temp_match:
+                temps.append(float(temp_match.group(1)))
+
+        if "[AutoFocus|Begin]" in msg:
+            # Try to grab temp from this line if possible, or just mark event
+            timeline_events.append((dt, "🔭", "Auto Focus Run"))
+
+        if "Auto focus succeeded, the focused position is" in msg:
+            pos_match = re.search(r'position is (\d+)', msg)
+            if pos_match:
+                pos = int(pos_match.group(1))
+                # associate with last known temp if recent
+                last_temp = temps[-1] if temps else None
+                if last_temp is not None:
+                    focus_moves.append((last_temp, pos))
+
+        # --- Meridian Flip ---
+        if "Meridian Flip" in msg and "Start" in msg:
+            timeline_events.append((dt, "🔄", "Meridian Flip: Sequence started"))
+
+        if "Meridian Flip" in msg and "failed" in msg:
+            # Extract attempt number if present
+            # 22:08:15 Meridian Flip 1# failed
+            # Count consecutive fails?
+            timeline_events.append((dt, "⛔", f"ERROR: {msg}"))
+
+        if "Meridian Flip succeeded" in msg:
+            timeline_events.append((dt, "✅", "Meridian Flip: Success"))
+
+        # --- Star Counts (Sky Quality Proxy) ---
+        # Solve succeeded: ... Star number = 2287
+        if "Solve succeeded" in msg and "Star number =" in msg:
+            star_match = re.search(r'Star number =\s*(\d+)', msg)
+            if star_match:
+                star_counts.append(int(star_match.group(1)))
+
+        # --- GoTo Home ---
+        if "Mount GoTo Home" in msg:
+            timeline_events.append((dt, "🏠", "GoTo Home (Session End)"))
+
+    # --- Calculations ---
+    if not start_dt or not end_dt:
+        return "<p>Error: Could not parse timestamps from log.</p>"
+
+    total_duration = (end_dt - start_dt).total_seconds()
+    imaging_duration = total_exposure_sec
+    duty_cycle = (imaging_duration / total_duration * 100) if total_duration > 0 else 0
+
+    total_h = int(total_duration // 3600)
+    total_m = int((total_duration % 3600) // 60)
+
+    img_h = int(imaging_duration // 3600)
+    img_m = int((imaging_duration % 3600) // 60)
+
+    # Dithering stats
+    total_dither_time = sum(dither_durations)
+    avg_dither = (total_dither_time / len(dither_durations)) if dither_durations else 0
+    dither_m = int(total_dither_time // 60)
+
+    # Temp Drift
+    start_temp = temps[0] if temps else 0
+    end_temp = temps[-1] if temps else 0
+    temp_icon = "📉" if end_temp < start_temp else "📈"
+
+    # Focus Shift
+    focus_summary = "N/A"
+    if len(focus_moves) >= 2:
+        steps_delta = abs(focus_moves[-1][1] - focus_moves[0][1])
+        temp_delta = abs(focus_moves[-1][0] - focus_moves[0][0])
+        steps_per_c = int(steps_delta / temp_delta) if temp_delta > 0 else 0
+        focus_summary = f"Moved {steps_delta} steps over {temp_delta:.1f}°C (~{steps_per_c} steps/°C)"
+
+    # Sky Quality
+    avg_stars = int(sum(star_counts) / len(star_counts)) if star_counts else 0
+
+    # --- HTML Generation ---
+    html = f"""
+    <h3>ASIAIR Session Analysis</h3>
+    <p><strong>Target:</strong> {target_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
+
+    <hr>
+
+    <h4>Efficiency Metrics</h4>
+    <ul>
+        <li><strong>Duty Cycle:</strong> {duty_cycle:.1f}% ({img_h}h {img_m}m Imaging / {total_h}h {total_m}m Total)</li>
+        <li><strong>Total Subs:</strong> {subs_count}</li>
+        <li><strong>Dithering:</strong> Average settle: {avg_dither:.1f}s. Total wasted: {dither_m} min.</li>
+    </ul>
+
+    <h4>Environmental Data</h4>
+    <ul>
+        <li><strong>Temp Drift:</strong> {start_temp}°C {temp_icon} {end_temp}°C</li>
+        <li><strong>Focus:</strong> {focus_summary}</li>
+        <li><strong>Sky Quality:</strong> Star detection avg: {avg_stars}</li>
+    </ul>
+
+    <h4>Key Events Timeline</h4>
+    <ul>
+    """
+
+    # Filter/Condense Timeline
+    # We don't want every single event, just "Key" ones.
+    # Logic: Start, End, Errors, Flips, large gaps?
+    # For now, print what we collected in timeline_events
+
+    # Simplify Flip Failures: collapse consecutive failures
+    collapsed_events = []
+    flip_fail_count = 0
+
+    for dt, icon, text in timeline_events:
+        if "Flip" in text and "failed" in text:
+            flip_fail_count += 1
+        else:
+            if flip_fail_count > 0:
+                collapsed_events.append((None, "⛔", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
+                flip_fail_count = 0
+            collapsed_events.append((dt, icon, text))
+
+    if flip_fail_count > 0:
+        collapsed_events.append((None, "⛔", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
+
+    for dt, icon, text in collapsed_events:
+        time_str = dt.strftime('%H:%M') if dt else "--:--"
+        html += f"<li>{time_str} - {icon} {text}</li>"
+
+    html += "</ul>"
+
+    return html
+
+@app.route('/api/parse_asiair_log', methods=['POST'])
+@login_required
+def api_parse_asiair_log():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file uploaded"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "Empty filename"}), 400
+
+    try:
+        content = file.read().decode('utf-8', errors='ignore')
+        report_html = _parse_asiair_log_content(content)
+        return jsonify({"status": "success", "html": report_html})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# --- Helper Function ---
 def convert_to_native_python(val):
     """Converts a NumPy data type to a native Python type if necessary."""
     if isinstance(val, np.generic):
