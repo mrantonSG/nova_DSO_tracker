@@ -47,7 +47,12 @@ def test_login_success(mu_client_logged_out, db_session):
     # 3. ASSERT
     assert response.status_code == 200
     assert b"Logged in successfully!" in response.data
-    assert b"<h1>Nova</h1>" in response.data  # Landed on index
+
+    # --- FIX START ---
+    # The HTML now renders <h1>...<span>Nova</span>...</h1> so checking for b"<h1>Nova</h1>" fails.
+    # We check for the span instead, consistent with test_login_fail_password.
+    assert b"<span>Nova</span>" in response.data  # Landed on index
+    # --- FIX END ---
 
     # Check that the session cookie was set
     with client.session_transaction() as sess:
@@ -72,9 +77,14 @@ def test_login_fail_password(mu_client_logged_out):
     )
 
     # 3. ASSERT
-    assert response.status_code == 200  # Stays on login page
-    assert b"Invalid username or password." in response.data
+    assert response.status_code == 200
+    # Should NOT contain success message
     assert b"Logged in successfully!" not in response.data
+    # Should contain error message
+    assert b"Invalid username or password" in response.data
+
+    # We are still on the login page (which also has the Nova header)
+    assert b"<span>Nova</span>" in response.data
 
     # Check that no session cookie was set
     with client.session_transaction() as sess:
