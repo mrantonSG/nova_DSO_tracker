@@ -72,6 +72,6 @@ tinycss2
 types-python-dateutil==2.9.0.20250809
 typing_extensions==4.12.2
 tzdata==2025.1
-urllib3==2.3.0
+urllib3==2.6.3
 webencodings==0.5.1
 Werkzeug==3.1.3
