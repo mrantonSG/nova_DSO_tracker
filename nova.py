@@ -3511,40 +3511,19 @@ ASIAIR_PATTERNS = {
 def _parse_asiair_log_content(content):
     """Parses ASIAIR log content into a formatted HTML report."""
     lines = content.splitlines()
-    events = []
 
-    # Metrics
-    start_dt = None
-    end_dt = None
-    target_name = "Unknown Target"
-    subs_count = 0
-    total_exposure_sec = 0
-
-    # Dithering
-    dither_starts = {}  # map index to time
-    dither_durations = []
-    current_dither_start = None
-
-    # Environmental
-    temps = []
-    focus_moves = []  # (temp, pos)
-    star_counts = []
-
-    # Errors & Key Events -> Now storing (dt, color_code, text)
-    timeline_events = []
+    # 1. Collect all raw data points from the log
+    raw_data_points = []
 
     for i, line in enumerate(lines):
         line = line.strip()
         if not line: continue
 
-        # --- 1. Apply Master Regex ---
+        # --- Regex Parsing ---
         master_match = ASIAIR_PATTERNS['master'].match(line)
-
-        # Fallback for legacy/unstructured lines
         if not master_match:
             ts_match = ASIAIR_PATTERNS['fallback_ts'].match(line)
             if not ts_match: continue
-
             dt_str = ts_match.group(1)
             category = "Unknown"
             msg = line[len(dt_str):].strip()
@@ -3558,114 +3537,161 @@ def _parse_asiair_log_content(content):
         except ValueError:
             continue
 
-        if start_dt is None: start_dt = dt
-        end_dt = dt
+        # --- Extract Data Points ---
 
-        # --- 2. Logic (Category or Message based) ---
+        # Exposure
+        if "Exposure" in category or msg.startswith("Exposure"):
+            if msg.startswith("Exposure"):
+                dur_match = ASIAIR_PATTERNS['exposure'].search(msg)
+                seconds = float(dur_match.group(1)) if dur_match else 0
+                raw_data_points.append({'dt': dt, 'type': 'exposure', 'seconds': seconds})
+                continue
 
-        # Autorun Events
+        # Autorun (Target Name & Start/End)
         if "Autorun|Begin" in category or "[Autorun|Begin]" in msg:
-            # Clean up message to isolate target name
             clean_msg = msg.replace("[Autorun|Begin]", "").strip()
             parts = clean_msg.split(" Start")
-            target_name = parts[0] if parts else "Unknown"
-            timeline_events.append((dt, "#212529", "Session Start"))
-
+            tgt = parts[0] if parts else "Unknown"
+            raw_data_points.append({'dt': dt, 'type': 'target', 'name': tgt})
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Session Start", 'color': "#212529"})
+            continue
         elif "Autorun|End" in category or "[Autorun|End]" in msg:
-            timeline_events.append((dt, "#212529", "Session Ended"))
-
-        # Exposure Parsing (Check category OR directly in message for legacy logs)
-        if "Exposure" in category or msg.startswith("Exposure"):
-            if msg.startswith("Exposure"):  # e.g. "Exposure 120.0s image 1#"
-                subs_count += 1
-                dur_match = ASIAIR_PATTERNS['exposure'].search(msg)
-                if dur_match:
-                    total_exposure_sec += float(dur_match.group(1))
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Session Ended", 'color': "#212529"})
+            continue
 
         # Guiding / Dither
         if "Guide" in category or "[Guide]" in msg:
             if "Dither" in msg and "Settle" not in msg:
-                current_dither_start = dt
-            elif "Settle Done" in msg and current_dither_start:
-                dither_durations.append((dt - current_dither_start).total_seconds())
-                current_dither_start = None
+                raw_data_points.append({'dt': dt, 'type': 'dither_start'})
+            elif "Settle Done" in msg:
+                raw_data_points.append({'dt': dt, 'type': 'dither_end'})
             elif "Settle Timeout" in msg:
-                timeline_events.append((dt, "#dc3545", "Guiding: Dither Settle Timeout"))
-                current_dither_start = None
+                raw_data_points.append(
+                    {'dt': dt, 'type': 'event', 'text': "Guiding: Dither Settle Timeout", 'color': "#dc3545"})
+            continue
 
         # Meridian Flip
         if "Meridian Flip" in category or "Meridian Flip" in msg:
             if "Start" in msg:
-                timeline_events.append((dt, "#17a2b8", "Meridian Flip: Sequence started"))
+                raw_data_points.append(
+                    {'dt': dt, 'type': 'event', 'text': "Meridian Flip: Sequence started", 'color': "#17a2b8"})
             elif "failed" in msg:
-                timeline_events.append((dt, "#dc3545", f"ERROR: {msg}"))
+                # Store raw error message
+                raw_data_points.append({'dt': dt, 'type': 'event', 'text': f"ERROR: {msg}", 'color': "#dc3545"})
             elif "succeeded" in msg:
-                timeline_events.append((dt, "#28a745", "Meridian Flip: Success"))
+                raw_data_points.append(
+                    {'dt': dt, 'type': 'event', 'text': "Meridian Flip: Success", 'color': "#28a745"})
+            continue
 
-        # Focus / Temperature
+        # Focus Events
         if ("AutoFocus" in category or "Auto Focus" in msg) and "Begin" in msg:
-            timeline_events.append((dt, "#007bff", "Auto Focus Run"))
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Auto Focus Run", 'color': "#007bff"})
 
-        # General Message Scanning (Temperature, Focus Pos, Star Counts)
-
-        # Temp
+        # Environmental Data Extraction
         temp_match = ASIAIR_PATTERNS['temp'].search(msg)
         if temp_match:
-            temps.append(float(temp_match.group(1)))
+            raw_data_points.append({'dt': dt, 'type': 'temp', 'val': float(temp_match.group(1))})
 
-        # Focus Position
         if "Auto focus succeeded" in msg:
             pos_match = ASIAIR_PATTERNS['focus_pos'].search(msg)
             if pos_match:
-                pos = int(pos_match.group(1))
-                last_temp = temps[-1] if temps else None
-                if last_temp is not None:
-                    focus_moves.append((last_temp, pos))
+                raw_data_points.append({'dt': dt, 'type': 'focus', 'val': int(pos_match.group(1))})
 
-        # Star Counts
         if "Solve succeeded" in msg:
             star_match = ASIAIR_PATTERNS['stars'].search(msg)
             if star_match:
-                star_counts.append(int(star_match.group(1)))
+                raw_data_points.append({'dt': dt, 'type': 'stars', 'val': int(star_match.group(1))})
 
-        # GoTo Home
         if "Mount GoTo Home" in msg:
-            timeline_events.append((dt, "#6c757d", "GoTo Home (Session End)"))
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "GoTo Home (Session End)", 'color': "#6c757d"})
 
-    # --- Robustness Check & Calculations ---
+    # --- 2. Session Grouping Logic ---
+    if not raw_data_points:
+        return "<p>No parsable data found.</p>"
 
-    # If we found no valid start time, or we found a start time but zero meaningful events
-    if not start_dt:
-        return """
-        <div style="padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
-            <strong>⚠️ Log Parsing Failed</strong><br>
-            <p style="margin-top:5px; margin-bottom:0; font-size: 0.9em;">
-            The uploaded file structure does not match known ASIAIR log formats. 
-            ZWO may have updated the log format. Please check for a Nova update.
-            </p>
-        </div>
-        """
+    # Sort all points by time
+    raw_data_points.sort(key=lambda x: x['dt'])
 
+    # Group into separate sessions based on time gaps > 90 minutes
+    # This separates "Night Imaging" from "Morning Flats"
+    sessions = []
+    current_session = []
+    GAP_THRESHOLD_MINUTES = 90
+
+    for point in raw_data_points:
+        if not current_session:
+            current_session.append(point)
+        else:
+            last_dt = current_session[-1]['dt']
+            diff = (point['dt'] - last_dt).total_seconds() / 60
+            if diff > GAP_THRESHOLD_MINUTES:
+                sessions.append(current_session)
+                current_session = [point]
+            else:
+                current_session.append(point)
+    if current_session:
+        sessions.append(current_session)
+
+    # Pick the MAIN session (longest duration) for analysis
+    main_session = max(sessions, key=lambda s: (s[-1]['dt'] - s[0]['dt']).total_seconds())
+
+    # --- 3. Calculate Stats on Main Session Only ---
+    start_dt = main_session[0]['dt']
+    end_dt = main_session[-1]['dt']
     total_duration = (end_dt - start_dt).total_seconds()
+
+    target_name = "Unknown Target"
+    subs_count = 0
+    total_exposure_sec = 0
+    dither_durations = []
+    last_dither_start = None
+    temps = []
+    focus_moves = []
+    star_counts = []
+    timeline_events = []  # List of (dt, color, text)
+
+    for p in main_session:
+        ptype = p['type']
+
+        if ptype == 'target':
+            target_name = p['name']
+        elif ptype == 'exposure':
+            subs_count += 1
+            total_exposure_sec += p['seconds']
+        elif ptype == 'dither_start':
+            last_dither_start = p['dt']
+        elif ptype == 'dither_end' and last_dither_start:
+            dither_durations.append((p['dt'] - last_dither_start).total_seconds())
+            last_dither_start = None
+        elif ptype == 'temp':
+            temps.append(p['val'])
+        elif ptype == 'stars':
+            star_counts.append(p['val'])
+        elif ptype == 'focus':
+            last_temp = temps[-1] if temps else None
+            if last_temp is not None: focus_moves.append((last_temp, p['val']))
+        elif ptype == 'event':
+            timeline_events.append((p['dt'], p['color'], p['text']))
+
+    # Metrics
     imaging_duration = total_exposure_sec
     duty_cycle = (imaging_duration / total_duration * 100) if total_duration > 0 else 0
 
     total_h = int(total_duration // 3600)
     total_m = int((total_duration % 3600) // 60)
-
     img_h = int(imaging_duration // 3600)
     img_m = int((imaging_duration % 3600) // 60)
 
-    # Dithering stats
+    # Dithering
     total_dither_time = sum(dither_durations)
     avg_dither = (total_dither_time / len(dither_durations)) if dither_durations else 0
     dither_m = int(total_dither_time // 60)
 
-    # Temp Drift
+    # Environment
     start_temp = temps[0] if temps else 0
     end_temp = temps[-1] if temps else 0
+    avg_stars = int(sum(star_counts) / len(star_counts)) if star_counts else 0
 
-    # Focus Shift
     focus_summary = "N/A"
     if len(focus_moves) >= 2:
         steps_delta = abs(focus_moves[-1][1] - focus_moves[0][1])
@@ -3673,73 +3699,64 @@ def _parse_asiair_log_content(content):
         steps_per_c = int(steps_delta / temp_delta) if temp_delta > 0 else 0
         focus_summary = f"Moved {steps_delta} steps over {temp_delta:.1f}°C (~{steps_per_c} steps/°C)"
 
-    # Sky Quality
-    avg_stars = int(sum(star_counts) / len(star_counts)) if star_counts else 0
-
     # --- HTML Generation ---
-    # Using divs and explicit styling to force compactness and remove bullets in Trix
     html = f"""
-        <h3>ASIAIR Session Analysis</h3>
-        <p style="margin-bottom: 10px;"><strong>Target:</strong> {target_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
+    <h3>ASIAIR Session Analysis</h3>
+    <p style="margin-bottom: 10px;"><strong>Target:</strong> {target_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
 
-        <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+    <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
 
-        <div style="margin-bottom: 2px;"><strong>Efficiency Metrics</strong></div>
-        <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
-            <li><strong>Duty Cycle:</strong> {duty_cycle:.1f}% ({img_h}h {img_m}m Imaging / {total_h}h {total_m}m Total)</li>
-            <li><strong>Total Subs:</strong> {subs_count}</li>
-            <li><strong>Dithering:</strong> Average settle: {avg_dither:.1f}s. Total wasted: {dither_m} min.</li>
-        </ul>
+    <div style="margin-bottom: 2px;"><strong>Efficiency Metrics</strong></div>
+    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+        <li><strong>Duty Cycle:</strong> {duty_cycle:.1f}% ({img_h}h {img_m}m Imaging / {total_h}h {total_m}m Total)</li>
+        <li><strong>Total Subs:</strong> {subs_count}</li>
+        <li><strong>Dithering:</strong> Average settle: {avg_dither:.1f}s. Total wasted: {dither_m} min.</li>
+    </ul>
 
-        <div style="margin-bottom: 2px;"><strong>Environmental Data</strong></div>
-        <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
-            <li><strong>Temp Drift:</strong> {start_temp}°C &rarr; {end_temp}°C</li>
-            <li><strong>Focus:</strong> {focus_summary}</li>
-            <li><strong>Star Count (Avg):</strong> ~{avg_stars}</li>
-        </ul>
+    <div style="margin-bottom: 2px;"><strong>Environmental Data</strong></div>
+    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+        <li><strong>Temp Drift:</strong> {start_temp}°C &rarr; {end_temp}°C</li>
+        <li><strong>Focus:</strong> {focus_summary}</li>
+        <li><strong>Star Count (Avg):</strong> ~{avg_stars}</li>
+    </ul>
 
-        <div style="margin-bottom: 2px;"><strong>Key Events Timeline</strong></div>
-        <div style="padding-left: 0; margin-top: 0;">
-        """
+    <div style="margin-bottom: 2px;"><strong>Key Events Timeline</strong></div>
+    <div style="padding-left: 0; margin-top: 0;">
+    """
 
-    # Filter/Condense Timeline
-    collapsed_events = []
-    flip_fail_count = 0
+    # --- 4. Timeline Rendering with Error Merging ---
+    timeline_html_lines = []
 
     for dt, color, text in timeline_events:
-        if "Flip" in text and "failed" in text:
-            flip_fail_count += 1
-        else:
-            if flip_fail_count > 0:
-                collapsed_events.append((None, "#dc3545", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
-                flip_fail_count = 0
-            collapsed_events.append((dt, color, text))
-
-    if flip_fail_count > 0:
-        collapsed_events.append((None, "#dc3545", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
-
-    for dt, color, text in collapsed_events:
         time_str = dt.strftime('%H:%M') if dt else "--:--"
-        # Apply fallback color code if missing
-        if not color:
-            if "Start" in text or "Ended" in text:
-                color = "#212529"
-            elif "Success" in text:
-                color = "#28a745"
-            elif "ERROR" in text or "Timeout" in text:
-                color = "#dc3545"
-            else:
-                color = "#495057"
 
-        # Color "ERROR" specifically
+        # Prepare content string
         if "ERROR" in text:
-            # We color the specific word, but also ensure the line itself carries the color in the span below
-            text = text.replace("ERROR:", f"<span style='color: #dc3545; font-weight: bold;'>ERROR:</span>")
+            # Force Red for errors using inline style
+            content_html = f"<span style='color: #dc3545; font-weight: bold;'>{text}</span>"
+        else:
+            content_html = f"<span style='color: {color};'>{text}</span>"
 
-        # Using div rows instead of li to guarantee no bullets
-        html += f"<div style='margin-bottom: 2px;'><span style='color: #6c757d; font-family: monospace; margin-right: 8px;'>{time_str}</span> <span style='color: {color};'>{text}</span></div>"
+        # Check for merge condition:
+        # If current is an ERROR, and we have a previous line, append it there.
+        if "ERROR" in text and timeline_html_lines:
+            last_line = timeline_html_lines.pop()
+            # Remove the closing div, append separator + error, re-add closing div
+            merged_line = last_line.replace("</div>", "") + f" &nbsp; {content_html}</div>"
+            timeline_html_lines.append(merged_line)
+        else:
+            # Standard Line
+            row_html = f"<div style='margin-bottom: 2px;'><span style='color: #6c757d; font-family: monospace; margin-right: 8px;'>{time_str}</span> {content_html}</div>"
+            timeline_html_lines.append(row_html)
 
+    # Join and append timeline
+    html += "".join(timeline_html_lines)
     html += "</div>"
+
+    # Warning if sessions were dropped
+    if len(sessions) > 1:
+        dropped_count = len(sessions) - 1
+        html += f"<div style='margin-top:10px; font-size:0.85em; color:#999;'>* Analyzed main imaging session only. Excluded {dropped_count} disconnected segment(s).</div>"
 
     return html
 
