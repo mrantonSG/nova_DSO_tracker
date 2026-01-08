@@ -22,6 +22,8 @@
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; } /* REVERT: Simple display for tab content */
 
+    /* (CSS removed: Alignment handled via inline Flexbox properties below) */
+
     /* Controls visibility based on mode */
     .view-mode { display: block; } /* REVERT: Simple display for view mode */
     .edit-mode-form { display: none; }
@@ -646,14 +648,13 @@
                     <div class="form-section-title">Outcome & Reflections</div>
                     <div class="form-group"><label>Session Rating (1-5 ★):</label><input type="number" min="1" max="5" name="session_rating_subjective"></div>
                     <div class="form-group">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                            <label style="margin-bottom:0;">General Notes, Problems, Learnings:</label>
-                            <div>
-                                <input type="file" id="asiair_log_input" style="display:none;" accept=".txt,.log">
-                                <button type="button" class="inline-button" style="font-size: 12px; padding: 4px 8px; background-color: #83b4c5;" onclick="document.getElementById('asiair_log_input').click()">
-                                    Import Log (ASIAIR / PHD2)
-                                </button>
-                            </div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
+                            <label style="margin-bottom: 0;">General Notes, Problems, Learnings:</label>
+
+                            <input type="file" id="asiair_log_input" style="display: none;" accept=".txt,.log">
+                            <button type="button" class="inline-button" style="font-size: 11px; padding: 3px 8px; background-color: #83b4c5;" onclick="document.getElementById('asiair_log_input').click()">
+                                BETA: Import Log (ASIAIR / PHD2)
+                            </button>
                         </div>
                         <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
                         <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: #fff;"></trix-editor>
