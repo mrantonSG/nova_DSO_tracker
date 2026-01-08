@@ -3493,18 +3493,250 @@ def get_imaging_criteria():
         return dict(defaults)
 
 
-# --- CONFIG: ASIAIR Log Regex Patterns ---
-# Update this dictionary if ZWO changes their log format.
+# --- CONFIG: Log Parsing Patterns ---
 ASIAIR_PATTERNS = {
-    # Master line: Group 1=Timestamp, Group 2=Category, Group 3=Message
     'master': re.compile(r'^(\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2})\s+\[(.*?)\]\s+(.*)$'),
     'temp': re.compile(r'temperature\s+([-\d\.]+)'),
     'exposure': re.compile(r'Exposure\s+([\d\.]+)s'),
     'stars': re.compile(r'Star number =\s*(\d+)'),
     'focus_pos': re.compile(r'position is (\d+)'),
-    # Fallback timestamp if master fails (legacy logs)
     'fallback_ts': re.compile(r'^(\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2})')
 }
+
+
+def _parse_phd2_log_content(content):
+    """Parses PHD2 Guide Log into a formatted HTML report."""
+    lines = content.splitlines()
+
+    sessions = []
+    # Added fields for SNR and Event tracking
+    current_session = {'data': [], 'start': None, 'end': None, 'snr': [], 'dither_count': 0, 'settle_count': 0}
+    col_map = {}
+
+    pixel_scale = 1.0
+    profile_name = "Unknown Profile"
+    phd_version = "Unknown"
+    # Metadata placeholders
+    camera_name = "Unknown"
+    mount_name = "Unknown"
+    focal_length = "Unknown"
+    x_algo = "Unknown"
+    y_algo = "Unknown"
+
+    # Helper: Robust date parser
+    def parse_ts(s):
+        s = s.strip()
+        for fmt in ('%Y-%m-%d %H:%M:%S', '%Y/%m/%d %H:%M:%S', '%d-%m-%Y %H:%M:%S'):
+            try:
+                return datetime.strptime(s, fmt)
+            except:
+                continue
+        return None
+
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+
+        # --- Headers ---
+        if line.startswith("PHD2_v"):
+            phd_version = line.split(",")[0]
+
+        if "Pixel scale =" in line:
+            try:
+                # Regex to find float in string like "Pixel scale = 1.03 arc-sec/px"
+                match = re.search(r'Pixel scale = ([\d\.]+)', line)
+                if match: pixel_scale = float(match.group(1))
+                # Also look for Focal Length on this line
+                fl_match = re.search(r'Focal length = ([\d\.]+)', line)
+                if fl_match: focal_length = f"{fl_match.group(1)} mm"
+            except:
+                pass
+
+        if "Equipment Profile =" in line:
+            profile_name = line.split("=")[1].strip()
+
+            # Track Events within active session
+        if current_session.get('start') and not current_session.get('end'):
+            if "DITHER" in line:
+                current_session['dither_count'] += 1
+            if "SETTLING STATE CHANGE" in line:
+                current_session['settle_count'] += 1
+
+        if line.startswith("Camera ="):
+            # Extract name before the first comma (e.g., "Camera = ZWO ASI174MM Mini, gain = ...")
+            camera_name = line.split("=")[1].split(",")[0].strip()
+
+        if line.startswith("Mount ="):
+            mount_name = line.split("=")[1].split(",")[0].strip()
+
+        if "X guide algorithm =" in line:
+            x_algo = line.split("=")[1].split(",")[0].strip()
+
+        if "Y guide algorithm =" in line:
+            y_algo = line.split("=")[1].split(",")[0].strip()
+
+        # --- Session Markers ---
+        # Match "Guiding Begins at ..." broadly
+        if "Guiding Begins" in line:
+            parts = line.split(" at ")
+            if len(parts) > 1:
+                dt = parse_ts(parts[1])
+                if dt:
+                    current_session = {'data': [], 'start': dt, 'end': None, 'snr': [], 'dither_count': 0,
+                                       'settle_count': 0}
+            continue
+
+        if "Guiding Ends" in line:
+            parts = line.split(" at ")
+            if len(parts) > 1:
+                current_session['end'] = parse_ts(parts[1])
+
+            # Archive session if it has data
+            if current_session['data'] and current_session['start']:
+                sessions.append(current_session)
+            # Reset
+            current_session = {'data': [], 'start': None, 'end': None, 'snr': [], 'dither_count': 0, 'settle_count': 0}
+            continue
+
+        # --- Column Definitions ---
+        # Robust check for header line (handles "Frame" or Frame)
+        if ("Frame" in line and "Time" in line and "," in line) and (
+                line.startswith("Frame") or line.startswith('"Frame"')):
+            cols = [c.strip().replace('"', '') for c in line.split(",")]
+            col_map = {name: i for i, name in enumerate(cols)}
+            continue
+
+        # --- Data Rows ---
+        if current_session.get('start') and line[0].isdigit() and ',' in line:
+            parts = line.split(',')
+
+            # Flexible Column Lookup (RAErr OR RA)
+            def get_col(candidates):
+                for c in candidates:
+                    if c in col_map and len(parts) > col_map[c]:
+                        val = parts[col_map[c]]
+                        if val and val.strip():
+                            try:
+                                return float(val)
+                            except:
+                                pass
+                return None
+
+            # Expanded candidates to support log versions using "RawDistance" (e.g., v2.5)
+            ra = get_col(['RAErr', 'RA', 'RARawDistance'])
+            dec = get_col(['DecErr', 'Dec', 'DECRawDistance'])
+
+            if ra is not None and dec is not None:
+                current_session['data'].append((ra, dec))
+
+                # Extract SNR
+            if 'SNR' in col_map and len(parts) > col_map['SNR']:
+                try:
+                    current_session['snr'].append(float(parts[col_map['SNR']]))
+                except:
+                    pass
+
+    # Handle unterminated session at EOF
+    if current_session['data'] and current_session['start']:
+        if not current_session['end']:
+            # Fallback end time: start + frames * 2s (approx)
+            est_seconds = len(current_session['data']) * 2
+            current_session['end'] = current_session['start'] + timedelta(seconds=est_seconds)
+        sessions.append(current_session)
+
+    if not sessions:
+        return "<p style='color: #666; font-style: italic;'>No guiding sessions found in this log. Ensure the log contains 'Guiding Begins' and data rows.</p>"
+
+    # --- Select Main Session (Longest) ---
+    main_session = max(sessions, key=lambda s: len(s['data']))
+    data_points = main_session['data']
+    start_dt = main_session['start']
+    end_dt = main_session['end']
+    duration = end_dt - start_dt
+
+    # --- Statistics ---
+    import math
+
+    n = len(data_points)
+    sum_ra_sq = sum(d[0] ** 2 for d in data_points)
+    sum_dec_sq = sum(d[1] ** 2 for d in data_points)
+
+    # RMS in pixels
+    rms_ra_px = math.sqrt(sum_ra_sq / n)
+    rms_dec_px = math.sqrt(sum_dec_sq / n)
+    rms_tot_px = math.sqrt((sum_ra_sq + sum_dec_sq) / n)
+
+    # Convert to Arcsec
+    rms_ra = rms_ra_px * pixel_scale
+    rms_dec = rms_dec_px * pixel_scale
+    rms_tot = rms_tot_px * pixel_scale
+
+    # Color Grading (<0.5 Excellent, <0.8 Good, <1.0 Ok, >1.0 Poor)
+    rms_color = "#28a745" if rms_tot < 0.5 else "#17a2b8" if rms_tot < 0.8 else "#ffc107" if rms_tot < 1.0 else "#dc3545"
+
+    # --- Derived Metrics for HTML ---
+    dither_c = main_session.get('dither_count', 0)
+    settle_c = main_session.get('settle_count', 0)
+
+    snr_list = main_session.get('snr', [])
+    if snr_list:
+        avg_snr = sum(snr_list) / len(snr_list)
+        min_snr = min(snr_list)
+        max_snr = max(snr_list)
+    else:
+        avg_snr, min_snr, max_snr = 0, 0, 0
+
+    dither_html = ""
+    if dither_c > 0:
+        dither_html = f"""
+            <li><strong>Dithering is Active:</strong> The log shows frequent "DITHER" commands ({dither_c} detected) followed by "SETTLING STATE CHANGE". This confirms your capture sequence is correctly instructing PHD2 to shift the frame between exposures to reduce noise.</li>
+            <li><strong>Settling Performance:</strong> There are distinct periods where the mount is "Settling" after a dither ({settle_c} events detected).</li>
+            """
+    else:
+        dither_html = "<li><strong>Dithering:</strong> No dither commands detected in this session.</li>"
+
+    snr_color = "#28a745" if avg_snr >= 20 else "#ffc107" if avg_snr >= 10 else "#dc3545"
+    snr_html = f"""<li><strong>Signal Strength (SNR):</strong> <span style="color:{snr_color}">Avg {avg_snr:.1f}</span> (Range: {min_snr:.1f}-{max_snr:.1f}). Values consistently around 20–30 indicate a very healthy/strong signal, likely helped by the 2x binning.</li>"""
+
+    html = f"""
+    <h3>PHD2 Guiding Analysis</h3>
+    <p style="margin-bottom: 10px;"><strong>Profile:</strong> {profile_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
+
+    <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+
+    <div style="margin-bottom: 2px;"><strong>Performance (RMS)</strong></div>
+    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+        <li><strong>Total RMS:</strong> <strong style="color: {rms_color};">{rms_tot:.2f}"</strong> (RA: {rms_ra:.2f}", Dec: {rms_dec:.2f}")</li>
+        <li><strong>Pixel Scale:</strong> {pixel_scale}"/px</li>
+        <li><strong>Duration:</strong> {int(duration.total_seconds() // 60)} min ({n} frames)</li>
+    </ul>
+
+    <div style="margin-bottom: 2px;"><strong>Equipment & Config</strong></div>
+    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+        <li><strong>Camera:</strong> {camera_name}</li>
+        <li><strong>Mount:</strong> {mount_name}</li>
+        <li><strong>Optics:</strong> {focal_length}</li>
+        <li><strong>Algorithms:</strong> RA: {x_algo} / Dec: {y_algo}</li>
+    </ul>
+
+    <div style="margin-bottom: 2px;"><strong>Guide Performance & Stability</strong></div>
+    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+        {dither_html}
+        {snr_html}
+    </ul>
+
+    <div style="margin-bottom: 2px;"><strong>Session Details</strong></div>
+    <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+        <li><strong>Start:</strong> {start_dt.strftime('%H:%M:%S')}</li>
+        <li><strong>End:</strong> {end_dt.strftime('%H:%M:%S')}</li>
+        <li><strong>Version:</strong> {phd_version}</li>
+    </ul>
+    """
+
+    if len(sessions) > 1:
+        html += f"<div style='margin-top:10px; font-size:0.85em; color:#999;'>* Analyzed longest session ({n} frames). Log contained {len(sessions)} runs.</div>"
+
+    return html
 
 
 # --- ASIAIR Log Parsing Logic ---
@@ -3760,6 +3992,7 @@ def _parse_asiair_log_content(content):
 
     return html
 
+
 @app.route('/api/parse_asiair_log', methods=['POST'])
 @login_required
 def api_parse_asiair_log():
@@ -3772,7 +4005,17 @@ def api_parse_asiair_log():
 
     try:
         content = file.read().decode('utf-8', errors='ignore')
-        report_html = _parse_asiair_log_content(content)
+
+        # Basic sniffing to determine log type
+        first_lines = content[:200]
+
+        if "PHD2" in first_lines or "Guiding Begins" in content:
+            # Route to PHD2 Parser
+            report_html = _parse_phd2_log_content(content)
+        else:
+            # Route to ASIAIR Parser (Default)
+            report_html = _parse_asiair_log_content(content)
+
         return jsonify({"status": "success", "html": report_html})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
