@@ -3492,6 +3492,21 @@ def get_imaging_criteria():
     except Exception:
         return dict(defaults)
 
+
+# --- CONFIG: ASIAIR Log Regex Patterns ---
+# Update this dictionary if ZWO changes their log format.
+ASIAIR_PATTERNS = {
+    # Master line: Group 1=Timestamp, Group 2=Category, Group 3=Message
+    'master': re.compile(r'^(\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2})\s+\[(.*?)\]\s+(.*)$'),
+    'temp': re.compile(r'temperature\s+([-\d\.]+)'),
+    'exposure': re.compile(r'Exposure\s+([\d\.]+)s'),
+    'stars': re.compile(r'Star number =\s*(\d+)'),
+    'focus_pos': re.compile(r'position is (\d+)'),
+    # Fallback timestamp if master fails (legacy logs)
+    'fallback_ts': re.compile(r'^(\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2})')
+}
+
+
 # --- ASIAIR Log Parsing Logic ---
 def _parse_asiair_log_content(content):
     """Parses ASIAIR log content into a formatted HTML report."""
@@ -3515,21 +3530,29 @@ def _parse_asiair_log_content(content):
     focus_moves = []  # (temp, pos)
     star_counts = []
 
-    # Errors & Key Events
-    timeline_events = []  # (dt, icon, text)
-
-    # Regex Patterns
-    # 2026/01/04 18:05:38
-    re_ts = re.compile(r'^(\d{4}/\d{2}/\d{2}\s\d{2}:\d{2}:\d{2})')
+    # Errors & Key Events -> Now storing (dt, color_code, text)
+    timeline_events = []
 
     for i, line in enumerate(lines):
         line = line.strip()
         if not line: continue
 
-        match = re_ts.match(line)
-        if not match: continue
+        # --- 1. Apply Master Regex ---
+        master_match = ASIAIR_PATTERNS['master'].match(line)
 
-        dt_str = match.group(1)
+        # Fallback for legacy/unstructured lines
+        if not master_match:
+            ts_match = ASIAIR_PATTERNS['fallback_ts'].match(line)
+            if not ts_match: continue
+
+            dt_str = ts_match.group(1)
+            category = "Unknown"
+            msg = line[len(dt_str):].strip()
+        else:
+            dt_str = master_match.group(1)
+            category = master_match.group(2)
+            msg = master_match.group(3)
+
         try:
             dt = datetime.strptime(dt_str, '%Y/%m/%d %H:%M:%S')
         except ValueError:
@@ -3538,84 +3561,90 @@ def _parse_asiair_log_content(content):
         if start_dt is None: start_dt = dt
         end_dt = dt
 
-        msg = line[len(dt_str):].strip()
+        # --- 2. Logic (Category or Message based) ---
 
-        # --- Target / Session Start ---
-        if "[Autorun|Begin]" in msg:
-            # Format: [Autorun|Begin] TargetName Start
-            parts = msg.replace("[Autorun|Begin]", "").strip().split(" Start")
-            if parts: target_name = parts[0]
-            timeline_events.append((dt, "", "Session Start"))
+        # Autorun Events
+        if "Autorun|Begin" in category or "[Autorun|Begin]" in msg:
+            # Clean up message to isolate target name
+            clean_msg = msg.replace("[Autorun|Begin]", "").strip()
+            parts = clean_msg.split(" Start")
+            target_name = parts[0] if parts else "Unknown"
+            timeline_events.append((dt, "#212529", "Session Start"))
 
-        elif "[Autorun|End]" in msg:
-            timeline_events.append((dt, "", "Session Ended"))
+        elif "Autorun|End" in category or "[Autorun|End]" in msg:
+            timeline_events.append((dt, "#212529", "Session Ended"))
 
-        # --- Exposures ---
-        # Exposure 60.0s image 1#
-        if msg.startswith("Exposure"):
-            subs_count += 1
-            # Extract duration
-            dur_match = re.search(r'Exposure\s+([\d\.]+)s', msg)
-            if dur_match:
-                total_exposure_sec += float(dur_match.group(1))
+        # Exposure Parsing (Check category OR directly in message for legacy logs)
+        if "Exposure" in category or msg.startswith("Exposure"):
+            if msg.startswith("Exposure"):  # e.g. "Exposure 120.0s image 1#"
+                subs_count += 1
+                dur_match = ASIAIR_PATTERNS['exposure'].search(msg)
+                if dur_match:
+                    total_exposure_sec += float(dur_match.group(1))
 
-        # --- Dithering ---
-        if "[Guide] Dither" in msg and "Settle" not in msg:
-            current_dither_start = dt
-        elif "[Guide] Settle Done" in msg and current_dither_start:
-            dither_durations.append((dt - current_dither_start).total_seconds())
-            current_dither_start = None
-        elif "[Guide] Settle Timeout" in msg:
-            timeline_events.append((dt, "⚠️", "Guiding: Dither Settle Timeout"))
-            current_dither_start = None
+        # Guiding / Dither
+        if "Guide" in category or "[Guide]" in msg:
+            if "Dither" in msg and "Settle" not in msg:
+                current_dither_start = dt
+            elif "Settle Done" in msg and current_dither_start:
+                dither_durations.append((dt - current_dither_start).total_seconds())
+                current_dither_start = None
+            elif "Settle Timeout" in msg:
+                timeline_events.append((dt, "#dc3545", "Guiding: Dither Settle Timeout"))
+                current_dither_start = None
 
-        # --- Temperature & AF ---
-        # Run AF when temperature changed 2 degrees, ... temperature -6.0℃
-        if "temperature" in msg and "℃" in msg:
-            temp_match = re.search(r'temperature\s+([-\d\.]+)℃', msg)
-            if temp_match:
-                temps.append(float(temp_match.group(1)))
+        # Meridian Flip
+        if "Meridian Flip" in category or "Meridian Flip" in msg:
+            if "Start" in msg:
+                timeline_events.append((dt, "#17a2b8", "Meridian Flip: Sequence started"))
+            elif "failed" in msg:
+                timeline_events.append((dt, "#dc3545", f"ERROR: {msg}"))
+            elif "succeeded" in msg:
+                timeline_events.append((dt, "#28a745", "Meridian Flip: Success"))
 
-        if "[AutoFocus|Begin]" in msg:
-            # Try to grab temp from this line if possible, or just mark event
-            timeline_events.append((dt, "🔭", "Auto Focus Run"))
+        # Focus / Temperature
+        if ("AutoFocus" in category or "Auto Focus" in msg) and "Begin" in msg:
+            timeline_events.append((dt, "#007bff", "Auto Focus Run"))
 
-        if "Auto focus succeeded, the focused position is" in msg:
-            pos_match = re.search(r'position is (\d+)', msg)
+        # General Message Scanning (Temperature, Focus Pos, Star Counts)
+
+        # Temp
+        temp_match = ASIAIR_PATTERNS['temp'].search(msg)
+        if temp_match:
+            temps.append(float(temp_match.group(1)))
+
+        # Focus Position
+        if "Auto focus succeeded" in msg:
+            pos_match = ASIAIR_PATTERNS['focus_pos'].search(msg)
             if pos_match:
                 pos = int(pos_match.group(1))
-                # associate with last known temp if recent
                 last_temp = temps[-1] if temps else None
                 if last_temp is not None:
                     focus_moves.append((last_temp, pos))
 
-        # --- Meridian Flip ---
-        if "Meridian Flip" in msg and "Start" in msg:
-            timeline_events.append((dt, "🔄", "Meridian Flip: Sequence started"))
-
-        if "Meridian Flip" in msg and "failed" in msg:
-            # Extract attempt number if present
-            # 22:08:15 Meridian Flip 1# failed
-            # Count consecutive fails?
-            timeline_events.append((dt, "⛔", f"ERROR: {msg}"))
-
-        if "Meridian Flip succeeded" in msg:
-            timeline_events.append((dt, "✅", "Meridian Flip: Success"))
-
-        # --- Star Counts (Sky Quality Proxy) ---
-        # Solve succeeded: ... Star number = 2287
-        if "Solve succeeded" in msg and "Star number =" in msg:
-            star_match = re.search(r'Star number =\s*(\d+)', msg)
+        # Star Counts
+        if "Solve succeeded" in msg:
+            star_match = ASIAIR_PATTERNS['stars'].search(msg)
             if star_match:
                 star_counts.append(int(star_match.group(1)))
 
-        # --- GoTo Home ---
+        # GoTo Home
         if "Mount GoTo Home" in msg:
-            timeline_events.append((dt, "🏠", "GoTo Home (Session End)"))
+            timeline_events.append((dt, "#6c757d", "GoTo Home (Session End)"))
 
-    # --- Calculations ---
-    if not start_dt or not end_dt:
-        return "<p>Error: Could not parse timestamps from log.</p>"
+    # --- Robustness Check & Calculations ---
+
+    # If we found no valid start time, or we found a start time but zero meaningful events
+    if not start_dt:
+        return """
+        <div style="padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
+            <strong>⚠️ Log Parsing Failed</strong><br>
+            <p style="margin-top:5px; margin-bottom:0; font-size: 0.9em;">
+            The uploaded file structure does not match known ASIAIR log formats. 
+            ZWO may have updated the log format. Please check for a Nova update.
+            </p>
+        </div>
+        """
 
     total_duration = (end_dt - start_dt).total_seconds()
     imaging_duration = total_exposure_sec
@@ -3635,7 +3664,6 @@ def _parse_asiair_log_content(content):
     # Temp Drift
     start_temp = temps[0] if temps else 0
     end_temp = temps[-1] if temps else 0
-    temp_icon = "📉" if end_temp < start_temp else "📈"
 
     # Focus Shift
     focus_summary = "N/A"
@@ -3649,56 +3677,69 @@ def _parse_asiair_log_content(content):
     avg_stars = int(sum(star_counts) / len(star_counts)) if star_counts else 0
 
     # --- HTML Generation ---
+    # Using divs and explicit styling to force compactness and remove bullets in Trix
     html = f"""
-    <h3>ASIAIR Session Analysis</h3>
-    <p><strong>Target:</strong> {target_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
+        <h3>ASIAIR Session Analysis</h3>
+        <p style="margin-bottom: 10px;"><strong>Target:</strong> {target_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
 
-    <hr>
+        <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
 
-    <h4>Efficiency Metrics</h4>
-    <ul>
-        <li><strong>Duty Cycle:</strong> {duty_cycle:.1f}% ({img_h}h {img_m}m Imaging / {total_h}h {total_m}m Total)</li>
-        <li><strong>Total Subs:</strong> {subs_count}</li>
-        <li><strong>Dithering:</strong> Average settle: {avg_dither:.1f}s. Total wasted: {dither_m} min.</li>
-    </ul>
+        <div style="margin-bottom: 2px;"><strong>Efficiency Metrics</strong></div>
+        <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+            <li><strong>Duty Cycle:</strong> {duty_cycle:.1f}% ({img_h}h {img_m}m Imaging / {total_h}h {total_m}m Total)</li>
+            <li><strong>Total Subs:</strong> {subs_count}</li>
+            <li><strong>Dithering:</strong> Average settle: {avg_dither:.1f}s. Total wasted: {dither_m} min.</li>
+        </ul>
 
-    <h4>Environmental Data</h4>
-    <ul>
-        <li><strong>Temp Drift:</strong> {start_temp}°C {temp_icon} {end_temp}°C</li>
-        <li><strong>Focus:</strong> {focus_summary}</li>
-        <li><strong>Sky Quality:</strong> Star detection avg: {avg_stars}</li>
-    </ul>
+        <div style="margin-bottom: 2px;"><strong>Environmental Data</strong></div>
+        <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
+            <li><strong>Temp Drift:</strong> {start_temp}°C &rarr; {end_temp}°C</li>
+            <li><strong>Focus:</strong> {focus_summary}</li>
+            <li><strong>Star Count (Avg):</strong> ~{avg_stars}</li>
+        </ul>
 
-    <h4>Key Events Timeline</h4>
-    <ul>
-    """
+        <div style="margin-bottom: 2px;"><strong>Key Events Timeline</strong></div>
+        <div style="padding-left: 0; margin-top: 0;">
+        """
 
     # Filter/Condense Timeline
-    # We don't want every single event, just "Key" ones.
-    # Logic: Start, End, Errors, Flips, large gaps?
-    # For now, print what we collected in timeline_events
-
-    # Simplify Flip Failures: collapse consecutive failures
     collapsed_events = []
     flip_fail_count = 0
 
-    for dt, icon, text in timeline_events:
+    for dt, color, text in timeline_events:
         if "Flip" in text and "failed" in text:
             flip_fail_count += 1
         else:
             if flip_fail_count > 0:
-                collapsed_events.append((None, "⛔", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
+                collapsed_events.append((None, "#dc3545", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
                 flip_fail_count = 0
-            collapsed_events.append((dt, icon, text))
+            collapsed_events.append((dt, color, text))
 
     if flip_fail_count > 0:
-        collapsed_events.append((None, "⛔", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
+        collapsed_events.append((None, "#dc3545", f"ERROR: Meridian Flip failed {flip_fail_count} times"))
 
-    for dt, icon, text in collapsed_events:
+    for dt, color, text in collapsed_events:
         time_str = dt.strftime('%H:%M') if dt else "--:--"
-        html += f"<li>{time_str} - {icon} {text}</li>"
+        # Apply fallback color code if missing
+        if not color:
+            if "Start" in text or "Ended" in text:
+                color = "#212529"
+            elif "Success" in text:
+                color = "#28a745"
+            elif "ERROR" in text or "Timeout" in text:
+                color = "#dc3545"
+            else:
+                color = "#495057"
 
-    html += "</ul>"
+        # Color "ERROR" specifically
+        if "ERROR" in text:
+            # We color the specific word, but also ensure the line itself carries the color in the span below
+            text = text.replace("ERROR:", f"<span style='color: #dc3545; font-weight: bold;'>ERROR:</span>")
+
+        # Using div rows instead of li to guarantee no bullets
+        html += f"<div style='margin-bottom: 2px;'><span style='color: #6c757d; font-family: monospace; margin-right: 8px;'>{time_str}</span> <span style='color: {color};'>{text}</span></div>"
+
+    html += "</div>"
 
     return html
 
