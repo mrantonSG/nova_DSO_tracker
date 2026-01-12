@@ -1515,6 +1515,16 @@ async function fetchData(isBackground = false) {
             }
         }
 
+        // --- NEW: Global Active Only Logic ---
+        const globalActiveToggle = document.getElementById('global-active-toggle');
+        if (showRow && globalActiveToggle && globalActiveToggle.checked) {
+            // Rows are marked with 'active-project-row' in appendRows() if they are active
+            if (!rows[i].classList.contains('active-project-row')) {
+                showRow = false;
+            }
+        }
+        // -------------------------------------
+
         rows[i].style.display = showRow ? "" : "none";
       }
 
@@ -2120,6 +2130,30 @@ function populateJournalTable() {
             clearAllFilters();
           }
       });
+
+      // --- NEW: Global Active Only Listener ---
+      const globalActiveToggle = document.getElementById('global-active-toggle');
+      if (globalActiveToggle) {
+          globalActiveToggle.addEventListener('change', () => {
+              // 1. Update List Tables (Position / Properties)
+              filterTable();
+
+              // 2. Update Outlook Table
+              if (activeTab === 'outlook') renderOutlookTable();
+
+              // 3. Update Heatmap (if function exists)
+              if (typeof updateHeatmapFilter === 'function') {
+                  updateHeatmapFilter();
+              }
+
+              // 4. Update Inspiration (re-renders based on filtered DSO list)
+              if (typeof renderInspirationGrid === 'function') {
+                  renderInspirationGrid();
+              }
+          });
+      }
+      // ----------------------------------------
+
       // --- END OF ADD ---
 
       // [Deleted the duplicate filter restoration block that was here]
@@ -2135,6 +2169,22 @@ function populateJournalTable() {
     function renderOutlookTable() {
         const tableBody = document.getElementById('outlook-body');
         if (!tableBody) return;
+
+        // --- NEW: Prepare Active Projects Set for fast lookup ---
+        const activeOnlyToggle = document.getElementById('global-active-toggle');
+        const isActiveOnly = activeOnlyToggle ? activeOnlyToggle.checked : false;
+        const activeObjectsSet = new Set();
+
+        if (isActiveOnly && window.latestDSOData) {
+            window.latestDSOData.forEach(d => {
+                const ap = d.ActiveProject;
+                if (ap === true || ap === 1 || ap === '1' || ap === 'true') {
+                    activeObjectsSet.add(d.Object);
+                }
+            });
+        }
+        // --------------------------------------------------------
+
         const allFilters = {};
         document.querySelectorAll('#outlook-filter-row input').forEach(input => {
             const key = input.closest('th').dataset.outlookColumnKey;
@@ -2148,6 +2198,12 @@ function populateJournalTable() {
             if (input && input.value.trim() !== '' && outlookKey) { allFilters[outlookKey] = input.value.trim().toLowerCase(); }
         });
         let filteredData = allOutlookOpportunities.filter(opp => {
+            // --- NEW: Active Only Check ---
+            if (isActiveOnly && !activeObjectsSet.has(opp.object_name)) {
+                return false;
+            }
+            // ------------------------------
+
             return Object.keys(allFilters).every(key => {
                 const filterValue = allFilters[key]; const config = outlookColumnConfig[key];
                 if (key === 'rating') {
@@ -2577,6 +2633,11 @@ function populateJournalTable() {
         </select>
         <button id="save-view-btn" title="Save current filters and sorting">Save</button>
         <button id="delete-view-btn" title="Delete selected view">Delete</button>
+
+        <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: 14px; user-select: none; color: #444;">
+            <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
+            Active Only
+        </label>
     </div>
     <div id="remove-filters-container" style="display: none; margin-left: auto;"> <button type="button" id="remove-filters-btn">
        Remove Filter
