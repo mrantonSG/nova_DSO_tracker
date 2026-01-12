@@ -4080,10 +4080,19 @@ def get_plot_data(object_name):
     plot_loc_name = request.args.get('plot_loc_name', '').strip()
 
     try:
-        lat = float(plot_lat_str) if plot_lat_str else default_lat
-        lon = float(plot_lon_str) if plot_lon_str else default_lon
-        tz_name = plot_tz_name if plot_tz_name else default_tz
+        # Determine the effective location name
         loc_name = plot_loc_name if plot_loc_name else default_loc_name
+
+        # Retrieve config for this location from the loaded context
+        target_loc_conf = g.locations.get(loc_name, {}) if hasattr(g, 'locations') else {}
+
+        # Resolve Lat/Lon/Tz:
+        # 1. Use explicit query params if present (e.g. custom link)
+        # 2. Fallback to the named location's config (e.g. from inspiration modal)
+        # 3. Fallback to the session defaults
+        lat = float(plot_lat_str) if plot_lat_str else target_loc_conf.get('lat', default_lat)
+        lon = float(plot_lon_str) if plot_lon_str else target_loc_conf.get('lon', default_lon)
+        tz_name = plot_tz_name if plot_tz_name else target_loc_conf.get('timezone', default_tz)
 
         if lat is None or lon is None:
             raise ValueError("Could not determine latitude or longitude.")
