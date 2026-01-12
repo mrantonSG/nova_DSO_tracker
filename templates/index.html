@@ -2402,7 +2402,10 @@ function populateJournalTable() {
         graphDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Loading altitude data...</p>';
 
         try {
-            const resp = await fetch(`/api/get_plot_data/${encodeURIComponent(objectName)}?plot_lat=${window.NOVA_GRAPH_DATA ? window.NOVA_GRAPH_DATA.plotLat : ''}&plot_lon=${window.NOVA_GRAPH_DATA ? window.NOVA_GRAPH_DATA.plotLon : ''}`);
+            // FIX: Pass the current session location name. The backend will look up the fresh coordinates.
+            const currentLoc = sessionStorage.getItem('selectedLocation') || '';
+            const resp = await fetch(`/api/get_plot_data/${encodeURIComponent(objectName)}?plot_loc_name=${encodeURIComponent(currentLoc)}`);
+
             if (!resp.ok) throw new Error("Data fetch failed");
             const data = await resp.json();
 
