@@ -60,12 +60,6 @@
 
     <div id="heatmap-wrapper">
         <div id="heatmap-controls">
-            <div style="display:flex; gap:15px; align-items:center;">
-                <label style="font-size: 14px; font-weight: bold; color: #333; cursor: pointer; display: flex; align-items: center;">
-                    <input type="checkbox" id="heatmap-active-only" onchange="updateHeatmapFilter()" style="margin-right: 8px;">
-                    Active Only
-                </label>
-            </div>
             <span id="heatmap-legend-text">* Vertical light bands = Full Moon (Washed out). Darker Green = Best Quality. Click object names to view details.</span>
         </div>
         <div id="yearly-heatmap-plot"></div>
@@ -215,7 +209,11 @@
     function renderHeatmapFromCache() {
         const data = globalHeatmapData;
         const plotDiv = document.getElementById('yearly-heatmap-plot');
-        const onlyActive = document.getElementById('heatmap-active-only').checked;
+
+        // --- UPDATED: Use Global Toggle ---
+        const activeToggle = document.getElementById('global-active-toggle');
+        const onlyActive = activeToggle ? activeToggle.checked : false;
+        // ----------------------------------
 
         // Get Saved View Settings from Global (index.html)
         const mainDropdown = document.getElementById('saved-views-dropdown');
