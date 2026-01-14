@@ -340,6 +340,48 @@ function ensureNovaObjectsCatalog() {
         labelFont: '16px sans-serif', // larger font for visibility
         labelHalo: true,          // white halo to separate text from background
         labelHaloColor: '#fff',   // contrast halo for dark backgrounds
+        onClick: (source) => {
+            if (!source || !source.data) return;
+            const objData = source.data;
+
+            // 1. Resolve Image (Custom > DSS2 Fallback)
+            let finalImg = objData.image_url;
+            let finalSource = objData.image_credit || "Catalog";
+            let finalLink = objData.image_source_link || "";
+
+            // If no custom image, try calculating DSS2 URL using global helper
+            if (!finalImg && typeof getAladinFallbackUrl === 'function') {
+                const raDeg = Number(objData.ra_deg) || 0;
+                const decDeg = Number(objData.dec_deg) || 0;
+                // 'Size' comes from nova.py enrichment
+                finalImg = getAladinFallbackUrl(raDeg, decDeg, objData.Size);
+                finalSource = "DSS2";
+            }
+
+            // 2. Resolve Description
+            let finalText = objData.description_text;
+            if (!finalText) {
+                 const typeStr = objData.Type ? `Type: ${objData.Type}. ` : '';
+                 const constStr = objData.Constellation ? `In ${objData.Constellation}.` : '';
+                 finalText = `${typeStr}${constStr}`;
+            }
+
+            // 3. Open Modal via global hook
+            if (typeof window.openInspirationModal === 'function') {
+                // Pass a normalized data object that matches what openInspirationModal/loadInspirationGraph expects
+                // IMPORTANT: The modal expects "Object" (capital O) for the title
+                const modalPayload = {
+                    ...objData,
+                    // Ensure keys match what _inspiration_section.html expects
+                    Object: objData.Object || objData.object_name,
+                    "Common Name": objData["Common Name"] || objData.common_name,
+                    "Max Altitude (°)": "N/A", // Static view doesn't have live calcs
+                    "Transit Time": "N/A",
+                    "Observable Duration (min)": "0"
+                };
+                window.openInspirationModal(modalPayload, finalImg, finalText, finalSource, finalLink);
+            }
+        }
     });
 
     objects.forEach(obj => {
@@ -357,7 +399,13 @@ function ensureNovaObjectsCatalog() {
 
         // Add leading non-breaking spaces to visually offset label from circle
         const labelWithPadding = '\u00A0\u00A0' + label;  // 3 spaces worth of padding
-        const src = A.source(ra, dec, { name: labelWithPadding });
+
+        // Merge the object data with the label ('name') into a single flat object
+        // This ensures Aladin finds 'name' for the label AND 'obj' properties for the click handler
+        const sourceData = Object.assign({}, obj, { name: labelWithPadding });
+
+        const src = A.source(ra, dec, sourceData);
+
         cat.addSources([src]);
     });
 

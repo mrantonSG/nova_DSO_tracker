@@ -10,7 +10,15 @@
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
-  </script>
+
+    // Helper function required by the Inspiration Modal to navigate to charts
+    window.showGraph = function(objectName) {
+        const currentLoc = (window.NOVA_GRAPH_DATA && window.NOVA_GRAPH_DATA.plotLocName) || '';
+        let url = `/graph_dashboard/${encodeURIComponent(objectName)}?tab=chart`;
+        if (currentLoc) url += `&location=${encodeURIComponent(currentLoc)}`;
+        window.location.href = url;
+    };
+</script>
 <style>
     body {
         padding: 20px;
@@ -1140,6 +1148,8 @@
     {% include '_opportunities_section.html' %}
 </div>
 
+{% include '_inspiration_section.html' %}
+
 <div id="simbad-tab" class="tab-content">
     <div id="simbadContainer">
         <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
@@ -1314,7 +1324,7 @@
         allObjects: {{ framing_objects | tojson }}
     };
 </script>
-<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v3"></script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v4"></script>
 <script>
     // --- Patch: Update Separation on Date Change ---
     document.addEventListener("DOMContentLoaded", function() {
