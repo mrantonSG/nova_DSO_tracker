@@ -10430,6 +10430,20 @@ def graph_dashboard(object_name):
                     all_objects_for_framing.append({
                         "id": o.id, "object_name": o.object_name, "common_name": o.common_name,
                         "ra_deg": float(o.ra_hours) * 15.0, "dec_deg": float(o.dec_deg),
+                        # Curation / Metadata fields required for Inspiration Modal
+                        "image_url": o.image_url,
+                        "image_credit": o.image_credit,
+                        "image_source_link": o.image_source_link,
+                        "description_text": o.description_text,
+                        "description_credit": o.description_credit,
+                        "description_source_link": o.description_source_link,
+                        "Size": o.size,
+                        # Note: Capitalized to match some frontend expectations if needed, or consistent with DB
+                        "Type": o.type,
+                        "Constellation": o.constellation,
+                        # Essential keys for the frontend modal title/subtitle
+                        "Object": o.object_name,
+                        "Common Name": o.common_name
                     })
                 except Exception:
                     continue
