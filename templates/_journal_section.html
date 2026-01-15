@@ -188,8 +188,7 @@
                     </tr>
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
-                            {# Fix: Force the specific session location #}
-                            onclick='window.location.href="{{ url_for("graph_dashboard", object_name=object_name, session_id=session_item.id, location=session_item.location_name) }}&tab=journal"'>
+                            onclick="loadSessionViaAjax(event, '{{ url_for('graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name) }}&tab=journal', this)">
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:#555;">{{ session_item.location_name | default("-") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
@@ -1373,4 +1372,61 @@
         }
     }
 
+</script>
+<script>
+async function loadSessionViaAjax(e, url, rowElement) {
+    // Allow Ctrl/Cmd+Click to open in new tab
+    if (e.ctrlKey || e.metaKey) return;
+
+    e.preventDefault();
+    document.body.style.cursor = 'wait';
+
+    // UI Feedback: Update active highlight immediately
+    document.querySelectorAll('.clickable-session-row').forEach(r => r.classList.remove('current-session-item'));
+    if (rowElement) rowElement.classList.add('current-session-item');
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        const text = await response.text();
+        const parser = new DOMParser();
+        const newDoc = parser.parseFromString(text, 'text/html');
+
+        // 1. Swap the Detail Column Content
+        const newContent = newDoc.querySelector('.session-detail-column');
+        const currentContent = document.querySelector('.session-detail-column');
+
+        if (newContent && currentContent) {
+            currentContent.innerHTML = newContent.innerHTML;
+        }
+
+        // 2. Update Global State (Critical for Edit Mode to work after swap)
+        const scripts = newDoc.querySelectorAll('script');
+        for (let s of scripts) {
+            // Extract the new session JSON data
+            const match = s.textContent.match(/window\.selectedSessionData\s*=\s*(\{[\s\S]*?\});/);
+            if (match && match[1]) {
+                try {
+                    window.selectedSessionData = JSON.parse(match[1]);
+                } catch (err) { console.error("JSON Parse error", err); }
+                break;
+            }
+        }
+
+        // 3. Update Browser URL without reloading
+        window.history.pushState({}, '', url);
+
+        // 4. Re-initialize Tabs if needed
+        if (typeof showDetailTab === 'function') {
+            showDetailTab('summary');
+        }
+
+    } catch (error) {
+        console.warn("AJAX Load Failed, falling back to reload:", error);
+        window.location.href = url;
+    } finally {
+        document.body.style.cursor = 'default';
+    }
+}
 </script>
