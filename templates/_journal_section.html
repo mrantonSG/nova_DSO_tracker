@@ -176,7 +176,7 @@
                             style="padding: 8px 5px; border-top: 1px solid #ddd;"
                             {% if group.is_project %}
                             {# Fix: Pass current location to prevent fallback to default #}
-                            onclick="window.location.href='{{ url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=group.project_id, location=header_location_name) }}'"
+                            onclick="loadSessionViaAjax(event, '{{ url_for('graph_dashboard', object_name=object_name, tab='journal', project_id=group.project_id, location=header_location_name) }}', this)"
                             title="Click to view project details"
                             {% endif %}
                         >
@@ -1381,9 +1381,18 @@ async function loadSessionViaAjax(e, url, rowElement) {
     e.preventDefault();
     document.body.style.cursor = 'wait';
 
-    // UI Feedback: Update active highlight immediately
+    // UI Feedback: Reset all highlights first
     document.querySelectorAll('.clickable-session-row').forEach(r => r.classList.remove('current-session-item'));
-    if (rowElement) rowElement.classList.add('current-session-item');
+    document.querySelectorAll('.project-header-clickable').forEach(r => r.classList.remove('current-project-item'));
+
+    // Apply highlight based on the type of element clicked
+    if (rowElement) {
+        if (rowElement.classList.contains('project-header-clickable')) {
+            rowElement.classList.add('current-project-item');
+        } else {
+            rowElement.classList.add('current-session-item');
+        }
+    }
 
     try {
         const response = await fetch(url);
