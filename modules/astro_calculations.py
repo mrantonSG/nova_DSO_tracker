@@ -35,12 +35,60 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
         body = ephem.FixedBody()
         body._ra = ephem.hours(str(ra))
         body._dec = ephem.degrees(str(dec))
-        #body.compute(observer)
 
-        transit_time_utc = observer.next_transit(body).datetime()
-        transit_time_local = transit_time_utc.replace(tzinfo=pytz.utc).astimezone(local_tz)
+        crossings = []
+        # Calculate meridian crossings (Upper and Lower) within the 24h plot window [Noon to Noon]
+        # 1. Upper Transit (Highest point)
+        try:
+            ut_utc = observer.next_transit(body).datetime()
+            ut_local = ut_utc.replace(tzinfo=pytz.utc).astimezone(local_tz)
+            if noon_local <= ut_local < noon_local + timedelta(hours=24):
+                crossings.append(ut_local)
+        except Exception:
+            pass
 
-        return transit_time_local.strftime('%H:%M')
+        # 2. Lower Transit (Antitransit / Nadir / Lowest point)
+        try:
+            lt_utc = observer.next_antitransit(body).datetime()
+            lt_local = lt_utc.replace(tzinfo=pytz.utc).astimezone(local_tz)
+            if noon_local <= lt_local < noon_local + timedelta(hours=24):
+                crossings.append(lt_local)
+        except Exception:
+            pass
+
+        if not crossings:
+            return "N/A"
+
+        # Sort chronologically
+        crossings.sort()
+
+        # Filter out daytime transits to keep the UI relevant to imaging
+        # We only keep transits that occur between Astronomical Dusk and Astronomical Dawn
+        sun_events = calculate_sun_events_cached(local_date_str, tz_name, lat, lon)
+        dusk_str = sun_events.get("astronomical_dusk")
+        dawn_str = sun_events.get("astronomical_dawn")
+
+        if dusk_str != "N/A" and dawn_str != "N/A":
+            dusk_time = datetime.strptime(dusk_str, "%H:%M").time()
+            dawn_time = datetime.strptime(dawn_str, "%H:%M").time()
+
+            night_crossings = []
+            for c in crossings:
+                c_time = c.time()
+                # Handle crossings during a night that spans across midnight
+                if dusk_time > dawn_time:
+                    if c_time >= dusk_time or c_time <= dawn_time:
+                        night_crossings.append(c)
+                else:
+                    if dusk_time <= c_time <= dawn_time:
+                        night_crossings.append(c)
+
+            if night_crossings:
+                return ", ".join([nc.strftime('%H:%M') for nc in night_crossings])
+
+        # Fallback: if no night transits found or polar day/night, return only the primary upper transit
+        upper_transits = [c for c in crossings if c.strftime('%H:%M') == ut_local.strftime('%H:%M')]
+        return upper_transits[0].strftime('%H:%M') if upper_transits else "N/A"
 
     except (ephem.AlwaysUpError, ephem.NeverUpError):
         # For circumpolar or never-rising objects, we can calculate the highest point differently.
