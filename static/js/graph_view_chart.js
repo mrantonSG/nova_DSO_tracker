@@ -597,11 +597,44 @@ annotations.currentTimeLine = {
         if (dawnTime) annotations.dawnLine = { type: 'line', xMin: dawnTime, xMax: dawnTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
         if (sunriseTime) annotations.sunriseLine = { type: 'line', xMin: sunriseTime, xMax: sunriseTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
         if (data.transit_time && data.transit_time !== "N/A") {
-            const parts = (data.transit_time || '').split(':'), th = Number(parts[0] || 0), tm = Number(parts[1] || 0);
-            const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis(), t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
-            const nightStart = duskTime, nightEnd = dawnTime, inWindow = (t) => t >= nightStart && t <= nightEnd;
-            const transitMs = inWindow(t0) ? t0 : inWindow(t1) ? t1 : (Math.abs(t0 - midnightMs) < Math.abs(t1 - midnightMs) ? t0 : t1);
-            annotations.transitLine = { type: 'line', xMin: transitMs, xMax: transitMs, borderColor: 'crimson', borderWidth: 2, borderDash: [6, 6], clip: false, label: { display: true, content: data.transit_time, position: 'start', rotation: 90, font: {size: 10, weight: 'bold'}, color: 'crimson', backgroundColor: 'rgba(255,255,255,0.7)' } };
+            const transitStrings = data.transit_time.split(',').map(s => s.trim());
+
+            transitStrings.forEach((tStr, idx) => {
+                const parts = tStr.split(':'), th = Number(parts[0] || 0), tm = Number(parts[1] || 0);
+                const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+                const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+
+                const nightStart = duskTime, nightEnd = dawnTime;
+                const inWindow = (t) => t >= nightStart && t <= nightEnd;
+
+                // Determine which instance of this transit (today or tomorrow) falls in the night window
+                const transitMs = inWindow(t0) ? t0 : t1;
+
+                // Only draw the annotation if it falls within the dark window (Dusk to Dawn)
+                if (transitMs < nightStart || transitMs > nightEnd) {
+                    return;
+                }
+
+                const annotKey = `transitLine_${idx}`;
+                annotations[annotKey] = {
+                    type: 'line',
+                    xMin: transitMs,
+                    xMax: transitMs,
+                    borderColor: 'crimson',
+                    borderWidth: 2,
+                    borderDash: [6, 6],
+                    clip: false,
+                    label: {
+                        display: true,
+                        content: tStr,
+                        position: 'start',
+                        rotation: 90,
+                        font: {size: 10, weight: 'bold'},
+                        color: 'crimson',
+                        backgroundColor: 'rgba(255,255,255,0.7)'
+                    }
+                };
+            });
         }
         const nightShade = { id: 'nightShade', beforeDraw(chart) { const {ctx, chartArea, scales} = chart; if (!chartArea) return; const left = scales.x.getPixelForValue(scales.x.min), right = scales.x.getPixelForValue(scales.x.max); const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right, dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left; ctx.save(); ctx.fillStyle = 'rgba(211, 211, 211, 1)'; if (duskPx < dawnPx) { if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height); if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height); } else ctx.fillRect(left, chartArea.top, right - left, chartArea.height); ctx.restore(); } };
         const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
