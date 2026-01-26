@@ -467,6 +467,72 @@
         text-overflow: ellipsis;
     }
     #journal-data-table th[data-journal-column-key="object_name"]
+  }
+
+    /* --- Simulation Mode --- */
+    .status-strip.simulated {
+        background-color: #d4edda; /* Light green background */
+        border-radius: 5px;
+    }
+    #simulation-controls {
+        display: flex;
+        flex-direction: row; /* Horizontal alignment */
+        align-items: center; /* Vertically center all items */
+        gap: 0;
+        padding: 0 15px;
+    }
+    #sim-date-input {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-family: 'Roboto', sans-serif;
+        font-size: 15px; /* Larger font */
+        height: 34px;    /* Larger height */
+        font-weight: bold;
+        color: #444;
+    }
+    #sim-date-input:disabled {
+        background-color: #f0f0f0;
+        color: #999;
+        cursor: not-allowed;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { display:none; }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 24px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #ca0e0e;
+    }
+    input:checked + .slider:before {
+      transform: translateX(20px);
+    }
+    /* --- End Simulation Mode --- */
   </style>
 
   <script>
@@ -583,6 +649,99 @@
             format: val => (val === null || val === undefined) ? 'N/A' : `${String(val)} ★`
         }
     };
+
+    // ========================================================================
+    // Simulation Mode Functions
+    // ========================================================================
+    function initializeSimulationMode() {
+        const simModeToggle = document.getElementById('sim-mode-toggle');
+        const simDateInput = document.getElementById('sim-date-input');
+        const simulatedTitleText = document.getElementById('simulated-title-text');
+        const statusStrip = document.querySelector('.status-strip');
+        const updateStatusItem = document.querySelector('.status-item[style*="margin-left: auto"]');
+        const updateLabel = updateStatusItem?.querySelector('.status-label');
+        const updateValue = document.getElementById('next-update-timer');
+
+        function applySimState(isSim, dateVal) {
+            if (isSim && dateVal) {
+                simDateInput.disabled = false;
+                simDateInput.value = dateVal;
+                statusStrip.classList.add('simulated');
+                simulatedTitleText.style.display = 'inline';
+                if(updateLabel) updateLabel.textContent = 'Mode';
+                if(updateValue) {
+                    updateValue.textContent = 'Simulated';
+                    updateValue.style.color = '#ca0e0e'; // Green color for simulated text
+                }
+            } else {
+                simDateInput.disabled = true;
+                statusStrip.classList.remove('simulated');
+                simulatedTitleText.style.display = 'none';
+                if(updateLabel) updateLabel.textContent = 'Update';
+                if(updateValue) {
+                    updateValue.style.color = '#83b4c5'; // Restore original color
+                }
+                // The timer interval will take care of resetting the value text
+            }
+        }
+
+        function updateDataForSim() {
+            const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+            // Clear current cache keys to force fresh calculation with the simulated date
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                if (key.startsWith('nova_desktop_cache_')) {
+                    sessionStorage.removeItem(key);
+                }
+            }
+            // Reset outlook flag so it re-calculates for the new reference date
+            outlookDataLoaded = false;
+            fetchData();
+            fetchSunEvents();
+        }
+
+        simModeToggle.addEventListener('change', function() {
+            const isChecked = this.checked;
+            if (isChecked && !simDateInput.value) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                simDateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+            localStorage.setItem('simModeActive', isChecked);
+            localStorage.setItem('simDate', simDateInput.value);
+            applySimState(isChecked, simDateInput.value);
+            updateDataForSim();
+        });
+
+        simDateInput.addEventListener('change', function() {
+            if (simModeToggle.checked) {
+                localStorage.setItem('simDate', this.value);
+                applySimState(true, this.value);
+                updateDataForSim();
+            }
+        });
+
+        // On load
+        const savedSimMode = localStorage.getItem('simModeActive') === 'true';
+        let savedSimDate = localStorage.getItem('simDate');
+
+        if (savedSimMode) {
+            simModeToggle.checked = true;
+            if (!savedSimDate) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                savedSimDate = `${yyyy}-${mm}-${dd}`;
+                localStorage.setItem('simDate', savedSimDate);
+            }
+            applySimState(true, savedSimDate);
+        } else {
+            applySimState(false, null);
+        }
+    }
 
     // ========================================================================
     // Helper Functions
@@ -990,8 +1149,12 @@ async function fetchData(isBackground = false) {
     tbody.dataset.loading = 'true';
 
     const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
+    const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+    const simDateVal = document.getElementById('sim-date-input')?.value;
+    const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
+
     // Cache for 1 minute to match update interval
-    const CACHE_KEY = `nova_desktop_cache_${currentSelectedLocation || 'default'}`;
+    const CACHE_KEY = `nova_desktop_cache_${currentSelectedLocation || 'default'}_${effectiveDate || 'realtime'}`;
     const CACHE_EXPIRY = 60 * 1000;
 
     console.log(`Fetch requested for location: ${currentSelectedLocation}`);
@@ -1041,7 +1204,10 @@ async function fetchData(isBackground = false) {
             if (signal.aborted) return;
 
             // Call the new Batch Endpoint
-            const url = `/api/get_desktop_data_batch?offset=${offset}&limit=${BATCH_SIZE}&location=${encodeURIComponent(currentSelectedLocation || '')}`;
+            let url = `/api/get_desktop_data_batch?offset=${offset}&limit=${BATCH_SIZE}&location=${encodeURIComponent(currentSelectedLocation || '')}`;
+            if (effectiveDate) {
+                url += `&sim_date=${effectiveDate}`;
+            }
             const res = await fetch(url, { signal });
 
             if (!res.ok) throw new Error(`Server Error: ${res.status}`);
@@ -1575,8 +1741,17 @@ async function fetchData(isBackground = false) {
             params.set('location', currentSelectedLocation); // Add location to URL parameters
         }
 
-        if (dateStr) {
+        const simToggle = document.getElementById('sim-mode-toggle');
+        const simInput = document.getElementById('sim-date-input');
+        if (dateStr) { // A date is explicitly passed (e.g., from Outlook)
             const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                params.set('year', parts[0]);
+                params.set('month', parts[1]);
+                params.set('day', parts[2]);
+            }
+        } else if (simToggle && simToggle.checked && simInput && simInput.value) { // No date passed, but sim mode is on
+            const parts = simInput.value.split('-');
             if (parts.length === 3) {
                 params.set('year', parts[0]);
                 params.set('month', parts[1]);
@@ -1693,7 +1868,14 @@ function setLocation() {
 
     function fetchSunEvents() {
         const currentSelectedLocation = sessionStorage.getItem('selectedLocation');
-        fetch(`/sun_events?location=${encodeURIComponent(currentSelectedLocation || '')}`)
+        const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+        const simDateVal = document.getElementById('sim-date-input')?.value;
+        const effectiveDate = simModeOn && simDateVal ? simDateVal : null;
+        let url = `/sun_events?location=${encodeURIComponent(currentSelectedLocation || '')}`;
+        if (effectiveDate) {
+            url += `&sim_date=${effectiveDate}`;
+        }
+        fetch(url)
         .then(response => response.json())
         .then(data => {
           document.getElementById('dawn').textContent = data.astronomical_dawn;
@@ -1986,6 +2168,7 @@ function populateJournalTable() {
 
       // This is the 60-second interval to fetch data
       setInterval(() => {
+        if (document.getElementById('sim-mode-toggle')?.checked) return;
         fetchData(true); // <--- TRUE enables background mode (no progress bar)
         fetchSunEvents();
         timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
@@ -1994,6 +2177,7 @@ function populateJournalTable() {
 
       // This is the new 1-second interval to update the countdown display
       setInterval(() => {
+          if (document.getElementById('sim-mode-toggle')?.checked) return;
           timeToNextUpdate--; // Decrement the timer
           if (timeToNextUpdate < 0) {
               timeToNextUpdate = 0; // Don't go below zero
@@ -2045,6 +2229,7 @@ function populateJournalTable() {
       }
       // --- END FIX ---
 
+      initializeSimulationMode();
       fetchLocations();
       fetchSunEvents();
       fetchData();
@@ -2573,7 +2758,7 @@ function populateJournalTable() {
 {% endblock %}
 
 {% block page_title %}
-    <h2>Dashboard</h2>
+    <h2>Dashboard <span id="simulated-title-text" style="display: none; color: #ca0e0e; font-weight: normal;">- Simulated</span></h2>
 {% endblock %}
 
 {% block header_actions %}
@@ -2599,6 +2784,16 @@ function populateJournalTable() {
     <div class="status-item">
         <span class="status-label">Astr. Dusk / Dawn</span>
         <span class="status-value"><span id="dusk">--:--</span> <span style="color:#aaa; margin:0 5px;">|</span> <span id="dawn">--:--</span></span>
+    </div>
+    <div class="status-item" id="simulation-controls">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="date" id="sim-date-input" disabled style="height: 30px; font-size: 14px; padding: 2px 5px;">
+            <label class="switch">
+                <input type="checkbox" id="sim-mode-toggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <label for="sim-mode-toggle" class="status-label" style="cursor:pointer; margin-left: 8px;">Simulation</label>
     </div>
     <div class="status-item" style="margin-left: auto;">
         <span class="status-label">Update</span>
