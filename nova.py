@@ -4083,6 +4083,10 @@ def get_plot_data(object_name):
         # Determine the effective location name
         loc_name = plot_loc_name if plot_loc_name else default_loc_name
 
+        # --- SIMULATION MODE SUPPORT ---
+        # If sim_date is provided, use it to override the calculation anchor
+        sim_date_str = request.args.get('sim_date')
+
         # Retrieve config for this location from the loaded context
         target_loc_conf = g.locations.get(loc_name, {}) if hasattr(g, 'locations') else {}
 
@@ -4104,10 +4108,16 @@ def get_plot_data(object_name):
         print(f"[API Plot Data] Error parsing location parameters: {e}")
         return jsonify({"error": f"Invalid location or timezone data: {e}"}), 400
 
-    now_local = datetime.now(local_tz)
+    if sim_date_str:
+        try:
+            now_local = local_tz.localize(datetime.strptime(sim_date_str, '%Y-%m-%d'))
+        except ValueError:
+            now_local = datetime.now(local_tz)
+    else:
+        now_local = datetime.now(local_tz)
 
-    # Determine default date based on Noon-to-Noon logic (consistent with dashboard)
-    if now_local.hour < 12:
+        # Determine default date based on Noon-to-Noon logic (consistent with dashboard)
+    if not sim_date_str and now_local.hour < 12:
         default_date = now_local.date() - timedelta(days=1)
     else:
         default_date = now_local.date()
@@ -9056,7 +9066,18 @@ def get_desktop_data_batch():
         except:
             local_tz = pytz.utc
 
-        current_datetime_local = datetime.now(local_tz)
+            # --- SIMULATION MODE ---
+        sim_date_str = request.args.get('sim_date')
+        if sim_date_str:
+            try:
+                # Use current wall-clock time combined with simulated date
+                sim_date = datetime.strptime(sim_date_str, '%Y-%m-%d').date()
+                now_time = datetime.now(local_tz).time()
+                current_datetime_local = local_tz.localize(datetime.combine(sim_date, now_time))
+            except ValueError:
+                current_datetime_local = datetime.now(local_tz)
+        else:
+            current_datetime_local = datetime.now(local_tz)
 
         # Determine "Observing Night" Date
         # If it's before noon, we associate this time with the previous night's session
@@ -9148,7 +9169,8 @@ def get_desktop_data_batch():
                     nightly_curves_cache[cache_key] = cached
 
                 # Current Position (Fast Interpolation)
-                now_utc = datetime.now(pytz.utc)
+                # Use the effective simulation time converted to UTC
+                now_utc = current_datetime_local.astimezone(pytz.utc)
                 idx = np.argmin([abs((t - now_utc).total_seconds()) for t in cached["times_local"]])
                 cur_alt = cached["altitudes"][idx]
                 cur_az = cached["azimuths"][idx]
@@ -9605,14 +9627,25 @@ def sun_events():
 
     # --- Use the determined (valid) lat, lon, tz_name variables below ---
     try:
-        local_tz = pytz.timezone(tz_name) # Use determined tz_name
+        local_tz = pytz.timezone(tz_name)  # Use determined tz_name
     except pytz.UnknownTimeZoneError:
         # Handle invalid timezone string
         # print(f"[API Sun Events] Error: Invalid timezone '{tz_name}'. Falling back to UTC.") # Optional debug print
         tz_name = "UTC"
         local_tz = pytz.utc
 
-    now_local = datetime.now(local_tz)
+        # --- SIMULATION MODE ---
+    sim_date_str = request.args.get('sim_date')
+    if sim_date_str:
+        try:
+            sim_date = datetime.strptime(sim_date_str, '%Y-%m-%d').date()
+            now_time = datetime.now(local_tz).time()
+            now_local = local_tz.localize(datetime.combine(sim_date, now_time))
+        except ValueError:
+            now_local = datetime.now(local_tz)
+    else:
+        now_local = datetime.now(local_tz)
+
     local_date = now_local.strftime('%Y-%m-%d')
 
     # Calculate sun events using determined variables
