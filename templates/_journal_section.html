@@ -630,14 +630,23 @@
                     <div class="form-section-title">Acquisition Details</div>
                     <div class="form-group"><label>Acquisition Software:</label><input type="text" name="acquisition_software" placeholder="e.g., N.I.N.A."></div>
                     <div class="form-group"><label>Dither Settings:</label><input type="text" name="dither_details" placeholder="e.g., Yes, 3px every 2 subs"></div>
-                    <div class="form-row"><div class="form-group"><label>Sub Exposure (sec):</label><input type="number" name="exposure_time_per_sub_sec" min="0"></div><div class="form-group"><label># Light Subs:</label><input type="number" name="number_of_subs_light" min="0"></div></div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Sub Exposure (sec):</label><input type="number" name="exposure_time_per_sub_sec" min="0" oninput="triggerAllMaxSubsCalculations()"></div>
+                        <div class="form-group"><label># Light Subs <span id="max-subs-main" style="font-weight:normal; color:#17a2b8; font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" oninput="triggerAllMaxSubsCalculations()"></div>
+                    </div>
                     <div class="form-row"><div class="form-group"><label>Gain:</label><input type="number" name="gain_setting"></div><div class="form-group"><label>Offset:</label><input type="number" name="offset_setting"></div></div>
                     <div class="form-row"><div class="form-group"><label>Camera Temp Setpoint (°C):</label><input type="number" step="0.1" name="camera_temp_setpoint_c"></div><div class="form-group"><label>Camera Temp Actual Avg (°C):</label><input type="number" step="0.1" name="camera_temp_actual_avg_c"></div></div>
                     <div class="form-group"><label>Binning:</label><input type="text" name="binning_session" placeholder="e.g., 1x1"></div>
                     <div class="form-group"><label>Filter Used (if broadband/single):</label><input type="text" name="filter_used_session" placeholder="e.g., L-Pro, None"></div>
                     <div class="form-section-title" style="margin-top:20px;">Monochrome Filter Exposures</div>
                     {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
-                    {% for filt_key, filt_name in mono_filters %}<div class="form-row"><div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div><div class="form-group"><label># Subs:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="Count"></div><div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds"></div></div>{% endfor %}
+                    {% for filt_key, filt_name in mono_filters %}
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div>
+                        <div class="form-group"><label># Subs <span id="max-subs-{{ filt_key }}" style="font-weight:normal; color:#17a2b8; font-size:0.85em;"></span>:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="Count" oninput="triggerAllMaxSubsCalculations()"></div>
+                        <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds" oninput="triggerAllMaxSubsCalculations()"></div>
+                    </div>
+                    {% endfor %}
                 </div>
                 <div id="form-outcome-tab">
                     <div class="form-section-title">Calibration Strategy</div>
@@ -995,10 +1004,86 @@
             if (data.status === 'success') {
                 illumInput.value = data.moon_illumination !== null ? data.moon_illumination : '';
                 sepInput.value = data.angular_separation !== null ? data.angular_separation : '';
+
+                // Store duration globally for calculation
+                window.currentObsDurationMinutes = data.observable_duration_min || 0;
+
+                // Trigger recalculation for all existing inputs
+                triggerAllMaxSubsCalculations();
             }
         } catch (error) {
             console.error('Failed to fetch moon data:', error);
         }
+    }
+
+    // Helper: Calculate total integration time currently scheduled by other fields
+    function getUsedTimeSeconds(excludeKey) {
+        let usedSeconds = 0;
+
+        // Helper to add time if not the excluded key
+        const addTime = (subsName, expName, currentKey) => {
+            if (currentKey === excludeKey) return;
+            const subs = parseFloat(document.querySelector(`input[name="${subsName}"]`)?.value) || 0;
+            const exp = parseFloat(document.querySelector(`input[name="${expName}"]`)?.value) || 0;
+            usedSeconds += (subs * exp);
+        };
+
+        // Check Main
+        addTime('number_of_subs_light', 'exposure_time_per_sub_sec', 'main');
+
+        // Check Mono Filters
+        ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'].forEach(k => {
+            addTime(`filter_${k}_subs`, `filter_${k}_exposure_sec`, k);
+        });
+
+        return usedSeconds;
+    }
+
+    // New Helper: Calculate Max Subs with Deduction and Efficiency
+    function calculateMaxSubs(exposureSec, targetSpanId, filterKey) {
+        const span = document.getElementById(targetSpanId);
+        if (!span) return;
+
+        const durationMin = window.currentObsDurationMinutes || 0;
+        const exp = parseFloat(exposureSec);
+
+        if (durationMin > 0 && exp > 0) {
+            const totalAvailableSeconds = durationMin * 60;
+            const usedSeconds = getUsedTimeSeconds(filterKey); // Get time used by *other* fields
+
+            // Calculate remaining time for *this* field
+            const remainingSeconds = Math.max(0, totalAvailableSeconds - usedSeconds);
+
+            // Theoretical Max
+            const maxSubs = Math.floor(remainingSeconds / exp);
+
+            // Realistic Max (Efficiency factor ~92% for dither/meridian flip/readout)
+            const efficiencyFactor = 0.92;
+            const realSubs = Math.floor((remainingSeconds * efficiencyFactor) / exp);
+
+            if (maxSubs > 0) {
+                span.innerHTML = `(Max <span style="font-weight:600;">${maxSubs}</span> | Real <span style="font-weight:600;">${realSubs}</span>)`;
+                span.title = `Based on ${durationMin}m total window minus other active filters. Real assumes ~8% overhead.`;
+            } else {
+                span.textContent = '(Time Limit Reached)';
+                span.style.color = '#dc3545'; // Red warning
+            }
+        } else {
+            span.textContent = '';
+        }
+    }
+
+    function triggerAllMaxSubsCalculations() {
+        // Main Exposure
+        const mainExp = document.querySelector('input[name="exposure_time_per_sub_sec"]');
+        if (mainExp) calculateMaxSubs(mainExp.value, 'max-subs-main', 'main');
+
+        // Mono Filters
+        const monoFilters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'];
+        monoFilters.forEach(key => {
+            const input = document.querySelector(`input[name="filter_${key}_exposure_sec"]`);
+            if (input) calculateMaxSubs(input.value, `max-subs-${key}`, key);
+        });
     }
 
     function toggleNewProjectField() {

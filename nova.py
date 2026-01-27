@@ -10090,10 +10090,41 @@ def get_moon_data_for_session():
         else:
             print("[API Moon Data] RA/DEC not provided, calculating phase only.")
 
+            # --- Calculate Observable Duration (for Max Subs estimate) ---
+        obs_duration_min = 0
+        if ra is not None and dec is not None:
+            try:
+                # Attempt to resolve horizon mask and threshold from global context if location matches
+                alt_thresh = g.user_config.get("altitude_threshold", 20)
+                mask = None
+
+                # Heuristic lookup for location-specific settings
+                if hasattr(g, 'locations') and isinstance(g.locations, dict):
+                    for loc_details in g.locations.values():
+                        # Fuzzy match coordinates to find correct location settings
+                        if (abs(loc_details.get('lat', 999) - lat) < 0.001 and
+                                abs(loc_details.get('lon', 999) - lon) < 0.001):
+                            mask = loc_details.get('horizon_mask')
+                            if loc_details.get('altitude_threshold') is not None:
+                                alt_thresh = loc_details.get('altitude_threshold')
+                            break
+
+                # Use a standard sampling interval for this quick check
+                sampling = 15
+
+                obs_dur_td, _, _, _ = calculate_observable_duration_vectorized(
+                    ra, dec, lat, lon, date_str, tz_name, alt_thresh, sampling, horizon_mask=mask
+                )
+                if obs_dur_td:
+                    obs_duration_min = int(obs_dur_td.total_seconds() / 60)
+            except Exception as e:
+                print(f"[API Moon] Duration calc error: {e}")
+
         return jsonify({
             "status": "success",
             "moon_illumination": moon_phase,
-            "angular_separation": angular_sep_value  # This will be null if RA/DEC were missing
+            "angular_separation": angular_sep_value,
+            "observable_duration_min": obs_duration_min
         })
 
     except Exception as e:
