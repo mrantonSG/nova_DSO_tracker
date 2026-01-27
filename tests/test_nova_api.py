@@ -644,8 +644,8 @@ def test_update_project_active_triggers_outlook_worker_correctly(client, monkeyp
     assert call_args_tuple is not None
 
     # 3. This is the assertion that will FAIL on your current code:
-    #    Check that the 'args' tuple has 6 items, not 4
-    assert len(call_args_tuple) == 6
+    #    Check that the 'args' tuple has 7 items (now includes sim_date_str)
+    assert len(call_args_tuple) == 7
 
     # 4. (Optional) We can also check the types/values of the args
     #    args=(user_id, status_key, cache_filename, location_name, user_config, sampling_interval)
