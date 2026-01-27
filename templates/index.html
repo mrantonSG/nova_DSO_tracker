@@ -913,8 +913,43 @@
         // 3. Store the name to be selected on reload in localStorage (to persist)
         localStorage.setItem('nova_last_applied_view', viewName); // <-- THIS LINE IS CHANGED
 
-        // 4. Reload the page to apply all settings from scratch
-        window.location.reload();
+        // 4. Update memory flags and refresh UI without full page reload
+        activeTab = localStorage.getItem('activeTab') || 'position';
+
+        // Restore inputs from localStorage for both tables
+        for (const key in columnConfig) {
+            if (columnConfig[key].filterable) {
+                const val = localStorage.getItem("dso_filter_col_key_" + key);
+                const inputEl = document.querySelector(`#data-table .filter-row th[data-column-key="${key}"] input`);
+                if (inputEl) inputEl.value = val || '';
+            }
+        }
+        for (const key in journalColumnConfig) {
+            if (journalColumnConfig[key].filterable) {
+                const val = localStorage.getItem("journal_filter_col_key_" + key);
+                const inputEl = document.querySelector(`#journal-filter-row th[data-journal-column-key="${key}"] input`);
+                if (inputEl) inputEl.value = val || '';
+            }
+        }
+
+        // Restore sort state variables
+        const storedDsoSort = localStorage.getItem('dso_sortColumnKey');
+        if (storedDsoSort) {
+            currentSort.columnKey = storedDsoSort;
+            currentSort.ascending = (localStorage.getItem('dso_sortOrder') === 'asc');
+        }
+
+        // Trigger UI updates
+        filterTable();
+        filterJournalTable();
+        sortTable(currentSort.columnKey, false);
+        updateTabDisplay();
+        updateRemoveFiltersButtonVisibility();
+
+        // If on Inspiration tab, refresh the grid
+        if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
+            renderInspirationGrid();
+        }
     }
 
     // Updated to open modal
