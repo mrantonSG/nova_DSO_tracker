@@ -1063,7 +1063,7 @@
 
             if (maxSubs > 0) {
                 span.innerHTML = `(Max <span style="font-weight:600;">${maxSubs}</span> | Real <span style="font-weight:600;">${realSubs}</span>)`;
-                span.title = `Based on ${durationMin}m total window minus other active filters. Real assumes ~8% overhead.`;
+                span.title = `Based on ${durationMin}m total window minus other active filters. Real assumes ~15% overhead for meridian flip, dithering etc.`;
             } else {
                 span.textContent = '(Time Limit Reached)';
                 span.style.color = '#dc3545'; // Red warning
