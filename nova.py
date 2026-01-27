@@ -4832,14 +4832,15 @@ def trigger_outlook_update_for_user(username):
             cache_worker_status[status_key] = "starting"
             print(f"    -> Set status='starting' for {status_key}")
 
-            # 4. Call the thread with all 6 arguments
+            # 4. Call the thread with arguments (passed sim_date_str=None)
             thread = threading.Thread(target=update_outlook_cache, args=(
                 g.db_user.id,  # 1. user_id
                 status_key,  # 2. status_key
                 cache_filename,  # 3. cache_filename
                 loc_name,  # 4. location_name
                 user_cfg.copy(),  # 5. user_config
-                sampling_interval  # 6. sampling_interval
+                sampling_interval,  # 6. sampling_interval
+                None  # 7. sim_date_str (Realtime update trigger)
             ))
             thread.start()
 
@@ -4952,7 +4953,8 @@ def trigger_startup_cache_workers():
 
 
 # --- CHANGE THIS (the function definition) ---
-def update_outlook_cache(user_id, status_key, cache_filename, location_name, user_config, sampling_interval):
+def update_outlook_cache(user_id, status_key, cache_filename, location_name, user_config, sampling_interval,
+                         sim_date_str=None):
     # --- END CHANGE ---
     """
     Finds ALL good imaging opportunities for PROJECT objects only for the specified
@@ -5055,7 +5057,16 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             # --- Calculation Loop ---
             all_good_opportunities = []
             local_tz = pytz.timezone(tz_name)
-            start_date = datetime.now(local_tz).date()
+
+            # Use simulated date if provided, otherwise 'now'
+            if sim_date_str:
+                try:
+                    start_date = datetime.strptime(sim_date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    start_date = datetime.now(local_tz).date()
+            else:
+                start_date = datetime.now(local_tz).date()
+
             dates_to_check = [start_date + timedelta(days=i) for i in range(criteria["search_horizon_months"] * 30)]
 
             for obj_config_entry in project_objects:
@@ -5484,7 +5495,7 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
 
             thread = threading.Thread(target=update_outlook_cache,
                                       args=(u_id, status_key, cache_filename, location_name, user_config.copy(),
-                                            sampling_interval))
+                                            sampling_interval, None))  # Pass None for sim_date
             # --- FIX END ---
             thread.start()
 
@@ -6011,13 +6022,19 @@ def get_outlook_data():
 
     # --- START OF CHANGES ---
     # 1. Get the new anonymous log ID string
-    user_log_key = get_user_log_string(user_id, username) # e.g., "(123 | FirstName L.)"
+    user_log_key = get_user_log_string(user_id, username)
 
-    # 2. Construct cache filename and status key using the log ID
-    # We must sanitize the key for filenames
-    safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_") # e.g., "123_FirstName_L"
-    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{location_name.lower().replace(' ', '_')}.json")
-    status_key = f"({user_log_key})_{location_name}" # e.g., "(123 | FirstName L.)_Home"
+    # 2. Check for Simulation Mode
+    sim_date_str = request.args.get('sim_date')
+    date_suffix = f"_{sim_date_str}" if sim_date_str else "_realtime"
+
+    # 3. Construct cache filename and status key
+    # We append the date suffix so simulated caches don't overwrite the realtime cache
+    safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+    loc_safe = location_name.lower().replace(' ', '_')
+
+    cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{loc_safe}{date_suffix}.json")
+    status_key = f"({user_log_key})_{location_name}{date_suffix}"
     # --- END OF CHANGES ---
 
     worker_status = cache_worker_status.get(status_key, "idle")
@@ -6061,7 +6078,8 @@ def get_outlook_data():
         # --- START OF CHANGE (when starting the thread) ---
         # We pass the user_id (for metadata), the status_key (for logging), and the cache_filename
         thread = threading.Thread(target=update_outlook_cache,
-                                  args=(user_id, status_key, cache_filename, location_name, g.user_config.copy(), sampling_interval))
+                                  args=(user_id, status_key, cache_filename, location_name, g.user_config.copy(),
+                                        sampling_interval, sim_date_str))
         # --- END OF CHANGE ---
         thread.start()
         cache_worker_status[status_key] = "starting"
@@ -7774,7 +7792,7 @@ def import_config():
                 thread = threading.Thread(target=update_outlook_cache,
                                           args=(user_id_for_thread, status_key, cache_filepath, loc_name,
                                                 user_config_for_thread,
-                                                g.sampling_interval))
+                                                g.sampling_interval, None))
                 thread.start()
 
         return redirect(url_for('config_form'))
