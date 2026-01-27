@@ -1057,8 +1057,8 @@
             // Theoretical Max
             const maxSubs = Math.floor(remainingSeconds / exp);
 
-            // Realistic Max (Efficiency factor ~92% for dither/meridian flip/readout)
-            const efficiencyFactor = 0.92;
+            // Realistic Max (Efficiency factor ~85% for dither/meridian flip/readout)
+            const efficiencyFactor = 0.85;
             const realSubs = Math.floor((remainingSeconds * efficiencyFactor) / exp);
 
             if (maxSubs > 0) {
