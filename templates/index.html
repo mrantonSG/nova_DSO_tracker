@@ -2628,7 +2628,17 @@ function populateJournalTable() {
         try {
             // FIX: Pass the current session location name. The backend will look up the fresh coordinates.
             const currentLoc = sessionStorage.getItem('selectedLocation') || '';
-            const resp = await fetch(`/api/get_plot_data/${encodeURIComponent(objectName)}?plot_loc_name=${encodeURIComponent(currentLoc)}`);
+
+            // --- SIMULATION MODE SUPPORT ---
+            const simModeOn = document.getElementById('sim-mode-toggle')?.checked;
+            const simDateVal = document.getElementById('sim-date-input')?.value;
+            let fetchUrl = `/api/get_plot_data/${encodeURIComponent(objectName)}?plot_loc_name=${encodeURIComponent(currentLoc)}`;
+
+            if (simModeOn && simDateVal) {
+                fetchUrl += `&sim_date=${encodeURIComponent(simDateVal)}`;
+            }
+
+            const resp = await fetch(fetchUrl);
 
             if (!resp.ok) throw new Error("Data fetch failed");
             const data = await resp.json();
