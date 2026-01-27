@@ -910,8 +910,12 @@
         // Explicitly ensure the current tab persists across the reload
         localStorage.setItem('activeTab', activeTab);
 
-        // 3. Store the name to be selected on reload in localStorage (to persist)
-        localStorage.setItem('nova_last_applied_view', viewName); // <-- THIS LINE IS CHANGED
+        // 3. Update the dropdown selection immediately
+        if (savedViewsDropdown) {
+            savedViewsDropdown.value = viewName;
+            if (deleteViewBtn) deleteViewBtn.style.display = 'inline-block';
+        }
+        localStorage.setItem('nova_last_applied_view', viewName);
 
         // 4. Update memory flags and refresh UI without full page reload
         activeTab = localStorage.getItem('activeTab') || 'position';
