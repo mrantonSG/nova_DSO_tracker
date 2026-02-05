@@ -2,6 +2,14 @@
 # Nova DSO Tracker - Headless Installer (App Compatible)
 set -e
 
+# --- SECURITY GUARD ---
+# Blocks manual execution. Requires the Swift App to inject this variable.
+if [ -z "$NOVA_APP_SESSION" ]; then
+    echo "❌ Error: Access Denied."
+    echo "This script must be initiated by the Nova DSO Tracker App."
+    exit 1
+fi
+
 # 1. Validation (Silent)
 # We assume the App already checked for Docker, but double-check to be safe.
 if ! command -v docker &> /dev/null; then
