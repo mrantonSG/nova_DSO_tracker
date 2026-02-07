@@ -2690,55 +2690,81 @@ function populateJournalTable() {
 
             // --- Calculate Day/Night Background Shapes ---
             const shapes = [];
-            const duskEl = document.getElementById('dusk');
-            const dawnEl = document.getElementById('dawn');
 
-            if (times.length > 0 && duskEl && dawnEl) {
-                const duskText = duskEl.textContent.trim();
-                const dawnText = dawnEl.textContent.trim();
+            const sunEvents = (data.sun_events && data.sun_events.current) ? data.sun_events.current : {};
+            const duskText = sunEvents.astronomical_dusk;
+            const dawnText = sunEvents.astronomical_dawn;
+            const graphDateStr = data.date; // Use the API date string to anchor calculations
 
-                // Proceed only if we have valid time strings (e.g., "18:45")
-                if (duskText.includes(':') && dawnText.includes(':')) {
-                    const start = new Date(times[0]);
-                    const [duskH, duskM] = duskText.split(':').map(Number);
-                    const [dawnH, dawnM] = dawnText.split(':').map(Number);
+            const dayShapeStyle = {
+                type: 'rect',
+                xref: 'x',
+                yref: 'paper',
+                y0: 0,
+                y1: 1,
+                fillcolor: '#e0e0e0',
+                layer: 'below',
+                line: { width: 0 }
+            };
 
-                    // Construct Date objects relative to the graph's start date
-                    const duskDate = new Date(start);
-                    duskDate.setHours(duskH, duskM, 0, 0);
+            // Helper to safely add 1 day to YYYY-MM-DD string
+            const getNextDayIsoDate = (dateStr) => {
+                const d = new Date(dateStr);
+                d.setDate(d.getDate() + 1);
+                return d.toISOString().split('T')[0];
+            };
 
-                    const dawnDate = new Date(start);
-                    dawnDate.setHours(dawnH, dawnM, 0, 0);
+            if (times.length > 0) {
+                const timeRegex = /^\d{1,2}:\d{2}$/;
+                const hasValidDusk = duskText && timeRegex.test(duskText);
+                const hasValidDawn = dawnText && timeRegex.test(dawnText);
 
-                    // If dawn time is numerically smaller than dusk (e.g. 05:00 < 18:00), it implies the next day
-                    if (dawnDate < duskDate) {
-                        dawnDate.setDate(dawnDate.getDate() + 1);
+                if (hasValidDusk && hasValidDawn) {
+                    // 1. Determine graph start/end dates based on the data array
+                    // times[0] is roughly noon of graphDateStr
+                    const startIso = times[0];
+                    const endIso = times[times.length - 1];
+
+                    // 2. Resolve Dusk ISO
+                    // If Dusk is early morning (e.g. 01:00), it belongs to the NEXT day (Day+1) relative to graph start (Day Noon)
+                    // If Dusk is afternoon/evening (e.g. 23:00), it belongs to CURRENT day (Day)
+                    const [duskH] = duskText.split(':').map(Number);
+                    let duskDateStr = graphDateStr;
+                    if (duskH < 12) {
+                        duskDateStr = getNextDayIsoDate(graphDateStr);
+                    }
+                    const duskIso = `${duskDateStr}T${duskText}:00`;
+
+                    // 3. Resolve Dawn ISO
+                    // Dawn is almost always the next day (Day+1), but we apply similar logic for safety or extreme latitudes
+                    const [dawnH] = dawnText.split(':').map(Number);
+                    let dawnDateStr = graphDateStr;
+                    if (dawnH < 12) {
+                        dawnDateStr = getNextDayIsoDate(graphDateStr);
+                    }
+                    const dawnIso = `${dawnDateStr}T${dawnText}:00`;
+
+                    // Shape 1: Start -> Dusk
+                    // Only draw if Dusk is actually after the graph start to prevent negative ranges expanding the axis
+                    if (duskIso > startIso) {
+                        shapes.push({ ...dayShapeStyle, x0: startIso, x1: duskIso });
                     }
 
-                    const dayShapeStyle = {
-                        type: 'rect',
-                        xref: 'x',
-                        yref: 'paper',
-                        y0: 0,
-                        y1: 1,
-                        fillcolor: '#f4f4f4', // Subtle grey for daytime
-                        layer: 'below',       // Draw behind the data line
-                        line: { width: 0 }
-                    };
-
-                    // 1. Pre-Dusk (Start -> Dusk)
-                    if (duskDate > start) {
-                        shapes.push({ ...dayShapeStyle, x0: times[0], x1: duskDate.toISOString() });
+                    // Shape 2: Dawn -> End
+                    // Only draw if Dawn is actually before the graph end
+                    if (dawnIso < endIso) {
+                        shapes.push({ ...dayShapeStyle, x0: dawnIso, x1: endIso });
                     }
 
-                    // 2. Post-Dawn (Dawn -> End)
-                    const end = new Date(times[times.length - 1]);
-                    if (dawnDate < end) {
-                        shapes.push({ ...dayShapeStyle, x0: dawnDate.toISOString(), x1: times[times.length - 1] });
-                    }
+                } else {
+                    // Summer/Polar: No Astro Dark available
+                    shapes.push({
+                        ...dayShapeStyle,
+                        x0: times[0],
+                        x1: times[times.length - 1]
+                    });
                 }
             }
-            // ---------------------------------------------
 
             // Find peak altitude for annotation placement
             let maxIdx = 0;
