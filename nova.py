@@ -4818,31 +4818,31 @@ def trigger_outlook_update_for_user(username):
             sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
         # --- END FIX ---
 
-        for loc_name in locations.keys():
-            # 1. Get the user ID and log string
-            user_log_key = get_user_log_string(g.db_user.id, g.db_user.username)
-            safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+        # Define a sequential wrapper to prevent CPU spikes from parallel location processing
+        def _process_locations_sequentially(uid, uname, loc_list, cfg, interval):
+            for loc_name in loc_list:
+                user_log_key = get_user_log_string(uid, uname)
+                safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+                status_key = f"({user_log_key})_{loc_name}"
+                cache_filename = os.path.join(CACHE_DIR,
+                                              f"outlook_cache_{safe_log_key}_{loc_name.lower().replace(' ', '_')}.json")
 
-            # 2. Construct the key and filename
-            status_key = f"({user_log_key})_{loc_name}"
-            cache_filename = os.path.join(CACHE_DIR,
-                                          f"outlook_cache_{safe_log_key}_{loc_name.lower().replace(' ', '_')}.json")
+                cache_worker_status[status_key] = "starting"
+                # Call update_outlook_cache directly (blocking) to enforce sequential execution
+                try:
+                    update_outlook_cache(uid, status_key, cache_filename, loc_name, cfg, interval, None)
+                except Exception as e:
+                    print(f"Error in sequential update for {loc_name}: {e}")
 
-            # 3. Set status before starting
-            cache_worker_status[status_key] = "starting"
-            print(f"    -> Set status='starting' for {status_key}")
-
-            # 4. Call the thread with arguments (passed sim_date_str=None)
-            thread = threading.Thread(target=update_outlook_cache, args=(
-                g.db_user.id,  # 1. user_id
-                status_key,  # 2. status_key
-                cache_filename,  # 3. cache_filename
-                loc_name,  # 4. location_name
-                user_cfg.copy(),  # 5. user_config
-                sampling_interval,  # 6. sampling_interval
-                None  # 7. sim_date_str (Realtime update trigger)
-            ))
-            thread.start()
+        # Start a SINGLE thread that processes all locations one by one
+        thread = threading.Thread(target=_process_locations_sequentially, args=(
+            g.db_user.id,
+            g.db_user.username,
+            list(locations.keys()),
+            user_cfg.copy(),
+            sampling_interval
+        ))
+        thread.start()
 
     except Exception as e:
         print(f"❌ ERROR: Failed to trigger background Outlook update: {e}")
