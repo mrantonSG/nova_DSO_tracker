@@ -99,7 +99,7 @@ log.setLevel(logging.ERROR)
 
 import re
 
-APP_VERSION = "4.8.0"
+APP_VERSION = "4.8.1"
 
 INSTANCE_PATH = os.environ.get("INSTANCE_PATH") or globals().get("INSTANCE_PATH") or os.path.join(os.getcwd(), "instance")
 os.makedirs(INSTANCE_PATH, exist_ok=True)
@@ -7919,9 +7919,9 @@ def get_ra_dec(object_name, objects_map=None): # <-- ADD objects_map=None parame
         custom_simbad = Simbad();
         custom_simbad.ROW_LIMIT = 1;
         custom_simbad.TIMEOUT = 60
-        # We explicitly ask for decimal degrees.
-        # Even if Simbad renames the column to 'ra', the VALUE will be in degrees.
-        custom_simbad.add_votable_fields('main_id', 'ra(d)', 'dec(d)', 'otype')
+        # Request standard coordinates.
+        # Our parsing logic handles both Decimal (try block) and Sexagesimal (except block).
+        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
 
         result = custom_simbad.query_object(object_name)
         if result is None or len(result) == 0: raise ValueError(f"No results for '{object_name}' in SIMBAD.")
