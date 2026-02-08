@@ -5459,8 +5459,25 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
             }
 
         # --- 4. TRIGGER OUTLOOK CACHE (Unchanged) ---
-        cache_filename = os.path.join(CACHE_DIR,
-                                      f"outlook_cache_{username}_{location_name.lower().replace(' ', '_')}.json")
+        # Generate standard filename keys
+        # We need the user ID here. In warm_main_cache, we only have 'username'.
+        # We must re-fetch the ID or pass it in.
+        # Since warm_main_cache is called from trigger_startup_cache_workers,
+        # let's look up the ID inside the function if we don't have it,
+        # OR rely on the fix below which fetches it before the thread starts.
+
+        db = get_db()
+        try:
+            u_obj = db.query(DbUser).filter_by(username=username).first()
+            u_id = u_obj.id if u_obj else 0
+        finally:
+            db.close()
+
+        user_log_key = get_user_log_string(u_id, username)
+        safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+        loc_safe = location_name.lower().replace(' ', '_')
+
+        cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{loc_safe}.json")
 
         needs_update = False
         if not os.path.exists(cache_filename):
@@ -7783,21 +7800,37 @@ def import_config():
             db.close()
         # === END REFACTOR ===
 
-        # Trigger background cache update for any new locations
+        # Trigger background cache update for ACTIVE locations in the import
+        # (Force refresh to ensure active projects match the new config)
         user_config_for_thread = new_config.copy()
-        for loc_name in user_config_for_thread.get('locations', {}).keys():
-            cache_filename = f"outlook_cache_{username}_{loc_name.lower().replace(' ', '_')}.json"
-            cache_filepath = os.path.join(CACHE_DIR, cache_filename)
-            if not os.path.exists(cache_filepath):
-                user_log_key = f"({user_id_for_thread} | {username})"
-                safe_log_key = f"{user_id_for_thread}_{username}"
-                status_key = f"{user_log_key}_{loc_name}"
 
-                thread = threading.Thread(target=update_outlook_cache,
-                                          args=(user_id_for_thread, status_key, cache_filepath, loc_name,
-                                                user_config_for_thread,
-                                                g.sampling_interval, None))
-                thread.start()
+        # Determine sampling interval from the imported config if possible, else fallback
+        import_interval = 15
+        if SINGLE_USER_MODE:
+            import_interval = user_config_for_thread.get('sampling_interval_minutes') or 15
+
+        locations_in_import = user_config_for_thread.get('locations', {})
+
+        for loc_name, loc_data in locations_in_import.items():
+            # FILTER: Skip inactive locations to prevent CPU spikes
+            if not loc_data.get('active', True):
+                continue
+
+            # 1. Standardize filename construction (Matches Master Cache)
+            user_log_key = get_user_log_string(user_id_for_thread, username)
+            safe_log_key = user_log_key.replace(" | ", "_").replace(".", "").replace(" ", "_")
+            loc_safe = loc_name.lower().replace(' ', '_')
+
+            status_key = f"({user_log_key})_{loc_name}"
+            cache_filename = os.path.join(CACHE_DIR, f"outlook_cache_{safe_log_key}_{loc_safe}.json")
+
+            # 2. REMOVED 'if not os.path.exists': Always force update on import
+
+            thread = threading.Thread(target=update_outlook_cache,
+                                      args=(user_id_for_thread, status_key, cache_filename, loc_name,
+                                            user_config_for_thread,
+                                            import_interval, None))
+            thread.start()
 
         return redirect(url_for('config_form'))
 
