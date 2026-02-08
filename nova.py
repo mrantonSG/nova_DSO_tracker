@@ -1123,7 +1123,7 @@ def discover_catalog_packs() -> list[dict]:
         # 3. Fetch new manifest
         print(f"[CATALOG DISCOVER] Fetching new manifest from {manifest_url}")
         # Timeout reduced to 2.0s to prevent page load blocking if catalog server is slow/unreachable
-        r = requests.get(manifest_url, timeout=2.0)
+        r = requests.get(manifest_url, timeout=10.0)
         r.raise_for_status()  # Raise error for bad status (404, 500)
         packs = r.json()
 
