@@ -4834,11 +4834,14 @@ def trigger_outlook_update_for_user(username):
                 except Exception as e:
                     print(f"Error in sequential update for {loc_name}: {e}")
 
-        # Start a SINGLE thread that processes all locations one by one
+        # Filter: Only process ACTIVE locations
+        active_loc_names = [name for name, data in locations.items() if data.get('active', True)]
+
+        # Start a SINGLE thread that processes all active locations one by one
         thread = threading.Thread(target=_process_locations_sequentially, args=(
             g.db_user.id,
             g.db_user.username,
-            list(locations.keys()),
+            active_loc_names,  # Only process active locations
             user_cfg.copy(),
             sampling_interval
         ))
@@ -6026,7 +6029,8 @@ def get_outlook_data():
 
     # 2. Check for Simulation Mode
     sim_date_str = request.args.get('sim_date')
-    date_suffix = f"_{sim_date_str}" if sim_date_str else "_realtime"
+    # FIX: If no date is simulated (standard view), use empty suffix to match the background cache file.
+    date_suffix = f"_{sim_date_str}" if sim_date_str else ""
 
     # 3. Construct cache filename and status key
     # We append the date suffix so simulated caches don't overwrite the realtime cache
