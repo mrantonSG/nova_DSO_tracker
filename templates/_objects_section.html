@@ -363,12 +363,12 @@
               </div>
               <div class="row">
                 <div>
-                  <label class="long-label" for="new_ra">RA:</label>
-                  <input type="text" name="new_ra" id="new_ra" class="long" placeholder="RA from SIMBAD">
+                  <label class="long-label" for="new_ra">RA (Hours):</label>
+                  <input type="text" name="new_ra" id="new_ra" class="long" placeholder="e.g. 12.34 or 12:30:00">
                 </div>
                 <div>
-                  <label class="long-label" for="new_dec">DEC:</label>
-                  <input type="text" name="new_dec" id="new_dec" class="long" placeholder="DEC from SIMBAD">
+                  <label class="long-label" for="new_dec">DEC (Deg):</label>
+                  <input type="text" name="new_dec" id="new_dec" class="long" placeholder="e.g. +40.85 or 40:51:00">
                 </div>
               </div>
 
@@ -1162,8 +1162,27 @@
                     e.preventDefault();
                     const raInput = document.getElementById('new_ra').value;
                     const decInput = document.getElementById('new_dec').value;
-                    const raDecimal = parseRAToDecimal(raInput);
+
+                    let raDecimal = parseRAToDecimal(raInput);
                     const decDecimal = parseDecToDecimal(decInput);
+
+                    // --- FORMAT CHECK: Detect Degrees vs Hours ---
+                    if (raDecimal > 24.0) {
+                        const correctedRA = raDecimal / 15.0;
+                        const userConfirmed = confirm(
+                            `Warning: RA value (${raDecimal.toFixed(2)}) is > 24, which implies Degrees.\n\n` +
+                            `Do you want to automatically convert this to ${correctedRA.toFixed(4)} Hours?`
+                        );
+
+                        if (userConfirmed) {
+                            raDecimal = correctedRA;
+                            // Optional: Update the UI to reflect the fix
+                            document.getElementById('new_ra').value = raDecimal.toFixed(5);
+                        } else {
+                            return; // Stop submission so user can fix manually
+                        }
+                    }
+                    // ---------------------------------------------
 
                     const payload = {
                         object: document.getElementById('new_object').value,
