@@ -68,7 +68,7 @@ pyvo==1.6.1
 PyYAML==6.0.2
 requests==2.32.3
 scipy==1.15.2
-setuptools==76.0.0
+setuptools==78.1.1
 sgp4==2.25
 six==1.17.0
 skyfield==1.53
