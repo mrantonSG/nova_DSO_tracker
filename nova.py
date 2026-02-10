@@ -9146,7 +9146,7 @@ def get_desktop_data_batch():
         fixed_time_utc_str = get_utc_time_for_local_11pm(tz_name)
 
         # Moon / Ephem Prep
-        time_obj_now = Time(datetime.now(pytz.utc))
+        time_obj_now = Time(current_datetime_local.astimezone(pytz.utc))
         loc_earth = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
         moon_coord = get_body('moon', time_obj_now, loc_earth)
         frame_now = AltAz(obstime=time_obj_now, location=loc_earth)
