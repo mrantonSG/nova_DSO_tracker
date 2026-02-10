@@ -637,41 +637,34 @@ def test_update_project_active_triggers_outlook_worker_correctly(client, monkeyp
 
     # THE KEY ASSERTIONS:
 
-    # 1. Check that the 'target' was the correct function
-    assert call_kwargs.get('target').__name__ == 'update_outlook_cache'
+    # 1. Check that the 'target' was the correct function (the internal wrapper)
+    # Note: Since it's an inner function, we check the name string
+    assert call_kwargs.get('target').__name__ == '_process_locations_sequentially'
 
     # 2. Check that the 'args' tuple was passed
     assert call_args_tuple is not None
 
-    # 3. This is the assertion that will FAIL on your current code:
-    #    Check that the 'args' tuple has 7 items (now includes sim_date_str)
-    assert len(call_args_tuple) == 7
+    # 3. Check arguments for _process_locations_sequentially
+    # Signature: (uid, uname, loc_list, cfg, interval)
+    assert len(call_args_tuple) == 5
 
-    # 4. (Optional) We can also check the types/values of the args
-    #    args=(user_id, status_key, cache_filename, location_name, user_config, sampling_interval)
-
-    # Arg 1: user_id (should be an integer, which is user.id)
+    # Arg 1: user_id (int)
     assert isinstance(call_args_tuple[0], int)
     assert call_args_tuple[0] == user.id
 
-    # Arg 2: status_key (should be a string like "(1 | default)_Default Test Loc")
+    # Arg 2: username (str)
     assert isinstance(call_args_tuple[1], str)
-    assert call_args_tuple[1].startswith(f"(({user.id}")
+    assert call_args_tuple[1] == user.username
 
-    # Arg 3: cache_filename (should be a string path ending in .json)
-    assert isinstance(call_args_tuple[2], str)
-    assert call_args_tuple[2].endswith('.json')
-    assert 'default_test_loc' in call_args_tuple[2]  # Fixture location name
+    # Arg 3: loc_list (list of strings)
+    assert isinstance(call_args_tuple[2], list)
+    assert "Default Test Loc" in call_args_tuple[2]
 
-    # Arg 4: location_name (should be the string "Default Test Loc")
-    assert isinstance(call_args_tuple[3], str)
-    assert call_args_tuple[3] == "Default Test Loc"
+    # Arg 4: user_config (dict)
+    assert isinstance(call_args_tuple[3], dict)
 
-    # Arg 5: user_config (should be a dictionary)
-    assert isinstance(call_args_tuple[4], dict)
-
-    # Arg 6: sampling_interval (should be an integer)
-    assert isinstance(call_args_tuple[5], int)
+    # Arg 5: sampling_interval (int)
+    assert isinstance(call_args_tuple[4], int)
 
 
 # --- NEW TEST: Journal Add with Full Rig Snapshot ---
