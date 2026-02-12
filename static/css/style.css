@@ -4,7 +4,7 @@ body {
 }
 
 /* FORCE floating behavior on the specific yellow alert banner */
-.alert, .alert-warning {
+.alert-warning {
   position: fixed !important;
   top: 10px;
   left: 50%;

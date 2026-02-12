@@ -154,6 +154,7 @@ def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | 
     Returns a dictionary on success, None on any failure.
     """
     try:
+        r = None
         # Use a reasonable timeout (e.g., 10 seconds)
         r = requests.get(url, timeout=10)
 
@@ -173,7 +174,8 @@ def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | 
         # This is the exact error from your logs!
         print(f"[Weather Func] ERROR: Failed to decode JSON for lat={lat}, lon={lon}. Error: {e}")
         # Log the problematic text that isn't JSON
-        print(f"[Weather Func] Response text (first 200 chars): {r.text[:200]}")
+        response_text = getattr(r, 'text', '<no response object>')
+        print(f"[Weather Func] Response text (first 200 chars): {response_text[:200]}")
         return None
 
     except requests.exceptions.RequestException as e:
