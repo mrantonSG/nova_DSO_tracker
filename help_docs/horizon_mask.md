@@ -45,6 +45,16 @@ Here is the raw data used to generate the graphic above. You can copy this struc
       * *Notice in the example:* I end the first big block at `[88.0, 0.0]` and then start the next peak.
 3.  **You Don't Need the Whole 360:** You don't have to start at 0 or end at 360. If you only have one big tree between Azimuth 140 and 160, you just need to add points for that specific area. The rest of the sky will remain clear by default.
 
+## Importing from Stellarium
+
+If you use Stellarium and have a `.hzn` or `.txt` horizon file, you can import it directly instead of typing the data by hand.
+
+1. Click the **Import .hzn** button below the Horizon Mask text area.
+2. Select your Stellarium horizon file (`.hzn` or `.txt`).
+3. The file is parsed automatically and the Horizon Mask field is populated with the converted data.
+
+Comment lines (starting with `#` or `;`) are ignored. If the file contains more than 100 data points, it is automatically simplified to keep the data lightweight. Values are rounded to one decimal place and sorted by azimuth.
+
 ## The "Net Observable Time"
 
 You might notice a setting in your config called **Altitude Threshold** (the default is default 20 degrees - you can set it under "General").

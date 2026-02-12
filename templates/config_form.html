@@ -1002,7 +1002,13 @@
                         Horizon Mask:
                         <span class="help-badge" onclick="openHelp('horizon_mask')" title="Help">?</span>
                     </label>
-                    <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
+                    <div>
+                        <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
+                        <div style="margin-top: 4px;">
+                            <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" onclick="document.getElementById('hzn_import_new').click()" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
+                            <input type="file" id="hzn_import_new" style="display:none;" accept=".hzn,.txt" onchange="parseStellariumHorizon(this, 'new_horizon_mask')">
+                        </div>
+                    </div>
                  </div>
             </div>
 
@@ -1059,7 +1065,13 @@
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                         <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
-                        <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
+                        <div>
+                            <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
+                            <div style="margin-top: 4px;">
+                                <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" onclick="document.getElementById('hzn_import_{{ loop.index }}').click()" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
+                                <input type="file" id="hzn_import_{{ loop.index }}" style="display:none;" accept=".hzn,.txt" onchange="parseStellariumHorizon(this, 'horizon_mask_{{ loc_key }}')">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="inline-fields">
@@ -2226,6 +2238,58 @@
 
 
     });
+
+    function parseStellariumHorizon(fileInput, textareaId) {
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const lines = e.target.result.split(/\r?\n/);
+            let points = [];
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith(';')) continue;
+                const parts = trimmed.split(/[\s,]+/);
+                if (parts.length >= 2) {
+                    const az = parseFloat(parts[0]);
+                    const alt = parseFloat(parts[1]);
+                    if (!isNaN(az) && !isNaN(alt)) {
+                        points.push([Math.round(az * 10) / 10, Math.round(alt * 10) / 10]);
+                    }
+                }
+            }
+
+            if (points.length === 0) {
+                alert('No valid horizon data found in the file.');
+                fileInput.value = '';
+                return;
+            }
+
+            // Sort by azimuth
+            points.sort((a, b) => a[0] - b[0]);
+
+            // Simplify if too many points: keep every Nth to get ~100
+            if (points.length > 100) {
+                const step = Math.ceil(points.length / 100);
+                const simplified = [];
+                for (let i = 0; i < points.length; i += step) {
+                    simplified.push(points[i]);
+                }
+                // Always include the last point
+                if (simplified[simplified.length - 1] !== points[points.length - 1]) {
+                    simplified.push(points[points.length - 1]);
+                }
+                points = simplified;
+            }
+
+            const formatted = '[' + points.map(p => '[' + p[0] + ', ' + p[1] + ']').join(', ') + ']';
+            document.getElementById(textareaId).value = formatted;
+            fileInput.value = '';
+        };
+        reader.readAsText(file);
+    }
 </script>
 
 {% endblock %}
