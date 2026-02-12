@@ -118,7 +118,7 @@ from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
     _mkdirp, _backup_with_rotation, _atomic_write_yaml, _FileLock,
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
-    recursively_clean_numpy_types, load_effective_settings,
+    load_effective_settings,
     get_imaging_criteria, _HAS_FCNTL
 )
 from nova.workers.weather import weather_cache_worker
@@ -690,6 +690,15 @@ def ensure_db_initialized_unified():
             # Pragmas
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            conn.exec_driver_sql("PRAGMA cache_size = -20000;")    # 20MB page cache
+            conn.exec_driver_sql("PRAGMA temp_store = MEMORY;")    # temp tables in RAM
+            conn.exec_driver_sql("PRAGMA mmap_size = 30000000;")   # 30MB memory-mapped I/O
+
+            # Indexes for frequently filtered columns
+            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_active ON locations(active);")
+            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_is_default ON locations(is_default);")
+            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_astro_objects_object_name ON astro_objects(object_name);")
+            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_rig_name ON rigs(rig_name);")
 
 # --- Ensure DB schema and patches are applied before any migration/backfill ---
 ensure_db_initialized_unified()
@@ -1882,7 +1891,7 @@ def build_user_config_from_db(username: str) -> dict:
                 print(f"[CONFIG BUILD] WARNING: Could not parse UI prefs JSON for user '{username}'")
 
         # --- 2. Load Locations ---
-        loc_rows = db.query(Location).filter_by(user_id=u.id).all()
+        loc_rows = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
         locations = {}
         for l in loc_rows:
             mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
@@ -1956,7 +1965,7 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             return False
 
         # CONFIG (locations + objects + defaults)
-        locs = db.query(Location).filter_by(user_id=u.id).all()
+        locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
         default_loc = next((l.name for l in locs if l.is_default), None)
         saved_framings_db = db.query(SavedFraming).filter_by(user_id=u.id).all()
         saved_framings_list = []
@@ -2691,6 +2700,40 @@ app = Flask(
 )
 app.jinja_env.filters['toyaml'] = to_yaml_filter
 app.secret_key = SECRET_KEY
+
+# --- Performance: gzip response compression ---
+from flask_compress import Compress
+Compress(app)
+
+# --- Performance: custom JSON provider for numpy types ---
+from flask.json.provider import DefaultJSONProvider
+
+class NumpyJSONProvider(DefaultJSONProvider):
+    def default(self, o):
+        if isinstance(o, np.generic):
+            return o.item()
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        return super().default(o)
+
+app.json_provider_class = NumpyJSONProvider
+app.json = NumpyJSONProvider(app)
+
+
+# --- Performance: browser cache headers ---
+@app.after_request
+def set_cache_headers(response):
+    path = request.path
+    if path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=604800'  # 1 week
+    elif path.startswith('/uploads/'):
+        response.headers['Cache-Control'] = 'public, max-age=86400'  # 1 day
+    elif path == '/favicon.ico':
+        response.headers['Cache-Control'] = 'public, max-age=2592000'  # 30 days
+    elif response.content_type and 'application/json' in response.content_type:
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -3669,12 +3712,6 @@ def get_plot_data(object_name):
         "weather_forecast": weather_forecast_series # This is now always []
     }
 
-    try:
-        plot_data = recursively_clean_numpy_types(plot_data)
-    except Exception as clean_err:
-        print(f"[API Plot Data] ERROR cleaning data for JSON: {clean_err}")
-        return jsonify({"error": "Failed to serialize plot data."}), 500
-
     return jsonify(plot_data)
 
 
@@ -4503,7 +4540,6 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
             print(f"[OUTLOOK WORKER {status_key}] Found {len(all_good_opportunities)} total opportunities.")
 
             opportunities_sorted_by_date = sorted(all_good_opportunities, key=lambda x: x['date'])
-            opportunities_sorted_by_date = recursively_clean_numpy_types(opportunities_sorted_by_date)
 
             # --- START CHANGE (inside the cache_content dictionary) ---
             cache_content = {
@@ -6756,7 +6792,7 @@ def download_config():
                 pass  # Start with empty doc if JSON is corrupt
 
         # --- 2. Load Locations ---
-        locs = db.query(Location).filter_by(user_id=u.id).all()
+        locs = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=u.id).all()
         default_loc_name = next((l.name for l in locs if l.is_default), None)
         config_doc["default_location"] = default_loc_name
         config_doc["locations"] = {
@@ -8585,9 +8621,6 @@ def get_desktop_data_batch():
             "limit": limit
         }
 
-        # Ensure no NumPy types exist in the response
-        response_data = recursively_clean_numpy_types(response_data)
-
         return jsonify(response_data)
 
     except Exception as e:
@@ -9267,7 +9300,7 @@ def config_form():
         # --- END FIX ---
 
         locations_for_template = {}
-        db_locations = db.query(Location).filter_by(user_id=app_db_user.id).order_by(Location.name).all()
+        db_locations = db.query(Location).options(selectinload(Location.horizon_points)).filter_by(user_id=app_db_user.id).order_by(Location.name).all()
         for loc in db_locations:
             locations_for_template[loc.name] = {
                 "lat": loc.lat, "lon": loc.lon, "timezone": loc.timezone,

@@ -85,8 +85,8 @@ class Location(Base):
     lon = Column(Float, nullable=False)
     timezone = Column(String(64), nullable=False)
     altitude_threshold = Column(Float, nullable=True)
-    is_default = Column(Boolean, nullable=False, default=False)
-    active = Column(Boolean, nullable=False, default=True)
+    is_default = Column(Boolean, nullable=False, default=False, index=True)
+    active = Column(Boolean, nullable=False, default=True, index=True)
     comments = Column(String(500), nullable=True)
     user = relationship("DbUser", back_populates="locations")
     horizon_points = relationship("HorizonPoint", back_populates="location", cascade="all, delete-orphan")
@@ -133,7 +133,7 @@ class AstroObject(Base):
     __tablename__ = 'astro_objects'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
-    object_name = Column(String(256), nullable=False)
+    object_name = Column(String(256), nullable=False, index=True)
     common_name = Column(String(256), nullable=True)
     ra_hours = Column(Float, nullable=False)
     dec_deg = Column(Float, nullable=False)
@@ -231,7 +231,7 @@ class Rig(Base):
     __tablename__ = 'rigs'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
-    rig_name = Column(String(256), nullable=False)
+    rig_name = Column(String(256), nullable=False, index=True)
     telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     reducer_extender_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
