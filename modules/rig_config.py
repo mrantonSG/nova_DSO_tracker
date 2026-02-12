@@ -1,4 +1,6 @@
 # modules/rig_config.py
+# NOTE: These functions are import/export utilities only.
+# Runtime rig data is stored in and read from the SQLAlchemy DB.
 
 import os
 import yaml
@@ -22,8 +24,9 @@ def get_rig_config_path(username, is_single_user_mode):
     return os.path.join(CONFIG_DIR, filename)
 
 
-def load_rig_config(username, is_single_user_mode):
-    """Loads the rig configuration file for the given user."""
+def import_rig_config_from_yaml(username, is_single_user_mode):
+    """Import/export utility: Reads rig configuration from a YAML file.
+    This is not used for runtime data access - use SQLAlchemy Rig/Component models instead."""
     filepath = get_rig_config_path(username, is_single_user_mode)
 
     # Ensure the directory exists before trying to read from it
@@ -42,8 +45,9 @@ def load_rig_config(username, is_single_user_mode):
         return {}
 
 
-def save_rig_config(username, data, is_single_user_mode):
-    """Saves the rig configuration data for the given user."""
+def export_rig_config_to_yaml(username, data, is_single_user_mode):
+    """Import/export utility: Writes rig configuration to a YAML file.
+    This is not used for runtime data storage - use SQLAlchemy Rig/Component models instead."""
     filepath = get_rig_config_path(username, is_single_user_mode)
 
     # Ensure the directory exists before writing to it
