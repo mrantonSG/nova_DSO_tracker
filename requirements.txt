@@ -48,7 +48,7 @@ numpy==2.2.3
 packaging==24.2
 paho-mqtt==2.1.0
 pandas==2.2.3
-pillow==11.1.0
+pillow==12.1.1
 pluggy==1.6.0
 psutil==7.0.0
 py2app==0.28.8
