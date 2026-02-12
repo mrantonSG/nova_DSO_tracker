@@ -8146,7 +8146,7 @@ def merge_objects():
 @api_bp.route('/api/help/img/<path:filename>')
 def get_help_image(filename):
     """Serves images located in the help_docs directory."""
-    return send_from_directory(os.path.join(os.path.dirname(__file__), 'help_docs'), filename)
+    return send_from_directory(os.path.join(_project_root, 'help_docs'), filename)
 
 @api_bp.route('/api/help/<topic_id>')
 def get_help_content(topic_id):
@@ -8157,8 +8157,7 @@ def get_help_content(topic_id):
     safe_topic = "".join([c for c in topic_id if c.isalnum() or c in "_-"])
 
     # 2. Build file path
-    # Assumes help_docs is in the same directory as nova.py
-    file_path = os.path.join(os.path.dirname(__file__), 'help_docs', f'{safe_topic}.md')
+    file_path = os.path.join(_project_root, 'help_docs', f'{safe_topic}.md')
 
     # 3. Check if file exists
     if not os.path.exists(file_path):
