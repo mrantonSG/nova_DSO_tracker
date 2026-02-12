@@ -126,7 +126,7 @@
     {% endif %}
   {% endwith %}
 
-<form method="POST" action="{{ url_for('login') }}">
+<form method="POST" action="{{ url_for('core.login') }}">
     <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
     <label for="username">Username</label>
     <input type="text" id="username" name="username" required autofocus>
@@ -136,7 +136,7 @@
 
     <div class="button-row">
       <input type="submit" value="Log In">
-      <a href="{{ url_for('index') }}" class="guest-button">Continue as Guest</a>
+      <a href="{{ url_for('core.index') }}" class="guest-button">Continue as Guest</a>
     </div>
   </form>
 

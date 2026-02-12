@@ -268,7 +268,7 @@
 
             try {
                 while (offset < total) {
-                    const response = await fetch(`{{ url_for('api_mobile_data_chunk') }}?offset=${offset}&limit=${CHUNK_SIZE}`);
+                    const response = await fetch(`{{ url_for('api.api_mobile_data_chunk') }}?offset=${offset}&limit=${CHUNK_SIZE}`);
                     const json = await response.json();
 
                     if (!json.data) break;
@@ -319,10 +319,10 @@
 
             // Construct URLs
             const safeObj = encodeURIComponent(obj.Object);
-            const baseEditUrl = "{{ url_for('mobile_edit_notes', object_name='__OBJ__') }}";
+            const baseEditUrl = "{{ url_for('mobile.mobile_edit_notes', object_name='__OBJ__') }}";
             const editUrl = baseEditUrl.replace('__OBJ__', safeObj);
 
-            const baseMosaicUrl = "{{ url_for('mobile_mosaic_view', object_name='__OBJ__') }}";
+            const baseMosaicUrl = "{{ url_for('mobile.mobile_mosaic_view', object_name='__OBJ__') }}";
             // Append source param
             const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=up_now";
 

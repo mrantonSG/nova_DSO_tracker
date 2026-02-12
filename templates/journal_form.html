@@ -272,7 +272,7 @@
         </div>
 
         <div class="form-actions">
-            <button type="button" onclick="window.location.href='{{ cancel_url | default(url_for('index')) }}'">Cancel</button>
+            <button type="button" onclick="window.location.href='{{ cancel_url | default(url_for('core.index')) }}'">Cancel</button>
             <button type="submit">{{ submit_button_text | default('Save Entry') }}</button>
         </div>
     </form>

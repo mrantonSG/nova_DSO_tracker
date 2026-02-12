@@ -2846,7 +2846,7 @@ function populateJournalTable() {
 
 {% block header_actions %}
     {% if SINGLE_USER_MODE or not is_guest %}
-       <button class="action-button" onclick="window.location.href='{{ url_for('config_form') }}'">Configuration</button>
+       <button class="action-button" onclick="window.location.href='{{ url_for('core.config_form') }}'">Configuration</button>
     {% endif %}
 {% endblock %}
 

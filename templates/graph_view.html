@@ -926,7 +926,7 @@
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" style="background-color: #7f8c8d;" onclick="window.location.href='{{ url_for('index') }}'">← Back to Dashboard</button>
+    <button class="action-button" style="background-color: #7f8c8d;" onclick="window.location.href='{{ url_for('core.index') }}'">← Back to Dashboard</button>
 {% endblock %}
 
 {% block header_content %}
@@ -1068,7 +1068,7 @@
             <h3 style="display:flex; justify-content:space-between; align-items:center;">
                 Inspiration Content
                 {% if not object_main_details.image_url and not object_main_details.description_text %}
-                <a href="{{ url_for('config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">Edit Object to Add Content</a>
+                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">Edit Object to Add Content</a>
                 {% endif %}
             </h3>
 

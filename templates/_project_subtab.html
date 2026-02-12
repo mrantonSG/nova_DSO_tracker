@@ -61,8 +61,8 @@
                     {% if project.final_image_file %}
                     <div class="final-image-container">
                         {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
-                        <a href="{{ url_for('get_uploaded_image', username=image_username, filename=project.final_image_file) }}" target="_blank">
-                            <img src="{{ url_for('get_uploaded_image', username=image_username, filename=project.final_image_file) }}" alt="Final Project Image">
+                        <a href="{{ url_for('core.get_uploaded_image', username=image_username, filename=project.final_image_file) }}" target="_blank">
+                            <img src="{{ url_for('core.get_uploaded_image', username=image_username, filename=project.final_image_file) }}" alt="Final Project Image">
                         </a>
                         <span class="stat-label" style="margin-top:5px; display:block;">Final Image</span>
                     </div>
@@ -101,7 +101,7 @@
                             </thead>
                             <tbody>
                                 {% for session in sessions %}
-                                <tr onclick='window.location.href="{{ url_for("graph_dashboard", object_name=session.object_name, session_id=session.id) }}&tab=journal"'>
+                                <tr onclick='window.location.href="{{ url_for("core.graph_dashboard", object_name=session.object_name, session_id=session.id) }}&tab=journal"'>
                                     <td>{{ session.date_utc | date_eu }}</td>
                                     <td>{{ session.location_name or '-' }}</td>
                                     <td>{{ session.session_rating_subjective or '-' }}{% if session.session_rating_subjective %} ★{% endif %}</td>
@@ -122,7 +122,7 @@
         </div>
 
         <div id="project-edit-mode" style="padding: 0; margin-top: 20px; border: none; background: none;">
-            <form id="project-edit-form" method="POST" action="{{ url_for('project_detail', project_id=project_id_for_this_object) }}" enctype="multipart/form-data">
+            <form id="project-edit-form" method="POST" action="{{ url_for('projects.project_detail', project_id=project_id_for_this_object) }}" enctype="multipart/form-data">
 
                 <div class="project-header" style="border-bottom: none; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <h2 style="font-size: 1.5em; margin: 0;">Editing Project: {{ project_name_for_this_object }}</h2>
