@@ -4709,41 +4709,46 @@ def get_hybrid_weather_forecast(lat, lon):
 def weather_cache_worker():
     # ... (Keep existing startup wait) ...
     while True:
-        print("[WEATHER WORKER] Starting background refresh cycle...")
-        unique_locations = set()
-        with app.app_context():
-            db = None
-            try:
-                db = get_db()
-                active_locs = db.query(Location).filter_by(active=True).all()
-                for loc in active_locs:
-                    if loc.lat is not None and loc.lon is not None:
-                        # --- ADD ROUNDING HERE when adding to the set ---
-                        unique_locations.add((round(loc.lat, 5), round(loc.lon, 5)))
-                        # --- END ADD ROUNDING ---
-            except Exception as e:
-                print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
-            finally:
-                if db: db.close()
+        try:
+            print("[WEATHER WORKER] Starting background refresh cycle...")
+            unique_locations = set()
+            with app.app_context():
+                db = None
+                try:
+                    db = get_db()
+                    active_locs = db.query(Location).filter_by(active=True).all()
+                    for loc in active_locs:
+                        if loc.lat is not None and loc.lon is not None:
+                            # --- ADD ROUNDING HERE when adding to the set ---
+                            unique_locations.add((round(loc.lat, 5), round(loc.lon, 5)))
+                            # --- END ADD ROUNDING ---
+                except Exception as e:
+                    print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
+                finally:
+                    if db: db.close()
 
-        print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
-        refreshed_count = 0
-        for lat, lon in unique_locations: # These lat/lon are now rounded
-            try:
-                # --- Pass the rounded lat/lon to the function ---
-                # Although get_hybrid_weather_forecast now rounds internally,
-                # passing the rounded values makes the log message below accurate.
-                # print(f"[Weather Worker] Refreshing for rounded lat={lat}, lon={lon}") # Log rounded values
-                get_hybrid_weather_forecast(lat, lon) # Call with potentially rounded values
-                # --- End Pass Rounded ---
-                refreshed_count += 1
-                time.sleep(5)
-            except Exception as e:
-                print(f"[WEATHER WORKER] ERROR: Failed to fetch for ({lat}, {lon}): {e}")
+            print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
+            refreshed_count = 0
+            for lat, lon in unique_locations: # These lat/lon are now rounded
+                try:
+                    # --- Pass the rounded lat/lon to the function ---
+                    # Although get_hybrid_weather_forecast now rounds internally,
+                    # passing the rounded values makes the log message below accurate.
+                    # print(f"[Weather Worker] Refreshing for rounded lat={lat}, lon={lon}") # Log rounded values
+                    get_hybrid_weather_forecast(lat, lon) # Call with potentially rounded values
+                    # --- End Pass Rounded ---
+                    refreshed_count += 1
+                    time.sleep(5)
+                except Exception as e:
+                    print(f"[WEATHER WORKER] ERROR: Failed to fetch for ({lat}, {lon}): {e}")
 
-        # ... (Keep existing sleep logic) ...
-        print(f"[WEATHER WORKER] Refresh cycle complete ({refreshed_count}/{len(unique_locations)} successful). Sleeping for 2 hours.")
-        time.sleep(2 * 60 * 60)
+            # ... (Keep existing sleep logic) ...
+            print(f"[WEATHER WORKER] Refresh cycle complete ({refreshed_count}/{len(unique_locations)} successful). Sleeping for 2 hours.")
+            time.sleep(2 * 60 * 60)
+        except Exception as e:
+            print(f"[WEATHER WORKER] Unhandled exception, restarting in 60s: {e}")
+            traceback.print_exc()
+            time.sleep(60)
 
 def generate_session_id():
     """Generates a unique session ID."""
@@ -4758,48 +4763,48 @@ def check_for_updates():
     owner = "mrantonSG"
     repo = "nova_DSO_tracker"
 
-    url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
-    print(f"[VERSION CHECK] Fetching latest release info from {url}")
+    while True:
+        try:
+            url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+            print(f"[VERSION CHECK] Fetching latest release info from {url}")
 
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()  # Raise an exception for bad status codes
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()  # Raise an exception for bad status codes
 
-        data = response.json()
-        latest_version_str = data.get("tag_name", "").lower().lstrip('v')  # Get version and remove leading 'v'
-        current_version_str = APP_VERSION
+            data = response.json()
+            latest_version_str = data.get("tag_name", "").lower().lstrip('v')  # Get version and remove leading 'v'
+            current_version_str = APP_VERSION
 
-        if not latest_version_str or not current_version_str:
-            print("[VERSION CHECK] Could not determine current or latest version string.")
-            return
+            if not latest_version_str or not current_version_str:
+                print("[VERSION CHECK] Could not determine current or latest version string.")
+            else:
+                # --- START OF MODIFICATION ---
 
-        # --- START OF MODIFICATION ---
+                # Convert version strings to comparable tuples of integers
+                # e.g., "3.8.2" -> (3, 8, 2)
+                # This will handle "3.10.0" > "3.9.0" correctly.
+                current_version_tuple = tuple(map(int, current_version_str.split('.')))
+                latest_version_tuple = tuple(map(int, latest_version_str.split('.')))
 
-        # Convert version strings to comparable tuples of integers
-        # e.g., "3.8.2" -> (3, 8, 2)
-        # This will handle "3.10.0" > "3.9.0" correctly.
-        current_version_tuple = tuple(map(int, current_version_str.split('.')))
-        latest_version_tuple = tuple(map(int, latest_version_str.split('.')))
+                # Compare the versions
+                if latest_version_tuple > current_version_tuple:
+                    # --- END OF MODIFICATION --- (Original was: if latest_version and latest_version != current_version:)
 
-        # Compare the versions
-        if latest_version_tuple > current_version_tuple:
-            # --- END OF MODIFICATION --- (Original was: if latest_version and latest_version != current_version:)
+                    print(f"[VERSION CHECK] New version found: {latest_version_str}")
+                    LATEST_VERSION_INFO = {
+                        "new_version": latest_version_str,
+                        "url": data.get("html_url")
+                    }
+                else:
+                    print(f"[VERSION CHECK] You are running the latest version (or a newer dev version).")
+                    LATEST_VERSION_INFO = {}  # Ensure info is cleared if no new version
 
-            print(f"[VERSION CHECK] New version found: {latest_version_str}")
-            LATEST_VERSION_INFO = {
-                "new_version": latest_version_str,
-                "url": data.get("html_url")
-            }
-        else:
-            print(f"[VERSION CHECK] You are running the latest version (or a newer dev version).")
-            LATEST_VERSION_INFO = {}  # Ensure info is cleared if no new version
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ [VERSION CHECK] Could not connect to GitHub API: {e}")
-    except Exception as e:
-        # This will also catch errors from tuple(map(int,...)) if versions are not like "1.2.3"
-        print(f"❌ [VERSION CHECK] An unexpected error occurred (e.g., parsing versions): {e}")
-        LATEST_VERSION_INFO = {}  # Clear on error
+            print("[UPDATE WORKER] Sleeping for 24 hours.")
+            time.sleep(24 * 60 * 60)
+        except Exception as e:
+            print(f"[UPDATE WORKER] Unhandled exception, restarting in 60s: {e}")
+            traceback.print_exc()
+            time.sleep(60)
 
 def trigger_outlook_update_for_user(username):
     """
@@ -12932,13 +12937,13 @@ def heatmap_background_worker():
                     # Sleep between locations
                     time.sleep(30)
 
+            # Sleep 4 hours before next check
+            print("[HEATMAP WORKER] Cycle done. Sleeping 4 hours.")
+            time.sleep(4 * 60 * 60)
         except Exception as e:
-            print(f"[HEATMAP WORKER] Error in maintenance cycle: {e}")
-            # traceback.print_exc() # Uncomment to debug
-
-        # Sleep 4 hours before next check
-        print("[HEATMAP WORKER] Cycle done. Sleeping 4 hours.")
-        time.sleep(4 * 60 * 60)
+            print(f"[HEATMAP WORKER] Unhandled exception, restarting in 60s: {e}")
+            traceback.print_exc()
+            time.sleep(60)
 
 
 # --- Mobile Mosaic Helper ---
