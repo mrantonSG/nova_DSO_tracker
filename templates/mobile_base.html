@@ -14,7 +14,7 @@
 <body>
 
 <header class="header">
-    <a href="{{ url_for('index') }}" class="header-link">Main Site</a>
+    <a href="{{ url_for('core.index') }}" class="header-link">Main Site</a>
     <h1>Nova Pocket</h1>
     <p class="header-subtitle">{% block header_title %}Up Now{% endblock %}</p>
 </header>
@@ -25,24 +25,24 @@
 
 <nav class="mobile-nav">
     {% if current_user.is_authenticated %}
-        <a href="{{ url_for('mobile_up_now') }}" id="nav-up-now">
+        <a href="{{ url_for('mobile.mobile_up_now') }}" id="nav-up-now">
             <span>🌌</span>
             Up Now
         </a>
-        <a href="{{ url_for('mobile_outlook') }}" id="nav-outlook">
+        <a href="{{ url_for('mobile.mobile_outlook') }}" id="nav-outlook">
             <span>🗓️</span>
             Outlook
         </a>
-        <a href="{{ url_for('mobile_add_object') }}" id="nav-add-object">
+        <a href="{{ url_for('mobile.mobile_add_object') }}" id="nav-add-object">
             <span>✨</span>
             Add Object
         </a>
-        <a href="{{ url_for('mobile_location') }}" id="nav-location">
+        <a href="{{ url_for('mobile.mobile_location') }}" id="nav-location">
             <span>🌍</span>
             Location
         </a>
     {% else %}
-        <a href="{{ url_for('login', next=request.path) }}" id="nav-login">
+        <a href="{{ url_for('core.login', next=request.path) }}" id="nav-login">
             <span>🔑</span>
             Log In
         </a>

@@ -767,7 +767,7 @@
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" onclick="window.location.href='{{ url_for('index') }}'">← Back to Dashboard</button>
+    <button class="action-button" onclick="window.location.href='{{ url_for('core.index') }}'">← Back to Dashboard</button>
 {% endblock %}
 
 {% block body %}
@@ -812,36 +812,36 @@
     </div>
 
     <div class="tabs-right actions-group">
-        <form method="post" action="{{ url_for('fetch_all_details') }}" id="fetch-details-form">
+        <form method="post" action="{{ url_for('core.fetch_all_details') }}" id="fetch-details-form">
             <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
         </form>
 
         <div class="dropdown">
             <button class="file-button dropdown-btn">Download ▼</button>
             <div class="dropdown-content">
-                <a href="{{ url_for('download_config') }}">Configuration</a>
-                <a href="{{ url_for('download_journal') }}">Journal</a>
-                <a href="{{ url_for('download_rig_config') }}">Rigs</a>
-                <a href="{{ url_for('download_journal_photos') }}">Journal Photos</a>
+                <a href="{{ url_for('tools.download_config') }}">Configuration</a>
+                <a href="{{ url_for('tools.download_journal') }}">Journal</a>
+                <a href="{{ url_for('tools.download_rig_config') }}">Rigs</a>
+                <a href="{{ url_for('tools.download_journal_photos') }}">Journal Photos</a>
             </div>
         </div>
 
         <div class="dropdown">
             <button class="file-button dropdown-btn">Import ▼</button>
             <div class="dropdown-content">
-                <form id="form-import-config" action="{{ url_for('import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <form id="form-import-config" action="{{ url_for('tools.import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
                     <a href="#" onclick="document.getElementById('file-import-config').click(); return false;">Configuration</a>
                     <input type="file" name="file" id="file-import-config" accept=".yaml" style="display:none;" onchange="handleImportSubmit(this, 'configuration')">
                 </form>
-                <form id="form-import-journal" action="{{ url_for('import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <form id="form-import-journal" action="{{ url_for('tools.import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
                     <a href="#" onclick="document.getElementById('file-import-journal').click(); return false;">Journal</a>
                     <input type="file" name="file" id="file-import-journal" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'journal')">
                 </form>
-                <form id="form-import-rigs" action="{{ url_for('import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <form id="form-import-rigs" action="{{ url_for('tools.import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
                     <a href="#" onclick="document.getElementById('file-import-rigs').click(); return false;">Rigs</a>
                     <input type="file" name="file" id="file-import-rigs" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'rigs file')">
                 </form>
-                <form id="form-import-photos" action="{{ url_for('import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                <form id="form-import-photos" action="{{ url_for('tools.import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
                     <a href="#" onclick="document.getElementById('file-import-photos').click(); return false;">Journal Photos</a>
                     <input type="file" name="file" id="file-import-photos" accept=".zip" style="display:none;" onchange="handleImportSubmit(this, 'journal photos archive')">
                 </form>
@@ -1090,7 +1090,7 @@
             <p style="font-size:14px; color: #555;">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
             <details open>
                 <summary><h3>Telescopes (<span id="tele-count">0</span>)</h3></summary>
-                <form action="{{ url_for('add_component') }}" method="post" id="form-telescope">
+                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
                     <input type="hidden" name="component_type" value="telescopes">
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
@@ -1111,7 +1111,7 @@
 
             <details open>
                 <summary><h3>Cameras (<span id="cam-count">0</span>)</h3></summary>
-                <form action="{{ url_for('add_component') }}" method="post" id="form-camera">
+                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-camera">
                     <input type="hidden" name="component_type" value="cameras">
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
@@ -1133,7 +1133,7 @@
 
             <details open>
                 <summary><h3>Reducers / Extenders (<span id="red-count">0</span>)</h3></summary>
-                <form action="{{ url_for('add_component') }}" method="post" id="form-reducer">
+                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-reducer">
                     <input type="hidden" name="component_type" value="reducers_extenders">
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
@@ -1154,7 +1154,7 @@
         <div class="column">
             <h2>2. Configure Your Rigs</h2>
             <p style="font-size:14px; color: #555;">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
-            <form action="{{ url_for('add_rig') }}" method="post" id="form-rig">
+            <form action="{{ url_for('tools.add_rig') }}" method="post" id="form-rig">
                 <input type="hidden" name="rig_id" value="">
                 <div class="form-group"><label for="rig_name">Rig Name:</label><input type="text" name="rig_name" id="rig_name" required placeholder="e.g., C11 Deep Sky Rig"></div>
                 <div class="form-group">
@@ -1363,7 +1363,7 @@
 
         const formType = type === 'reducer_extender' ? 'reducer' : type;
         const form = document.getElementById(`form-${formType}`);
-        form.action = "{{ url_for('update_component') }}";
+        form.action = "{{ url_for('tools.update_component') }}";
         form.querySelector('input[name="component_id"]').value = component.id;
         form.querySelector('input[name="name"]').value = component.name;
 
@@ -1491,7 +1491,7 @@
                 <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
-                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="{{ url_for('tools.delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${t.id}"><input type="hidden" name="component_type" value="telescopes">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
@@ -1503,7 +1503,7 @@
                 <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
-                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="{{ url_for('tools.delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${c.id}"><input type="hidden" name="component_type" value="cameras">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
@@ -1515,7 +1515,7 @@
                 <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
-                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="{{ url_for('tools.delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${r.id}"><input type="hidden" name="component_type" value="reducers_extenders">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
@@ -1542,7 +1542,7 @@
                         <div class="item-info">${detailsHtml}</div>
                         <div class="item-actions">
                             <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
-                            <form action="{{ url_for('delete_rig') }}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
+                            <form action="{{ url_for('tools.delete_rig') }}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
                                 <input type="hidden" name="rig_id" value="${rig.rig_id}">
                                 <button type="submit" class="delete-btn">Delete</button>
                             </form>
@@ -1850,7 +1850,7 @@
             bar.style.animation = 'progress-stripes 1s linear infinite'; // Only stripes, no growth
         }
 
-        const evtSource = new EventSource("{{ url_for('stream_fetch_details') }}");
+        const evtSource = new EventSource("{{ url_for('core.stream_fetch_details') }}");
 
         evtSource.onmessage = function(e) {
             try {
@@ -1956,7 +1956,7 @@
         btn.textContent = "...";
         btn.disabled = true;
 
-        fetch("{{ url_for('upload_editor_image') }}", {
+        fetch("{{ url_for('tools.upload_editor_image') }}", {
             method: "POST",
             body: formData
         })
@@ -2168,7 +2168,7 @@
             const formData = new FormData();
             formData.append("file", file);
             event.attachment.setUploadProgress(0);
-            fetch("{{ url_for('upload_editor_image') }}", {
+            fetch("{{ url_for('tools.upload_editor_image') }}", {
                 method: "POST",
                 body: formData
             })

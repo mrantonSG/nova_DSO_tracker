@@ -531,7 +531,7 @@
                     </td>
                     <td>{{ pack.object_count }}</td>
                     <td>
-                      <form method="post" action="{{ url_for('import_catalog', pack_id=pack.id) }}" data-pack-name="{{ pack.name or pack.id }}" onsubmit="return confirmCatalogImport(this);">
+                      <form method="post" action="{{ url_for('tools.import_catalog', pack_id=pack.id) }}" data-pack-name="{{ pack.name or pack.id }}" onsubmit="return confirmCatalogImport(this);">
                         <button type="submit" class="action-button">Import</button>
                       </form>
                     </td>
@@ -1141,7 +1141,7 @@
                         // This is the ORIGINAL search logic, running only if the local check fails
                         resultDiv.innerHTML = `<p class="progress-message">${err.message}</p>`;
 
-                        fetch("{{ url_for('search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
+                        fetch("{{ url_for('core.search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
                         .then(r => r.json()).then(data => {
                           if (data.status !== "success") throw new Error(data.message);
 
@@ -1157,7 +1157,7 @@
                           // --- END NEW ---
 
                           resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
-                          return fetch("{{ url_for('fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
+                          return fetch("{{ url_for('core.fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
                         })
                         .then(r => r.json()).then(extra => {
                           const commonName = document.getElementById('new_name').value;
@@ -1242,7 +1242,7 @@
                         description_source_link: document.getElementById('new_description_source_link').value
                     };
 
-                    fetch("{{ url_for('confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                    fetch("{{ url_for('core.confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(r => r.json()).then(data => {
                         if (data.status === "success") { window.location.reload(); }
                         else { throw new Error(data.message); }

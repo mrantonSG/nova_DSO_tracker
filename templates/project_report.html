@@ -115,7 +115,7 @@
                 </thead>
                 <tbody>
                     {% for session in sessions %}
-                    <tr class="session-data-row" data-report-url="{{ url_for('show_journal_report_page', session_id=session.id) }}">
+                    <tr class="session-data-row" data-report-url="{{ url_for('journal.show_journal_report_page', session_id=session.id) }}">
                         <td>{{ session.date_utc | date_eu }}</td>
                         <td>{{ session.location_name }}</td>
                         <td>{{ (session.calculated_integration_time_minutes or 0) | round(0) }}m</td>
