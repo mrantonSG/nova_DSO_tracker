@@ -101,9 +101,16 @@
         document.querySelectorAll('#objects-tab-content .detail-tab-button').forEach(button => button.classList.remove('active'));
 
         // Show selected content
-        document.getElementById(tabName + '-object-subtab').classList.add('active');
+        const contentEl = document.getElementById(tabName + '-object-subtab');
+        if (contentEl) {
+            contentEl.classList.add('active');
+        }
+
         // Activate selected button
-        document.querySelector(`#objects-tab-content .detail-tab-button[data-tab="${tabName}"]`).classList.add('active');
+        const buttonEl = document.querySelector(`#objects-tab-content .detail-tab-button[data-tab="${tabName}"]`);
+        if (buttonEl) {
+            buttonEl.classList.add('active');
+        }
 
         // Save choice
         localStorage.setItem('activeObjectSubTab', tabName);
@@ -473,6 +480,21 @@
         window.objectScriptLoaded = true;
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Attach event listeners to tab buttons
+            const tabButtons = document.querySelectorAll('#objects-tab-content .detail-tab-button[data-tab]');
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    // Don't trigger if clicking on help badge
+                    if (e.target.classList.contains('help-badge')) {
+                        return;
+                    }
+                    const tabName = this.getAttribute('data-tab');
+                    if (tabName) {
+                        showObjectSubTab(tabName);
+                    }
+                });
+            });
+
             // Restore last active sub-tab
             const lastSubTab = localStorage.getItem('activeObjectSubTab');
             if (lastSubTab) {
@@ -543,7 +565,7 @@
                         const projectEditor = document.getElementById('new_project_editor');
                         if (projectEditor) projectEditor.editor.loadHTML(data.Project || '');
 
-                        {% if not SINGLE_USER_MODE %}
+                        // Multi-user mode fields (will be ignored if elements don't exist)
                         const sharedNotesEditor = document.getElementById('new_shared_notes_editor');
                         if (sharedNotesEditor) sharedNotesEditor.editor.loadHTML(data.shared_notes || '');
 
@@ -552,7 +574,6 @@
                             isSharedCheck.checked = data.is_shared || false;
                             isSharedCheck.disabled = !!data.original_user_id; // Disable if imported
                         }
-                        {% endif %}
 
                         // Set form state to "Edit" (not "Confirm Add")
                         ['new_object', 'new_name', 'new_ra', 'new_dec'].forEach(id => document.getElementById(id).readOnly = true);
@@ -567,7 +588,7 @@
                         // This is the ORIGINAL search logic, running only if the local check fails
                         resultDiv.innerHTML = `<p class="progress-message">${err.message}</p>`;
 
-                        fetch("{{ url_for('core.search_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
+                        fetch("/search_object", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName })})
                         .then(r => r.json()).then(data => {
                           if (data.status !== "success") throw new Error(data.message);
 
@@ -583,7 +604,7 @@
                           // --- END NEW ---
 
                           resultDiv.innerHTML = `<p class="message">Found: ${data.data["Common Name"]}. <span class="progress-message">Fetching details...</span></p>`;
-                          return fetch("{{ url_for('core.fetch_object_details') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
+                          return fetch("/fetch_object_details", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ object: objectName }) });
                         })
                         .then(r => r.json()).then(extra => {
                           const commonName = document.getElementById('new_name').value;
@@ -668,7 +689,7 @@
                         description_source_link: document.getElementById('new_description_source_link').value
                     };
 
-                    fetch("{{ url_for('core.confirm_object') }}", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+                    fetch("/confirm_object", { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(r => r.json()).then(data => {
                         if (data.status === "success") { window.location.reload(); }
                         else { throw new Error(data.message); }
