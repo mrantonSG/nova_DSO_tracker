@@ -626,6 +626,129 @@
         }
     
     
+    // ========================================================================
+    // Private Helper Functions for fetchData()
+    // ========================================================================
+
+    /**
+     * Check sessionStorage for cached data
+     * @param {string} cacheKey - The cache key to check
+     * @param {number} expiryMs - Cache expiry time in milliseconds
+     * @returns {Array|null} - Cached data if valid, null otherwise
+     */
+    function _checkFetchCache(cacheKey, expiryMs) {
+        try {
+            const raw = sessionStorage.getItem(cacheKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Date.now() - parsed.timestamp < expiryMs) {
+                    return parsed.data;
+                }
+            }
+        } catch(e) {
+            console.warn('Cache read error:', e);
+        }
+        return null;
+    }
+
+    /**
+     * Save data to sessionStorage cache
+     * @param {string} cacheKey - The cache key
+     * @param {Array} data - The data to cache
+     */
+    function _saveFetchCache(cacheKey, data) {
+        try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({
+                timestamp: Date.now(),
+                data: data
+            }));
+        } catch (e) {
+            console.warn("Cache full, could not save:", e);
+        }
+    }
+
+    /**
+     * Show and initialize the loading UI
+     * @param {HTMLElement} loadingDiv - The loading container
+     * @param {HTMLElement} progressBar - The progress bar element
+     * @param {HTMLElement} loadingMessage - The loading message element
+     */
+    function _showFetchLoader(loadingDiv, progressBar, loadingMessage) {
+        if (loadingDiv) loadingDiv.style.display = 'block';
+        if (loadingMessage) loadingMessage.textContent = "Calculating...";
+        if (progressBar) progressBar.style.width = "5%";
+    }
+
+    /**
+     * Hide the loading UI
+     * @param {HTMLElement} loadingDiv - The loading container
+     */
+    function _hideFetchLoader(loadingDiv) {
+        if (loadingDiv) loadingDiv.style.display = 'none';
+    }
+
+    /**
+     * Update the progress bar and count display
+     * @param {HTMLElement} progressBar - The progress bar element
+     * @param {HTMLElement} loadingCount - Element showing current count
+     * @param {HTMLElement} loadingTotal - Element showing total count
+     * @param {number} current - Current number of items loaded
+     * @param {number} total - Total number of items to load
+     */
+    function _updateFetchProgress(progressBar, loadingCount, loadingTotal, current, total) {
+        if (progressBar) {
+            const percent = Math.min(100, Math.round((current / total) * 100));
+            progressBar.style.width = `${percent}%`;
+        }
+        if (loadingCount) loadingCount.textContent = current;
+        if (loadingTotal) loadingTotal.textContent = total;
+    }
+
+    /**
+     * Build the batch API URL with parameters
+     * @param {number} offset - Pagination offset
+     * @param {number} limit - Pagination limit
+     * @param {string} location - Selected location
+     * @param {string|null} effectiveDate - Simulation date if applicable
+     * @returns {string} - Complete API URL
+     */
+    function _buildBatchUrl(offset, limit, location, effectiveDate) {
+        let url = `/api/get_desktop_data_batch?offset=${offset}&limit=${limit}&location=${encodeURIComponent(location || '')}`;
+        if (effectiveDate) {
+            url += `&sim_date=${effectiveDate}`;
+        }
+        return url;
+    }
+
+    /**
+     * Apply highlighting logic to a table cell
+     * @param {HTMLElement} td - The table cell element
+     * @param {string} columnKey - The column identifier
+     * @param {*} rawValue - The raw cell value
+     * @param {Object} objectData - Complete object data row
+     * @param {number} altitudeThreshold - User's altitude threshold
+     */
+    function _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold) {
+        const config = columnConfig[columnKey];
+        if (!config) return;
+
+        const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
+
+        if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
+            td.classList.add('highlight');
+            if (objectData.is_obstructed_now) td.classList.add('obstructed');
+        }
+
+        if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && !objectData.error) {
+            td.classList.add('highlight');
+            if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
+        }
+    }
+
+    // ========================================================================
+    // Main fetchData Function
+    // ========================================================================
+
     // Accepted parameter: isBackground (default false)
     async function fetchData(isBackground = false) {
         const tbody = document.getElementById("data-body");
@@ -656,17 +779,7 @@
         console.log(`Fetch requested for location: ${currentSelectedLocation}`);
     
         // 1. Try Cache First
-        let cachedData = null;
-        try {
-            const raw = sessionStorage.getItem(CACHE_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Date.now() - parsed.timestamp < CACHE_EXPIRY) {
-                    cachedData = parsed.data;
-                }
-            }
-        } catch(e) {}
-    
+        const cachedData = _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
         if (cachedData) {
             renderRows(cachedData);
             finalizeFetch();
@@ -683,13 +796,11 @@
         // Determine if we show the loader
         const shouldShowLoader = !isBackground || tbody.innerHTML.trim() === '';
         if (shouldShowLoader) {
-            if(loadingDiv) loadingDiv.style.display = 'block';
-            if(loadingMessage) loadingMessage.textContent = "Calculating...";
-            if(progressBar) progressBar.style.width = "5%";
+            _showFetchLoader(loadingDiv, progressBar, loadingMessage);
         } else {
             // SAFETY: If a background fetch takes over an aborted foreground fetch,
             // we must ensure the previous loader is hidden to prevent it from getting stuck.
-            if(loadingDiv) loadingDiv.style.display = 'none';
+            _hideFetchLoader(loadingDiv);
         }
     
         // Clear table ONLY if we are showing loader (fresh load)
@@ -700,10 +811,7 @@
                 if (signal.aborted) return;
     
                 // Call the new Batch Endpoint
-                let url = `/api/get_desktop_data_batch?offset=${offset}&limit=${BATCH_SIZE}&location=${encodeURIComponent(currentSelectedLocation || '')}`;
-                if (effectiveDate) {
-                    url += `&sim_date=${effectiveDate}`;
-                }
+                const url = _buildBatchUrl(offset, BATCH_SIZE, currentSelectedLocation, effectiveDate);
                 const res = await fetch(url, { signal });
     
                 if (!res.ok) throw new Error(`Server Error: ${res.status}`);
@@ -724,21 +832,13 @@
     
                 // Update Progress UI
                 offset += BATCH_SIZE;
-                if (shouldShowLoader && progressBar) {
-                    const percent = Math.min(100, Math.round((allData.length / total) * 100));
-                    progressBar.style.width = `${percent}%`;
-                    if(loadingCount) loadingCount.textContent = allData.length;
-                    if(loadingTotal) loadingTotal.textContent = total;
+                if (shouldShowLoader) {
+                    _updateFetchProgress(progressBar, loadingCount, loadingTotal, allData.length, total);
                 }
             }
     
             // Fetch complete - Save to Cache
-            try {
-                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: allData
-                }));
-            } catch (e) { console.warn("Cache full"); }
+            _saveFetchCache(CACHE_KEY, allData);
     
             // CRITICAL FIX: Ensure global data is always updated for other tabs
             window.latestDSOData = allData;
@@ -757,7 +857,7 @@
                     tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Data Load Failed: ${error.message}</td></tr>`;
                 }
                 // Ensure loader is hidden on error
-                if(loadingDiv) loadingDiv.style.display = 'none';
+                _hideFetchLoader(loadingDiv);
                 tbody.dataset.loading = 'false';
             }
         } finally {
@@ -917,15 +1017,7 @@
                     td.style.display = isVisible ? 'table-cell' : 'none';
     
                     // Highlights
-                    const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
-                    if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
-                        td.classList.add('highlight');
-                        if (objectData.is_obstructed_now) td.classList.add('obstructed');
-                    }
-                    if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && !objectData.error) {
-                        td.classList.add('highlight');
-                        if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
-                    }
+                    _applyRowHighlights(td, columnKey, rawValue, objectData, altitudeThreshold);
     
                     // Sort helpers
                     const numericSortKeys = ['Altitude Current', 'Azimuth Current', 'Altitude 11PM', 'Azimuth 11PM',
@@ -947,7 +1039,7 @@
         }
     
         function finalizeFetch() {
-            if(loadingDiv) loadingDiv.style.display = 'none';
+            _hideFetchLoader(loadingDiv);
             applyDsoColumnVisibility();
             sortTable(currentSort.columnKey, false);
     
@@ -1389,6 +1481,301 @@
         // ========================================================================
         // Journal Table Functions
         // ========================================================================
+
+        /**
+         * Private Helper Functions for populateJournalTable()
+         */
+
+        /**
+         * Build a map of active filters from filter row inputs
+         * @param {NodeList} filterRowInputs - All filter input elements
+         * @returns {Object} - Map of columnKey to filter value
+         */
+        function _buildJournalFiltersMap(filterRowInputs) {
+            const activeFilters = {};
+            filterRowInputs.forEach(input => {
+                const thParent = input.closest('th');
+                if (thParent) {
+                    const columnKey = thParent.dataset.journalColumnKey;
+                    const value = input.value.trim().toLowerCase();
+                    if (value !== '') activeFilters[columnKey] = value;
+                }
+            });
+            return activeFilters;
+        }
+
+        /**
+         * Check if a session date matches a date filter with operators
+         * @param {string} sessionDateString_YYYY_MM_DD - Session date in YYYY-MM-DD format
+         * @param {string} filterValue - Filter value (may include operators like >=, <=, etc.)
+         * @returns {boolean} - True if matches, false otherwise
+         */
+        function _matchesJournalDateFilter(sessionDateString_YYYY_MM_DD, filterValue) {
+            if (!sessionDateString_YYYY_MM_DD) return false;
+
+            let operator = null;
+            let dateFilterStringUserInput = filterValue;
+
+            // Parse operators
+            if (dateFilterStringUserInput.startsWith(">=")) {
+                operator = ">=";
+                dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim();
+            } else if (dateFilterStringUserInput.startsWith("<=")) {
+                operator = "<=";
+                dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim();
+            } else if (dateFilterStringUserInput.startsWith(">")) {
+                operator = ">";
+                dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim();
+            } else if (dateFilterStringUserInput.startsWith("<")) {
+                operator = "<";
+                dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim();
+            }
+
+            try {
+                // Parse filter date (DD.MM.YYYY format)
+                let filterDateObj = null;
+                if (dateFilterStringUserInput.includes('.')) {
+                    const parts = dateFilterStringUserInput.split('.');
+                    if (parts.length === 3) {
+                        filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])));
+                    }
+                }
+
+                // Parse session date
+                const sessionParts = sessionDateString_YYYY_MM_DD.split('-');
+                if (sessionParts.length !== 3) return false;
+                const sessionDateObj = new Date(Date.UTC(parseInt(sessionParts[0]), parseInt(sessionParts[1]) - 1, parseInt(sessionParts[2])));
+
+                // Apply operator comparisons
+                if (operator && filterDateObj) {
+                    if (operator === ">=" && sessionDateObj < filterDateObj) return false;
+                    if (operator === "<=" && sessionDateObj > filterDateObj) return false;
+                    if (operator === ">" && sessionDateObj <= filterDateObj) return false;
+                    if (operator === "<" && sessionDateObj >= filterDateObj) return false;
+                } else if (!operator) {
+                    // String match
+                    const formattedSessionDate = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase();
+                    if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) && !formattedSessionDate.includes(dateFilterStringUserInput)) {
+                        return false;
+                    }
+                }
+            } catch (e) {
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * Check if a numeric cell value matches a numeric filter
+         * @param {number} cellNumber - Numeric cell value
+         * @param {string} filterValue - Filter value (may include operators)
+         * @returns {boolean} - True if matches, false otherwise
+         */
+        function _matchesJournalNumericFilter(cellNumber, filterValue) {
+            return matchesNumericFilter(cellNumber, filterValue);
+        }
+
+        /**
+         * Apply all active filters to journal sessions
+         * @param {Array} sessions - Array of journal sessions
+         * @param {Object} activeFilters - Map of columnKey to filter value
+         * @param {Array} numericFilterKeys - Array of keys that should be treated as numeric
+         * @param {Function} getRigDisplayString - Helper to build rig display string
+         * @returns {Array} - Filtered sessions
+         */
+        function _applyJournalFilters(sessions, activeFilters, numericFilterKeys, getRigDisplayString) {
+            if (Object.keys(activeFilters).length === 0) return sessions;
+
+            return sessions.filter(session => {
+                for (const key in activeFilters) {
+                    const filterValue = activeFilters[key];
+                    const config = journalColumnConfig[key];
+                    if (!config) continue;
+
+                    // Special handling for Telescope Setup
+                    if (key === 'telescope_setup_notes') {
+                        const compositeString = getRigDisplayString(session).toLowerCase();
+                        const rawNotes = String(session.telescope_setup_notes || '').toLowerCase();
+                        if (!compositeString.includes(filterValue) && !rawNotes.includes(filterValue)) {
+                            return false;
+                        }
+                        continue;
+                    }
+
+                    let rawSessionValueStr = String(session[config.dataKey] || '').toLowerCase();
+
+                    // Date filter
+                    if (key === 'date_utc') {
+                        if (!_matchesJournalDateFilter(session[config.dataKey], filterValue)) {
+                            return false;
+                        }
+                        continue;
+                    }
+
+                    // Numeric filter
+                    if (numericFilterKeys.includes(key)) {
+                        let sessionNumericValue = session[config.dataKey];
+                        if (sessionNumericValue === null || sessionNumericValue === undefined) return false;
+                        const cellNumber = parseFloat(sessionNumericValue);
+                        if (isNaN(cellNumber)) {
+                            if (!rawSessionValueStr.includes(filterValue)) return false;
+                            continue;
+                        }
+                        if (!_matchesJournalNumericFilter(cellNumber, filterValue)) return false;
+                    } else {
+                        // Standard string check
+                        if (filterValue.startsWith("!")) {
+                            if (rawSessionValueStr.includes(filterValue.substring(1))) return false;
+                        } else {
+                            if (!rawSessionValueStr.includes(filterValue)) return false;
+                        }
+                    }
+                }
+                return true;
+            });
+        }
+
+        /**
+         * Sort journal sessions by the current sort configuration
+         * @param {Array} sessions - Array of journal sessions
+         * @param {Object} sortConfig - Column configuration for sorting
+         * @param {Object} currentSort - Current sort state {columnKey, ascending}
+         * @param {Array} numericFilterKeys - Array of keys that should be sorted numerically
+         * @param {Function} getRigDisplayString - Helper to build rig display string
+         * @returns {Array} - Sorted sessions
+         */
+        function _sortJournalSessions(sessions, sortConfig, currentSort, numericFilterKeys, getRigDisplayString) {
+            if (!sortConfig) return sessions;
+
+            return sessions.sort((a, b) => {
+                let rawA = a[sortConfig.dataKey];
+                let rawB = b[sortConfig.dataKey];
+
+                // Special sort for setup: sort by the generated string
+                if (sortConfig.dataKey === 'telescope_setup_notes') {
+                    rawA = getRigDisplayString(a);
+                    rawB = getRigDisplayString(b);
+                }
+
+                let valA_str = (rawA === null || rawA === undefined || rawA === '-') ? '' : String(rawA).toLowerCase();
+                let valB_str = (rawB === null || rawB === undefined || rawB === '-') ? '' : String(rawB).toLowerCase();
+
+                let comparison = 0;
+
+                if (sortConfig.dataKey === 'date_utc') {
+                    const dateA = new Date(a.date_utc || 0);
+                    const dateB = new Date(b.date_utc || 0);
+                    comparison = dateA - dateB;
+                } else if (numericFilterKeys.includes(sortConfig.dataKey)) {
+                    const numA = parseFloat(rawA) || 0;
+                    const numB = parseFloat(rawB) || 0;
+                    comparison = numA - numB;
+                } else {
+                    comparison = valA_str.localeCompare(valB_str);
+                }
+
+                if (comparison !== 0) {
+                    return currentSort.ascending ? comparison : -comparison;
+                }
+
+                // Tie-breaker: sort by date descending
+                const dateA_tie = new Date(a.date_utc || 0);
+                const dateB_tie = new Date(b.date_utc || 0);
+                return dateB_tie - dateA_tie;
+            });
+        }
+
+        /**
+         * Determine if target info should be shown for this row (grouping logic)
+         * @param {string} currentTargetId - Current session's target ID
+         * @param {string} previousTargetId - Previous session's target ID
+         * @param {string} sortColumnKey - Current sort column key
+         * @returns {boolean} - True if should show full target info
+         */
+        function _shouldShowGroupedTarget(currentTargetId, previousTargetId, sortColumnKey) {
+            if (sortColumnKey !== 'object_name' && sortColumnKey !== 'target_common_name') {
+                return true;
+            }
+            return currentTargetId !== previousTargetId;
+        }
+
+        /**
+         * Create a single journal table row
+         * @param {Object} session - Journal session object
+         * @param {Object} config - Column configuration
+         * @param {boolean} showFullTargetInfo - Whether to show target info
+         * @param {Function} getRigDisplayString - Helper to build rig display string
+         * @returns {HTMLTableRowElement} - Created row element
+         */
+        function _createJournalRow(session, config, showFullTargetInfo, getRigDisplayString) {
+            const row = document.createElement('tr');
+            row.classList.add('clickable-row');
+            row.setAttribute('data-session-id', session.id);
+            row.setAttribute('data-target-object-id', session.object_name);
+            row.setAttribute('data-session-location', session.location_name || '');
+
+            for (const key in journalColumnConfig) {
+                const columnConfig = journalColumnConfig[key];
+                const td = document.createElement('td');
+                td.dataset.journalColumnKey = key;
+
+                let rawValue = session[columnConfig.dataKey];
+                let displayValue = "";
+
+                // Custom check for Project Name
+                if (key === 'project_name' && rawValue === '-') {
+                    displayValue = "";
+                }
+                // Custom Display for Telescope Setup
+                else if (key === 'telescope_setup_notes') {
+                    const fullString = getRigDisplayString(session);
+                    if (!fullString || fullString === "") {
+                        displayValue = "N/A";
+                    } else {
+                        displayValue = fullString.length > 60 ? fullString.substring(0, 60) + "..." : fullString;
+                        td.title = fullString;
+                    }
+                }
+                // Standard N/A check
+                else if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
+                    displayValue = "N/A";
+                }
+                // Formatting
+                else if (columnConfig.format) {
+                    displayValue = columnConfig.format(rawValue);
+                } else {
+                    displayValue = String(rawValue);
+                }
+
+                // Apply grouping logic for target columns
+                if ((columnConfig.dataKey === 'object_name' || columnConfig.dataKey === 'target_common_name') && !showFullTargetInfo) {
+                    td.innerHTML = "";
+                } else {
+                    td.innerHTML = String(displayValue);
+                }
+
+                row.appendChild(td);
+            }
+
+            // Add click handler
+            row.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target-object-id');
+                const sessionId = this.getAttribute('data-session-id');
+                const sessionLoc = this.getAttribute('data-session-location');
+
+                if (targetId && sessionId) {
+                    let url = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
+                    if (sessionLoc) {
+                        url += `&location=${encodeURIComponent(sessionLoc)}`;
+                    }
+                    window.location.href = url;
+                }
+            });
+
+            return row;
+        }
+
     function populateJournalTable() {
             const tableBody = document.getElementById('journal-data-body');
             if (!tableBody || !allJournalSessions) return;
@@ -1411,194 +1798,24 @@
     
             // --- Filtering Logic ---
             const journalFilterInputs = document.querySelectorAll("#journal-filter-row input");
-            const activeJournalFilters = {};
-            journalFilterInputs.forEach(input => {
-                const thParent = input.closest('th');
-                if (thParent) {
-                    const columnKey = thParent.dataset.journalColumnKey;
-                    const value = input.value.trim().toLowerCase();
-                    if (value !== '') activeJournalFilters[columnKey] = value;
-                }
-            });
-    
+            const activeJournalFilters = _buildJournalFiltersMap(journalFilterInputs);
             const journalNumericFilterKeys = ['calculated_integration_time_minutes','guiding_rms_avg_arcsec','seeing_observed_fwhm','session_rating_subjective'];
-    
-            if (Object.keys(activeJournalFilters).length > 0) {
-                sessionsToDisplay = sessionsToDisplay.filter(session => {
-                    for (const key in activeJournalFilters) {
-                        const filterValue = activeJournalFilters[key];
-                        const config = journalColumnConfig[key];
-                        if (!config) continue;
-    
-                        // Special handling for Telescope Setup: Check components string AND old notes
-                        if (key === 'telescope_setup_notes') {
-                            const compositeString = getRigDisplayString(session).toLowerCase();
-                            // Also check the manual notes just in case
-                            const rawNotes = String(session.telescope_setup_notes || '').toLowerCase();
-                            if (!compositeString.includes(filterValue) && !rawNotes.includes(filterValue)) {
-                                return false;
-                            }
-                            continue;
-                        }
-    
-                        let rawSessionValueStr = String(session[config.dataKey] || '').toLowerCase();
-    
-                        // ... (Existing Date Filter Logic) ...
-                        if (key === 'date_utc') {
-                            const sessionDateString_YYYY_MM_DD = session[config.dataKey] || "";
-                            if (!sessionDateString_YYYY_MM_DD) return false;
-                            let operator = null; let dateFilterStringUserInput = filterValue;
-                            if (dateFilterStringUserInput.startsWith(">=")) { operator = ">="; dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim(); }
-                            else if (dateFilterStringUserInput.startsWith("<=")) { operator = "<="; dateFilterStringUserInput = dateFilterStringUserInput.substring(2).trim(); }
-                            else if (dateFilterStringUserInput.startsWith(">")) { operator = ">"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
-                            else if (dateFilterStringUserInput.startsWith("<")) { operator = "<"; dateFilterStringUserInput = dateFilterStringUserInput.substring(1).trim(); }
-                            try {
-                                let filterDateObj = null;
-                                if (dateFilterStringUserInput.includes('.')) { const parts = dateFilterStringUserInput.split('.'); if (parts.length === 3) { filterDateObj = new Date(Date.UTC(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]))); } }
-                                const sessionParts = sessionDateString_YYYY_MM_DD.split('-'); if (sessionParts.length !== 3) return false;
-                                const sessionDateObj = new Date(Date.UTC(parseInt(sessionParts[0]), parseInt(sessionParts[1]) - 1, parseInt(sessionParts[2])));
-                                if (operator && filterDateObj) {
-                                    if (operator === ">=" && sessionDateObj < filterDateObj) return false; if (operator === "<=" && sessionDateObj > filterDateObj) return false;
-                                    if (operator === ">" && sessionDateObj <= filterDateObj) return false; if (operator === "<" && sessionDateObj >= filterDateObj) return false;
-                                } else if (!operator) { const formattedSessionDate = formatDateISOtoEuropean(sessionDateString_YYYY_MM_DD).toLowerCase(); if (!sessionDateString_YYYY_MM_DD.includes(dateFilterStringUserInput) && !formattedSessionDate.includes(dateFilterStringUserInput)) return false; }
-                            } catch (e) { return false; }
-                            continue;
-                        }
-    
-                        // ... (Existing Numeric Logic) ...
-                        if (journalNumericFilterKeys.includes(key)) {
-                            let sessionNumericValue = session[config.dataKey];
-                            if (sessionNumericValue === null || sessionNumericValue === undefined) return false;
-                            const cellNumber = parseFloat(sessionNumericValue);
-                            if (isNaN(cellNumber)) { if (!rawSessionValueStr.includes(filterValue)) return false; continue; }
-                            if (!matchesNumericFilter(cellNumber, filterValue)) return false;
-                        } else {
-                            // Standard string check
-                            if (filterValue.startsWith("!")) { if (rawSessionValueStr.includes(filterValue.substring(1))) return false; } else { if (!rawSessionValueStr.includes(filterValue)) return false; }
-                        }
-                    } return true;
-                });
-            }
+
+            sessionsToDisplay = _applyJournalFilters(sessionsToDisplay, activeJournalFilters, journalNumericFilterKeys, getRigDisplayString);
     
             // --- Sorting Logic ---
             const sortConfig = journalColumnConfig[currentJournalSort.columnKey];
-            if (sortConfig) {
-                sessionsToDisplay.sort((a, b) => {
-                    let rawA = a[sortConfig.dataKey];
-                    let rawB = b[sortConfig.dataKey];
-    
-                    // Special sort for setup: sort by the generated string
-                    if (sortConfig.dataKey === 'telescope_setup_notes') {
-                        rawA = getRigDisplayString(a);
-                        rawB = getRigDisplayString(b);
-                    }
-    
-                    let valA_str = (rawA === null || rawA === undefined || rawA === '-') ? '' : String(rawA).toLowerCase();
-                    let valB_str = (rawB === null || rawB === undefined || rawB === '-') ? '' : String(rawB).toLowerCase();
-    
-                    let comparison = 0;
-    
-                    if (sortConfig.dataKey === 'date_utc') {
-                        const dateA = new Date(a.date_utc || 0);
-                        const dateB = new Date(b.date_utc || 0);
-                        comparison = dateA - dateB;
-                    } else if (journalNumericFilterKeys.includes(sortConfig.dataKey)) {
-                        const numA = parseFloat(rawA) || 0;
-                        const numB = parseFloat(rawB) || 0;
-                        comparison = numA - numB;
-                    } else {
-                        comparison = valA_str.localeCompare(valB_str);
-                    }
-    
-                    if (comparison !== 0) {
-                        return currentJournalSort.ascending ? comparison : -comparison;
-                    }
-                    const dateA_tie = new Date(a.date_utc || 0);
-                    const dateB_tie = new Date(b.date_utc || 0);
-                    return dateB_tie - dateA_tie;
-                });
-            }
+            sessionsToDisplay = _sortJournalSessions(sessionsToDisplay, sortConfig, currentJournalSort, journalNumericFilterKeys, getRigDisplayString);
     
             // --- Rendering Logic ---
             tableBody.innerHTML = '';
             let previousTargetIdForGrouping = null;
-    
+
             sessionsToDisplay.forEach(session => {
-                const row = document.createElement('tr');
-                row.classList.add('clickable-row');
-                row.setAttribute('data-session-id', session.id);
-                row.setAttribute('data-target-object-id', session.object_name);
-                // Store the specific location recorded for this session
-                row.setAttribute('data-session-location', session.location_name || '');
-    
-                let showFullTargetInfoThisRow = true;
-    
-                if (currentJournalSort.columnKey === 'object_name' || currentJournalSort.columnKey === 'target_common_name') {
-                    if (session.object_name === previousTargetIdForGrouping) {
-                        showFullTargetInfoThisRow = false;
-                    }
-                    previousTargetIdForGrouping = session.object_name;
-                }
-    
-                for (const key in journalColumnConfig) {
-                    const config = journalColumnConfig[key];
-                    const td = document.createElement('td');
-                    td.dataset.journalColumnKey = key;
-    
-                    let rawValue = session[config.dataKey];
-                    let displayValue = "";
-    
-                    // 1. Custom check for Project Name
-                    if (key === 'project_name' && rawValue === '-') {
-                        displayValue = "";
-                    }
-                    // 2. NEW: Custom Display for Telescope Setup
-                    else if (key === 'telescope_setup_notes') {
-                        const fullString = getRigDisplayString(session);
-                        if (!fullString || fullString === "") {
-                            displayValue = "N/A";
-                        } else {
-                            // Truncate if too long, like before
-                            displayValue = fullString.length > 60 ? fullString.substring(0, 60) + "..." : fullString;
-                            td.title = fullString; // Show full string on hover
-                        }
-                    }
-                    // 3. Standard N/A check
-                    else if (rawValue === null || rawValue === undefined || (typeof rawValue === 'string' && rawValue.trim() === "") || rawValue === 'N/A') {
-                        displayValue = "N/A";
-                    }
-                    // 4. Formatting
-                    else if (config.format) {
-                        displayValue = config.format(rawValue);
-                    }
-                    else {
-                        displayValue = String(rawValue);
-                    }
-    
-                    if ((config.dataKey === 'object_name' || config.dataKey === 'target_common_name') && !showFullTargetInfoThisRow) {
-                        td.innerHTML = "";
-                    } else {
-                        td.innerHTML = String(displayValue);
-                    }
-    
-                    row.appendChild(td);
-                }
-    
-                row.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target-object-id');
-                    const sessionId = this.getAttribute('data-session-id');
-                    const sessionLoc = this.getAttribute('data-session-location');
-    
-                    if (targetId && sessionId) {
-                        let url = `/graph_dashboard/${encodeURIComponent(targetId)}?session_id=${encodeURIComponent(sessionId)}&tab=journal`;
-                        // If this session has a specific location, force the dashboard to use it
-                        if (sessionLoc) {
-                            url += `&location=${encodeURIComponent(sessionLoc)}`;
-                        }
-                        window.location.href = url;
-                    }
-                });
+                const showFullTargetInfoThisRow = _shouldShowGroupedTarget(session.object_name, previousTargetIdForGrouping, currentJournalSort.columnKey);
+                const row = _createJournalRow(session, journalColumnConfig, showFullTargetInfoThisRow, getRigDisplayString);
                 tableBody.appendChild(row);
+                previousTargetIdForGrouping = session.object_name;
             });
             updateJournalSortIndicators();
         }
