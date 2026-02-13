@@ -1,3 +1,6 @@
+(function() {
+    'use strict';
+
     let heatmapLoaded = false;
     let globalHeatmapData = null;
     let isFetching = false;
@@ -323,3 +326,9 @@
         const plotDiv = document.getElementById('yearly-heatmap-plot');
         if(plotDiv) plotDiv.innerHTML = "";
     }
+
+    // Expose functions needed by other scripts
+    window.updateHeatmapFilter = updateHeatmapFilter;
+    window.fetchAndRenderHeatmap = fetchAndRenderHeatmap;
+    window.resetHeatmapState = resetHeatmapState;
+})();

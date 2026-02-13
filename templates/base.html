@@ -28,7 +28,8 @@
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
-    <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js" defer></script>
+    <script src="{{ url_for('static', filename='js/utils.js') }}" defer></script>
     {% block head_extra %}{% endblock %}
   </head>
   <body>
@@ -82,7 +83,7 @@
 
     {% block body %}{% endblock %}
 
-    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/base.js') }}" defer></script>
 
     {% block scripts %}{% endblock %}
 

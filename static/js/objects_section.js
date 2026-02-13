@@ -1,3 +1,6 @@
+(function() {
+    'use strict';
+
     function normalizeObjectNameJS(name) {
         if (!name) return null;
         let nameStr = String(name).trim().toUpperCase();
@@ -93,6 +96,7 @@
         // just collapse multiple spaces into one.
         return nameStr.replace(/\s+/g, ' ');
     }
+
     // --- Sub-tab management ---
     function showObjectSubTab(tabName) {
         // Hide all content
@@ -120,7 +124,7 @@
         }
     }
 
-// --- All moved/self-contained object JS ---
+    // --- All moved/self-contained object JS ---
     function filterObjectsList() {
         // 1. Get filter values
         const filterId = document.getElementById('object-filter-id').value.toLowerCase();
@@ -727,3 +731,14 @@
             "Do you want to proceed?"
         );
     }
+
+    // Expose functions needed by HTML inline event handlers
+    window.filterObjectsList = filterObjectsList;
+    window.selectAllVisibleObjects = selectAllVisibleObjects;
+    window.deselectAllObjects = deselectAllObjects;
+    window.executeBulkAction = executeBulkAction;
+    window.openDuplicateChecker = openDuplicateChecker;
+    window.mergeObjects = mergeObjects;
+    window.activateLazyTrix = activateLazyTrix;
+    window.confirmCatalogImport = confirmCatalogImport;
+})();

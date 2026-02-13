@@ -6,7 +6,7 @@
 <script>
     const IS_GUEST_USER = {{ is_guest | tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8"></script>
+<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8" defer></script>
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
@@ -384,12 +384,12 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
@@ -427,7 +427,7 @@
         allObjects: {{ framing_objects | tojson }}
     };
 </script>
-<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v4"></script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v4" defer></script>
 <script>
     // --- Patch: Update Separation on Date Change ---
     document.addEventListener("DOMContentLoaded", function() {
