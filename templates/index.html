@@ -21,7 +21,7 @@
 {% endblock %}
 
 {% block page_title %}
-    <h2>Dashboard <span id="simulated-title-text" style="display: none; color: #ca0e0e; font-weight: normal;">- Simulated</span></h2>
+    <h2>Dashboard <span id="simulated-title-text" style="display: none; color: var(--danger-color-darker); font-weight: normal;">- Simulated</span></h2>
 {% endblock %}
 
 {% block header_actions %}
@@ -46,7 +46,7 @@
     </div>
     <div class="status-item">
         <span class="status-label">Astr. Dusk / Dawn</span>
-        <span class="status-value"><span id="dusk">--:--</span> <span style="color:#aaa; margin:0 5px;">|</span> <span id="dawn">--:--</span></span>
+        <span class="status-value"><span id="dusk">--:--</span> <span style="color:var(--text-light); margin:0 5px;">|</span> <span id="dawn">--:--</span></span>
     </div>
     <div class="status-item" id="simulation-controls">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -63,7 +63,7 @@
     </div>
     <div class="status-item" style="margin-left: auto;">
         <span class="status-label">Update</span>
-        <span class="status-value" id="next-update-timer" style="color:#83b4c5;">60s</span>
+        <span class="status-value" id="next-update-timer" style="color:var(--primary-color);">60s</span>
     </div>
 </div>
 {% endblock %}
@@ -73,7 +73,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
               {% for category, message in messages %}
-                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                       {{ message }}
                   </div>
               {% endfor %}
@@ -98,7 +98,7 @@
         <button id="save-view-btn" title="Save current filters and sorting">Save</button>
         <button id="delete-view-btn" title="Delete selected view">Delete</button>
 
-        <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: 14px; user-select: none; color: #444;">
+        <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: 14px; user-select: none; color: var(--text-dark-alt);">
             <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
             Active Only
         </label>
@@ -213,14 +213,14 @@
     {% include '_heatmap_section.html' %}
     {% include '_inspiration_section.html' %}
 
-    <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; width: 300px; text-align: center; border: 1px solid #ddd;">
-        <div style="font-weight: bold; color: #6795a4; margin-bottom: 10px;" id="loading-message">Updating data...</div>
+    <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">
+        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;" id="loading-message">Updating data...</div>
 
-        <div style="width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden;">
-            <div id="loading-progress-bar" style="width: 0%; height: 100%; background: #6795a4; transition: width 0.1s ease;"></div>
+        <div style="width: 100%; height: 10px; background: var(--bg-medium-alt); border-radius: 5px; overflow: hidden;">
+            <div id="loading-progress-bar" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.1s ease;"></div>
         </div>
 
-        <div style="margin-top: 5px; font-size: 12px; color: #666;">
+        <div style="margin-top: 5px; font-size: 12px; color: var(--text-tertiary);">
             <span id="loading-count">0</span> / <span id="loading-total">0</span>
         </div>
     </div>
@@ -234,7 +234,7 @@
 </div>
 
 <div id="save-view-modal" class="modal-backdrop" onclick="closeSaveViewModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000;">
-    <div class="modal-content" onclick="event.stopPropagation()" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#fff; padding:20px; border-radius:8px; width:400px;">
+    <div class="modal-content" onclick="event.stopPropagation()" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px;">
         <h3 style="margin-top:0;">Save Current View</h3>
         <div style="display:flex; flex-direction:column; gap:10px;">
             <label>Name: <input type="text" id="modal-view-name" style="width:100%; padding:5px;"></label>
@@ -245,8 +245,8 @@
             </label>
             {% endif %}
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
-                <button onclick="confirmSaveView()" style="background:#28a745; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Save</button>
-                <button onclick="closeSaveViewModal()" style="background:#6c757d; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cancel</button>
+                <button onclick="confirmSaveView()" style="background:var(--success-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Save</button>
+                <button onclick="closeSaveViewModal()" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cancel</button>
             </div>
         </div>
     </div>

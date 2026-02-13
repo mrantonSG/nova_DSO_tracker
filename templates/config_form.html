@@ -32,7 +32,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -217,7 +217,7 @@
       <h2 style="display: flex; align-items: center; gap: 15px;">
         Locations Configuration
         {{ help_badge('locations_general', 'Click for help') }}
-        <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: #555;"></span>
+        <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: var(--text-secondary);"></span>
       </h2>
 
       <form method="post">
@@ -274,7 +274,7 @@
                     <label class="short-label" for="new_comments" style="padding-top: 5px;">Comments:</label>
                     <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="new-comment-counter"></textarea>
                     <div></div>
-                    <small id="new-comment-counter" style="color: #666;">0 / 500</small>
+                    <small id="new-comment-counter" style="color: var(--text-tertiary);">0 / 500</small>
                  </div>
             </div>
             <button type="submit" name="submit_new_location" value="1" class="action-button" style="margin-top: 10px;">Add</button>
@@ -336,7 +336,7 @@
                         <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
                         <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
                         <div></div>
-                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ (loc_val.get('comments') or '')|length }} / 500</small>
+                        <small id="comment-counter-{{ loop.index }}" style="color: var(--text-tertiary);">{{ (loc_val.get('comments') or '')|length }} / 500</small>
                     </div>
                 </div>
             </div>
@@ -355,7 +355,7 @@
                 1. Define Your Components
                 {{ help_badge('rigs_general', 'Help with Rigs') }}
             </h2>
-            <p style="font-size:14px; color: #555;">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
+            <p style="font-size:14px; color: var(--text-secondary);">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
             <details open>
                 <summary><h3>Telescopes (<span id="tele-count">0</span>)</h3></summary>
                 <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
@@ -421,7 +421,7 @@
 
         <div class="column">
             <h2>2. Configure Your Rigs</h2>
-            <p style="font-size:14px; color: #555;">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
+            <p style="font-size:14px; color: var(--text-secondary);">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
             <form action="{{ url_for('tools.add_rig') }}" method="post" id="form-rig">
                 <input type="hidden" name="rig_id" value="">
                 <div class="form-group"><label for="rig_name">Rig Name:</label><input type="text" name="rig_name" id="rig_name" required placeholder="e.g., C11 Deep Sky Rig"></div>
@@ -518,7 +518,7 @@
                       </tr>
                   </thead>
                   <tbody id="shared-objects-body">
-                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
@@ -547,7 +547,7 @@
                       </tr>
                   </thead>
                   <tbody id="shared-views-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
@@ -583,7 +583,7 @@
                       </tr>
                   </thead>
                   <tbody id="shared-components-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
@@ -601,11 +601,11 @@
 
   <div id="fetch-progress-modal">
       <div id="fetch-progress-content">
-          <h3 style="margin-top:0; color:#333;">Fetching Details...</h3>
+          <h3 style="margin-top:0; color:var(--text-primary);">Fetching Details...</h3>
           <div class="progress-track">
               <div id="fetch-progress-bar" class="progress-fill"></div>
           </div>
-          <p id="fetch-progress-text" style="color:#666; font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
+          <p id="fetch-progress-text" style="color:var(--text-tertiary); font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
       </div>
   </div>
   <br>
@@ -804,7 +804,7 @@
             const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
             let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
             if (rig.image_scale) {
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: #f5f5f5;"><small style="color: #666;">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+                detailsHtml += `<hr style="margin: 0.5em 0; border-color: var(--bg-light-gray);"><small style="color: var(--text-tertiary);">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
             }
             return `<li data-rig-id="${rig.rig_id}">
                         <div class="item-info">${detailsHtml}</div>
@@ -887,7 +887,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="imported-button" disabled style="background-color:var(--border-medium-alt); color:var(--text-secondary); cursor:default;">Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -905,7 +905,7 @@
                         `;
 
                         const imgHtml = obj.image_url
-                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid #ddd;" title="Has image">`
+                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid var(--text-lighter);" title="Has image">`
                             : '';
 
                         return `
@@ -927,7 +927,7 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
+                    objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">No shared objects found from other users.</td></tr>';
                 }
 
                 // --- Render Shared Components ---
@@ -939,7 +939,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="imported-button" disabled style="background-color:var(--border-medium-alt); color:var(--text-secondary); cursor:default;">Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -963,7 +963,7 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared components found from other users.</td></tr>';
+                    componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">No shared components found from other users.</td></tr>';
                 }
 
                 // --- Render Shared Views ---
@@ -975,7 +975,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="imported-button" disabled style="background-color:var(--border-medium-alt); color:var(--text-secondary); cursor:default;">Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -999,7 +999,7 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    viewsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared views found from other users.</td></tr>';
+                    viewsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">No shared views found from other users.</td></tr>';
                 }
             })
             .catch(error => {
@@ -1178,7 +1178,7 @@
 
                 // 1. Show a "please wait" message
                 const msgContainer = document.getElementById('flash-message-container');
-                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: #007bff; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
+                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: var(--info-color-alt2); margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
 
                 fetch(url, {
                     method: "POST",
@@ -1298,7 +1298,7 @@
             if (data.status === 'success') {
                 // Flash success button state
                 btn.textContent = "Saved!";
-                btn.style.backgroundColor = "#28a745";
+                btn.style.backgroundColor = "var(--success-color)";
                 setTimeout(() => {
                     btn.textContent = originalText;
                     btn.style.backgroundColor = ""; // Reset to default
@@ -1345,10 +1345,10 @@
             if(counterEl) {
                 counterEl.textContent = `(${checkedCount} / ${MAX_ACTIVE_LOCATIONS} active)`;
                 if (checkedCount >= MAX_ACTIVE_LOCATIONS) {
-                    counterEl.style.color = '#dc3545';
+                    counterEl.style.color = 'var(--danger-color)';
                     counterEl.style.fontWeight = 'bold';
                 } else {
-                    counterEl.style.color = '#555';
+                    counterEl.style.color = 'var(--text-secondary)';
                     counterEl.style.fontWeight = 'normal';
                 }
             }

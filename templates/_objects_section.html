@@ -1,3 +1,4 @@
+{% from "macros.html" import form_group, help_badge %}
 <div id="objects-tab-content" class="tab-content">
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/objects_section.css') }}">
@@ -6,19 +7,19 @@
         <div class="detail-tabs-container">
             <button class="detail-tab-button active" data-tab="manage">
                 Manage My Objects
-                <span class="help-badge" onclick="openHelp('objects_manage'); event.stopPropagation();" title="Help">?</span>
+                {{ help_badge('objects_manage', extra_attrs='onclick="openHelp(\'objects_manage\'); event.stopPropagation();"') }}
             </button>
             <button class="detail-tab-button" data-tab="add">
                 Add New Object
-                <span class="help-badge" onclick="openHelp('objects_add'); event.stopPropagation();" title="Help">?</span>
+                {{ help_badge('objects_add', extra_attrs='onclick="openHelp(\'objects_add\'); event.stopPropagation();"') }}
             </button>
             <button class="detail-tab-button" data-tab="import">
                 Import from Catalog
-                <span class="help-badge" onclick="openHelp('objects_import'); event.stopPropagation();" title="Help">?</span>
+                {{ help_badge('objects_import', extra_attrs='onclick="openHelp(\'objects_import\'); event.stopPropagation();"') }}
             </button>
             <button class="detail-tab-button" onclick="openDuplicateChecker()">
                 Find Duplicates
-                <span class="help-badge" onclick="openHelp('objects_duplicates'); event.stopPropagation();" title="Help">?</span>
+                {{ help_badge('objects_duplicates', extra_attrs='onclick="openHelp(\'objects_duplicates\'); event.stopPropagation();"') }}
             </button>
         </div>
 
@@ -73,21 +74,21 @@
           </div>
         </div>
 
-        <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: #e9ecef; padding: 8px; border-radius: 4px;">
+        <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: var(--border-light-alt3); padding: 8px; border-radius: 4px;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <button type="button" class="file-button" onclick="selectAllVisibleObjects()">Select Visible</button>
                 <button type="button" class="file-button" onclick="deselectAllObjects()">Deselect All</button>
-                <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: #555;">0 Selected</span>
+                <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: var(--text-secondary);">0 Selected</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 14px; color: #555;">Selection Actions:</span>
-                <button type="button" class="action-button" style="background-color: #27ae60;" onclick="executeBulkAction('enable')">Enable</button>
-                <button type="button" class="action-button" style="background-color: #f39c12;" onclick="executeBulkAction('disable')">Disable</button>
+                <span style="font-size: 14px; color: var(--text-secondary);">Selection Actions:</span>
+                <button type="button" class="action-button" style="background-color: var(--success-color-alt);" onclick="executeBulkAction('enable')">Enable</button>
+                <button type="button" class="action-button" style="background-color: var(--warning-color-alt);" onclick="executeBulkAction('disable')">Disable</button>
                 <button type="button" class="delete-btn" onclick="executeBulkAction('delete')">Delete</button>
             </div>
         </div>
 
-        <div id="object-count-display" style="margin-top: 10px; padding: 5px 0 0 0; color: #555;"></div>
+        <div id="object-count-display" style="margin-top: 10px; padding: 5px 0 0 0; color: var(--text-secondary);"></div>
     </div>
 
         <form method="post">
@@ -103,7 +104,7 @@
                       <div class="object-id">
                         <strong>{{ obj.Object }}</strong>
                         {% if not obj.enabled %}
-                            <span class="badge" style="background-color: #bdc3c7; color: white; font-size: 10px; margin-left: 5px;">Disabled</span>
+                            <span class="badge" style="background-color: var(--text-muted); color: white; font-size: 10px; margin-left: 5px;">Disabled</span>
                         {% endif %}
                         {% if obj.original_user_id %}
                           <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="Imported from another user">Imported</span>
@@ -160,7 +161,7 @@
                     </div>
                       <div class="inline-fields second-row-fields">
                         <div style="display: flex; align-items: center;">
-                            <label class="short-label" for="enabled_{{ obj.Object }}" style="color: {{ '#27ae60' if obj.enabled else '#7f8c8d' }}; font-weight: bold;">
+                            <label class="short-label" for="enabled_{{ obj.Object }}" style="color: {{ 'var(--success-color-alt)' if obj.enabled else 'var(--accent-gray)' }}; font-weight: bold;">
                                 {{ 'Enabled' if obj.enabled else 'Disabled' }}
                             </label>
                             <input type="hidden" name="enabled_{{ obj.Object }}" value="{{ 'on' if obj.enabled else 'off' }}">
@@ -177,33 +178,33 @@
                     </div>
                   </div>
                   <div>
-                    <div class="inspiration-container" style="background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+                    <div class="inspiration-container" style="background: var(--bg-white); border: 1px solid var(--text-lightest); border-radius: 4px; padding: 12px; margin-bottom: 15px;">
                         <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
-                            <label style="font-weight:bold; color:#555; font-size:0.85em; margin:0;">Inspiration Content</label>
-                            <span class="help-badge" onclick="openHelp('objects_inspiration'); event.stopPropagation();" title="Help">?</span>
+                            <label style="font-weight:bold; color:var(--text-secondary); font-size:0.85em; margin:0;">Inspiration Content</label>
+                            {{ help_badge('objects_inspiration', extra_attrs='onclick="openHelp(\'objects_inspiration\'); event.stopPropagation();"') }}
                         </div>
                         <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                             <div style="flex: 2; display: flex; gap: 5px;">
-                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                                 <button type="button" class="file-button" onclick="document.getElementById('upload_file_{{ obj.Object }}').click()" title="Upload a personal image (Protects against catalog updates)">Upload</button>
                                 <input type="file" id="upload_file_{{ obj.Object }}" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'image_url_{{ obj.Object }}')">
                             </div>
                             <div style="flex: 1;">
-                                <input type="text" id="image_credit_{{ obj.Object }}" value="{{ obj.image_credit or '' }}" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="image_credit_{{ obj.Object }}" value="{{ obj.image_credit or '' }}" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                             </div>
                         </div>
                         <div style="margin-bottom: 8px;">
-                             <input type="text" id="image_source_link_{{ obj.Object }}" value="{{ obj.image_source_link or '' }}" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                             <input type="text" id="image_source_link_{{ obj.Object }}" value="{{ obj.image_source_link or '' }}" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                         </div>
                         <div style="margin-bottom: 8px;">
-                            <textarea id="description_text_{{ obj.Object }}" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
+                            <textarea id="description_text_{{ obj.Object }}" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <div style="flex: 1;">
-                                <input type="text" id="description_credit_{{ obj.Object }}" value="{{ obj.description_credit or '' }}" placeholder="Text Credit (e.g. Wikipedia)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="description_credit_{{ obj.Object }}" value="{{ obj.description_credit or '' }}" placeholder="Text Credit (e.g. Wikipedia)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                             </div>
                             <div style="flex: 2;">
-                                <input type="text" id="description_source_link_{{ obj.Object }}" value="{{ obj.description_source_link or '' }}" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="description_source_link_{{ obj.Object }}" value="{{ obj.description_source_link or '' }}" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                             </div>
                         </div>
                     </div>
@@ -307,33 +308,33 @@
                   <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">Active Project</label>
               </div>
 
-              <div class="inspiration-container" style="background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+              <div class="inspiration-container" style="background: var(--bg-white); border: 1px solid var(--text-lightest); border-radius: 4px; padding: 12px; margin-bottom: 15px;">
                   <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
-                      <label style="font-weight:bold; color:#555; font-size:0.85em; margin:0;">Inspiration Content (Optional)</label>
-                      <span class="help-badge" onclick="openHelp('objects_inspiration'); event.stopPropagation();" title="Help">?</span>
+                      <label style="font-weight:bold; color:var(--text-secondary); font-size:0.85em; margin:0;">Inspiration Content (Optional)</label>
+                      {{ help_badge('objects_inspiration', extra_attrs='onclick="openHelp(\'objects_inspiration\'); event.stopPropagation();"') }}
                   </div>
                   <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                       <div style="flex: 2; display: flex; gap: 5px;">
-                          <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                           <button type="button" class="file-button" onclick="document.getElementById('upload_file_new').click()" title="Upload a personal image">Upload</button>
                           <input type="file" id="upload_file_new" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'new_image_url')">
                       </div>
                       <div style="flex: 1;">
-                          <input type="text" id="new_image_credit" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_image_credit" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                       </div>
                   </div>
                   <div style="margin-bottom: 8px;">
-                       <input type="text" id="new_image_source_link" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                       <input type="text" id="new_image_source_link" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                   </div>
                   <div style="margin-bottom: 8px;">
-                      <textarea id="new_description_text" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; font-family: inherit;"></textarea>
+                      <textarea id="new_description_text" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;"></textarea>
                   </div>
                   <div style="display: flex; gap: 10px;">
                       <div style="flex: 1;">
-                          <input type="text" id="new_description_credit" placeholder="Text Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_description_credit" placeholder="Text Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                       </div>
                       <div style="flex: 2;">
-                          <input type="text" id="new_description_source_link" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_description_source_link" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                       </div>
                   </div>
               </div>
@@ -342,7 +343,7 @@
                   <button id="submit_new_object" type="button" class="action-button">Search</button>
                   <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
                   <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
-                  <button id="cancel_add_object" type="button" class="action-button" style="display:none; background-color: #778899;">Cancel</button>
+                  <button id="cancel_add_object" type="button" class="action-button" style="display:none; background-color: var(--accent-slate);">Cancel</button>
               </div>
             </div>
 
@@ -431,7 +432,7 @@
 <div id="duplicates-modal" class="modal-backdrop" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">
     <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
         <h3>Potential Duplicates</h3>
-        <p style="font-size: 14px; color: #666;">
+        <p style="font-size: 14px; color: var(--text-tertiary);">
             These pairs are located within 2.5 arcminutes of each other.
             Merging will move all journals, projects, and framings to the "Kept" object and delete the other.
             Please note that objects from different catalogs might have slightly different RA / DEC and will therefore not be considered as duplicates.
@@ -441,7 +442,7 @@
         </div>
         <div id="duplicates-list" style="max-height: 50vh; overflow-y: auto;"></div>
           <div style="margin-top: 15px; text-align: right;">
-              <button class="action-button" style="background-color: #83b4c5;" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">Close</button>
+              <button class="action-button" style="background-color: var(--primary-color);" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">Close</button>
           </div>
       </div>
   </div>

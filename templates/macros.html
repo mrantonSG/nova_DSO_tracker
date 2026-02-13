@@ -73,7 +73,48 @@
    Renders a clickable help badge that opens help modal
    Usage:
      {{ help_badge('general_settings', 'Click for help') }}
+     {{ help_badge('topic', extra_attrs='onclick="openHelp(\'topic\'); event.stopPropagation();"') }}
 #}
-{% macro help_badge(topic, title='Help') %}
-<span class="help-badge" data-help-topic="{{ topic }}" title="{{ title }}">?</span>
+{% macro help_badge(topic, title='Help', extra_attrs='') %}
+<span class="help-badge" data-help-topic="{{ topic }}" title="{{ title }}" {{ extra_attrs | safe }}>?</span>
+{% endmacro %}
+
+{# Tab Button Macro
+   Renders a tab button with optional active state and help badge
+   Usage:
+     {{ tab_button('Overview', 'overview-tab', active=True) }}
+     {{ tab_button('Details', 'details-tab', onclick='loadDetails()', help_topic='details_help') }}
+#}
+{% macro tab_button(label, tab_id, active=False, onclick='', help_topic='') %}
+<button class="detail-tab-button {% if active %}active{% endif %}"
+        data-tab="{{ tab_id }}"
+        {% if onclick %}onclick="{{ onclick }}"{% endif %}>
+    {{ label }}
+    {% if help_topic %}{{ help_badge(help_topic) }}{% endif %}
+</button>
+{% endmacro %}
+
+{# Status Item Macro
+   Renders a status label/value pair for status strips
+   Usage:
+     {{ status_item('Moon Phase', '🌕 Full Moon') }}
+     {{ status_item('Weather', 'Clear', extra_class='weather-status') }}
+     {{ status_item('Location', location_name, value_id='location-display') }}
+#}
+{% macro status_item(label, value, extra_class='', value_id='', value_extra='') %}
+<div class="status-item {{ extra_class }}">
+    <span class="status-label">{{ label }}</span>
+    <span class="status-value"{% if value_id %} id="{{ value_id }}"{% endif %} {{ value_extra | safe }}>{{ value }}</span>
+</div>
+{% endmacro %}
+
+{# Detail Row Macro
+   Renders a dt/dd pair for definition lists
+   Usage:
+     {{ detail_row('Target', 'M31 - Andromeda Galaxy') }}
+     {{ detail_row('Integration Time', '4h 30m', extra_class='highlight') }}
+#}
+{% macro detail_row(label, value, extra_class='') %}
+<dt class="{{ extra_class }}">{{ label }}</dt>
+<dd class="{{ extra_class }}">{{ value }}</dd>
 {% endmacro %}

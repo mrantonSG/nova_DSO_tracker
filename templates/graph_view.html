@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import status_item, form_group, help_badge, action_button, tab_button %}
 
 {% block title %}Graph – Nova DSO Tracker{% endblock %}
 
@@ -30,27 +31,15 @@
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" style="background-color: #7f8c8d;" onclick="window.location.href='{{ url_for('core.index') }}'">← Back to Dashboard</button>
+    {{ action_button('← Back to Dashboard', data_attrs='style="background-color: var(--accent-gray);" onclick="window.location.href=\'' ~ url_for('core.index') ~ '\'"') }}
 {% endblock %}
 
 {% block header_content %}
 <div class="status-strip">
-    <div class="status-item">
-        <span class="status-label">Location</span>
-        <span class="status-value" id="location-display">{{ header_location_name }}</span>
-    </div>
-    <div class="status-item">
-        <span class="status-label">Graph Date</span>
-        <span class="status-value" id="date-display">{{ header_date_display }}</span>
-    </div>
-    <div class="status-item">
-        <span class="status-label">Moon</span>
-        <span class="status-value" id="phase-display">{{ header_moon_phase }}%</span>
-    </div>
-     <div class="status-item">
-        <span class="status-label">Moon Sep.</span>
-        <span class="status-value" id="separation-display">{{ header_moon_separation }}°</span>
-    </div>
+    {{ status_item('Location', header_location_name, value_id='location-display') }}
+    {{ status_item('Graph Date', header_date_display, value_id='date-display') }}
+    {{ status_item('Moon', header_moon_phase ~ '%', value_id='phase-display') }}
+    {{ status_item('Moon Sep.', header_moon_separation ~ '°', value_id='separation-display') }}
     <div class="status-item">
         <span class="status-label">ASTR. DUSK / DAWN</span>
         <span class="status-value"><span id="dusk-display">{{ header_astro_dusk }}</span> - <span id="dawn-display">{{ header_astro_dawn }}</span></span>
@@ -63,7 +52,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -104,7 +93,7 @@
                         <img src="{{ url_for('static', filename='nova_logo.png') }}" alt="Nova Logo" class="loading-logo"
                              style="width: 70px; height: auto; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
 
-                        <div style="color: #83b4c5; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; font-size: 13px;">
+                        <div style="color: var(--primary-color); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; font-size: 13px;">
                             Loading Chart
                         </div>
                     </div>
@@ -136,9 +125,9 @@
 <div id="framing-tab" class="tab-content">
 
     <div class="detail-tabs-container">
-        <button type="button" class="detail-tab-button active" data-tab="notes" onclick="showProjectSubTab('notes')">Notes & Framing</button>
-        <button type="button" class="detail-tab-button" data-tab="inspiration" onclick="showProjectSubTab('inspiration')">Inspiration</button>
-        <button type="button" class="detail-tab-button" data-tab="framing-scout" onclick="showProjectSubTab('framing-scout')">Rig Data</button>
+        {{ tab_button('Notes & Framing', 'notes', active=True, onclick='showProjectSubTab(\'notes\')') }}
+        {{ tab_button('Inspiration', 'inspiration', onclick='showProjectSubTab(\'inspiration\')') }}
+        {{ tab_button('Rig Data', 'framing-scout', onclick='showProjectSubTab(\'framing-scout\')') }}
     </div>
 
     <div id="notes-sub-tab" class="detail-tab-content active">
@@ -149,10 +138,10 @@
             <trix-editor input="project-field-hidden" id="project-field-editor"
                          style="min-height: 150px; height: auto;"></trix-editor>
 
-            <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+            <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:var(--text-primary);"></div>
 
             <div style="margin-top: 15px; margin-bottom: 5px;">
-                <label style="font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: #333;">
+                <label style="font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                     <input type="checkbox" id="active-project-checkbox" style="transform: scale(1.3);"
                            {% if object_main_details.ActiveProject %}checked{% endif %}>
                     Active Project
@@ -163,7 +152,7 @@
                 <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
                 <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
             </div>
-            <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+            <div id="stellarium-status" style="margin-top: 10px; color: var(--text-tertiary);"></div>
         </div>
     </div>
 
@@ -189,10 +178,10 @@
 
                 {% if object_main_details.description_text %}
                 <div class="insp-detail-text">
-                    <h4 style="margin-top:0; color:#333;">Description</h4>
+                    <h4 style="margin-top:0; color:var(--text-primary);">Description</h4>
                     <p style="white-space: pre-wrap;">{{ object_main_details.description_text }}</p>
                     {% if object_main_details.image_source_link %}
-                        <p style="margin-top:15px; font-size:0.9em; color:#666;">
+                        <p style="margin-top:15px; font-size:0.9em; color:var(--text-tertiary);">
                             Source: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or 'External Source' }}</a>
                         </p>
                     {% endif %}
@@ -200,7 +189,7 @@
                 {% endif %}
             </div>
             {% else %}
-            <div style="text-align:center; padding:40px; color:#666; border: 2px dashed #ddd; border-radius: 6px;">
+            <div style="text-align:center; padding:40px; color:var(--text-tertiary); border: 2px dashed var(--text-lighter); border-radius: 6px;">
                 <p>No inspiration content (custom image or description) has been added for this object yet.</p>
                 <p style="font-size: 0.9em;">Go to <strong>Configuration > Manage Objects</strong> to add one.</p>
             </div>
@@ -212,7 +201,7 @@
         {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
         <div class="content-section">
             <h3>Framing With Your Rigs</h3>
-            <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
+            <p style="font-size:13px; color: var(--text-tertiary); margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
             <table class="framing-table">
                 <thead>
                 <tr>
@@ -228,12 +217,12 @@
                 {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
                 {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
                 {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
-                {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "#e74c3c" %}
-                {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "#f39c12" %}
+                {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "var(--danger-color)" %}
+                {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "var(--warning-color-alt)" %}
                 {% else %}{% set fit_ratio = (object_size / fov_min) * 100 %}
-                {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "#9b59b6" %}
-                {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "#3498db" %}
-                {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "#2ecc71" %}{% endif %}{% endif %}
+                {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "var(--text-muted)" %}
+                {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "var(--info-color-alt)" %}
+                {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "var(--success-color-alt)" %}{% endif %}{% endif %}
                 <tr>
                     <td><strong>{{ rig.rig_name }}</strong></td>
                     <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
@@ -256,7 +245,7 @@
 
 <div id="simbad-tab" class="tab-content">
     <div id="simbadContainer">
-        <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
+        <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid var(--text-lighter);"></iframe>
     </div>
 </div>
 
@@ -269,7 +258,7 @@
         <div class="modal-header-bar">
             <div class="brand">
                 <span class="brand-strong">Nova</span><span class="brand-light">DSO Tracker</span>
-                <span class="help-badge" onclick="openHelp('framing_assistant')" title="Help with Framing">?</span>
+                {{ help_badge('framing_assistant', 'Help with Framing') }}
             </div>
             <span id="fov-vs-object" class="fov-chip"></span>
         </div>
@@ -280,7 +269,7 @@
             <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
             <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="saveFramingToDB()">Save Framing</button>
 
-            <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid #ccc;">
+            <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">Rig:</label>
                 <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();" style="max-width:240px; font-size:14px;">
                     {% if available_rigs %}{% for rig in available_rigs %}
@@ -289,16 +278,16 @@
                 </select>
             </div>
 
-            <div style="display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid #ccc; flex-grow: 1;">
+            <div style="display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt); flex-grow: 1;">
               <label for="framing-rotation" style="font-weight:bold;" title="Position Angle (0°=North, 90°=East)">Rotation (PA):</label>
               <input type="range" id="framing-rotation" min="0" max="360" value="0" step="0.5" oninput="onRotationInput(this.value)" onchange="onRotationInput(this.value)" style="flex-grow: 1; height: 6px; cursor: pointer;"/>
-              <span id="rotation-value" style="min-width: 45px; font-weight: bold; color: #333; text-align: right;">0°</span>
+              <span id="rotation-value" style="min-width: 45px; font-weight: bold; color: var(--text-primary); text-align: right;">0°</span>
             </div>
         </div>
         <div class="framing-controls">
             <div style="display:flex; align-items:center; gap:10px;">
                 <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Mosaic (Col x Row)</label>
+                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">Mosaic (Col x Row)</label>
                     <div style="display:flex; align-items:center; gap:4px;">
                         <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" onchange="updateFramingChart(false)" title="Columns">
                         <span style="font-size:14px; font-weight:bold;">x</span>
@@ -306,7 +295,7 @@
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Overlap %</label>
+                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">Overlap %</label>
                     <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" onchange="updateFramingChart(false)">
                 </div>
                 <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" onclick="copyAsiairMosaic()" title="Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.">Copy Plan (CSV)</button>
@@ -359,7 +348,7 @@
             <div><label>Gamma</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" oninput="updateImageAdjustments()"></div>
             <div><label>Saturation</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:11px; font-weight:bold; color:#555; background:#f0f2f5; padding:2px 6px; border-radius:4px; border:1px solid #dce2e7; cursor:help;" title="Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.">JNow</span>
+                <span style="font-size:11px; font-weight:bold; color:var(--text-secondary); background:var(--bg-light-gray); padding:2px 6px; border-radius:4px; border:1px solid var(--border-light-alt2); cursor:help;" title="Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.">JNow</span>
                 <label style="font-size:14px; font-weight:bold;">RA</label>
                 <input id="ra-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
                 <label style="font-size:14px; font-weight:bold;">Dec</label>
@@ -367,7 +356,7 @@
                 <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:12px;color:#555;">Tip: Click on the sky to move the FOV center.</span>
+                <span style="font-size:12px;color:var(--text-secondary);">Tip: Click on the sky to move the FOV center.</span>
                 <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="resetFovCenterToObject()">Recenter to object</button>
                 <div style="display:flex; align-items:center; gap:4px;">
                     <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">↑</button>
@@ -376,7 +365,7 @@
                         <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" onclick="nudgeFov(+1, 0)">→</button>
                     </div>
                     <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">↓</button>
-                    <span style="font-size:12px;color:#555;">(1′ steps)</span>
+                    <span style="font-size:12px;color:var(--text-secondary);">(1′ steps)</span>
                 </div>
             </div>
         </div>
