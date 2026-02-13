@@ -1,8 +1,5 @@
-    // --- Global variables ---
-    const CURRENT_USERNAME = window.NOVA_CONFIG_FORM.currentUsername;
-    let rigsData = {}; // Store all rig data globally
-    let rigsDataLoaded = false;
-    let rigSort = localStorage.getItem('rigSort') || 'name-asc';
+    // --- Global variables (defined in inline template script) ---
+    // CURRENT_USERNAME, rigsData, rigsDataLoaded, rigSort are all defined in the inline script
 
     // --- Rigs Tab Functions ---
 
