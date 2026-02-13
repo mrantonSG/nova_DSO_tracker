@@ -2,15 +2,15 @@
         font-family: 'Roboto', sans-serif;
         padding: 20px;
         margin: 0;
-        background-color: #ffffff;
-        color: #333;
+        background-color: var(--bg-white);
+        color: var(--text-primary);
     }
 
     .tab-container {
         display: flex;
         flex-wrap: nowrap;     /* Prevent wrapping to maintain the tab bar layout */
         margin-bottom: 15px;
-        border-bottom: 2px solid #ccc;
+        border-bottom: 2px solid var(--border-medium-alt);
         align-items: flex-end; /* Align tabs to the bottom */
         gap: 5px;              /* Consistent spacing between all items */
     }
@@ -24,32 +24,32 @@
     .tab-button {
         padding: 8px 20px;
         cursor: pointer;
-        border: 1px solid #ccc;
+        border: 1px solid var(--border-medium-alt);
         border-bottom: none;
-        background-color: #e9e9e9;
+        background-color: var(--bg-medium);
         /* margin-right removed in favor of container gap */
         border-radius: 5px 5px 0 0;
         font-size: 16px;
-        color: #666;
+        color: var(--text-tertiary);
         margin-bottom: 0;
         white-space: nowrap; /* Prevent text from wrapping */
         flex-shrink: 0;      /* Prevent tabs from being squeezed */
     }
 
     .tab-button:hover {
-        background-color: #dcdcdc;
+        background-color: var(--bg-medium-alt2);
     }
 
     .tab-button.active {
         padding: 12px 20px; /* Increased padding makes active tab taller */
-        background-color: #fff;
-        border-color: #ccc;
-        border-bottom: 2px solid #fff; /* Blends with container border */
+        background-color: var(--bg-white);
+        border-color: var(--border-medium-alt);
+        border-bottom: 2px solid var(--bg-white); /* Blends with container border */
         position: relative;
         top: 2px; /* Push down to cover the line */
         font-weight: bold;
-        color: #333;
-        z-index: 1;
+        color: var(--text-primary);
+        z-index: var(--z-base);
     }
 
     /* Adjust right-side controls to align with text, not bottom border */
@@ -65,11 +65,11 @@
         width: max-content;       /* allow natural column widths */
         min-width: 100%;          /* but never smaller than the viewport */
         border-collapse: collapse;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-medium);
         table-layout: fixed;      /* honor explicit widths and prevent reflow jitter */
         word-wrap: break-word;
     }
-    th, td { border: 1px solid #ddd; padding: 6px; font-size: 15px; }
+    th, td { border: 1px solid var(--border-medium); padding: 6px; font-size: 15px; }
 
 
     th[data-column-key="Object"],
@@ -132,8 +132,8 @@
     /* --- END OF ADD --- */
 
     td.highlight.obstructed {
-        background-color: #ffeeba !important; /* A light yellow/orange */
-        color: #856404; /* A darker text color for readability */
+        background-color: var(--highlight-yellow) !important; /* A light yellow/orange */
+        color: var(--highlight-yellow-text); /* A darker text color for readability */
     }
 
     #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
@@ -144,7 +144,7 @@
     #data-table > thead > tr:not(.filter-row) > th,
     #journal-data-table > thead > tr:not(.filter-row) > th,
     #outlook-table > thead > tr:not(.filter-row) > th {
-        background-color: #f2f2f2;
+        background-color: var(--bg-light-gray-alt2);
         font-weight: normal;
         cursor: pointer;
         min-height: 45px;
@@ -165,36 +165,36 @@
     }
 
 
-    .highlight { background-color: #83b4c5; }
-    .active-project-row { background-color: #dce5eb !important; }
+    .highlight { background-color: var(--primary-color); }
+    .active-project-row { background-color: var(--highlight-active) !important; }
 
     /* --- Geometrically Impossible Rows --- */
     tr.geometrically-impossible {
-        background-color: #f9f9f9;
-        color: #aaa;
+        background-color: var(--bg-light-alt);
+        color: var(--text-light);
     }
     tr.geometrically-impossible td {
         font-style: italic;
     }
     /* Allow clicking to view graph (to see why), but keep styling distinct */
     tr.geometrically-impossible:hover {
-        background-color: #f0f0f0;
+        background-color: var(--bg-light-gray);
         cursor: help;
     }
 
-    tr.clickable-row:hover { background-color: #f1f1f1; cursor: pointer; }
+    tr.clickable-row:hover { background-color: var(--bg-light-gray-alt); cursor: pointer; }
     #graph-section { display: none; text-align: left; margin-left: 0px; }
     #back-button {
       margin-top: 0px;
       padding: 10px 20px;
       font-size: 16px;
-      background-color: #83b4c5;
+      background-color: var(--primary-color);
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
     }
-    #back-button:hover { background-color: #6795a4 !important; }
+    #back-button:hover { background-color: var(--primary-dark) !important; }
 
     .info-bar-wrapper {
         display: flex;
@@ -204,21 +204,21 @@
 
     .user-info {
       font-size:14px;
-      color:#444;
+      color: var(--text-dark-alt);
       margin-bottom:10px;
     }
     .user-info button {
         margin-left:6px;
         padding:4px 10px;
         font-size:13px;
-        background:#83b4c5;
+        background: var(--primary-color);
         color:white;
         border:none;
         border-radius:4px;
         cursor:pointer;
     }
     .user-info button:hover {
-        background:#6795a4;
+        background: var(--primary-dark);
     }
 
     .info-bar-container {
@@ -242,7 +242,7 @@
     }
 
     .filter-row th {
-        background-color: #f2f2f2;
+        background-color: var(--bg-light-gray-alt2);
         vertical-align: top;
     }
     .filter-row input {
@@ -265,8 +265,8 @@
         font-family: 'Roboto', sans-serif;
 
         /* Appearance from screenshot */
-        background-color: #e9e9e9;
-        border: 1px solid #ccc;
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium-alt);
         border-radius: 4px;
 
         /* Custom arrow */
@@ -292,8 +292,8 @@
 
 
     .info-values p { margin: 0; font-size: 16px; }
-    .info-values small { font-size: 12px; color: #666; }
-    .info-values span { font-weight: bold; font-size: 16px; color: #000; }
+    .info-values small { font-size: 12px; color: var(--text-tertiary); }
+    .info-values span { font-weight: bold; font-size: 16px; color: var(--text-black); }
     .info-values {
         display: flex;
         flex-wrap: wrap;
@@ -302,8 +302,8 @@
     }
     .table-wrapper { overflow-x: auto; margin-bottom: 20px; }
     .table-wrapper::-webkit-scrollbar { height: 8px; }
-    .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
-    .table-wrapper::-webkit-scrollbar-thumb:hover { background: #888; }
+    .table-wrapper::-webkit-scrollbar-thumb { background: var(--border-medium-alt); border-radius: 4px; }
+    .table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
     th .sort-indicator { font-size: 0.8em; margin-left: 5px; display: inline-block; }
 
@@ -368,13 +368,13 @@
     #remove-filters-btn {
       padding: 10px 20px;
       font-size: 16px;
-      background-color: #a1b0b4;
+      background-color: var(--primary-light);
       color: white;
       border: none;
       border-radius: 5px;
       cursor: pointer;
     }
-    #remove-filters-btn:hover { background-color: #849398 !important; }
+    #remove-filters-btn:hover { background-color: var(--primary-muted) !important; }
 
     th[data-column-key="Type"], td[data-column-key="Type"],
     th[data-column-key="Magnitude"], td[data-column-key="Magnitude"],
@@ -430,21 +430,21 @@
         font-size: 13px;
         margin-left: 0px;
         flex-shrink: 0;       /* Prevent buttons from shrinking */
-        background: #83b4c5;  /* Match user-info button */
+        background: var(--primary-color);  /* Match user-info button */
         color: white;
         border: none;
         border-radius: 4px;   /* Match user-info button */
         cursor: pointer;
     }
     #saved-views-container button:hover {
-        background: #6795a4;  /* Match user-info button hover */
+        background: var(--primary-dark);  /* Match user-info button hover */
     }
     #delete-view-btn {
-        background-color: #a1b0b4; /* Match remove-filters-btn */
+        background-color: var(--primary-light); /* Match remove-filters-btn */
         display: none; /* Hide by default */
     }
     #delete-view-btn:hover {
-        background-color: #849398 !important;
+        background-color: var(--primary-muted) !important;
     }
     /* #saved-views-dropdown is now part of .styled-select */
     /* --- END OF ADD --- */
@@ -463,7 +463,7 @@
 
     /* --- Simulation Mode --- */
     .status-strip.simulated {
-        background-color: #d4edda; /* Light green background */
+        background-color: var(--success-bg); /* Light green background */
         border-radius: 5px;
     }
     #simulation-controls {
@@ -474,19 +474,19 @@
         padding: 0 15px;
     }
     #sim-date-input {
-        background-color: #fff;
-        border: 1px solid #ccc;
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-medium-alt);
         border-radius: 4px;
         padding: 4px 8px;
         font-family: 'Roboto', sans-serif;
         font-size: 15px; /* Larger font */
         height: 34px;    /* Larger height */
         font-weight: bold;
-        color: #444;
+        color: var(--text-dark-alt);
     }
     #sim-date-input:disabled {
-        background-color: #f0f0f0;
-        color: #999;
+        background-color: var(--bg-light-gray);
+        color: var(--text-muted-alt);
         cursor: not-allowed;
     }
     .switch {
@@ -503,7 +503,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #ccc;
+      background-color: var(--border-medium-alt);
       transition: .4s;
       border-radius: 24px;
     }
@@ -519,7 +519,7 @@
       border-radius: 50%;
     }
     input:checked + .slider {
-      background-color: #ca0e0e;
+      background-color: var(--danger-color-darker);
     }
     input:checked + .slider:before {
       transform: translateX(20px);

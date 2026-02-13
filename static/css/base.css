@@ -16,6 +16,128 @@
   src: url('../fonts/roboto-v49-latin-700.woff2') format('woff2');
 }
 
+/* ===================================================================
+   CSS CUSTOM PROPERTIES (Variables)
+   ================================================================ */
+
+:root {
+  /* === PRIMARY BRAND COLORS === */
+  --primary-color: #83b4c5;
+  --primary-dark: #6795a4;
+  --primary-light: #a1b0b4;
+  --primary-muted: #849398;
+
+  /* === BACKGROUND COLORS === */
+  --bg-white: #ffffff;
+  --bg-light: #f8f9fa;
+  --bg-light-alt: #f9f9f9;
+  --bg-light-gray: #f0f0f0;
+  --bg-light-gray-alt: #f1f1f1;
+  --bg-light-gray-alt2: #f2f2f2;
+  --bg-light-gray-alt3: #ecf1f1;
+  --bg-light-gray-alt4: #f4f7f6;
+  --bg-medium: #e9e9e9;
+  --bg-medium-alt: #eee;
+  --bg-medium-alt2: #dcdcdc;
+  --bg-offwhite: #fcfcfc;
+
+  /* === DARK MODE BACKGROUNDS === */
+  --bg-dark-primary: #121212;
+  --bg-dark-secondary: #1e1e1e;
+  --bg-dark-tertiary: #2c2c2c;
+  --bg-dark-elevated: #252525;
+  --bg-dark-border: #333;
+  --bg-dark-border-light: #444;
+
+  /* === TEXT COLORS === */
+  --text-primary: #333;
+  --text-secondary: #555;
+  --text-tertiary: #666;
+  --text-quaternary: #777;
+  --text-muted: #888;
+  --text-muted-alt: #999;
+  --text-light: #aaa;
+  --text-lighter: #ddd;
+  --text-lightest: #e0e0e0;
+  --text-white: #fff;
+  --text-black: #000;
+  --text-dark-alt: #444;
+
+  /* === BORDER COLORS === */
+  --border-light: #eee;
+  --border-light-alt: #e0e0e0;
+  --border-light-alt2: #dee2e6;
+  --border-light-alt3: #e9ecef;
+  --border-medium: #ddd;
+  --border-medium-alt: #ccc;
+  --border-dark: #555;
+  --border-dark-alt: #444;
+  --border-dark-alt2: #333;
+
+  /* === SEMANTIC COLORS (Status/Actions) === */
+  --success-color: #28a745;
+  --success-color-alt: #27ae60;
+  --success-bg: #d4edda;
+  --success-text: #155724;
+
+  --warning-color: #ffc107;
+  --warning-color-alt: #f39c12;
+
+  --danger-color: #dc3545;
+  --danger-color-dark: #c82333;
+  --danger-color-darker: #ca0e0e;
+  --danger-text: #721c24;
+  --danger-bg: #f8d7da;
+
+  --info-color: #17a2b8;
+  --info-color-alt: #2196F3;
+  --info-color-alt2: #007bff;
+  --info-bg: #d1ecf1;
+  --info-bg-light: #e1f0f5;
+  --info-text: #0c5460;
+
+  /* === ACCENT COLORS === */
+  --accent-rise: #4CAF50;
+  --accent-set: #F44336;
+  --accent-high: #2196F3;
+  --accent-slate: #778899;
+  --accent-slate-dark: #5a6875;
+  --accent-teal: #2c3e50;
+  --accent-gray: #7f8c8d;
+  --accent-gray-text: #495057;
+  --accent-gray-medium: #6c757d;
+
+  /* === SPECIAL PURPOSE COLORS === */
+  --highlight-blue: #cfe2ff;
+  --highlight-blue-alt: #d6ecff;
+  --highlight-blue-alt2: #e6f7ff;
+  --highlight-yellow: #ffeeba;
+  --highlight-yellow-text: #856404;
+  --highlight-active: #dce5eb;
+
+  --link-color: #0056b3;
+  --link-color-alt: #0077aa;
+  --code-bg: #f4f4f4;
+
+  /* === OVERLAY & TRANSPARENCY === */
+  --overlay-light: rgba(255,255,255,0.95);
+  --overlay-dark: rgba(0,0,0,0.5);
+  --shadow-light: rgba(0,0,0,0.1);
+  --shadow-medium: rgba(0,0,0,0.15);
+
+  /* === Z-INDEX SCALE === */
+  --z-base: 1;
+  --z-layer-1: 2;
+  --z-layer-2: 3;
+  --z-layer-3: 10;
+  --z-dropdown: 100;
+  --z-sticky: 1000;
+  --z-modal: 2000;
+  --z-overlay: 3000;
+  --z-tooltip: 9999;
+  --z-notification: 99999;
+}
+
 .header-container {
     display: flex;
     align-items: center;
@@ -46,8 +168,8 @@
 
 /* --- DARK MODE OVERRIDES --- */
 html.dark-mode body {
-    background-color: #121212 !important;
-    color: #e0e0e0 !important;
+    background-color: var(--bg-dark-primary) !important;
+    color: var(--text-lightest) !important;
 }
 
 /* 1. GLOBAL CONTAINERS */
@@ -66,33 +188,33 @@ html.dark-mode .offline-message,
 html.dark-mode #framing-modal-content,
 html.dark-mode .insp-detail-text,
 html.dark-mode .inspiration-container {
-    background-color: #1e1e1e !important;
-    border-color: #333 !important;
-    color: #ddd !important;
+    background-color: var(--bg-dark-secondary) !important;
+    border-color: var(--bg-dark-border) !important;
+    color: var(--text-lighter) !important;
 }
 
 /* 2. LOADING POPUPS (Heatmap & Calculation) */
 html.dark-mode #table-loading,
 html.dark-mode #heatmap-loading {
-    background-color: #2c2c2c !important;
-    color: #e0e0e0 !important;
-    border: 1px solid #555 !important;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    color: var(--text-lightest) !important;
+    border: 1px solid var(--border-dark) !important;
+    box-shadow: 0 4px 15px var(--overlay-dark) !important;
 }
 
 html.dark-mode #loading-message,
 html.dark-mode #heatmap-loading div {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode #loading-count,
 html.dark-mode #loading-total,
 html.dark-mode #heatmap-loading-text {
-    color: #aaa !important;
+    color: var(--text-light) !important;
 }
 
 html.dark-mode #table-loading div[style*="background: #eee"],
 html.dark-mode #heatmap-loading div[style*="background: #eee"] {
-    background-color: #444 !important;
+    background-color: var(--bg-dark-border-light) !important;
 }
 
 /* 3. BOXES, LISTS & STATS */
@@ -102,9 +224,9 @@ html.dark-mode .journal-project-stat-box,
 html.dark-mode li,
 html.dark-mode .loader-row td,
 html.dark-mode .dropdown-content {
-    background-color: #2c2c2c !important;
-    color: #eee !important;
-    border-color: #444 !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    color: var(--bg-medium-alt) !important;
+    border-color: var(--bg-dark-border-light) !important;
 }
 
 /* 4. TEXT FIXES */
@@ -114,7 +236,7 @@ html.dark-mode small,
 html.dark-mode .muted-text,
 html.dark-mode label,
 html.dark-mode .brand-light {
-    color: #aaa !important;
+    color: var(--text-light) !important;
 }
 
 html.dark-mode .stat-value,
@@ -127,15 +249,15 @@ html.dark-mode p,
 html.dark-mode span,
 html.dark-mode div,
 html.dark-mode .brand-strong {
-    color: #e0e0e0;
-    border-bottom-color: #444;
+    color: var(--text-lightest);
+    border-bottom-color: var(--bg-dark-border-light);
 }
 
 html.dark-mode .secondary-info-line-main span,
 html.dark-mode .info-values span,
 html.dark-mode #location-display,
 html.dark-mode #date-display {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 
 /* 5. HELP CONTENT FIXES */
@@ -143,33 +265,33 @@ html.dark-mode .help-body h1,
 html.dark-mode .help-body h2,
 html.dark-mode .help-body h3,
 html.dark-mode .help-body h4 {
-    color: #fff !important;
-    border-bottom-color: #444 !important;
+    color: var(--text-white) !important;
+    border-bottom-color: var(--bg-dark-border-light) !important;
 }
 html.dark-mode .help-body p,
 html.dark-mode .help-body li,
 html.dark-mode .help-body ul,
 html.dark-mode .help-body ol {
-    color: #ddd !important;
+    color: var(--text-lighter) !important;
 }
 html.dark-mode .help-body strong,
 html.dark-mode .help-body b {
-    color: #fff !important;
+    color: var(--text-white) !important;
     font-weight: 700;
 }
 html.dark-mode .help-body code,
 html.dark-mode .help-body pre {
-    background-color: #2c2c2c !important;
-    border: 1px solid #444 !important;
-    color: #83b4c5 !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border: 1px solid var(--bg-dark-border-light) !important;
+    color: var(--primary-color) !important;
 }
 
 /* 6. TABLES */
 html.dark-mode table,
 html.dark-mode th,
 html.dark-mode td {
-    border-color: #444 !important;
-    color: #ddd !important;
+    border-color: var(--bg-dark-border-light) !important;
+    color: var(--text-lighter) !important;
 }
 
 html.dark-mode th,
@@ -177,14 +299,14 @@ html.dark-mode .sessions-table th,
 html.dark-mode .config-table th,
 html.dark-mode #opportunities-table th,
 html.dark-mode .session-history-table th {
-    background-color: #252525 !important;
-    color: #fff !important;
+    background-color: var(--bg-dark-elevated) !important;
+    color: var(--text-white) !important;
 }
 
 html.dark-mode #opportunities-table tr:nth-child(even),
 html.dark-mode #opportunities-table tr:nth-child(odd) {
-    background-color: #1e1e1e !important;
-    color: #e0e0e0 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    color: var(--text-lightest) !important;
 }
 
 html.dark-mode tr:hover,
@@ -192,15 +314,15 @@ html.dark-mode tr.clickable-row:hover,
 html.dark-mode .sessions-table tr:hover,
 html.dark-mode #opportunities-table tr:hover,
 html.dark-mode .session-history-table tr.clickable-session-row:hover {
-    background-color: #333 !important;
+    background-color: var(--bg-dark-border) !important;
 }
 
 /* 7. TRIX EDITOR */
 html.dark-mode trix-editor,
 html.dark-mode .trix-content {
-    background-color: #1e1e1e !important;
-    border-color: #555 !important;
-    color: #e0e0e0 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    border-color: var(--border-dark) !important;
+    color: var(--text-lightest) !important;
 }
 html.dark-mode trix-toolbar .trix-button {
     filter: invert(1);
@@ -209,19 +331,19 @@ html.dark-mode trix-toolbar .trix-button {
 /* 8. FRAMING MODAL */
 html.dark-mode #framing-toolbar,
 html.dark-mode .framing-controls {
-    background-color: #1e1e1e !important;
-    color: #e0e0e0 !important;
-    border-color: #444 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    color: var(--text-lightest) !important;
+    border-color: var(--bg-dark-border-light) !important;
 }
 html.dark-mode #framing-modal input {
-    background-color: #2c2c2c !important;
-    color: #fff !important;
-    border: 1px solid #555 !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    color: var(--text-white) !important;
+    border: 1px solid var(--border-dark) !important;
 }
 html.dark-mode .fov-chip {
-    background-color: #2c2c2c !important;
-    border-color: #555 !important;
-    color: #e0e0e0 !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border-color: var(--border-dark) !important;
+    color: var(--text-lightest) !important;
 }
 
 /* 9. HEATMAP & CHARTS */
@@ -231,7 +353,7 @@ html.dark-mode #yearly-heatmap-plot {
     background-color: transparent !important;
 }
 html.dark-mode #chart-area {
-    background-color: #1e1e1e !important;
+    background-color: var(--bg-dark-secondary) !important;
     border-radius: 8px;
 }
 
@@ -242,9 +364,9 @@ html.dark-mode input[type="password"],
 html.dark-mode input[type="date"],
 html.dark-mode select,
 html.dark-mode textarea {
-    background-color: #2c2c2c !important;
-    border-color: #555 !important;
-    color: #fff !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border-color: var(--border-dark) !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode select {
      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23bbbbbb%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4l128-128c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%27%2F%3E%3C%2Fsvg%3E") !important;
@@ -253,21 +375,21 @@ html.dark-mode select {
 /* 11. TABS & LINKS */
 html.dark-mode .tab-button,
 html.dark-mode button.detail-tab-button {
-    background-color: #2c2c2c !important;
-    border-color: #444 !important;
-    color: #aaa !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border-color: var(--bg-dark-border-light) !important;
+    color: var(--text-light) !important;
 }
 html.dark-mode .tab-button.active,
 html.dark-mode button.detail-tab-button.active {
-    background-color: #1e1e1e !important;
-    border-bottom-color: #83b4c5 !important;
-    color: #83b4c5 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    border-bottom-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
 }
 html.dark-mode button.detail-tab-button:hover {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode a {
-    color: #83b4c5 !important;
+    color: var(--primary-color) !important;
 }
 
 /* 12. BUTTONS & HIGHLIGHTS */
@@ -278,8 +400,8 @@ html.dark-mode .view-button,
 html.dark-mode .inline-button,
 html.dark-mode a.action-button,
 html.dark-mode a.dlback-button {
-    color: #ffffff !important;
-    border-color: #555 !important;
+    color: var(--bg-white) !important;
+    border-color: var(--border-dark) !important;
 }
 
 html.dark-mode tr.active-project-row,
@@ -290,93 +412,93 @@ html.dark-mode tr.current-project-item,
 html.dark-mode tr.current-project-item > th {
     background-color: #1a3b4d !important;
     border-left-color: #4da3ff !important;
-    color: #ffffff !important;
+    color: var(--bg-white) !important;
 }
 
 html.dark-mode td.highlight {
     background-color: #1c5261 !important;
-    color: #ffffff !important;
+    color: var(--bg-white) !important;
 }
 html.dark-mode td.highlight.obstructed {
     background-color: #4d4200 !important;
-    color: #e0e0e0 !important;
+    color: var(--text-lightest) !important;
 }
 
 /* 13. JOURNAL DETAILS FIX */
 html.dark-mode .detail-grid dt {
-    color: #aaa !important;
+    color: var(--text-light) !important;
 }
 html.dark-mode .detail-grid dd {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode .notes-block,
 html.dark-mode .notes-content,
 html.dark-mode .journal-project-notes-section .notes-content {
-    background-color: #2c2c2c !important;
-    border-color: #444 !important;
-    color: #e0e0e0 !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border-color: var(--bg-dark-border-light) !important;
+    color: var(--text-lightest) !important;
 }
 html.dark-mode .session-detail-column h4,
 html.dark-mode .session-detail-column h5,
 html.dark-mode .detail-header h4 {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 
 /* 14. INSPIRATION TAB & MODAL */
 html.dark-mode .astro-tile {
-    background-color: #1e1e1e !important;
-    border-color: #333 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    border-color: var(--bg-dark-border) !important;
 }
 html.dark-mode .tile-title {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode .tile-common-name {
-    color: #aaa !important;
+    color: var(--text-light) !important;
 }
 html.dark-mode .tile-summary,
 html.dark-mode .tile-stats {
-    color: #ddd !important;
+    color: var(--text-lighter) !important;
 }
 html.dark-mode .tile-stat-pill {
-    background-color: #2c2c2c !important;
-    border-color: #444 !important;
-    color: #eee !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border-color: var(--bg-dark-border-light) !important;
+    color: var(--bg-medium-alt) !important;
 }
 html.dark-mode .tile-type {
-    background-color: #2c3e50 !important;
-    color: #83b4c5 !important;
+    background-color: var(--accent-teal) !important;
+    color: var(--primary-color) !important;
 }
 
 /* Modal Dark Mode */
 html.dark-mode .insp-modal-content {
-    background-color: #1e1e1e !important;
-    color: #e0e0e0 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    color: var(--text-lightest) !important;
 }
 html.dark-mode .insp-modal-title {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode .insp-modal-subtitle {
-    color: #aaa !important;
+    color: var(--text-light) !important;
 }
 html.dark-mode .insp-modal-text {
-    color: #ddd !important;
+    color: var(--text-lighter) !important;
 }
 html.dark-mode .insp-data-grid {
-    background-color: #2c2c2c !important;
+    background-color: var(--bg-dark-tertiary) !important;
 }
 html.dark-mode .insp-data-item strong {
-    color: #aaa !important;
+    color: var(--text-light) !important;
 }
 html.dark-mode .insp-data-item span {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode .modal-attribution,
 html.dark-mode .modal-attribution a {
-    color: #888 !important;
+    color: var(--text-muted) !important;
 }
 html.dark-mode .btn-close-modal {
-    color: #fff !important;
-    border-color: #555 !important;
+    color: var(--text-white) !important;
+    border-color: var(--border-dark) !important;
 }
 
 /* Banner & Empty State */
@@ -386,33 +508,33 @@ html.dark-mode .inspiration-banner {
     color: #bce8f1 !important;
 }
 html.dark-mode .inspiration-banner strong {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode .inspiration-banner span {
-    color: #ddd !important;
+    color: var(--text-lighter) !important;
 }
 html.dark-mode .empty-state-styled {
-    background-color: #1e1e1e !important;
-    border-color: #444 !important;
+    background-color: var(--bg-dark-secondary) !important;
+    border-color: var(--bg-dark-border-light) !important;
 }
 html.dark-mode .empty-state-box {
-    background-color: #2c2c2c !important;
-    border-color: #444 !important;
+    background-color: var(--bg-dark-tertiary) !important;
+    border-color: var(--bg-dark-border-light) !important;
 }
 html.dark-mode .empty-state-box strong {
-    color: #fff !important;
+    color: var(--text-white) !important;
 }
 html.dark-mode .empty-state-box ul {
-    color: #ddd !important;
+    color: var(--text-lighter) !important;
 }
 
 /* --- RED MODE (Night Vision) --- */
 html.red-mode {
     filter: sepia(100%) hue-rotate(320deg) brightness(0.6) saturate(400%) !important;
-    background-color: #000 !important;
+    background-color: var(--text-black) !important;
 }
 html.red-mode body {
-    background-color: #000 !important;
+    background-color: var(--text-black) !important;
     color: #ffcccc !important;
 }
 html.red-mode img, html.red-mode canvas, html.red-mode iframe {
@@ -423,12 +545,12 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
 .demo-banner {
   width: 100%;
   background-color: #fef9e7;
-  color: #333;
+  color: var(--text-primary);
   text-align: center;
   padding: 12px 10px;
   font-size: 14px;
   font-weight: 600;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-light-alt);
   box-sizing: border-box;
 }
 
@@ -436,8 +558,8 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 9999;
+    background: var(--overlay-dark);
+    z-index: var(--z-tooltip);
     opacity: 0;
     transition: opacity 0.3s ease;
     align-items: center;
@@ -451,7 +573,7 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
 
 #universal-help-modal .modal-content {
     position: relative;
-    background: #fff;
+    background: var(--bg-white);
     padding: 25px;
     width: 90%;
     max-width: 700px;
@@ -465,16 +587,16 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     transform: none;
 }
 
-.help-body h1 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 0; }
-.help-body h2 { font-size: 1.3em; margin-top: 1.5em; margin-bottom: 0.5em; color: #333; border-bottom: 1px solid #f0f0f0; }
-.help-body h3 { font-size: 1.2em; margin-top: 1.5em; margin-bottom: 0.5em; color: #444; font-weight: bold; }
-.help-body h4 { font-size: 1.1em; margin-top: 1.2em; margin-bottom: 0.5em; color: #555; font-weight: bold; }
-.help-body p { margin-bottom: 1em; line-height: 1.6; color: #333; }
+.help-body h1 { font-size: 1.5em; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; margin-top: 0; }
+.help-body h2 { font-size: 1.3em; margin-top: 1.5em; margin-bottom: 0.5em; color: var(--text-primary); border-bottom: 1px solid var(--bg-light-gray); }
+.help-body h3 { font-size: 1.2em; margin-top: 1.5em; margin-bottom: 0.5em; color: var(--bg-dark-border-light); font-weight: bold; }
+.help-body h4 { font-size: 1.1em; margin-top: 1.2em; margin-bottom: 0.5em; color: var(--text-secondary); font-weight: bold; }
+.help-body p { margin-bottom: 1em; line-height: 1.6; color: var(--text-primary); }
 .help-body ul, .help-body ol { margin-left: 20px; margin-bottom: 1em; padding-left: 20px; list-style-position: outside; }
 .help-body ul { list-style-type: disc; }
 .help-body li { margin-bottom: 0.5em; line-height: 1.5; }
-.help-body code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
-.help-body pre { background: #f4f4f4; padding: 10px; border-radius: 5px; overflow-x: auto; }
+.help-body code { background: var(--code-bg); padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+.help-body pre { background: var(--code-bg); padding: 10px; border-radius: 5px; overflow-x: auto; }
 .help-body img {
     max-width: 100%;
     max-height: 60vh;
@@ -484,7 +606,7 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     border-radius: 4px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-.help-trigger { cursor: pointer; color: #83b4c5; font-size: 1.2em; margin-left: 5px; vertical-align: middle; }
+.help-trigger { cursor: pointer; color: var(--primary-color); font-size: 1.2em; margin-left: 5px; vertical-align: middle; }
 .help-trigger:hover { color: #5a8b9c; }
 
 .help-badge {
@@ -494,8 +616,8 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    border: 1px solid #83b4c5;
-    color: #83b4c5;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
     font-size: 12px;
     font-weight: bold;
     font-family: serif;
@@ -507,15 +629,15 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
 }
 
 .help-badge:hover {
-    background-color: #83b4c5;
+    background-color: var(--primary-color);
     color: white;
-    border-color: #83b4c5;
+    border-color: var(--primary-color);
 }
 
 .action-button {
     padding: 5px 10px;
     font-size: 14px;
-    background-color: #83b4c5;
+    background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 5px;
@@ -523,15 +645,15 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     text-decoration: none;
 }
 .action-button:hover {
-    background-color: #6795a4;
+    background-color: var(--primary-dark);
 }
 
 /* Functional buttons (Night/Red View) styling to match filter button */
 #theme-toggle-btn, #red-mode-btn {
-    background-color: #a1b0b4;
+    background-color: var(--primary-light);
 }
 #theme-toggle-btn:hover, #red-mode-btn:hover {
-    background-color: #849398;
+    background-color: var(--primary-muted);
 }
 
 /* --- NEW 2-ROW HEADER LAYOUT --- */
@@ -540,31 +662,31 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
-    border-bottom: 1px solid #eee;
-    background-color: #fff;
+    border-bottom: 1px solid var(--border-light);
+    background-color: var(--bg-white);
 }
 
 /* Left Side: Brand + Page Title */
 .header-left { display: flex; align-items: center; gap: 20px; }
-.brand-group h1 { font-size: 22px; margin: 0; color: #333; letter-spacing: -0.5px; line-height: 1; display: flex; align-items: baseline; gap: 6px; }
-.brand-group h1 span { color: #83b4c5; }
-.brand-group h1 small { color: #aaa; font-size: 11px; font-weight: normal; margin-left: 8px; letter-spacing: 0; }
+.brand-group h1 { font-size: 22px; margin: 0; color: var(--text-primary); letter-spacing: -0.5px; line-height: 1; display: flex; align-items: baseline; gap: 6px; }
+.brand-group h1 span { color: var(--primary-color); }
+.brand-group h1 small { color: var(--text-light); font-size: 11px; font-weight: normal; margin-left: 8px; letter-spacing: 0; }
 
 /* Vertical Divider between Brand and Page Title */
-.header-divider { height: 24px; width: 1px; background-color: #e0e0e0; }
+.header-divider { height: 24px; width: 1px; background-color: var(--border-light-alt); }
 
 /* The Page Title injected by other pages */
-.injected-title h2 { margin: 0; font-size: 20px; color: #2c3e50; font-weight: 700; }
-.injected-title .subtitle { font-size: 14px; color: #7f8c8d; font-weight: 400; margin-left: 8px; }
+.injected-title h2 { margin: 0; font-size: 20px; color: var(--accent-teal); font-weight: 700; }
+.injected-title .subtitle { font-size: 14px; color: var(--accent-gray); font-weight: 400; margin-left: 8px; }
 
 /* Right Side: Actions + Global Controls */
 .header-right { display: flex; align-items: center; gap: 15px; }
-.user-menu { font-size: 13px; color: #555; border-right: 1px solid #ddd; padding-right: 15px; }
+.user-menu { font-size: 13px; color: var(--text-secondary); border-right: 1px solid var(--border-medium); padding-right: 15px; }
 
 /* Status Strip (Row 2) remains similar but tighter */
 .status-strip {
-    background-color: #f8f9fa;
-    border: 1px solid #e9ecef;
+    background-color: var(--bg-light);
+    border: 1px solid var(--border-light-alt3);
     border-radius: 6px;
     padding: 8px 15px;
     display: flex;
@@ -575,42 +697,42 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     font-size: 14px;
 }
 .status-item { display: flex; flex-direction: column; line-height: 1.2; }
-.status-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 700; margin-bottom: 2px; }
-.status-value { font-weight: 500; color: #333; font-size: 14px; }
-.status-strip select { font-size: 14px; border: none; background: transparent; font-weight: 600; color: #333; cursor: pointer; padding: 0;}
+.status-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 700; margin-bottom: 2px; }
+.status-value { font-weight: 500; color: var(--text-primary); font-size: 14px; }
+.status-strip select { font-size: 14px; border: none; background: transparent; font-weight: 600; color: var(--text-primary); cursor: pointer; padding: 0;}
 
 /* Dark Mode Updates */
-html.dark-mode .app-header { background-color: #121212; border-bottom-color: #333; }
-html.dark-mode .brand-group h1 { color: #fff; }
-html.dark-mode .header-divider { background-color: #444; }
-html.dark-mode .injected-title h2 { color: #e0e0e0; }
-html.dark-mode .status-strip { background-color: #1e1e1e; border-color: #333; }
-html.dark-mode .status-value, html.dark-mode .status-strip select { color: #ddd; }
-html.dark-mode .status-strip select option { background-color: #1e1e1e; }
-.brand-group h1 span { color: #83b4c5; }
-.brand-group small { color: #888; font-size: 12px; font-weight: normal; margin-left: 10px;}
+html.dark-mode .app-header { background-color: var(--bg-dark-primary); border-bottom-color: var(--bg-dark-border); }
+html.dark-mode .brand-group h1 { color: var(--text-white); }
+html.dark-mode .header-divider { background-color: var(--bg-dark-border-light); }
+html.dark-mode .injected-title h2 { color: var(--text-lightest); }
+html.dark-mode .status-strip { background-color: var(--bg-dark-secondary); border-color: var(--bg-dark-border); }
+html.dark-mode .status-value, html.dark-mode .status-strip select { color: var(--text-lighter); }
+html.dark-mode .status-strip select option { background-color: var(--bg-dark-secondary); }
+.brand-group h1 span { color: var(--primary-color); }
+.brand-group small { color: var(--text-muted); font-size: 12px; font-weight: normal; margin-left: 10px;}
 
 .header-controls { display: flex; align-items: center; gap: 15px; }
-.user-menu { font-size: 13px; color: #555; text-align: right; border-right: 1px solid #ddd; padding-right: 15px;}
+.user-menu { font-size: 13px; color: var(--text-secondary); text-align: right; border-right: 1px solid var(--border-medium); padding-right: 15px;}
 
 /* Row 2 & 3 Containers */
 .action-bar { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; }
-.page-title { margin: 0; font-size: 22px; color: #2c3e50; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
-.page-subtitle { font-size: 16px; color: #7f8c8d; font-weight: 400; }
+.page-title { margin: 0; font-size: 22px; color: var(--accent-teal); font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+.page-subtitle { font-size: 16px; color: var(--accent-gray); font-weight: 400; }
 
-.status-strip { background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 15px; display: flex; align-items: center; gap: 30px; margin-bottom: 25px; font-size: 14px; flex-wrap: wrap; }
+.status-strip { background-color: var(--bg-light); border: 1px solid var(--border-light-alt3); border-radius: 8px; padding: 10px 15px; display: flex; align-items: center; gap: 30px; margin-bottom: 25px; font-size: 14px; flex-wrap: wrap; }
 .status-item { display: flex; flex-direction: column; line-height: 1.3; }
-.status-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; font-weight: 600; }
-.status-value { font-weight: 500; color: #333; font-size: 15px; }
-.status-strip select { background: transparent; border: none; font-weight: bold; color: #333; font-size: 15px; padding: 0; cursor: pointer; }
+.status-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
+.status-value { font-weight: 500; color: var(--text-primary); font-size: 15px; }
+.status-strip select { background: transparent; border: none; font-weight: bold; color: var(--text-primary); font-size: 15px; padding: 0; cursor: pointer; }
 .status-strip select:focus { outline: none; }
 
 /* Dark Mode Overrides */
-html.dark-mode .app-header { border-bottom-color: #333; }
-html.dark-mode .brand-group h1 { color: #fff; }
-html.dark-mode .page-title { color: #fff; }
-html.dark-mode .page-subtitle { color: #aaa; }
-html.dark-mode .status-strip { background-color: #2c2c2c; border-color: #444; }
-html.dark-mode .status-value { color: #eee; }
-html.dark-mode .status-strip select { color: #eee; }
-html.dark-mode .status-strip select option { background-color: #2c2c2c; }
+html.dark-mode .app-header { border-bottom-color: var(--bg-dark-border); }
+html.dark-mode .brand-group h1 { color: var(--text-white); }
+html.dark-mode .page-title { color: var(--text-white); }
+html.dark-mode .page-subtitle { color: var(--text-light); }
+html.dark-mode .status-strip { background-color: var(--bg-dark-tertiary); border-color: var(--bg-dark-border-light); }
+html.dark-mode .status-value { color: var(--bg-medium-alt); }
+html.dark-mode .status-strip select { color: var(--bg-medium-alt); }
+html.dark-mode .status-strip select option { background-color: var(--bg-dark-tertiary); }

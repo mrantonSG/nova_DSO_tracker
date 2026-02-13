@@ -31,7 +31,7 @@
       padding: 10px;
       margin-top: 4px;
       font-size: 16px;
-      border: 1px solid #ccc;
+      border: 1px solid var(--border-medium-alt);
       border-radius: 4px;
     }
     .button-row {
@@ -52,20 +52,20 @@
       cursor: pointer;
     }
     input[type="submit"] {
-      background-color: #83b4c5;
+      background-color: var(--primary-color);
       color: white;
     }
     input[type="submit"]:hover {
-      background-color: #6795a4;
+      background-color: var(--primary-dark);
     }
     .guest-button {
-      background-color: #ccc;
-      color: #333;
+      background-color: var(--border-medium-alt);
+      color: var(--text-primary);
       text-decoration: none;
       display: inline-block;
     }
     .guest-button:hover {
-      background-color: #aaa;
+      background-color: var(--text-light);
     }
 
     input[type="submit"],
@@ -77,21 +77,21 @@
       cursor: pointer;
     }
     input[type="submit"] {
-      background-color: #83b4c5;
+      background-color: var(--primary-color);
       color: white;
     }
     input[type="submit"]:hover {
-      background-color: #6795a4;
+      background-color: var(--primary-dark);
     }
     .guest-button {
-      background-color: #ccc;
-      color: #333;
+      background-color: var(--border-medium-alt);
+      color: var(--text-primary);
       text-decoration: none;
       display: inline-block;
       text-align: center;
     }
     .guest-button:hover {
-      background-color: #aaa;
+      background-color: var(--text-light);
     }
 
     .flash {
@@ -100,9 +100,9 @@
       border-radius: 5px;
       font-size: 14px;
     }
-    .flash.success { background-color: #d4edda; color: #155724; }
-    .flash.error   { background-color: #f8d7da; color: #721c24; }
-    .flash.info    { background-color: #d1ecf1; color: #0c5460; }
+    .flash.success { background-color: var(--success-bg); color: var(--success-text); }
+    .flash.error   { background-color: var(--danger-bg); color: var(--danger-text); }
+    .flash.info    { background-color: var(--info-bg); color: var(--info-text); }
 
     /* Hide the right-side header elements (User menu, Night/Red buttons) for the login page */
     .header-right {
