@@ -2,16 +2,17 @@
 
 document.addEventListener("DOMContentLoaded", function () {
     // --- THEME INITIALIZATION ---
-    const btn = document.getElementById('theme-toggle-btn');
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    const redModeBtn = document.getElementById('red-mode-btn');
     const html = document.documentElement;
 
     // 1. Check Dark Mode
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark-mode') {
         html.classList.add('dark-mode');
-        if(btn) btn.textContent = 'Day View';
+        if(themeBtn) themeBtn.textContent = 'Day View';
     } else {
-        if(btn) btn.textContent = 'Night View';
+        if(themeBtn) themeBtn.textContent = 'Night View';
     }
 
     // 2. Check Red Mode
@@ -19,6 +20,46 @@ document.addEventListener("DOMContentLoaded", function () {
     if (savedRedMode === 'true') {
         html.classList.add('red-mode');
     }
+
+    // --- EVENT LISTENERS FOR THEME BUTTONS ---
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
+    if (redModeBtn) {
+        redModeBtn.addEventListener('click', toggleRedMode);
+    }
+
+    // --- EVENT LISTENERS FOR HELP MODAL ---
+    const helpModal = document.getElementById('universal-help-modal');
+    const helpModalCloseBtn = document.getElementById('help-modal-close-btn');
+
+    if (helpModal) {
+        helpModal.addEventListener('click', function(e) {
+            if (e.target === helpModal) {
+                closeHelpModal();
+            }
+        });
+    }
+    if (helpModalCloseBtn) {
+        helpModalCloseBtn.addEventListener('click', closeHelpModal);
+    }
+
+    // --- EVENT DELEGATION FOR HELP BADGES ---
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('help-badge')) {
+            const topic = e.target.dataset.helpTopic || e.target.getAttribute('data-help-topic');
+            if (topic) {
+                openHelp(topic);
+            }
+        }
+    });
+
+    // --- EVENT DELEGATION FOR NAVIGATION BUTTONS ---
+    document.addEventListener('click', function(e) {
+        if (e.target.dataset.navUrl) {
+            window.location.href = e.target.dataset.navUrl;
+        }
+    });
 
     // --- VERSION CHECK ---
     fetch('/api/latest_version')
@@ -38,16 +79,16 @@ document.addEventListener("DOMContentLoaded", function () {
 // --- THEME TOGGLE FUNCTIONS ---
 function toggleTheme() {
     const html = document.documentElement;
-    const btn = document.getElementById('theme-toggle-btn');
+    const themeBtn = document.getElementById('theme-toggle-btn');
 
     html.classList.toggle('dark-mode');
 
     if (html.classList.contains('dark-mode')) {
         localStorage.setItem('theme', 'dark-mode');
-        if(btn) btn.textContent = 'Day View';
+        if(themeBtn) themeBtn.textContent = 'Day View';
     } else {
         localStorage.setItem('theme', '');
-        if(btn) btn.textContent = 'Night View';
+        if(themeBtn) themeBtn.textContent = 'Night View';
     }
     // Force charts to redraw if they exist
     window.dispatchEvent(new Event('resize'));

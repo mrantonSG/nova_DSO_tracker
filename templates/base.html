@@ -74,8 +74,8 @@
                 &nbsp;
             {% endif %}
           </div>
-          <button id="theme-toggle-btn" class="action-button" onclick="toggleTheme()" title="Toggle Dark/Light Mode">Night View</button>
-          <button id="red-mode-btn" class="action-button" onclick="toggleRedMode()" title="Toggle Red/Night Vision Mode">Red View</button>
+          <button id="theme-toggle-btn" class="action-button" title="Toggle Dark/Light Mode">Night View</button>
+          <button id="red-mode-btn" class="action-button" title="Toggle Red/Night Vision Mode">Red View</button>
       </div>
     </div>
 
@@ -87,11 +87,11 @@
 
     {% block scripts %}{% endblock %}
 
-    <div id="universal-help-modal" onclick="closeHelpModal()">
-        <div class="modal-content" onclick="event.stopPropagation()">
+    <div id="universal-help-modal">
+        <div class="modal-content">
             <div id="help-modal-body" class="help-body"></div>
             <div style="margin-top: 20px; text-align: right;">
-                <button class="action-button" onclick="closeHelpModal()">Close</button>
+                <button class="action-button" id="help-modal-close-btn">Close</button>
             </div>
         </div>
     </div>

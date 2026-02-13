@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import form_group %}
 
 {% block title %}{{ form_title | default('Journal Entry') }} - Nova DSO Tracker{% endblock %}
 
@@ -206,7 +207,7 @@
         </div>
 
         <div class="form-actions">
-            <button type="button" onclick="window.location.href='{{ cancel_url | default(url_for('core.index')) }}'">Cancel</button>
+            <button type="button" class="cancel-btn" data-cancel-url="{{ cancel_url | default(url_for('core.index')) }}">Cancel</button>
             <button type="submit">{{ submit_button_text | default('Save Entry') }}</button>
         </div>
     </form>
@@ -222,6 +223,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedValue = this.value;
             if (selectedValue) {
                 setupNotes.value = selectedValue;
+            }
+        });
+    }
+
+    // Handle cancel button
+    const cancelBtn = document.querySelector('.cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const cancelUrl = this.dataset.cancelUrl;
+            if (cancelUrl) {
+                window.location.href = cancelUrl;
             }
         });
     }

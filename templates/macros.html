@@ -1,0 +1,79 @@
+{# ============================================
+   JINJA2 MACROS FOR NOVA DSO TRACKER
+   Reusable HTML patterns to reduce duplication
+   ============================================ #}
+
+{# Form Group Macro
+   Renders a label + input/select/textarea combo
+   Usage:
+     {{ form_group('field_name', 'Label Text:', type='text', value=some_value, placeholder='...', required=False) }}
+     {{ form_group('field_name', 'Label:', type='select', options=list_of_options, selected=value) }}
+     {{ form_group('field_name', 'Label:', type='textarea', value=text, rows=3) }}
+#}
+{% macro form_group(name, label, type='text', value='', placeholder='', required=False, options=None, selected='', rows=3, step=None, min=None, max=None, id_override=None, extra_attrs='', pattern=None, inputmode=None) %}
+<div class="form-group">
+    <label for="{{ id_override or name }}">{{ label }}</label>
+    {% if type == 'select' %}
+        <select id="{{ id_override or name }}" name="{{ name }}" {{ 'required' if required }} {{ extra_attrs | safe }}>
+            {% if options %}
+                {% for option in options %}
+                    {% if option is string %}
+                        <option value="{{ option }}" {% if option == selected %}selected{% endif %}>{{ option }}</option>
+                    {% else %}
+                        <option value="{{ option.value }}" {% if option.value == selected %}selected{% endif %}>{{ option.label }}</option>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </select>
+    {% elif type == 'textarea' %}
+        <textarea id="{{ id_override or name }}" name="{{ name }}" rows="{{ rows }}" placeholder="{{ placeholder }}" {{ 'required' if required }} {{ extra_attrs | safe }}>{{ value }}</textarea>
+    {% elif type == 'checkbox' %}
+        <input type="checkbox" id="{{ id_override or name }}" name="{{ name }}" {% if value %}checked{% endif %} {{ extra_attrs | safe }}>
+    {% else %}
+        <input type="{{ type }}"
+               id="{{ id_override or name }}"
+               name="{{ name }}"
+               value="{{ value }}"
+               placeholder="{{ placeholder }}"
+               {{ 'required' if required }}
+               {% if step is not none %}step="{{ step }}"{% endif %}
+               {% if min is not none %}min="{{ min }}"{% endif %}
+               {% if max is not none %}max="{{ max }}"{% endif %}
+               {% if pattern %}pattern="{{ pattern }}"{% endif %}
+               {% if inputmode %}inputmode="{{ inputmode }}"{% endif %}
+               {{ extra_attrs | safe }}>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Stat Box Macro
+   Renders a statistics display box with a value and label
+   Usage:
+     {{ stat_box('42 hrs', 'Total Integration Time') }}
+     {{ stat_box(some_variable, 'Label Text', extra_class='custom-class') }}
+#}
+{% macro stat_box(value, label, extra_class='') %}
+<div class="stat-box {{ extra_class }}">
+    <span class="stat-value">{{ value }}</span>
+    <span class="stat-label">{{ label }}</span>
+</div>
+{% endmacro %}
+
+{# Action Button Macro
+   Renders a styled button with optional icon
+   Usage:
+     {{ action_button('Save', type='submit', extra_class='primary') }}
+     {{ action_button('Cancel', onclick='goBack()', extra_class='secondary') }}
+#}
+{% macro action_button(text, type='button', extra_class='', data_attrs='') %}
+<button type="{{ type }}" class="action-button {{ extra_class }}" {{ data_attrs | safe }}>{{ text }}</button>
+{% endmacro %}
+
+{# Help Badge Macro
+   Renders a clickable help badge that opens help modal
+   Usage:
+     {{ help_badge('general_settings', 'Click for help') }}
+#}
+{% macro help_badge(topic, title='Help') %}
+<span class="help-badge" data-help-topic="{{ topic }}" title="{{ title }}">?</span>
+{% endmacro %}
