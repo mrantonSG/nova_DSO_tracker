@@ -3,73 +3,7 @@
 {% block title %}{{ form_title | default('Journal Entry') }} - Nova DSO Tracker{% endblock %}
 
 {% block head_extra %}
-<style>
-
-    body {
-        font-family: 'Roboto', sans-serif;
-        padding: 20px;
-        margin: 0;
-        background-color: #ffffff;
-        color: #333;
-    }
-
-    .form-container {
-        max-width: 800px;
-        margin-top: 0px;
-        margin-bottom: 30px;
-        margin-left: 0;
-        margin-right: auto;
-        padding: 20px;
-        background-color: #f9f9f9;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-    }
-    .form-group { margin-bottom: 15px; }
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: normal;
-      font-size: 14px;
-
-    }
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group input[type="date"],
-    .form-group select,
-    .form-group textarea {
-        width: 100%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-        font-size: 14px;
-    }
-    .form-group textarea { min-height: 100px; }
-    .form-actions { margin-top: 20px; text-align: right; }
-    .form-actions button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #83b4c5;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-left: 10px;
-    }
-    .form-actions button[type="button"] { background-color: #aaa; }
-    .form-actions button:hover { opacity: 0.9; }
-    .form-section-title {
-        font-size: 16px;
-        font-weight: bold;
-        color: #333;
-        margin-top: 25px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-    }
-    .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
-    .form-row .form-group { flex: 1; min-width: 200px;}
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}">
 {% endblock %}
 
 {% block body %}

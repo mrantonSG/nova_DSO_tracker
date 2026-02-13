@@ -1,617 +1,5 @@
-{% extends "base.html" %}
-
-{% block title %}Nova – Configuration{% endblock %}
-
-{% block head_extra %}
-  <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
-
-  <meta charset="UTF-8">
-  <title>Configuration Form</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}">
-{% endblock %}
-</head>
-<body>
-<datalist id="timezone-list">
-  {% for tz in all_timezones %}
-  <option value="{{ tz }}"></option>
-  {% endfor %}
-</datalist>
-
-{% block page_title %}
-    <h2>Configuration <span class="subtitle">(System Settings)</span></h2>
-{% endblock %}
-
-{% block header_actions %}
-    <button class="action-button" onclick="window.location.href='{{ url_for('core.index') }}'">← Back to Dashboard</button>
-{% endblock %}
-
-{% block body %}
-
-    <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    </div>
-
-    <script>
-        // Self-hiding flash messages (same behaviour as journal)
-        document.addEventListener('DOMContentLoaded', function() {
-            const flashMessages = document.querySelectorAll('.flash-message');
-            if (flashMessages.length > 0) {
-                setTimeout(() => {
-                    flashMessages.forEach(el => {
-                        el.style.transition = 'opacity 0.5s ease';
-                        el.style.opacity = '0';
-                        setTimeout(() => el.remove(), 500);
-                    });
-                }, 4000);
-            }
-        });
-    </script>
-
-  <div class="tab-container">
-    <div class="tabs-left">
-        <button class="tab-button" data-tab="general">General</button>
-        <button class="tab-button" data-tab="locations">Locations</button>
-        <button class="tab-button" data-tab="objects">Objects</button>
-        <button class="tab-button" data-tab="rigs">Rigs</button>
-        {% if not SINGLE_USER_MODE %}
-        <button class="tab-button" data-tab="shared">Shared Items</button>
-        {% endif %}
-    </div>
-
-    <div class="tabs-right actions-group">
-        <form method="post" action="{{ url_for('core.fetch_all_details') }}" id="fetch-details-form">
-            <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
-        </form>
-
-        <div class="dropdown">
-            <button class="file-button dropdown-btn">Download ▼</button>
-            <div class="dropdown-content">
-                <a href="{{ url_for('tools.download_config') }}">Configuration</a>
-                <a href="{{ url_for('tools.download_journal') }}">Journal</a>
-                <a href="{{ url_for('tools.download_rig_config') }}">Rigs</a>
-                <a href="{{ url_for('tools.download_journal_photos') }}">Journal Photos</a>
-            </div>
-        </div>
-
-        <div class="dropdown">
-            <button class="file-button dropdown-btn">Import ▼</button>
-            <div class="dropdown-content">
-                <form id="form-import-config" action="{{ url_for('tools.import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-config').click(); return false;">Configuration</a>
-                    <input type="file" name="file" id="file-import-config" accept=".yaml" style="display:none;" onchange="handleImportSubmit(this, 'configuration')">
-                </form>
-                <form id="form-import-journal" action="{{ url_for('tools.import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-journal').click(); return false;">Journal</a>
-                    <input type="file" name="file" id="file-import-journal" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'journal')">
-                </form>
-                <form id="form-import-rigs" action="{{ url_for('tools.import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-rigs').click(); return false;">Rigs</a>
-                    <input type="file" name="file" id="file-import-rigs" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'rigs file')">
-                </form>
-                <form id="form-import-photos" action="{{ url_for('tools.import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-photos').click(); return false;">Journal Photos</a>
-                    <input type="file" name="file" id="file-import-photos" accept=".zip" style="display:none;" onchange="handleImportSubmit(this, 'journal photos archive')">
-                </form>
-            </div>
-        </div>
-
-        <span class="help-badge" onclick="openHelp('data_management')" title="Help with Data Tools">?</span>
-    </div>
-  </div>
-
-    <div id="general-tab-content" class="tab-content">
-        <div class="config-section">
-          <h2 style="display: flex; align-items: center; gap: 10px;">
-              General Settings
-              <span class="help-badge" onclick="openHelp('general_settings')" title="Click for help">?</span>
-          </h2>
-          <form method="post">
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
-                  <input type="number" name="altitude_threshold" id="altitude_threshold"
-                         value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
-                </div>
-                <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
-              </div>
-              <hr>
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
-                  <input type="number" name="min_observable_minutes" id="min_observable_minutes"
-                         value="{{ (config.imaging_criteria | default({}, true)).get('min_observable_minutes', 60) }}" min="0" max="600">
-                </div>
-                <div>
-                  <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
-                  <input type="number" name="min_max_altitude" id="min_max_altitude"
-                         value="{{ (config.imaging_criteria | default({}, true)).get('min_max_altitude', 30) }}" min="0" max="90">
-                </div>
-              </div>
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
-                  <input type="number" name="max_moon_illumination" id="max_moon_illumination"
-                         value="{{ (config.imaging_criteria | default({}, true)).get('max_moon_illumination', 20) }}" min="0" max="100">
-                </div>
-                <div>
-                  <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
-                  <input type="number" name="min_angular_separation" id="min_angular_separation"
-                         value="{{ (config.imaging_criteria | default({}, true)).get('min_angular_separation', 30) }}" min="0" max="180">
-                </div>
-                <div>
-                  <label class="verylong-label" for="search_horizon_months">Search months:</label>
-                  <input type="number" name="search_horizon_months" id="search_horizon_months"
-                         value="{{ (config.imaging_criteria | default({}, true)).get('search_horizon_months', 6) }}" min="1" max="12">
-                </div>
-              </div>
-              <hr>
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="calc_invisible">Calc. Invisible Objects:</label>
-                  <input type="checkbox" name="calc_invisible" id="calc_invisible"
-                         {% if config.get('calc_invisible', False) %}checked{% endif %}>
-                </div>
-                <small class="form-text text-muted">
-                  If checked, Nova will calculate curves for ALL objects, even those geometrically impossible to see from your location (disabling the "Smart Skip" optimization).
-                </small>
-              </div>
-
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="hide_invisible">Hide Invisible Objects:</label>
-                  <input type="checkbox" name="hide_invisible" id="hide_invisible"
-                         {% if config.get('hide_invisible', True) %}checked{% endif %}>
-                </div>
-                <small class="form-text text-muted">
-                  If checked, objects that are geometrically impossible to see will be hidden from the main list by default. They will still appear if you specifically search for them.
-                </small>
-              </div>
-
-              {% if SINGLE_USER_MODE %}
-              <hr>
-              <div class="form-group">
-                <label for="sampling_interval">Calculation Precision:</label>
-                <select id="sampling_interval" name="sampling_interval" class="form-control">
-                  {% set current_interval = config.get('sampling_interval_minutes', 15) %}
-                  <option value="10" {% if current_interval == 10 %}selected{% endif %}>High (10 min samples)</option>
-                  <option value="15" {% if current_interval == 15 %}selected{% endif %}>Default (15 min samples)</option>
-                  <option value="20" {% if current_interval == 20 %}selected{% endif %}>Balanced (20 min samples)</option>
-                  <option value="30" {% if current_interval == 30 %}selected{% endif %}>Fast (30 min samples)</option>
-                  <option value="60" {% if current_interval == 60 %}selected{% endif %}>Fastest (60 min samples)</option>
-                </select>
-                <small class="form-text text-muted">
-                  Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
-                </small>
-              </div>
-
-              <hr>
-
-              <div class="inline-fields">
-                <div>
-                  <label class="verylong-label" for="telemetry_enabled">Anonymous Telemetry:</label>
-                  <input type="checkbox" name="telemetry_enabled" id="telemetry_enabled"
-                         {% if config.get('telemetry', {}).get('enabled', True) %}checked{% endif %}>
-                </div>
-                <small class="form-text text-muted">
-                  Nova sends a small anonymous heartbeat (app version, system type, and counts of your data entries like objects, rigs, locations, and journals). No personal details are ever collected, and you can opt out anytime. Allowing it really helps me improve Nova.
-                </small>
-              </div>
-              <hr>
-              {% endif %}
-               <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
-          </form>
-        </div>
-      </div>
-
-<div id="locations-tab-content" class="tab-content">
-    <div class="config-section">
-      <h2 style="display: flex; align-items: center; gap: 15px;">
-        Locations Configuration
-        <span class="help-badge" onclick="openHelp('locations_general')" title="Click for help">?</span>
-        <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: #555;"></span>
-      </h2>
-
-      <form method="post">
-        <h3>Add New Location</h3>
-        <div class="block">
-            <div class="inline-fields">
-              <div>
-                <label class="short-label" for="new_location">Name:</label>
-                <input type="text" name="new_location" id="new_location" placeholder="e.g., Home Observatory">
-              </div>
-              <div>
-                <label class="short-label" for="new_lat">Lat:</label>
-                <input type="text" name="new_lat" id="new_lat" placeholder="40.7128">
-              </div>
-              <div>
-                <label class="short-label" for="new_lon">Lon:</label>
-                <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
-              </div>
-              <div>
-                <label class="long-label" for="new_timezone">Timezone:</label>
-                <select name="new_timezone" id="new_timezone">
-                    <option value="">Type to search...</option>
-                    {% for tz in all_timezones %}
-                    <option value="{{ tz }}">{{ tz }}</option>
-                    {% endfor %}
-                </select>
-              </div>
-              <div>
-                  <label class="short-label" for="new_active">Active:</label>
-                  <input type="checkbox" name="new_active" id="new_active" class="active-location-checkbox" checked>
-              </div>
-            </div>
-
-            <div class="inline-fields">
-                 <div class="location-id"></div>
-                 <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                    <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">
-                        Horizon Mask:
-                        <span class="help-badge" onclick="openHelp('horizon_mask')" title="Help">?</span>
-                    </label>
-                    <div>
-                        <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
-                        <div style="margin-top: 4px;">
-                            <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" onclick="document.getElementById('hzn_import_new').click()" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
-                            <input type="file" id="hzn_import_new" style="display:none;" accept=".hzn,.txt" onchange="parseStellariumHorizon(this, 'new_horizon_mask')">
-                        </div>
-                    </div>
-                 </div>
-            </div>
-
-            <div class="inline-fields">
-                 <div class="location-id"></div>
-                 <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                    <label class="short-label" for="new_comments" style="padding-top: 5px;">Comments:</label>
-                    <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="new-comment-counter"></textarea>
-                    <div></div>
-                    <small id="new-comment-counter" style="color: #666;">0 / 500</small>
-                 </div>
-            </div>
-            <button type="submit" name="submit_new_location" value="1" class="action-button" style="margin-top: 10px;">Add</button>
-        </div>
-        <hr>
-        <div class="locations-list">
-          {% for loc_key, loc_val in locations.items() %}
-            <div class="block">
-              <div class="inline-fields">
-                <div class="location-id">
-                  <strong>{{ loc_key }}</strong>
-                </div>
-                <div>
-                  <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
-                  <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
-                </div>
-                <div>
-                  <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
-                  <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
-                </div>
-                <div>
-                  <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
-                  <select name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}">
-                    {% for tz in all_timezones %}
-                    <option value="{{ tz }}" {% if tz == loc_val.timezone %}selected{% endif %}>{{ tz }}</option>
-                    {% endfor %}
-                </select>
-                </div>
-                <div>
-                    <label class="short-label" for="active_{{ loc_key }}">Active:</label>
-                    <input type="checkbox" name="active_{{ loc_key }}" id="active_{{ loc_key }}" class="active-location-checkbox" {% if loc_val.get('active', True) %}checked{% endif %}>
-                </div>
-                <div>
-                  <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
-                </div>
-                <div>
-                  <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
-                     target="_blank" title="View on Google Maps" class="action-button" style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
-                     Open Map
-                  </a>
-                </div>
-              </div>
-                <div class="inline-fields">
-                    <div class="location-id"></div>
-                    <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                        <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
-                        <div>
-                            <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
-                            <div style="margin-top: 4px;">
-                                <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" onclick="document.getElementById('hzn_import_{{ loop.index }}').click()" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
-                                <input type="file" id="hzn_import_{{ loop.index }}" style="display:none;" accept=".hzn,.txt" onchange="parseStellariumHorizon(this, 'horizon_mask_{{ loc_key }}')">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="inline-fields">
-                    <div class="location-id"></div>
-                    <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                        <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
-                        <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
-                        <div></div>
-                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ (loc_val.get('comments') or '')|length }} / 500</small>
-                    </div>
-                </div>
-            </div>
-          {% endfor %}
-          <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
-        </div>
-      </form>
-    </div>
-</div>
-
-{% include '_objects_section.html' %}
-<div id="rigs-tab-content" class="tab-content">
-    <div class="container">
-        <div class="column">
-            <h2 style="display: flex; align-items: center; gap: 10px;">
-                1. Define Your Components
-                <span class="help-badge" onclick="openHelp('rigs_general')" title="Help with Rigs">?</span>
-            </h2>
-            <p style="font-size:14px; color: #555;">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
-            <details open>
-                <summary><h3>Telescopes (<span id="tele-count">0</span>)</h3></summary>
-                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
-                    <input type="hidden" name="component_type" value="telescopes">
-                    <input type="hidden" name="component_id" value="">
-                    <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
-                    <div class="form-group"><label for="aperture">Aperture (mm):</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
-                    <div class="form-group"><label for="focal_length">Focal Length (mm):</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
-                    {% if not SINGLE_USER_MODE %}
-                    <div class="share-control">
-                        <input type="checkbox" name="is_shared" id="tele_is_shared">
-                        <label for="tele_is_shared">Share this component</label>
-                    </div>
-                    {% endif %}
-                    <button type="submit">Add Telescope</button>
-                </form>
-                <hr>
-                <ul id="telescope-list"></ul>
-            </details>
-            <hr>
-
-            <details open>
-                <summary><h3>Cameras (<span id="cam-count">0</span>)</h3></summary>
-                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-camera">
-                    <input type="hidden" name="component_type" value="cameras">
-                    <input type="hidden" name="component_id" value="">
-                    <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
-                    <div class="form-group"><label for="sensor_w">Sensor Width (mm):</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
-                    <div class="form-group"><label for="sensor_h">Sensor Height (mm):</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
-                    <div class="form-group"><label for="pixel_s">Pixel Size (μm):</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
-                    {% if not SINGLE_USER_MODE %}
-                    <div class="share-control">
-                        <input type="checkbox" name="is_shared" id="cam_is_shared">
-                        <label for="cam_is_shared">Share this component</label>
-                    </div>
-                    {% endif %}
-                    <button type="submit">Add Camera</button>
-                </form>
-                <hr>
-                <ul id="camera-list"></ul>
-            </details>
-            <hr>
-
-            <details open>
-                <summary><h3>Reducers / Extenders (<span id="red-count">0</span>)</h3></summary>
-                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-reducer">
-                    <input type="hidden" name="component_type" value="reducers_extenders">
-                    <input type="hidden" name="component_id" value="">
-                    <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
-                    <div class="form-group"><label for="factor">Factor:</label><input type="number" step="any" name="factor" id="factor" required placeholder="e.g., 0.7 for reducer"></div>
-                    {% if not SINGLE_USER_MODE %}
-                    <div class="share-control">
-                        <input type="checkbox" name="is_shared" id="red_is_shared">
-                        <label for="red_is_shared">Share this component</label>
-                    </div>
-                    {% endif %}
-                    <button type="submit">Add Reducer/Extender</button>
-                </form>
-                <hr>
-                <ul id="reducer-list"></ul>
-            </details>
-        </div>
-
-        <div class="column">
-            <h2>2. Configure Your Rigs</h2>
-            <p style="font-size:14px; color: #555;">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
-            <form action="{{ url_for('tools.add_rig') }}" method="post" id="form-rig">
-                <input type="hidden" name="rig_id" value="">
-                <div class="form-group"><label for="rig_name">Rig Name:</label><input type="text" name="rig_name" id="rig_name" required placeholder="e.g., C11 Deep Sky Rig"></div>
-                <div class="form-group">
-                    <label for="tele_select">Telescope:</label>
-                    <select name="telescope_id" id="tele_select" required>
-                        <option value="" disabled selected>-- Select a Telescope --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="cam_select">Camera:</label>
-                    <select name="camera_id" id="cam_select" required>
-                        <option value="" disabled selected>-- Select a Camera --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="red_select">Reducer / Extender (Optional):</label>
-                    <select name="reducer_extender_id" id="red_select">
-                        <option value="">-- None --</option>
-                    </select>
-                </div>
-                <button type="submit">Create Rig</button>
-            </form>
-             <hr>
-            <div class="form-group">
-                <label for="seeing-select">Select Your Typical Seeing:</label>
-                <select id="seeing-select">
-                    <option value="none" >-- Select Seeing to Assess Rigs --</option>
-                    <option value="1.0-2.0">Excellent Seeing (1.0" - 2.0" FWHM)</option>
-                    <option value="2.0-4.0" selected >Good Seeing (2.0" - 4.0" FWHM)</option>
-                    <option value="4.0-6.0">Poor Seeing (> 4.0" FWHM)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="rig-sort">Sort rigs by:</label>
-                <select id="rig-sort">
-                    <option value="name-asc" selected>Name (A→Z)</option>
-                    <option value="name-desc">Name (Z→A)</option>
-                    <option value="fl-asc">Effective Focal Length (low→high)</option>
-                    <option value="fl-desc">Effective Focal Length (high→low)</option>
-                    <option value="fr-asc">f/ratio (low→high)</option>
-                    <option value="fr-desc">f/ratio (high→low)</option>
-                    <option value="scale-asc">Image Scale (low→high)</option>
-                    <option value="scale-desc">Image Scale (high→low)</option>
-                    <option value="fovw-asc">FOV Width (low→high)</option>
-                    <option value="fovw-desc">FOV Width (high→low)</option>
-                    <option value="recent-desc">Recently Added (newest first)</option>
-                    <option value="recent-asc">Recently Added (oldest first)</GIST:
-                    </option>
-                </select>
-            </div>
-            <h3>Existing Rigs (<span id="rig-count">0</span>)</h3>
-            <ul id="existing-rigs-list"></ul>
-        </div>
-    </div>
-  </div>
-<div id="shared-tab-content" class="tab-content">
-      <div class="config-section">
-          <h2 style="display: flex; align-items: center; gap: 10px;">
-              Shared Items from Other Users
-              <span class="help-badge" onclick="openHelp('shared_items_general')" title="Help with Shared Items">?</span>
-          </h2>
-          <p>Here you can find Objects and Components shared by other users in the system. Click "Import" to add a copy to your own configuration.</p>
-
-          <h3 style="margin-top: 30px;">Shared Objects</h3>
-          <div class="table-wrapper">
-              <table class="data-table" id="shared-objects-table">
-                  <thead>
-                      <tr>
-                          <th style="width: 50px; text-align: center;">Img</th>
-                          <th style="width: 20%;">Object ID</th>
-                          <th style="width: 25%;">Common Name</th>
-                          <th>Type</th>
-                          <th>Constellation</th>
-                          <th style="width: 15%;">Shared By</th>
-                          <th class="notes-cell">Notes</th>
-                          <th class="action-cell">Action</th>
-                      </tr>
-                      <tr class="filter-row">
-                          <th></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="object_name" placeholder="Filter ID..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="common_name" placeholder="Filter name..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="type" placeholder="Filter type..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="constellation" placeholder="Filter con..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="shared_by_user" placeholder="Filter user..."></th>
-                          <th></th>
-                          <th style="text-align: center;">
-                              <select onchange="filterSharedTables()" data-table="objects" data-col="status" style="width: 95%;">
-                                  <option value="all">All</option>
-                                  <option value="unimported">Not Imported</option>
-                                  <option value="imported">Imported</option>
-                              </select>
-                          </th>
-                      </tr>
-                  </thead>
-                  <tbody id="shared-objects-body">
-                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
-                  </tbody>
-              </table>
-          </div>
-
-          <h3 style="margin-top: 30px;">Shared Views</h3>
-          <div class="table-wrapper">
-              <table class="data-table" id="shared-views-table">
-                  <thead>
-                      <tr>
-                          <th style="width: 25%;">View Name</th>
-                          <th style="width: 35%;">Description</th>
-                          <th style="width: 20%;">Shared By</th>
-                          <th class="action-cell">Action</th>
-                      </tr>
-                      <tr class="filter-row">
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="name" placeholder="Filter name..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="description" placeholder="Filter desc..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="shared_by_user" placeholder="Filter user..."></th>
-                          <th style="text-align: center;">
-                              <select onchange="filterSharedTables()" data-table="views" data-col="status" style="width: 95%;">
-                                  <option value="all">All</option>
-                                  <option value="unimported">Not Imported</option>
-                                  <option value="imported">Imported</option>
-                              </select>
-                          </th>
-                      </tr>
-                  </thead>
-                  <tbody id="shared-views-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
-                  </tbody>
-              </table>
-          </div>
-
-          <h3 style="margin-top: 30px;">Shared Components</h3>
-          <div class="table-wrapper">
-              <table class="data-table" id="shared-components-table">
-                  <thead>
-                      <tr>
-                          <th style="width: 40%;">Component Name</th>
-                          <th style="width: 20%;">Type</th>
-                          <th style="width: 20%;">Shared By</th>
-                          <th class="action-cell">Action</th>
-                      </tr>
-                      <tr class="filter-row">
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="name" placeholder="Filter name..."></th>
-                          <th>
-                              <select onchange="filterSharedTables()" data-table="components" data-col="kind" style="width: 95%;">
-                                  <option value="all">All Types</option>
-                                  <option value="telescope">Telescope</option>
-                                  <option value="camera">Camera</option>
-                                  <option value="reducer_extender">Reducer/Extender</option>
-                              </select>
-                          </th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="shared_by_user" placeholder="Filter user..."></th>
-                          <th style="text-align: center;">
-                              <select onchange="filterSharedTables()" data-table="components" data-col="status" style="width: 95%;">
-                                  <option value="all">All</option>
-                                  <option value="unimported">Not Imported</option>
-                                  <option value="imported">Imported</option>
-                              </select>
-                          </th>
-                      </tr>
-                  </thead>
-                  <tbody id="shared-components-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
-                  </tbody>
-              </table>
-          </div>
-      </div>
-  </div>
-
-  <div id="notes-modal" class="modal-backdrop" onclick="closeNotesModal()">
-      <div class="modal-content" onclick="event.stopPropagation()">
-          <h3 id="notes-modal-title">Shared Notes</h3>
-          <div id="notes-modal-content" class="modal-notes-content">
-              </div>
-          <button class="inline-button modal-close-btn" onclick="closeNotesModal()">Close</button>
-      </div>
-  </div>
-
-  <div id="fetch-progress-modal">
-      <div id="fetch-progress-content">
-          <h3 style="margin-top:0; color:#333;">Fetching Details...</h3>
-          <div class="progress-track">
-              <div id="fetch-progress-bar" class="progress-fill"></div>
-          </div>
-          <p id="fetch-progress-text" style="color:#666; font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
-      </div>
-  </div>
-  <br>
-
-<script>
     // --- Global variables ---
-    const CURRENT_USERNAME = "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}";
+    const CURRENT_USERNAME = window.NOVA_CONFIG_FORM.currentUsername;
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
     let rigSort = localStorage.getItem('rigSort') || 'name-asc';
@@ -630,7 +18,7 @@
 
         const formType = type === 'reducer_extender' ? 'reducer' : type;
         const form = document.getElementById(`form-${formType}`);
-        form.action = "{{ url_for('tools.update_component') }}";
+        form.action = window.NOVA_CONFIG_FORM.urls.updateComponent;
         form.querySelector('input[name="component_id"]').value = component.id;
         form.querySelector('input[name="name"]').value = component.name;
 
@@ -758,7 +146,7 @@
                 <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
-                    <form action="{{ url_for('tools.delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${t.id}"><input type="hidden" name="component_type" value="telescopes">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
@@ -770,7 +158,7 @@
                 <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
-                    <form action="{{ url_for('tools.delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${c.id}"><input type="hidden" name="component_type" value="cameras">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
@@ -782,7 +170,7 @@
                 <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
                 <div class="item-actions">
                     <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
-                    <form action="{{ url_for('tools.delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
+                    <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${r.id}"><input type="hidden" name="component_type" value="reducers_extenders">
                         <button type="submit" class="delete-btn">Delete</button>
                     </form>
@@ -809,7 +197,7 @@
                         <div class="item-info">${detailsHtml}</div>
                         <div class="item-actions">
                             <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
-                            <form action="{{ url_for('tools.delete_rig') }}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
+                            <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
                                 <input type="hidden" name="rig_id" value="${rig.rig_id}">
                                 <button type="submit" class="delete-btn">Delete</button>
                             </form>
@@ -1117,7 +505,7 @@
             bar.style.animation = 'progress-stripes 1s linear infinite'; // Only stripes, no growth
         }
 
-        const evtSource = new EventSource("{{ url_for('core.stream_fetch_details') }}");
+        const evtSource = new EventSource(window.NOVA_CONFIG_FORM.urls.streamFetchDetails);
 
         evtSource.onmessage = function(e) {
             try {
@@ -1223,7 +611,7 @@
         btn.textContent = "...";
         btn.disabled = true;
 
-        fetch("{{ url_for('tools.upload_editor_image') }}", {
+        fetch(window.NOVA_CONFIG_FORM.urls.uploadEditorImage, {
             method: "POST",
             body: formData
         })
@@ -1371,7 +759,7 @@
         // --- Anonymous telemetry client ping (once per 24h) ---
         try {
           const TELEMETRY_KEY = 'novaTelemetryPingAt', lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10), now = Date.now(), DAY_MS = 86400000;
-          const telemetryEnabled = {{ 'true' if config.get('telemetry', {}).get('enabled', True) else 'false' }};
+          const telemetryEnabled = window.NOVA_CONFIG_FORM.telemetryEnabled;
           if (telemetryEnabled && (now - lastPing) > DAY_MS) {
             fetch('/telemetry/ping', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ browser_user_agent: navigator.userAgent })})
               .then(() => localStorage.setItem(TELEMETRY_KEY, String(now))).catch(()=>{});
@@ -1435,7 +823,7 @@
             const formData = new FormData();
             formData.append("file", file);
             event.attachment.setUploadProgress(0);
-            fetch("{{ url_for('tools.upload_editor_image') }}", {
+            fetch(window.NOVA_CONFIG_FORM.urls.uploadEditorImage, {
                 method: "POST",
                 body: formData
             })
@@ -1545,8 +933,3 @@
         };
         reader.readAsText(file);
     }
-</script>
-
-{% endblock %}
-</body>
-</html>
