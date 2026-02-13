@@ -378,7 +378,7 @@
                         <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Outcome & Reflections</h5>
                         <dl class="detail-grid">
                             <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('-') }}{% if entry.session_rating_subjective %} ★{% endif %}</dd>
-                            <dt>Notes:</dt><dd style="grid-column: 2 / 2;"><div class="notes-block">{{ entry.notes | default('-') | safe }}</div></dd>
+                            <dt>Notes:</dt><dd style="grid-column: 2 / 2;"><div class="notes-block">{{ entry.notes | default('-') | sanitize_html | safe }}</div></dd>
                         </dl>
                     </div>
 
@@ -437,7 +437,7 @@
 
                             <div class="journal-project-notes-section">
                                 <h3>Goals & Status</h3>
-                                <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals defined.', true) | safe }}</div>
+                                <div class="notes-content">{{ project_journal_html_fields.goals | default('No goals defined.', true) | sanitize_html | safe }}</div>
                             </div>
 
                             {% if selected_project_data_journal.final_image_file %}
@@ -454,17 +454,17 @@
 
                             <div class="journal-project-notes-section">
                                 <h3>Project Story & Learnings</h3>
-                                <div class="notes-content">{{ project_journal_html_fields.description | default('No description added.', true) | safe }}</div>
+                                <div class="notes-content">{{ project_journal_html_fields.description | default('No description added.', true) | sanitize_html | safe }}</div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <h3>Framing Notes</h3>
-                                <div class="notes-content">{{ project_journal_html_fields.framing | default('No framing notes added.', true) | safe }}</div>
+                                <div class="notes-content">{{ project_journal_html_fields.framing | default('No framing notes added.', true) | sanitize_html | safe }}</div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <h3>Processing Notes</h3>
-                                <div class="notes-content">{{ project_journal_html_fields.processing | default('No processing workflow recorded.', true) | safe }}</div>
+                                <div class="notes-content">{{ project_journal_html_fields.processing | default('No processing workflow recorded.', true) | sanitize_html | safe }}</div>
                             </div>
                         </div>
                     </div>
@@ -513,7 +513,7 @@
 
                             <div class="journal-project-notes-section">
                                 <div class="form-group trix-editor-container"><label>Goals & Status:</label>
-                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | safe }}">
+                                    <input type="hidden" id="goals-hidden-journal" name="goals" value="{{ project_journal_html_fields.goals | sanitize_html | safe }}">
                                     <trix-editor input="goals-hidden-journal" id="goals-editor-journal" style="min-height: 100px;"></trix-editor>
                                 </div>
                             </div>

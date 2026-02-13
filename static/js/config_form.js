@@ -879,6 +879,10 @@
         });
         window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
 
+        // Clean up event listeners when navigating away (prevents memory leaks)
+        window.addEventListener('beforeunload', () => {
+            document.removeEventListener("trix-attachment-add", handleTrixAttachmentAdd);
+        });
 
     });
 
