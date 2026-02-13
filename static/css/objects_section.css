@@ -1,7 +1,7 @@
     /* Copied from journal for consistent sub-tabs */
-    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
-    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: #555; border-bottom: 2px solid transparent; font-size: 15px; }
-    .detail-tab-button.active { color: #83b4c5; border-bottom-color: #83b4c5; font-weight: 600; }
+    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
+    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: 15px; }
+    .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; }
 
@@ -21,7 +21,7 @@
     }
     #object-filter-bar {
       padding: 10px 15px;
-      background: #f9f9f9;
+      background: var(--bg-light-alt);
     }
     #object-filter-bar .inline-fields {
       margin-bottom: 0;
@@ -33,31 +33,31 @@
         padding: 5px;
         box-sizing: border-box;
         font-family: 'Roboto', sans-serif;
-        border: 1px solid #ccc;
+        border: 1px solid var(--border-medium-alt);
         border-radius: 4px;
     }
     .config-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .config-table th, .config-table td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-    .config-table th { background-color: #f2f2f2; }
+    .config-table th, .config-table td { border: 1px solid var(--border-medium); padding: 8px 12px; text-align: left; }
+    .config-table th { background-color: var(--bg-light-gray-alt2); }
     .config-table .badge { background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
     .muted-text { color: #6c757d; }
 
     /* --- Catalog/Source Styles (from previous step) --- */
     .readonly-notes {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
+        background: var(--bg-light);
+        border: 1px solid var(--border-light-alt2);
         border-radius: 4px;
         padding: 10px 15px;
         min-height: 50px;
         font-size: 14px;
-        color: #495057;
+        color: var(--accent-gray-text);
         word-wrap: break-word;
     }
     .catalog-source-badge {
         font-size: 13px;
         font-weight: bold;
         color: #1a689e;
-        background: #e1f0f5;
+        background: var(--info-bg-light);
         padding: 4px 8px;
         border-radius: 4px;
         display: inline-block;
@@ -73,8 +73,8 @@
 
     /* Lazy Load Trix Container - Mimics the look of an initialized editor */
     .trix-lazy-box {
-        background-color: #fff;
-        border: 1px solid #ccc;
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-medium-alt);
         border-radius: 3px;
         padding: 0.7em;
         height: 150px;     /* Matches standard editor height */
@@ -83,43 +83,43 @@
         position: relative;
     }
     .trix-lazy-box:hover {
-        border-color: #83b4c5; /* Visual feedback on hover */
-        background-color: #fcfcfc;
+        border-color: var(--primary-color); /* Visual feedback on hover */
+        background-color: var(--bg-offwhite);
     }
     .trix-placeholder-text {
-        color: #aaa;
+        color: var(--text-light);
         font-style: italic;
     }
 
     /* --- Dark Mode Overrides for Objects Tab --- */
     html.dark-mode #object-filter-bar {
-        background-color: #2c2c2c !important;
-        color: #e0e0e0 !important;
-        border: 1px solid #444;
+        background-color: var(--bg-dark-tertiary) !important;
+        color: var(--text-lightest) !important;
+        border: 1px solid var(--bg-dark-border-light);
     }
     html.dark-mode #object-filter-bar select {
-        background-color: #2c2c2c !important;
-        color: #fff !important;
-        border-color: #555 !important;
+        background-color: var(--bg-dark-tertiary) !important;
+        color: var(--text-white) !important;
+        border-color: var(--border-dark) !important;
     }
     html.dark-mode .trix-lazy-box {
-        background-color: #1e1e1e !important;
-        border-color: #555 !important;
-        color: #e0e0e0 !important;
+        background-color: var(--bg-dark-secondary) !important;
+        border-color: var(--border-dark) !important;
+        color: var(--text-lightest) !important;
     }
     html.dark-mode .trix-lazy-box:hover {
-        background-color: #252525 !important;
+        background-color: var(--bg-dark-elevated) !important;
     }
     html.dark-mode .inspiration-container {
-        background-color: #1e1e1e !important;
-        border-color: #444 !important;
+        background-color: var(--bg-dark-secondary) !important;
+        border-color: var(--bg-dark-border-light) !important;
     }
     html.dark-mode .inspiration-container label {
-        color: #aaa !important;
+        color: var(--text-light) !important;
     }
     html.dark-mode .inspiration-container input,
     html.dark-mode .inspiration-container textarea {
-        background-color: #2c2c2c !important;
-        border-color: #555 !important;
-        color: #fff !important;
+        background-color: var(--bg-dark-tertiary) !important;
+        border-color: var(--border-dark) !important;
+        color: var(--text-white) !important;
     }
