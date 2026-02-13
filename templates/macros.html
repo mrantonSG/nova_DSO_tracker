@@ -83,11 +83,13 @@
    Renders a tab button with optional active state and help badge
    Usage:
      {{ tab_button('Overview', 'overview-tab', active=True) }}
-     {{ tab_button('Details', 'details-tab', onclick='loadDetails()', help_topic='details_help') }}
+     {{ tab_button('Details', 'details-tab', data_action='show-project-subtab', help_topic='details_help') }}
+     {{ tab_button('Old Style', 'old-tab', onclick='loadDetails()') }} {# Legacy support #}
 #}
-{% macro tab_button(label, tab_id, active=False, onclick='', help_topic='') %}
+{% macro tab_button(label, tab_id, active=False, onclick='', data_action='', help_topic='') %}
 <button class="detail-tab-button {% if active %}active{% endif %}"
         data-tab="{{ tab_id }}"
+        {% if data_action %}data-action="{{ data_action }}"{% endif %}
         {% if onclick %}onclick="{{ onclick }}"{% endif %}>
     {{ label }}
     {% if help_topic %}{{ help_badge(help_topic) }}{% endif %}

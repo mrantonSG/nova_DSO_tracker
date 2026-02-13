@@ -34,7 +34,7 @@
     {% if not project_id_for_this_object %}
         <p style="text-align:center; padding: 40px; color:var(--text-quaternary);">This object is not currently linked to a Project. The **Project Details** sub-tab will only appear if the object is the primary target of an existing project.</p>
     {% else %}
-        <button class="inline-button" id="edit-button-project" onclick="toggleProjectSubTabEdit(true)">Edit Project</button>
+        <button class="inline-button" id="edit-button-project" data-action="edit-project">Edit Project</button>
 
         <div id="project-view-mode" style="padding: 0; margin-top: 20px; border: none; background: none;">
             <h2 style="font-size: 1.5em; margin: 0 0 10px 0;">Project: {{ project_name_for_this_object }}</h2>
@@ -92,7 +92,7 @@
                             </thead>
                             <tbody>
                                 {% for session in sessions %}
-                                <tr onclick='window.location.href="{{ url_for("core.graph_dashboard", object_name=session.object_name, session_id=session.id) }}&tab=journal"'>
+                                <tr data-nav-url="{{ url_for("core.graph_dashboard", object_name=session.object_name, session_id=session.id) }}&tab=journal">
                                     <td>{{ session.date_utc | date_eu }}</td>
                                     <td>{{ session.location_name or '-' }}</td>
                                     <td>{{ session.session_rating_subjective or '-' }}{% if session.session_rating_subjective %} ★{% endif %}</td>
@@ -119,7 +119,7 @@
                     <h2 style="font-size: 1.5em; margin: 0;">Editing Project: {{ project_name_for_this_object }}</h2>
                     <div class="action-buttons">
                         <button type="submit" class="inline-button" style="background-color:var(--success-color);">Save Project</button>
-                        <button type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" onclick="toggleProjectSubTabEdit(false)">Cancel</button>
+                        <button type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" data-action="cancel-project-edit">Cancel</button>
                     </div>
                 </div>
 

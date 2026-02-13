@@ -26,7 +26,7 @@
 
 {% block header_actions %}
     {% if SINGLE_USER_MODE or not is_guest %}
-       <button class="action-button" onclick="window.location.href='{{ url_for('core.config_form') }}'">Configuration</button>
+       <button class="action-button" data-nav-url="{{ url_for('core.config_form') }}">Configuration</button>
     {% endif %}
 {% endblock %}
 
@@ -233,8 +233,8 @@
   </iframe>
 </div>
 
-<div id="save-view-modal" class="modal-backdrop" onclick="closeSaveViewModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000;">
-    <div class="modal-content" onclick="event.stopPropagation()" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px;">
+<div id="save-view-modal" class="modal-backdrop" data-action="close-save-view-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000;">
+    <div class="modal-content" data-stop-propagation="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px;">
         <h3 style="margin-top:0;">Save Current View</h3>
         <div style="display:flex; flex-direction:column; gap:10px;">
             <label>Name: <input type="text" id="modal-view-name" style="width:100%; padding:5px;"></label>
@@ -245,8 +245,8 @@
             </label>
             {% endif %}
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
-                <button onclick="confirmSaveView()" style="background:var(--success-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Save</button>
-                <button onclick="closeSaveViewModal()" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cancel</button>
+                <button data-action="confirm-save-view" style="background:var(--success-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Save</button>
+                <button data-action="close-save-view-modal" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cancel</button>
             </div>
         </div>
     </div>

@@ -147,12 +147,252 @@
     })();
 
 
+    // --- Event Delegation for data-action attributes (click events) ---
+    document.addEventListener('click', function(e) {
+        const actionBtn = e.target.closest('[data-action]');
+        if (!actionBtn) return;
+
+        var action = actionBtn.dataset.action;
+        console.log('[GRAPH_VIEW] Click action triggered:', action, actionBtn);
+
+        switch(action) {
+            case 'show-tab':
+                console.log('[GRAPH_VIEW] show-tab:', actionBtn.dataset.tab);
+                if (actionBtn.dataset.tab) {
+                    showTab(actionBtn.dataset.tab);
+                }
+                break;
+            case 'show-project-subtab':
+                console.log('[GRAPH_VIEW] show-project-subtab:', actionBtn.dataset.tab);
+                if (actionBtn.dataset.tab) {
+                    showProjectSubTab(actionBtn.dataset.tab);
+                }
+                break;
+            case 'toggle-project-edit':
+                console.log('[GRAPH_VIEW] toggle-project-edit:', actionBtn.dataset.enable);
+                var enable = actionBtn.dataset.enable === 'true';
+                var justSwitched = actionBtn.dataset.justSwitched === 'true';
+                toggleProjectSubTabEdit(enable, justSwitched);
+                break;
+            case 'navigate':
+                console.log('[GRAPH_VIEW] navigate:', actionBtn.dataset.url);
+                if (actionBtn.dataset.url) {
+                    window.location.href = actionBtn.dataset.url;
+                }
+                break;
+            case 'change-view':
+                console.log('[GRAPH_VIEW] change-view:', actionBtn.dataset.view, 'function exists:', typeof window.changeView);
+                if (actionBtn.dataset.view && typeof window.changeView === 'function') {
+                    window.changeView(actionBtn.dataset.view);
+                } else {
+                    console.error('[GRAPH_VIEW] changeView function not available!');
+                }
+                break;
+            case 'save-project':
+                console.log('[GRAPH_VIEW] save-project, function exists:', typeof window.saveProject);
+                if (typeof window.saveProject === 'function') {
+                    window.saveProject();
+                } else {
+                    console.error('[GRAPH_VIEW] saveProject function not available!');
+                }
+                break;
+            case 'open-framing-assistant':
+                console.log('[GRAPH_VIEW] open-framing-assistant, function exists:', typeof window.openFramingAssistant);
+                if (typeof window.openFramingAssistant === 'function') {
+                    // Check if there's saved framing data for this object
+                    const objectName = window.NOVA_GRAPH_DATA?.objectName;
+                    if (objectName) {
+                        fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.status === 'found') {
+                                    // Reconstruct query string from DB data
+                                    const params = new URLSearchParams();
+                                    if (data.rig != null) params.set('rig', data.rig);
+                                    if (data.ra != null) params.set('ra', data.ra);
+                                    if (data.dec != null) params.set('dec', data.dec);
+                                    if (data.rotation != null) params.set('rot', data.rotation);
+                                    if (data.survey) params.set('survey', data.survey);
+                                    if (data.blend) params.set('blend', data.blend);
+                                    if (data.blend_op != null) params.set('blend_op', data.blend_op);
+
+                                    // Restore Mosaic
+                                    if (data.mosaic_cols != null) params.set('m_cols', data.mosaic_cols);
+                                    if (data.mosaic_rows != null) params.set('m_rows', data.mosaic_rows);
+                                    if (data.mosaic_overlap != null) params.set('m_ov', data.mosaic_overlap);
+
+                                    // Open with saved framing
+                                    window.openFramingAssistant(params.toString());
+                                } else {
+                                    // No saved framing, open with defaults
+                                    window.openFramingAssistant();
+                                }
+                            })
+                            .catch(err => {
+                                console.error('[GRAPH_VIEW] Error fetching saved framing:', err);
+                                // On error, open with defaults
+                                window.openFramingAssistant();
+                            });
+                    } else {
+                        window.openFramingAssistant();
+                    }
+                } else {
+                    console.error('[GRAPH_VIEW] openFramingAssistant function not available!');
+                }
+                break;
+            case 'open-stellarium':
+                console.log('[GRAPH_VIEW] open-stellarium');
+                if (typeof window.openInStellarium === 'function') {
+                    window.openInStellarium();
+                }
+                break;
+            case 'close-framing-assistant':
+                console.log('[GRAPH_VIEW] close-framing-assistant');
+                if (typeof window.closeFramingAssistant === 'function') {
+                    window.closeFramingAssistant();
+                } else {
+                    console.error('[GRAPH_VIEW] closeFramingAssistant function not available!');
+                }
+                break;
+            case 'flip-framing':
+                console.log('[GRAPH_VIEW] flip-framing');
+                if (typeof window.flipFraming90 === 'function') {
+                    window.flipFraming90();
+                }
+                break;
+            case 'copy-framing-url':
+                console.log('[GRAPH_VIEW] copy-framing-url');
+                if (typeof window.copyFramingUrl === 'function') {
+                    window.copyFramingUrl();
+                }
+                break;
+            case 'save-framing-db':
+                console.log('[GRAPH_VIEW] save-framing-db');
+                if (typeof window.saveFramingToDB === 'function') {
+                    window.saveFramingToDB();
+                }
+                break;
+            case 'copy-mosaic-csv':
+                console.log('[GRAPH_VIEW] copy-mosaic-csv');
+                if (typeof window.copyAsiairMosaic === 'function') {
+                    window.copyAsiairMosaic();
+                }
+                break;
+            case 'copy-ra-dec':
+                console.log('[GRAPH_VIEW] copy-ra-dec');
+                if (typeof window.copyRaDec === 'function') {
+                    window.copyRaDec();
+                }
+                break;
+            case 'recenter-fov':
+                console.log('[GRAPH_VIEW] recenter-fov');
+                if (typeof window.resetFovCenterToObject === 'function') {
+                    window.resetFovCenterToObject();
+                }
+                break;
+            case 'nudge-fov':
+                console.log('[GRAPH_VIEW] nudge-fov:', actionBtn.dataset.dx, actionBtn.dataset.dy);
+                if (typeof window.nudgeFov === 'function') {
+                    var dx = parseInt(actionBtn.dataset.dx) || 0;
+                    var dy = parseInt(actionBtn.dataset.dy) || 0;
+                    window.nudgeFov(dx, dy);
+                }
+                break;
+            case 'edit-project':
+                console.log('[GRAPH_VIEW] edit-project');
+                toggleProjectSubTabEdit(true);
+                e.preventDefault();
+                break;
+            case 'cancel-project-edit':
+                console.log('[GRAPH_VIEW] cancel-project-edit');
+                toggleProjectSubTabEdit(false);
+                e.preventDefault();
+                break;
+            default:
+                console.warn('[GRAPH_VIEW] Unknown action:', action);
+        }
+
+        // Handle stop propagation AFTER processing data-action (if specified on element)
+        if (actionBtn.dataset.stopPropagation === 'true') {
+            e.stopPropagation();
+        }
+    });
+
+    // --- Event Delegation for data-action attributes (change events) ---
+    document.addEventListener('change', function(e) {
+        const actionBtn = e.target.closest('[data-action]');
+        if (!actionBtn) return;
+
+        var action = actionBtn.dataset.action;
+        console.log('[GRAPH_VIEW] Change action triggered:', action, actionBtn);
+
+        switch(action) {
+            case 'toggle-lock-fov':
+                console.log('[GRAPH_VIEW] toggle-lock-fov:', actionBtn.checked);
+                if (typeof window.applyLockToObject === 'function') {
+                    window.applyLockToObject(actionBtn.checked);
+                }
+                break;
+            case 'toggle-geo-belt':
+                console.log('[GRAPH_VIEW] toggle-geo-belt:', actionBtn.checked);
+                if (typeof window.toggleGeoBelt === 'function') {
+                    window.toggleGeoBelt(actionBtn.checked);
+                }
+                break;
+            case 'update-framing-rig':
+                console.log('[GRAPH_VIEW] update-framing-rig');
+                if (typeof window.updateFramingChart === 'function') {
+                    window.updateFramingChart(true);
+                }
+                if (typeof window.updateFovVsObjectLabel === 'function') {
+                    window.updateFovVsObjectLabel();
+                }
+                break;
+            case 'update-mosaic':
+                console.log('[GRAPH_VIEW] update-mosaic');
+                if (typeof window.updateFramingChart === 'function') {
+                    window.updateFramingChart(false);
+                }
+                break;
+            case 'change-survey':
+                console.log('[GRAPH_VIEW] change-survey:', actionBtn.value);
+                if (typeof window.setSurvey === 'function') {
+                    window.setSurvey(actionBtn.value);
+                }
+                break;
+        }
+    });
+
+    // --- Event Delegation for data-action attributes (input events - for range sliders) ---
+    document.addEventListener('input', function(e) {
+        const actionBtn = e.target.closest('[data-action]');
+        if (!actionBtn) return;
+
+        var action = actionBtn.dataset.action;
+        console.log('[GRAPH_VIEW] Input action triggered:', action, actionBtn);
+
+        switch(action) {
+            case 'rotation-input':
+                console.log('[GRAPH_VIEW] rotation-input:', actionBtn.value);
+                if (typeof window.onRotationInput === 'function') {
+                    window.onRotationInput(actionBtn.value);
+                }
+                break;
+            case 'update-image-adjustments':
+                console.log('[GRAPH_VIEW] update-image-adjustments');
+                if (typeof window.updateImageAdjustments === 'function') {
+                    window.updateImageAdjustments();
+                }
+                break;
+        }
+    });
+
     // --- Main Initialization Block (DOMContentLoaded) ---
     document.addEventListener('DOMContentLoaded', function(event) {
         // --- Guest/Trix Setup ---
         if (window.IS_GUEST_USER) {
             var trixEditor = document.getElementById('project-field-editor');
-            var saveButton = document.querySelector('button[onclick="saveProject()"]');
+            var saveButton = document.querySelector('button[data-action="save-project"]');
 
             if (trixEditor) {
                 trixEditor.addEventListener('trix-initialize', function() {
@@ -310,7 +550,7 @@
                             '<td>' + opp.moon_illumination + '</td>' +
                             '<td>' + opp.moon_separation + '</td>' +
                             '<td>' + opp.rating + '</td>' +
-                            '<td><a href="' + icsUrl.href + '" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" onclick="event.stopPropagation();">\uD83D\uDCC5</a></td>';
+                            '<td><a href="' + icsUrl.href + '" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" data-stop-propagation="true">\uD83D\uDCC5</a></td>';
                         tableBody.appendChild(row);
                     });
                 } else {
@@ -327,4 +567,5 @@
             opportunitiesLoaded = true;
         }
     }
+
 })();
