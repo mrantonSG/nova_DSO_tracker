@@ -871,10 +871,8 @@
             button.addEventListener('click', e => {
                 document.querySelectorAll('.dropdown-content.show').forEach(d => { if (d !== button.nextElementSibling) d.classList.remove('show'); });
                 button.nextElementSibling.classList.toggle('show');
-                e.stopPropagation();
             });
         });
-        window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
 
         // --- Event delegation for click actions ---
         document.addEventListener('click', function(e) {
@@ -882,6 +880,11 @@
             if (!target) return;
 
             const action = target.dataset.action;
+
+            // Prevent default link behavior for import trigger action
+            if (action === 'trigger-file-input' && target.tagName === 'A') {
+                e.preventDefault();
+            }
             console.log('[CONFIG_FORM] Click action triggered:', action, target);
 
             switch(action) {
@@ -945,6 +948,15 @@
         // Clean up event listeners when navigating away (prevents memory leaks)
         window.addEventListener('beforeunload', () => {
             document.removeEventListener("trix-attachment-add", handleTrixAttachmentAdd);
+        });
+
+        // Click outside to close dropdowns
+        document.addEventListener('click', function(e) {
+            const dropdownContent = e.target.closest('.dropdown-content');
+            const dropdownBtn = e.target.closest('.dropdown-btn');
+            if (!dropdownContent && !dropdownBtn) {
+                document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show'));
+            }
         });
 
     });

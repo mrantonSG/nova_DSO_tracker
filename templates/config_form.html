@@ -1496,17 +1496,6 @@
         if (fetchDetailsForm) fetchDetailsForm.addEventListener('submit', function(e) { e.preventDefault(); confirmAndFetchDetails(this); });
 
 
-        // --- Dropdown Menu & Import Logic ---
-        document.querySelectorAll('.dropdown-btn').forEach(button => {
-            button.addEventListener('click', e => {
-                document.querySelectorAll('.dropdown-content.show').forEach(d => { if (d !== button.nextElementSibling) d.classList.remove('show'); });
-                button.nextElementSibling.classList.toggle('show');
-                e.stopPropagation();
-            });
-        });
-        window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
-
-
     });
 
     function parseStellariumHorizon(fileInput, textareaId) {
