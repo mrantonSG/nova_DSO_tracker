@@ -492,8 +492,299 @@
             chartInstance.update('none');
         }
     }
-    
-    
+
+    // ========================================================================
+    // Private Helper Functions for renderClientSideChart()
+    // ========================================================================
+
+    /**
+     * Convert time value to milliseconds for chart
+     * @param {number|string} val - Time value (can be unix timestamp or ISO string)
+     * @param {string} plotTz - Timezone for the plot
+     * @returns {number|null} - Time in milliseconds
+     */
+    function _convertToMilliseconds(val, plotTz) {
+        if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
+        if (typeof val === 'string') {
+            const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
+            if (hasOffset) return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
+            else return luxon.DateTime.fromISO(val, {zone: plotTz}).toMillis();
+        }
+        return null;
+    }
+
+    /**
+     * Build the "Now" line annotation for current time
+     * @param {number} nowMs - Current time in milliseconds
+     * @returns {Object} - Chart.js annotation configuration
+     */
+    function _buildCurrentTimeAnnotation(nowMs) {
+        return {
+            type: 'line',
+            borderColor: 'rgba(255, 99, 132, 0.8)',
+            borderWidth: 3,
+            borderDash: [10, 3],
+            label: {
+                display: true,
+                content: 'Now',
+                position: 'start',
+                rotation: 90,
+                font: { size: 10, weight: 'bold' },
+                color: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 255, 255, 0.7)'
+            },
+            xMin: nowMs,
+            xMax: nowMs,
+            xScaleID: 'x'
+        };
+    }
+
+    /**
+     * Build sun event annotations (sunset, sunrise, dusk, dawn)
+     * @param {Object} sunEvents - Sun events data {current, next}
+     * @param {Object} baseDt - Luxon DateTime for base date
+     * @param {Object} nextDt - Luxon DateTime for next day
+     * @returns {Object} - Map of annotation configurations
+     */
+    function _buildSunEventAnnotations(sunEvents, baseDt, nextDt) {
+        const annotations = {};
+
+        function wallTimeMs(baseDateTime, timeStr) {
+            if (!timeStr || !timeStr.includes(':')) return null;
+            const [h, m] = timeStr.split(':').map(Number);
+            return baseDateTime.set({hour: h, minute: m, second: 0, millisecond: 0}).toMillis();
+        }
+
+        const sunsetTimeCurrent = wallTimeMs(baseDt, sunEvents.current.sunset);
+        let duskTime;
+        const duskTimeCurrent = wallTimeMs(baseDt, sunEvents.current.astronomical_dusk);
+        if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) {
+            duskTime = wallTimeMs(nextDt, sunEvents.current.astronomical_dusk);
+        } else {
+            duskTime = duskTimeCurrent;
+        }
+        const dawnTime = wallTimeMs(nextDt, sunEvents.next.astronomical_dawn);
+        const sunriseTime = wallTimeMs(nextDt, sunEvents.next.sunrise);
+        const sunsetTime = sunsetTimeCurrent;
+
+        const labelConfig = {
+            display: true,
+            position: 'start',
+            rotation: 90,
+            font: {size: 10, weight: '400'},
+            color: '#222',
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            borderColor: 'rgba(0,0,0,0.15)',
+            borderWidth: 1
+        };
+
+        if (sunsetTime) {
+            annotations.sunsetLine = {
+                type: 'line',
+                xMin: sunsetTime,
+                xMax: sunsetTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Sunset' }
+            };
+        }
+        if (duskTime) {
+            annotations.duskLine = {
+                type: 'line',
+                xMin: duskTime,
+                xMax: duskTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Astronomical dusk' }
+            };
+        }
+        if (dawnTime) {
+            annotations.dawnLine = {
+                type: 'line',
+                xMin: dawnTime,
+                xMax: dawnTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Astronomical dawn' }
+            };
+        }
+        if (sunriseTime) {
+            annotations.sunriseLine = {
+                type: 'line',
+                xMin: sunriseTime,
+                xMax: sunriseTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Sunrise' }
+            };
+        }
+
+        return { annotations, duskTime, dawnTime };
+    }
+
+    /**
+     * Build transit time annotations
+     * @param {string} transitTime - Transit time string (may include multiple times)
+     * @param {Object} baseDt - Luxon DateTime for base date
+     * @param {number} duskTime - Dusk time in milliseconds
+     * @param {number} dawnTime - Dawn time in milliseconds
+     * @returns {Object} - Map of transit annotation configurations
+     */
+    function _buildTransitAnnotations(transitTime, baseDt, duskTime, dawnTime) {
+        const annotations = {};
+        if (!transitTime || transitTime === "N/A") return annotations;
+
+        const transitStrings = transitTime.split(',').map(s => s.trim());
+
+        transitStrings.forEach((tStr, idx) => {
+            const parts = tStr.split(':');
+            const th = Number(parts[0] || 0);
+            const tm = Number(parts[1] || 0);
+            const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+            const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
+
+            const nightStart = duskTime;
+            const nightEnd = dawnTime;
+            const inWindow = (t) => t >= nightStart && t <= nightEnd;
+
+            const transitMs = inWindow(t0) ? t0 : t1;
+
+            // Only draw if within dark window
+            if (transitMs < nightStart || transitMs > nightEnd) {
+                return;
+            }
+
+            const annotKey = `transitLine_${idx}`;
+            annotations[annotKey] = {
+                type: 'line',
+                xMin: transitMs,
+                xMax: transitMs,
+                borderColor: 'crimson',
+                borderWidth: 2,
+                borderDash: [6, 6],
+                clip: false,
+                label: {
+                    display: true,
+                    content: tStr,
+                    position: 'start',
+                    rotation: 90,
+                    font: {size: 10, weight: 'bold'},
+                    color: 'crimson',
+                    backgroundColor: 'rgba(255,255,255,0.7)'
+                }
+            };
+        });
+
+        return annotations;
+    }
+
+    /**
+     * Create the night shade plugin for Chart.js
+     * @param {number} duskTime - Dusk time in milliseconds
+     * @param {number} dawnTime - Dawn time in milliseconds
+     * @returns {Object} - Chart.js plugin configuration
+     */
+    function _createNightShadePlugin(duskTime, dawnTime) {
+        return {
+            id: 'nightShade',
+            beforeDraw(chart) {
+                const {ctx, chartArea, scales} = chart;
+                if (!chartArea) return;
+                const left = scales.x.getPixelForValue(scales.x.min);
+                const right = scales.x.getPixelForValue(scales.x.max);
+                const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
+                const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
+                ctx.save();
+                ctx.fillStyle = 'rgba(211, 211, 211, 1)';
+                if (duskPx < dawnPx) {
+                    if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
+                    if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
+                } else {
+                    ctx.fillRect(left, chartArea.top, right - left, chartArea.height);
+                }
+                ctx.restore();
+            }
+        };
+    }
+
+    /**
+     * Build Chart.js datasets for altitude and azimuth
+     * @param {Object} data - Chart data from API
+     * @param {Array} labels - Time labels in milliseconds
+     * @param {string} objectName - Name of the astronomical object
+     * @returns {Array} - Chart.js dataset configurations
+     */
+    function _buildChartDatasets(data, labels, objectName) {
+        return [
+            { label: `${objectName} Altitude`, data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+            { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+            { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
+            { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
+            { label: `${objectName} Azimuth`, data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+            { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
+        ];
+    }
+
+    /**
+     * Build Chart.js options configuration
+     * @param {Object} annotations - Annotation configurations
+     * @param {string} plotTz - Timezone for the plot
+     * @param {string} plotLocName - Location name for display
+     * @param {number} xMinCentered - Minimum x-axis value
+     * @param {number} xMaxCentered - Maximum x-axis value
+     * @param {string} objectName - Name of the astronomical object
+     * @param {string} date - Date string for display
+     * @returns {Object} - Chart.js options configuration
+     */
+    function _buildChartOptions(annotations, plotTz, plotLocName, xMinCentered, xMaxCentered, objectName, date) {
+        return {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2,
+            adapters: {date: {zone: plotTz}},
+            layout: { padding: { top: 46 } },
+            plugins: {
+                annotation: {annotations},
+                legend: {position: 'right'},
+                title: {
+                    display: false,
+                    text: `Altitude and Azimuth for ${objectName} on ${date}`,
+                    align: 'start',
+                    font: {size: 16}
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    adapters: { date: { zone: plotTz }},
+                    parsing: false,
+                    time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}},
+                    min: xMinCentered,
+                    max: xMaxCentered,
+                    bounds: 'ticks',
+                    ticks: {source: 'auto'},
+                    grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]},
+                    title: {display: true, text: `Time (Local - ${plotLocName})`}
+                },
+                yAltitude: {
+                    position: 'left',
+                    min: -90,
+                    max: 90,
+                    title: {display: true, text: 'Altitude (°)'},
+                    grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}
+                },
+                yAzimuth: {
+                    position: 'right',
+                    min: 0,
+                    max: 360,
+                    title: {display: true, text: 'Azimuth (°)'},
+                    grid: {drawOnChartArea: false}
+                }
+            }
+        };
+    }
+
+
     async function renderClientSideChart() {
         const chartLoadingDiv = document.getElementById('chart-loading');
         chartLoadingDiv?.classList.remove('hidden');
@@ -517,40 +808,19 @@
             const resp = await fetch(apiUrl);
             if (!resp.ok) throw new Error(`Failed to fetch chart data: ${resp.status} ${resp.statusText}`);
             const data = await resp.json();
-            function toMs(val) {
-                if (typeof val === 'number') return (val < 1e12 ? val * 1000 : val);
-                if (typeof val === 'string') {
-                    const hasOffset = /[Zz]|[+\-]\d{2}:?\d{2}$/.test(val);
-                    if (hasOffset) return luxon.DateTime.fromISO(val).setZone(plotTz).toMillis();
-                    else return luxon.DateTime.fromISO(val, {zone: plotTz}).toMillis();
-                }
-                return null;
-            }
-            const labels = data.times.map(toMs);
-            const annotations = {};
+
+            // Convert times to milliseconds using helper
+            const labels = data.times.map(val => _convertToMilliseconds(val, plotTz));
+
+            // Build current time annotation
             const nowMs = luxon.DateTime.now().setZone(plotTz).toMillis();
-    annotations.currentTimeLine = {
-                type: 'line',
-                borderColor: 'rgba(255, 99, 132, 0.8)', // Reddish color
-                // --- ADD THESE TWO LINES ---
-                borderWidth: 3,                           // Set the line thickness
-                borderDash: [10, 3],                       // Define the dash pattern [dash length, gap length]
-                // --- END ADD ---
-                label: {
-                    display: true,
-                    content: 'Now',
-                    position: 'start',
-                    rotation: 90,
-                    font: { size: 10, weight: 'bold' },
-                    color: 'rgba(255, 99, 132, 1)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)'
-                },
-                xMin: nowMs, // Set initial position
-                xMax: nowMs, // Set initial position
-                xScaleID: 'x' // Ensure it uses the correct x-axis
-            };
+            const annotations = {};
+            annotations.currentTimeLine = _buildCurrentTimeAnnotation(nowMs);
+            // Build date times for calculations
             const baseDt = luxon.DateTime.fromISO(data.date, {zone: plotTz});
             const nextDt = baseDt.plus({days: 1});
+
+            // Weather info configs (used by weather overlay plugin)
             const cloudInfo = {
                 1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.15)'},
                 2: {label: 'P. Clear', color: 'rgba(135, 206, 250, 0.25)'},
@@ -572,135 +842,40 @@
                 7: {label: 'See: Poor', color: 'rgba(255, 69, 0, 0.3)'},
                 8: {label: 'See: Bad', color: 'rgba(255, 0, 0, 0.3)'}
             };
-    
-            // --- MODIFIED: Weather is now fetched async, so we start with an empty array ---
-            const hasWeather = false;
-            const forecastForOverlay = [];
-            const drawableForecast = [];
-            const hasDrawableWeather = false;
-            // --- END MODIFICATION ---
-    
-            function wallTimeMs(baseDateTime, timeStr) {
-                if (!timeStr || !timeStr.includes(':')) return null;
-                const [h, m] = timeStr.split(':').map(Number);
-                return baseDateTime.set({hour: h, minute: m, second: 0, millisecond: 0}).toMillis();
-            }
-            const sunsetTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.sunset);
-            let duskTime;
-            const duskTimeCurrent = wallTimeMs(baseDt, data.sun_events.current.astronomical_dusk);
-            if (duskTimeCurrent && sunsetTimeCurrent && duskTimeCurrent < sunsetTimeCurrent) duskTime = wallTimeMs(nextDt, data.sun_events.current.astronomical_dusk);
-            else duskTime = duskTimeCurrent;
-            const dawnTime = wallTimeMs(nextDt, data.sun_events.next.astronomical_dawn);
-            const sunriseTime = wallTimeMs(nextDt, data.sun_events.next.sunrise);
-            const sunsetTime = sunsetTimeCurrent;
-            const firstMs = labels[0], lastMs = labels[labels.length - 1], originalWindowMs = lastMs - firstMs, midnightMs = luxon.DateTime.fromISO(data.date, {zone: plotTz}).plus({days: 1}).startOf('day').toMillis();
-            const currentCenterMs = (firstMs + lastMs) / 2, delta = midnightMs - currentCenterMs, xMinCentered = firstMs + delta, xMaxCentered = xMinCentered + originalWindowMs;
-            if (sunsetTime) annotations.sunsetLine = { type: 'line', xMin: sunsetTime, xMax: sunsetTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Sunset', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
-            if (duskTime) annotations.duskLine = { type: 'line', xMin: duskTime, xMax: duskTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Astronomical dusk', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
-            if (dawnTime) annotations.dawnLine = { type: 'line', xMin: dawnTime, xMax: dawnTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Astronomical dawn', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
-            if (sunriseTime) annotations.sunriseLine = { type: 'line', xMin: sunriseTime, xMax: sunriseTime, borderColor: 'black', borderWidth: 1, label: { display: true, content: 'Sunrise', position: 'start', rotation: 90, font: {size: 10, weight: '400'}, color: '#222', backgroundColor: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1 } };
-            if (data.transit_time && data.transit_time !== "N/A") {
-                const transitStrings = data.transit_time.split(',').map(s => s.trim());
-    
-                transitStrings.forEach((tStr, idx) => {
-                    const parts = tStr.split(':'), th = Number(parts[0] || 0), tm = Number(parts[1] || 0);
-                    const t0 = baseDt.set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
-                    const t1 = baseDt.plus({days: 1}).set({hour: th, minute: tm, second: 0, millisecond: 0}).toMillis();
-    
-                    const nightStart = duskTime, nightEnd = dawnTime;
-                    const inWindow = (t) => t >= nightStart && t <= nightEnd;
-    
-                    // Determine which instance of this transit (today or tomorrow) falls in the night window
-                    const transitMs = inWindow(t0) ? t0 : t1;
-    
-                    // Only draw the annotation if it falls within the dark window (Dusk to Dawn)
-                    if (transitMs < nightStart || transitMs > nightEnd) {
-                        return;
-                    }
-    
-                    const annotKey = `transitLine_${idx}`;
-                    annotations[annotKey] = {
-                        type: 'line',
-                        xMin: transitMs,
-                        xMax: transitMs,
-                        borderColor: 'crimson',
-                        borderWidth: 2,
-                        borderDash: [6, 6],
-                        clip: false,
-                        label: {
-                            display: true,
-                            content: tStr,
-                            position: 'start',
-                            rotation: 90,
-                            font: {size: 10, weight: 'bold'},
-                            color: 'crimson',
-                            backgroundColor: 'rgba(255,255,255,0.7)'
-                        }
-                    };
-                });
-            }
-            const nightShade = { id: 'nightShade', beforeDraw(chart) { const {ctx, chartArea, scales} = chart; if (!chartArea) return; const left = scales.x.getPixelForValue(scales.x.min), right = scales.x.getPixelForValue(scales.x.max); const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right, dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left; ctx.save(); ctx.fillStyle = 'rgba(211, 211, 211, 1)'; if (duskPx < dawnPx) { if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height); if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height); } else ctx.fillRect(left, chartArea.top, right - left, chartArea.height); ctx.restore(); } };
+
+            // Build sun event annotations using helper
+            const sunEventResult = _buildSunEventAnnotations(data.sun_events, baseDt, nextDt);
+            Object.assign(annotations, sunEventResult.annotations);
+            const duskTime = sunEventResult.duskTime;
+            const dawnTime = sunEventResult.dawnTime;
+
+            // Calculate x-axis centering on midnight
+            const firstMs = labels[0], lastMs = labels[labels.length - 1];
+            const originalWindowMs = lastMs - firstMs;
+            const midnightMs = luxon.DateTime.fromISO(data.date, {zone: plotTz}).plus({days: 1}).startOf('day').toMillis();
+            const currentCenterMs = (firstMs + lastMs) / 2;
+            const delta = midnightMs - currentCenterMs;
+            const xMinCentered = firstMs + delta;
+            const xMaxCentered = xMinCentered + originalWindowMs;
+
+            // Build transit annotations using helper
+            const transitAnnotations = _buildTransitAnnotations(data.transit_time, baseDt, duskTime, dawnTime);
+            Object.assign(annotations, transitAnnotations);
+
+            // Create night shade plugin using helper
+            const nightShade = _createNightShadePlugin(duskTime, dawnTime);
+            // Create chart using helper functions
             const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
             if (window.altitudeChart) window.altitudeChart.destroy();
+
+            const datasets = _buildChartDatasets(data, labels, NOVA_GRAPH_DATA.objectName);
+            const chartOptions = _buildChartOptions(annotations, plotTz, plotLocName, xMinCentered, xMaxCentered, NOVA_GRAPH_DATA.altName, data.date);
+
             window.altitudeChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: `${NOVA_GRAPH_DATA.objectName} Altitude`, data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-                        { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-                        { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
-                        { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
-                        { label: `${NOVA_GRAPH_DATA.objectName} Azimuth`, data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
-                        { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
-                    ]
-                },
-                plugins: [nightShade, weatherOverlayPlugin], // Always include weather plugin
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2,
-                    adapters: {date: {zone: plotTz}},
-                    layout: { padding: { top: 46 } }, // Always reserve space
-                    plugins: {
-                        annotation: {annotations},
-                        legend: {position: 'right'},
-                        title: {
-                            display: false,
-                            text: `Altitude and Azimuth for ${NOVA_GRAPH_DATA.altName} on ${data.date}`,
-                            align: 'start',
-                            font: {size: 16}
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            adapters: { date: { zone: plotTz }},
-                            parsing: false,
-                            time: {unit: 'hour', displayFormats: {hour: 'HH:mm'}},
-                            min: xMinCentered,
-                            max: xMaxCentered,
-                            bounds: 'ticks',
-                            ticks: {source: 'auto'},
-                            grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]},
-                            title: {display: true, text: `Time (Local - ${NOVA_GRAPH_DATA.plotLocName})`}
-                        },
-                        yAltitude: {
-                            position: 'left',
-                            min: -90,
-                            max: 90,
-                            title: {display: true, text: 'Altitude (°)'},
-                            grid: {color: 'rgba(128,128,128,0.5)', borderDash: [2, 2]}
-                        },
-                        yAzimuth: {
-                            position: 'right',
-                            min: 0,
-                            max: 360,
-                            title: {display: true, text: 'Azimuth (°)'},
-                            grid: {drawOnChartArea: false}
-                        }
-                    }
-                }
+                data: { labels, datasets },
+                plugins: [nightShade, weatherOverlayPlugin],
+                options: chartOptions
             });
     
             // --- NEW: Initialize weather object and start async fetch ---
@@ -805,6 +980,127 @@
         const isFullscreen = modalContent.classList.contains('fullscreen');
         if (btn) { btn.innerHTML = isFullscreen ? '&#x21F2;' : '&#x2922;'; btn.title = isFullscreen ? 'Exit fullscreen' : 'Fullscreen'; }
     }
+
+    // ========================================================================
+    // Private Helper Functions for openFramingAssistant()
+    // ========================================================================
+
+    /**
+     * Parse query string parameters for framing assistant
+     * Handles legacy survey URL mapping
+     * @param {string} queryString - URL query string
+     * @returns {Object} - Parsed parameters {rig, ra, dec, rot, survey, blend, blendOp, m_cols, m_rows, m_ov}
+     */
+    function _parseFramingQueryString(queryString) {
+        const q = new URLSearchParams(queryString || '');
+
+        // Legacy mapping for old survey URLs
+        const legacyMapping = {
+            "https://www.simg.de/nebulae3/dr0_1/hbr8": "https://www.simg.de/nebulae3/dr0_2/hbr8",
+            "https://www.simg.de/nebulae3/dr0_1/halpha8": "https://www.simg.de/nebulae3/dr0_2/halpha8",
+            "https://www.simg.de/nebulae3/dr0_1/tc8": "https://www.simg.de/nebulae3/dr0_2/rgb8"
+        };
+
+        let survey = q.get('survey');
+        if (legacyMapping[survey]) {
+            console.log("Upgrading legacy survey URL:", survey);
+            survey = legacyMapping[survey];
+        }
+
+        let blend = q.get('blend');
+        if (legacyMapping[blend]) {
+            blend = legacyMapping[blend];
+        }
+
+        const result = {
+            rig: q.get('rig'),
+            ra: parseFloat(q.get('ra')),
+            dec: parseFloat(q.get('dec')),
+            rot: parseFloat(q.get('rot')),
+            survey: survey,
+            blend: blend,
+            blendOp: parseFloat(q.get('blend_op')),
+            m_cols: q.get('m_cols'),
+            m_rows: q.get('m_rows'),
+            m_ov: q.get('m_ov')
+        };
+
+        return result;
+    }
+
+    /**
+     * Restore framing assistant state from parsed query parameters
+     * @param {Object} params - Parsed query parameters
+     * @param {Function} setSurvey - Function to set survey
+     * @param {Function} ensureBlendLayer - Function to ensure blend layer exists
+     * @param {Function} setBlendOpacity - Function to set blend opacity
+     * @returns {Object} - State flags {haveCenter, haveRot, haveRigRestored}
+     */
+    function _restoreFramingState(params, setSurvey, ensureBlendLayer, setBlendOpacity) {
+        const flags = {
+            haveCenter: false,
+            haveRot: false,
+            haveRigRestored: false
+        };
+
+        // Restore rig selection
+        if (params.rig) {
+            const sel = document.getElementById('framing-rig-select');
+            if (sel) {
+                const idx = Array.from(sel.options).findIndex(o => o.value === params.rig);
+                if (idx >= 0) {
+                    sel.selectedIndex = idx;
+                    flags.haveRigRestored = true;
+                }
+            }
+        }
+
+        // Restore rotation
+        if (!Number.isNaN(params.rot)) {
+            const rotInput = document.getElementById('framing-rotation');
+            const normRot = (params.rot % 360 + 360) % 360;
+            if (rotInput) rotInput.value = normRot;
+            const rotSpan = document.getElementById('rotation-value');
+            if (rotSpan) rotSpan.textContent = `${Math.round(normRot)}°`;
+            flags.haveRot = true;
+        }
+
+        // Restore survey
+        if (params.survey) {
+            const sSel = document.getElementById('survey-select');
+            if (sSel) sSel.value = params.survey;
+            if (typeof setSurvey === 'function') setSurvey(params.survey);
+        }
+
+        // Restore blend settings
+        try {
+            const bsel = document.getElementById('blend-survey-select');
+            const bop = document.getElementById('blend-opacity');
+            if (params.blend && bsel) {
+                bsel.value = params.blend;
+                if (typeof ensureBlendLayer === 'function') ensureBlendLayer();
+            }
+            if (!Number.isNaN(params.blendOp) && bop) {
+                bop.value = String(Math.max(0, Math.min(1, params.blendOp)));
+                if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value);
+            }
+        } catch (e) {
+            console.warn('[nova] Blend restore error:', e);
+        }
+
+        // Restore mosaic settings
+        if (params.m_cols) document.getElementById('mosaic-cols').value = params.m_cols;
+        if (params.m_rows) document.getElementById('mosaic-rows').value = params.m_rows;
+        if (params.m_ov) document.getElementById('mosaic-overlap').value = params.m_ov;
+
+        // Restore center coordinates
+        if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
+            flags.haveCenter = true;
+        }
+
+        return flags;
+    }
+
     function openFramingAssistant(optionalQueryString) {
         const framingModal = document.getElementById('framing-modal');
         framingModal.style.display = 'block'; // Show the modal frame immediately
@@ -909,66 +1205,44 @@
         return '?' + qp.toString();
     }
     
-        let haveCenter = false, haveRot = false, haveRigRestored = false;
+        // Parse query string and restore state using helpers
+        let params, flags;
         try {
-            // --- FIX: Use optionalQueryString if provided, otherwise fallback to location.search ---
-            const q = new URLSearchParams(optionalQueryString || location.search);
-    
-            // --- 1. HANDLE LEGACY MAPPING (Mutable Variables) ---
-            const legacyMapping = {
-                "https://www.simg.de/nebulae3/dr0_1/hbr8": "https://www.simg.de/nebulae3/dr0_2/hbr8",
-                "https://www.simg.de/nebulae3/dr0_1/halpha8": "https://www.simg.de/nebulae3/dr0_2/halpha8",
-                "https://www.simg.de/nebulae3/dr0_1/tc8": "https://www.simg.de/nebulae3/dr0_2/rgb8"
-            };
-    
-            let surv = q.get('survey');
-            if (legacyMapping[surv]) {
-                console.log("Upgrading legacy survey URL:", surv);
-                surv = legacyMapping[surv];
-            }
-    
-            let blend = q.get('blend');
-            if (legacyMapping[blend]) {
-                blend = legacyMapping[blend];
-            }
-    
-            // --- 2. HANDLE OTHER PARAMS (Const Variables) ---
-            // REMOVED 'surv' and 'blend' from this list to avoid overwriting the fix above
-            const rig = q.get('rig'),
-                  ra = parseFloat(q.get('ra')),
-                  dec = parseFloat(q.get('dec')),
-                  rot = parseFloat(q.get('rot')),
-                  blendOp = parseFloat(q.get('blend_op'));
-    
-            // Restore Mosaic
-            if (q.has('m_cols')) document.getElementById('mosaic-cols').value = q.get('m_cols');
-            if (q.has('m_rows')) document.getElementById('mosaic-rows').value = q.get('m_rows');
-            if (q.has('m_ov')) document.getElementById('mosaic-overlap').value = q.get('m_ov');
-    
-            if (rig) { const sel = document.getElementById('framing-rig-select'); if (sel) { const idx = Array.from(sel.options).findIndex(o => o.value === rig); if (idx >= 0) { sel.selectedIndex = idx; haveRigRestored = true; } } }
-    
-            if (!Number.isNaN(rot)) {
-                const rotInput = document.getElementById('framing-rotation');
-                // Normalize to 0-360 positive
-                const normRot = (rot % 360 + 360) % 360;
-                if (rotInput) rotInput.value = normRot;
-                const rotSpan = document.getElementById('rotation-value');
-                if (rotSpan) rotSpan.textContent = `${Math.round(normRot)}°`;
-                haveRot = true;
-            }
-            if (surv) {
-                // Explicitly sync the dropdown UI first
-                const sSel = document.getElementById('survey-select');
-                if (sSel) sSel.value = surv;
-                // Then update the Aladin layer
-                if (typeof setSurvey === 'function') setSurvey(surv);
-            }
-            try { const bsel = document.getElementById('blend-survey-select'), bop = document.getElementById('blend-opacity'); if (blend && bsel) { bsel.value = blend; if (typeof ensureBlendLayer === 'function') ensureBlendLayer(); } if (!Number.isNaN(blendOp) && bop) { bop.value = String(Math.max(0, Math.min(1, blendOp))); if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value); } } catch (e) {}
-            try { const bop2 = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop2) setBlendOpacity(bop2.value); } catch (e) {}
-            if (!Number.isNaN(ra) && !Number.isNaN(dec)) { fovCenter = {ra, dec}; haveCenter = true; } else fovCenter = null;
-        } catch (e) {}
-        try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) {}
-        if (!haveRot) { const rotInput = document.getElementById('framing-rotation'); if (rotInput) rotInput.value = 0; const rotSpan = document.getElementById('rotation-value'); if (rotSpan) rotSpan.textContent = `0°`; }
+            params = _parseFramingQueryString(optionalQueryString || location.search);
+            flags = _restoreFramingState(params, setSurvey, ensureBlendLayer, setBlendOpacity);
+        } catch (e) {
+            console.warn('[nova] Query parsing error:', e);
+            params = {};
+            flags = {haveCenter: false, haveRot: false, haveRigRestored: false};
+        }
+
+        const haveCenter = flags.haveCenter;
+        const haveRot = flags.haveRot;
+        const haveRigRestored = flags.haveRigRestored;
+
+        // Set fovCenter if we have coordinates
+        if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
+            fovCenter = {ra: params.ra, dec: params.dec};
+        } else {
+            fovCenter = null;
+        }
+
+        // Ensure blend layer is applied
+        try {
+            const bop = document.getElementById('blend-opacity');
+            ensureBlendLayer();
+            if (bop) setBlendOpacity(bop.value);
+        } catch (e) {
+            console.warn('[nova] Blend layer setup error:', e);
+        }
+
+        // Set default rotation if not restored
+        if (!haveRot) {
+            const rotInput = document.getElementById('framing-rotation');
+            if (rotInput) rotInput.value = 0;
+            const rotSpan = document.getElementById('rotation-value');
+            if (rotSpan) rotSpan.textContent = `0°`;
+        }
         if (haveCenter) { const lockBox = document.getElementById('lock-to-object'); if (lockBox) lockBox.checked = false; lockToObject = false; if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(fovCenter.ra, fovCenter.dec); if (haveCenter) { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } } }
         updateFramingChart(haveCenter ? false : true);
         updateFovVsObjectLabel?.();
