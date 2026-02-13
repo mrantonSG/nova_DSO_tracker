@@ -75,7 +75,7 @@
         {% if project.goals %}
         <div class="report-block">
             <div class="section-header">Goals</div>
-            <div class="notes-content">{{ project.goals | safe }}</div>
+            <div class="notes-content">{{ project.goals | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
@@ -83,21 +83,21 @@
         {% if project.description_notes %}
         <div class="report-block">
             <div class="section-header">Project Story</div>
-            <div class="notes-content">{{ project.description_notes | safe }}</div>
+            <div class="notes-content">{{ project.description_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.framing_notes %}
         <div class="report-block">
             <div class="section-header">Framing & Composition</div>
-            <div class="notes-content">{{ project.framing_notes | safe }}</div>
+            <div class="notes-content">{{ project.framing_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.processing_notes %}
         <div class="report-block">
             <div class="section-header">Processing Workflow</div>
-            <div class="notes-content">{{ project.processing_notes | safe }}</div>
+            <div class="notes-content">{{ project.processing_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 

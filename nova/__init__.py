@@ -6495,6 +6495,31 @@ def journal_add_for_target(object_name):
 def sanitize_object_name(object_name):
     return object_name.replace("/", "-")
 
+@app.template_filter('sanitize_html')
+def sanitize_html_filter(html_content):
+    """
+    Jinja2 template filter to sanitize user-provided HTML content.
+    Allows safe HTML tags and attributes while stripping potentially dangerous content.
+    Use this with | safe when rendering user content: {{ user_content | sanitize_html | safe }}
+    """
+    if not html_content:
+        return ""
+
+    from bleach.css_sanitizer import CSSSanitizer
+
+    SAFE_TAGS = ['p', 'strong', 'em', 'b', 'i', 'u', 'del', 'strike', 'sub', 'sup',
+                 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span',
+                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code']
+    SAFE_ATTRS = {
+        'img': ['src', 'alt', 'width', 'height', 'style'],
+        'a': ['href', 'title'],
+        '*': ['style', 'class']
+    }
+    SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
+    css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+
+    return bleach.clean(html_content, tags=SAFE_TAGS, attributes=SAFE_ATTRS, css_sanitizer=css_sanitizer)
+
 @app.context_processor
 def inject_user_mode():
     from flask_login import current_user

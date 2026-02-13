@@ -55,7 +55,7 @@
 
                     <div class="notes-section">
                         <h3>Goals & Status</h3>
-                        <div class="notes-content">{{ goals_html | default('No goals set.', true) | safe }}</div>
+                        <div class="notes-content">{{ goals_html | default('No goals set.', true) | sanitize_html | safe }}</div>
                     </div>
 
                     {% if project.final_image_file %}
@@ -72,17 +72,17 @@
                 <div class="project-main-column">
                     <div class="notes-section">
                         <h3>Project Story & Learnings</h3>
-                        <div class="notes-content">{{ description_notes_html | default('No project description added.', true) | safe }}</div>
+                        <div class="notes-content">{{ description_notes_html | default('No project description added.', true) | sanitize_html | safe }}</div>
                     </div>
 
                     <div class="notes-section">
                         <h3>Framing Notes</h3>
-                        <div class="notes-content">{{ framing_notes_html | default('No framing notes added.', true) | safe }}</div>
+                        <div class="notes-content">{{ framing_notes_html | default('No framing notes added.', true) | sanitize_html | safe }}</div>
                     </div>
 
                     <div class="notes-section">
                         <h3>Processing Notes</h3>
-                        <div class="notes-content">{{ processing_notes_html | default('No processing workflow recorded.', true) | safe }}</div>
+                        <div class="notes-content">{{ processing_notes_html | default('No processing workflow recorded.', true) | sanitize_html | safe }}</div>
                     </div>
 
                     <div class="notes-section">
@@ -153,7 +153,7 @@
                                 </select>
                             </div>
                             <div class="form-group trix-editor-container"><label for="goals-editor-edit">Goals & Status:</label>
-                                <input type="hidden" id="goals-hidden" name="goals" value="{{ goals_html | safe }}">
+                                <input type="hidden" id="goals-hidden" name="goals" value="{{ goals_html | sanitize_html | safe }}">
                                 <trix-editor input="goals-hidden" id="goals-editor-edit" style="min-height: 100px;"></trix-editor>
                             </div>
 
@@ -172,17 +172,17 @@
 
                     <div class="project-main-column">
                         <div class="notes-section form-group full-width trix-editor-container"><label for="description-editor-edit">Project Story & Learnings:</label>
-                            <input type="hidden" id="description-hidden" name="description_notes" value="{{ description_notes_html | safe }}">
+                            <input type="hidden" id="description-hidden" name="description_notes" value="{{ description_notes_html | sanitize_html | safe }}">
                             <trix-editor input="description-hidden" id="description-editor-edit" style="min-height: 150px;"></trix-editor>
                         </div>
 
                         <div class="notes-section form-group full-width trix-editor-container"><label for="framing-editor-edit">Framing Notes (Composition/FoV):</label>
-                            <input type="hidden" id="framing-hidden" name="framing_notes" value="{{ framing_notes_html | safe }}">
+                            <input type="hidden" id="framing-hidden" name="framing_notes" value="{{ framing_notes_html | sanitize_html | safe }}">
                             <trix-editor input="framing-hidden" id="framing-editor-edit" style="min-height: 150px;"></trix-editor>
                         </div>
 
                         <div class="notes-section form-group full-width trix-editor-container"><label for="processing-editor-edit">Processing Notes & Workflow:</label>
-                            <input type="hidden" id="processing-hidden" name="processing_notes" value="{{ processing_notes_html | safe }}">
+                            <input type="hidden" id="processing-hidden" name="processing_notes" value="{{ processing_notes_html | sanitize_html | safe }}">
                             <trix-editor input="processing-hidden" id="processing-editor-edit" style="min-height: 150px;"></trix-editor>
                         </div>
                     </div>

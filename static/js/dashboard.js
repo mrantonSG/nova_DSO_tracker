@@ -9,6 +9,8 @@
         let activeTab = localStorage.getItem('activeTab') || 'position';
         let outlookDataLoaded = false;
         let activeFetchController = null; // Controls network cancellation
+        let dataUpdateIntervalId = null; // 60-second interval for data updates
+        let timerUpdateIntervalId = null; // 1-second interval for countdown display
     
         // --- ADDED FOR SAVED VIEWS ---
         let savedViewsDropdown, saveViewBtn, deleteViewBtn;
@@ -1878,18 +1880,22 @@
           let timeToNextUpdate = 60;
           const updateIntervalInSeconds = 60;
           const timerSpan = document.getElementById('next-update-timer');
-    
+
+          // Clear any existing intervals before creating new ones (prevents memory leaks on re-initialization)
+          if (dataUpdateIntervalId) clearInterval(dataUpdateIntervalId);
+          if (timerUpdateIntervalId) clearInterval(timerUpdateIntervalId);
+
           // This is the 60-second interval to fetch data
-          setInterval(() => {
+          dataUpdateIntervalId = setInterval(() => {
             if (document.getElementById('sim-mode-toggle')?.checked) return;
             fetchData(true); // <--- TRUE enables background mode (no progress bar)
             fetchSunEvents();
             timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
             if (timerSpan) timerSpan.textContent = `in ${timeToNextUpdate}s`; // Update text immediately
           }, updateIntervalInSeconds * 1000); // 60000ms
-    
+
           // This is the new 1-second interval to update the countdown display
-          setInterval(() => {
+          timerUpdateIntervalId = setInterval(() => {
               if (document.getElementById('sim-mode-toggle')?.checked) return;
               timeToNextUpdate--; // Decrement the timer
               if (timeToNextUpdate < 0) {
@@ -1899,8 +1905,14 @@
                   timerSpan.textContent = `in ${timeToNextUpdate}s`;
               }
           }, 1000); // Run every 1 second
+
+          // Clean up intervals when navigating away or reloading (prevents memory leaks)
+          window.addEventListener('beforeunload', () => {
+              if (dataUpdateIntervalId) clearInterval(dataUpdateIntervalId);
+              if (timerUpdateIntervalId) clearInterval(timerUpdateIntervalId);
+          });
           // --- END: New Timer Logic ---
-    
+
           activeTab = localStorage.getItem('activeTab') || 'position';
           const initialDsoSortColumnKey = localStorage.getItem("dso_sortColumnKey") || 'Altitude Current';
           const initialDsoSortOrder = localStorage.getItem("dso_sortOrder") || 'desc';
@@ -1952,16 +1964,7 @@
           // --- END OF ADD ---
     
           updateTabDisplay();
-    
-          // The 60-second interval is now handled by the new timer logic above
-          // so we remove the old one.
-          /*
-          setInterval(() => {
-            fetchData();
-            fetchSunEvents();
-          }, 60000);
-          */
-    
+
           document.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', () => { activeTab = button.dataset.tab; updateTabDisplay(); });
           });

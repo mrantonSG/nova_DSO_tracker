@@ -149,7 +149,7 @@
 
                         <h4 class="section-title">Notes & Reflections</h4>
                         <div class="session-notes-container" style="min-height: 200px;">
-                            {{ session.notes | safe | default('-') }}
+                            {{ session.notes | sanitize_html | safe | default('-') }}
                         </div>
                     </td>
 
