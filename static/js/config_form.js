@@ -1,6 +1,10 @@
     // --- Global variables (defined in inline template script) ---
     // CURRENT_USERNAME, rigsData, rigsDataLoaded, rigSort are all defined in the inline script
 
+    // --- DEBUG ---
+    console.log('[CONFIG_FORM] External script loaded!');
+    console.log('[CONFIG_FORM] window.NOVA_CONFIG_FORM:', typeof window.NOVA_CONFIG_FORM);
+
     // --- Rigs Tab Functions ---
 
     function populateComponentFormForEdit(type, id) {
@@ -49,10 +53,18 @@
     }
 
     function populateRigFormForEdit(id) {
-        const rig = rigsData.rigs.find(r => r.rig_id === id);
-        if (!rig) return;
+        console.log('[CONFIG_FORM] populateRigFormForEdit called with id:', id, typeof id);
+        console.log('[CONFIG_FORM] rigsData:', typeof rigsData, rigsData);
+
+        const rig = rigsData.rigs.find(r => r.rig_id == id);  // Use == instead of === for type coercion
+        console.log('[CONFIG_FORM] Found rig:', rig);
+        if (!rig) {
+            console.error('[CONFIG_FORM] Rig not found!');
+            return;
+        }
 
         const form = document.getElementById('form-rig');
+        console.log('[CONFIG_FORM] Form found:', form);
         form.querySelector('input[name="rig_id"]').value = rig.rig_id;
         form.querySelector('input[name="rig_name"]').value = rig.rig_name;
         form.querySelector('select[name="telescope_id"]').value = rig.telescope_id;
@@ -60,6 +72,7 @@
         form.querySelector('select[name="reducer_extender_id"]').value = rig.reducer_extender_id || '';
         form.querySelector('button[type="submit"]').textContent = 'Update Rig';
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        console.log('[CONFIG_FORM] Form populated successfully');
     }
 
     function safeNum(v, fallback = null) {
@@ -119,8 +132,23 @@
     }
 
     function renderRigsUI() {
+        console.log('[CONFIG_FORM] renderRigsUI called!');
         const data = rigsData;
-        if (!data.components) return;
+        console.log('[CONFIG_FORM] rigsData structure:', typeof data, data);
+
+        // Validate data structure
+        if (!data || typeof data !== 'object') {
+            console.error('[CONFIG_FORM] Invalid rigsData:', data);
+            return;
+        }
+        if (!data.components || !Array.isArray(data.components.telescopes)) {
+            console.error('[CONFIG_FORM] Invalid data.components:', data.components);
+            return;
+        }
+        if (!data.rigs || !Array.isArray(data.rigs)) {
+            console.error('[CONFIG_FORM] Invalid data.rigs:', data.rigs);
+            return;
+        }
 
         const { telescopes, cameras, reducers_extenders } = data.components;
         const { rigs } = data;
@@ -200,6 +228,7 @@
                             </form>
                         </div>
                     </li>`;
+        console.log('[CONFIG_FORM] Generated Edit button for rig:', rig.rig_name, 'id:', rig.rig_id);
         }).join('') || '<li>No rigs configured yet.</li>';
 
         document.getElementById('tele-count').innerText = telescopes.length;
