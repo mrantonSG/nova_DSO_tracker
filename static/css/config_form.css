@@ -1,0 +1,744 @@
+    body {
+      padding: 20px;
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+    }
+
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+    legend {
+      font-size: 16px;
+      font-weight: bold;
+      padding: 0 5px;
+      color: #333;
+    }
+    label {
+      font-size: 14px;
+      margin-right: 5px;
+    }
+    input, select, textarea {
+      font-size: 14px;
+      padding: 5px;
+      box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
+    }
+    .block {
+      border: 0px solid #ddd;
+      background: #ecf1f1;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    .error {
+      color: #dc3545;
+    }
+
+    .message,
+    .progress-message {
+      color: #6795a4;
+    }
+    .config-section {
+        padding: 1.5em;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+    }
+    .config-section h2, .config-section h3 {
+        color: #333;
+        font-size: 20px;
+        font-weight: bold;
+        margin-top: 0;
+        margin-bottom: 1.5em;
+        border-bottom: 1px solid #ecf0f1;
+        padding-bottom: 0.5em;
+    }
+
+    input.wide {
+      width: 300px;
+    }
+    input.short {
+      width: 150px;
+    }
+    .inline-fields label {
+      display: inline-block;
+      width: 20px;
+      text-align: left;
+      margin: 0;
+      padding: 0;
+    }
+    .location-id {
+      width: 100px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .object-id {
+      width: 100px;
+    }
+
+    h3, h4 {
+      font-weight: normal;
+    }
+
+    input.object_field {
+      width: 65px;
+    }
+    .field-small-numeric {
+      width: 102px;
+    }
+    input.name_field {
+      width: 250px;
+    }
+    input.project_field {
+      width: 300px;
+    }
+    textarea.wide, textarea.project_field {
+      width: 300px;
+      height: 60px;
+      box-sizing: border-box;
+    }
+    .inline-fields {
+      display: flex;
+      flex-wrap: wrap;        /* allow wrapping instead of forcing one long row */
+      align-items: flex-start;
+      gap: 15px;
+      margin: 0 0 10px 0;
+    }
+    .inline-fields > div {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 5px;
+    }
+    .inline-fields input,
+    .inline-fields textarea {
+      margin-top: 0;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+
+    .locations-list, .objects-list {
+      margin-top: 20px;
+    }
+    .short-label {
+      display: inline-block;
+      width: auto !important;
+      margin-right: 2px !important;
+      text-align: left !important;
+      white-space: nowrap;
+    }
+    .long-label {
+      display: inline-block;
+      width: 70px !important;
+      margin-right: 5px !important;
+      text-align: left !important;
+      white-space: nowrap;
+    }
+    .verylong-label {
+      display: inline-block;
+      width: 140px !important;
+      margin-right: 5px !important;
+      text-align: left !important;
+      white-space: nowrap;
+    }
+    .dlback-button {
+      margin-top: 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #83b4c5;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .dlback-button:hover {
+      background-color: #6795a4 !important;
+    }
+    .info-container-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      gap: 20px;
+    }
+
+    .left-group,
+    .right-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .file-button {
+      padding: 5px 10px;
+      font-size: 14px;
+      background-color: #98A5A8;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .file-button:hover {
+      background-color: #6795a4;
+    }
+
+    .second-row-fields {
+      margin-left: 117px;
+    }
+    @media (max-width: 1200px) {
+      .second-row-fields {
+        margin-left: 0;
+      }
+    }
+    .objects-list .inline-fields input[type="checkbox"],
+    .block .inline-fields input[type="checkbox"] {
+      transform: scale(1.5);
+      transform-origin: center left;
+      margin-top: 0;
+      margin-right: 5px;
+    }
+    .tab-container {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #ccc;
+    }
+    .tab-button {
+        padding: 8px 20px;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        background-color: #e9e9e9;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 0;
+    }
+    .tab-button:hover {
+        background-color: #dcdcdc;
+    }
+    .tab-button.active {
+        padding: 12px 20px;
+        background-color: #fff;
+        border-color: #ccc;
+        border-bottom: 2px solid #fff;
+        position: relative;
+        top: 2px;
+        font-weight: bold;
+        color: #333;
+        z-index: 1;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Layout for Tabs + Toolbar Actions */
+    .tab-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-top: 30px; /* Added spacing to separate from the top header */
+        margin-bottom: 15px;
+        border-bottom: 2px solid #ccc;
+    }
+    .tabs-left {
+        display: flex;
+        align-items: flex-end; /* Ensures tabs grow upwards from the bottom line */
+    }
+    .tabs-right {
+        display: flex;
+        gap: 10px;
+        padding-bottom: 5px;
+        align-items: center;
+        padding-right: 5px;
+    }
+    .tabs-right form {
+        margin: 0;
+    }
+
+    /* --- New styling for native <select> dropdowns --- */
+    .tab-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #ccc;
+    }
+    .tabs-left {
+        display: flex;
+    }
+    .tabs-right {
+        display: flex;
+        gap: 10px;
+        padding-bottom: 5px;
+        align-items: center;
+        padding-right: 5px;
+    }
+    .tabs-right form {
+        margin: 0;
+    }
+
+    /* --- New styling for native <select> dropdowns --- */
+    select[name^="timezone_"], select[name="new_timezone"] {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 10px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding-right: 30px; /* Make space for the arrow */
+    }
+    /* "Add New Location" dropdown */
+    select[name="new_timezone"] {
+        width: 100%;
+        max-width: 300px;
+    }
+    /* Existing location dropdowns */
+    select[name^="timezone_"] {
+        width: 250px;
+    }
+    /* This class will be added by JS to bring the whole block forward */
+    .block.dropdown-is-open {
+        z-index: 100;
+    }
+    /* --- Styles for Shared Items Tab --- */
+    #shared-tab-content .table-wrapper {
+        overflow-x: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: #fff;
+    }
+    .data-table {
+        width: 100%;
+        min-width: 1000px; /* Increase min-width to prevent squeezing text */
+        border-collapse: collapse;
+        table-layout: fixed; /* Keep fixed layout for predictable column sizing */
+    }
+    .data-table td {
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal; /* Allow internal wrapping for notes/names */
+        line-height: 1.3;
+    }
+    /* Specific Column Sizing to ensure readability */
+    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 50px; }  /* Img */
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 100px; } /* Object ID */
+    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 220px; } /* Common Name */
+    .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 80px; }  /* Type */
+    .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 100px; } /* Con */
+    .data-table th:nth-child(6), .data-table td:nth-child(6) { width: 150px; } /* Shared By */
+    .data-table th:nth-child(7), .data-table td:nth-child(7) { width: 90px; }  /* Notes */
+    .data-table th:nth-child(8), .data-table td:nth-child(8) { width: 110px; } /* Action */
+    .data-table th, .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px 10px;
+        font-size: 14px;
+        text-align: left;
+        word-wrap: break-word;
+    }
+    .data-table th {
+        background-color: #f2f2f2;
+        font-weight: 600;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .data-table .filter-row th {
+        padding: 6px 8px;
+    }
+    .data-table .filter-row input,
+    .data-table .filter-row select {
+        width: 95%;
+        box-sizing: border-box;
+        padding: 5px;
+        font-size: 13px;
+        font-family: 'Roboto', sans-serif;
+    }
+    .data-table .action-cell {
+        width: 120px;
+        text-align: center;
+    }
+    .data-table .notes-cell {
+        width: 100px;
+        text-align: center;
+    }
+    .data-table .notes-button {
+        padding: 4px 8px;
+        font-size: 12px;
+        background-color: #778899;
+    }
+    .data-table .notes-button:hover {
+        background-color: #5a6875;
+    }
+    .data-table .import-button {
+        padding: 5px 10px;
+        font-size: 13px;
+    }
+    .data-table .imported-button {
+        padding: 5px 10px;
+        font-size: 13px;
+        background-color: #778899;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: default;
+    }
+
+    /* --- Modal Styles --- */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 2000;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+    }
+    .modal-backdrop.is-visible {
+        display: block;
+        opacity: 1;
+    }
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        border-radius: 8px;
+        padding: 20px 25px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .modal-content h3 {
+        margin-top: 0;
+    }
+    .modal-notes-content {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px 15px;
+        min-height: 100px;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+    .modal-notes-content p { margin-top: 0; }
+    .modal-close-btn {
+        margin-top: 15px;
+        float: right;
+    }
+
+    /* Progress Modal Styles */
+    #fetch-progress-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 3000;
+        align-items: center;
+        justify-content: center;
+    }
+    #fetch-progress-content {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        width: 350px;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .progress-track {
+        width: 100%;
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: #83b4c5;
+        width: 5%; /* Start visible */
+    }
+
+    /* Active Animation Class */
+    .progress-fill.active {
+        background-image: linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.3) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0.3) 75%,
+            transparent 75%,
+            transparent
+        );
+        background-size: 40px 40px;
+        /* Run two animations: Stripes (movement) and Grow (width) */
+        animation:
+            progress-stripes 1s linear infinite,
+            progress-grow 1s ease-out forwards; /* Duration set by JS */
+    }
+
+    @keyframes progress-stripes {
+        from { background-position: 40px 0; }
+        to { background-position: 0 0; }
+    }
+
+    @keyframes progress-grow {
+        0% { width: 5%; }
+        100% { width: 98%; }
+    }
+
+    .container { display: flex; gap: 2em; flex-wrap: wrap; }
+    .column { background-color: #f9f9f9; padding: 1.5em; border-radius: 8px; flex: 1; min-width: 350px;}
+    .column h2, .column h3 { color: #333; font-size: 16px; font-weight: bold; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
+    .column details > summary { cursor: pointer; font-weight: bold; }
+    .column hr { border: 0; border-top: 1px solid #ecf0f1; margin: 1.5em 0; }
+    .column .form-group { margin-bottom: 1em; }
+    .column .form-group label { display: block; margin-bottom: 5px; font-weight: normal; font-size: 14px; }
+    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .column ul { list-style-type: none; padding: 0; }
+    .column button {
+      background-color: #83b4c5;
+      color: white;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .column button:hover {
+      background-color: #6795a4;
+    }
+    .column li {
+      background-color: #ecf1f1;
+      border: none;
+      padding: 0.8em;
+      margin-bottom: 0.5em;
+      border-radius: 4px;
+      font-size: 0.95em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .column li .item-info {
+        flex-grow: 1;
+    }
+    .column li .item-actions {
+        display: flex;
+        gap: 5px;
+        flex-shrink: 0;
+    }
+    .edit-btn, .delete-btn {
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        font-size: 14px;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .edit-btn { background-color: #778899; }
+    .edit-btn:hover { background-color: #5a6875; }
+    .delete-btn { background-color: #dc3545; }
+    .delete-btn:hover { background-color: #c82333; }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-btn {
+      padding-right: 20px;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f1f1f1;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .dropdown-content a {
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      font-size: 14px;
+    }
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+    .show {
+      display: block;
+    }
+      .sampling-info {
+        font-size: 0.9em;
+        margin-top: 5px;
+        display: block;
+        font-weight: bold;
+    }
+    .sampling-binning-tip {
+        font-size: 0.8em;
+        display: block;
+        margin-top: 2px;
+        font-weight: normal;
+        font-style: italic;
+        color: #666;
+    }
+    .sampling-oversampled { color: #9b59b6; }
+    .sampling-slightly-oversampled { color: #3498db; }
+    .sampling-good { color: #2ecc71; }
+    .sampling-slightly-undersampled { color: #f39c12; }
+    .sampling-undersampled { color: #e74c3c; }
+    .form-group {
+      margin-top: 1em;
+      margin-bottom: 1em;
+    }
+    .form-group {
+        display: grid;
+        grid-template-columns: 155px auto;
+        align-items: center;
+        grid-row-gap: 5px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .form-group small {
+        grid-column-start: 2;
+    }
+    .form-group select.form-control {
+        justify-self: start;
+    }
+    /* --- Styles for Trix Editor in Config --- */
+    .form-group trix-editor {
+        background-color: #fff;
+        border: 1px solid #ccc;
+        padding: 0.7em;
+        min-height: 100px; /* Keep a minimum height */
+        height: 150px;     /* Set a default height */
+        overflow-y: auto;  /* Allow scrolling within the editor */
+    }
+    .form-group.trix-group {
+        display: block;
+        grid-template-columns: none;
+    }
+    .form-group.trix-group label {
+        display: block;
+        margin-bottom: 5px;
+        grid-column: 1 / -1;
+    }
+    .form-group.trix-group trix-editor {
+        grid-column: 1 / -1;
+    }
+    /* --- Styles for Inspiration Fields --- */
+    .inspiration-container {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 12px;
+        margin-top: 10px;
+    }
+    .inspiration-container label {
+        font-weight: bold;
+        color: #555;
+        font-size: 0.85em;
+        margin-bottom: 4px;
+        display: block;
+    }
+    .inspiration-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+    .inspiration-row > div {
+        flex: 1;
+    }
+    .inspiration-input {
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 13px;
+    }
+    /* --- Styles for Sharing UI --- */
+    .share-control {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .share-control label {
+        margin: 0;
+        font-weight: bold;
+        font-size: 15px;
+    }
+    .share-control input[type="checkbox"] {
+        transform: scale(1.3);
+    }
+    /* --- Responsive Object Layout (fields + notes) --- */
+    .object-grid-container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr); /* default: single column, safe on laptops */
+        gap: 20px;
+        align-items: flex-start;
+    }
+    .object-grid-container > div {
+        /* Applies to both the left and right columns */
+        display: flex;
+        flex-direction: column;
+        gap: 15px; /* Spacing between note editors and field groups */
+        min-width: 0; /* Prevent overflow in flex/grid layouts */
+    }
+
+    /* Make Trix labels consistent */
+    .object-grid-container .form-group.trix-group {
+        margin: 0;
+    }
+    .object-grid-container .form-group.trix-group label {
+        grid-column: 1 / -1; /* Full width label */
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+        font-size: 14px;
+    }
+    .object-grid-container .share-control {
+        margin: 0;
+        padding: 5px 8px;
+        background: #f0f0f0; /* Slightly different background for the control */
+        border-radius: 4px;
+    }
+
+    /* On very wide screens, use a two-column layout (fields | notes) */
+    @media (min-width: 1400px) {
+        .object-grid-container {
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); /* Left column slightly wider */
+        }
+    }
+    .shared-indicator {
+        font-size: 12px;
+        font-weight: bold;
+        color: #1a689e;
+        background: #e1f0f5;
+        padding: 3px 8px;
+        border-radius: 4px;
+    }
+    #telemetry_enabled { transform: scale(1.2); transform-origin: center left; }
+    #sampling_interval {
+      font-size: 15px;
+    }

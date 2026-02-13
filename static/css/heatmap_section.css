@@ -1,0 +1,44 @@
+    #heatmap-tab-content {
+        position: relative;
+        min-height: 600px;
+    }
+    #heatmap-wrapper {
+        width: 100%;
+    }
+    #heatmap-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #eee;
+    }
+    #heatmap-legend-text {
+        font-size: 0.9em;
+        color: #666;
+    }
+    #yearly-heatmap-plot {
+        width: 100%;
+        min-height: 600px;
+    }
+
+    /* Fixed Loader Styling with Progress Bar */
+    #heatmap-loading {
+        display: none;
+        position: absolute;
+        top: 150px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255,255,255,0.95);
+        padding: 20px 40px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        z-index: 100;
+        text-align: center;
+        color: #6795a4;
+        font-weight: bold;
+        border: 1px solid #ddd;
+        min-width: 300px;
+    }
