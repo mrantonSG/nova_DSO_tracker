@@ -12019,17 +12019,17 @@ def save_framing():
         framing.rig_id = rig_id_val
         framing.rig_name = rig_name_val  # <-- Important: Saves name for portability
 
-        framing.ra = float(data.get('ra')) if data.get('ra') else None
-        framing.dec = float(data.get('dec')) if data.get('dec') else None
-        framing.rotation = float(data.get('rotation')) if data.get('rotation') else 0.0
+        framing.ra = float(data['ra']) if data.get('ra') is not None else None
+        framing.dec = float(data['dec']) if data.get('dec') is not None else None
+        framing.rotation = float(data['rotation']) if data.get('rotation') is not None else 0.0
         framing.survey = data.get('survey')
         framing.blend_survey = data.get('blend')
-        framing.blend_opacity = float(data.get('blend_op')) if data.get('blend_op') else 0.0
+        framing.blend_opacity = float(data['blend_op']) if data.get('blend_op') is not None else 0.0
 
         # Mosaic fields
-        framing.mosaic_cols = int(data.get('mosaic_cols')) if data.get('mosaic_cols') else 1
-        framing.mosaic_rows = int(data.get('mosaic_rows')) if data.get('mosaic_rows') else 1
-        framing.mosaic_overlap = float(data.get('mosaic_overlap')) if data.get('mosaic_overlap') is not None else 10.0
+        framing.mosaic_cols = int(data['mosaic_cols']) if data.get('mosaic_cols') is not None else 1
+        framing.mosaic_rows = int(data['mosaic_rows']) if data.get('mosaic_rows') is not None else 1
+        framing.mosaic_overlap = float(data['mosaic_overlap']) if data.get('mosaic_overlap') is not None else 10.0
 
         framing.updated_at = datetime.now(UTC)
 

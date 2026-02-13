@@ -221,7 +221,7 @@
                     <div class="form-group trix-group">
                         <label>Private Notes:</label>
                         <input type="hidden" id="project_{{ obj.Object }}_hidden" name="project_{{ obj.Object }}" value="{{ obj.Project | default('', True) | e }}">
-                        <div class="trix-lazy-box" onclick="activateLazyTrix(this, 'project_{{ obj.Object }}_hidden', 'Personal notes... (not shared)')">
+                        <div class="trix-lazy-box" data-action="activate-lazy-trix" data-input-id="project_{{ obj.Object }}_hidden" data-placeholder="Personal notes... (not shared)">
                             {% if obj.Project and obj.Project.strip() != '' %}
                                 {{ obj.Project | sanitize_html | safe }}
                             {% else %}
@@ -234,7 +234,7 @@
                     <div class="form-group trix-group">
                         <label>Shared Notes:</label>
                         <input type="hidden" id="shared_notes_{{ obj.Object }}_hidden" name="shared_notes_{{ obj.Object }}" value="{{ obj.shared_notes | default('', True) | e }}">
-                        <div class="trix-lazy-box" onclick="activateLazyTrix(this, 'shared_notes_{{ obj.Object }}_hidden', 'Public notes... (will be shared)')">
+                        <div class="trix-lazy-box" data-action="activate-lazy-trix" data-input-id="shared_notes_{{ obj.Object }}_hidden" data-placeholder="Public notes... (will be shared)">
                             {% if obj.shared_notes and obj.shared_notes.strip() != '' %}
                                 {{ obj.shared_notes | sanitize_html | safe }}
                             {% else %}

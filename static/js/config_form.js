@@ -879,6 +879,72 @@
         });
         window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
 
+        // --- Event delegation for click actions ---
+        document.addEventListener('click', function(e) {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+            console.log('[CONFIG_FORM] Click action triggered:', action, target);
+
+            switch(action) {
+                case 'edit-component':
+                    console.log('[CONFIG_FORM] edit-component:', target.dataset.type, target.dataset.id);
+                    populateComponentFormForEdit(
+                        target.dataset.type,
+                        target.dataset.id
+                    );
+                    break;
+                case 'edit-rig':
+                    console.log('[CONFIG_FORM] edit-rig:', target.dataset.id);
+                    populateRigFormForEdit(target.dataset.id);
+                    break;
+                case 'import-shared':
+                    console.log('[CONFIG_FORM] import-shared:', target.dataset.id, target.dataset.itemType);
+                    importSharedItem(
+                        target.dataset.id,
+                        target.dataset.itemType,
+                        target
+                    );
+                    break;
+                case 'trigger-file-input':
+                    console.log('[CONFIG_FORM] trigger-file-input:', target.dataset.targetId);
+                    const inputId = target.dataset.targetId;
+                    const inputEl = document.getElementById(inputId);
+                    if (inputEl) inputEl.click();
+                    break;
+                case 'view-shared':
+                    console.log('[CONFIG_FORM] view-shared:', target.dataset.url);
+                    if (target.dataset.url) {
+                        window.location.href = target.dataset.url;
+                    }
+                    break;
+                case 'show-shared-notes':
+                    console.log('[CONFIG_FORM] show-shared-notes:', target.dataset.objectName);
+                    showSharedNotes(target.dataset.objectName, target.dataset.notes);
+                    break;
+                case 'close-notes-modal':
+                    console.log('[CONFIG_FORM] close-notes-modal');
+                    closeNotesModal();
+                    break;
+                default:
+                    console.warn('[CONFIG_FORM] Unknown action:', action);
+            }
+
+            // Handle stop propagation AFTER processing data-action (if specified on element)
+            if (target.dataset.stopPropagation === 'true') {
+                e.stopPropagation();
+            }
+        });
+
+        // --- Event delegation for form confirmations ---
+        document.addEventListener('submit', function(e) {
+            const confirmMsg = e.target.dataset.confirm;
+            if (confirmMsg && !confirm(confirmMsg)) {
+                e.preventDefault();
+            }
+        });
+
         // Clean up event listeners when navigating away (prevents memory leaks)
         window.addEventListener('beforeunload', () => {
             document.removeEventListener("trix-attachment-add", handleTrixAttachmentAdd);

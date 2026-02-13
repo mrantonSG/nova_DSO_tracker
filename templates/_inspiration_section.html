@@ -301,7 +301,7 @@
 
 <div id="inspiration-tab-content" style="display:none;">
     <div id="inspiration-controls" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
-        <button type="button" onclick="renderInspirationGrid(event)" style="padding: 10px 20px; border:1px solid var(--border-medium-alt); border-radius:4px; font-size:14px; background:var(--bg-white); cursor: pointer;">
+        <button type="button" data-action="refresh-inspiration" style="padding: 10px 20px; border:1px solid var(--border-medium-alt); border-radius:4px; font-size:14px; background:var(--bg-white); cursor: pointer;">
             ↻ Refresh Suggestions
         </button>
     </div>
@@ -314,8 +314,8 @@
     </div>
 </div>
 
-<div id="inspiration-modal" class="insp-modal-backdrop" onclick="closeInspirationModal()">
-    <div class="insp-modal-content" onclick="event.stopPropagation()">
+<div id="inspiration-modal" class="insp-modal-backdrop" data-action="close-inspiration-modal">
+    <div class="insp-modal-content" data-stop-propagation="true">
         <div class="insp-modal-body">
             <div class="insp-modal-image">
                 <img id="modal-img" src="" alt="Object Image">
@@ -336,7 +336,7 @@
                 <div class="insp-modal-footer">
                     <div id="modal-attribution" class="modal-attribution">Source: Wiki</div>
                     <div style="display:flex; gap:10px; flex-shrink: 0;">
-                        <button class="btn-close-modal" onclick="closeInspirationModal()">Close</button>
+                        <button class="btn-close-modal" data-action="close-inspiration-modal">Close</button>
                         <button class="btn-view-graph" id="modal-graph-btn">View Charts &rarr;</button>
                     </div>
                 </div>
@@ -483,7 +483,7 @@
                         Did you know you can display your own astrophotos or favorite reference images here?<br>
                         <span style="color:var(--text-secondary); font-size:0.9em; margin-top:4px; display:block;">Go to <strong>Configuration &gt; Manage Objects</strong> to add "Inspiration Content" (Image URLs, Credits, Descriptions) to your targets.</span>
                     </div>
-                    <span class="close-banner" onclick="this.parentElement.remove()">✕</span>
+                    <span class="close-banner" data-action="close-banner">✕</span>
                 `;
                 // Insert before the grid container
                 wrapper.insertBefore(banner, grid);
@@ -689,4 +689,32 @@
     function closeInspirationModal() {
         document.getElementById('inspiration-modal').style.display = 'none';
     }
+
+    // --- Event delegation for inspiration section data-actions ---
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        // Stop propagation if requested
+        if (target.closest('[data-stop-propagation="true"]')) {
+            e.stopPropagation();
+            return;
+        }
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'refresh-inspiration':
+                renderInspirationGrid(e);
+                break;
+            case 'close-inspiration-modal':
+                closeInspirationModal();
+                e.preventDefault();
+                break;
+        }
+    });
+
+    // Expose functions for use by other scripts
+    window.renderInspirationGrid = renderInspirationGrid;
+    window.closeInspirationModal = closeInspirationModal;
 </script>

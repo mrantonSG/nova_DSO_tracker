@@ -288,6 +288,25 @@
         }
     });
 
+    // --- Event Delegation for Click Actions ---
+    document.addEventListener('click', function(e) {
+        const actionBtn = e.target.closest('[data-action]');
+        if (!actionBtn) return;
+
+        const action = actionBtn.dataset.action;
+
+        switch (action) {
+            case 'activate-lazy-trix':
+                e.preventDefault();
+                activateLazyTrix(actionBtn, actionBtn.dataset.inputId, actionBtn.dataset.placeholder);
+                break;
+            case 'merge-objects':
+                e.preventDefault();
+                mergeObjects(actionBtn.dataset.keepId, actionBtn.dataset.mergeId, actionBtn.dataset.rowId);
+                break;
+        }
+    });
+
     function selectAllVisibleObjects() {
         const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
         objectBlocks.forEach(block => {
@@ -377,8 +396,8 @@
                         <small class="muted-text">Src: ${pair.object_b.catalog_sources || 'Manual'}</small>
                     </td>
                     <td style="vertical-align: middle; text-align: center;">
-                        <button class="action-button" style="font-size: 11px; margin-bottom: 5px;" onclick="mergeObjects('${nameA}', '${nameB}', '${rowId}')">Keep A, Merge B</button><br>
-                        <button class="action-button" style="font-size: 11px;" onclick="mergeObjects('${nameB}', '${nameA}', '${rowId}')">Keep B, Merge A</button>
+                        <button class="action-button" style="font-size: 11px; margin-bottom: 5px;" data-action="merge-objects" data-keep-id="${nameA}" data-merge-id="${nameB}" data-row-id="${rowId}">Keep A, Merge B</button><br>
+                        <button class="action-button" style="font-size: 11px;" data-action="merge-objects" data-keep-id="${nameB}" data-merge-id="${nameA}" data-row-id="${rowId}">Keep B, Merge A</button>
                     </td>
                 </tr>`;
             });

@@ -2518,6 +2518,35 @@
             if (locationSelect) {
                 locationSelect.addEventListener('change', setLocation);
             }
+
+            // --- Event delegation for data-action attributes ---
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+
+                // Stop propagation if requested
+                if (target.closest('[data-stop-propagation="true"]')) {
+                    e.stopPropagation();
+                    return;
+                }
+
+                const action = target.dataset.action;
+
+                switch(action) {
+                    case 'close-save-view-modal':
+                        closeSaveViewModal();
+                        e.preventDefault();
+                        break;
+                    case 'confirm-save-view':
+                        confirmSaveView();
+                        e.preventDefault();
+                        break;
+                    case 'close-banner':
+                        target.parentElement.remove();
+                        e.preventDefault();
+                        break;
+                }
+            });
         });
         // --- END OF REPLACE ---
 

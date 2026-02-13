@@ -137,3 +137,8 @@ function openHelp(topicId) {
 function closeHelpModal() {
     document.getElementById('universal-help-modal').classList.remove('is-visible');
 }
+
+// --- Navigation Helper Function ---
+function goBack() {
+    window.history.back();
+}

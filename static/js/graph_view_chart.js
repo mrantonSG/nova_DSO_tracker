@@ -315,6 +315,38 @@
     let aladin = null;
     let fovLayer = null;
     let altitudeChart = null;
+    let __blendSurveyId = null;
+
+    function ensureBlendLayer() {
+        if (!aladin) return null;
+        const sel = document.getElementById('blend-survey-select');
+        if (!sel) return null;
+
+        const surveyId = sel.value;
+        const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
+        if (existing && __blendSurveyId === surveyId) {
+            return existing;
+        }
+
+        try {
+            let hpx;
+            if (surveyId.startsWith('http')) {
+                const friendlyName = sel.options[sel.selectedIndex]?.textContent || surveyId;
+                hpx = aladin.createImageSurvey(surveyId, friendlyName, surveyId, "equatorial", 9);
+            } else {
+                hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(surveyId) : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
+            }
+            if (hpx) {
+                aladin.setOverlayImageLayer(hpx, 'blend');
+                __blendSurveyId = surveyId;
+                return aladin.getOverlayImageLayer('blend');
+            }
+        } catch (e) {
+            console.warn('[nova] Could not create/set overlay image survey:', e);
+        }
+        return null;
+    }
+    function setBlendOpacity(a) { const v = Math.max(0, Math.min(1, Number(a) || 0)); if (!aladin) return; const layer = ensureBlendLayer(); if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) { (layer.setOpacity || layer.setAlpha).call(layer, v); return; } try { const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); survey?.setOpacity?.(v); } catch(e) {} }
     
     // Catalog layer for all Nova DB objects shown in Aladin
     let novaObjectsCatalog = null;
@@ -1121,37 +1153,6 @@
             aladin = A.aladin('#aladin-lite-div', { survey: "P/DSS2/color", fov: 1.5, cooFrame: 'ICRS', showFullscreenControl: false, showGotoControl: false });
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
-            let __blendSurveyId = null;
-            function ensureBlendLayer() {
-                if (!aladin) return null;
-                const sel = document.getElementById('blend-survey-select');
-                if (!sel) return null;
-    
-                const surveyId = sel.value;
-                const existing = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend');
-                if (existing && __blendSurveyId === surveyId) {
-                    return existing;
-                }
-    
-                try {
-                    let hpx;
-                    if (surveyId.startsWith('http')) {
-                        const friendlyName = sel.options[sel.selectedIndex]?.textContent || surveyId;
-                        hpx = aladin.createImageSurvey(surveyId, friendlyName, surveyId, "equatorial", 9);
-                    } else {
-                        hpx = (aladin.newImageSurvey) ? aladin.newImageSurvey(surveyId) : aladin.createImageSurvey(surveyId, surveyId, surveyId, 'equatorial', 9, { imgFormat: 'jpeg' });
-                    }
-                    if (hpx) {
-                        aladin.setOverlayImageLayer(hpx, 'blend');
-                        __blendSurveyId = surveyId;
-                        return aladin.getOverlayImageLayer('blend');
-                    }
-                } catch (e) {
-                    console.warn('[nova] Could not create/set overlay image survey:', e);
-                }
-                return null;
-            }
-            function setBlendOpacity(a) { const v = Math.max(0, Math.min(1, Number(a) || 0)); if (!aladin) return; const layer = ensureBlendLayer(); if (layer && (typeof layer.setOpacity === 'function' || typeof layer.setAlpha === 'function')) { (layer.setOpacity || layer.setAlpha).call(layer, v); return; } try { const survey = aladin.getOverlayImageLayer && aladin.getOverlayImageLayer('blend'); survey?.setOpacity?.(v); } catch(e) {} }
             (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
             if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
             if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
@@ -1413,87 +1414,6 @@
         if (lockToObject) { if (fovLayer) fovLayer.removeAll(); updateScreenFovOverlay(fovWidthArcmin, fovHeightArcmin, rotation); }
         else drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotation, fovCenter);
     };
-    function saveFramingToDB() {
-        const objectName = NOVA_GRAPH_DATA.objectName;
-        const sel = document.getElementById('framing-rig-select');
-    
-        // 1. Gather Data
-        const payload = {
-            object_name: objectName,
-            rig: sel?.value || '',
-            rotation: parseFloat(document.getElementById('framing-rotation')?.value || 0),
-            survey: document.getElementById('survey-select')?.value || '',
-            blend: document.getElementById('blend-survey-select')?.value || '',
-            blend_op: parseFloat(document.getElementById('blend-opacity')?.value || 0),
-            ra: center.ra,
-            dec: center.dec,
-            // Mosaic Fields
-            mosaic_cols: parseInt(document.getElementById('mosaic-cols')?.value || 1),
-            mosaic_rows: parseInt(document.getElementById('mosaic-rows')?.value || 1),
-            mosaic_overlap: parseFloat(document.getElementById('mosaic-overlap')?.value || 10)
-        };
-    
-        // 2. Send to DB
-        fetch('/api/save_framing', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(r => r.json())
-        .then(data => {
-            if(data.status === 'success') {
-                alert("Framing settings saved to database.");
-                checkAndShowFramingButton(); // Refresh the button immediately
-            } else {
-                alert("Error saving: " + data.message);
-            }
-        });
-    }
-    
-    function checkAndShowFramingButton() {
-        const objectName = NOVA_GRAPH_DATA.objectName;
-        const container = document.getElementById('project-quick-link');
-        if (!container) return;
-    
-        fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
-            .then(r => r.json())
-            .then(data => {
-                container.innerHTML = ''; // Clear any existing button
-    
-                if (data.status === 'found') {
-                    const btn = document.createElement('button');
-                    btn.className = 'inline-button';
-                    btn.textContent = 'Open Saved Framing';
-    
-                    // --- COLOR CHANGE: Removed explicit green color ---
-                    // It now inherits the standard #83b4c5 from the 'inline-button' class
-    
-                    // Keep size overrides if you want it slightly smaller than the main buttons
-                    btn.style.fontSize = '13px';
-                    btn.style.padding = '6px 12px';
-    
-                    btn.onclick = () => {
-                        // Reconstruct query string from DB data
-                        const params = new URLSearchParams();
-                        if(data.rig) params.set('rig', data.rig);
-                        if(data.ra) params.set('ra', data.ra);
-                        if(data.dec) params.set('dec', data.dec);
-                        params.set('rot', data.rotation);
-                        if(data.survey) params.set('survey', data.survey);
-                        if(data.blend) params.set('blend', data.blend);
-                        params.set('blend_op', data.blend_op);
-    
-                        // Restore Mosaic
-                        if(data.mosaic_cols) params.set('m_cols', data.mosaic_cols);
-                        if(data.mosaic_rows) params.set('m_rows', data.mosaic_rows);
-                        if(data.mosaic_overlap) params.set('m_ov', data.mosaic_overlap);
-    
-                        openFramingAssistant(params.toString());
-                    };
-                    container.appendChild(btn);
-                }
-            });
-    }
     function drawFovFootprint(fovWidthArcmin, fovHeightArcmin, rotationDeg, center) {
         if (!aladin || !fovLayer || !center) return;
         fovLayer.removeAll();
@@ -2080,19 +2000,19 @@
     
                     btn.onclick = () => {
                         const params = new URLSearchParams();
-                        if(data.rig) params.set('rig', data.rig);
-                        if(data.ra) params.set('ra', data.ra);
-                        if(data.dec) params.set('dec', data.dec);
-                        params.set('rot', data.rotation);
+                        if(data.rig != null) params.set('rig', data.rig);
+                        if(data.ra != null) params.set('ra', data.ra);
+                        if(data.dec != null) params.set('dec', data.dec);
+                        if(data.rotation != null) params.set('rot', data.rotation);
                         if(data.survey) params.set('survey', data.survey);
                         if(data.blend) params.set('blend', data.blend);
-                        params.set('blend_op', data.blend_op);
-    
+                        if(data.blend_op != null) params.set('blend_op', data.blend_op);
+
                         // Restore Mosaic
-                        if(data.mosaic_cols) params.set('m_cols', data.mosaic_cols);
-                        if(data.mosaic_rows) params.set('m_rows', data.mosaic_rows);
-                        if(data.mosaic_overlap) params.set('m_ov', data.mosaic_overlap);
-    
+                        if(data.mosaic_cols != null) params.set('m_cols', data.mosaic_cols);
+                        if(data.mosaic_rows != null) params.set('m_rows', data.mosaic_rows);
+                        if(data.mosaic_overlap != null) params.set('m_ov', data.mosaic_overlap);
+
                         openFramingAssistant(params.toString());
                     };
     
@@ -2187,10 +2107,9 @@
         // --- CHECK DATABASE FOR FRAMING ---
         checkAndShowFramingButton();
     });
-    // Expose functions needed by HTML inline event handlers
-    window.showTab = showTab;
+    // Expose functions needed by event delegation in graph_view.js
+    // NOTE: showTab, showProjectSubTab, toggleProjectSubTabEdit are defined in graph_view.js, not here
     window.changeView = changeView;
-    window.showProjectSubTab = showProjectSubTab;
     window.saveProject = saveProject;
     window.openFramingAssistant = openFramingAssistant;
     window.closeFramingAssistant = closeFramingAssistant;
@@ -2200,12 +2119,14 @@
     window.copyFramingUrl = copyFramingUrl;
     window.saveFramingToDB = saveFramingToDB;
     window.updateFramingChart = updateFramingChart;
+    window.updateFovVsObjectLabel = updateFovVsObjectLabel;
     window.onRotationInput = onRotationInput;
     window.setSurvey = setSurvey;
     window.updateImageAdjustments = updateImageAdjustments;
     window.copyRaDec = copyRaDec;
     window.resetFovCenterToObject = resetFovCenterToObject;
     window.nudgeFov = nudgeFov;
+    window.copyAsiairMosaic = copyAsiairMosaic;
     window.setLocation = setLocation;
     window.selectSuggestedDate = selectSuggestedDate;
     window.openInStellarium = openInStellarium;
