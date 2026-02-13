@@ -143,20 +143,7 @@
       text-align: left !important;
       white-space: nowrap;
     }
-    .dlback-button {
-      margin-top: 0;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .dlback-button:hover {
-      background-color: var(--primary-dark) !important;
-    }
+    /* .dlback-button styles moved to base.css */
     .info-container-main {
       display: flex;
       align-items: center;
@@ -201,52 +188,12 @@
       margin-top: 0;
       margin-right: 5px;
     }
-    .tab-container {
-        display: flex;
-        margin-bottom: 15px;
-        border-bottom: 2px solid var(--border-medium-alt);
-    }
-    .tab-button {
-        padding: 8px 20px;
-        cursor: pointer;
-        border: 1px solid var(--border-medium-alt);
-        border-bottom: none;
-        background-color: var(--bg-medium);
-        margin-right: 5px;
-        border-radius: 5px 5px 0 0;
-        font-size: 16px;
-        color: var(--text-tertiary);
-        margin-bottom: 0;
-    }
-    .tab-button:hover {
-        background-color: var(--bg-medium-alt2);
-    }
-    .tab-button.active {
-        padding: 12px 20px;
-        background-color: var(--bg-white);
-        border-color: var(--border-medium-alt);
-        border-bottom: 2px solid var(--bg-white);
-        position: relative;
-        top: 2px;
-        font-weight: bold;
-        color: var(--text-primary);
-        z-index: var(--z-base);
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+    /* Tab styles moved to base.css for consistency across all pages */
 
     /* Layout for Tabs + Toolbar Actions */
     .tab-container {
-        display: flex;
         justify-content: space-between;
-        align-items: flex-end;
         margin-top: 30px; /* Added spacing to separate from the top header */
-        margin-bottom: 15px;
-        border-bottom: 2px solid var(--border-medium-alt);
     }
     .tabs-left {
         display: flex;
@@ -264,13 +211,6 @@
     }
 
     /* --- New styling for native <select> dropdowns --- */
-    .tab-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 15px;
-        border-bottom: 2px solid var(--border-medium-alt);
-    }
     .tabs-left {
         display: flex;
     }

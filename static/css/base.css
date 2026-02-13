@@ -634,18 +634,93 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
     border-color: var(--primary-color);
 }
 
-.action-button {
-    padding: 5px 10px;
-    font-size: 14px;
+/* ===================================================================
+   BUTTON UTILITIES (Unified from dashboard, config_form, graph_view)
+   ================================================================ */
+
+.action-button,
+.inline-button,
+.dlback-button,
+.view-button {
+    padding: 10px 20px;
+    font-size: 16px;
     background-color: var(--primary-color);
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
     text-decoration: none;
+    display: inline-block;
 }
-.action-button:hover {
+
+.action-button:hover,
+.inline-button:hover,
+.dlback-button:hover,
+.view-button:hover {
     background-color: var(--primary-dark);
+}
+
+/* Smaller variant for compact contexts */
+.action-button.compact {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+/* ===================================================================
+   TAB SYSTEM (Unified from dashboard, config_form, graph_view)
+   ================================================================ */
+
+.tab-container {
+    display: flex;
+    flex-wrap: nowrap;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--border-medium-alt);
+    align-items: flex-end;
+    gap: 5px;
+}
+
+/* Hide scrollbar for cleaner look */
+.tab-container::-webkit-scrollbar {
+    height: 0px;
+    background: transparent;
+}
+
+.tab-button {
+    padding: 8px 20px;
+    cursor: pointer;
+    border: 1px solid var(--border-medium-alt);
+    border-bottom: none;
+    background-color: var(--bg-medium);
+    border-radius: 5px 5px 0 0;
+    font-size: 16px;
+    color: var(--text-tertiary);
+    margin-bottom: 0;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.tab-button:hover {
+    background-color: var(--bg-medium-alt2);
+}
+
+.tab-button.active {
+    padding: 12px 20px;
+    background-color: var(--bg-white);
+    border-color: var(--border-medium-alt);
+    border-bottom: 2px solid var(--bg-white);
+    position: relative;
+    top: 2px;
+    font-weight: bold;
+    color: var(--text-primary);
+    z-index: var(--z-base);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
 }
 
 /* Functional buttons (Night/Red View) styling to match filter button */

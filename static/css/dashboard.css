@@ -6,51 +6,7 @@
         color: var(--text-primary);
     }
 
-    .tab-container {
-        display: flex;
-        flex-wrap: nowrap;     /* Prevent wrapping to maintain the tab bar layout */
-        margin-bottom: 15px;
-        border-bottom: 2px solid var(--border-medium-alt);
-        align-items: flex-end; /* Align tabs to the bottom */
-        gap: 5px;              /* Consistent spacing between all items */
-    }
-
-    /* Optional: Hide scrollbar for a cleaner look on Mac/Chrome */
-    .tab-container::-webkit-scrollbar {
-        height: 0px;
-        background: transparent;
-    }
-
-    .tab-button {
-        padding: 8px 20px;
-        cursor: pointer;
-        border: 1px solid var(--border-medium-alt);
-        border-bottom: none;
-        background-color: var(--bg-medium);
-        /* margin-right removed in favor of container gap */
-        border-radius: 5px 5px 0 0;
-        font-size: 16px;
-        color: var(--text-tertiary);
-        margin-bottom: 0;
-        white-space: nowrap; /* Prevent text from wrapping */
-        flex-shrink: 0;      /* Prevent tabs from being squeezed */
-    }
-
-    .tab-button:hover {
-        background-color: var(--bg-medium-alt2);
-    }
-
-    .tab-button.active {
-        padding: 12px 20px; /* Increased padding makes active tab taller */
-        background-color: var(--bg-white);
-        border-color: var(--border-medium-alt);
-        border-bottom: 2px solid var(--bg-white); /* Blends with container border */
-        position: relative;
-        top: 2px; /* Push down to cover the line */
-        font-weight: bold;
-        color: var(--text-primary);
-        z-index: var(--z-base);
-    }
+    /* Tab styles moved to base.css for consistency across all pages */
 
     /* Adjust right-side controls to align with text, not bottom border */
     #saved-views-container, #remove-filters-container, .help-badge {
