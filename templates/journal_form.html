@@ -11,7 +11,7 @@
 
 
 {# --- NEW: Title for this specific form --- #}
-<h2 style="font-weight: normal; margin-top: 30px; margin-bottom: 20px; color: #333;">{{ form_title | default('Journal Entry') }}</h2>
+<h2 style="font-weight: normal; margin-top: 30px; margin-bottom: 20px; color: var(--text-primary);">{{ form_title | default('Journal Entry') }}</h2>
 
 {# The form container itself now starts after the new h2 title #}
 <div class="form-container">
@@ -160,7 +160,7 @@
             <input type="text" id="binning_session" name="binning_session" value="{{ entry.binning_session if entry else '' }}" placeholder="e.g., 1x1, 2x2">
         </div>
         <div class="form-section-title">Monochrome Filter Exposures</div>
-        <p style="font-size:0.85em; margin-top:-10px; margin-bottom:10px; color:#555;"><em>Enter number of subframes and exposure time (in seconds) per subframe for each filter used. Leave blank if not used.</em></p>
+        <p style="font-size:0.85em; margin-top:-10px; margin-bottom:10px; color:var(--text-secondary);"><em>Enter number of subframes and exposure time (in seconds) per subframe for each filter used. Leave blank if not used.</em></p>
 
         {% set filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
         {% for filt_key, filt_name in filters %}

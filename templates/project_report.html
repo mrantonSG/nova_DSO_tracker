@@ -4,31 +4,31 @@
     <meta charset="UTF-8">
     <title>Project Report</title>
     <style>
-        body { background-color: #f0f2f5; display: flex; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #333; font-size: 11px; }
-        .a4-page { width: 210mm; background-color: #ffffff; padding: 15mm; box-sizing: border-box; margin-bottom: 20px; }
+        body { background-color: var(--bg-light-gray); display: flex; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text-primary); font-size: 11px; }
+        .a4-page { width: 210mm; background-color: var(--bg-white); padding: 15mm; box-sizing: border-box; margin-bottom: 20px; }
 
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-        .header-logo-text { font-size: 22px; font-weight: 800; color: #000; line-height: 1; }
-        .header-logo-text span { font-weight: 300; color: #555; margin-left: 4px; }
-        .header-title { text-align: right; font-size: 14px; color: #83b4c5; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .header-line { border: 0; border-top: 2px solid #83b4c5; margin-bottom: 15px; }
+        .header-logo-text { font-size: 22px; font-weight: 800; color: var(--text-black); line-height: 1; }
+        .header-logo-text span { font-weight: 300; color: var(--text-secondary); margin-left: 4px; }
+        .header-title { text-align: right; font-size: 14px; color: var(--primary-color); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .header-line { border: 0; border-top: 2px solid var(--primary-color); margin-bottom: 15px; }
 
-        .project-title { text-align: center; font-size: 24px; font-weight: 700; color: #222; margin-bottom: 5px; }
-        .project-meta { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
+        .project-title { text-align: center; font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 5px; }
+        .project-meta { text-align: center; font-size: 12px; color: var(--text-tertiary); margin-bottom: 20px; }
 
-        .master-image-container { text-align: center; margin-bottom: 30px; background: #000; padding: 10px; border-radius: 4px; }
+        .master-image-container { text-align: center; margin-bottom: 30px; background: var(--text-black); padding: 10px; border-radius: 4px; }
         .master-image-container img { max-width: 100%; max-height: 500px; object-fit: contain; }
 
-        .section-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #83b4c5; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; margin-top: 20px; }
-        .notes-content { font-size: 11px; line-height: 1.5; color: #333; margin-bottom: 15px; }
+        .section-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--primary-color); border-bottom: 1px solid var(--bg-medium-alt); padding-bottom: 5px; margin-bottom: 10px; margin-top: 20px; }
+        .notes-content { font-size: 11px; line-height: 1.5; color: var(--text-primary); margin-bottom: 15px; }
         .notes-content img { max-width: 100% !important; max-height: 400px !important; object-fit: contain; display: block; margin: 10px 0; }
         .notes-content figure { max-width: 100% !important; margin: 0; }
 
         .session-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
-        .session-table th { background: #f4f4f4; text-align: left; padding: 6px; border: 1px solid #ddd; font-weight: 700; }
-        .session-table td { padding: 6px; border: 1px solid #ddd; vertical-align: top; }
+        .session-table th { background: var(--code-bg); text-align: left; padding: 6px; border: 1px solid var(--text-lighter); font-weight: 700; }
+        .session-table td { padding: 6px; border: 1px solid var(--text-lighter); vertical-align: top; }
 
-        .report-block { display: block; background-color: #fff; margin-bottom: 5px; }
+        .report-block { display: block; background-color: var(--bg-white); margin-bottom: 5px; }
         .pdf-header-clone { margin-bottom: 15px; }
     </style>
 </head>
@@ -50,17 +50,17 @@
         <div style="width: 100%; text-align: center;">
             <table class="stat-box-table" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 20px 0;">
                 <tr>
-                    <td style="width: 220px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
-                        <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 3px; white-space: nowrap;">{{ total_integration }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Integration</span>
+                    <td style="width: 220px; background: var(--bg-light); border: 1px solid var(--bg-medium-alt); border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
+                        <span style="display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; white-space: nowrap;">{{ total_integration }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-quaternary); white-space: nowrap;">Total Integration</span>
                     </td>
-                    <td style="width: 220px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
-                        <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 3px; white-space: nowrap;">{{ session_count }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Total Sessions</span>
+                    <td style="width: 220px; background: var(--bg-light); border: 1px solid var(--bg-medium-alt); border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
+                        <span style="display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; white-space: nowrap;">{{ session_count }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-quaternary); white-space: nowrap;">Total Sessions</span>
                     </td>
-                    <td style="width: 220px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
-                        <span style="display: block; font-size: 14px; font-weight: 700; color: #333; margin-bottom: 3px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #777; white-space: nowrap;">Date Range</span>
+                    <td style="width: 220px; background: var(--bg-light); border: 1px solid var(--bg-medium-alt); border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
+                        <span style="display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-quaternary); white-space: nowrap;">Date Range</span>
                     </td>
                 </tr>
             </table>
@@ -119,7 +119,7 @@
                         <td>{{ session.date_utc | date_eu }}</td>
                         <td>{{ session.location_name }}</td>
                         <td>{{ (session.calculated_integration_time_minutes or 0) | round(0) }}m</td>
-                        <td style="color: #f39c12;">{{ session.session_rating_subjective or '-' }}★</td>
+                        <td style="color: var(--warning-color-alt);">{{ session.session_rating_subjective or '-' }}★</td>
                         <td>
                             <strong>Rig:</strong> {{ session.rig_name_snapshot or session.telescope_setup_notes or '-' }}<br>
                             <strong>Notes:</strong> {{ session.notes | striptags | truncate(150) }}
@@ -132,7 +132,7 @@
 
         <div id="appended-session-reports"></div>
 
-        <div class="footer report-block" style="margin-top: 30px; text-align: center; font-size: 10px; color: #999;">
+        <div class="footer report-block" style="margin-top: 30px; text-align: center; font-size: 10px; color: var(--text-muted-alt);">
             Generated by Nova DSO Tracker on {{ today_date }}
         </div>
     </div>

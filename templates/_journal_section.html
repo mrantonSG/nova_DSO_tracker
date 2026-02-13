@@ -16,9 +16,9 @@
         /* Removing max-height/overflow here eliminates the nested "double" scrollbar */
         padding-right: 15px;
     }
-    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid #ccc; }
-    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: #555; border-bottom: 2px solid transparent; font-size: 15px; }
-    .detail-tab-button.active { color: #83b4c5; border-bottom-color: #83b4c5; font-weight: 600; }
+    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
+    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: 15px; }
+    .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; } /* REVERT: Simple display for tab content */
 
@@ -44,7 +44,7 @@
 
     /* Report Preview Styles */
     .report-preview-container {
-        background-color: #525659;
+        background-color: var(--text-secondary);
         padding: 20px;
         border-radius: 4px;
         text-align: center;
@@ -70,19 +70,19 @@
     }
 
     /* Other styles remain the same */
-    .summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 20px; text-align: center; padding: 15px; background-color: #e9ecef; border-radius: 6px; margin-bottom: 25px; }
-    .summary-box .stat-value { font-size: 1.4em; font-weight: 600; color: #343a40; display: block; }
-    .summary-box .stat-label { font-size: 0.8em; color: #6c757d; text-transform: uppercase; }
+    .summary-box { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 20px; text-align: center; padding: 15px; background-color: var(--border-light-alt3); border-radius: 6px; margin-bottom: 25px; }
+    .summary-box .stat-value { font-size: 1.4em; font-weight: 600; color: var(--text-primary); display: block; }
+    .summary-box .stat-label { font-size: 0.8em; color: var(--accent-gray-medium); text-transform: uppercase; }
     .detail-grid { display: grid; grid-template-columns: max-content 1fr; gap: 12px 20px; align-items: flex-start; }
-    .detail-grid > dt { font-weight: 600; color: #495057; }
-    .detail-grid > dd { margin: 0; color: #212529; }
-    .notes-block { margin-top: 8px; padding: 10px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; white-space: pre-wrap; min-height: 60px; }
-    .session-list-column h4, .session-detail-column h4 { font-size: 1.2em; font-weight: 600; margin-top: 0; margin-bottom: 0; color: #343a40; }
+    .detail-grid > dt { font-weight: 600; color: var(--accent-gray-text); }
+    .detail-grid > dd { margin: 0; color: var(--text-primary); }
+    .notes-block { margin-top: 8px; padding: 10px; background-color: var(--bg-light); border: 1px solid var(--border-light-alt2); border-radius: 4px; white-space: pre-wrap; min-height: 60px; }
+    .session-list-column h4, .session-detail-column h4 { font-size: 1.2em; font-weight: 600; margin-top: 0; margin-bottom: 0; color: var(--text-primary); }
 
     /* Form specific styles */
     .edit-mode-form .form-group input,
     .edit-mode-form .form-group textarea,
-    .edit-mode-form .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    .edit-mode-form .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border-medium-alt); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
     .edit-mode-form .form-group textarea { min-height: 100px; }
 
     .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75em; }
@@ -93,10 +93,10 @@
     .form-group.full-width label { width: auto; }
 
     .session-history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
-    .session-history-table th, .session-history-table td { border: 1px solid #dde; padding: 6px 8px; text-align: left; vertical-align: middle; }
-    .session-history-table th { background-color: #e9ecef; font-weight: 600; }
-    .session-history-table tr.clickable-session-row:hover { background-color: #e6f7ff; cursor: pointer; }
-    .session-history-table tr.current-session-item { background-color: #cfe2ff !important; font-weight: bold; }
+    .session-history-table th, .session-history-table td { border: 1px solid var(--border-medium); padding: 6px 8px; text-align: left; vertical-align: middle; }
+    .session-history-table th { background-color: var(--border-light-alt3); font-weight: 600; }
+    .session-history-table tr.clickable-session-row:hover { background-color: var(--highlight-blue-alt2); cursor: pointer; }
+    .session-history-table tr.current-session-item { background-color: var(--highlight-blue) !important; font-weight: bold; }
     .session-history-table td.col-date, .session-history-table th.col-date { width: 120px; }
     .session-history-table td.col-integ, .session-history-table th.col-integ { width: 100px; text-align: center; }
     .session-history-table td.col-rating, .session-history-table th.col-rating { width: 100px; text-align: center; }
@@ -105,26 +105,26 @@
     .project-header-clickable {
         cursor: pointer;
         transition: background-color 0.2s;
-        background-color: #f0f2f5;
-        border-top: 2px solid #d1d9e6 !important;
+        background-color: var(--bg-light-gray);
+        border-top: 2px solid var(--border-medium) !important;
     }
     .project-header-clickable:hover {
-        background-color: #dbe4f0 !important;
+        background-color: var(--info-bg-light) !important;
     }
     .current-project-item {
-        background-color: #cfe2ff !important;
-        border-left: 4px solid #0056b3;
+        background-color: var(--highlight-blue) !important;
+        border-left: 4px solid var(--link-color);
     }
     .journal-project-stat-box {
-        padding: 12px; background-color: #e9ecef; border-radius: 6px; text-align: center; margin-bottom: 15px;
+        padding: 12px; background-color: var(--border-light-alt3); border-radius: 6px; text-align: center; margin-bottom: 15px;
     }
-    .journal-project-stat-value { font-size: 1.4em; font-weight: 600; color: #343a40; display: block; }
-    .journal-project-stat-label { font-size: 0.75em; color: #6c757d; text-transform: uppercase; }
+    .journal-project-stat-value { font-size: 1.4em; font-weight: 600; color: var(--text-primary); display: block; }
+    .journal-project-stat-label { font-size: 0.75em; color: var(--accent-gray-medium); text-transform: uppercase; }
     .journal-project-notes-section {
-        margin-top: 15px; padding: 15px; border: 1px solid #dee2e6; border-radius: 6px; background-color: #fff;
+        margin-top: 15px; padding: 15px; border: 1px solid var(--border-light-alt2); border-radius: 6px; background-color: var(--bg-white);
     }
     .journal-project-notes-section h3 {
-        font-size: 1.1em; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px;
+        font-size: 1.1em; margin-top: 0; border-bottom: 1px solid var(--border-light); padding-bottom: 5px; margin-bottom: 10px;
     }
     .journal-project-container {
         display: flex; flex-direction: column; gap: 15px;
@@ -156,6 +156,8 @@
     }
 </style>
 
+{% from "macros.html" import form_group, stat_box, tab_button, detail_row %}
+
 <div class="journal-container">
     <div class="session-list-column">
         <div class="history-header">
@@ -165,7 +167,7 @@
                 <button type="button" class="inline-button" style="padding: 6px 12px; font-size: 13px;" onclick="setupAddMode()">Add New Session</button>
             </div>
         </div>
-        <div class="table-wrapper" style="border-top: 1px solid #dee2e6;">
+        <div class="table-wrapper" style="border-top: 1px solid var(--border-light-alt2);">
             <table class="session-history-table">
                 <thead><tr><th class="col-date">Date & Location</th><th class="col-integ">Integ.</th><th class="col-rating">Rating</th></tr></thead>
                 <tbody>
@@ -173,7 +175,7 @@
                     <tr>
                         <th colspan="3"
                             class="{{ 'project-header-clickable' if group.is_project else '' }} {{ 'current-project-item' if group.is_project and group.project_id|string == current_project_id|string else '' }}"
-                            style="padding: 8px 5px; border-top: 1px solid #ddd;"
+                            style="padding: 8px 5px; border-top: 1px solid var(--text-lighter);"
                             {% if group.is_project %}
                             {# Fix: Pass current location to prevent fallback to default #}
                             onclick="loadSessionViaAjax(event, '{{ url_for('core.graph_dashboard', object_name=object_name, tab='journal', project_id=group.project_id, location=header_location_name) }}', this)"
@@ -182,14 +184,14 @@
                         >
                             {% if group.is_project %}{% set project_total_h = (group.total_integration_time / 60) | round(1) %}
                                 Project: {{ group.project_name }}
-                                {% if project_total_h > 0 %}<span style="font-weight: normal; color: #777; font-size: 0.9em; margin-left: 8px;">(Total: {{ project_total_h }}h)</span>{% endif %}
+                                {% if project_total_h > 0 %}<span style="font-weight: normal; color: var(--text-quaternary); font-size: 0.9em; margin-left: 8px;">(Total: {{ project_total_h }}h)</span>{% endif %}
                             {% else %}{{ group.project_name }}{% endif %}
                         </th>
                     </tr>
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
                             onclick="loadSessionViaAjax(event, '{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name) }}&tab=journal', this)">
-                            <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:#555;">{{ session_item.location_name | default("-") }}</small></td>
+                            <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:var(--text-secondary);">{{ session_item.location_name | default("-") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
                         </tr>
@@ -198,7 +200,7 @@
                 </tbody>
             </table>
         </div>
-        <p id="journal-loading-indicator" style="display: none; text-align: center; color: #666; margin-top: 15px;">Loading history...</p>
+        <p id="journal-loading-indicator" style="display: none; text-align: center; color: var(--text-tertiary); margin-top: 15px;">Loading history...</p>
     </div>
 
     <div class="session-detail-column">
@@ -220,22 +222,22 @@
                 <div class="detail-header view-mode">
                     <h4 id="detail-title">Details for Session: {{ entry.date_utc | date_eu }}</h4>
                     <div class="action-button-group">
-                        <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="setupEditMode()">Edit This Session</button>
+                        <button type="button" class="inline-button" style="background-color:var(--warning-color); color:black;" onclick="setupEditMode()">Edit This Session</button>
                         <form action="{{ url_for('journal.journal_duplicate', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;">
-                            <button type="submit" class="inline-button" style="background-color:#17a2b8;" title="Create a copy of this session">Duplicate</button>
+                            <button type="submit" class="inline-button" style="background-color:var(--info-color);" title="Create a copy of this session">Duplicate</button>
                         </form>
                         <form action="{{ url_for('journal.journal_delete', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;" onsubmit="return confirm('Are you sure you want to delete this session permanently?');">
-                            <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete This Session</button>
+                            <button type="submit" class="inline-button" style="background-color:var(--danger-color);">Delete This Session</button>
                         </form>
                     </div>
                 </div>
 
                 {# --- View Tabs (Updated to match PDF structure) --- #}
                 <div class="detail-tabs-container view-mode">
-                    <button type="button" class="detail-tab-button active" data-tab="summary" onclick="showDetailTab('summary')">Summary</button>
-                    <button type="button" class="detail-tab-button" data-tab="acq" onclick="showDetailTab('acq')">Equipment & Acquisition</button>
-                    <button type="button" class="detail-tab-button" data-tab="outcome" onclick="showDetailTab('outcome')">Calibration & Outcome</button>
-                    <button type="button" class="detail-tab-button" data-tab="report" onclick="showDetailTab('report')">Session Report</button>
+                    {{ tab_button('Summary', 'summary', active=True, onclick="showDetailTab('summary')") }}
+                    {{ tab_button('Equipment & Acquisition', 'acq', onclick="showDetailTab('acq')") }}
+                    {{ tab_button('Calibration & Outcome', 'outcome', onclick="showDetailTab('outcome')") }}
+                    {{ tab_button('Session Report', 'report', onclick="showDetailTab('report')") }}
                 </div>
 
                 <div class="view-mode">
@@ -262,11 +264,11 @@
                             </div>
                         </div>
                         <dl class="detail-grid">
-                            <dt>Filter:</dt><dd>{{ display_safe_value(entry.filter_used_session) }}</dd>
+                            {{ detail_row('Filter:', display_safe_value(entry.filter_used_session)) }}
 
                             {# Display Rig/Setup Details on Summary Tab #}
                             {% if entry.rig_name_snapshot %}
-                                <dt>Rig Used:</dt><dd>{{ display_safe_value(entry.rig_name_snapshot) }}</dd>
+                                {{ detail_row('Rig Used:', display_safe_value(entry.rig_name_snapshot)) }}
                                 <dt>Rig Specs:</dt>
                                 <dd style="font-size: 0.9em; line-height: 1.4;">
                                     Telescope: {{ display_safe_value(entry.telescope_name_snapshot) }}<br>
@@ -275,10 +277,10 @@
                                     Scale: {{ entry.rig_scale_snapshot | round(2) if entry.rig_scale_snapshot is number else '-' }}"/px
                                 </dd>
                                 {% if entry.telescope_setup_notes %}
-                                    <dt>Setup Notes:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                                    {{ detail_row('Setup Notes:', display_safe_value(entry.telescope_setup_notes)) }}
                                 {% endif %}
                             {% else %}
-                                <dt>Telescope Setup:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                                {{ detail_row('Telescope Setup:', display_safe_value(entry.telescope_setup_notes)) }}
                             {% endif %}
 
                             {% if entry.session_image_file %}
@@ -286,7 +288,7 @@
                                 <dd style="grid-column: 1 / -1; margin-top: 8px;">
                                     {% set image_username = current_user.username if not SINGLE_USER_MODE else 'default' %}
                                     <a href="{{ url_for('core.get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" target="_blank" title="Click to view full size">
-                                        <img src="{{ url_for('core.get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" alt="Session Image" style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain;">
+                                        <img src="{{ url_for('core.get_uploaded_image', username=image_username, filename=entry.session_image_file) }}" alt="Session Image" style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid var(--text-lighter); display: block; object-fit: contain;">
                                     </a>
                                 </dd>
                             {% endif %}
@@ -295,51 +297,47 @@
 
                     {# --- UPDATED: EQUIPMENT & ACQUISITION Tab (Contains Sky, Rig, Guiding, and ACQ details) --- #}
                     <div id="acq-tab" class="detail-tab-content">
-                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Statistics & Conditions</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Statistics & Conditions</h5>
                         <dl class="detail-grid">
-                            <dt>Seeing (FWHM):</dt><dd>{{ display_safe_value(entry.seeing_observed_fwhm) }}{% if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</dd>
-                            <dt>Guiding RMS:</dt><dd>{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</dd>
-                            <dt>SQM:</dt><dd>{{ display_safe_value(entry.sky_sqm_observed) }}</dd>
-                            <dt>Transparency Scale:</dt><dd>{{ display_safe_value(entry.transparency_observed_scale) }}</dd>
-                            <dt>Moon Illum/Sep:</dt><dd>{{ display_safe_value(entry.moon_illumination_session) }}% / {{ display_safe_value(entry.moon_angular_separation_session) }}°</dd>
+                            {{ detail_row('Seeing (FWHM):', display_safe_value(entry.seeing_observed_fwhm) ~ ('"' if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' else '')) }}
+                            {{ detail_row('Guiding RMS:', display_safe_value(entry.guiding_rms_avg_arcsec) ~ ('"' if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' else '')) }}
+                            {{ detail_row('SQM:', display_safe_value(entry.sky_sqm_observed)) }}
+                            {{ detail_row('Transparency Scale:', display_safe_value(entry.transparency_observed_scale)) }}
+                            {{ detail_row('Moon Illum/Sep:', display_safe_value(entry.moon_illumination_session) ~ '% / ' ~ display_safe_value(entry.moon_angular_separation_session) ~ '°') }}
                             <dt>Weather Notes:</dt><dd><div class="notes-block" style="min-height: auto;">{{ display_safe_value(entry.weather_notes) }}</div></dd>
                         </dl>
 
-                        <div style="grid-column: 1 / -1; border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;"></div>
+                        <div style="grid-column: 1 / -1; border-top: 1px solid var(--bg-medium-alt); margin-top: 15px; padding-top: 15px;"></div>
 
-                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Equipment & Acquisition Details</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Equipment & Acquisition Details</h5>
                         <dl class="detail-grid">
                             {% if entry.rig_name_snapshot %}
-                                <dt>Rig Used:</dt>
-                                <dd>{{ display_safe_value(entry.rig_name_snapshot) }}</dd>
-                                <dt>Telescope:</dt>
-                                <dd>{{ display_safe_value(entry.telescope_name_snapshot) }}</dd>
+                                {{ detail_row('Rig Used:', display_safe_value(entry.rig_name_snapshot)) }}
+                                {{ detail_row('Telescope:', display_safe_value(entry.telescope_name_snapshot)) }}
                                 {% if entry.reducer_name_snapshot %}
-                                    <dt>Reducer/Ext.:</dt>
-                                    <dd>{{ display_safe_value(entry.reducer_name_snapshot) }}</dd>
+                                    {{ detail_row('Reducer/Ext.:', display_safe_value(entry.reducer_name_snapshot)) }}
                                 {% endif %}
-                                <dt>Camera:</dt>
-                                <dd>{{ display_safe_value(entry.camera_name_snapshot) }}</dd>
+                                {{ detail_row('Camera:', display_safe_value(entry.camera_name_snapshot)) }}
                                 <dt>Rig Specs:</dt>
                                 <dd style="font-size: 0.9em; line-height: 1.4;">
                                     FL/Ratio: {{ entry.rig_efl_snapshot | round(0) if entry.rig_efl_snapshot is number else '-' }} mm (f/{{ entry.rig_fr_snapshot | round(1) if entry.rig_fr_snapshot is number else '-' }})<br>
                                     Scale: {{ entry.rig_scale_snapshot | round(2) if entry.rig_scale_snapshot is number else '-' }}"/px<br>
                                     FOV: {{ entry.rig_fov_w_snapshot | round(1) if entry.rig_fov_w_snapshot is number else '-' }}' &times; {{ entry.rig_fov_h_snapshot | round(1) if entry.rig_fov_h_snapshot is number else '-' }}'
                                 </dd>
-                                <dt>Setup Notes:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                                {{ detail_row('Setup Notes:', display_safe_value(entry.telescope_setup_notes)) }}
                             {% else %}
-                                <dt>Telescope Setup:</dt><dd>{{ display_safe_value(entry.telescope_setup_notes) }}</dd>
+                                {{ detail_row('Telescope Setup:', display_safe_value(entry.telescope_setup_notes)) }}
                             {% endif %}
 
-                            <dt>Guiding Equipment:</dt><dd>{{ display_safe_value(entry.guiding_equipment) }}</dd>
-                            <dt>Acquisition Sw:</dt><dd>{{ display_safe_value(entry.acquisition_software) }}</dd>
-                            <dt>Dither Settings:</dt><dd>{{ display_safe_value(entry.dither_details) }}</dd>
-                            <dt>Binning:</dt><dd>{{ display_safe_value(entry.binning_session) }}</dd>
-                            <dt>Gain / Offset:</dt><dd>{{ display_safe_value(entry.gain_setting) }} / {{ display_safe_value(entry.offset_setting) }}</dd>
-                            <dt>Camera Temp (Set/Avg):</dt><dd>{{ display_safe_value(entry.camera_temp_setpoint_c) }}°C / {{ display_safe_value(entry.camera_temp_actual_avg_c) }}°C</dd>
-                            <dt>Filter:</dt><dd>{{ display_safe_value(entry.filter_used_session) }}</dd>
-                            <dt>Sub Exposure:</dt><dd>{{ display_safe_value(entry.exposure_time_per_sub_sec) }}s</dd>
-                            <dt># Light Subs:</dt><dd>{{ display_safe_value(entry.number_of_subs_light) }}</dd>
+                            {{ detail_row('Guiding Equipment:', display_safe_value(entry.guiding_equipment)) }}
+                            {{ detail_row('Acquisition Sw:', display_safe_value(entry.acquisition_software)) }}
+                            {{ detail_row('Dither Settings:', display_safe_value(entry.dither_details)) }}
+                            {{ detail_row('Binning:', display_safe_value(entry.binning_session)) }}
+                            {{ detail_row('Gain / Offset:', display_safe_value(entry.gain_setting) ~ ' / ' ~ display_safe_value(entry.offset_setting)) }}
+                            {{ detail_row('Camera Temp (Set/Avg):', display_safe_value(entry.camera_temp_setpoint_c) ~ '°C / ' ~ display_safe_value(entry.camera_temp_actual_avg_c) ~ '°C') }}
+                            {{ detail_row('Filter:', display_safe_value(entry.filter_used_session)) }}
+                            {{ detail_row('Sub Exposure:', display_safe_value(entry.exposure_time_per_sub_sec) ~ 's') }}
+                            {{ detail_row('# Light Subs:', display_safe_value(entry.number_of_subs_light)) }}
                         </dl>
 
                         {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
@@ -356,8 +354,7 @@
                                 {% set subs = entry['filter_' ~ filt_key ~ '_subs'] %}
                                 {% set exp = entry['filter_' ~ filt_key ~ '_exposure_sec'] %}
                                 {% if subs or exp %}
-                                    <dt>{{ filt_name }} ({{ filt_key }}):</dt>
-                                    <dd>{{ display_safe_value(subs) }} subs x {{ display_safe_value(exp) }}s</dd>
+                                    {{ detail_row(filt_name ~ ' (' ~ filt_key ~ '):', display_safe_value(subs) ~ ' subs x ' ~ display_safe_value(exp) ~ 's') }}
                                 {% endif %}
                             {% endfor %}
                             </dl>
@@ -366,18 +363,18 @@
 
                     {# --- UPDATED: CALIBRATION & OUTCOME Tab (Contains Calibration and Notes/Rating) --- #}
                     <div id="outcome-tab" class="detail-tab-content">
-                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Calibration Strategy</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Calibration Strategy</h5>
                         <dl class="detail-grid">
-                            <dt>Darks:</dt><dd>{{ display_safe_value(entry.darks_strategy) }}</dd>
-                            <dt>Flats:</dt><dd>{{ display_safe_value(entry.flats_strategy) }}</dd>
-                            <dt>Bias/DarkFlats:</dt><dd>{{ display_safe_value(entry.bias_darkflats_strategy) }}</dd>
+                            {{ detail_row('Darks:', display_safe_value(entry.darks_strategy)) }}
+                            {{ detail_row('Flats:', display_safe_value(entry.flats_strategy)) }}
+                            {{ detail_row('Bias/DarkFlats:', display_safe_value(entry.bias_darkflats_strategy)) }}
                         </dl>
 
-                        <div style="grid-column: 1 / -1; border-top: 1px solid #eee; margin-top: 15px; padding-top: 15px;"></div>
+                        <div style="grid-column: 1 / -1; border-top: 1px solid var(--bg-medium-alt); margin-top: 15px; padding-top: 15px;"></div>
 
-                        <h5 style="font-size: 1em; font-weight: 700; color: #495057; margin-bottom: 10px;">Outcome & Reflections</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Outcome & Reflections</h5>
                         <dl class="detail-grid">
-                            <dt>Session Rating:</dt><dd>{{ entry.session_rating_subjective | default('-') }}{% if entry.session_rating_subjective %} ★{% endif %}</dd>
+                            {{ detail_row('Session Rating:', (entry.session_rating_subjective | default('-')) ~ (' ★' if entry.session_rating_subjective else '')) }}
                             <dt>Notes:</dt><dd style="grid-column: 2 / 2;"><div class="notes-block">{{ entry.notes | default('-') | sanitize_html | safe }}</div></dd>
                         </dl>
                     </div>
@@ -385,10 +382,10 @@
                     <div id="report-tab" class="detail-tab-content">
                         <div class="report-preview-container">
                             <div class="report-toolbar">
-                                <a href="{{ url_for('journal.download_csv', item_type='session', item_id=entry.id) }}" class="inline-button" style="background-color:#17a2b8; text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
+                                <a href="{{ url_for('journal.download_csv', item_type='session', item_id=entry.id) }}" class="inline-button" style="background-color:var(--info-color); text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
                                     Download CSV
                                 </a>
-                                <button type="button" class="inline-button" style="background-color:#007bff;"
+                                <button type="button" class="inline-button" style="background-color:var(--info-color-alt2);"
                                         onclick="downloadVisibleReport('Nova_Report_{{ object_name | replace(' ', '_') }}_{{ entry.date_utc }}.pdf', this, 'report-preview-frame')">
                                     Download PDF
                                 </button>
@@ -404,11 +401,11 @@
                     <div class="detail-header">
                         <h4 id="detail-title">Project: {{ selected_project_data_journal.name }}</h4>
                         <div class="action-button-group">
-                            <button type="button" class="inline-button" style="background-color:#ffc107; color:black;" onclick="toggleJournalProjectEdit(true)">Edit Project</button>
+                            <button type="button" class="inline-button" style="background-color:var(--warning-color); color:black;" onclick="toggleJournalProjectEdit(true)">Edit Project</button>
 
                             <form action="{{ url_for('projects.delete_project', project_id=selected_project_data_journal.id) }}" method="POST" style="display:inline; margin: 0;" onsubmit="return confirm('Are you sure you want to delete this project? Linked sessions will become standalone.');">
                                 <input type="hidden" name="redirect_object" value="{{ object_name }}">
-                                <button type="submit" class="inline-button" style="background-color:#dc3545;">Delete Project</button>
+                                <button type="submit" class="inline-button" style="background-color:var(--danger-color);">Delete Project</button>
                             </form>
                         </div>
                     </div>
@@ -446,7 +443,7 @@
                                 <a href="{{ url_for('core.get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}" target="_blank">
                                     <img src="{{ url_for('core.get_uploaded_image', username=image_username, filename=selected_project_data_journal.final_image_file) }}"
                                          alt="Final Project Image"
-                                         style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid #ddd; display: block; object-fit: contain; margin: 0;">
+                                         style="max-width: 100%; max-height: 400px; border-radius: 6px; border: 1px solid var(--text-lighter); display: block; object-fit: contain; margin: 0;">
                                 </a>
                                 <span class="journal-project-stat-label" style="margin-top:5px; display:block;">Final Image</span>
                             </div>
@@ -472,10 +469,10 @@
                     <div id="project-report-tab" class="project-tab-content" style="display:none;">
                         <div class="report-preview-container">
                             <div class="report-toolbar">
-                                <a href="{{ url_for('journal.download_csv', item_type='project', item_id=selected_project_data_journal.id) }}" class="inline-button" style="background-color:#17a2b8; text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
+                                <a href="{{ url_for('journal.download_csv', item_type='project', item_id=selected_project_data_journal.id) }}" class="inline-button" style="background-color:var(--info-color); text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
                                     Download CSV
                                 </a>
-                                <button type="button" class="inline-button" style="background-color:#007bff;"
+                                <button type="button" class="inline-button" style="background-color:var(--info-color-alt2);"
                                         onclick="downloadVisibleReport('Nova_Project_{{ selected_project_data_journal.name | replace(' ', '_') }}.pdf', this, 'project-report-frame')">
                                     Download PDF
                                 </button>
@@ -493,22 +490,16 @@
                             <div class="detail-header">
                                 <h4 style="margin:0;">Editing Project</h4>
                                 <div class="action-button-group">
-                                    <button type="submit" class="inline-button" style="background-color:#28a745;">Save Project</button>
-                                    <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="toggleJournalProjectEdit(false)">Cancel</button>
+                                    <button type="submit" class="inline-button" style="background-color:var(--success-color);">Save Project</button>
+                                    <button type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" onclick="toggleJournalProjectEdit(false)">Cancel</button>
                                 </div>
                             </div>
 
                             <div class="journal-project-notes-section">
                                 <h3>Metadata</h3>
-                                <div class="form-group"><label for="project-name">Project Name:</label><input type="text" id="project-name" name="name" value="{{ selected_project_data_journal.name }}" required></div>
+                                {{ form_group('name', 'Project Name:', type='text', value=selected_project_data_journal.name, required=True, id_override='project-name') }}
                                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
-                                <div class="form-group"><label for="project-status">Status:</label>
-                                    <select id="project-status" name="status">
-                                        {% for status_option in project_statuses %}
-                                        <option value="{{ status_option }}" {% if status_option == selected_project_data_journal.status %}selected{% endif %}>{{ status_option }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
+                                {{ form_group('status', 'Status:', type='select', options=project_statuses, selected=selected_project_data_journal.status, id_override='project-status') }}
                             </div>
 
                             <div class="journal-project-notes-section">
@@ -523,7 +514,7 @@
                                     <h3>Final Image</h3>
                                     {% if selected_project_data_journal.final_image_file %}
                                         <p style="font-size:13px;">Current file: <code>{{ selected_project_data_journal.final_image_file }}</code></p>
-                                        <label style="color: #c0392b; cursor: pointer;"><input type="checkbox" name="delete_final_image" value="1"> Delete Current Image</label>
+                                        <label style="color: var(--danger-color); cursor: pointer;"><input type="checkbox" name="delete_final_image" value="1"> Delete Current Image</label>
                                         <hr class="detail-separator">
                                     {% endif %}
                                     <label for="final_image">Upload New Final Image (optional, max 5MB)</label>
@@ -559,7 +550,7 @@
                 <div class="detail-header view-mode">
                     <h4 id="detail-title">No session selected</h4>
                 </div>
-                <p class="view-mode" style="color: #6c757d; margin-top: 20px;">Select a session or project from the list on the left to view details, or click 'Add New Session'.</p>
+                <p class="view-mode" style="color: var(--accent-gray-medium); margin-top: 20px;">Select a session or project from the list on the left to view details, or click 'Add New Session'.</p>
             {% endif %}
 
             {# --- ADD FORM (PROJECT) --- #}
@@ -569,29 +560,22 @@
                     <div class="detail-header">
                         <h4 style="margin:0;">Add New Project</h4>
                         <div class="action-button-group">
-                            <button type="submit" class="inline-button" style="background-color:#28a745;">Create Project</button>
-                            <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="cancelForm()">Cancel</button>
+                            <button type="submit" class="inline-button" style="background-color:var(--success-color);">Create Project</button>
+                            <button type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" onclick="cancelForm()">Cancel</button>
                         </div>
                     </div>
                     <input type="hidden" name="target_object_id" value="{{ object_name }}">
 
                     <div class="journal-project-notes-section">
                         <h3>Metadata</h3>
-                        <div class="form-group"><label for="new-project-name-add">Project Name:</label><input type="text" id="new-project-name-add" name="name" required placeholder="e.g., M31 Broadband" style="width:100%;"></div>
-                        <div class="form-group"><label for="new-project-status-add">Status:</label>
-                            <select id="new-project-status-add" name="status" style="width:100%;">
-                                <option value="In Progress" selected>In Progress</option>
-                                <option value="On Hold">On Hold</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Abandoned">Abandoned</option>
-                            </select>
-                        </div>
+                        {{ form_group('name', 'Project Name:', type='text', required=True, placeholder='e.g., M31 Broadband', id_override='new-project-name-add', extra_attrs='style="width:100%;"') }}
+                        {{ form_group('status', 'Status:', type='select', options=[{'value': 'In Progress', 'label': 'In Progress'}, {'value': 'On Hold', 'label': 'On Hold'}, {'value': 'Completed', 'label': 'Completed'}, {'value': 'Abandoned', 'label': 'Abandoned'}], selected='In Progress', id_override='new-project-status-add', extra_attrs='style="width:100%;"') }}
                     </div>
 
                     <div class="journal-project-notes-section">
                         <div class="form-group trix-editor-container"><label>Goals & Status:</label>
                             <input type="hidden" id="goals-hidden-add" name="goals">
-                            <trix-editor input="goals-hidden-add" id="goals-editor-add" style="min-height: 100px; background-color: #fff;"></trix-editor>
+                            <trix-editor input="goals-hidden-add" id="goals-editor-add" style="min-height: 100px; background-color: var(--bg-white);"></trix-editor>
                         </div>
                     </div>
                </form>
@@ -603,71 +587,71 @@
                     <h4 id="form-detail-title">Edit Session</h4>
                     <div class="action-button-group">
                         <button id="form-submit-button" type="submit" form="journal-detail-form" class="inline-button">Save Changes</button>
-                        <button id="form-cancel-button" type="button" class="inline-button" style="background-color:#6c757d;" onclick="cancelForm()">Cancel</button>
+                        <button id="form-cancel-button" type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" onclick="cancelForm()">Cancel</button>
                     </div>
                 </div>
                 <input type="hidden" name="target_object_id" value="{{ object_name }}">
                 <input type="hidden" name="session_id" value="{{ selected_session_data.id if selected_session_data else '' }}">
                 <div class="form-row">
-                    <div class="form-group"><label for="session_date">Session Date:</label><input type="date" id="session_date" name="session_date" onchange="updateMoonData()" value="{{ today_date }}"></div>
+                    {{ form_group('session_date', 'Session Date:', type='date', value=today_date, extra_attrs='onchange="updateMoonData()"') }}
                     <div class="form-group"><label for="location_name">Location:</label><select id="location_name" name="location_name" onchange="updateMoonData()">{% for loc in available_locations %}<option value="{{ loc.name }}" data-lat="{{ loc.lat }}" data-lon="{{ loc.lon }}" data-tz="{{ loc.timezone }}">{{ loc.name }}{{ ' (Inactive)' if not loc.active else '' }}</option>{% endfor %}</select></div>
                 </div>
                 <div class="form-group full-width"><label for="project_selection">Link to Project (Optional)</label><select name="project_selection" id="project_selection" onchange="toggleNewProjectField()"><option value="standalone">-- Standalone Session --</option>{% for project in all_projects %}<option value="{{ project.id }}">{{ project.name }}</option>{% endfor %}<option value="new_project">-- Create New Project --</option></select></div>
                 <div class="form-group full-width" id="new_project_name_group" style="display: none;"><label for="new_project_name">New Project Name:</label><input type="text" name="new_project_name" id="new_project_name" placeholder="e.g., M31 Galaxy - 2025"></div>
                 <div id="form-sky-tab">
                     <div class="form-section-title">Sky Conditions (Observed)</div>
-                    <div class="form-row"><div class="form-group"><label>Seeing (FWHM, arcsec):</label><input type="number" step="0.01" name="seeing_observed_fwhm"></div><div class="form-group"><label>Transparency Scale:</label><input type="text" name="transparency_observed_scale" placeholder="e.g., Good (4/5), Clear"></div></div>
-                    <div class="form-row"><div class="form-group"><label>SQM Reading:</label><input type="number" step="0.01" name="sky_sqm_observed"></div><div class="form-group"> </div></div>
-                    <div class="form-group"><label>Weather Notes:</label><textarea name="weather_notes"></textarea></div>
-                    <div class="form-row"><div class="form-group"><label>Moon Illumination (%):</label><input type="number" step="0.1" id="moon_illumination_session" name="moon_illumination_session" placeholder="Auto-fills on date/loc change"></div><div class="form-group"><label>Moon Angular Separation (°):</label><input type="number" step="0.1" id="moon_angular_separation_session" name="moon_angular_separation_session" placeholder="Auto-fills on date/loc change"></div></div>
+                    <div class="form-row">{{ form_group('seeing_observed_fwhm', 'Seeing (FWHM, arcsec):', type='number', step=0.01) }}{{ form_group('transparency_observed_scale', 'Transparency Scale:', type='text', placeholder='e.g., Good (4/5), Clear') }}</div>
+                    <div class="form-row">{{ form_group('sky_sqm_observed', 'SQM Reading:', type='number', step=0.01) }}<div class="form-group"> </div></div>
+                    {{ form_group('weather_notes', 'Weather Notes:', type='textarea') }}
+                    <div class="form-row">{{ form_group('moon_illumination_session', 'Moon Illumination (%):', type='number', step=0.1, placeholder='Auto-fills on date/loc change') }}{{ form_group('moon_angular_separation_session', 'Moon Angular Separation (°):', type='number', step=0.1, placeholder='Auto-fills on date/loc change') }}</div>
                     <div class="form-section-title">Equipment & Guiding</div>
                     <div class="form-group"><label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label><select id="rig-selector-edit" name="rig_id_snapshot"><option value="">-- Manually Enter Below --</option>{% for rig in available_rigs %}<option value="{{ rig.rig_id }}">{{ rig.rig_name }}</option>{% endfor %}</select></div>
-                    <div class="form-group"><label>Telescope Setup Notes:</label><textarea id="telescope_setup_notes" name="telescope_setup_notes" rows="3"></textarea></div>
-                    <div class="form-group"><label>Guiding Equipment:</label><input type="text" name="guiding_equipment" placeholder="e.g., OAG + ASI174MM"></div>
-                    <div class="form-group"><label>Guiding RMS (avg, arcsec):</label><input type="number" step="0.01" name="guiding_rms_avg_arcsec"></div>
+                    {{ form_group('telescope_setup_notes', 'Telescope Setup Notes:', type='textarea', rows=3) }}
+                    {{ form_group('guiding_equipment', 'Guiding Equipment:', type='text', placeholder='e.g., OAG + ASI174MM') }}
+                    {{ form_group('guiding_rms_avg_arcsec', 'Guiding RMS (avg, arcsec):', type='number', step=0.01) }}
                 </div>
                 <div id="form-acq-tab">
                     <div class="form-section-title">Acquisition Details</div>
-                    <div class="form-group"><label>Acquisition Software:</label><input type="text" name="acquisition_software" placeholder="e.g., N.I.N.A."></div>
-                    <div class="form-group"><label>Dither Settings:</label><input type="text" name="dither_details" placeholder="e.g., Yes, 3px every 2 subs"></div>
+                    {{ form_group('acquisition_software', 'Acquisition Software:', type='text', placeholder='e.g., N.I.N.A.') }}
+                    {{ form_group('dither_details', 'Dither Settings:', type='text', placeholder='e.g., Yes, 3px every 2 subs') }}
                     <div class="form-row">
-                        <div class="form-group"><label>Sub Exposure (sec):</label><input type="number" name="exposure_time_per_sub_sec" min="0" oninput="triggerAllMaxSubsCalculations()"></div>
-                        <div class="form-group"><label># Light Subs <span id="max-subs-main" style="font-weight:normal; color:#17a2b8; font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" oninput="triggerAllMaxSubsCalculations()"></div>
+                        {{ form_group('exposure_time_per_sub_sec', 'Sub Exposure (sec):', type='number', min=0, extra_attrs='oninput="triggerAllMaxSubsCalculations()"') }}
+                        <div class="form-group"><label># Light Subs <span id="max-subs-main" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" oninput="triggerAllMaxSubsCalculations()"></div>
                     </div>
-                    <div class="form-row"><div class="form-group"><label>Gain:</label><input type="number" name="gain_setting"></div><div class="form-group"><label>Offset:</label><input type="number" name="offset_setting"></div></div>
-                    <div class="form-row"><div class="form-group"><label>Camera Temp Setpoint (°C):</label><input type="number" step="0.1" name="camera_temp_setpoint_c"></div><div class="form-group"><label>Camera Temp Actual Avg (°C):</label><input type="number" step="0.1" name="camera_temp_actual_avg_c"></div></div>
-                    <div class="form-group"><label>Binning:</label><input type="text" name="binning_session" placeholder="e.g., 1x1"></div>
-                    <div class="form-group"><label>Filter Used (if broadband/single):</label><input type="text" name="filter_used_session" placeholder="e.g., L-Pro, None"></div>
+                    <div class="form-row">{{ form_group('gain_setting', 'Gain:', type='number') }}{{ form_group('offset_setting', 'Offset:', type='number') }}</div>
+                    <div class="form-row">{{ form_group('camera_temp_setpoint_c', 'Camera Temp Setpoint (°C):', type='number', step=0.1) }}{{ form_group('camera_temp_actual_avg_c', 'Camera Temp Actual Avg (°C):', type='number', step=0.1) }}</div>
+                    {{ form_group('binning_session', 'Binning:', type='text', placeholder='e.g., 1x1') }}
+                    {{ form_group('filter_used_session', 'Filter Used (if broadband/single):', type='text', placeholder='e.g., L-Pro, None') }}
                     <div class="form-section-title" style="margin-top:20px;">Monochrome Filter Exposures</div>
                     {% set mono_filters = [('L', 'Luminance'), ('R', 'Red'), ('G', 'Green'), ('B', 'Blue'), ('Ha', 'H-alpha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
                     {% for filt_key, filt_name in mono_filters %}
                     <div class="form-row">
                         <div class="form-group" style="flex: 0 0 200px; align-self: center;"><label style="margin-bottom:0;">{{ filt_name }} ({{ filt_key }}):</label></div>
-                        <div class="form-group"><label># Subs <span id="max-subs-{{ filt_key }}" style="font-weight:normal; color:#17a2b8; font-size:0.85em;"></span>:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="Count" oninput="triggerAllMaxSubsCalculations()"></div>
+                        <div class="form-group"><label># Subs <span id="max-subs-{{ filt_key }}" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="filter_{{ filt_key }}_subs" min="0" step="1" placeholder="Count" oninput="triggerAllMaxSubsCalculations()"></div>
                         <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds" oninput="triggerAllMaxSubsCalculations()"></div>
                     </div>
                     {% endfor %}
                 </div>
                 <div id="form-outcome-tab">
                     <div class="form-section-title">Calibration Strategy</div>
-                    <div class="form-group"><label>Darks:</label><input type="text" name="darks_strategy" placeholder="e.g., Library match, Taken post-session"></div>
-                    <div class="form-group"><label>Flats:</label><input type="text" name="flats_strategy" placeholder="e.g., Morning sky, Panel"></div>
-                    <div class="form-group"><label>Bias / Dark Flats:</label><input type="text" name="bias_darkflats_strategy" placeholder="e.g., Library match"></div>
+                    {{ form_group('darks_strategy', 'Darks:', type='text', placeholder='e.g., Library match, Taken post-session') }}
+                    {{ form_group('flats_strategy', 'Flats:', type='text', placeholder='e.g., Morning sky, Panel') }}
+                    {{ form_group('bias_darkflats_strategy', 'Bias / Dark Flats:', type='text', placeholder='e.g., Library match') }}
                     <div class="form-section-title">Outcome & Reflections</div>
-                    <div class="form-group"><label>Session Rating (1-5 ★):</label><input type="number" min="1" max="5" name="session_rating_subjective"></div>
+                    {{ form_group('session_rating_subjective', 'Session Rating (1-5 ★):', type='number', min=1, max=5) }}
                     <div class="form-group">
                         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
                             <label style="margin-bottom: 0;">General Notes, Problems, Learnings:</label>
 
                             <input type="file" id="asiair_log_input" style="display: none;" accept=".txt,.log">
-                            <button type="button" class="inline-button" style="font-size: 11px; padding: 3px 8px; background-color: #83b4c5;" onclick="document.getElementById('asiair_log_input').click()">
+                            <button type="button" class="inline-button" style="font-size: 11px; padding: 3px 8px; background-color: var(--primary-color);" onclick="document.getElementById('asiair_log_input').click()">
                                 BETA: Import Log (ASIAIR / PHD2)
                             </button>
                         </div>
                         <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
-                        <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: #fff;"></trix-editor>
+                        <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: var(--bg-white);"></trix-editor>
                     </div>
-                    {% if selected_session_data and selected_session_data.session_image_file %}<div class="form-group full-width"><label>Current Image:</label><div style="display: flex; align-items: center; gap: 15px;"><span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span><label style="color: #c0392b; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"><input type="checkbox" name="delete_session_image" value="1"> Delete Image</label></div></div>{% endif %}
+                    {% if selected_session_data and selected_session_data.session_image_file %}<div class="form-group full-width"><label>Current Image:</label><div style="display: flex; align-items: center; gap: 15px;"><span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span><label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"><input type="checkbox" name="delete_session_image" value="1"> Delete Image</label></div></div>{% endif %}
                     <div class="form-group full-width"><label for="session_image">Upload New or Replace Image (optional, max 5MB)</label><input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif"></div>
                 </div>
             </form>
@@ -735,8 +719,8 @@
                             // C. Add Clean Title
                             const title = doc.createElement('h3');
                             title.innerText = `APPENDIX: SESSION ${i+1}`;
-                            title.style.color = '#888';
-                            title.style.borderBottom = '1px solid #eee';
+                            title.style.color = 'var(--text-muted)';
+                            title.style.borderBottom = '1px solid var(--bg-medium-alt)';
                             title.style.paddingBottom = '5px';
                             title.style.marginBottom = '15px';
                             wrapper.appendChild(title);
@@ -763,7 +747,7 @@
             printStyle.textContent = `
                 @media print {
                     @page { margin: 10mm; size: A4; }
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #fff; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: var(--bg-white); }
                     .a4-page { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
 
                     /* Prevent blocks from breaking internally */
@@ -929,7 +913,7 @@
 
         formDetailTitle.textContent = 'Add New Session for {{ alt_name | default(object_name, True) }}';
         submitButton.textContent = 'Add Session';
-        submitButton.style.backgroundColor = '#28a745';
+        submitButton.style.backgroundColor = 'var(--success-color)';
         cancelButton.onclick = () => window.location.reload();
 
         updateMoonData();
@@ -964,7 +948,7 @@
         }
 
         submitButton.textContent = 'Save Changes';
-        submitButton.style.backgroundColor = '#007bff';
+        submitButton.style.backgroundColor = 'var(--info-color-alt2)';
         cancelButton.onclick = cancelForm;
     }
 
@@ -1066,7 +1050,7 @@
                 span.title = `Based on ${durationMin}m total window minus other active filters. Real assumes ~15% overhead for meridian flip, dithering etc.`;
             } else {
                 span.textContent = '(Time Limit Reached)';
-                span.style.color = '#dc3545'; // Red warning
+                span.style.color = 'var(--danger-color)'; // Red warning
             }
         } else {
             span.textContent = '';
@@ -1335,7 +1319,7 @@
                         {
                             label: 'Moon Altitude',
                             data: data.moon_alt,
-                            borderColor: '#FFC107', // Yellow
+                            borderColor: 'var(--warning-color)', // Yellow
                             borderWidth: 3,
                             pointRadius: 0,
                             tension: 0.1

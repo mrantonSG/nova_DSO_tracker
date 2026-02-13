@@ -6,24 +6,24 @@
     .project-side-column { flex: 0 0 320px; }
     .project-main-column { flex: 1; }
 
-    .stat-box { padding: 15px; background-color: #e9ecef; border-radius: 6px; text-align: center; margin-bottom: 20px; }
-    .stat-value { font-size: 1.6em; font-weight: 600; color: #343a40; display: block; }
-    .stat-label { font-size: 0.8em; color: #6c757d; text-transform: uppercase; }
+    .stat-box { padding: 15px; background-color: var(--border-light-alt3); border-radius: 6px; text-align: center; margin-bottom: 20px; }
+    .stat-value { font-size: 1.6em; font-weight: 600; color: var(--text-primary); display: block; }
+    .stat-label { font-size: 0.8em; color: var(--accent-gray-medium); text-transform: uppercase; }
 
     .final-image-container { margin-top: 20px; text-align: center; }
-    .final-image-container img { max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; }
+    .final-image-container img { max-width: 100%; height: auto; border: 1px solid var(--text-lighter); border-radius: 4px; }
 
     .sessions-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
-    .sessions-table th, .sessions-table td { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
-    .sessions-table th { background-color: #f8f9fa; font-weight: 600; }
-    .sessions-table tr:hover { background-color: #f0f8ff; cursor: pointer; }
+    .sessions-table th, .sessions-table td { border: 1px solid var(--border-light-alt2); padding: 8px; text-align: left; }
+    .sessions-table th { background-color: var(--bg-light); font-weight: 600; }
+    .sessions-table tr:hover { background-color: var(--highlight-blue-alt2); cursor: pointer; }
 
-    .notes-section { margin-top: 20px; padding: 15px; border: 1px solid #dee2e6; border-radius: 6px; background-color: #fff; }
-    .notes-section h3 { font-size: 1.2em; margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 10px; }
+    .notes-section { margin-top: 20px; padding: 15px; border: 1px solid var(--border-light-alt2); border-radius: 6px; background-color: var(--bg-white); }
+    .notes-section h3 { font-size: 1.2em; margin-top: 0; border-bottom: 1px solid var(--bg-medium-alt); padding-bottom: 5px; margin-bottom: 10px; }
     .notes-section .notes-content { padding: 5px; min-height: 50px; }
 
-    .form-group label { display: block; margin-bottom: 3px; font-weight: 600; font-size: 0.95em; color: #495057; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    .form-group label { display: block; margin-bottom: 3px; font-weight: 600; font-size: 0.95em; color: var(--accent-gray-text); }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid var(--border-medium-alt); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
     .form-group.full-width { grid-column: 1 / -1; }
     .form-group.trix-editor-container { margin-top: 15px; }
 
@@ -32,7 +32,7 @@
 
 <div id="project-story-container">
     {% if not project_id_for_this_object %}
-        <p style="text-align:center; padding: 40px; color:#777;">This object is not currently linked to a Project. The **Project Details** sub-tab will only appear if the object is the primary target of an existing project.</p>
+        <p style="text-align:center; padding: 40px; color:var(--text-quaternary);">This object is not currently linked to a Project. The **Project Details** sub-tab will only appear if the object is the primary target of an existing project.</p>
     {% else %}
         <button class="inline-button" id="edit-button-project" onclick="toggleProjectSubTabEdit(true)">Edit Project</button>
 
@@ -105,7 +105,7 @@
                             </tbody>
                         </table>
                         {% if not sessions %}
-                            <p style="text-align:center; color:#777;">No sessions have been linked to this project yet.</p>
+                            <p style="text-align:center; color:var(--text-quaternary);">No sessions have been linked to this project yet.</p>
                         {% endif %}
                     </div>
                 </div>
@@ -118,8 +118,8 @@
                 <div class="project-header" style="border-bottom: none; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <h2 style="font-size: 1.5em; margin: 0;">Editing Project: {{ project_name_for_this_object }}</h2>
                     <div class="action-buttons">
-                        <button type="submit" class="inline-button" style="background-color:#28a745;">Save Project</button>
-                        <button type="button" class="inline-button" style="background-color:#6c757d;" onclick="toggleProjectSubTabEdit(false)">Cancel</button>
+                        <button type="submit" class="inline-button" style="background-color:var(--success-color);">Save Project</button>
+                        <button type="button" class="inline-button" style="background-color:var(--accent-gray-medium);" onclick="toggleProjectSubTabEdit(false)">Cancel</button>
                     </div>
                 </div>
 
@@ -152,7 +152,7 @@
                                 <h3>Final Image</h3>
                                 {% if project.final_image_file %}
                                     <p style="font-size:13px;">Current file: <code>{{ project.final_image_file }}</code></p>
-                                    <label style="color: #c0392b; cursor: pointer;"><input type="checkbox" name="delete_final_image" value="1"> Delete Current Image</label>
+                                    <label style="color: var(--danger-color); cursor: pointer;"><input type="checkbox" name="delete_final_image" value="1"> Delete Current Image</label>
                                     <hr class="detail-separator">
                                 {% endif %}
                                 <label for="final_image">Upload New Final Image (optional, max 5MB)</label>

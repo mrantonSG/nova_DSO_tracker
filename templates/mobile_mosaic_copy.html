@@ -6,21 +6,21 @@
 <div style="padding: 20px; max-width: 600px; margin: 0 auto;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h3 style="margin:0;">{{ object_name }} Mosaic</h3>
-        <a href="{{ back_url }}" style="text-decoration:none; font-size:24px; color:#888;">&times;</a>
+        <a href="{{ back_url }}" style="text-decoration:none; font-size:24px; color:var(--text-muted);">&times;</a>
     </div>
 
-    <div style="background:#eef2f5; padding:10px; border-radius:6px; margin-bottom:15px; font-size:14px; color:#555;">
+    <div style="background:var(--bg-light-gray); padding:10px; border-radius:6px; margin-bottom:15px; font-size:14px; color:var(--text-secondary);">
         <strong>Config:</strong> {{ info }}
     </div>
 
-    <p style="font-size:13px; color:#666; margin-bottom:5px;">ASIAIR Plan Coordinates:</p>
-    <textarea id="mosaic-text" style="width:100%; height:250px; font-family:monospace; font-size:13px; border:1px solid #ccc; border-radius:6px; padding:10px; box-sizing:border-box;" readonly>{{ mosaic_text }}</textarea>
+    <p style="font-size:13px; color:var(--text-tertiary); margin-bottom:5px;">ASIAIR Plan Coordinates:</p>
+    <textarea id="mosaic-text" style="width:100%; height:250px; font-family:monospace; font-size:13px; border:1px solid var(--border-medium-alt); border-radius:6px; padding:10px; box-sizing:border-box;" readonly>{{ mosaic_text }}</textarea>
 
-    <button onclick="copyText()" style="width:100%; background-color:#83b4c5; color:white; border:none; padding:15px; font-size:18px; border-radius:8px; margin-top:15px; cursor:pointer; font-weight:bold;">
+    <button onclick="copyText()" style="width:100%; background-color:var(--primary-color); color:white; border:none; padding:15px; font-size:18px; border-radius:8px; margin-top:15px; cursor:pointer; font-weight:bold;">
         Copy to Clipboard
     </button>
 
-    <div id="copy-status" style="text-align:center; margin-top:10px; color:#27ae60; font-weight:bold; opacity:0; transition:opacity 0.3s;">
+    <div id="copy-status" style="text-align:center; margin-top:10px; color:var(--success-color-alt); font-weight:bold; opacity:0; transition:opacity 0.3s;">
         Copied!
     </div>
 </div>

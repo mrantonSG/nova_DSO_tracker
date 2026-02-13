@@ -404,6 +404,13 @@ html.dark-mode a.dlback-button {
     border-color: var(--border-dark) !important;
 }
 
+html.dark-mode .btn-edit,
+html.dark-mode .btn-save,
+html.dark-mode .btn-cancel,
+html.dark-mode .btn-delete {
+    color: var(--bg-white) !important;
+}
+
 html.dark-mode tr.active-project-row,
 html.dark-mode tr.active-project-row > td,
 html.dark-mode tr.current-session-item,
@@ -662,6 +669,71 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
 
 /* Smaller variant for compact contexts */
 .action-button.compact {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+/* ===================================================================
+   SEMANTIC ACTION BUTTONS
+   ================================================================ */
+
+.btn-edit {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn-edit:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-save {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: var(--success-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn-save:hover {
+    background-color: var(--success-color-alt);
+}
+
+.btn-cancel {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: var(--accent-slate);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn-cancel:hover {
+    background-color: var(--accent-slate-dark);
+}
+
+.btn-delete {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.btn-delete:hover {
+    background-color: var(--danger-color-dark);
+}
+
+/* Compact variant */
+.btn-edit.compact,
+.btn-save.compact,
+.btn-cancel.compact,
+.btn-delete.compact {
     padding: 5px 10px;
     font-size: 14px;
 }

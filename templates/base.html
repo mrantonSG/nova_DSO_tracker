@@ -64,11 +64,11 @@
           <div class="user-menu">
             {% if is_guest %}
                 Guest Mode
-                <a href="{{ url_for('core.login') }}" style="margin-left: 8px; color: #83b4c5; font-size: 12px; text-decoration: underline;">Login</a>
+                <a href="{{ url_for('core.login') }}" style="margin-left: 8px; color: var(--primary-color); font-size: 12px; text-decoration: underline;">Login</a>
             {% elif not SINGLE_USER_MODE and current_user.is_authenticated %}
                 {{ current_user.username }}
                 <form action="{{ url_for('core.logout') }}" method="post" style="display:inline; margin-left:5px;">
-                    <button type="submit" style="background:none; border:none; color:#83b4c5; cursor:pointer; padding:0; text-decoration:underline; font-size:12px;">Logout</button>
+                    <button type="submit" style="background:none; border:none; color:var(--primary-color); cursor:pointer; padding:0; text-decoration:underline; font-size:12px;">Logout</button>
                 </form>
             {% elif SINGLE_USER_MODE %}
                 &nbsp;
