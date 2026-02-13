@@ -1,3 +1,5 @@
+{% from "macros.html" import stat_box, form_group %}
+
 <style>
     /* Styles needed for this include file */
     .project-container { display: flex; gap: 20px; align-items: flex-start; }
@@ -38,20 +40,9 @@
             <h2 style="font-size: 1.5em; margin: 0 0 10px 0;">Project: {{ project_name_for_this_object }}</h2>
             <div class="project-container">
                 <div class="project-side-column">
-                    <div class="stat-box">
-                        <span class="stat-value">{{ total_integration_str }}</span>
-                        <span class="stat-label">Total Integration Time</span>
-                    </div>
-
-                    <div class="stat-box">
-                        <span class="stat-value">{{ project.status }}</span>
-                        <span class="stat-label">Status</span>
-                    </div>
-
-                    <div class="stat-box">
-                        <span class="stat-value">{{ project.target_object_name or '-' }}</span>
-                        <span class="stat-label">Primary Target</span>
-                    </div>
+                    {{ stat_box(total_integration_str, 'Total Integration Time') }}
+                    {{ stat_box(project.status, 'Status') }}
+                    {{ stat_box(project.target_object_name or '-', 'Primary Target') }}
 
                     <div class="notes-section">
                         <h3>Goals & Status</h3>

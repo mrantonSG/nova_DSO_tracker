@@ -2512,6 +2512,12 @@
                     });
                 }, 4000); // Message disappears after 4 seconds
             }
+
+            // --- Event listener for location selector ---
+            const locationSelect = document.getElementById('location-select');
+            if (locationSelect) {
+                locationSelect.addEventListener('change', setLocation);
+            }
         });
         // --- END OF REPLACE ---
 

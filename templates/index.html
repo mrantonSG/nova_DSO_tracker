@@ -34,7 +34,7 @@
 <div class="status-strip">
     <div class="status-item" style="min-width: 150px;">
         <span class="status-label">Location</span>
-        <select id="location-select" onchange="setLocation()"></select>
+        <select id="location-select"></select>
     </div>
     <div class="status-item">
         <span class="status-label">Local Time</span>
@@ -58,7 +58,7 @@
         </div>
         <div style="display: flex; align-items: center;">
             <label for="sim-mode-toggle" class="status-label" style="cursor:pointer; margin-left: 8px;">Simulation</label>
-            <span class="help-badge" onclick="openHelp('simulation_mode')" title="About Simulation Mode" style="margin-left: 5px; cursor: pointer;">?</span>
+            <span class="help-badge" data-help-topic="simulation_mode" title="About Simulation Mode" style="margin-left: 5px; cursor: pointer;">?</span>
         </div>
     </div>
     <div class="status-item" style="margin-left: auto;">
@@ -89,7 +89,7 @@
     <button class="tab-button" data-tab="heatmap">Heatmap</button>
     <button class="tab-button" data-tab="inspiration">Inspiration</button> <button class="tab-button" data-tab="journal">Journal</button>
 
-    <span class="help-badge" onclick="openHelp('search_syntax')" title="Search Syntax Guide" style="margin-left: 10px;">?</span>
+    <span class="help-badge" data-help-topic="search_syntax" title="Search Syntax Guide" style="margin-left: 10px;">?</span>
 
     <div id="saved-views-container">
         <select id="saved-views-dropdown" class="styled-select">

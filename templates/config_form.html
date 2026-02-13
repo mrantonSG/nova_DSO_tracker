@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import form_group, help_badge %}
 
 {% block title %}Nova – Configuration{% endblock %}
 
@@ -22,7 +23,7 @@
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" onclick="window.location.href='{{ url_for('core.index') }}'">← Back to Dashboard</button>
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">← Back to Dashboard</button>
 {% endblock %}
 
 {% block body %}
@@ -103,7 +104,7 @@
             </div>
         </div>
 
-        <span class="help-badge" onclick="openHelp('data_management')" title="Help with Data Tools">?</span>
+        {{ help_badge('data_management', 'Help with Data Tools') }}
     </div>
   </div>
 
@@ -111,7 +112,7 @@
         <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
               General Settings
-              <span class="help-badge" onclick="openHelp('general_settings')" title="Click for help">?</span>
+              {{ help_badge('general_settings', 'Click for help') }}
           </h2>
           <form method="post">
               <div class="inline-fields">
@@ -215,7 +216,7 @@
     <div class="config-section">
       <h2 style="display: flex; align-items: center; gap: 15px;">
         Locations Configuration
-        <span class="help-badge" onclick="openHelp('locations_general')" title="Click for help">?</span>
+        {{ help_badge('locations_general', 'Click for help') }}
         <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: #555;"></span>
       </h2>
 
@@ -255,7 +256,7 @@
                  <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                     <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">
                         Horizon Mask:
-                        <span class="help-badge" onclick="openHelp('horizon_mask')" title="Help">?</span>
+                        {{ help_badge('horizon_mask', 'Help') }}
                     </label>
                     <div>
                         <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
@@ -352,7 +353,7 @@
         <div class="column">
             <h2 style="display: flex; align-items: center; gap: 10px;">
                 1. Define Your Components
-                <span class="help-badge" onclick="openHelp('rigs_general')" title="Help with Rigs">?</span>
+                {{ help_badge('rigs_general', 'Help with Rigs') }}
             </h2>
             <p style="font-size:14px; color: #555;">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
             <details open>
@@ -481,7 +482,7 @@
       <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
               Shared Items from Other Users
-              <span class="help-badge" onclick="openHelp('shared_items_general')" title="Help with Shared Items">?</span>
+              {{ help_badge('shared_items_general', 'Help with Shared Items') }}
           </h2>
           <p>Here you can find Objects and Components shared by other users in the system. Click "Import" to add a copy to your own configuration.</p>
 
