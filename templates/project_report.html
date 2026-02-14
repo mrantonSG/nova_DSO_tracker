@@ -4,32 +4,143 @@
     <meta charset="UTF-8">
     <title>Project Report</title>
     <style>
-        body { background-color: var(--bg-light-gray); display: flex; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text-primary); font-size: 11px; }
-        .a4-page { width: 210mm; background-color: var(--bg-white); padding: 15mm; box-sizing: border-box; margin-bottom: 20px; }
+        /* Universal Print Reset */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 400;
+            src: url('../fonts/roboto-v49-latin-regular.woff2') format('woff2');
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 700;
+            src: url('../fonts/roboto-v49-latin-700.woff2') format('woff2');
+        }
+
+        body {
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            font-family: 'Roboto', sans-serif;
+            color: #333;
+            font-size: 11px;
+        }
+        .a4-page {
+            width: 210mm;
+            background-color: white;
+            padding: 15mm;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        /* Nova Brand Header */
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-        .header-logo-text { font-size: 22px; font-weight: 800; color: var(--text-black); line-height: 1; }
-        .header-logo-text span { font-weight: 300; color: var(--text-secondary); margin-left: 4px; }
-        .header-title { text-align: right; font-size: 14px; color: var(--primary-color); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .header-line { border: 0; border-top: 2px solid var(--primary-color); margin-bottom: 15px; }
+        .header-logo-text { font-size: 22px; font-weight: 800; color: #333; line-height: 1; }
+        .header-logo-text span { font-weight: 300; color: #83b4c5; margin-left: 4px; }
+        .header-title { text-align: right; font-size: 14px; color: #83b4c5; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .header-line { border: 0; border-top: 2px solid #83b4c5; margin-bottom: 15px; }
 
-        .project-title { text-align: center; font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 5px; }
-        .project-meta { text-align: center; font-size: 12px; color: var(--text-tertiary); margin-bottom: 20px; }
+        .project-title { text-align: center; font-size: 24px; font-weight: 700; color: #333; margin-bottom: 5px; }
+        .project-meta { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
 
-        .master-image-container { text-align: center; margin-bottom: 30px; background: var(--text-black); padding: 10px; border-radius: 4px; }
+        /* Modern Master Image - Clean Canvas Style */
+        .master-image-container {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 12px;
+            box-shadow: inset 0 0 0 1000px #fdfdfd;
+            border: 1px solid #eee;
+        }
         .master-image-container img { max-width: 100%; max-height: 500px; object-fit: contain; }
 
-        .section-header { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--primary-color); border-bottom: 1px solid var(--bg-medium-alt); padding-bottom: 5px; margin-bottom: 10px; margin-top: 20px; }
-        .notes-content { font-size: 11px; line-height: 1.5; color: var(--text-primary); margin-bottom: 15px; }
-        .notes-content img { max-width: 100% !important; max-height: 400px !important; object-fit: contain; display: block; margin: 10px 0; }
+        /* Section Headers - Nova Teal */
+        .section-header {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #83b4c5;
+            border-bottom: 0.5pt solid #eee;
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            margin-top: 18px;
+        }
+
+        /* Notes Content - Clean Modern */
+        .notes-content {
+            font-size: 11px;
+            line-height: 1.5;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        .notes-content img { max-width: 100% !important; max-height: 400px !important; object-fit: contain; display: block; margin: 10px auto; }
         .notes-content figure { max-width: 100% !important; margin: 0; }
 
-        .session-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-top: 10px; }
-        .session-table th { background: var(--code-bg); text-align: left; padding: 6px; border: 1px solid var(--text-lighter); font-weight: 700; }
-        .session-table td { padding: 6px; border: 1px solid var(--text-lighter); vertical-align: top; }
+        /* Session Table - Modern Clean Style */
+        .session-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-top: 8px;
+        }
+        .session-table th {
+            box-shadow: inset 0 0 0 1000px #f8f9fa;
+            text-align: left;
+            padding: 6px 8px;
+            font-weight: 700;
+            color: #555;
+        }
+        .session-table th, .session-table td {
+            border-bottom: 0.5pt solid #eee;
+            border-right: none;
+            border-left: none;
+            border-top: none;
+        }
+        .session-table td { padding: 6px 8px; vertical-align: top; }
+        .session-table thead tr { border-bottom: 1px solid #eee; }
 
-        .report-block { display: block; background-color: var(--bg-white); margin-bottom: 5px; }
+        /* Report Block - Clean Modern Card */
+        .report-block {
+            display: block;
+            background-color: white;
+            margin-bottom: 15px;
+            padding: 12px;
+            box-shadow: inset 0 0 0 1000px #fdfdfd;
+            border: 1px solid #eee;
+            break-inside: avoid;
+        }
         .pdf-header-clone { margin-bottom: 15px; }
+
+        /* Stat Box Table - Modern Style */
+        .stat-box-table td {
+            box-shadow: inset 0 0 0 1000px #f8f9fa !important;
+            border: none !important;
+            border-radius: 4px;
+        }
+
+        /* Appended Session Reports Container - No extra space */
+        #appended-session-reports {
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Print-specific fixes */
+        @media print {
+            @page { margin: 10mm; size: A4; }
+            .a4-page { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+
+            /* Prevent empty trailing pages */
+            .session-appendix-wrapper:last-child {
+                break-after: avoid !important;
+                page-break-after: avoid !important;
+            }
+            #appended-session-reports { margin: 0 !important; padding: 0 !important; }
+            html, body { height: auto !important; }
+        }
     </style>
 </head>
 <body>
@@ -42,33 +153,38 @@
         </table>
         <hr class="header-line">
 
-        <div class="report-block">
+        <!-- Project Title - No page break here to fill Page 1 -->
+        <div class="report-block" style="padding-top: 10px; padding-bottom: 10px;">
             <div class="project-title">{{ project.name }}</div>
             <div class="project-meta">Target: {{ project.target_object_name or 'Various' }} | Status: {{ project.status }}</div>
         </div>
 
+        <!-- Stats Row - Modern Clean Cards -->
         <div style="width: 100%; text-align: center;">
-            <table class="stat-box-table" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 20px 0;">
+            <table class="stat-box-table" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 15px 0;">
                 <tr>
-                    <td style="width: 220px; background: var(--bg-light); border: 1px solid var(--bg-medium-alt); border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
-                        <span style="display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; white-space: nowrap;">{{ total_integration }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-quaternary); white-space: nowrap;">Total Integration</span>
+                    <td style="width: 200px; box-shadow: inset 0 0 0 1000px #f8f9fa; padding: 14px 8px; text-align: center; vertical-align: middle; border-radius: 6px;">
+                        <span style="display: block; font-size: 15px; font-weight: 700; color: #83b4c5; margin-bottom: 3px; white-space: nowrap;">{{ total_integration }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; white-space: nowrap;">Total Integration</span>
                     </td>
-                    <td style="width: 220px; background: var(--bg-light); border: 1px solid var(--bg-medium-alt); border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
-                        <span style="display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; white-space: nowrap;">{{ session_count }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-quaternary); white-space: nowrap;">Total Sessions</span>
+                    <td style="width: 200px; box-shadow: inset 0 0 0 1000px #f8f9fa; padding: 14px 8px; text-align: center; vertical-align: middle; border-radius: 6px;">
+                        <span style="display: block; font-size: 15px; font-weight: 700; color: #83b4c5; margin-bottom: 3px; white-space: nowrap;">{{ session_count }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; white-space: nowrap;">Total Sessions</span>
                     </td>
-                    <td style="width: 220px; background: var(--bg-light); border: 1px solid var(--bg-medium-alt); border-radius: 4px; padding: 12px 5px; text-align: center; vertical-align: middle;">
-                        <span style="display: block; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-quaternary); white-space: nowrap;">Date Range</span>
+                    <td style="width: 200px; box-shadow: inset 0 0 0 1000px #f8f9fa; padding: 14px 8px; text-align: center; vertical-align: middle; border-radius: 6px;">
+                        <span style="display: block; font-size: 15px; font-weight: 700; color: #83b4c5; margin-bottom: 3px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
+                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; white-space: nowrap;">Date Range</span>
                     </td>
                 </tr>
             </table>
         </div>
 
         {% if project_image_url %}
-        <div class="master-image-container report-block">
-            <img src="{{ project_image_url }}" alt="Final Result">
+        <!-- Master Image - Centered with Subtle Frame -->
+        <div style="text-align: center; margin-bottom: 25px;">
+            <div style="display: inline-block; padding: 10px; border: 1px solid #eee; background: #fff;">
+                <img src="{{ project_image_url }}" alt="Final Result" style="max-width: 100%; max-height: 450px; object-fit: contain; display: block;">
+            </div>
         </div>
         {% endif %}
 
@@ -101,6 +217,7 @@
         </div>
         {% endif %}
 
+        <!-- Session Chronicles Table -->
         <div class="report-block">
             <div class="section-header">Session Chronicles</div>
             <table class="session-table">
@@ -119,7 +236,7 @@
                         <td>{{ session.date_utc | date_eu }}</td>
                         <td>{{ session.location_name }}</td>
                         <td>{{ (session.calculated_integration_time_minutes or 0) | round(0) }}m</td>
-                        <td style="color: var(--warning-color-alt);">{{ session.session_rating_subjective or '-' }}★</td>
+                        <td style="color: #f39c12;">{{ session.session_rating_subjective or '-' }}★</td>
                         <td>
                             <strong>Rig:</strong> {{ session.rig_name_snapshot or session.telescope_setup_notes or '-' }}<br>
                             <strong>Notes:</strong> {{ session.notes | striptags | truncate(150) }}
@@ -132,7 +249,8 @@
 
         <div id="appended-session-reports"></div>
 
-        <div class="footer report-block" style="margin-top: 30px; text-align: center; font-size: 10px; color: var(--text-muted-alt);">
+        <!-- Footer - Clean Minimal -->
+        <div class="footer" style="margin-top: 30px; padding-top: 12px; border-top: 0.5pt solid #eee; text-align: center; font-size: 10px; color: #888;">
             Generated by Nova DSO Tracker on {{ today_date }}
         </div>
     </div>

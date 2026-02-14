@@ -63,13 +63,17 @@
                             // CSS 'break-before: page' handles the magic automatically
                             wrapper.style.breakBefore = 'page';
                             wrapper.style.pageBreakBefore = 'always';
-                            wrapper.style.marginTop = '20px';
+                            wrapper.style.marginTop = '0';
+                            wrapper.style.marginBottom = '0';
 
-                            // C. Add Clean Title
+                            // C. Add Clean Title - Nova Teal Brand Style
                             const title = doc.createElement('h3');
                             title.innerText = `APPENDIX: SESSION ${i+1}`;
-                            title.style.color = 'var(--text-muted)';
-                            title.style.borderBottom = '1px solid var(--bg-medium-alt)';
+                            title.style.color = '#83b4c5';
+                            title.style.fontSize = '11px';
+                            title.style.textTransform = 'uppercase';
+                            title.style.letterSpacing = '1px';
+                            title.style.borderBottom = '0.5pt solid #eee';
                             title.style.paddingBottom = '5px';
                             title.style.marginBottom = '15px';
                             wrapper.appendChild(title);
@@ -91,42 +95,105 @@
                 }
             }
 
-            // 2. INJECT PRINT-SPECIFIC CSS (The "Better Formatting" Logic)
+            // 2. INJECT PRINT-SPECIFIC CSS (Clean Modern Canvas - Nova Brand)
             const printStyle = doc.createElement('style');
             printStyle.textContent = `
                 @media print {
+                    /* Universal Print Reset */
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
                     @page { margin: 10mm; size: A4; }
-                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: var(--bg-white); }
+                    body { background-color: white !important; color: #333 !important; }
+
                     .a4-page { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
 
-                    /* Prevent blocks from breaking internally */
-                    .report-block, table, .info-box, .session-image-container { break-inside: avoid; page-break-inside: avoid; }
+                    /* Clean Modern Canvas - Soft Inset Shadows for Cards */
+                    .report-block {
+                        box-shadow: inset 0 0 0 1000px #fdfdfd !important;
+                        border: 1px solid #eee !important;
+                        background-color: white !important;
+                        margin-bottom: 15px !important;
+                    }
 
-                    /* Force Sessions to start on new pages, but reduce top margin */
+                    /* Clean Tables - Light Gray Dividers Only */
+                    table { border: none !important; }
+                    th, td { border-right: none !important; border-bottom: 0.5pt solid #eee !important; }
+                    .session-details-table td { border-bottom: 0.5pt solid #eee !important; }
+                    .session-image-container {
+                        border: 1px solid #eee !important;
+                        padding: 10px !important;
+                        box-shadow: inset 0 0 0 1000px #fafafa !important;
+                    }
+
+                    /* Typography - Roboto Only */
+                    * { font-family: 'Roboto', sans-serif !important; }
+
+                    /* Nova Brand - Teal Headers */
+                    .section-title { color: #83b4c5 !important; }
+                    .header-title { color: #83b4c5 !important; }
+                    .header-line { border-top: 2px solid #83b4c5 !important; }
+
+                    /* Soft Shading for Stats */
+                    .info-box { box-shadow: inset 0 0 0 1000px #f8f9fa !important; border: 1px solid #eee !important; }
+                    .session-details-table tr:first-child { box-shadow: inset 0 0 0 1000px #f8f9fa !important; }
+                    .exposures-table th { box-shadow: inset 0 0 0 1000px #f8f9fa !important; border-bottom: 1px solid #eee !important; }
+
+                    /* No-Cut Geometry - Prevent session blocks from breaking */
+                    .report-block, table, .info-box, .session-image-container, .session-notes-container {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+
+                    /* Force Sessions to start on new pages */
                     .session-appendix-wrapper {
-                        break-before: page;
-                        page-break-before: always;
+                        break-before: page !important;
+                        page-break-before: always !important;
                         display: block;
                         margin-top: 0 !important;
+                        margin-bottom: 0 !important;
                     }
 
-                    /* Keep the Title with the immediate following content (the summary table) */
+                    /* Last session wrapper - no trailing page break */
+                    .session-appendix-wrapper:last-child {
+                        break-after: avoid !important;
+                        page-break-after: avoid !important;
+                    }
+
+                    /* Appended container - no extra space */
+                    #appended-session-reports {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+
+                    /* Prevent empty trailing pages */
+                    html, body {
+                        height: auto !important;
+                        overflow: visible !important;
+                    }
+
+                    /* Keep the Title with the immediate following content */
                     .session-appendix-wrapper h3 {
-                        break-after: avoid;
-                        page-break-after: avoid;
+                        break-after: avoid !important;
+                        page-break-after: avoid !important;
                         margin-bottom: 10px;
+                        color: #83b4c5 !important;
+                        font-size: 11px !important;
+                        text-transform: uppercase !important;
+                        letter-spacing: 1px !important;
+                        border-bottom: 0.5pt solid #eee !important;
+                        padding-bottom: 5px !important;
                     }
 
-                    /* Constrain images in the appendix to fit on the same page as the summary */
-                    .session-appendix-wrapper img {
+                    /* Session Layout - Centered image with subtle frame */
+                    .session-image-container img {
                         max-height: 350px !important;
                         width: auto !important;
                         object-fit: contain;
                         display: block;
-                        margin: 10px auto;
+                        margin: 0 auto !important;
                     }
 
-                    /* Hide non-print elements */
+                    /* Hide footers in print */
                     .footer { display: none; }
                 }
             `;
