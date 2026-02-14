@@ -732,6 +732,16 @@
     }
     // --- Main Initializer ---
     document.addEventListener('DOMContentLoaded', () => {
+        // Double-initialization guard
+        if (window.novaState && window.novaState.data && window.novaState.data.configFormInitialized) {
+            console.log('[CONFIG_FORM] Already initialized, skipping...');
+            return;
+        }
+
+        // Mark as initialized
+        if (window.novaState && window.novaState.data) {
+            window.novaState.data.configFormInitialized = true;
+        }
 
         let locationDropdownsInitialized = false; // Flag to check if dropdowns are init
 

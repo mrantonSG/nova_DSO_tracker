@@ -17,7 +17,7 @@
                 Import from Catalog
                 {{ help_badge('objects_import', extra_attrs='onclick="openHelp(\'objects_import\'); event.stopPropagation();"') }}
             </button>
-            <button class="detail-tab-button" onclick="openDuplicateChecker()">
+            <button class="detail-tab-button" data-action="open-duplicates">
                 Find Duplicates
                 {{ help_badge('objects_duplicates', extra_attrs='onclick="openHelp(\'objects_duplicates\'); event.stopPropagation();"') }}
             </button>
@@ -28,23 +28,23 @@
         <div class="inline-fields">
           <div>
             <label class="short-label" for="object-filter-id">Filter ID:</label>
-            <input type="text" id="object-filter-id" onkeyup="filterObjectsList()" placeholder="e.g., M42">
+            <input type="text" id="object-filter-id" data-action="filter-objects" placeholder="e.g., M42">
           </div>
           <div>
             <label class="short-label" for="object-filter-name">Name:</label>
-            <input type="text" id="object-filter-name" onkeyup="filterObjectsList()" placeholder="e.g., Orion">
+            <input type="text" id="object-filter-name" data-action="filter-objects" placeholder="e.g., Orion">
           </div>
           <div>
             <label class="short-label" for="object-filter-con">Con:</label>
-            <input type="text" id="object-filter-con" onkeyup="filterObjectsList()" placeholder="e.g., Cyg">
+            <input type="text" id="object-filter-con" data-action="filter-objects" placeholder="e.g., Cyg">
           </div>
           <div>
             <label class="short-label" for="object-filter-type">Type:</label>
-            <input type="text" id="object-filter-type" onkeyup="filterObjectsList()" placeholder="e.g., PN">
+            <input type="text" id="object-filter-type" data-action="filter-objects" placeholder="e.g., PN">
           </div>
           <div>
             <label class="short-label" for="object-filter-shared">Status:</label>
-            <select id="object-filter-shared" onchange="filterObjectsList()">
+            <select id="object-filter-shared" data-action="filter-objects">
               <option value="all">All Statuses</option>
               <option value="enabled">Enabled Only</option>
               <option value="disabled">Disabled Only</option>
@@ -56,35 +56,35 @@
           </div>
           <div>
             <label class="short-label" for="object-filter-source">Source:</label>
-            <input type="text" id="object-filter-source" onkeyup="filterObjectsList()" placeholder="e.g., messier (use = for exact)">
+            <input type="text" id="object-filter-source" data-action="filter-objects" placeholder="e.g., messier (use = for exact)">
           </div>
 
           <div style="flex: 0 0 485px;">
             <label class="short-label" for="object-filter-notes">Notes:</label>
-            <input type="text" id="object-filter-notes" onkeyup="filterObjectsList()" placeholder="Search notes (use * for all)..." style="width: 100%;">
+            <input type="text" id="object-filter-notes" data-action="filter-objects" placeholder="Search notes (use * for all)..." style="width: 100%;">
           </div>
 
           <div>
             <label class="short-label" for="object-filter-mag">Mag &lt;:</label>
-            <input type="number" id="object-filter-mag" onkeyup="filterObjectsList()" placeholder="15" style="width: 60px;">
+            <input type="number" id="object-filter-mag" data-action="filter-objects" placeholder="15" style="width: 60px;">
           </div>
           <div>
             <label class="short-label" for="object-filter-size">Size &gt;:</label>
-            <input type="number" id="object-filter-size" onkeyup="filterObjectsList()" placeholder="5" style="width: 60px;">
+            <input type="number" id="object-filter-size" data-action="filter-objects" placeholder="5" style="width: 60px;">
           </div>
         </div>
 
         <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: var(--border-light-alt3); padding: 8px; border-radius: 4px;">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <button type="button" class="file-button" onclick="selectAllVisibleObjects()">Select Visible</button>
-                <button type="button" class="file-button" onclick="deselectAllObjects()">Deselect All</button>
+                <button type="button" class="file-button" data-action="select-all-visible">Select Visible</button>
+                <button type="button" class="file-button" data-action="deselect-all">Deselect All</button>
                 <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: var(--text-secondary);">0 Selected</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 14px; color: var(--text-secondary);">Selection Actions:</span>
-                <button type="button" class="action-button" style="background-color: var(--success-color-alt);" onclick="executeBulkAction('enable')">Enable</button>
-                <button type="button" class="action-button" style="background-color: var(--warning-color-alt);" onclick="executeBulkAction('disable')">Disable</button>
-                <button type="button" class="delete-btn" onclick="executeBulkAction('delete')">Delete</button>
+                <button type="button" class="action-button" style="background-color: var(--success-color-alt);" data-action="bulk-enable">Enable</button>
+                <button type="button" class="action-button" style="background-color: var(--warning-color-alt);" data-action="bulk-disable">Disable</button>
+                <button type="button" class="delete-btn" data-action="bulk-delete">Delete</button>
             </div>
         </div>
 
@@ -173,7 +173,7 @@
                                    {% if obj.ActiveProject %}checked{% endif %}>
                         </div>
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
-                            <button type="button" class="action-button" onclick="saveObjectData(this, '{{ obj.Object }}')">Update</button>
+                            <button type="button" class="action-button" data-action="save-object" data-object-id="{{ obj.Object }}">Update</button>
                         </div>
                     </div>
                   </div>
@@ -186,7 +186,7 @@
                         <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                             <div style="flex: 2; display: flex; gap: 5px;">
                                 <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
-                                <button type="button" class="file-button" onclick="document.getElementById('upload_file_{{ obj.Object }}').click()" title="Upload a personal image (Protects against catalog updates)">Upload</button>
+                                <button type="button" class="file-button" data-action="trigger-file-input" data-target-id="upload_file_{{ obj.Object }}" title="Upload a personal image (Protects against catalog updates)">Upload</button>
                                 <input type="file" id="upload_file_{{ obj.Object }}" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'image_url_{{ obj.Object }}')">
                             </div>
                             <div style="flex: 1;">
@@ -316,7 +316,7 @@
                   <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                       <div style="flex: 2; display: flex; gap: 5px;">
                           <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
-                          <button type="button" class="file-button" onclick="document.getElementById('upload_file_new').click()" title="Upload a personal image">Upload</button>
+                          <button type="button" class="file-button" data-action="trigger-file-input" data-target-id="upload_file_new" title="Upload a personal image">Upload</button>
                           <input type="file" id="upload_file_new" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'new_image_url')">
                       </div>
                       <div style="flex: 1;">
@@ -421,15 +421,15 @@
     </div>
 
 </div>
-<div id="notes-modal" class="modal-backdrop" onclick="closeNotesModal()">
+<div id="notes-modal" class="modal-backdrop" data-action="close-notes-modal">
     <div class="modal-content" onclick="event.stopPropagation()">
         <h3 id="notes-modal-title">Shared Notes</h3>
         <div id="notes-modal-content" class="modal-notes-content"></div>
-        <button class="inline-button modal-close-btn" onclick="closeNotesModal()">Close</button>
+        <button class="inline-button modal-close-btn" data-action="close-notes-modal">Close</button>
     </div>
 </div>
 
-<div id="duplicates-modal" class="modal-backdrop" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">
+<div id="duplicates-modal" class="modal-backdrop" data-action="close-duplicates-modal">
     <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
         <h3>Potential Duplicates</h3>
         <p style="font-size: 14px; color: var(--text-tertiary);">
@@ -442,7 +442,7 @@
         </div>
         <div id="duplicates-list" style="max-height: 50vh; overflow-y: auto;"></div>
           <div style="margin-top: 15px; text-align: right;">
-              <button class="action-button" style="background-color: var(--primary-color);" onclick="document.getElementById('duplicates-modal').classList.remove('is-visible')">Close</button>
+              <button class="action-button" style="background-color: var(--primary-color);" data-action="close-duplicates-modal">Close</button>
           </div>
       </div>
   </div>

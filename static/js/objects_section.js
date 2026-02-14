@@ -304,6 +304,76 @@
                 e.preventDefault();
                 mergeObjects(actionBtn.dataset.keepId, actionBtn.dataset.mergeId, actionBtn.dataset.rowId);
                 break;
+            case 'open-duplicates':
+                e.preventDefault();
+                openDuplicateChecker();
+                break;
+            case 'close-notes-modal':
+                e.preventDefault();
+                closeNotesModal();
+                break;
+            case 'close-duplicates-modal':
+                e.preventDefault();
+                document.getElementById('duplicates-modal').classList.remove('is-visible');
+                break;
+            case 'save-object':
+                e.preventDefault();
+                const objectId = actionBtn.dataset.objectId;
+                if (typeof saveObjectData === 'function') {
+                    saveObjectData(actionBtn, objectId);
+                }
+                break;
+            case 'select-all-visible':
+                e.preventDefault();
+                selectAllVisibleObjects();
+                break;
+            case 'deselect-all':
+                e.preventDefault();
+                deselectAllObjects();
+                break;
+            case 'bulk-enable':
+                e.preventDefault();
+                executeBulkAction('enable');
+                break;
+            case 'bulk-disable':
+                e.preventDefault();
+                executeBulkAction('disable');
+                break;
+            case 'bulk-delete':
+                e.preventDefault();
+                executeBulkAction('delete');
+                break;
+            case 'filter-objects':
+                // Triggered on input/change events
+                if (typeof filterObjectsList === 'function') {
+                    filterObjectsList();
+                }
+                break;
+            case 'trigger-file-input':
+                e.preventDefault();
+                const inputId = actionBtn.dataset.targetId;
+                const inputEl = document.getElementById(inputId);
+                if (inputEl) inputEl.click();
+                break;
+        }
+    });
+
+    // --- Event Delegation for Input/Change Events ---
+    document.addEventListener('input', function(e) {
+        const actionBtn = e.target.closest('[data-action]');
+        if (!actionBtn) return;
+        const action = actionBtn.dataset.action;
+        if (action === 'filter-objects' && typeof filterObjectsList === 'function') {
+            filterObjectsList();
+        }
+    });
+
+    document.addEventListener('change', function(e) {
+        const actionBtn = e.target.closest('[data-action]');
+        if (!actionBtn) return;
+        const action = actionBtn.dataset.action;
+        if (action === 'filter-objects' && typeof filterObjectsList === 'function') {
+            filterObjectsList();
         }
     });
 
