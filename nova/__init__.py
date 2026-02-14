@@ -133,6 +133,18 @@ from nova.blueprints.projects import projects_bp
 from nova.blueprints.tools import tools_bp
 
 
+# =============================================================================
+# GLOBAL CONSTANTS
+# =============================================================================
+# HTTP Request Timeouts (seconds)
+DEFAULT_HTTP_TIMEOUT = 10       # Standard timeout for most HTTP requests
+TELEMETRY_TIMEOUT = 5           # Shorter timeout for telemetry pings
+SIMBAD_TIMEOUT = 60             # Longer timeout for SIMBAD queries (can be slow)
+
+# Scoring Constants
+SCORING_WINDOW_SECONDS = 43200  # 12 hours in seconds - max observable duration for scoring
+
+
 def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | None:
     """
     Fetches weather data from a single URL with robust error handling.
@@ -141,7 +153,7 @@ def get_weather_data_single_attempt(url: str, lat: float, lon: float) -> dict | 
     try:
         r = None
         # Use a reasonable timeout (e.g., 10 seconds)
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, timeout=DEFAULT_HTTP_TIMEOUT)
 
         # --- 1. Check for HTTP errors (like 500, 502, 404, etc.) ---
         if r.status_code != 200:
@@ -553,20 +565,22 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql(
                     "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
                 )
-            except Exception:
-                pass
+            except Exception as idx_err:
+                # Index creation may fail if it already exists or table structure differs
+                # Also may fail due to IntegrityError from duplicate external_id values
+                print(f"[DB PATCH] Could not create journal external_id index (may already exist or have duplicates): {idx_err}")
 
-                # --- SavedView Patches ---
-                cols_views = conn.exec_driver_sql("PRAGMA table_info(saved_views);").fetchall()
-                colnames_views = {row[1] for row in cols_views}
-                if "description" not in colnames_views:
-                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN description VARCHAR(500);")
-                if "is_shared" not in colnames_views:
-                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
-                if "original_user_id" not in colnames_views:
-                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_user_id INTEGER;")
-                if "original_item_id" not in colnames_views:
-                    conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_item_id INTEGER;")
+            # --- SavedView Patches ---
+            cols_views = conn.exec_driver_sql("PRAGMA table_info(saved_views);").fetchall()
+            colnames_views = {row[1] for row in cols_views}
+            if "description" not in colnames_views:
+                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN description VARCHAR(500);")
+            if "is_shared" not in colnames_views:
+                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+            if "original_user_id" not in colnames_views:
+                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_user_id INTEGER;")
+            if "original_item_id" not in colnames_views:
+                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_item_id INTEGER;")
 
             try:
                 cols_framing = conn.exec_driver_sql("PRAGMA table_info(saved_framings);").fetchall()
@@ -593,9 +607,13 @@ def ensure_db_initialized_unified():
                 if "img_saturation" not in colnames_framing:
                     conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_saturation FLOAT DEFAULT 0.0;")
                     print("[DB PATCH] Added missing column saved_framings.img_saturation")
+                # Overlay Preference columns
+                if "geo_belt_enabled" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN geo_belt_enabled BOOLEAN DEFAULT 1;")
+                    print("[DB PATCH] Added missing column saved_framings.geo_belt_enabled")
             except Exception as e:
                 # Table might not exist yet if it's a fresh install, which is fine
-                pass
+                print(f"[DB PATCH] SavedFraming table patch skipped (may not exist yet): {e}")
 
             # --- Add new columns to 'components' table ---
             cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
@@ -792,7 +810,7 @@ def discover_catalog_packs() -> list[dict]:
         # 3. Fetch new manifest
         print(f"[CATALOG DISCOVER] Fetching new manifest from {manifest_url}")
         # Timeout reduced to 2.0s to prevent page load blocking if catalog server is slow/unreachable
-        r = requests.get(manifest_url, timeout=10.0)
+        r = requests.get(manifest_url, timeout=DEFAULT_HTTP_TIMEOUT)
         r.raise_for_status()  # Raise error for bad status (404, 500)
         packs = r.json()
 
@@ -1062,8 +1080,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                             new_horizon_points.append(
                                 HorizonPoint(az_deg=az, alt_min_deg=altmin)
                             )
-                        except Exception:
-                            pass
+                        except (ValueError, TypeError, IndexError) as hp_err:
+                            app.logger.warning(f"[MIGRATION] Invalid horizon point skipped for location '{name}': {pair} - {hp_err}")
 
                 # Assigning the new list triggers the 'delete-orphan' cascade.
                 # All old points are deleted, all new points are added.
@@ -1095,8 +1113,8 @@ def _migrate_locations(db, user: DbUser, config: dict):
                             new_horizon_points.append(
                                 HorizonPoint(az_deg=az, alt_min_deg=altmin)
                             )
-                        except Exception:
-                            pass
+                        except (ValueError, TypeError, IndexError) as hp_err:
+                            app.logger.warning(f"[MIGRATION] Invalid horizon point skipped for new location '{name}': {pair} - {hp_err}")
 
                 # Assign the new list to the new row object
                 row.horizon_points = new_horizon_points
@@ -1416,7 +1434,8 @@ def _compute_rig_metrics_from_components(telescope: Component | None,
         image_scale = (206.265 * px / efl) if (efl and px) else None
         fov_w_arcmin = (degrees(2 * atan((sw / 2.0) / efl)) * 60.0) if (sw and efl) else None
         return (efl, f_ratio, image_scale, fov_w_arcmin)
-    except Exception:
+    except Exception as calc_err:
+        app.logger.warning(f"[RIG METRICS] Failed to compute metrics for telescope={telescope.name if telescope else None}, camera={camera.name if camera else None}: {calc_err}")
         return (None, None, None, None)
 
 
@@ -2203,8 +2222,9 @@ def import_user_from_yaml(username: str,
         _migrate_ui_prefs(db, user, cfg_data)
         db.commit()
         return True
-    except Exception:
+    except Exception as import_err:
         db.rollback()
+        app.logger.error(f"[YAML IMPORT] Failed to import config for user '{username}': {import_err}")
         traceback.print_exc()
         return False
     finally:
@@ -3941,7 +3961,7 @@ def get_open_meteo_data(lat: float, lon: float) -> dict | None:
             "timezone": "UTC"  # Request data in UTC for easier processing
         }
 
-        r = requests.get(base_url, params=params, timeout=10)  # 10-second timeout
+        r = requests.get(base_url, params=params, timeout=DEFAULT_HTTP_TIMEOUT)  # 10-second timeout
 
         # --- Check for HTTP errors ---
         if r.status_code != 200:
@@ -4516,7 +4536,7 @@ def update_outlook_cache(user_id, status_key, cache_filename, location_name, use
                             continue
 
                         score_alt = max(0, min((max_altitude - 20) / 70, 1))
-                        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
+                        score_duration = min(obs_duration.total_seconds() / SCORING_WINDOW_SECONDS, 1)
                         score_moon_illum = 1 - min(moon_phase / 100, 1)
                         score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180,
                                                                                                      1)
@@ -5080,7 +5100,7 @@ def send_telemetry_async(user_config, browser_user_agent: str = '', force: bool 
         def _worker():
             try:
                 # print("[TELEMETRY] Sending to:", endpoint)
-                resp = requests.post(endpoint, json=payload, timeout=5)
+                resp = requests.post(endpoint, json=payload, timeout=TELEMETRY_TIMEOUT)
                 TELEMETRY_DEBUG_STATE['last_result'] = f"HTTP {getattr(resp, 'status_code', 'unknown')}"
                 TELEMETRY_DEBUG_STATE['last_error'] = None
                 TELEMETRY_DEBUG_STATE['last_ts'] = datetime.now(timezone.utc).isoformat()
@@ -6654,7 +6674,7 @@ def proxy_focus():
         # print(f"[PROXY FOCUS] Attempting to connect to Stellarium at: {stellarium_focus_url}")  # For debugging
 
         # Make the request to Stellarium
-        r = requests.post(stellarium_focus_url, data=payload, timeout=10)  # Added timeout
+        r = requests.post(stellarium_focus_url, data=payload, timeout=DEFAULT_HTTP_TIMEOUT)  # Added timeout
         r.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
 
         # print(f"[PROXY FOCUS] Stellarium response: {r.status_code}")  # For debugging
@@ -7317,7 +7337,7 @@ def get_ra_dec(object_name, objects_map=None): # <-- ADD objects_map=None parame
     try:
         custom_simbad = Simbad();
         custom_simbad.ROW_LIMIT = 1;
-        custom_simbad.TIMEOUT = 60
+        custom_simbad.TIMEOUT = SIMBAD_TIMEOUT
         # Request standard coordinates.
         # Our parsing logic handles both Decimal (try block) and Sexagesimal (except block).
         custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
@@ -10215,7 +10235,7 @@ def get_imaging_opportunities(object_name):
         # Scoring logic (remains the same)
         MIN_ALTITUDE = 20
         score_alt = max(0, min((max_altitude - MIN_ALTITUDE) / (90 - MIN_ALTITUDE), 1))
-        score_duration = min(obs_duration.total_seconds() / (3600 * 12), 1)
+        score_duration = min(obs_duration.total_seconds() / SCORING_WINDOW_SECONDS, 1)
         score_moon_illum = 1 - min(moon_phase / 100, 1)
         score_moon_sep_dynamic = (1 - (moon_phase / 100)) + (moon_phase / 100) * min(separation / 180, 1)
         composite_score = 100 * (0.20 * score_alt + 0.15 * score_duration + 0.45 * score_moon_illum + 0.20 * score_moon_sep_dynamic)
@@ -11992,10 +12012,6 @@ def save_framing():
         data = request.get_json()
         object_name = data.get('object_name')
 
-        # Debug: Log incoming data
-        print(f"[FRAMING API] Save request for object: {object_name}")
-        print(f"[FRAMING API] Image adjustments - brightness: {data.get('img_brightness')}, contrast: {data.get('img_contrast')}, gamma: {data.get('img_gamma')}, saturation: {data.get('img_saturation')}")
-
         # Find existing framing or create new
         framing = db.query(SavedFraming).filter_by(
             user_id=g.db_user.id,
@@ -12037,12 +12053,16 @@ def save_framing():
         framing.img_gamma = float(data['img_gamma']) if data.get('img_gamma') is not None else 1.0
         framing.img_saturation = float(data['img_saturation']) if data.get('img_saturation') is not None else 0.0
 
+        # Overlay Preference fields
+        framing.geo_belt_enabled = bool(data.get('geo_belt_enabled', True))
+
         framing.updated_at = datetime.now(UTC)
 
         db.commit()
         return jsonify({"status": "success", "message": "Framing saved."})
     except Exception as e:
         db.rollback()
+        app.logger.error(f"[FRAMING API] Failed to save framing for '{object_name}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
@@ -12058,9 +12078,6 @@ def get_framing(object_name):
         ).one_or_none()
 
         if framing:
-            # Debug: Log retrieved data
-            print(f"[FRAMING API] Retrieved framing for {object_name}: brightness={framing.img_brightness}, contrast={framing.img_contrast}, gamma={framing.img_gamma}, saturation={framing.img_saturation}")
-
             # Helper: format mosaic columns if present
             return jsonify({
                 "status": "found",
@@ -12077,11 +12094,13 @@ def get_framing(object_name):
                 "img_brightness": framing.img_brightness if framing.img_brightness is not None else 0.0,
                 "img_contrast": framing.img_contrast if framing.img_contrast is not None else 0.0,
                 "img_gamma": framing.img_gamma if framing.img_gamma is not None else 1.0,
-                "img_saturation": framing.img_saturation if framing.img_saturation is not None else 0.0
+                "img_saturation": framing.img_saturation if framing.img_saturation is not None else 0.0,
+                "geo_belt_enabled": framing.geo_belt_enabled if framing.geo_belt_enabled is not None else True
             })
         else:
             return jsonify({"status": "empty"})
     except Exception as e:
+        app.logger.error(f"[FRAMING API] Failed to get framing for '{object_name}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
@@ -12108,6 +12127,7 @@ def delete_framing():
             return jsonify({"status": "error", "message": "No saved framing found."}), 404
     except Exception as e:
         db.rollback()
+        app.logger.error(f"[FRAMING API] Failed to delete framing for '{object_name}': {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
         db.close()
