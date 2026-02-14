@@ -1,5 +1,18 @@
 /* base.css - Global styles extracted from base.html */
 
+/* Screen Reader Only - content only for screen readers, visually hidden */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 @font-face {
   font-family: 'Roboto';
   font-style: normal;
@@ -564,9 +577,14 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
 #universal-help-modal {
     display: none;
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
     background: var(--overlay-dark);
-    z-index: var(--z-tooltip);
+    z-index: var(--z-modal);
     opacity: 0;
     transition: opacity 0.3s ease;
     align-items: center;
@@ -574,7 +592,7 @@ html.red-mode img, html.red-mode canvas, html.red-mode iframe {
 }
 
 #universal-help-modal.is-visible {
-    display: flex;
+    display: flex !important;
     opacity: 1;
 }
 

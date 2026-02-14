@@ -30,6 +30,7 @@
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js" defer></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modal-manager.js') }}" defer></script>
     {% block head_extra %}{% endblock %}
   </head>
   <body>
@@ -87,8 +88,9 @@
 
     {% block scripts %}{% endblock %}
 
-    <div id="universal-help-modal">
+    <div id="universal-help-modal" aria-labelledby="help-modal-title">
         <div class="modal-content">
+            <h2 id="help-modal-title" class="sr-only">Help</h2>
             <div id="help-modal-body" class="help-body"></div>
             <div style="margin-top: 20px; text-align: right;">
                 <button class="action-button" id="help-modal-close-btn">Close</button>
