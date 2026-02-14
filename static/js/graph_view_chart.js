@@ -2,17 +2,82 @@
     'use strict';
 
     // ==========================================================================
-    // FRAMING CONFIGURATION CONSTANTS
+    // FRAMING CONFIGURATION CONSTANTS (imported from framing-utils)
     // ==========================================================================
-    const FRAMING_CONFIG = {
-        DEFAULT_FOV: 1.5,               // Default field of view in degrees
-        ROTATION_MIN: 0,                // Minimum rotation angle (degrees)
-        ROTATION_MAX: 360,              // Maximum rotation angle (degrees)
-        WEATHER_GROUPING_MS: 10800000   // 3 hours in milliseconds for weather overlay
+    const FRAMING_CONFIG = window.framingUtils?.CONSTANTS || {
+        DEFAULT_FOV_DEG: 1.5,
+        ROTATION_MIN_DEG: 0,
+        ROTATION_MAX_DEG: 360,
+        WEATHER_GROUPING_MS: 10800000
     };
 
     let currentTimeUpdateInterval = null;
     let framingKeydownHandler = null; // Store keydown handler for cleanup
+
+    // Helper to get framing utils (with fallback for missing module)
+    const fu = () => window.framingUtils || {
+        CONSTANTS: FRAMING_CONFIG,
+        normalizeAngle: (deg) => ((deg % 360) + 360) % 360,
+        arcminToDeg: (arcmin) => arcmin / 60,
+        degToRad: (deg) => deg * Math.PI / 180,
+        radToDeg: (rad) => rad * 180 / Math.PI,
+        parseFramingQueryString: (qs) => {
+            const q = new URLSearchParams(qs || '');
+            return {
+                rig: q.get('rig'),
+                ra: parseFloat(q.get('ra')) || null,
+                dec: parseFloat(q.get('dec')) || null,
+                rot: parseFloat(q.get('rot')) || null,
+                survey: q.get('survey'),
+                blend: q.get('blend'),
+                blendOp: parseFloat(q.get('blend_op')) || null,
+                m_cols: q.get('m_cols'),
+                m_rows: q.get('m_rows'),
+                m_ov: q.get('m_ov'),
+                img_brightness: parseFloat(q.get('img_b')) || null,
+                img_contrast: parseFloat(q.get('img_c')) || null,
+                img_gamma: parseFloat(q.get('img_g')) || null,
+                img_saturation: parseFloat(q.get('img_s')) || null,
+                geo_belt_enabled: q.get('geo_belt') === '1' ? true : null
+            };
+        },
+        calculateNudgedCenter: (center, dxArcmin, dyArcmin) => {
+            const dxDeg = dxArcmin / 60;
+            const dyDeg = dyArcmin / 60;
+            const decRad = center.dec * Math.PI / 180;
+            let newRa = center.ra;
+            if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) {
+                newRa -= dxDeg / Math.cos(decRad);
+            }
+            return { ra: ((newRa % 360) + 360) % 360, dec: center.dec + dyDeg };
+        },
+        calculateGeoBeltDeclination: (observerLatDeg) => {
+            const latRad = observerLatDeg * Math.PI / 180;
+            const Re = 6378, Rgeo = 42164;
+            const num = Re * Math.sin(latRad);
+            const den = Rgeo - (Re * Math.cos(latRad));
+            const parallaxRad = Math.atan2(num, den);
+            return -(parallaxRad * 180 / Math.PI);
+        },
+        generateGeoBeltRaPoints: () => {
+            const points = [];
+            for (let ra = 0; ra < 360; ra += 0.2) points.push(ra);
+            return points;
+        },
+        formatRaCsv: (raDeg) => {
+            const hours = raDeg / 15;
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return `${h}h ${m}m`;
+        },
+        formatDecCsv: (decDeg) => {
+            const sign = decDeg >= 0 ? '+' : '-';
+            const absDec = Math.abs(decDeg);
+            const d = Math.floor(absDec);
+            const m = Math.round((absDec - d) * 60);
+            return `${sign}${d}° ${m}m`;
+        }
+    };
 
     // --- Nova Precession Helpers (J2000 <-> JNow) ---
     function getPrecessionMatrix(jd) {
@@ -325,7 +390,6 @@
     let fovLayer = null;
     let altitudeChart = null;
     let __blendSurveyId = null;
-    let _framingIsLoading = false; // Guard against concurrent openFramingAssistant calls
     let framingModalController = null; // ModalController instance for framing modal
 
     function ensureBlendLayer() {
@@ -1201,15 +1265,216 @@
         return flags;
     }
 
-    function openFramingAssistant(optionalQueryString) {
-        // --- RACE CONDITION GUARD: Prevent concurrent execution ---
-        if (_framingIsLoading) {
-            console.warn('[FRAMING] openFramingAssistant called while loading - ignoring duplicate request');
-            return;
+    /**
+     * Initialize Aladin Lite with all event handlers and overlays
+     * This is extracted to make openFramingAssistant cleaner
+     */
+    async function initializeAladin() {
+        if (aladin) {
+            console.log('[FRAMING] Aladin already initialized');
+            return aladin;
         }
-        _framingIsLoading = true;
-        // --- END GUARD ---
 
+        // Check if cached instance is available
+        if (framingModalController) {
+            const cached = framingModalController.getCachedInstance();
+            if (cached) {
+                aladin = cached;
+                console.log('[FRAMING] Using cached Aladin instance from previous modal open');
+                return aladin;
+            }
+        }
+
+        return new Promise((resolve, reject) => {
+            try {
+                aladin = A.aladin('#aladin-lite-div', {
+                    survey: "P/DSS2/color",
+                    fov: FRAMING_CONFIG.DEFAULT_FOV_DEG || FRAMING_CONFIG.DEFAULT_FOV,
+                    cooFrame: 'ICRS',
+                    showFullscreenControl: false,
+                    showGotoControl: false,
+                    // Error callback for survey loading failures
+                    errorCallback: function(err) {
+                        console.error('[FRAMING] Aladin initialization error:', err);
+                        displayOfflineMessage('aladin-lite-div', 'Failed to load sky survey. Please check your internet connection and try again.');
+                        reject(err);
+                    }
+                });
+
+                // Wait for Aladin to be ready
+                aladin.on('ready', () => {
+                    console.log('[FRAMING] Aladin ready');
+
+                    // Install slow wheel zoom
+                    (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 :1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
+
+                    baseSurvey = aladin.getBaseImageLayer();
+                    (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
+                    if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
+                    if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
+                    fovLayer = A.graphicOverlay({color: '#83b4c5', lineWidth: 3});
+                    aladin.addOverlay(fovLayer);
+                    const canvas = document.getElementById('aladin-lite-div');
+                    if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } }, 80); }); ro.observe(canvas); }
+                    (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = '3px solid #83b4c5'; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
+                    canvas.addEventListener('click', (ev) => { if (!ev.shiftKey) return; if (lockToObject) return; const rect = canvas.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top; const sky = aladin.pix2world(x, y); if (!sky) return; fovCenter = {ra: sky[0], dec: sky[1]}; updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } updateReadoutFromCenter(); });
+
+                    // Remove any existing keydown handler before adding new one (prevents memory leaks)
+                    if (framingKeydownHandler) {
+                        window.removeEventListener('keydown', framingKeydownHandler);
+                    }
+                    framingKeydownHandler = (e) => {
+                        // Check if the user is currently typing in a form element or Trix editor
+                        const activeTag = document.activeElement.tagName.toLowerCase();
+                        const isTyping = activeTag === 'input' ||
+                                         activeTag === 'textarea' ||
+                                         activeTag === 'trix-editor' ||
+                                         document.activeElement.isContentEditable;
+
+                        if (isTyping) return; // Exit immediately if the user is typing
+
+                        const k = e.key.toLowerCase();
+                        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) {
+                            e.preventDefault();
+                            if (k === 'arrowup' || k === 'w') nudgeFov(0, +1);
+                            if (k === 'arrowdown' || k === 's') nudgeFov(0, -1);
+                            if (k === 'arrowleft' || k === 'a') nudgeFov(-1, 0);
+                            if (k === 'arrowright' || k === 'd') nudgeFov(+1, 0);
+                        }
+                    };
+                    window.addEventListener('keydown', framingKeydownHandler);
+                    (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
+                    (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
+
+                    // Cache the Aladin instance in the ModalController
+                    if (framingModalController) {
+                        framingModalController.setCachedInstance(aladin);
+                    }
+
+                    resolve(aladin);
+                });
+            } catch (initErr) {
+                console.error('[FRAMING] Aladin initialization failed:', initErr);
+                displayOfflineMessage('aladin-lite-div', 'Failed to initialize sky viewer. Please refresh and try again.');
+                reject(initErr);
+            }
+        });
+    }
+
+    /**
+     * Restore framing assistant state from query parameters
+     */
+    function restoreFramingState(params) {
+        const flags = {
+            haveCenter: false,
+            haveRot: false,
+            haveRigRestored: false
+        };
+
+        // Restore rig selection
+        if (params.rig) {
+            const sel = document.getElementById('framing-rig-select');
+            if (sel) {
+                const idx = Array.from(sel.options).findIndex(o => o.value === params.rig);
+                if (idx >= 0) {
+                    sel.selectedIndex = idx;
+                    flags.haveRigRestored = true;
+                }
+            }
+        }
+
+        // Restore rotation
+        if (!Number.isNaN(params.rot)) {
+            const rotInput = document.getElementById('framing-rotation');
+            const normRot = (fu().normalizeAngle ? fu().normalizeAngle(params.rot) : ((params.rot % 360 + 360) % 360));
+            if (rotInput) rotInput.value = normRot;
+            const rotSpan = document.getElementById('rotation-value');
+            if (rotSpan) rotSpan.textContent = `${Math.round(normRot)}°`;
+            flags.haveRot = true;
+        }
+
+        // Restore survey
+        if (params.survey) {
+            const sSel = document.getElementById('survey-select');
+            if (sSel) sSel.value = params.survey;
+            if (typeof setSurvey === 'function') setSurvey(params.survey);
+        }
+
+        // Restore blend settings
+        try {
+            const bsel = document.getElementById('blend-survey-select');
+            const bop = document.getElementById('blend-opacity');
+            if (params.blend && bsel) {
+                bsel.value = params.blend;
+                if (typeof ensureBlendLayer === 'function') ensureBlendLayer();
+            }
+            if (!Number.isNaN(params.blendOp) && bop) {
+                bop.value = String(Math.max(0, Math.min(1, params.blendOp)));
+                if (typeof setBlendOpacity === 'function') setBlendOpacity(bop.value);
+            }
+        } catch (e) {
+            console.warn('[nova] Blend restore error:', e);
+        }
+
+        // Restore mosaic settings
+        if (params.m_cols) document.getElementById('mosaic-cols').value = params.m_cols;
+        if (params.m_rows) document.getElementById('mosaic-rows').value = params.m_rows;
+        if (params.m_ov) document.getElementById('mosaic-overlap').value = params.m_ov;
+
+        // Restore image adjustment settings
+        const pendingImageAdjustments = {
+            brightness: !Number.isNaN(params.img_brightness) ? params.img_brightness : null,
+            contrast: !Number.isNaN(params.img_contrast) ? params.img_contrast : null,
+            gamma: !Number.isNaN(params.img_gamma) ? params.img_gamma : null,
+            saturation: !Number.isNaN(params.img_saturation) ? params.img_saturation : null
+        };
+
+        // Set slider values immediately
+        let hasImageAdjustments = false;
+        if (pendingImageAdjustments.brightness !== null) {
+            const el = document.getElementById('img-bright');
+            if (el) { el.value = pendingImageAdjustments.brightness; hasImageAdjustments = true; }
+        }
+        if (pendingImageAdjustments.contrast !== null) {
+            const el = document.getElementById('img-contrast');
+            if (el) { el.value = pendingImageAdjustments.contrast; hasImageAdjustments = true; }
+        }
+        if (pendingImageAdjustments.gamma !== null) {
+            const el = document.getElementById('img-gamma');
+            if (el) { el.value = pendingImageAdjustments.gamma; hasImageAdjustments = true; }
+        }
+        if (pendingImageAdjustments.saturation !== null) {
+            const el = document.getElementById('img-sat');
+            if (el) { el.value = pendingImageAdjustments.saturation; hasImageAdjustments = true; }
+        }
+
+        if (hasImageAdjustments) {
+            flags.pendingImageAdjustments = pendingImageAdjustments;
+        }
+
+        // ALWAYS ensure Lock FoV is ON (explicit checkbox state)
+        const lockBox = document.getElementById('lock-to-object');
+        if (lockBox) {
+            lockBox.checked = true;
+        }
+
+        // Restore Geo Belt checkbox state (default ON if not specified)
+        const geoBeltCheckbox = document.getElementById('show-geo-belt');
+        if (geoBeltCheckbox) {
+            if (params.geo_belt_enabled !== undefined && params.geo_belt_enabled !== null) {
+                geoBeltCheckbox.checked = params.geo_belt_enabled;
+            }
+        }
+
+        // Restore center coordinates
+        if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
+            flags.haveCenter = true;
+        }
+
+        return flags;
+    }
+
+    function openFramingAssistant(optionalQueryString) {
         const framingModal = document.getElementById('framing-modal');
 
         // Show the modal frame immediately
@@ -1222,7 +1487,6 @@
         // --- MODIFIED: Check for internet connection first ---
         if (!navigator.onLine) {
             displayOfflineMessage('aladin-lite-div', 'The Framing Assistant requires an active internet connection to load sky surveys.');
-            _framingIsLoading = false; // Release guard on early exit
             return; // Stop execution if offline
         }
         // --- END OF MODIFICATION ---
@@ -1230,7 +1494,6 @@
         const framingRigSelect = document.getElementById('framing-rig-select');
         if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
             alert("Please configure at least one rig on the Configuration page first.");
-            _framingIsLoading = false; // Release guard on early exit
             return;
         }
 
@@ -1277,7 +1540,6 @@
                     errorCallback: function(err) {
                         console.error('[FRAMING] Aladin initialization error:', err);
                         displayOfflineMessage('aladin-lite-div', 'Failed to load sky survey. Please check your internet connection and try again.');
-                        _framingIsLoading = false;
                     }
                 });
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
@@ -1320,7 +1582,6 @@
             } catch (initErr) {
                 console.error('[FRAMING] Aladin initialization failed:', initErr);
                 displayOfflineMessage('aladin-lite-div', 'Failed to initialize sky viewer. Please refresh and try again.');
-                _framingIsLoading = false;
                 return;
             }
         }
@@ -1337,7 +1598,8 @@
         if (rig) qp.set('rig', rig);
         if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
         if (Number.isFinite(dec)) qp.set('dec', dec.toFixed(6));
-        qp.set('rot', String(Math.round(to360(rot))));
+        const utils = fu();
+        qp.set('rot', String(Math.round(utils.normalizeAngle ? utils.normalizeAngle(rot) : to360(rot))));
         if (survey) qp.set('survey', survey);
         if (blend) qp.set('blend', blend);
         qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
@@ -1426,9 +1688,6 @@
             // Call toggleGeoBelt with the current checkbox state (already restored from saved value)
             toggleGeoBelt(geoCheck.checked);
         }
-
-        // --- RELEASE LOADING GUARD ---
-        _framingIsLoading = false;
     }
     function closeFramingAssistant() {
         // Close using ModalController if available
@@ -1444,11 +1703,11 @@
             framingKeydownHandler = null;
         }
     }
-    function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; v = v % 360; slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
+    function flipFraming90() { const slider = document.getElementById('framing-rotation'); let v = parseFloat(slider.value) || 0; v += 90; const utils = fu(); v = (utils.normalizeAngle ? utils.normalizeAngle(v) : ((v % 360) + 360) % 360); slider.value = v; slider.dispatchEvent(new Event('input', { bubbles: true })); updateFramingChart(false); if (typeof updateReadoutFromCenter === 'function') updateReadoutFromCenter(); }
     
     function toggleGeoBelt(show) {
         if (!aladin) return;
-    
+
         // 1. Cleanup (Handle both Overlay and Catalog types safely)
         if (geoBeltLayer) {
             try {
@@ -1461,42 +1720,68 @@
             }
             geoBeltLayer = null;
         }
-    
+
         if (!show) return;
-    
+
         try {
-            // 2. Calculate Declination
-            const rawLat = window.NOVA_GRAPH_DATA.plotLat || 0;
-            const latDeg = parseFloat(rawLat) || 0;
-    
-            const latRad = latDeg * Math.PI / 180;
-            const Re = 6378;
-            const Rgeo = 42164;
-            const num = Re * Math.sin(latRad);
-            const den = Rgeo - (Re * Math.cos(latRad));
-            const parallaxRad = Math.atan2(num, den);
-    
-            let apparentDec = -(parallaxRad * 180 / Math.PI);
-            if (isNaN(apparentDec)) apparentDec = 0;
-    
-            console.log(`[Nova] Drawing Geo Belt (Catalog) at Dec: ${apparentDec.toFixed(2)}°`);
-    
-            // 3. Create CATALOG Layer
-            geoBeltLayer = A.catalog({
-                name: 'Geostationary Belt',
-                color: '#e056fd',
-                sourceSize: 6,   // Safe minimum size to prevent canvas crash
-                shape: 'circle'
-            });
-            aladin.addCatalog(geoBeltLayer);
-    
-            // 4. Generate High-Density Points (Simulates a line)
-            let sources = [];
-            // Create a point every 0.2 degrees (High density)
-            for (let ra = 0; ra < 360; ra += 0.2) {
-                sources.push(A.source(ra, apparentDec, {name: ''}));
+            // Use framing utilities if available
+            const utils = fu();
+            let apparentDec, raPoints;
+
+            if (utils.calculateGeoBeltDeclination && utils.generateGeoBeltRaPoints) {
+                // 2. Calculate Declination using utils
+                const rawLat = window.NOVA_GRAPH_DATA.plotLat || 0;
+                const latDeg = parseFloat(rawLat) || 0;
+                apparentDec = utils.calculateGeoBeltDeclination(latDeg);
+                if (isNaN(apparentDec)) apparentDec = 0;
+
+                console.log(`[Nova] Drawing Geo Belt (Catalog) at Dec: ${apparentDec.toFixed(2)}°`);
+
+                // 3. Create CATALOG Layer
+                geoBeltLayer = A.catalog({
+                    name: 'Geostationary Belt',
+                    color: '#e056fd',
+                    sourceSize: 6,   // Safe minimum size to prevent canvas crash
+                    shape: 'circle'
+                });
+                aladin.addCatalog(geoBeltLayer);
+
+                // 4. Generate High-Density Points (Simulates a line)
+                raPoints = utils.generateGeoBeltRaPoints();
+            } else {
+                // Fallback to original calculation
+                const rawLat = window.NOVA_GRAPH_DATA.plotLat || 0;
+                const latDeg = parseFloat(rawLat) || 0;
+
+                const latRad = latDeg * Math.PI / 180;
+                const Re = 6378;
+                const Rgeo = 42164;
+                const num = Re * Math.sin(latRad);
+                const den = Rgeo - (Re * Math.cos(latRad));
+                const parallaxRad = Math.atan2(num, den);
+
+                apparentDec = -(parallaxRad * 180 / Math.PI);
+                if (isNaN(apparentDec)) apparentDec = 0;
+
+                console.log(`[Nova] Drawing Geo Belt (Catalog) at Dec: ${apparentDec.toFixed(2)}°`);
+
+                // 3. Create CATALOG Layer
+                geoBeltLayer = A.catalog({
+                    name: 'Geostationary Belt',
+                    color: '#e056fd',
+                    sourceSize: 6,   // Safe minimum size to prevent canvas crash
+                    shape: 'circle'
+                });
+                aladin.addCatalog(geoBeltLayer);
+
+                // 4. Generate High-Density Points (Simulates a line)
+                raPoints = [];
+                // Create a point every 0.2 degrees (High density)
+                for (let ra = 0; ra < 360; ra += 0.2) {
+                    raPoints.push(ra);
+                }
             }
-            geoBeltLayer.addSources(sources);
+            geoBeltLayer.addSources(raPoints);
     
         } catch (e) {
             console.error("[Nova] Critical Error in toggleGeoBelt:", e);
@@ -1864,9 +2149,16 @@
     function nudgeFov(dxArcmin, dyArcmin) {
         if (lockToObject && objectCoords) { fovCenter = {ra: objectCoords.ra, dec: objectCoords.dec}; updateFramingChart(false); updateReadoutFromCenter(); return; }
         if (!fovCenter) { const rc = aladin.getRaDec(); fovCenter = {ra: rc[0], dec: rc[1]}; }
-        const decRad = fovCenter.dec * (Math.PI / 180);
-        if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) fovCenter.ra -= (dxArcmin / 60.0) / Math.cos(decRad);
-        fovCenter.dec += dyArcmin / 60.0;
+        // Use framing utils calculateNudgedCenter if available
+        const utils = fu();
+        if (utils.calculateNudgedCenter) {
+            fovCenter = utils.calculateNudgedCenter(fovCenter, dxArcmin, dyArcmin);
+        } else {
+            // Fallback to original calculation
+            const decRad = fovCenter.dec * (Math.PI / 180);
+            if (Math.abs(decRad) < (Math.PI / 2.0 - 0.001)) fovCenter.ra -= (dxArcmin / 60.0) / Math.cos(decRad);
+            fovCenter.dec += dyArcmin / 60.0;
+        }
         updateFramingChart(false); updateReadoutFromCenter();
     }
     function applyLockToObject(locked) {
