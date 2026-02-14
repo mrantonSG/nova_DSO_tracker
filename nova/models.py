@@ -116,6 +116,12 @@ class SavedFraming(Base):
     mosaic_rows = Column(Integer, default=1)
     mosaic_overlap = Column(Float, default=10.0)
 
+    # Image Adjustment Data
+    img_brightness = Column(Float, default=0.0)
+    img_contrast = Column(Float, default=0.0)
+    img_gamma = Column(Float, default=1.0)
+    img_saturation = Column(Float, default=0.0)
+
     updated_at = Column(Date, default=datetime.utcnow)
 
     user = relationship("DbUser", backref="saved_framings")

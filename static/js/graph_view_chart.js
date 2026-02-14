@@ -976,7 +976,7 @@
     let blendLayer = null;
     let geoBeltLayer = null; // Layer for satellite belt
     let fovCenter = null;
-    let lockToObject = false;
+    let lockToObject = true;  // Default to ON - Lock FoV always starts enabled
     let objectCoords = null;
     function to360(deg) { return ((deg % 360) + 360) % 360; }
     function toSigned180(deg) { const d = to360(deg); return d > 180 ? d - 360 : d; }
@@ -1055,8 +1055,16 @@
             blendOp: parseFloat(q.get('blend_op')),
             m_cols: q.get('m_cols'),
             m_rows: q.get('m_rows'),
-            m_ov: q.get('m_ov')
+            m_ov: q.get('m_ov'),
+            // Image Adjustment params
+            img_brightness: parseFloat(q.get('img_b')),
+            img_contrast: parseFloat(q.get('img_c')),
+            img_gamma: parseFloat(q.get('img_g')),
+            img_saturation: parseFloat(q.get('img_s'))
         };
+
+        // Debug: Log parsed params
+        console.log('[FRAMING] Parsed query params:', result);
 
         return result;
     }
@@ -1126,6 +1134,49 @@
         if (params.m_rows) document.getElementById('mosaic-rows').value = params.m_rows;
         if (params.m_ov) document.getElementById('mosaic-overlap').value = params.m_ov;
 
+        // Restore image adjustment settings
+        // Store values to apply AFTER survey is loaded
+        const pendingImageAdjustments = {
+            brightness: !Number.isNaN(params.img_brightness) ? params.img_brightness : null,
+            contrast: !Number.isNaN(params.img_contrast) ? params.img_contrast : null,
+            gamma: !Number.isNaN(params.img_gamma) ? params.img_gamma : null,
+            saturation: !Number.isNaN(params.img_saturation) ? params.img_saturation : null
+        };
+
+        // Set slider values immediately
+        let hasImageAdjustments = false;
+        if (pendingImageAdjustments.brightness !== null) {
+            const el = document.getElementById('img-bright');
+            if (el) { el.value = pendingImageAdjustments.brightness; hasImageAdjustments = true; }
+        }
+        if (pendingImageAdjustments.contrast !== null) {
+            const el = document.getElementById('img-contrast');
+            if (el) { el.value = pendingImageAdjustments.contrast; hasImageAdjustments = true; }
+        }
+        if (pendingImageAdjustments.gamma !== null) {
+            const el = document.getElementById('img-gamma');
+            if (el) { el.value = pendingImageAdjustments.gamma; hasImageAdjustments = true; }
+        }
+        if (pendingImageAdjustments.saturation !== null) {
+            const el = document.getElementById('img-sat');
+            if (el) { el.value = pendingImageAdjustments.saturation; hasImageAdjustments = true; }
+        }
+
+        // Debug: Log restored values
+        console.log('[FRAMING] Restored image adjustments:', pendingImageAdjustments, 'hasAdjustments:', hasImageAdjustments);
+
+        // Store for deferred application (will be called after Aladin is ready)
+        if (hasImageAdjustments) {
+            flags.pendingImageAdjustments = pendingImageAdjustments;
+        }
+
+        // ALWAYS ensure Lock FoV is ON (explicit checkbox state)
+        const lockBox = document.getElementById('lock-to-object');
+        if (lockBox) {
+            lockBox.checked = true;
+            console.log('[FRAMING] Lock FoV checkbox set to checked');
+        }
+
         // Restore center coordinates
         if (!Number.isNaN(params.ra) && !Number.isNaN(params.dec)) {
             flags.haveCenter = true;
@@ -1193,6 +1244,11 @@
             const cols = document.getElementById('mosaic-cols')?.value || 1;
         const rows = document.getElementById('mosaic-rows')?.value || 1;
         const overlap = document.getElementById('mosaic-overlap')?.value || 10;
+        // Image adjustment values
+        const imgBright = parseFloat(document.getElementById('img-bright')?.value || 0);
+        const imgContrast = parseFloat(document.getElementById('img-contrast')?.value || 0);
+        const imgGamma = parseFloat(document.getElementById('img-gamma')?.value || 1);
+        const imgSat = parseFloat(document.getElementById('img-sat')?.value || 0);
         const qp = new URLSearchParams();
         if (rig) qp.set('rig', rig);
         if (Number.isFinite(ra)) qp.set('ra', ra.toFixed(6));
@@ -1201,14 +1257,20 @@
         if (survey) qp.set('survey', survey);
         if (blend) qp.set('blend', blend);
         qp.set('blend_op', String(Math.max(0, Math.min(1, blend_op))));
-    
+
         // Mosaic Params
         if (cols > 1 || rows > 1) {
             qp.set('m_cols', cols);
             qp.set('m_rows', rows);
             qp.set('m_ov', overlap);
         }
-    
+
+        // Image Adjustment Params (only if non-default)
+        if (imgBright !== 0) qp.set('img_b', imgBright.toFixed(2));
+        if (imgContrast !== 0) qp.set('img_c', imgContrast.toFixed(2));
+        if (imgGamma !== 1) qp.set('img_g', imgGamma.toFixed(2));
+        if (imgSat !== 0) qp.set('img_s', imgSat.toFixed(2));
+
         return '?' + qp.toString();
     }
     
@@ -1250,19 +1312,31 @@
             const rotSpan = document.getElementById('rotation-value');
             if (rotSpan) rotSpan.textContent = `0°`;
         }
-        if (haveCenter) { const lockBox = document.getElementById('lock-to-object'); if (lockBox) lockBox.checked = false; lockToObject = false; if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(fovCenter.ra, fovCenter.dec); if (haveCenter) { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } } }
+        if (haveCenter) { const lockBox = document.getElementById('lock-to-object'); if (lockBox) lockBox.checked = true; lockToObject = true; if (aladin && typeof aladin.gotoRaDec === 'function') aladin.gotoRaDec(fovCenter.ra, fovCenter.dec); if (haveCenter) { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } } }
         updateFramingChart(haveCenter ? false : true);
         updateFovVsObjectLabel?.();
         updateReadoutFromCenter?.();
-    
+
         try {
             ensureNovaObjectsCatalog();
         } catch (e) {
             console.error('Failed to build Nova objects catalog for Aladin:', e);
         }
-    
+
         if (!haveCenter) applyLockToObject(true);
-    
+        else applyLockToObject(true);  // Always ensure Lock FoV is ON
+
+        // Apply deferred image adjustments after Aladin is ready
+        // Use setTimeout to ensure survey layer is fully loaded
+        if (flags.pendingImageAdjustments) {
+            setTimeout(() => {
+                console.log('[FRAMING] Applying deferred image adjustments:', flags.pendingImageAdjustments);
+                if (typeof window.updateImageAdjustments === 'function') {
+                    window.updateImageAdjustments();
+                }
+            }, 500);  // 500ms delay to ensure survey is loaded
+        }
+
         // Restore Geo Belt State
         const geoCheck = document.getElementById('show-geo-belt');
         if (geoCheck && geoCheck.checked) {
@@ -1777,7 +1851,7 @@
     function saveFramingToDB() {
         const objectName = NOVA_GRAPH_DATA.objectName;
         const sel = document.getElementById('framing-rig-select');
-    
+
         // 1. Gather Data
         const center = getFrameCenterRaDec();
         const payload = {
@@ -1792,9 +1866,17 @@
             // Mosaic Fields
             mosaic_cols: parseInt(document.getElementById('mosaic-cols')?.value || 1),
             mosaic_rows: parseInt(document.getElementById('mosaic-rows')?.value || 1),
-            mosaic_overlap: parseFloat(document.getElementById('mosaic-overlap')?.value || 10)
+            mosaic_overlap: parseFloat(document.getElementById('mosaic-overlap')?.value || 10),
+            // Image Adjustment Fields
+            img_brightness: parseFloat(document.getElementById('img-bright')?.value || 0),
+            img_contrast: parseFloat(document.getElementById('img-contrast')?.value || 0),
+            img_gamma: parseFloat(document.getElementById('img-gamma')?.value || 1),
+            img_saturation: parseFloat(document.getElementById('img-sat')?.value || 0)
         };
-    
+
+        // Debug: Log payload being saved
+        console.log('[FRAMING] Saving payload:', JSON.stringify(payload, null, 2));
+
         // 2. Send to DB
         fetch('/api/save_framing', {
             method: 'POST',
@@ -1983,7 +2065,10 @@
             .then(r => r.json())
             .then(data => {
                 container.innerHTML = '';
-    
+
+                // Debug: Log retrieved framing data
+                console.log('[FRAMING] Retrieved framing data:', data);
+
                 if (data.status === 'found') {
                     // Create a wrapper div to hold both buttons side-by-side
                     const wrapper = document.createElement('div');
@@ -2012,6 +2097,15 @@
                         if(data.mosaic_cols != null) params.set('m_cols', data.mosaic_cols);
                         if(data.mosaic_rows != null) params.set('m_rows', data.mosaic_rows);
                         if(data.mosaic_overlap != null) params.set('m_ov', data.mosaic_overlap);
+
+                        // Restore Image Adjustments
+                        if(data.img_brightness != null && data.img_brightness !== 0) params.set('img_b', data.img_brightness);
+                        if(data.img_contrast != null && data.img_contrast !== 0) params.set('img_c', data.img_contrast);
+                        if(data.img_gamma != null && data.img_gamma !== 1) params.set('img_g', data.img_gamma);
+                        if(data.img_saturation != null && data.img_saturation !== 0) params.set('img_s', data.img_saturation);
+
+                        // Debug: Log URL params being passed
+                        console.log('[FRAMING] Opening with params:', params.toString());
 
                         openFramingAssistant(params.toString());
                     };
