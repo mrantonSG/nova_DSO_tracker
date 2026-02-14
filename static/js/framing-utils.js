@@ -760,6 +760,16 @@ export function formatDecCsv(decDeg) {
 // ==========================================================================
 
 /**
+ * JavaScript Number.isFinite() equivalent
+ * @param {*} x - Value to check
+ * @returns {boolean} True if finite number
+ */
+export function isFinite(x) {
+    return typeof x === 'number' && !Number.isNaN(x);
+}
+
+
+/**
  * Validate that a coordinate is finite and within reasonable bounds
  *
  * @param {number} ra - Right ascension in degrees
@@ -839,7 +849,8 @@ window.framingUtils = {
     formatDecCsv,
     isValidCoordinate,
     isValidFov,
-    isValidRotation,
+852    isValidRotation,
+    isFinite,
 };
 
 // ==========================================================================

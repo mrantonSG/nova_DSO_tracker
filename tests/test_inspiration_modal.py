@@ -48,17 +48,17 @@ class TestInspirationModalStructure:
         assert re.search(close_button_pattern, content), \
             "Close button must have data-action='close-inspiration-modal' attribute"
 
-    def test_backdrop_has_data_action(self):
+    def test_modal_controller_has_close_on_backdrop(self):
         """
-        Verify the modal backdrop has data-action="close-inspiration-modal".
-        This allows clicking outside the modal to close it.
+        Verify the ModalController is initialized with closeOnBackdrop: true.
+        This allows clicking outside the modal to close it (via ModalController architecture).
         """
         content = read_inspiration_template()
 
-        # The backdrop div should have data-action for closing
-        backdrop_pattern = r'id="inspiration-modal"[^>]*data-action="close-inspiration-modal"'
-        assert re.search(backdrop_pattern, content), \
-            "Modal backdrop must have data-action='close-inspiration-modal' for click-to-close"
+        # The ModalController initialization should have closeOnBackdrop: true
+        backdrop_pattern = r'new window\.novaState\.fn\.ModalController\([\'"]inspiration-modal[\'"][^}]*closeOnBackdrop:\s*true'
+        assert re.search(backdrop_pattern, content, re.DOTALL), \
+            "ModalController must be initialized with closeOnBackdrop: true"
 
     def test_modal_content_has_stop_propagation(self):
         """
@@ -99,17 +99,17 @@ class TestInspirationModalEventHandling:
 
     def test_event_handler_processes_actions_before_stop_propagation(self):
         """
-        CRITICAL REGRESSION TEST: Verify the event handler processes actions
-        BEFORE checking data-stop-propagation.
+        CRITICAL REGRESSION TEST: Verify the event handler uses the closest('[data-action]')
+        pattern to find action targets.
 
-        This is the key fix for the close button bug. The handler must:
-        1. Find the target with data-action
-        2. Get the action value
-        3. Process the action (switch statement) FIRST
-        4. Only THEN check data-stop-propagation for non-action clicks
+        The ModalController architecture changed the approach:
+        - The handler uses `e.target.closest('[data-action]')` to find the action target
+        - This approach doesn't need explicit stop-propagation checks
+        - Backdrop clicks are handled by the ModalController via closeOnBackdrop config
 
-        The old buggy code checked stop-propagation BEFORE the switch,
-        causing close button clicks to return early without closing.
+        This test verifies the event handler correctly uses the closest() pattern
+        to ensure close button clicks (which are inside stop-propagation content)
+        can still be found and processed.
         """
         content = read_inspiration_template()
 
@@ -123,21 +123,21 @@ class TestInspirationModalEventHandling:
 
         handler_code = event_handler_match.group(1)
 
+        # Verify the handler uses closest('[data-action]') pattern
+        closest_pattern = re.search(r"e\.target\.closest\(.*data-action", handler_code)
+        assert closest_pattern, \
+            "Handler must use e.target.closest('[data-action]') to find action targets"
+
         # Find positions of key code patterns
         action_assignment = handler_code.find('const action = target.dataset.action')
         switch_start = handler_code.find('switch(action)')
         close_modal_case = handler_code.find("case 'close-inspiration-modal'")
-        stop_propagation_check = handler_code.find("data-stop-propagation")
 
-        # The action assignment must come BEFORE stop-propagation check
+        # The action assignment must exist
         assert action_assignment > 0, "Handler must assign action from target.dataset.action"
-        assert action_assignment < stop_propagation_check, \
-            "CRITICAL: Action assignment must come BEFORE stop-propagation check"
 
-        # The switch statement must come BEFORE stop-propagation check
+        # The switch statement must exist
         assert switch_start > 0, "Handler must have a switch(action) statement"
-        assert switch_start < stop_propagation_check, \
-            "CRITICAL: switch(action) must come BEFORE stop-propagation check"
 
         # The close-inspiration-modal case must exist
         assert close_modal_case > 0, \
@@ -156,14 +156,25 @@ class TestInspirationModalEventHandling:
 
     def test_close_modal_function_exists(self):
         """
-        Verify closeInspirationModal function is defined and sets display to none.
+        Verify closeInspirationModal function is defined and delegates to ModalController
+        with a fallback for when the controller is not available.
         """
         content = read_inspiration_template()
 
-        # Look for the function definition
-        func_pattern = r"function\s+closeInspirationModal\s*\(\s*\)\s*\{[^}]*style\.display\s*=\s*['\"]none['\"]"
+        # Look for the function definition that uses ModalController with fallback
+        func_pattern = r"function\s+closeInspirationModal\s*\(\s*\)\s*\{"
         assert re.search(func_pattern, content), \
-            "closeInspirationModal function must exist and set display='none'"
+            "closeInspirationModal function must be defined"
+
+        # Verify it delegates to ModalController
+        controller_pattern = r"const modalController = inspirationModalController[^}]*if \(modalController\)\s*\{[^}]*modalController\.close\(\)"
+        assert re.search(controller_pattern, content, re.DOTALL), \
+            "closeInspirationModal must delegate to ModalController.close() when available"
+
+        # Verify it has a fallback for when controller is not available
+        fallback_pattern = r"else\s*\{[^}]*document\.getElementById\([\'\"]inspiration-modal[\'\"]\)\.style\.display\s*=\s*['\"]none['\"]"
+        assert re.search(fallback_pattern, content, re.DOTALL), \
+            "closeInspirationModal must have fallback to set display='none' when ModalController unavailable"
 
     def test_function_exposed_globally(self):
         """
