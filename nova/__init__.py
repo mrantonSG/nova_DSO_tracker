@@ -580,6 +580,19 @@ def ensure_db_initialized_unified():
                     conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_rows INTEGER DEFAULT 1;")
                 if "mosaic_overlap" not in colnames_framing:
                     conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_overlap FLOAT DEFAULT 10.0;")
+                # Image Adjustment columns
+                if "img_brightness" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_brightness FLOAT DEFAULT 0.0;")
+                    print("[DB PATCH] Added missing column saved_framings.img_brightness")
+                if "img_contrast" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_contrast FLOAT DEFAULT 0.0;")
+                    print("[DB PATCH] Added missing column saved_framings.img_contrast")
+                if "img_gamma" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_gamma FLOAT DEFAULT 1.0;")
+                    print("[DB PATCH] Added missing column saved_framings.img_gamma")
+                if "img_saturation" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_saturation FLOAT DEFAULT 0.0;")
+                    print("[DB PATCH] Added missing column saved_framings.img_saturation")
             except Exception as e:
                 # Table might not exist yet if it's a fresh install, which is fine
                 pass
@@ -11979,6 +11992,10 @@ def save_framing():
         data = request.get_json()
         object_name = data.get('object_name')
 
+        # Debug: Log incoming data
+        print(f"[FRAMING API] Save request for object: {object_name}")
+        print(f"[FRAMING API] Image adjustments - brightness: {data.get('img_brightness')}, contrast: {data.get('img_contrast')}, gamma: {data.get('img_gamma')}, saturation: {data.get('img_saturation')}")
+
         # Find existing framing or create new
         framing = db.query(SavedFraming).filter_by(
             user_id=g.db_user.id,
@@ -12014,6 +12031,12 @@ def save_framing():
         framing.mosaic_rows = int(data['mosaic_rows']) if data.get('mosaic_rows') is not None else 1
         framing.mosaic_overlap = float(data['mosaic_overlap']) if data.get('mosaic_overlap') is not None else 10.0
 
+        # Image Adjustment fields
+        framing.img_brightness = float(data['img_brightness']) if data.get('img_brightness') is not None else 0.0
+        framing.img_contrast = float(data['img_contrast']) if data.get('img_contrast') is not None else 0.0
+        framing.img_gamma = float(data['img_gamma']) if data.get('img_gamma') is not None else 1.0
+        framing.img_saturation = float(data['img_saturation']) if data.get('img_saturation') is not None else 0.0
+
         framing.updated_at = datetime.now(UTC)
 
         db.commit()
@@ -12035,6 +12058,9 @@ def get_framing(object_name):
         ).one_or_none()
 
         if framing:
+            # Debug: Log retrieved data
+            print(f"[FRAMING API] Retrieved framing for {object_name}: brightness={framing.img_brightness}, contrast={framing.img_contrast}, gamma={framing.img_gamma}, saturation={framing.img_saturation}")
+
             # Helper: format mosaic columns if present
             return jsonify({
                 "status": "found",
@@ -12047,7 +12073,11 @@ def get_framing(object_name):
                 "blend_op": framing.blend_opacity,
                 "mosaic_cols": framing.mosaic_cols or 1,
                 "mosaic_rows": framing.mosaic_rows or 1,
-                "mosaic_overlap": framing.mosaic_overlap if framing.mosaic_overlap is not None else 10
+                "mosaic_overlap": framing.mosaic_overlap if framing.mosaic_overlap is not None else 10,
+                "img_brightness": framing.img_brightness if framing.img_brightness is not None else 0.0,
+                "img_contrast": framing.img_contrast if framing.img_contrast is not None else 0.0,
+                "img_gamma": framing.img_gamma if framing.img_gamma is not None else 1.0,
+                "img_saturation": framing.img_saturation if framing.img_saturation is not None else 0.0
             })
         else:
             return jsonify({"status": "empty"})
