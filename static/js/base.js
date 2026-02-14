@@ -1,4 +1,99 @@
-/* base.js - Global theme, version check, and help modal functions extracted from base.html */
+/* base.js - Global theme, version check, help modal, and centralized state */
+
+// ============================================
+// CENTRALIZED STATE MANAGEMENT
+// ============================================
+
+// Initialize novaState object
+window.novaState = window.novaState || {};
+
+// State categories
+window.novaState.data = {
+    // Graph data for object views
+    graphData: window.NOVA_GRAPH_DATA || null,
+
+    // Session data
+    selectedSessionData: window.selectedSessionData || null,
+
+    // Dashboard data
+    latestDSOData: window.latestDSOData || [],
+    allSavedViews: window.allSavedViews || {},
+    currentFilteredData: window.currentFilteredData || []
+};
+
+// Guest/user status
+window.novaState.flags = {
+    isGuestUser: window.IS_GUEST_USER || false,
+    isListFiltered: window.isListFiltered || false,
+    objectScriptLoaded: false,
+    journalSectionInitialized: false
+};
+
+// Config data
+window.novaState.config = {
+    configForm: window.NOVA_CONFIG_FORM || { urls: {}, telemetryEnabled: false },
+    indexData: window.NOVA_INDEX || { isGuest: false, hideInvisible: false, altitudeThreshold: 15 }
+};
+
+// State functions (exposed globally for backward compatibility)
+window.novaState.fn = {
+    // Graph view functions
+    showTab: null,
+    loadTrixContentEdit: null,
+    toggleProjectSubTabEdit: null,
+    showProjectSubTab: null,
+    changeView: null,
+    saveProject: null,
+    openFramingAssistant: null,
+    closeFramingAssistant: null,
+    applyLockToObject: null,
+    toggleGeoBelt: null,
+    flipFraming90: null,
+    copyFramingUrl: null,
+    saveFramingToDB: null,
+    updateFramingChart: null,
+    updateFovVsObjectLabel: null,
+    onRotationInput: null,
+    setSurvey: null,
+    updateImageAdjustments: null,
+    copyRaDec: null,
+    resetFovCenterToObject: null,
+    nudgeFov: null,
+    copyAsiairMosaic: null,
+    setLocation: null,
+    selectSuggestedDate: null,
+    openInStellarium: null,
+
+    // Dashboard functions
+    openInspirationModal: null,
+    showGraph: null,
+
+    // Objects section functions
+    filterObjectsList: null,
+    selectAllVisibleObjects: null,
+    deselectAllObjects: null,
+    executeBulkAction: null,
+    openDuplicateChecker: null,
+    mergeObjects: null,
+    activateLazyTrix: null,
+    confirmCatalogImport: null,
+
+    // Journal functions
+    loadSessionViaAjax: null,
+
+    // Heatmap functions
+    updateHeatmapFilter: null,
+    fetchAndRenderHeatmap: null,
+    resetHeatmapState: null,
+
+    // Help/modal functions
+    openHelp: null,
+    closeHelpModal: null
+};
+
+// ============================================
+// THEME & VERSION INITIALIZATION
+// ============================================
 
 document.addEventListener("DOMContentLoaded", function () {
     // --- THEME INITIALIZATION ---
@@ -10,9 +105,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark-mode') {
         html.classList.add('dark-mode');
-        if(themeBtn) themeBtn.textContent = 'Day View';
+        if (themeBtn) {
+            themeBtn.textContent = 'Day View';
+        }
     } else {
-        if(themeBtn) themeBtn.textContent = 'Night View';
+        if (themeBtn) {
+            themeBtn.textContent = 'Night View';
+        }
     }
 
     // 2. Check Red Mode
@@ -68,8 +167,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (data && data.new_version) {
                 const notificationSpan = document.getElementById('update-notification');
                 if (notificationSpan) {
-                    const repo_url = data.url || `https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/releases`;
-                    notificationSpan.innerHTML = ` <span style="font-size: 0.8em; font-weight: normal; color: #83b4c5;">(<a href="${repo_url}" target="_blank" style="color: #83b4c5; text-decoration: none;" >Latest version: v${data.new_version}</a>)</span>`;
+                    const repo_url = data.url || 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/releases';
+                    notificationSpan.innerHTML = ' <span style="font-size: 0.8em; font-weight: normal; color: #83b4c5;">(<a href="' + repo_url + '" target="_blank" style="color: #83b4c5; text-decoration: none;" >Latest version: v' + data.new_version + '</a>)</span>';
                 }
             }
         })
@@ -85,10 +184,14 @@ function toggleTheme() {
 
     if (html.classList.contains('dark-mode')) {
         localStorage.setItem('theme', 'dark-mode');
-        if(themeBtn) themeBtn.textContent = 'Day View';
+        if (themeBtn) {
+            themeBtn.textContent = 'Day View';
+        }
     } else {
         localStorage.setItem('theme', '');
-        if(themeBtn) themeBtn.textContent = 'Night View';
+        if (themeBtn) {
+            themeBtn.textContent = 'Night View';
+        }
     }
     // Force charts to redraw if they exist
     window.dispatchEvent(new Event('resize'));
@@ -119,10 +222,10 @@ function openHelp(topicId) {
     modal.classList.add('is-visible');
 
     // 2. Fetch content
-    fetch(`/api/help/${topicId}`)
+    fetch('/api/help/' + topicId)
         .then(response => response.json())
         .then(data => {
-            if(data.html) {
+            if (data.html) {
                 body.innerHTML = data.html;
             } else {
                 body.innerHTML = '<p style="color:red">Error: Help content returned empty.</p>';
@@ -130,7 +233,7 @@ function openHelp(topicId) {
         })
         .catch(err => {
             console.error(err);
-            body.innerHTML = `<p style="color:red">Network Error: Could not load help topic '${topicId}'.</p>`;
+            body.innerHTML = '<p style="color:red">Network Error: Could not load help topic \'' + topicId + '\'.</p>';
         });
 }
 
@@ -142,3 +245,7 @@ function closeHelpModal() {
 function goBack() {
     window.history.back();
 }
+
+// Register help functions in novaState
+window.novaState.fn.openHelp = openHelp;
+window.novaState.fn.closeHelpModal = closeHelpModal;

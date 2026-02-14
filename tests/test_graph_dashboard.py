@@ -86,7 +86,7 @@ def test_graph_dashboard_full_context(client, db_session):
     assert b"Orion Nebula" in response_data
 
     # --- FIX 1: Check for the correct chart ID ---
-    assert b"chart-container" in response_data
+    assert b"chart-area" in response_data
 
     # Check for Journal Entry
     # --- FIX 2: Check for the date in YYYY-MM-DD format ---

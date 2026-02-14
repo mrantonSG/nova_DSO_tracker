@@ -5318,34 +5318,17 @@ def project_detail(project_id):
             if next_url:
                 return redirect(next_url)
 
-            return redirect(url_for('projects.project_detail', project_id=project_id))
+            # Redirect to graph dashboard with project's target object
+            if project.target_object_name:
+                return redirect(url_for('core.graph_dashboard', object_name=project.target_object_name, tab='framing'))
+            return redirect(url_for('core.index'))
 
-        # --- Handle GET Request (Prepare Template Variables) ---
-
-        # Helper to sanitize rich text for passing to the editor/view
-        def _sanitize_for_display(html_content):
-            if not html_content: return ""
-            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span']
-            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style', 'class']}
-            SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
-            css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
-            return bleach.clean(html_content, tags=SAFE_TAGS, attributes=SAFE_ATTRS, css_sanitizer=css_sanitizer)
-
-        return render_template(
-            'project_detail.html',
-            project=project,
-            sessions=sessions,
-            total_integration_str=total_integration_str,
-            username=username,
-            # Pass sanitized HTML for display/editor
-            goals_html=_sanitize_for_display(project.goals),
-            description_notes_html=_sanitize_for_display(project.description_notes),
-            framing_notes_html=_sanitize_for_display(project.framing_notes),
-            processing_notes_html=_sanitize_for_display(project.processing_notes),
-            # Pass all available AstroObjects for the target selector dropdown
-            all_objects=db.query(AstroObject).filter_by(user_id=g.db_user.id).order_by(AstroObject.object_name).all(),
-            project_statuses=["In Progress", "Completed", "On Hold", "Abandoned"]
-        )
+        # --- Handle GET Request ---
+        # Project details are now shown inline in the graph dashboard (via _project_subtab.html)
+        # Redirect to the graph dashboard with the project's target object
+        if project.target_object_name:
+            return redirect(url_for('core.graph_dashboard', object_name=project.target_object_name, tab='framing'))
+        return redirect(url_for('core.index'))
     except Exception as e:
         db.rollback()
         flash(f"An error occurred: {e}", "error")
