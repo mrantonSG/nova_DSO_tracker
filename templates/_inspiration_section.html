@@ -695,22 +695,23 @@
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
-        // Stop propagation if requested
-        if (target.closest('[data-stop-propagation="true"]')) {
-            e.stopPropagation();
-            return;
-        }
-
         const action = target.dataset.action;
 
+        // Process actions FIRST, then handle stop-propagation for non-action clicks
         switch(action) {
             case 'refresh-inspiration':
                 renderInspirationGrid(e);
-                break;
+                return;
             case 'close-inspiration-modal':
                 closeInspirationModal();
                 e.preventDefault();
-                break;
+                return;
+        }
+
+        // Stop propagation only for clicks inside modal content that don't have actions
+        // This prevents backdrop clicks from triggering when clicking inside the modal
+        if (target.closest('[data-stop-propagation="true"]')) {
+            e.stopPropagation();
         }
     });
 

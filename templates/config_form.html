@@ -262,7 +262,7 @@
                         <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
                         <div style="margin-top: 4px;">
                             <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_new" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
-                            <input type="file" id="hzn_import_new" style="display:none;" accept=".hzn,.txt" onchange="parseStellariumHorizon(this, 'new_horizon_mask')">
+                            <input type="file" id="hzn_import_new" class="hzn-file-input" data-textarea-id="new_horizon_mask" style="display:none;" accept=".hzn,.txt">
                         </div>
                     </div>
                  </div>
@@ -325,7 +325,7 @@
                             <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
                             <div style="margin-top: 4px;">
                                 <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_{{ loop.index }}" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
-                                <input type="file" id="hzn_import_{{ loop.index }}" style="display:none;" accept=".hzn,.txt" onchange="parseStellariumHorizon(this, 'horizon_mask_{{ loc_key }}')">
+                                <input type="file" id="hzn_import_{{ loop.index }}" class="hzn-file-input" data-textarea-id="horizon_mask_{{ loc_key }}" style="display:none;" accept=".hzn,.txt">
                             </div>
                         </div>
                     </div>

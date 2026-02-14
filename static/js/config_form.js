@@ -913,17 +913,36 @@
             });
         });
 
-        // --- Event delegation for click actions ---
+        // --- Direct event binding for file input triggers (Safari compatibility) ---
+        // Safari requires file input .click() to happen in direct response to user gesture.
+        // Event delegation via document loses the "user activation" context in Safari.
+        document.querySelectorAll('[data-action="trigger-file-input"]').forEach(trigger => {
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const inputId = this.dataset.targetId;
+                const inputEl = document.getElementById(inputId);
+                if (inputEl) {
+                    console.log('[CONFIG_FORM] Direct trigger file input:', inputId);
+                    inputEl.click();
+                } else {
+                    console.error('[CONFIG_FORM] File input not found:', inputId);
+                }
+            }, true); // Use capture phase for maximum Safari compatibility
+        });
+
+        // --- Event delegation for click actions (excludes trigger-file-input, handled above) ---
         document.addEventListener('click', function(e) {
             const target = e.target.closest('[data-action]');
             if (!target) return;
 
             const action = target.dataset.action;
 
-            // Prevent default link behavior for import trigger action
-            if (action === 'trigger-file-input' && target.tagName === 'A') {
-                e.preventDefault();
+            // trigger-file-input is handled by direct binding above; skip here
+            if (action === 'trigger-file-input') {
+                return;
             }
+
             console.log('[CONFIG_FORM] Click action triggered:', action, target);
 
             switch(action) {
@@ -945,12 +964,6 @@
                         target.dataset.itemType,
                         target
                     );
-                    break;
-                case 'trigger-file-input':
-                    console.log('[CONFIG_FORM] trigger-file-input:', target.dataset.targetId);
-                    const inputId = target.dataset.targetId;
-                    const inputEl = document.getElementById(inputId);
-                    if (inputEl) inputEl.click();
                     break;
                 case 'view-shared':
                     console.log('[CONFIG_FORM] view-shared:', target.dataset.url);
@@ -984,6 +997,19 @@
             }
         });
 
+        // --- Event delegation for .hzn file input changes ---
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('hzn-file-input')) {
+                console.log('[CONFIG_FORM] hzn-file-input change detected:', e.target);
+                const textareaId = e.target.dataset.textareaId;
+                if (textareaId) {
+                    parseStellariumHorizon(e.target, textareaId);
+                } else {
+                    console.error('[CONFIG_FORM] hzn-file-input missing data-textarea-id:', e.target);
+                }
+            }
+        });
+
         // Clean up event listeners when navigating away (prevents memory leaks)
         window.addEventListener('beforeunload', () => {
             document.removeEventListener("trix-attachment-add", handleTrixAttachmentAdd);
@@ -1002,9 +1028,30 @@
 
     function parseStellariumHorizon(fileInput, textareaId) {
         const file = fileInput.files[0];
-        if (!file) return;
+        if (!file) {
+            console.warn('[CONFIG_FORM] parseStellariumHorizon: No file selected');
+            return;
+        }
+
+        // Validate textarea exists before processing
+        const textarea = document.getElementById(textareaId);
+        if (!textarea) {
+            console.error('[CONFIG_FORM] parseStellariumHorizon: Target textarea not found:', textareaId);
+            alert('Error: Could not find the horizon mask field. Please refresh the page and try again.');
+            fileInput.value = '';
+            return;
+        }
+
+        console.log('[CONFIG_FORM] Parsing .hzn file:', file.name, '-> textarea:', textareaId);
 
         const reader = new FileReader();
+
+        reader.onerror = function(e) {
+            console.error('[CONFIG_FORM] FileReader error:', e.target.error);
+            alert('Error reading file. Please try again or select a different file.');
+            fileInput.value = '';
+        };
+
         reader.onload = function(e) {
             const lines = e.target.result.split(/\r?\n/);
             let points = [];
@@ -1023,7 +1070,8 @@
             }
 
             if (points.length === 0) {
-                alert('No valid horizon data found in the file.');
+                console.warn('[CONFIG_FORM] No valid horizon data found in file');
+                alert('No valid horizon data found in the file. Expected format: azimuth altitude (one pair per line).');
                 fileInput.value = '';
                 return;
             }
@@ -1046,7 +1094,8 @@
             }
 
             const formatted = '[' + points.map(p => '[' + p[0] + ', ' + p[1] + ']').join(', ') + ']';
-            document.getElementById(textareaId).value = formatted;
+            textarea.value = formatted;
+            console.log('[CONFIG_FORM] Successfully parsed', points.length, 'horizon points');
             fileInput.value = '';
         };
         reader.readAsText(file);
