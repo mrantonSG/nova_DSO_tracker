@@ -326,6 +326,7 @@
     let altitudeChart = null;
     let __blendSurveyId = null;
     let _framingIsLoading = false; // Guard against concurrent openFramingAssistant calls
+    let framingModalController = null; // ModalController instance for framing modal
 
     function ensureBlendLayer() {
         if (!aladin) return null;
@@ -1073,7 +1074,7 @@
             img_gamma: parseFloat(q.get('img_g')),
             img_saturation: parseFloat(q.get('img_s')),
             // Overlay Preference params
-            geo_belt_enabled: q.get('geo_belt') === '1'
+            geo_belt_enabled: q.get('geo_belt') === '1' ? true : null
         };
 
         return result;
@@ -1210,7 +1211,13 @@
         // --- END GUARD ---
 
         const framingModal = document.getElementById('framing-modal');
-        framingModal.style.display = 'block'; // Show the modal frame immediately
+
+        // Show the modal frame immediately
+        if (framingModalController) {
+            framingModalController.open();
+        } else {
+            framingModal.style.display = 'block'; // Fallback
+        }
 
         // --- MODIFIED: Check for internet connection first ---
         if (!navigator.onLine) {
@@ -1248,6 +1255,16 @@
         // --- END CLEANUP ---
 
         (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '0'); slider.setAttribute('max', '360'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
+
+        // Check if Aladin instance is cached (already initialized from previous modal open)
+        if (!aladin && framingModalController) {
+            const cached = framingModalController.getCachedInstance();
+            if (cached) {
+                aladin = cached;
+                console.log('[FRAMING] Using cached Aladin instance from previous modal open');
+            }
+        }
+
         if (!aladin) {
             try {
                 aladin = A.aladin('#aladin-lite-div', {
@@ -1414,7 +1431,13 @@
         _framingIsLoading = false;
     }
     function closeFramingAssistant() {
-        document.getElementById('framing-modal').style.display = 'none';
+        // Close using ModalController if available
+        if (framingModalController) {
+            framingModalController.close();
+        } else {
+            document.getElementById('framing-modal').style.display = 'none';
+        }
+
         // Clean up keydown event listener to prevent memory leaks
         if (framingKeydownHandler) {
             window.removeEventListener('keydown', framingKeydownHandler);
@@ -2387,7 +2410,32 @@
     
         const q = new URLSearchParams(location.search);
         if (q.has('rig') && (q.has('ra') || q.has('dec'))) setTimeout(() => openFramingAssistant(), 0);
-    
+
+        // Initialize Framing Modal Controller with Aladin caching support
+        if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
+            framingModalController = new window.novaState.fn.ModalController('framing-modal', {
+                contentId: 'framing-modal-content',
+                displayStyle: 'block',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                ariaLabelledBy: 'framing-modal-title',
+                cacheKey: 'framing',
+                onOpen: function() {
+                    // Cache the Aladin instance in the controller
+                    if (aladin) {
+                        this.setCachedInstance(aladin);
+                    }
+                },
+                onClose: function() {
+                    // Aladin instance is preserved (cached) for next open
+                    // No cleanup needed - the viewer persists in the DOM
+                }
+            });
+
+            // Store reference globally for access
+            window.novaState.fn.framingModal = framingModalController;
+        }
+
         // Date Picker Limits
         const dayInput = document.getElementById("day-select");
         if (dayInput) {
@@ -2402,19 +2450,11 @@
             updateDL();
         }
     
-        // Modal Listeners
-        const framingModal = document.getElementById('framing-modal');
-        if (framingModal) {
-            window.addEventListener('click', e => {
-                const framingModal = document.getElementById('framing-modal');
-                // Only close if the modal is actually visible and the click was on the dark backdrop
-                if (framingModal && framingModal.style.display === 'block' && e.target === framingModal) {
-                    closeFramingAssistant();
-                }
-            });
-        }
+        // Window resize handler for framing modal
         window.addEventListener('resize', () => {
-            if (document.getElementById('framing-modal').style.display === 'block') {
+            const isOpen = framingModalController ? framingModalController.isOpen() :
+                           document.getElementById('framing-modal').style.display === 'block';
+            if (isOpen) {
                 if (typeof aladin !== 'undefined' && aladin) updateFramingChart(false);
             }
         });

@@ -314,14 +314,14 @@
     </div>
 </div>
 
-<div id="inspiration-modal" class="insp-modal-backdrop" data-action="close-inspiration-modal">
+<div id="inspiration-modal" class="insp-modal-backdrop" aria-labelledby="insp-modal-title" role="dialog" aria-modal="true">
     <div class="insp-modal-content" data-stop-propagation="true">
         <div class="insp-modal-body">
             <div class="insp-modal-image">
                 <img id="modal-img" src="" alt="Object Image">
             </div>
             <div class="insp-modal-details">
-                <h2 id="modal-title" class="insp-modal-title"></h2>
+                <h2 id="insp-modal-title" class="insp-modal-title"></h2>
                 <div id="modal-subtitle" class="insp-modal-subtitle"></div>
 
                 <div id="modal-text" class="insp-modal-text"></div>
@@ -353,6 +353,29 @@
         if (size > 60) size = 60;
         return `https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=${ra}&d=${dec}&e=J2000&h=${size}&w=${size}&f=gif&c=none`;
     }
+
+    // ========================================================================
+    // MODAL INITIALIZATION
+    // ========================================================================
+    let inspirationModalController = null;
+
+    // Initialize modal controller when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
+            inspirationModalController = new window.novaState.fn.ModalController('inspiration-modal', {
+                contentId: null, // No separate content wrapper for inspiration modal
+                displayStyle: 'block',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                ariaLabelledBy: 'insp-modal-title'
+            });
+
+            // Store reference in window.novaState for global access
+            window.novaState.fn.inspirationModal = inspirationModalController;
+        } else {
+            console.warn('[Inspiration] ModalController not available, using fallback behavior');
+        }
+    });
 
     // ========================================================================
     // 3. MAIN LOGIC (Failsafe)
@@ -614,9 +637,16 @@
     }
 
     function openInspirationModal(obj, imgSrc, summary, source, wikiUrl) {
-        const modal = document.getElementById('inspiration-modal');
         const imgEl = document.getElementById('modal-img');
         const imgContainer = document.querySelector('.insp-modal-image');
+        const modalController = inspirationModalController || (window.novaState && window.novaState.fn.inspirationModal);
+
+        if (!modalController) {
+            console.warn('[Inspiration] ModalController not available, using fallback');
+            const modal = document.getElementById('inspiration-modal');
+            modal.style.display = 'block';
+            // Continue with rest of function
+        }
 
         // Helper to show offline/error state inside the modal
         const showOfflinePlaceholder = () => {
@@ -655,7 +685,7 @@
         }
 
         // 3. Populate Data
-        document.getElementById('modal-title').textContent = obj.Object;
+        document.getElementById('insp-modal-title').textContent = obj.Object;
         document.getElementById('modal-subtitle').textContent = obj['Common Name'] || "";
         document.getElementById('modal-alt').textContent = obj['Max Altitude (°)'];
         document.getElementById('modal-transit').textContent = obj['Transit Time'];
@@ -682,12 +712,21 @@
         // 5. Setup Action Buttons
         document.getElementById('modal-graph-btn').onclick = () => showGraph(obj.Object, null, 'chart');
 
-        // 6. SHOW MODAL (This is the critical line)
-        modal.style.display = 'block';
+        // 6. OPEN MODAL
+        if (modalController) {
+            modalController.open();
+        } else {
+            document.getElementById('inspiration-modal').style.display = 'block';
+        }
     }
 
     function closeInspirationModal() {
-        document.getElementById('inspiration-modal').style.display = 'none';
+        const modalController = inspirationModalController || (window.novaState && window.novaState.fn.inspirationModal);
+        if (modalController) {
+            modalController.close();
+        } else {
+            document.getElementById('inspiration-modal').style.display = 'none';
+        }
     }
 
     // --- Event delegation for inspiration section data-actions ---
@@ -697,7 +736,7 @@
 
         const action = target.dataset.action;
 
-        // Process actions FIRST, then handle stop-propagation for non-action clicks
+        // Handle data-actions
         switch(action) {
             case 'refresh-inspiration':
                 renderInspirationGrid(e);
@@ -706,12 +745,6 @@
                 closeInspirationModal();
                 e.preventDefault();
                 return;
-        }
-
-        // Stop propagation only for clicks inside modal content that don't have actions
-        // This prevents backdrop clicks from triggering when clicking inside the modal
-        if (target.closest('[data-stop-propagation="true"]')) {
-            e.stopPropagation();
         }
     });
 

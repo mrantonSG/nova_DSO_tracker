@@ -1,14 +1,17 @@
 /* base.js - Global theme, version check, help modal, and centralized state */
 
+// State variables for help modal controller
+let helpModalInitialized = false;
+
 // ============================================
 // CENTRALIZED STATE MANAGEMENT
 // ============================================
 
-// Initialize novaState object
+// Initialize novaState object - preserve existing properties (like ModalController)
 window.novaState = window.novaState || {};
 
-// State categories
-window.novaState.data = {
+// State categories - preserve existing data
+window.novaState.data = Object.assign(window.novaState.data || {}, {
     // Graph data for object views
     graphData: window.NOVA_GRAPH_DATA || null,
 
@@ -19,24 +22,26 @@ window.novaState.data = {
     latestDSOData: window.latestDSOData || [],
     allSavedViews: window.allSavedViews || {},
     currentFilteredData: window.currentFilteredData || []
-};
+});
 
-// Guest/user status
-window.novaState.flags = {
+// Guest/user status - preserve existing flags
+window.novaState.flags = Object.assign(window.novaState.flags || {}, {
     isGuestUser: window.IS_GUEST_USER || false,
     isListFiltered: window.isListFiltered || false,
     objectScriptLoaded: false,
     journalSectionInitialized: false
-};
+});
 
-// Config data
-window.novaState.config = {
+// Config data - preserve existing config
+window.novaState.config = Object.assign(window.novaState.config || {}, {
     configForm: window.NOVA_CONFIG_FORM || { urls: {}, telemetryEnabled: false },
     indexData: window.NOVA_INDEX || { isGuest: false, hideInvisible: false, altitudeThreshold: 15 }
-};
+});
 
 // State functions (exposed globally for backward compatibility)
-window.novaState.fn = {
+// IMPORTANT: Preserve existing functions (like ModalController, getModal)
+const existingFn = window.novaState.fn || {};
+window.novaState.fn = Object.assign(existingFn, {
     // Graph view functions
     showTab: null,
     loadTrixContentEdit: null,
@@ -89,7 +94,7 @@ window.novaState.fn = {
     // Help/modal functions
     openHelp: null,
     closeHelpModal: null
-};
+});
 
 // ============================================
 // THEME & VERSION INITIALIZATION
@@ -128,30 +133,40 @@ document.addEventListener("DOMContentLoaded", function () {
         redModeBtn.addEventListener('click', toggleRedMode);
     }
 
-    // --- EVENT LISTENERS FOR HELP MODAL ---
-    const helpModal = document.getElementById('universal-help-modal');
-    const helpModalCloseBtn = document.getElementById('help-modal-close-btn');
-
-    if (helpModal) {
-        helpModal.addEventListener('click', function(e) {
-            if (e.target === helpModal) {
-                closeHelpModal();
-            }
-        });
-    }
-    if (helpModalCloseBtn) {
-        helpModalCloseBtn.addEventListener('click', closeHelpModal);
+    // --- INITIALIZE HELP MODAL ---
+    // ModalController should be available now (preserved from modal-manager.js)
+    if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
+        try {
+            window.novaState.fn.helpModal = new window.novaState.fn.ModalController('universal-help-modal', {
+                contentId: null,
+                visibleClass: 'is-visible',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                ariaLabelledBy: 'help-modal-title'
+            });
+            helpModalInitialized = true;
+            console.log('[base.js] Help modal controller initialized successfully');
+        } catch (err) {
+            console.error('[base.js] Error initializing help modal:', err);
+        }
+    } else {
+        console.warn('[base.js] ModalController not available, will use DOM fallback');
     }
 
     // --- EVENT DELEGATION FOR HELP BADGES ---
+    // Use a simple event delegation pattern
     document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('help-badge')) {
-            const topic = e.target.dataset.helpTopic || e.target.getAttribute('data-help-topic');
+        const target = e.target.closest('.help-badge');
+        if (target) {
+            e.preventDefault();
+            e.stopPropagation();
+            const topic = target.getAttribute('data-help-topic');
             if (topic) {
+                console.log('[base.js] Help badge clicked for topic:', topic);
                 openHelp(topic);
             }
         }
-    });
+    }, true); // Use capture phase to catch clicks early
 
     // --- EVENT DELEGATION FOR NAVIGATION BUTTONS ---
     document.addEventListener('click', function(e) {
@@ -214,16 +229,50 @@ function toggleRedMode() {
 
 // --- HELP MODAL FUNCTIONS ---
 function openHelp(topicId) {
-    const modal = document.getElementById('universal-help-modal');
+    console.log('[base.js] openHelp called with topic:', topicId);
+
     const body = document.getElementById('help-modal-body');
+    const modalElement = document.getElementById('universal-help-modal');
+    const closeBtn = document.getElementById('help-modal-close-btn');
 
-    // 1. Reset and show loading state
+    if (!body || !modalElement) {
+        console.error('[base.js] Help modal elements not found');
+        return;
+    }
+
+    // Reset and show loading state
     body.innerHTML = '<div style="text-align:center; padding: 40px; color: #666;">Loading help content...</div>';
-    modal.classList.add('is-visible');
 
-    // 2. Fetch content
+    // Try to use ModalController if available
+    const controller = window.novaState.fn.helpModal;
+    const usingFallback = !controller;
+    if (controller) {
+        console.log('[base.js] Using ModalController');
+        controller.open();
+    } else {
+        console.log('[base.js] Using DOM fallback');
+        // Fallback: Just add the class and let CSS handle display and centering
+        modalElement.classList.add('is-visible');
+    }
+
+    // Wire up close button (do this once, not on every open)
+    if (closeBtn && !closeBtn.dataset.helpCloseWired) {
+        closeBtn.addEventListener('click', () => {
+            if (window.novaState.fn.helpModal) {
+                window.novaState.fn.helpModal.close();
+            } else {
+                modalElement.classList.remove('is-visible');
+            }
+        });
+        closeBtn.dataset.helpCloseWired = 'true';
+    }
+
+    // Fetch content
     fetch('/api/help/' + topicId)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
         .then(data => {
             if (data.html) {
                 body.innerHTML = data.html;
@@ -232,13 +281,23 @@ function openHelp(topicId) {
             }
         })
         .catch(err => {
-            console.error(err);
+            console.error('[base.js] Error fetching help content:', err);
             body.innerHTML = '<p style="color:red">Network Error: Could not load help topic \'' + topicId + '\'.</p>';
         });
 }
 
 function closeHelpModal() {
-    document.getElementById('universal-help-modal').classList.remove('is-visible');
+    const controller = window.novaState.fn.helpModal;
+
+    if (controller) {
+        controller.close();
+    } else {
+        const modalElement = document.getElementById('universal-help-modal');
+        if (modalElement) {
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('is-visible');
+        }
+    }
 }
 
 // --- Navigation Helper Function ---
