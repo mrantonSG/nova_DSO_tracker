@@ -1181,6 +1181,17 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
                 existing.survey = f.get("survey")
                 existing.blend_survey = f.get("blend_survey")
                 existing.blend_opacity = f.get("blend_opacity")
+                # Mosaic Data (legacy safe with .get() and defaults)
+                existing.mosaic_cols = f.get("mosaic_cols", 1)
+                existing.mosaic_rows = f.get("mosaic_rows", 1)
+                existing.mosaic_overlap = f.get("mosaic_overlap", 10.0)
+                # Image Adjustment Data (legacy safe with .get() and defaults)
+                existing.img_brightness = f.get("img_brightness", 0.0)
+                existing.img_contrast = f.get("img_contrast", 0.0)
+                existing.img_gamma = f.get("img_gamma", 1.0)
+                existing.img_saturation = f.get("img_saturation", 0.0)
+                # Overlay Preferences (legacy safe with .get() and default)
+                existing.geo_belt_enabled = f.get("geo_belt_enabled", True)
             else:
                 new_sf = SavedFraming(
                     user_id=user.id,
@@ -1192,7 +1203,18 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
                     rotation=f.get("rotation"),
                     survey=f.get("survey"),
                     blend_survey=f.get("blend_survey"),
-                    blend_opacity=f.get("blend_opacity")
+                    blend_opacity=f.get("blend_opacity"),
+                    # Mosaic Data (legacy safe with .get() and defaults)
+                    mosaic_cols=f.get("mosaic_cols", 1),
+                    mosaic_rows=f.get("mosaic_rows", 1),
+                    mosaic_overlap=f.get("mosaic_overlap", 10.0),
+                    # Image Adjustment Data (legacy safe with .get() and defaults)
+                    img_brightness=f.get("img_brightness", 0.0),
+                    img_contrast=f.get("img_contrast", 0.0),
+                    img_gamma=f.get("img_gamma", 1.0),
+                    img_saturation=f.get("img_saturation", 0.0),
+                    # Overlay Preferences (legacy safe with .get() and default)
+                    geo_belt_enabled=f.get("geo_belt_enabled", True)
                 )
                 db.add(new_sf)
 
@@ -2017,7 +2039,18 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 "rotation": sf.rotation,
                 "survey": sf.survey,
                 "blend_survey": sf.blend_survey,
-                "blend_opacity": sf.blend_opacity
+                "blend_opacity": sf.blend_opacity,
+                # Mosaic Data
+                "mosaic_cols": sf.mosaic_cols,
+                "mosaic_rows": sf.mosaic_rows,
+                "mosaic_overlap": sf.mosaic_overlap,
+                # Image Adjustment Data
+                "img_brightness": sf.img_brightness,
+                "img_contrast": sf.img_contrast,
+                "img_gamma": sf.img_gamma,
+                "img_saturation": sf.img_saturation,
+                # Overlay Preferences
+                "geo_belt_enabled": sf.geo_belt_enabled
             })
         cfg = {
             "default_location": default_loc,
