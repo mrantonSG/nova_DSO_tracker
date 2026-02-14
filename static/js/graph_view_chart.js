@@ -1,6 +1,15 @@
 (function() {
     'use strict';
 
+    // ==========================================================================
+    // FRAMING CONFIGURATION CONSTANTS
+    // ==========================================================================
+    const FRAMING_CONFIG = {
+        DEFAULT_FOV: 1.5,               // Default field of view in degrees
+        ROTATION_MIN: 0,                // Minimum rotation angle (degrees)
+        ROTATION_MAX: 360,              // Maximum rotation angle (degrees)
+        WEATHER_GROUPING_MS: 10800000   // 3 hours in milliseconds for weather overlay
+    };
 
     let currentTimeUpdateInterval = null;
     let framingKeydownHandler = null; // Store keydown handler for cleanup
@@ -94,7 +103,7 @@
             originalForecast.sort((a, b) => a.start - b.start);
     
             // --- THIS IS THE FIX: We now ALWAYS group into 3-hour blocks ---
-            const groupDurationMs = 3 * 3600 * 1000; // 3 hours in ms
+            const groupDurationMs = FRAMING_CONFIG.WEATHER_GROUPING_MS;
             const groupIntervalHours = 3;
             // --- END FIX ---
     
@@ -316,6 +325,7 @@
     let fovLayer = null;
     let altitudeChart = null;
     let __blendSurveyId = null;
+    let _framingIsLoading = false; // Guard against concurrent openFramingAssistant calls
 
     function ensureBlendLayer() {
         if (!aladin) return null;
@@ -988,7 +998,8 @@
         __rafRotation = requestAnimationFrame(() => {
             const val = __pendingRotation;
             __pendingRotation = null; __rafRotation = null;
-            const rotation = Math.max(-90, Math.min(90, Number(val) || 0));
+            // Clamp to configured rotation range (0-360 by default)
+            const rotation = Math.max(FRAMING_CONFIG.ROTATION_MIN, Math.min(FRAMING_CONFIG.ROTATION_MAX, Number(val) || 0));
             if (typeof lockToObject !== 'undefined' && lockToObject) {
                 const sel = document.getElementById('framing-rig-select');
                 if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rotation); }
@@ -999,8 +1010,8 @@
     function onRotationInput(val) {
         // Allow full 0-360 range to match ASIAIR PA
         let v = Number(val) || 0;
-        // Normalize to 0-360 just in case
-        v = ((v % 360) + 360) % 360;
+        // Normalize to configured range just in case
+        v = Math.max(FRAMING_CONFIG.ROTATION_MIN, Math.min(FRAMING_CONFIG.ROTATION_MAX, ((v % 360) + 360) % 360));
     
         const span = document.getElementById('rotation-value');
         if (span) span.textContent = v.toFixed(1).replace(/\.0$/, '') + '°';
@@ -1060,11 +1071,10 @@
             img_brightness: parseFloat(q.get('img_b')),
             img_contrast: parseFloat(q.get('img_c')),
             img_gamma: parseFloat(q.get('img_g')),
-            img_saturation: parseFloat(q.get('img_s'))
+            img_saturation: parseFloat(q.get('img_s')),
+            // Overlay Preference params
+            geo_belt_enabled: q.get('geo_belt') === '1'
         };
-
-        // Debug: Log parsed params
-        console.log('[FRAMING] Parsed query params:', result);
 
         return result;
     }
@@ -1162,9 +1172,6 @@
             if (el) { el.value = pendingImageAdjustments.saturation; hasImageAdjustments = true; }
         }
 
-        // Debug: Log restored values
-        console.log('[FRAMING] Restored image adjustments:', pendingImageAdjustments, 'hasAdjustments:', hasImageAdjustments);
-
         // Store for deferred application (will be called after Aladin is ready)
         if (hasImageAdjustments) {
             flags.pendingImageAdjustments = pendingImageAdjustments;
@@ -1174,7 +1181,15 @@
         const lockBox = document.getElementById('lock-to-object');
         if (lockBox) {
             lockBox.checked = true;
-            console.log('[FRAMING] Lock FoV checkbox set to checked');
+        }
+
+        // Restore Geo Belt checkbox state (default ON if not specified)
+        const geoBeltCheckbox = document.getElementById('show-geo-belt');
+        if (geoBeltCheckbox) {
+            // Only override if explicitly set in params; otherwise keep current/default state
+            if (params.geo_belt_enabled !== undefined && params.geo_belt_enabled !== null) {
+                geoBeltCheckbox.checked = params.geo_belt_enabled;
+            }
         }
 
         // Restore center coordinates
@@ -1186,22 +1201,68 @@
     }
 
     function openFramingAssistant(optionalQueryString) {
+        // --- RACE CONDITION GUARD: Prevent concurrent execution ---
+        if (_framingIsLoading) {
+            console.warn('[FRAMING] openFramingAssistant called while loading - ignoring duplicate request');
+            return;
+        }
+        _framingIsLoading = true;
+        // --- END GUARD ---
+
         const framingModal = document.getElementById('framing-modal');
         framingModal.style.display = 'block'; // Show the modal frame immediately
-    
+
         // --- MODIFIED: Check for internet connection first ---
         if (!navigator.onLine) {
             displayOfflineMessage('aladin-lite-div', 'The Framing Assistant requires an active internet connection to load sky surveys.');
+            _framingIsLoading = false; // Release guard on early exit
             return; // Stop execution if offline
         }
         // --- END OF MODIFICATION ---
-    
+
         const framingRigSelect = document.getElementById('framing-rig-select');
-        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") { alert("Please configure at least one rig on the Configuration page first."); return; }
-    
+        if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
+            alert("Please configure at least one rig on the Configuration page first.");
+            _framingIsLoading = false; // Release guard on early exit
+            return;
+        }
+
+        // --- CLEANUP: Clear existing overlays before re-initializing ---
+        if (fovLayer && aladin) {
+            try {
+                fovLayer.removeAll();
+            } catch (e) {
+                console.warn('[FRAMING] Could not clear FOV overlay:', e);
+            }
+        }
+        // Clear geo belt layer to prevent ghost overlays
+        if (geoBeltLayer && aladin) {
+            try {
+                if (aladin.removeCatalog) aladin.removeCatalog(geoBeltLayer);
+                if (aladin.removeOverlay) aladin.removeOverlay(geoBeltLayer);
+                geoBeltLayer = null;
+            } catch (e) {
+                console.warn('[FRAMING] Could not clear Geo Belt overlay:', e);
+            }
+        }
+        // --- END CLEANUP ---
+
         (function ensureRotationReadout(){ const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.setAttribute('min', '0'); slider.setAttribute('max', '360'); slider.setAttribute('step', '0.5'); if (!slider.hasAttribute('value')) slider.setAttribute('value', '0'); let n = slider.nextSibling; while (n && n.nodeType === Node.TEXT_NODE) { const t = n.textContent.trim(), next = n.nextSibling; if (t === '' || t === '0°') n.parentNode.removeChild(n); else break; n = next; } const existingSpans = Array.from(document.querySelectorAll('#rotation-value')); let span = existingSpans[0]; if (existingSpans.length > 1) existingSpans.slice(1).forEach(el => el.remove()); if (!span) { span = document.createElement('span'); span.id = 'rotation-value'; span.style.marginLeft = '8px'; span.style.fontWeight = 'normal'; span.style.fontSize = '15px'; slider.insertAdjacentElement('afterend', span); try { span.style.fontWeight = 'normal'; } catch(_) {} } try { span.style.cursor = 'pointer'; span.title = 'Tap to reset rotation to 0°'; span.addEventListener('click', () => { const slider = document.getElementById('framing-rotation'); if (!slider) return; slider.value = '0'; slider.dispatchEvent(new Event('input', { bubbles: true })); }, { once: false }); } catch (e) {} })();
         if (!aladin) {
-            aladin = A.aladin('#aladin-lite-div', { survey: "P/DSS2/color", fov: 1.5, cooFrame: 'ICRS', showFullscreenControl: false, showGotoControl: false });
+            try {
+                aladin = A.aladin('#aladin-lite-div', {
+                    survey: "P/DSS2/color",
+                    fov: FRAMING_CONFIG.DEFAULT_FOV,
+                    cooFrame: 'ICRS',
+                    showFullscreenControl: false,
+                    showGotoControl: false,
+                    // Error callback for survey loading failures
+                    errorCallback: function(err) {
+                        console.error('[FRAMING] Aladin initialization error:', err);
+                        displayOfflineMessage('aladin-lite-div', 'Failed to load sky survey. Please check your internet connection and try again.');
+                        _framingIsLoading = false;
+                    }
+                });
             (function installSlowWheelZoom(){ if (window.__novaSlowZoomInstalled) return; const host = document.getElementById('aladin-lite-div'); if (!host) return; try { host.style.overscrollBehavior = 'contain'; } catch(e) {} function onWheel(ev) { if (ev.ctrlKey) return; ev.preventDefault(); ev.stopPropagation(); if (!aladin) return; const unit = (ev.deltaMode === 1) ? 16 : (ev.deltaMode === 2) ? 400 : 1; let dy = (ev.deltaY || 0) * unit; dy = Math.max(-80, Math.min(80, dy)); const g = aladin.getFov(), current = Array.isArray(g) ? (g[0] ?? 1) : (g ?? 1); const scale = Math.exp(dy * 0.00075), minFov = 0.01, maxFov = 180; const next = Math.min(maxFov, Math.max(minFov, current * scale)); if (Number.isFinite(next)) aladin.setFov(next); } host.addEventListener('wheel', onWheel, { passive: false, capture: true }); const tryBindCanvas = () => { const cv = host.querySelector('canvas'); if (cv) cv.addEventListener('wheel', onWheel, { passive: false, capture: true }); }; tryBindCanvas(); setTimeout(tryBindCanvas, 50); window.__novaSlowZoomInstalled = true; })();
             baseSurvey = aladin.getBaseImageLayer();
             (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
@@ -1239,6 +1300,12 @@
         window.addEventListener('keydown', framingKeydownHandler);
             (function wireRotationLiveUpdate(){ const rotInput = document.getElementById('framing-rotation'); if (!rotInput) return; const handler = () => { const raw = (typeof rotInput.valueAsNumber === 'number') ? rotInput.valueAsNumber : parseFloat(rotInput.value) || 0; const snapped = (Math.abs(raw) <= 1) ? 0 : raw; if (snapped !== raw) rotInput.value = String(snapped); updateFramingChart(false); }; try { rotInput.removeEventListener('input', rotInput.__novaRotHandler); } catch(e) {} try { rotInput.removeEventListener('change', rotInput.__novaRotHandler); } catch(e) {} rotInput.__novaRotHandler = handler; rotInput.addEventListener('input', handler); rotInput.addEventListener('change', handler); try { rotInput.setAttribute('value', String(rotInput.valueAsNumber ?? rotInput.value ?? 0)); } catch(e) {} handler(); })();
             (function wireInsertIntoProject(){ const btn = document.getElementById('insert-into-project'); if (!btn) return; try { btn.removeEventListener('click', btn.__novaInsertHandler); } catch(e) {} btn.__novaInsertHandler = (ev) => { try { const q = buildFramingQuery(), href = location.pathname + q; history.replaceState(null, '', href); } catch(e) { console.warn('[nova] Insert-to-project wiring error:', e); } }; btn.addEventListener('click', btn.__novaInsertHandler); })();
+            } catch (initErr) {
+                console.error('[FRAMING] Aladin initialization failed:', initErr);
+                displayOfflineMessage('aladin-lite-div', 'Failed to initialize sky viewer. Please refresh and try again.');
+                _framingIsLoading = false;
+                return;
+            }
         }
         function buildFramingQuery() { const sel = document.getElementById('framing-rig-select'), rig = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].value : '', rotInput = document.getElementById('framing-rotation'), rot = rotInput ? (parseFloat(rotInput.value) || 0) : 0, sSel = document.getElementById('survey-select'), survey = sSel ? sSel.value : '', bSel = document.getElementById('blend-survey-select'), bOp = document.getElementById('blend-opacity'), blend = bSel ? bSel.value : '', blend_op = bOp ? (parseFloat(bOp.value) || 0) : 0; const { ra, dec } = (fovCenter || (aladin && (() => { const rc = aladin.getRaDec(); return { ra: rc[0], dec: rc[1] }; })()) || { ra: NaN, dec: NaN });
             const cols = document.getElementById('mosaic-cols')?.value || 1;
@@ -1330,18 +1397,21 @@
         // Use setTimeout to ensure survey layer is fully loaded
         if (flags.pendingImageAdjustments) {
             setTimeout(() => {
-                console.log('[FRAMING] Applying deferred image adjustments:', flags.pendingImageAdjustments);
                 if (typeof window.updateImageAdjustments === 'function') {
                     window.updateImageAdjustments();
                 }
             }, 500);  // 500ms delay to ensure survey is loaded
         }
 
-        // Restore Geo Belt State
+        // Restore Geo Belt State (respect saved preference)
         const geoCheck = document.getElementById('show-geo-belt');
-        if (geoCheck && geoCheck.checked) {
-            toggleGeoBelt(true);
+        if (geoCheck) {
+            // Call toggleGeoBelt with the current checkbox state (already restored from saved value)
+            toggleGeoBelt(geoCheck.checked);
         }
+
+        // --- RELEASE LOADING GUARD ---
+        _framingIsLoading = false;
     }
     function closeFramingAssistant() {
         document.getElementById('framing-modal').style.display = 'none';
@@ -1871,12 +1941,12 @@
             img_brightness: parseFloat(document.getElementById('img-bright')?.value || 0),
             img_contrast: parseFloat(document.getElementById('img-contrast')?.value || 0),
             img_gamma: parseFloat(document.getElementById('img-gamma')?.value || 1),
-            img_saturation: parseFloat(document.getElementById('img-sat')?.value || 0)
+            img_saturation: parseFloat(document.getElementById('img-sat')?.value || 0),
+            // Overlay Preferences
+            geo_belt_enabled: document.getElementById('show-geo-belt')?.checked ?? true
         };
 
         // Debug: Log payload being saved
-        console.log('[FRAMING] Saving payload:', JSON.stringify(payload, null, 2));
-
         // 2. Send to DB
         fetch('/api/save_framing', {
             method: 'POST',
@@ -2066,9 +2136,6 @@
             .then(data => {
                 container.innerHTML = '';
 
-                // Debug: Log retrieved framing data
-                console.log('[FRAMING] Retrieved framing data:', data);
-
                 if (data.status === 'found') {
                     // Create a wrapper div to hold both buttons side-by-side
                     const wrapper = document.createElement('div');
@@ -2104,8 +2171,8 @@
                         if(data.img_gamma != null && data.img_gamma !== 1) params.set('img_g', data.img_gamma);
                         if(data.img_saturation != null && data.img_saturation !== 0) params.set('img_s', data.img_saturation);
 
-                        // Debug: Log URL params being passed
-                        console.log('[FRAMING] Opening with params:', params.toString());
+                        // Restore Overlay Preferences
+                        if(data.geo_belt_enabled != null) params.set('geo_belt', data.geo_belt_enabled ? '1' : '0');
 
                         openFramingAssistant(params.toString());
                     };

@@ -122,6 +122,9 @@ class SavedFraming(Base):
     img_gamma = Column(Float, default=1.0)
     img_saturation = Column(Float, default=0.0)
 
+    # Overlay Preferences
+    geo_belt_enabled = Column(Boolean, default=True)
+
     updated_at = Column(Date, default=datetime.utcnow)
 
     user = relationship("DbUser", backref="saved_framings")
