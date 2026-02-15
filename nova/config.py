@@ -54,15 +54,15 @@ class BoundedCache(dict):
 static_cache = BoundedCache(2000)
 moon_separation_cache = BoundedCache(1000)
 nightly_curves_cache = BoundedCache(2000)
-cache_worker_status = {}
-monthly_top_targets_cache = {}
-config_cache = {}
-config_mtime = {}
-journal_cache = {}
-journal_mtime = {}
-LATEST_VERSION_INFO = {}
-rig_data_cache = {}
-weather_cache = {}
+cache_worker_status = BoundedCache(500)
+monthly_top_targets_cache = BoundedCache(500)
+config_cache = BoundedCache(500)
+config_mtime = BoundedCache(500)
+journal_cache = BoundedCache(500)
+journal_mtime = BoundedCache(500)
+LATEST_VERSION_INFO = BoundedCache(10)
+rig_data_cache = BoundedCache(500)
+weather_cache = BoundedCache(1000)
 CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
 
 # --- Telemetry state ---
