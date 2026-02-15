@@ -792,9 +792,9 @@
         // Fetch 50 items at a time. Server handles the loop.
         const BATCH_SIZE = 50;
         let offset = 0;
-        let total = 1; // Will be updated by first response
+        let total = null; // Will be updated by first response (null for subsequent pages)
         let allData = [];
-    
+
         // Determine if we show the loader
         const shouldShowLoader = !isBackground || tbody.innerHTML.trim() === '';
         if (shouldShowLoader) {
@@ -804,26 +804,30 @@
             // we must ensure the previous loader is hidden to prevent it from getting stuck.
             _hideFetchLoader(loadingDiv);
         }
-    
+
         // Clear table ONLY if we are showing loader (fresh load)
         if (shouldShowLoader) tbody.innerHTML = '';
-    
+
         try {
-            while (offset < total) {
+            while (true) {
                 if (signal.aborted) return;
-    
+
                 // Call the new Batch Endpoint
                 const url = _buildBatchUrl(offset, BATCH_SIZE, currentSelectedLocation, effectiveDate);
                 const res = await fetch(url, { signal });
-    
+
                 if (!res.ok) throw new Error(`Server Error: ${res.status}`);
-    
+
                 const json = await res.json();
-                total = json.total; // Update total count from server
-    
+                // Only update total if provided (first page)
+                if (json.total !== null && json.total !== undefined) {
+                    total = json.total;
+                }
+
                 const chunkData = json.results || [];
+                const hasMore = json.has_more === true;
                 allData = allData.concat(chunkData);
-    
+
                 // Render this chunk immediately (Stream effect)
                 if (shouldShowLoader) {
                     appendRows(chunkData);
@@ -831,11 +835,27 @@
                     // This prevents the Inspiration tab from reading visible rows that should be hidden
                     filterTable();
                 }
-    
+
+                // Break if no more results
+                if (!hasMore || chunkData.length < BATCH_SIZE) {
+                    break;
+                }
+
                 // Update Progress UI
                 offset += BATCH_SIZE;
                 if (shouldShowLoader) {
-                    _updateFetchProgress(progressBar, loadingCount, loadingTotal, allData.length, total);
+                    // Use total if available, otherwise show current count without percent
+                    if (total !== null) {
+                        _updateFetchProgress(progressBar, loadingCount, loadingTotal, allData.length, total);
+                    } else {
+                        // Show current count without percentage when total is unknown
+                        if (progressBar) {
+                            progressBar.style.width = '100%';
+                            progressBar.classList.add('indeterminate');
+                        }
+                        if (loadingCount) loadingCount.textContent = allData.length;
+                        if (loadingTotal) loadingTotal.textContent = '...';
+                    }
                 }
             }
     

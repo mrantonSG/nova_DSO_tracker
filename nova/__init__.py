@@ -570,6 +570,24 @@ def ensure_db_initialized_unified():
                 # Also may fail due to IntegrityError from duplicate external_id values
                 print(f"[DB PATCH] Could not create journal external_id index (may already exist or have duplicates): {idx_err}")
 
+            # --- PERFORMANCE: Add Composite Index for Journal Sessions ---
+            try:
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS idx_journal_user_date ON journal_sessions(user_id, date_utc DESC);"
+                )
+                print("[DB PATCH] Created performance index idx_journal_user_date on journal_sessions")
+            except Exception as idx_err:
+                print(f"[DB PATCH] Could not create journal user_date index: {idx_err}")
+
+            # --- PERFORMANCE: Add Index for Object Name Lookups ---
+            try:
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS idx_journal_object_name ON journal_sessions(object_name);"
+                )
+                print("[DB PATCH] Created performance index idx_journal_object_name on journal_sessions")
+            except Exception as idx_err:
+                print(f"[DB PATCH] Could not create journal object_name index: {idx_err}")
+
             # --- SavedView Patches ---
             cols_views = conn.exec_driver_sql("PRAGMA table_info(saved_views);").fetchall()
             colnames_views = {row[1] for row in cols_views}
@@ -581,6 +599,15 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_user_id INTEGER;")
             if "original_item_id" not in colnames_views:
                 conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_item_id INTEGER;")
+
+            # --- PERFORMANCE: Add Index for Saved Views Name Lookups ---
+            try:
+                conn.exec_driver_sql(
+                    "CREATE INDEX IF NOT EXISTS idx_saved_views_name ON saved_views(name);"
+                )
+                print("[DB PATCH] Created performance index idx_saved_views_name on saved_views")
+            except Exception as idx_err:
+                print(f"[DB PATCH] Could not create saved_views name index: {idx_err}")
 
             try:
                 cols_framing = conn.exec_driver_sql("PRAGMA table_info(saved_framings);").fetchall()
@@ -8687,9 +8714,23 @@ def get_desktop_data_batch():
         if not location_obj: return jsonify({"error": "Location not found", "results": []}), 404
 
         # 3. Get Object Slice (Only Enabled Objects)
-        objects_query = db.query(AstroObject).filter_by(user_id=user.id, enabled=True).order_by(AstroObject.object_name)
-        total_count = objects_query.count()
-        batch_objects = objects_query.offset(offset).limit(limit).all()
+        # OPTIMIZATION: Fetch batch first to determine if there are more results
+        batch_objects = db.query(AstroObject).filter_by(user_id=user.id, enabled=True)\
+            .order_by(AstroObject.object_name)\
+            .offset(offset)\
+            .limit(limit)\
+            .all()
+
+        # Determine has_more flag based on whether we got a full page
+        has_more = len(batch_objects) == limit
+
+        # Only fetch total_count if offset is 0 (first page) to avoid double query on pagination
+        # For subsequent pages, client can rely on has_more flag
+        total_count = None
+        if offset == 0:
+            total_count = db.query(func.count(AstroObject.id))\
+                .filter_by(user_id=user.id, enabled=True)\
+                .scalar() or 0
 
         # 4. Prepare Calculation Variables
         results = []
@@ -8859,6 +8900,7 @@ def get_desktop_data_batch():
         response_data = {
             "results": results,
             "total": total_count,
+            "has_more": has_more,
             "offset": offset,
             "limit": limit
         }
