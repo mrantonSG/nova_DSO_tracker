@@ -288,12 +288,46 @@
         }
     });
 
+    // --- GLOBAL DEBUG: Close Duplicates Modal ---
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('[data-action="close-duplicates-modal"]')) {
+            console.log('GLOBAL CLOSE TRIGGERED', {
+                target: e.target,
+                closest: e.target.closest('[data-action="close-duplicates-modal"]'),
+                modalElement: document.getElementById('duplicates-modal'),
+                modalHasIsVisible: document.getElementById('duplicates-modal')?.classList.contains('is-visible')
+            });
+            // Close logic
+            e.preventDefault();
+            e.stopPropagation();
+            const modalEl = document.getElementById('duplicates-modal');
+            if (modalEl) {
+                console.log('GLOBAL: Removing is-visible class from modal');
+                modalEl.classList.remove('is-visible');
+            } else {
+                console.error('GLOBAL: Duplicates modal element not found!');
+            }
+        }
+    }, true); // Use capture phase
+
     // --- Event Delegation for Click Actions ---
     document.addEventListener('click', function(e) {
         const actionBtn = e.target.closest('[data-action]');
         if (!actionBtn) return;
 
         const action = actionBtn.dataset.action;
+
+        // Debug: Log all data-action clicks
+        if (action === 'close-duplicates-modal' || action === 'close-notes-modal') {
+            console.log('[OBJECTS_SECTION] Modal close action detected:', {
+                action: action,
+                target: e.target,
+                closest: actionBtn,
+                eventPhase: e.eventPhase,
+                bubbles: e.bubbles,
+                composed: e.composed
+            });
+        }
 
         switch (action) {
             case 'activate-lazy-trix':
@@ -309,12 +343,23 @@
                 openDuplicateChecker();
                 break;
             case 'close-notes-modal':
+                console.log('[OBJECTS_SECTION] Close Notes button clicked', e.target);
                 e.preventDefault();
                 closeNotesModal();
                 break;
             case 'close-duplicates-modal':
+                console.log('[OBJECTS_SECTION] Close button clicked', e.target);
+                console.log('[OBJECTS_SECTION] Action button:', actionBtn);
+                console.log('[OBJECTS_SECTION] Current modal state:', document.getElementById('duplicates-modal')?.classList.contains('is-visible'));
                 e.preventDefault();
-                document.getElementById('duplicates-modal').classList.remove('is-visible');
+                e.stopPropagation(); // Prevent event from bubbling
+                const modalEl = document.getElementById('duplicates-modal');
+                if (modalEl) {
+                    console.log('[OBJECTS_SECTION] Removing is-visible class from modal');
+                    modalEl.classList.remove('is-visible');
+                } else {
+                    console.error('[OBJECTS_SECTION] Duplicates modal element not found!');
+                }
                 break;
             case 'save-object':
                 e.preventDefault();
