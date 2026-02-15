@@ -1174,6 +1174,7 @@ def _heal_saved_framings(db, user: DbUser):
             print(f"[MIGRATION] Healed {count} saved framing links (connected to newly imported rigs).")
             db.flush()
     except Exception as e:
+        db.rollback()
         print(f"[MIGRATION] Error healing saved framings: {e}")
 
 
@@ -1246,6 +1247,7 @@ def _migrate_saved_framings(db, user: DbUser, config: dict):
                 db.add(new_sf)
 
         except Exception as e:
+            db.rollback()
             print(f"[MIGRATION] Error migrating saved framing for {f.get('object_name')}: {e}")
 
     db.flush()
@@ -1431,6 +1433,7 @@ def _migrate_objects(db, user: DbUser, config: dict):
 
         except Exception as e:
             # If one object entry is malformed, log the error and continue with the rest.
+            db.rollback()
             print(f"[MIGRATION] Could not process object entry '{o}'. Error: {e}")
 
 
@@ -1677,6 +1680,7 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             db.flush()
 
         except Exception as e:
+            db.rollback()
             print(f"[MIGRATION] Skip/repair rig '{r}': {e}")
 
     _heal_saved_framings(db, user)
@@ -1722,6 +1726,7 @@ def _migrate_saved_views(db, user: DbUser, config: dict):
             )
             db.add(new_view)
         except Exception as e:
+            db.rollback()
             print(f"[MIGRATION] Could not process saved view '{view_entry.get('name')}'. Error: {e}")
 
     db.flush()
@@ -10306,6 +10311,11 @@ def get_date_info(object_name):
     day = int(request.args.get('day') or now.day)
     month = int(request.args.get('month') or now.month)
     year = int(request.args.get('year') or now.year)
+
+    # Validate day is within valid range for the given month/year
+    # Prevents "day is out of range for month" ValueError
+    _, days_in_month = calendar.monthrange(year, month)
+    day = min(max(day, 1), days_in_month)
 
     # Use same time-of-day as index: current hour/minute
     local_time = tz.localize(datetime(year, month, day, now.hour, now.minute))
