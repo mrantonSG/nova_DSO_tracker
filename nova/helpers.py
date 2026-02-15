@@ -24,7 +24,15 @@ except Exception:
 # === Core DB helper ===
 
 def get_db():
-    """Use inside request context or background tasks."""
+    """
+    Get a database session.
+
+    Returns a thread-local scoped session. The session is automatically
+    cleaned up at the end of each request context by the Flask
+    @app.teardown_appcontext hook that calls SessionLocal.remove().
+
+    No manual close() or remove() calls are needed in route handlers.
+    """
     return SessionLocal()
 
 

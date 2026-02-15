@@ -2833,6 +2833,16 @@ def set_cache_headers(response):
     return response
 
 
+# --- Database Session Lifecycle Management ---
+@app.teardown_appcontext
+def cleanup_db_session(exception=None):
+    """
+    Cleanup database session at the end of each request context.
+    Uses SessionLocal.remove() to properly clean up the scoped session.
+    """
+    SessionLocal.remove()
+
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'core.login'
@@ -6053,10 +6063,10 @@ def journal_add():
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
-    try:
-        user = db.query(DbUser).filter_by(username=username).one()
+    user = db.query(DbUser).filter_by(username=username).one()
 
-        if request.method == 'POST':
+    if request.method == 'POST':
+        try:
             # --- START FIX: Validate the date ---
             session_date_str = request.form.get("session_date")
             try:
@@ -6213,18 +6223,19 @@ def journal_add():
             # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
             return redirect(url_for('core.graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
                                     location=new_session.location_name))
+        except Exception as e:
+            db.rollback()
+            raise e
 
-        # --- GET Request Logic ---
-        target_object = request.args.get('target')
-        if target_object:
-            # If a target is specified, go to that object's dashboard
-            return redirect(url_for('core.graph_dashboard', object_name=target_object))
-        else:
-            # If no target, go to the main journal list
-            flash("To add a new session, please select an object first.", "info")
-            return redirect(url_for('journal.journal_list_view'))
-    finally:
-        db.close()
+    # --- GET Request Logic ---
+    target_object = request.args.get('target')
+    if target_object:
+        # If a target is specified, go to that object's dashboard
+        return redirect(url_for('core.graph_dashboard', object_name=target_object))
+    else:
+        # If no target, go to the main journal list
+        flash("To add a new session, please select an object first.", "info")
+        return redirect(url_for('journal.journal_list_view'))
 
 
 @journal_bp.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
@@ -7412,8 +7423,6 @@ def import_config():
             db.rollback()
             print(f"[IMPORT_CONFIG] DB Error: {e}")
             raise e
-        finally:
-            db.close()
         # === END REFACTOR ===
 
         # Trigger background cache update for ACTIVE locations in the import
@@ -8011,8 +8020,6 @@ def confirm_object():
     except Exception as e:
         db.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
-    finally:
-        db.close()
 
 
 @api_bp.route('/api/update_object', methods=['POST'])
