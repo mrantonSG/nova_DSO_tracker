@@ -15,7 +15,7 @@ March 2025, Anton Gutscher
 # Imports
 # =============================================================================
 import os
-from decouple import config
+from decouple import config as decouple_config
 from ics import Calendar, Event
 import arrow
 import requests
@@ -2561,7 +2561,7 @@ def run_one_time_yaml_migration():
 
         usernames_to_migrate = set()
         # FIX: Read SINGLE_USER_MODE directly from environment/config here
-        is_single_user_mode_for_migration = config('SINGLE_USER_MODE', default='True') == 'True'
+        is_single_user_mode_for_migration = decouple_config('SINGLE_USER_MODE', default='True') == 'True'
 
         if is_single_user_mode_for_migration:
             print("[MIGRATION] Single-User Mode: Migrating only the 'default' user.")
