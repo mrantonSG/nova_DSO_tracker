@@ -3781,6 +3781,175 @@ def get_plot_data(object_name):
     return jsonify(plot_data)
 
 
+@api_bp.route('/api/get_observable_objects')
+def get_observable_objects():
+    """
+    Returns active objects observable tonight from the current location.
+    Used by the secondary object comparison dropdown in graph view.
+
+    Query params:
+        exclude: Object name to exclude (the primary object being viewed)
+        lat: Override latitude (from dashboard location)
+        lon: Override longitude (from dashboard location)
+        tz: Override timezone
+
+    Returns:
+        {
+            "objects": [
+                {
+                    "object_name": str,
+                    "common_name": str,
+                    "observable_minutes": int,
+                    "max_altitude": float
+                },
+                ...
+            ]
+        }
+
+    Objects are:
+        - Active projects only (active_project=True)
+        - Have valid RA/DEC coordinates
+        - Observable tonight (duration > 0)
+        - Excludes the primary object if specified
+        - Sorted by observable_minutes descending
+        - Limited to top 20
+    """
+    from modules.astro_calculations import calculate_observable_duration_vectorized, calculate_sun_events_cached
+
+    load_global_request_context()
+    load_full_astro_context()
+
+    # Get exclusion parameter
+    exclude_name = request.args.get('exclude', '').strip()
+
+    # Get location context - prefer query params (dashboard location) over defaults
+    lat_override = request.args.get('lat')
+    lon_override = request.args.get('lon')
+    tz_override = request.args.get('tz')
+
+    try:
+        if lat_override is not None:
+            lat = float(lat_override)
+        else:
+            lat = getattr(g, 'lat', None)
+
+        if lon_override is not None:
+            lon = float(lon_override)
+        else:
+            lon = getattr(g, 'lon', None)
+
+        if tz_override:
+            tz_name = tz_override
+        else:
+            tz_name = getattr(g, 'tz_name', 'UTC')
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": f"Invalid location parameters: {e}", "objects": []}), 400
+
+    altitude_threshold = 20
+
+    # Get user's altitude threshold from config
+    try:
+        user_cfg = getattr(g, 'user_config', {}) or {}
+        altitude_threshold = user_cfg.get("altitude_threshold", 20)
+    except Exception:
+        pass
+
+    if lat is None or lon is None:
+        return jsonify({"error": "Location not configured", "objects": []}), 400
+
+    # Determine date for calculations (noon-to-noon logic)
+    local_tz = pytz.timezone(tz_name)
+    now_local = datetime.now(local_tz)
+    if now_local.hour < 12:
+        calc_date = (now_local.date() - timedelta(days=1)).strftime('%Y-%m-%d')
+    else:
+        calc_date = now_local.date().strftime('%Y-%m-%d')
+
+    db = get_db()
+    try:
+        # Get current user
+        if SINGLE_USER_MODE:
+            username = "default"
+        elif current_user.is_authenticated:
+            username = current_user.username
+        else:
+            username = "guest_user"
+
+        user = db.query(DbUser).filter_by(username=username).one_or_none()
+        if not user:
+            return jsonify({"error": "User not found", "objects": []}), 401
+
+        # Query active objects with valid coordinates
+        active_objects = db.query(AstroObject).filter_by(
+            user_id=user.id,
+            active_project=True
+        ).filter(
+            AstroObject.ra_hours != None,
+            AstroObject.dec_deg != None
+        ).all()
+
+        # Get horizon mask for the location if available
+        horizon_mask = None
+        location_name = getattr(g, 'selected_location', None)
+        if location_name:
+            try:
+                user_cfg = getattr(g, 'user_config', {}) or {}
+                locations_cfg = user_cfg.get("locations", {}) or {}
+                loc_config = locations_cfg.get(location_name, {})
+                horizon_mask = loc_config.get("horizon_mask")
+            except Exception:
+                pass
+
+        # Calculate observability for each object
+        observable_list = []
+        for obj in active_objects:
+            # Skip the excluded primary object
+            if obj.object_name == exclude_name:
+                continue
+
+            try:
+                duration_td, max_alt, _, _ = calculate_observable_duration_vectorized(
+                    ra=obj.ra_hours,
+                    dec=obj.dec_deg,
+                    lat=lat,
+                    lon=lon,
+                    local_date=calc_date,
+                    tz_name=tz_name,
+                    altitude_threshold=altitude_threshold,
+                    horizon_mask=horizon_mask
+                )
+
+                observable_minutes = int(duration_td.total_seconds() / 60)
+
+                # Only include if observable
+                if observable_minutes > 0:
+                    observable_list.append({
+                        "object_name": obj.object_name,
+                        "common_name": obj.common_name or obj.object_name,
+                        "observable_minutes": observable_minutes,
+                        "max_altitude": round(max_alt, 1)
+                    })
+            except Exception as e:
+                # Skip objects with calculation errors
+                print(f"[API Observable Objects] Error calculating for {obj.object_name}: {e}")
+                continue
+
+        # Sort by observable duration descending
+        observable_list.sort(key=lambda x: x['observable_minutes'], reverse=True)
+
+        # Limit to top 20
+        observable_list = observable_list[:20]
+
+        return jsonify({"objects": observable_list})
+
+    except Exception as e:
+        print(f"[API Observable Objects] Error: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e), "objects": []}), 500
+    finally:
+        db.close()
+
+
 @api_bp.route('/api/get_weather_forecast')
 def get_weather_forecast_api():
     """

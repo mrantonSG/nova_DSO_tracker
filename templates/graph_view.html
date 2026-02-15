@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "macros.html" import status_item, form_group, help_badge, action_button, tab_button %}
 
-{% block title %}Graph – Nova DSO Tracker{% endblock %}
+{% block title %}{{ alt_name | default(object_name, True) }} ({{ object_name }}) – Nova DSO Tracker{% endblock %}
 
 {% block head_extra %}
 <script>
@@ -24,9 +24,14 @@
 {% endblock %}
 
 {% block page_title %}
-    <h2>
+    <h2 id="graph-title">
         {{ alt_name | default(object_name, True) }}
-        <span class="subtitle">({{ object_name }})</span>
+        <span class="subtitle" id="graph-title-subtitle">
+            <span id="primary-id">({{ object_name }})</span>
+            <span id="secondary-separator" class="title-separator" style="display:none;"> &amp;</span>
+            <span id="secondary-name" style="display:none;"></span>
+            <span id="secondary-id" style="display:none;">()</span>
+        </span>
     </h2>
 {% endblock %}
 
@@ -113,6 +118,13 @@
                 <button class="view-button" data-view="day" data-action="change-view">Day View</button>
                 <button class="view-button" data-view="month" data-action="change-view">Month View</button>
                 <button class="view-button" data-view="year" data-action="change-view">Year View</button>
+                <span id="secondary-object-controls" style="margin-left: 24px; padding-left: 24px; border-left: 1px solid var(--border-medium-alt, #ccc); display: inline-flex; align-items: center; gap: 8px;">
+                    <label for="secondary-object-select">Add Object:</label>
+                    <select id="secondary-object-select" disabled style="min-width: 180px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <option value="">Loading...</option>
+                    </select>
+                    <span class="help-badge" data-help-topic="secondary_object_comparison" title="How objects are ranked">?</span>
+                </span>
             </div>
         </div>
     </div>
