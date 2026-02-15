@@ -392,6 +392,12 @@
     let __blendSurveyId = null;
     let framingModalController = null; // ModalController instance for framing modal
 
+    // --- Secondary Object Comparison State ---
+    let secondaryObjectName = null;           // Name of selected secondary object (slug)
+    let secondaryObjectDisplayName = null;    // Display name for title (e.g., "Alves 2")
+    let secondaryDatasetId = 'secondary_alt'; // Unique ID for the secondary dataset
+    // --- End Secondary Object State ---
+
     function ensureBlendLayer() {
         if (!aladin) return null;
         const sel = document.getElementById('blend-survey-select');
@@ -892,6 +898,355 @@
         };
     }
 
+    // ==========================================================================
+    // SECONDARY OBJECT COMPARISON FUNCTIONS
+    // ==========================================================================
+
+    /**
+     * Fetches observable active objects for the secondary selector dropdown.
+     * @param {string} primaryName - The primary object name to exclude
+     */
+    async function fetchAndPopulateSecondarySelector(primaryName) {
+        const select = document.getElementById('secondary-object-select');
+        if (!select) return;
+
+        // Get current location from NOVA_GRAPH_DATA (dashboard state)
+        const plotLat = NOVA_GRAPH_DATA.plotLat;
+        const plotLon = NOVA_GRAPH_DATA.plotLon;
+        const plotTz = NOVA_GRAPH_DATA.plotTz;
+
+        try {
+            // Build API URL with location parameters
+            let apiUrl = `/api/get_observable_objects?exclude=${encodeURIComponent(primaryName)}`;
+            if (plotLat !== undefined && plotLat !== null && plotLat !== '') {
+                apiUrl += `&lat=${encodeURIComponent(plotLat)}`;
+            }
+            if (plotLon !== undefined && plotLon !== null && plotLon !== '') {
+                apiUrl += `&lon=${encodeURIComponent(plotLon)}`;
+            }
+            if (plotTz) {
+                apiUrl += `&tz=${encodeURIComponent(plotTz)}`;
+            }
+
+            const resp = await fetch(apiUrl);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+            const data = await resp.json();
+            const objects = data.objects || [];
+
+            // Clear and populate dropdown
+            select.innerHTML = '<option value="">None</option>';
+
+            objects.forEach(obj => {
+                const option = document.createElement('option');
+                option.value = obj.object_name;
+                // Store common_name in data attribute for title updates
+                option.dataset.commonName = obj.common_name || obj.object_name;
+                // Display format: "Name (XXX min, max YY°)"
+                const displayDuration = obj.observable_minutes >= 60
+                    ? `${Math.floor(obj.observable_minutes / 60)}h ${obj.observable_minutes % 60}m`
+                    : `${obj.observable_minutes}m`;
+                option.textContent = `${obj.common_name || obj.object_name} (${displayDuration}, max ${obj.max_altitude}°)`;
+                select.appendChild(option);
+            });
+
+            // Restore previous selection if valid
+            if (secondaryObjectName && objects.some(o => o.object_name === secondaryObjectName)) {
+                select.value = secondaryObjectName;
+            } else {
+                // Clear stale selection state
+                secondaryObjectName = null;
+                secondaryObjectDisplayName = null;
+            }
+
+            select.disabled = false;
+
+            if (objects.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No observable active objects';
+                option.disabled = true;
+                select.appendChild(option);
+            }
+        } catch (err) {
+            console.error('[Secondary Selector] Error fetching objects:', err);
+            select.innerHTML = '<option value="">Error loading objects</option>';
+            select.disabled = false;
+        }
+    }
+
+    /**
+     * Updates the visible page title (h2 element) based on primary and secondary object selection.
+     * Format: Name (ID) & Name (ID)
+     * @param {string} primaryName - The primary object's display name
+     * @param {string} primaryId - The primary object's ID/slug
+     * @param {string|null} secondaryName - The secondary object's display name (or null)
+     * @param {string|null} secondaryId - The secondary object's ID/slug (or null)
+     */
+    function updateVisiblePageTitle(primaryName, primaryId, secondaryName = null, secondaryId = null) {
+        const titleEl = document.getElementById('graph-title');
+        if (!titleEl) return;
+
+        // Clean slate: completely rebuild the title from scratch
+        // Strict logic: Name always comes before ID
+        // Single: Name <span class='subtitle'>(ID)</span>
+        // Dual: Name1 <span class='subtitle'>(ID1)</span> & Name2 <span class='subtitle'>(ID2)</span>
+        // Note: The .subtitle class has margin-left: 8px, so we don't add a space in the text node
+
+        if (secondaryName && secondaryId) {
+            // Dual mode: rebuild both objects
+            titleEl.replaceChildren(
+                document.createTextNode(primaryName),
+                createSubtitleSpan(` (${primaryId})`),
+                document.createTextNode(' & '),
+                document.createTextNode(secondaryName),
+                createSubtitleSpan(` (${secondaryId})`)
+            );
+        } else {
+            // Single mode: rebuild only primary object
+            titleEl.replaceChildren(
+                document.createTextNode(primaryName),
+                createSubtitleSpan(` (${primaryId})`)
+            );
+        }
+
+        // Helper to create a subtitle span element
+        function createSubtitleSpan(content) {
+            const span = document.createElement('span');
+            span.className = 'subtitle';
+            span.textContent = content;
+            return span;
+        }
+    }
+
+    /**
+     * Updates the page title based on primary and secondary object selection.
+     * @param {string} primaryName - The primary object's display name
+     * @param {string} primaryId - The primary object's ID/slug
+     * @param {string|null} secondaryName - The secondary object's display name (or null)
+     * @param {string|null} secondaryId - The secondary object's ID/slug (or null)
+     */
+    function updatePageTitle(primaryName, primaryId, secondaryName = null, secondaryId = null) {
+        // Update visible page title
+        updateVisiblePageTitle(primaryName, primaryId, secondaryName, secondaryId);
+
+        // Update browser tab title
+        const baseTitle = secondaryName && secondaryId
+            ? `${primaryName} (${primaryId}) & ${secondaryName} (${secondaryId}) – Nova DSO Tracker`
+            : `${primaryName} (${primaryId}) – Nova DSO Tracker`;
+        document.title = baseTitle;
+    }
+
+    /**
+     * Removes the secondary dataset from the chart if it exists.
+     * Uses robust filtering by dataset ID to ensure only the secondary is removed.
+     */
+    function removeSecondaryDataset() {
+        if (!window.altitudeChart) return;
+
+        // Filter out the secondary dataset by its unique ID
+        const originalLength = window.altitudeChart.data.datasets.length;
+        window.altitudeChart.data.datasets = window.altitudeChart.data.datasets.filter(
+            ds => ds.id !== secondaryDatasetId
+        );
+
+        if (window.altitudeChart.data.datasets.length !== originalLength) {
+            console.log('[Secondary Object] Removed secondary dataset from chart');
+            window.altitudeChart.update('none');
+        }
+    }
+
+    /**
+     * Truncates a string to maxLen characters, adding "..." if truncated.
+     * @param {string} str - String to truncate
+     * @param {number} maxLen - Maximum length (default 20)
+     * @returns {string} - Truncated string
+     */
+    function truncateLabel(str, maxLen = 20) {
+        if (!str || str.length <= maxLen) return str;
+        return str.substring(0, maxLen).trim() + '...';
+    }
+
+    /**
+     * Adds the secondary object's altitude data to the chart as a magenta line.
+     * @param {Object} plotData - The plot data from the API (contains object_alt)
+     * @param {string} objectId - The secondary object's ID/slug (for compact legend)
+     * @param {string} displayName - The secondary object's display name (for tooltips)
+     */
+    function addSecondaryDataset(plotData, objectId, displayName) {
+        if (!window.altitudeChart || !plotData) return;
+
+        // First remove any existing secondary dataset
+        removeSecondaryDataset();
+
+        // Use object ID for legend (compact), full name for tooltip
+        const legendLabel = truncateLabel(objectId, 22);
+
+        // Create the secondary altitude dataset with unique ID
+        const secondaryDataset = {
+            id: secondaryDatasetId,
+            label: legendLabel,
+            fullLabel: displayName || objectId, // Store full display name for tooltips
+            data: plotData.object_alt,
+            borderColor: '#FF00FF', // Magenta
+            yAxisID: 'yAltitude',
+            borderWidth: 3,
+            pointRadius: 0,
+            tension: 0.1,
+            order: 999 // Render on top of other lines
+        };
+
+        window.altitudeChart.data.datasets.push(secondaryDataset);
+
+        // Update tooltip callback to use fullLabel when available
+        if (!window.altitudeChart.options.plugins.tooltip.callbacks) {
+            window.altitudeChart.options.plugins.tooltip.callbacks = {};
+        }
+        window.altitudeChart.options.plugins.tooltip.callbacks.label = function(context) {
+            // Use fullLabel if available (for secondary object), otherwise use regular label
+            const label = context.dataset.fullLabel || context.dataset.label || '';
+            const value = context.parsed.y !== null ? context.parsed.y.toFixed(1) + '°' : 'N/A';
+            return label + ': ' + value;
+        };
+
+        window.altitudeChart.update('none');
+        console.log(`[Secondary Object] Added ${displayName} to chart (legend: "${legendLabel}")`);
+    }
+
+    /**
+     * Fetches plot data for the secondary object and adds it to the chart.
+     * @param {string} objectId - The secondary object ID/slug
+     * @param {string|null} displayName - The display name for the title (or null to clear)
+     */
+    async function loadSecondaryObject(objectId, displayName = null) {
+        if (!objectId) {
+            // Clear secondary
+            secondaryObjectName = null;
+            secondaryObjectDisplayName = null;
+            removeSecondaryDataset();
+            // Restore primary-only title
+            const primaryName = NOVA_GRAPH_DATA.altName || NOVA_GRAPH_DATA.objectName;
+            const primaryId = NOVA_GRAPH_DATA.objectName;
+            updatePageTitle(primaryName, primaryId);
+            return;
+        }
+
+        const day = document.getElementById('day-select').value;
+        const month = document.getElementById('month-select').value;
+        const year = document.getElementById('year-select').value;
+        const plotLat = NOVA_GRAPH_DATA.plotLat;
+        const plotLon = NOVA_GRAPH_DATA.plotLon;
+        const plotTz = NOVA_GRAPH_DATA.plotTz;
+        const plotLocName = NOVA_GRAPH_DATA.plotLocName;
+
+        try {
+            const apiUrl = `/api/get_plot_data/${encodeURIComponent(objectId)}?day=${day}&month=${month}&year=${year}&plot_lat=${plotLat}&plot_lon=${plotLon}&plot_tz=${encodeURIComponent(plotTz)}&plot_loc_name=${encodeURIComponent(plotLocName)}`;
+            console.log(`[Secondary Object] Fetching plot data for ${objectId}`);
+
+            const resp = await fetch(apiUrl);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+            const plotData = await resp.json();
+
+            // Store state
+            secondaryObjectName = objectId;
+            secondaryObjectDisplayName = displayName || objectId;
+
+            // Add to chart - pass objectId for legend, displayName for tooltip
+            addSecondaryDataset(plotData, objectId, secondaryObjectDisplayName);
+
+            // Update title: "PrimaryName (PrimaryID) & SecondaryName (SecondaryID)"
+            const primaryName = NOVA_GRAPH_DATA.altName || NOVA_GRAPH_DATA.objectName;
+            const primaryId = NOVA_GRAPH_DATA.objectName;
+            updatePageTitle(primaryName, primaryId, secondaryObjectDisplayName, objectId);
+            console.log(`[Secondary Object] Title updated to: ${document.title}`);
+        } catch (err) {
+            console.error(`[Secondary Object] Error loading ${objectId}:`, err);
+            // Reset selection on error
+            const select = document.getElementById('secondary-object-select');
+            if (select) select.value = '';
+            secondaryObjectName = null;
+            secondaryObjectDisplayName = null;
+        }
+    }
+
+    /**
+     * Initialize the secondary object selector and event handlers.
+     * Called once when the page loads.
+     */
+    function initSecondaryObjectSelector() {
+        const select = document.getElementById('secondary-object-select');
+        if (!select) return;
+
+        // Fetch and populate the dropdown
+        fetchAndPopulateSecondarySelector(NOVA_GRAPH_DATA.objectName);
+
+        // Handle selection changes
+        select.addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const selectedValue = e.target.value;
+
+            if (selectedValue) {
+                // Get display name from data attribute using getAttribute (more reliable)
+                let displayName = selectedOption?.getAttribute('data-common-name');
+                console.log(`[Secondary Selector] data-common-name: "${displayName}"`);
+
+                // Fallback: extract from text content if attribute missing
+                // Text format: "Name (Xh Ym, max Z°)" - extract just the name part
+                if (!displayName && selectedOption?.textContent) {
+                    const textMatch = selectedOption.textContent.match(/^(.+?)\s*\(\d/);
+                    displayName = textMatch ? textMatch[1].trim() : selectedValue;
+                    console.log(`[Secondary Selector] Extracted from text: "${displayName}"`);
+                }
+
+                // Final fallback to value
+                displayName = displayName || selectedValue;
+
+                // Store state
+                secondaryObjectName = selectedValue;
+                secondaryObjectDisplayName = displayName;
+
+                // Build title: "PrimaryName (PrimaryID) & SecondaryName (SecondaryID)"
+                const primaryName = NOVA_GRAPH_DATA.altName || NOVA_GRAPH_DATA.objectName;
+                const primaryId = NOVA_GRAPH_DATA.objectName;
+                updatePageTitle(primaryName, primaryId, displayName, selectedValue);
+                console.log(`[Secondary Selector] Title set to: "${document.title}"`);
+
+                // Load the chart data
+                loadSecondaryObject(selectedValue, displayName);
+            } else {
+                // Clear secondary immediately
+                secondaryObjectName = null;
+                secondaryObjectDisplayName = null;
+                removeSecondaryDataset();
+                // Restore primary-only title
+                const primaryName = NOVA_GRAPH_DATA.altName || NOVA_GRAPH_DATA.objectName;
+                const primaryId = NOVA_GRAPH_DATA.objectName;
+                updatePageTitle(primaryName, primaryId);
+                console.log(`[Secondary Selector] Title cleared to primary only`);
+            }
+        });
+
+        // Re-fetch when date changes (to update observable durations)
+        ['day-select', 'month-select', 'year-select'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', () => {
+                    // Re-populate dropdown after a short delay
+                    setTimeout(() => {
+                        fetchAndPopulateSecondarySelector(NOVA_GRAPH_DATA.objectName);
+                    }, 100);
+                    // If we had a secondary selected, reload it for the new date
+                    if (secondaryObjectName && secondaryObjectDisplayName) {
+                        loadSecondaryObject(secondaryObjectName, secondaryObjectDisplayName);
+                    }
+                });
+            }
+        });
+    }
+
+    // --- END SECONDARY OBJECT COMPARISON FUNCTIONS ---
+
 
     async function renderClientSideChart() {
         const chartLoadingDiv = document.getElementById('chart-loading');
@@ -1000,7 +1355,13 @@
             // Asynchronously fetch and apply weather data
             fetchAndUpdateWeather(window.altitudeChart, plotLat, plotLon, plotTz, isOffline);
             // --- END NEW ---
-    
+
+            // --- SECONDARY OBJECT: Restore if previously selected ---
+            if (secondaryObjectName) {
+                loadSecondaryObject(secondaryObjectName, secondaryObjectDisplayName);
+            }
+            // --- END SECONDARY OBJECT ---
+
         } catch (err) {
             console.error('Could not render chart:', err);
             const canvas = document.getElementById('altitudeChartCanvas'), ctx = canvas.getContext('2d');
@@ -2132,6 +2493,33 @@
                 document.getElementById("dawn-display").innerText = data.astronomical_dawn;
                 if (data.date_display) document.getElementById("date-display").innerText = data.date_display;
             });
+
+        // Handle secondary object controls visibility (only show in day view)
+        const secondaryControls = document.getElementById('secondary-object-controls');
+        if (secondaryControls) {
+            if (view === 'day') {
+                secondaryControls.style.display = 'inline-flex';
+                // Restore title if we have a secondary object selected
+                if (secondaryObjectName && secondaryObjectDisplayName) {
+                    const primaryName = NOVA_GRAPH_DATA.altName || NOVA_GRAPH_DATA.objectName;
+                    const primaryId = NOVA_GRAPH_DATA.objectName;
+                    const titlePrimary = `${primaryName} (${primaryId})`;
+                    const titleSecondary = `${secondaryObjectDisplayName} (${secondaryObjectName})`;
+                    document.title = `${titlePrimary} & ${titleSecondary} – Nova DSO Tracker`;
+                } else {
+                    // Primary only
+                    const primaryName = NOVA_GRAPH_DATA.altName || NOVA_GRAPH_DATA.objectName;
+                    const primaryId = NOVA_GRAPH_DATA.objectName;
+                    document.title = `${primaryName} (${primaryId}) – Nova DSO Tracker`;
+                }
+            } else {
+                secondaryControls.style.display = 'none';
+                // Clear secondary when switching to month/year view
+                removeSecondaryDataset();
+                document.title = 'Graph – Nova DSO Tracker';
+            }
+        }
+
         if (view === 'day') renderClientSideChart();
         else renderMonthlyYearlyChart(view);
     }
@@ -2668,9 +3056,12 @@
     
     window.addEventListener('load', () => {
         if (window['chartjs-plugin-annotation']) Chart.register(window['chartjs-plugin-annotation']);
-    
+
         changeView('day');
-    
+
+        // Initialize secondary object comparison selector
+        initSecondaryObjectSelector();
+
         // Global Trix File Upload Logic (Handles all editors on the page)
         document.addEventListener("trix-attachment-add", function(event) {
             if (event.attachment.file) {
@@ -2705,27 +3096,35 @@
 
         // Initialize Framing Modal Controller with Aladin caching support
         if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
-            framingModalController = new window.novaState.fn.ModalController('framing-modal', {
-                contentId: 'framing-modal-content',
-                displayStyle: 'block',
-                closeOnBackdrop: true,
-                closeOnEscape: true,
-                ariaLabelledBy: 'framing-modal-title',
-                cacheKey: 'framing',
-                onOpen: function() {
-                    // Cache the Aladin instance in the controller
-                    if (aladin) {
-                        this.setCachedInstance(aladin);
+            try {
+                framingModalController = new window.novaState.fn.ModalController('framing-modal', {
+                    contentId: 'framing-modal-content',
+                    displayStyle: 'block',
+                    closeOnBackdrop: true,
+                    closeOnEscape: true,
+                    ariaLabelledBy: 'framing-modal-title',
+                    cacheKey: 'framing',
+                    onOpen: function() {
+                        // Cache the Aladin instance in the controller
+                        if (aladin) {
+                            this.setCachedInstance(aladin);
+                        }
+                    },
+                    onClose: function() {
+                        // Aladin instance is preserved (cached) for next open
+                        // No cleanup needed - the viewer persists in the DOM
                     }
-                },
-                onClose: function() {
-                    // Aladin instance is preserved (cached) for next open
-                    // No cleanup needed - the viewer persists in the DOM
-                }
-            });
+                });
 
-            // Store reference globally for access
-            window.novaState.fn.framingModal = framingModalController;
+                // Store reference globally for access
+                window.novaState.fn.framingModal = framingModalController;
+                console.log('[FRAMING] ModalController initialized successfully');
+            } catch (e) {
+                console.error('[FRAMING] Failed to initialize ModalController:', e);
+                framingModalController = null;
+            }
+        } else {
+            console.warn('[FRAMING] ModalController not available - framing modal will use fallback behavior');
         }
 
         // Date Picker Limits
@@ -2744,12 +3143,30 @@
     
         // Window resize handler for framing modal
         window.addEventListener('resize', () => {
-            const isOpen = framingModalController ? framingModalController.isOpen() :
-                           document.getElementById('framing-modal').style.display === 'block';
+            const isOpen = isFramingModalOpen();
             if (isOpen) {
                 if (typeof aladin !== 'undefined' && aladin) updateFramingChart(false);
             }
         });
+
+    /**
+     * Safely check if the framing modal is open.
+     * Handles cases where ModalController might not be initialized.
+     * @returns {boolean} - Whether the modal is open
+     */
+    function isFramingModalOpen() {
+        // Try using ModalController first
+        if (framingModalController && typeof framingModalController.isOpen === 'function') {
+            try {
+                return framingModalController.isOpen();
+            } catch (e) {
+                console.warn('[FRAMING] Error checking modal isOpen status:', e);
+            }
+        }
+        // Fallback to direct DOM check
+        const modal = document.getElementById('framing-modal');
+        return modal ? modal.style.display === 'block' : false;
+    }
     
         // --- CHECK DATABASE FOR FRAMING ---
         checkAndShowFramingButton();

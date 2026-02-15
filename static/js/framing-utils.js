@@ -14,7 +14,7 @@
 // FRAMING CONSTANTS
 // ==========================================================================
 
-export const CONSTANTS = {
+window.framingUtils_CONSTANTS = {
     // FOV defaults
     DEFAULT_FOV_DEG: 1.5,              // Default field of view in degrees
 
@@ -71,14 +71,14 @@ const LEGACY_SURVEY_MAPPING = {
  * @param {string} surveyUrl - The survey URL to upgrade
  * @returns {string} The upgraded URL or original if no mapping exists
  */
-export function upgradeLegacySurveyUrl(surveyUrl) {
+window.framingUtils_upgradeLegacySurveyUrl = function(surveyUrl) {
     if (!surveyUrl) return surveyUrl;
     const upgraded = LEGACY_SURVEY_MAPPING[surveyUrl];
     if (upgraded) {
         console.log("[framing-utils] Upgrading legacy survey URL:", surveyUrl);
     }
     return upgraded || surveyUrl;
-}
+};
 
 /**
  * Parse query string parameters for framing assistant
@@ -104,7 +104,7 @@ export function upgradeLegacySurveyUrl(surveyUrl) {
  * @property {number|null} img_saturation - Image adjustment: saturation
  * @property {boolean|null} geo_belt_enabled - Geo belt overlay enabled flag
  */
-export function parseFramingQueryString(queryString) {
+window.framingUtils_parseFramingQueryString = function(queryString) {
     const q = new URLSearchParams(queryString || '');
 
     // Parse numeric values with proper fallbacks
@@ -159,7 +159,7 @@ export function parseFramingQueryString(queryString) {
  * @property {number} imgGamma - Image adjustment: gamma
  * @property {number} imgSaturation - Image adjustment: saturation
  */
-export function buildFramingQueryString(state) {
+window.framingUtils_buildFramingQueryString = function(state) {
     const qp = new URLSearchParams();
 
     // Always include rig if provided
@@ -202,7 +202,7 @@ export function buildFramingQueryString(state) {
  * @param {number} degrees - Angle in degrees
  * @returns {number} Normalized angle in [0, 360)
  */
-export function normalizeAngle(degrees) {
+window.framingUtils_normalizeAngle = function(degrees) {
     return ((degrees % 360) + 360) % 360;
 }
 
@@ -211,8 +211,8 @@ export function normalizeAngle(degrees) {
  * @param {number} degrees - Angle in degrees
  * @returns {number} Angle in radians
  */
-export function degToRad(degrees) {
-    return degrees * CONSTANTS.RAD_PER_DEG;
+window.framingUtils_degToRad = function(degrees) {
+    return degrees * window.framingUtils_CONSTANTS.RAD_PER_DEG;
 }
 
 /**
@@ -220,8 +220,8 @@ export function degToRad(degrees) {
  * @param {number} radians - Angle in radians
  * @returns {number} Angle in degrees
  */
-export function radToDeg(radians) {
-    return radians * CONSTANTS.DEG_PER_RAD;
+window.framingUtils_radToDeg = function(radians) {
+    return radians * window.framingUtils_CONSTANTS.DEG_PER_RAD;
 }
 
 /**
@@ -229,8 +229,8 @@ export function radToDeg(radians) {
  * @param {number} arcmin - Angle in arcminutes
  * @returns {number} Angle in degrees
  */
-export function arcminToDeg(arcmin) {
-    return arcmin / CONSTANTS.ARCMIN_PER_DEG;
+window.framingUtils_arcminToDeg = function(arcmin) {
+    return arcmin / window.framingUtils_CONSTANTS.ARCMIN_PER_DEG;
 }
 
 /**
@@ -238,8 +238,8 @@ export function arcminToDeg(arcmin) {
  * @param {number} degrees - Angle in degrees
  * @returns {number} Angle in arcminutes
  */
-export function degToArcmin(degrees) {
-    return degrees * CONSTANTS.ARCMIN_PER_DEG;
+window.framingUtils_degToArcmin = function(degrees) {
+    return degrees * window.framingUtils_CONSTANTS.ARCMIN_PER_DEG;
 }
 
 /**
@@ -247,7 +247,7 @@ export function degToArcmin(degrees) {
  * @param {number} hours - Right ascension in hours (0-24)
  * @returns {number} Right ascension in degrees (0-360)
  */
-export function raHoursToDeg(hours) {
+window.framingUtils_raHoursToDeg = function(hours) {
     return hours * 15;
 }
 
@@ -256,7 +256,7 @@ export function raHoursToDeg(hours) {
  * @param {number} degrees - Right ascension in degrees (0-360)
  * @returns {number} Right ascension in hours (0-24)
  */
-export function raDegToHours(degrees) {
+window.framingUtils_raDegToHours = function(degrees) {
     return degrees / 15;
 }
 
@@ -274,7 +274,7 @@ export function raDegToHours(degrees) {
  * @param {number} margin - Margin multiplier (default: 1.06 for 6%)
  * @returns {number} Required width in degrees for the view
  */
-export function calculateRequiredFov(fovW_deg, fovH_deg, rotationDeg, aspectRatio, margin = CONSTANTS.DEFAULT_ZOOM_MARGIN) {
+window.framingUtils_calculateRequiredFov = function(fovW_deg, fovH_deg, rotationDeg, aspectRatio, margin = window.framingUtils_CONSTANTS.DEFAULT_ZOOM_MARGIN) {
     // Input validation
     if (!(isFinite(fovW_deg) && isFinite(fovH_deg) && fovW_deg > 0 && fovH_deg > 0)) {
         return NaN;
@@ -300,7 +300,7 @@ export function calculateRequiredFov(fovW_deg, fovH_deg, rotationDeg, aspectRati
  * @param {number} overlapPct - Overlap percentage (0-100)
  * @returns {Object} Total mosaic dimensions {width, height, stepW, stepH}
  */
-export function calculateMosaicDimensions(fovW_deg, fovH_deg, cols, rows, overlapPct) {
+window.framingUtils_calculateMosaicDimensions = function(fovW_deg, fovH_deg, cols, rows, overlapPct) {
     const overlap = overlapPct / 100;
 
     // Step sizes (effective width/height after overlap)
@@ -325,7 +325,7 @@ export function calculateMosaicDimensions(fovW_deg, fovH_deg, cols, rows, overla
  * @param {number} stepH - Vertical step in degrees
  * @returns {Object} Offset coordinates {cx_off, cy_off}
  */
-export function calculatePaneOffset(col, row, cols, rows, stepW, stepH) {
+window.framingUtils_calculatePaneOffset = function(col, row, cols, rows, stepW, stepH) {
     // Grid indexed from center: col=0 is left, col=cols-1 is right
     const cx_off = (col - (cols - 1) / 2) * stepW;
     // Grid indexed from center: row=0 is bottom, row=rows-1 is top
@@ -341,7 +341,7 @@ export function calculatePaneOffset(col, row, cols, rows, stepW, stepH) {
  * @param {number} angleRad - Rotation angle in radians (counter-clockwise)
  * @returns {number[]} Rotated coordinates [x, y]
  */
-export function rotate2d(x, y, angleRad) {
+window.framingUtils_rotate2d = function(x, y, angleRad) {
     return [
         x * Math.cos(angleRad) - y * Math.sin(angleRad),
         x * Math.sin(angleRad) + y * Math.cos(angleRad)
@@ -360,7 +360,7 @@ export function rotate2d(x, y, angleRad) {
  * @param {number} dec0_deg - Center Dec in degrees
  * @returns {Object} Basis vectors {cX, cY, cZ, eX, eY, eZ, nX, nY, nZ}
  */
-export function calculateTangentPlaneBasis(ra0_deg, dec0_deg) {
+window.framingUtils_calculateTangentPlaneBasis = function(ra0_deg, dec0_deg) {
     const ra0 = degToRad(ra0_deg);
     const dec0 = degToRad(dec0_deg);
 
@@ -391,7 +391,7 @@ export function calculateTangentPlaneBasis(ra0_deg, dec0_deg) {
  * @param {number} dec0_deg - Center Dec in degrees
  * @returns {number[]} Sky coordinates [ra, dec] in degrees
  */
-export function planeToSkyGnomonic(x_deg, y_deg, ra0_deg, dec0_deg) {
+window.framingUtils_planeToSkyGnomonic = function(x_deg, y_deg, ra0_deg, dec0_deg) {
     // Convert to radians
     const dx = degToRad(x_deg);
     const dy = degToRad(y_deg);
@@ -439,7 +439,7 @@ export function planeToSkyGnomonic(x_deg, y_deg, ra0_deg, dec0_deg) {
  * @param {number} dec0_deg - Center Dec in degrees
  * @returns {number[]|null} Plane coordinates [x, y] in degrees, or null if not in projection
  */
-export function skyToPlaneGnomonic(ra_deg, dec_deg, ra0_deg, dec0_deg) {
+window.framingUtils_skyToPlaneGnomonic = function(ra_deg, dec_deg, ra0_deg, dec0_deg) {
     // Convert to radians
     const ra = degToRad(ra_deg);
     const dec = degToRad(dec_deg);
@@ -479,7 +479,7 @@ export function skyToPlaneGnomonic(ra_deg, dec_deg, ra0_deg, dec0_deg) {
  * @param {number} params.rotDeg - Rotation angle in degrees
  * @returns {Array} Array of pane objects with {col, row, ra, dec}
  */
-export function calculateMosaicPanesSpherical({
+window.framingUtils_calculateMosaicPanesSpherical = function({
     raCenterDeg,
     decCenterDeg,
     fovW_deg,
@@ -518,7 +518,7 @@ export function calculateMosaicPanesSpherical({
             // RA spacing varies with 1/cos(Dec) due to converging meridians
             let cosDec;
             if (Math.abs(paneDecDeg) > 89.9) {
-                cosDec = CONSTANTS.MIN_COS_DEC; // Prevent division by zero near poles
+                cosDec = window.framingUtils_CONSTANTS.MIN_COS_DEC; // Prevent division by zero near poles
             } else {
                 cosDec = Math.cos(degToRad(paneDecDeg));
             }
@@ -557,7 +557,7 @@ export function calculateMosaicPanesSpherical({
  * @param {number} params.rotDeg - Rotation angle in degrees
  * @returns {Array} Array of pane corner arrays [[ra1, dec1], [ra2, dec2], ...]
  */
-export function calculateMosaicPanesGnomonic({
+window.framingUtils_calculateMosaicPanesGnomonic = function({
     raCenterDeg,
     decCenterDeg,
     fovW_deg,
@@ -625,10 +625,10 @@ export function calculateMosaicPanesGnomonic({
  * @param {number} dyArcmin - Dec offset in arcminutes (positive = North)
  * @returns {Object} New center coordinates {ra, dec} in degrees
  */
-export function calculateNudgedCenter(center, dxArcmin, dyArcmin) {
+window.framingUtils_calculateNudgedCenter = function(center, dxArcmin, dyArcmin) {
     // Convert arcminutes to degrees
-    const dxDeg = dxArcmin / CONSTANTS.ARCMIN_PER_DEG;
-    const dyDeg = dyArcmin / CONSTANTS.ARCMIN_PER_DEG;
+    const dxDeg = dxArcmin / window.framingUtils_CONSTANTS.ARCMIN_PER_DEG;
+    const dyDeg = dyArcmin / window.framingUtils_CONSTANTS.ARCMIN_PER_DEG;
 
     const decRad = degToRad(center.dec);
 
@@ -656,12 +656,12 @@ export function calculateNudgedCenter(center, dxArcmin, dyArcmin) {
  * @param {number} observerLatDeg - Observer latitude in degrees
  * @returns {number} Apparent declination of geo belt in degrees
  */
-export function calculateGeoBeltDeclination(observerLatDeg) {
+window.framingUtils_calculateGeoBeltDeclination = function(observerLatDeg) {
     const latRad = degToRad(observerLatDeg);
 
     // Geostationary parallax calculation
-    const num = CONSTANTS.EARTH_RADIUS_KM * Math.sin(latRad);
-    const den = CONSTANTS.GEO_RADIUS_KM - (CONSTANTS.EARTH_RADIUS_KM * Math.cos(latRad));
+    const num = window.framingUtils_CONSTANTS.EARTH_RADIUS_KM * Math.sin(latRad);
+    const den = window.framingUtils_CONSTANTS.GEO_RADIUS_KM - (window.framingUtils_CONSTANTS.EARTH_RADIUS_KM * Math.cos(latRad));
     const parallaxRad = Math.atan2(num, den);
 
     // Geo belt appears on opposite side of celestial equator
@@ -673,9 +673,9 @@ export function calculateGeoBeltDeclination(observerLatDeg) {
  *
  * @returns {number[]} Array of RA values in degrees from 0 to 360
  */
-export function generateGeoBeltRaPoints() {
+window.framingUtils_generateGeoBeltRaPoints = function() {
     const points = [];
-    for (let ra = 0; ra < 360; ra += CONSTANTS.GEO_BELT_RA_STEP_DEG) {
+    for (let ra = 0; ra < 360; ra += window.framingUtils_CONSTANTS.GEO_BELT_RA_STEP_DEG) {
         points.push(ra);
     }
     return points;
@@ -691,7 +691,7 @@ export function generateGeoBeltRaPoints() {
  * @param {number} raDeg - Right ascension in degrees (0-360)
  * @returns {string} Formatted RA (e.g., "12h 34m 56.7s")
  */
-export function formatRaHms(raDeg) {
+window.framingUtils_formatRaHms = function(raDeg) {
     const hours = raDeg / 15;
     const h = Math.floor(hours);
     const m = Math.floor((hours - h) * 60);
@@ -705,7 +705,7 @@ export function formatRaHms(raDeg) {
  * @param {number} raDeg - Right ascension in degrees (0-360)
  * @returns {string} Formatted RA (e.g., "12h 34m")
  */
-export function formatRaCsv(raDeg) {
+window.framingUtils_formatRaCsv = function(raDeg) {
     const hours = raDeg / 15;
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
@@ -718,7 +718,7 @@ export function formatRaCsv(raDeg) {
  * @param {number} decDeg - Declination in degrees
  * @returns {string} Formatted Dec (e.g., "+45° 30'")
  */
-export function formatDecDm(decDeg) {
+window.framingUtils_formatDecDm = function(decDeg) {
     const sign = decDeg >= 0 ? '+' : '-';
     const absDec = Math.abs(decDeg);
     const d = Math.floor(absDec);
@@ -732,7 +732,7 @@ export function formatDecDm(decDeg) {
  * @param {number} decDeg - Declination in degrees
  * @returns {string} Formatted Dec (e.g., "+45° 30' 15\"")
  */
-export function formatDecDms(decDeg) {
+window.framingUtils_formatDecDms = function(decDeg) {
     const sign = decDeg >= 0 ? '+' : '-';
     const absDec = Math.abs(decDeg);
     const d = Math.floor(absDec);
@@ -747,7 +747,7 @@ export function formatDecDms(decDeg) {
  * @param {number} decDeg - Declination in degrees
  * @returns {string} Formatted Dec (e.g., "+45° 30m")
  */
-export function formatDecCsv(decDeg) {
+window.framingUtils_formatDecCsv = function(decDeg) {
     const sign = decDeg >= 0 ? '+' : '-';
     const absDec = Math.abs(decDeg);
     const d = Math.floor(absDec);
@@ -764,7 +764,7 @@ export function formatDecCsv(decDeg) {
  * @param {*} x - Value to check
  * @returns {boolean} True if finite number
  */
-export function isFinite(x) {
+window.framingUtils_isFinite = function(x) {
     return typeof x === 'number' && !Number.isNaN(x);
 }
 
@@ -776,7 +776,7 @@ export function isFinite(x) {
  * @param {number} dec - Declination in degrees
  * @returns {boolean} True if valid
  */
-export function isValidCoordinate(ra, dec) {
+window.framingUtils_isValidCoordinate = function(ra, dec) {
     return (
         isFinite(ra) && isFinite(dec) &&
         ra >= 0 && ra <= 360 &&
@@ -791,7 +791,7 @@ export function isValidCoordinate(ra, dec) {
  * @param {number} fovH_deg - Height in degrees
  * @returns {boolean} True if valid
  */
-export function isValidFov(fovW_deg, fovH_deg) {
+window.framingUtils_isValidFov = function(fovW_deg, fovH_deg) {
     return (
         isFinite(fovW_deg) && isFinite(fovH_deg) &&
         fovW_deg > 0 && fovH_deg > 0 &&
@@ -805,88 +805,49 @@ export function isValidFov(fovW_deg, fovH_deg) {
  * @param {number} rotationDeg - Rotation angle in degrees
  * @returns {boolean} True if valid
  */
-export function isValidRotation(rotationDeg) {
+window.framingUtils_isValidRotation = function(rotationDeg) {
     return (
         isFinite(rotationDeg) &&
-        rotationDeg >= CONSTANTS.ROTATION_MIN_DEG &&
-        rotationDeg <= CONSTANTS.ROTATION_MAX_DEG
+        rotationDeg >= window.framingUtils_CONSTANTS.ROTATION_MIN_DEG &&
+        rotationDeg <= window.framingUtils_CONSTANTS.ROTATION_MAX_DEG
     );
 }
 
 // ==========================================================================
-// GLOBAL EXPORTS (for IIFE compatibility)
+// GLOBAL EXPORTS
 // ==========================================================================
 
-// Export to window.framingUtils for global access
+// Export to global window object for classic script usage
 window.framingUtils = {
-    CONSTANTS,
-    upgradeLegacySurveyUrl,
-    parseFramingQueryString,
-    buildFramingQueryString,
-    normalizeAngle,
-    degToRad,
-    radToDeg,
-    arcminToDeg,
-    degToArcmin,
-    raHoursToDeg,
-    raDegToHours,
-    calculateRequiredFov,
-    calculateMosaicDimensions,
-    calculatePaneOffset,
-    rotate2d,
-    calculateTangentPlaneBasis,
-    planeToSkyGnomonic,
-    skyToPlaneGnomonic,
-    calculateMosaicPanesSpherical,
-    calculateMosaicPanesGnomonic,
-    calculateNudgedCenter,
-    calculateGeoBeltDeclination,
-    generateGeoBeltRaPoints,
-    formatRaHms,
-    formatRaCsv,
-    formatDecDm,
-    formatDecDms,
-    formatDecCsv,
-    isValidCoordinate,
-    isValidFov,
-852    isValidRotation,
-    isFinite,
-};
-
-// ==========================================================================
-// ES MODULE EXPORTS (for module systems)
-// ==========================================================================
-
-export default {
-    CONSTANTS,
-    upgradeLegacySurveyUrl,
-    parseFramingQueryString,
-    buildFramingQueryString,
-    normalizeAngle,
-    degToRad,
-    radToDeg,
-    arcminToDeg,
-    degToArcmin,
-    raHoursToDeg,
-    raDegToHours,
-    calculateRequiredFov,
-    calculateMosaicDimensions,
-    calculatePaneOffset,
-    rotate2d,
-    calculateTangentPlaneBasis,
-    planeToSkyGnomonic,
-    skyToPlaneGnomonic,
-    calculateMosaicPanesSpherical,
-    calculateMosaicPanesGnomonic,
-    calculateNudgedCenter,
-    calculateGeoBeltDeclination,
-    generateGeoBeltRaPoints,
-    formatRaHms,
-    formatRaCsv,
-    formatDecDm,
-    formatDecDms,
-    formatDecCsv,
-    isValidCoordinate,
-    isValidFov,
-    isValidRotation,
+    CONSTANTS: window.framingUtils_CONSTANTS,
+    upgradeLegacySurveyUrl: window.framingUtils_upgradeLegacySurveyUrl,
+    parseFramingQueryString: window.framingUtils_parseFramingQueryString,
+    buildFramingQueryString: window.framingUtils_buildFramingQueryString,
+    normalizeAngle: window.framingUtils_normalizeAngle,
+    degToRad: window.framingUtils_degToRad,
+    radToDeg: window.framingUtils_radToDeg,
+    arcminToDeg: window.framingUtils_arcminToDeg,
+    degToArcmin: window.framingUtils_degToArcmin,
+    raHoursToDeg: window.framingUtils_raHoursToDeg,
+    raDegToHours: window.framingUtils_raDegToHours,
+    calculateRequiredFov: window.framingUtils_calculateRequiredFov,
+    calculateMosaicDimensions: window.framingUtils_calculateMosaicDimensions,
+    calculatePaneOffset: window.framingUtils_calculatePaneOffset,
+    rotate2d: window.framingUtils_rotate2d,
+    calculateTangentPlaneBasis: window.framingUtils_calculateTangentPlaneBasis,
+    planeToSkyGnomonic: window.framingUtils_planeToSkyGnomonic,
+    skyToPlaneGnomonic: window.framingUtils_skyToPlaneGnomonic,
+    calculateMosaicPanesSpherical: window.framingUtils_calculateMosaicPanesSpherical,
+    calculateMosaicPanesGnomonic: window.framingUtils_calculateMosaicPanesGnomonic,
+    calculateNudgedCenter: window.framingUtils_calculateNudgedCenter,
+    calculateGeoBeltDeclination: window.framingUtils_calculateGeoBeltDeclination,
+    generateGeoBeltRaPoints: window.framingUtils_generateGeoBeltRaPoints,
+    formatRaHms: window.framingUtils_formatRaHms,
+    formatRaCsv: window.framingUtils_formatRaCsv,
+    formatDecDm: window.framingUtils_formatDecDm,
+    formatDecDms: window.framingUtils_formatDecDms,
+    formatDecCsv: window.framingUtils_formatDecCsv,
+    isValidCoordinate: window.framingUtils_isValidCoordinate,
+    isValidFov: window.framingUtils_isValidFov,
+    isValidRotation: window.framingUtils_isValidRotation,
 };
