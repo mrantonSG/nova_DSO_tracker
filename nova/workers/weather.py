@@ -3,6 +3,7 @@ import traceback
 
 from nova.models import Location
 from nova.helpers import get_db
+from nova.models import SessionLocal
 
 
 def weather_cache_worker(app):
@@ -18,7 +19,6 @@ def weather_cache_worker(app):
                 # Import route-level function lazily
                 from nova import get_hybrid_weather_forecast
 
-                db = None
                 try:
                     db = get_db()
                     active_locs = db.query(Location).filter_by(active=True).all()
@@ -27,8 +27,6 @@ def weather_cache_worker(app):
                             unique_locations.add((round(loc.lat, 5), round(loc.lon, 5)))
                 except Exception as e:
                     print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
-                finally:
-                    if db: db.close()
 
             print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
             refreshed_count = 0
