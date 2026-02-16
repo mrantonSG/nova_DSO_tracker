@@ -7,7 +7,7 @@ It uses Astroquery, Astropy, Ephem, and Matplotlib to calculate object altitudes
 transit times, and generate altitude curves for both celestial objects and the Moon.
 It also integrates Flask-Login for user authentication.
 
-March 2025, Anton Gutscher
+March 2025, Anton Gutscher/cle
 
 """
 
