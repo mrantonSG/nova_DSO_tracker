@@ -72,7 +72,6 @@ scipy==1.15.2
 setuptools==78.1.1
 sgp4==2.25
 six==1.17.0
-skyfield==1.53
 soupsieve==2.6
 SQLAlchemy==2.0.43
 TatSu==5.13.1
