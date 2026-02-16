@@ -11015,7 +11015,7 @@ def get_yearly_heatmap_chunk():
         # 2. GENERATE CACHE KEY (Per Chunk)
         db = get_db()
         user_id = g.db_user.id
-        obj_count = db.query(AstroObject).filter_by(user_id=user_id).count()
+        obj_count = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).count()
         loc_safe = selected_loc_key.lower().replace(' ', '_')
 
         # Base filename
@@ -11062,7 +11062,7 @@ def get_yearly_heatmap_chunk():
         altitude_threshold = g.user_config.get("altitude_threshold", 20)
         sampling_interval = 60
 
-        all_objects = db.query(AstroObject).filter_by(user_id=user_id).all()
+        all_objects = db.query(AstroObject).filter_by(user_id=user_id, enabled=True).all()
 
         # Validity Check
         valid_objects = [o for o in all_objects if o.ra_hours is not None and o.dec_deg is not None]
@@ -11123,7 +11123,7 @@ def get_yearly_heatmap_chunk():
             if obj.type: display_name += f" [{obj.type}]"
             y_names.append(display_name)
             meta_ids.append(obj.object_name)
-            meta_active.append(1 if obj.active_project else 0)
+            meta_active.append(1 if obj.enabled else 0)
             meta_types.append(str(obj.type or ""))
             meta_cons.append(str(obj.constellation or ""))
             try:

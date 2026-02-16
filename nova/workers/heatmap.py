@@ -161,7 +161,7 @@ def heatmap_background_worker(app):
                                 if obj.type: dname += f" [{obj.type}]"
                                 y_names.append(dname)
                                 meta_ids.append(obj.object_name)
-                                meta_active.append(1 if obj.active_project else 0)
+                                meta_active.append(1 if obj.enabled else 0)
                                 meta_types.append(str(obj.type or ""))
                                 meta_cons.append(str(obj.constellation or ""))
                                 try:
