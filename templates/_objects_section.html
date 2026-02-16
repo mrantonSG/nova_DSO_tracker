@@ -430,7 +430,7 @@
 </div>
 
 <div id="duplicates-modal" class="modal-backdrop" data-action="close-duplicates-modal">
-    <div id="duplicates-modal-content" class="modal-content" onclick="event.stopPropagation()" style="max-width: 800px;">
+    <div id="duplicates-modal-content" class="modal-content" style="max-width: 800px;">
         <h3>Potential Duplicates</h3>
         <p style="font-size: 14px; color: var(--text-tertiary);">
             These pairs are located within 2.5 arcminutes of each other.
@@ -444,9 +444,8 @@
         <div style="margin-top: 15px; text-align: right;">
             <button type="button" class="action-button" style="background-color: var(--primary-color);" data-action="close-duplicates-modal">Close</button>
         </div>
-      </div>
-      </div>
-  </div>
+    </div>
+</div>
 <script src="{{ url_for('static', filename='js/objects_section.js') }}" defer></script>
 
 </div>
