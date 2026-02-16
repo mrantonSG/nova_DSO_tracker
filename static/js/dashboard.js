@@ -6,7 +6,7 @@
         // ========================================================================
         const IS_GUEST_USER = window.NOVA_INDEX.isGuest;
         const HIDE_INVISIBLE_PREF = window.NOVA_INDEX.hideInvisible;
-        let activeTab = localStorage.getItem('activeTab') || 'position';
+        let activeTab = 'position'; // Always start on Dashboard tab
         let outlookDataLoaded = false;
         let activeFetchController = null; // Controls network cancellation
         let dataUpdateIntervalId = null; // 60-second interval for data updates
@@ -190,24 +190,11 @@
                 }
             });
     
-            // On load
-            const savedSimMode = localStorage.getItem('simModeActive') === 'true';
-            let savedSimDate = localStorage.getItem('simDate');
-    
-            if (savedSimMode) {
-                simModeToggle.checked = true;
-                if (!savedSimDate) {
-                    const today = new Date();
-                    const yyyy = today.getFullYear();
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    savedSimDate = `${yyyy}-${mm}-${dd}`;
-                    localStorage.setItem('simDate', savedSimDate);
-                }
-                applySimState(true, savedSimDate);
-            } else {
-                applySimState(false, null);
-            }
+            // On load - always start in Real-Time mode
+            // const savedSimMode = localStorage.getItem('simModeActive') === 'true';
+            // let savedSimDate = localStorage.getItem('simDate');
+            simModeToggle.checked = false;
+            applySimState(false, null);
         }
     
         // ========================================================================
@@ -377,7 +364,7 @@
             localStorage.setItem('nova_last_applied_view', viewName);
     
             // 4. Update memory flags and refresh UI without full page reload
-            activeTab = localStorage.getItem('activeTab') || 'position';
+            // activeTab = localStorage.getItem('activeTab') || 'position';  // Always use default (Dashboard tab)
     
             // Restore inputs from localStorage for both tables
             for (const key in columnConfig) {
@@ -395,12 +382,12 @@
                 }
             }
     
-            // Restore sort state variables
-            const storedDsoSort = localStorage.getItem('dso_sortColumnKey');
-            if (storedDsoSort) {
-                currentSort.columnKey = storedDsoSort;
-                currentSort.ascending = (localStorage.getItem('dso_sortOrder') === 'asc');
-            }
+            // Restore sort state variables - always use default (Altitude descending)
+            // const storedDsoSort = localStorage.getItem('dso_sortColumnKey');
+            // if (storedDsoSort) {
+            //     currentSort.columnKey = storedDsoSort;
+            //     currentSort.ascending = (localStorage.getItem('dso_sortOrder') === 'asc');
+            // }
     
             // Trigger UI updates
             filterTable();
@@ -1933,11 +1920,11 @@
           });
           // --- END: New Timer Logic ---
 
-          activeTab = localStorage.getItem('activeTab') || 'position';
-          const initialDsoSortColumnKey = localStorage.getItem("dso_sortColumnKey") || 'Altitude Current';
-          const initialDsoSortOrder = localStorage.getItem("dso_sortOrder") || 'desc';
-          currentSort.columnKey = initialDsoSortColumnKey;
-          currentSort.ascending = (initialDsoSortOrder === "asc");
+          // activeTab = localStorage.getItem('activeTab') || 'position';  // Always use default (Dashboard tab)
+          // const initialDsoSortColumnKey = localStorage.getItem("dso_sortColumnKey") || 'Altitude Current';
+          // const initialDsoSortOrder = localStorage.getItem("dso_sortOrder") || 'desc';
+          // currentSort.columnKey = initialDsoSortColumnKey;
+          // currentSort.ascending = (initialDsoSortOrder === "asc");  // Always use default (Altitude descending)
           const initialJournalSortColumnKey = localStorage.getItem("journal_sortColumnKey") || 'session_date';
           const initialJournalSortOrder = localStorage.getItem("journal_sortOrder") || 'desc';
           currentJournalSort.columnKey = initialJournalSortColumnKey;
