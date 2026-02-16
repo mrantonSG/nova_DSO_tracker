@@ -53,7 +53,13 @@ import math
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5, search_around_sky
 from astropy.time import Time
+from astropy.utils import iers
 import astropy.units as u
+
+# Disable IERS auto-download to speed up startup (uses bundled data instead)
+# Precision loss is negligible for amateur astronomy (~milliseconds)
+iers.conf.auto_download = False
+iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func

@@ -11,8 +11,13 @@ import pytz
 from datetime import datetime, timedelta
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
+from astropy.utils import iers
 import astropy.units as u
 import copy
+
+# Disable IERS auto-download to speed up startup (uses bundled data instead)
+iers.conf.auto_download = False
+iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 
 def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
     """
