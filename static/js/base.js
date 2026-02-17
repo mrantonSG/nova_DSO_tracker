@@ -97,42 +97,10 @@ window.novaState.fn = Object.assign(existingFn, {
 });
 
 // ============================================
-// THEME & VERSION INITIALIZATION
+// INITIALIZATION
 // ============================================
 
 document.addEventListener("DOMContentLoaded", function () {
-    // --- THEME INITIALIZATION ---
-    const themeBtn = document.getElementById('theme-toggle-btn');
-    const redModeBtn = document.getElementById('red-mode-btn');
-    const html = document.documentElement;
-
-    // 1. Check Dark Mode
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark-mode') {
-        html.classList.add('dark-mode');
-        if (themeBtn) {
-            themeBtn.textContent = 'Day View';
-        }
-    } else {
-        if (themeBtn) {
-            themeBtn.textContent = 'Night View';
-        }
-    }
-
-    // 2. Check Red Mode
-    const savedRedMode = localStorage.getItem('red-mode');
-    if (savedRedMode === 'true') {
-        html.classList.add('red-mode');
-    }
-
-    // --- EVENT LISTENERS FOR THEME BUTTONS ---
-    if (themeBtn) {
-        themeBtn.addEventListener('click', toggleTheme);
-    }
-    if (redModeBtn) {
-        redModeBtn.addEventListener('click', toggleRedMode);
-    }
-
     // --- INITIALIZE HELP MODAL ---
     // ModalController should be available now (preserved from modal-manager.js)
     if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
@@ -189,43 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
         })
         .catch(error => console.error("Update check failed:", error));
 });
-
-// --- THEME TOGGLE FUNCTIONS ---
-function toggleTheme() {
-    const html = document.documentElement;
-    const themeBtn = document.getElementById('theme-toggle-btn');
-
-    html.classList.toggle('dark-mode');
-
-    if (html.classList.contains('dark-mode')) {
-        localStorage.setItem('theme', 'dark-mode');
-        if (themeBtn) {
-            themeBtn.textContent = 'Day View';
-        }
-    } else {
-        localStorage.setItem('theme', '');
-        if (themeBtn) {
-            themeBtn.textContent = 'Night View';
-        }
-    }
-    // Force charts to redraw if they exist
-    window.dispatchEvent(new Event('resize'));
-}
-
-function toggleRedMode() {
-    const html = document.documentElement;
-    html.classList.toggle('red-mode');
-
-    if (html.classList.contains('red-mode')) {
-        localStorage.setItem('red-mode', 'true');
-        // Ensure Dark Mode is ON when Red Mode is activated for best effect
-        if (!html.classList.contains('dark-mode')) {
-            toggleTheme();
-        }
-    } else {
-        localStorage.setItem('red-mode', 'false');
-    }
-}
 
 // --- HELP MODAL FUNCTIONS ---
 function openHelp(topicId) {

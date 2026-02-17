@@ -90,36 +90,3 @@
         color: var(--text-light);
         font-style: italic;
     }
-
-    /* --- Dark Mode Overrides for Objects Tab --- */
-    html.dark-mode #object-filter-bar {
-        background-color: var(--bg-dark-tertiary) !important;
-        color: var(--text-lightest) !important;
-        border: 1px solid var(--bg-dark-border-light);
-    }
-    html.dark-mode #object-filter-bar select {
-        background-color: var(--bg-dark-tertiary) !important;
-        color: var(--text-white) !important;
-        border-color: var(--border-dark) !important;
-    }
-    html.dark-mode .trix-lazy-box {
-        background-color: var(--bg-dark-secondary) !important;
-        border-color: var(--border-dark) !important;
-        color: var(--text-lightest) !important;
-    }
-    html.dark-mode .trix-lazy-box:hover {
-        background-color: var(--bg-dark-elevated) !important;
-    }
-    html.dark-mode .inspiration-container {
-        background-color: var(--bg-dark-secondary) !important;
-        border-color: var(--bg-dark-border-light) !important;
-    }
-    html.dark-mode .inspiration-container label {
-        color: var(--text-light) !important;
-    }
-    html.dark-mode .inspiration-container input,
-    html.dark-mode .inspiration-container textarea {
-        background-color: var(--bg-dark-tertiary) !important;
-        border-color: var(--border-dark) !important;
-        color: var(--text-white) !important;
-    }
