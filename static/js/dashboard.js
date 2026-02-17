@@ -2415,7 +2415,7 @@
             }
     
             // 3. Fetch Data
-            graphDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Loading altitude data...</p>';
+            graphDiv.innerHTML = `<p style="text-align:center; color:${getColor('--text-muted', '#888')}; font-size:12px;">Loading altitude data...</p>`;
     
             try {
                 // FIX: Pass the current session location name. The backend will look up the fresh coordinates.
@@ -2486,7 +2486,7 @@
                     yref: 'paper',
                     y0: 0,
                     y1: 1,
-                    fillcolor: '#e0e0e0',
+                    fillcolor: getColor('--bg-light-gray-alt2', '#e0e0e0'),
                     layer: 'below',
                     line: { width: 0 }
                 };
@@ -2567,7 +2567,7 @@
                         yref: 'y',
                         text: compassDir, // e.g. "S"
                         showarrow: false,
-                        font: { size: 11, color: '#666' },
+                        font: { size: 11, color: getColor('--text-secondary', '#666') },
                         yshift: 8
                     });
                 }
@@ -2589,12 +2589,12 @@
                         autorange: false, // STRICTLY disable autorange to enforce 0-90
                         fixedrange: true,
                         showgrid: true,
-                        gridcolor: '#eee'
+                        gridcolor: getColor('--border-light', '#eee')
                     },
                     hovermode: 'closest',
                     showlegend: false,
-                    paper_bgcolor: '#ffffff',
-                    plot_bgcolor: '#ffffff'
+                    paper_bgcolor: getBgWhiteColor(),
+                    plot_bgcolor: getBgWhiteColor()
                 };
     
                 const config = { displayModeBar: false, responsive: true };
@@ -2603,7 +2603,7 @@
     
             } catch (e) {
                 console.error(e);
-                graphDiv.innerHTML = '<p style="text-align:center; color:#888; font-size:12px;">Altitude data unavailable.</p>';
+                graphDiv.innerHTML = `<p style="text-align:center; color:${getColor('--text-muted', '#888')}; font-size:12px;">Altitude data unavailable.</p>`;
             }
         }
     
