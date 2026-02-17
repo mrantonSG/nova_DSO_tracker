@@ -138,6 +138,27 @@
   --shadow-light: rgba(0,0,0,0.1);
   --shadow-medium: rgba(0,0,0,0.15);
 
+  /* === SPECIAL PURPOSE COLORS === */
+  --bg-demo-banner: #fef9e7;
+  --bg-file-button: #98A5A8;
+  --bg-code-alt: #f5f5f5;
+  --fov-bg: #f3f5f7;
+  --text-help-hover: #5a8b9c;
+  --text-heading-dark: #343a40;
+  --text-detail-strong: #1c2833;
+  --border-session-detail: #bac8d3;
+  --border-session-table: #dde;
+  --border-form: #ced4da;
+  --border-framing: #e2e6ea;
+  --border-toolbar-divider: #e9eef2;
+  --border-divider: #ecf0f1;
+  --danger-close: #d00;
+  --danger-close-hover: #d22;
+  --info-badge: #1a689e;
+  --sampling-oversampled: #9b59b6;
+  --sampling-slightly-oversampled: #3498db;
+  --sampling-good: #2ecc71;
+
   /* === Z-INDEX SCALE === */
   --z-base: 1;
   --z-layer-1: 2;
@@ -177,7 +198,7 @@
 /* --- GENERAL STYLES --- */
 .demo-banner {
   width: 100%;
-  background-color: #fef9e7;
+  background-color: var(--bg-demo-banner);
   color: var(--text-primary);
   text-align: center;
   padding: 12px 10px;
@@ -245,7 +266,7 @@
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 .help-trigger { cursor: pointer; color: var(--primary-color); font-size: 1.2em; margin-left: 5px; vertical-align: middle; }
-.help-trigger:hover { color: #5a8b9c; }
+.help-trigger:hover { color: var(--text-help-hover); }
 
 .help-badge {
     display: inline-flex;
@@ -487,3 +508,265 @@
 .status-value { font-weight: 500; color: var(--text-primary); font-size: 15px; }
 .status-strip select { background: transparent; border: none; font-weight: bold; color: var(--text-primary); font-size: 15px; padding: 0; cursor: pointer; }
 .status-strip select:focus { outline: none; }
+
+/* ===================================================================
+   THEME OVERRIDES: NIGHT MODE
+   ================================================================ */
+
+[data-theme="night"] {
+  /* === PRIMARY BRAND COLORS (Dimmed for dark mode) === */
+  --primary-color: #7aa8b8;
+  --primary-dark: #5e8a99;
+  --primary-light: #8ea0a5;
+  --primary-muted: #7a888d;
+
+  /* === BACKGROUND COLORS === */
+  --bg-white: #121212;
+  --bg-light: #1a1a1a;
+  --bg-light-alt: #1e1e1e;
+  --bg-light-gray: #252525;
+  --bg-light-gray-alt: #2a2a2a;
+  --bg-light-gray-alt2: #2c2c2c;
+  --bg-light-gray-alt3: #2e3232;
+  --bg-light-gray-alt4: #262a29;
+  --bg-medium: #333333;
+  --bg-medium-alt: #3a3a3a;
+  --bg-medium-alt2: #404040;
+  --bg-offwhite: #1e1e1e;
+
+  /* === DARK MODE BACKGROUNDS === */
+  --bg-dark-primary: #0a0a0a;
+  --bg-dark-secondary: #151515;
+  --bg-dark-tertiary: #202020;
+  --bg-dark-elevated: #1a1a1a;
+  --bg-dark-border: #2a2a2a;
+  --bg-dark-border-light: #353535;
+
+  /* === TEXT COLORS === */
+  --text-primary: #f5f5f5;
+  --text-secondary: #d0d0d0;
+  --text-tertiary: #b0b0b0;
+  --text-quaternary: #909090;
+  --text-muted: #707070;
+  --text-muted-alt: #606060;
+  --text-light: #505050;
+  --text-lighter: #404040;
+  --text-lightest: #353535;
+  --text-white: #ffffff;
+  --text-black: #ffffff;
+  --text-dark-alt: #c0c0c0;
+
+  /* === BORDER COLORS === */
+  --border-light: #2a2a2a;
+  --border-light-alt: #353535;
+  --border-light-alt2: #3a3a3a;
+  --border-light-alt3: #404040;
+  --border-medium: #454545;
+  --border-medium-alt: #4a4a4a;
+  --border-dark: #555555;
+  --border-dark-alt: #606060;
+  --border-dark-alt2: #2a2a2a;
+
+  /* === SEMANTIC COLORS (Status/Actions) === */
+  --success-color: #4caf50;
+  --success-color-alt: #45a049;
+  --success-bg: #1e3a25;
+  --success-text: #a8d5a8;
+
+  --warning-color: #f0ad4e;
+  --warning-color-alt: #eeb038;
+
+  --danger-color: #e74c3c;
+  --danger-color-dark: #c0392b;
+  --danger-color-darker: #a93226;
+  --danger-text: #f5b7b1;
+  --danger-bg: #3d1a1a;
+
+  --info-color: #3498db;
+  --info-color-alt: #2980b9;
+  --info-color-alt2: #1f618d;
+  --info-bg: #1a2e3a;
+  --info-bg-light: #253a47;
+  --info-text: #a8d8f0;
+
+  /* === ACCENT COLORS === */
+  --accent-rise: #4CAF50;
+  --accent-set: #F44336;
+  --accent-high: #2196F3;
+  --accent-slate: #5f6b7a;
+  --accent-slate-dark: #4a5360;
+  --accent-teal: #3d5a6a;
+  --accent-gray: #6c7072;
+  --accent-gray-text: #a0a4a6;
+  --accent-gray-medium: #8a8e90;
+
+  /* === SPECIAL PURPOSE COLORS === */
+  --highlight-blue: #1a3a4a;
+  --highlight-blue-alt: #1f4a5a;
+  --highlight-blue-alt2: #254a55;
+  --highlight-yellow: #4a3a1a;
+  --highlight-yellow-text: #d4a830;
+  --highlight-active: #252e32;
+
+  --link-color: #4a90e2;
+  --link-color-alt: #5aa0f0;
+  --code-bg: #1a1a1a;
+
+  /* === OVERLAY & TRANSPARENCY === */
+  --overlay-light: rgba(26, 26, 26, 0.95);
+  --overlay-dark: rgba(0, 0, 0, 0.7);
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.4);
+
+  /* === SPECIAL PURPOSE COLORS === */
+  --bg-demo-banner: #2a2520;
+  --bg-file-button: #5a686b;
+  --bg-code-alt: #202020;
+  --fov-bg: #1f2223;
+  --text-help-hover: #7aa8b8;
+  --text-heading-dark: #d0d0d0;
+  --text-detail-strong: #f5f5f5;
+  --border-session-detail: #3a4852;
+  --border-session-table: #3a4042;
+  --border-form: #404448;
+  --border-framing: #35393c;
+  --border-toolbar-divider: #383d41;
+  --border-divider: #353a3d;
+  --danger-close: #c0392b;
+  --danger-close-hover: #e74c3c;
+  --info-badge: #2980b9;
+  --sampling-oversampled: #8e44ad;
+  --sampling-slightly-oversampled: #2980b9;
+  --sampling-good: #27ae60;
+}
+
+/* ===================================================================
+   THEME OVERRIDES: RED MODE
+   ================================================================ */
+
+[data-theme="red"] {
+  /* === PRIMARY BRAND COLORS (Red-tinted) === */
+  --primary-color: #8b3a3a;
+  --primary-dark: #6d2d2d;
+  --primary-light: #a04d4d;
+  --primary-muted: #7a4040;
+
+  /* === BACKGROUND COLORS === */
+  --bg-white: #000000;
+  --bg-light: #0a0000;
+  --bg-light-alt: #0d0000;
+  --bg-light-gray: #120000;
+  --bg-light-gray-alt: #150000;
+  --bg-light-gray-alt2: #180000;
+  --bg-light-gray-alt3: #160a0a;
+  --bg-light-gray-alt4: #0d0505;
+  --bg-medium: #200000;
+  --bg-medium-alt: #280000;
+  --bg-medium-alt2: #300000;
+  --bg-offwhite: #0a0000;
+
+  /* === DARK MODE BACKGROUNDS === */
+  --bg-dark-primary: #000000;
+  --bg-dark-secondary: #080000;
+  --bg-dark-tertiary: #100000;
+  --bg-dark-elevated: #0c0000;
+  --bg-dark-border: #200000;
+  --bg-dark-border-light: #280000;
+
+  /* === TEXT COLORS === */
+  --text-primary: #ff6666;
+  --text-secondary: #cc5555;
+  --text-tertiary: #b34444;
+  --text-quaternary: #993333;
+  --text-muted: #802222;
+  --text-muted-alt: #701a1a;
+  --text-light: #601010;
+  --text-lighter: #500808;
+  --text-lightest: #400505;
+  --text-white: #ff6666;
+  --text-black: #ff4d4d;
+  --text-dark-alt: #bb4444;
+
+  /* === BORDER COLORS === */
+  --border-light: #300000;
+  --border-light-alt: #380000;
+  --border-light-alt2: #400000;
+  --border-light-alt3: #480000;
+  --border-medium: #500000;
+  --border-medium-alt: #580000;
+  --border-dark: #600000;
+  --border-dark-alt: #680000;
+  --border-dark-alt2: #300000;
+
+  /* === SEMANTIC COLORS (All red/maroon shades) === */
+  --success-color: #8B4513;
+  --success-color-alt: #A0522D;
+  --success-bg: #2d0a00;
+  --success-text: #cc7744;
+
+  --warning-color: #B22222;
+  --warning-color-alt: #CD5C5C;
+
+  --danger-color: #FF0000;
+  --danger-color-dark: #DC143C;
+  --danger-color-darker: #B22222;
+  --danger-text: #ff9999;
+  --danger-bg: #3d0000;
+
+  --info-color: #A52A2A;
+  --info-color-alt: #8B0000;
+  --info-color-alt2: #680000;
+  --info-bg: #2a0000;
+  --info-bg-light: #350000;
+  --info-text: #cc5555;
+
+  /* === ACCENT COLORS === */
+  --accent-rise: #8B4513;
+  --accent-set: #B22222;
+  --accent-high: #A52A2A;
+  --accent-slate: #5a3030;
+  --accent-slate-dark: #482525;
+  --accent-teal: #3d2525;
+  --accent-gray: #5a3030;
+  --accent-gray-text: #804040;
+  --accent-gray-medium: #703030;
+
+  /* === SPECIAL PURPOSE COLORS === */
+  --highlight-blue: #2a1010;
+  --highlight-blue-alt: #331818;
+  --highlight-blue-alt2: #2d1515;
+  --highlight-yellow: #3a1510;
+  --highlight-yellow-text: #cc5530;
+  --highlight-active: #2d1a1a;
+
+  --link-color: #cc3333;
+  --link-color-alt: #dd4444;
+  --code-bg: #0a0000;
+
+  /* === OVERLAY & TRANSPARENCY === */
+  --overlay-light: rgba(10, 0, 0, 0.95);
+  --overlay-dark: rgba(0, 0, 0, 0.7);
+  --shadow-light: rgba(20, 0, 0, 0.3);
+  --shadow-medium: rgba(30, 0, 0, 0.4);
+
+  /* === SPECIAL PURPOSE COLORS === */
+  --bg-demo-banner: #1a1010;
+  --bg-file-button: #503030;
+  --bg-code-alt: #0a0000;
+  --fov-bg: #080505;
+  --text-help-hover: #aa4040;
+  --text-heading-dark: #cc4444;
+  --text-detail-strong: #ff5555;
+  --border-session-detail: #402020;
+  --border-session-table: #351515;
+  --border-form: #3a1818;
+  --border-framing: #301010;
+  --border-toolbar-divider: #351515;
+  --border-divider: #301010;
+  --danger-close: #B22222;
+  --danger-close-hover: #CD5C5C;
+  --info-badge: #8B0000;
+  --sampling-oversampled: #8B4513;
+  --sampling-slightly-oversampled: #A0522D;
+  --sampling-good: #CD5C5C;
+}
