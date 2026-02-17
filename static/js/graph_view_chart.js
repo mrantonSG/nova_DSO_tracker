@@ -1285,25 +1285,25 @@
 
             // Weather info configs (used by weather overlay plugin)
             const cloudInfo = {
-                1: {label: 'Clear', color: 'rgba(135, 206, 250, 0.15)'},
-                2: {label: 'P. Clear', color: 'rgba(135, 206, 250, 0.25)'},
-                3: {label: 'P. Clear', color: 'rgba(170, 170, 170, 0.2)'},
-                4: {label: 'P. Clear', color: 'rgba(170, 170, 170, 0.3)'},
-                5: {label: 'P. Cloudy', color: 'rgba(120, 120, 120, 0.35)'},
-                6: {label: 'P. Cloudy', color: 'rgba(120, 120, 120, 0.45)'},
-                7: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.5)'},
-                8: {label: 'Cloudy', color: 'rgba(80, 80, 80, 0.6)'},
-                9: {label: 'Overcast', color: 'rgba(50, 50, 50, 0.7)'}
+                1: {label: 'Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(1, 'cloud') : 'rgba(135, 206, 250, 0.15)'},
+                2: {label: 'P. Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(2, 'cloud') : 'rgba(135, 206, 250, 0.25)'},
+                3: {label: 'P. Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(3, 'cloud') : 'rgba(170, 170, 170, 0.2)'},
+                4: {label: 'P. Clear', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(4, 'cloud') : 'rgba(170, 170, 170, 0.3)'},
+                5: {label: 'P. Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(5, 'cloud') : 'rgba(120, 120, 120, 0.35)'},
+                6: {label: 'P. Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(6, 'cloud') : 'rgba(120, 120, 120, 0.45)'},
+                7: {label: 'Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(7, 'cloud') : 'rgba(80, 80, 80, 0.5)'},
+                8: {label: 'Cloudy', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(8, 'cloud') : 'rgba(80, 80, 80, 0.6)'},
+                9: {label: 'Overcast', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(9, 'cloud') : 'rgba(50, 50, 50, 0.7)'}
             };
             const seeingInfo = {
-                1: {label: 'See: Exc', color: 'rgba(0, 255, 127, 0.2)'},
-                2: {label: 'See: Good', color: 'rgba(0, 255, 127, 0.3)'},
-                3: {label: 'See: Good', color: 'rgba(173, 255, 47, 0.3)'},
-                4: {label: 'See: Avg', color: 'rgba(255, 255, 0, 0.3)'},
-                5: {label: 'See: Avg', color: 'rgba(255, 215, 0, 0.3)'},
-                6: {label: 'See: Poor', color: 'rgba(255, 165, 0, 0.3)'},
-                7: {label: 'See: Poor', color: 'rgba(255, 69, 0, 0.3)'},
-                8: {label: 'See: Bad', color: 'rgba(255, 0, 0, 0.3)'}
+                1: {label: 'See: Exc', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(1, 'seeing') : 'rgba(0, 255, 127, 0.2)'},
+                2: {label: 'See: Good', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(2, 'seeing') : 'rgba(0, 255, 127, 0.3)'},
+                3: {label: 'See: Good', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(3, 'seeing') : 'rgba(173, 255, 47, 0.3)'},
+                4: {label: 'See: Avg', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(4, 'seeing') : 'rgba(255, 255, 0, 0.3)'},
+                5: {label: 'See: Avg', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(5, 'seeing') : 'rgba(255, 215, 0, 0.3)'},
+                6: {label: 'See: Poor', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(6, 'seeing') : 'rgba(255, 165, 0, 0.3)'},
+                7: {label: 'See: Poor', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(7, 'seeing') : 'rgba(255, 69, 0, 0.3)'},
+                8: {label: 'See: Bad', color: (window.stylingUtils && window.stylingUtils.getWeatherColor) ? window.stylingUtils.getWeatherColor(8, 'seeing') : 'rgba(255, 0, 0, 0.3)'}
             };
 
             // Build sun event annotations using helper
@@ -1400,7 +1400,7 @@
             }
             const ctx = document.getElementById('altitudeChartCanvas').getContext('2d');
             if (window.altitudeChart) window.altitudeChart.destroy();
-            window.altitudeChart = new Chart(ctx, { type: 'line', data: { datasets: [ { label: `${NOVA_GRAPH_DATA.objectName} Altitude`, data: objAlt, borderColor: '#36A2EB', borderWidth: 3, pointRadius: 0, tension: 0.2 }, { label: 'Moon Altitude', data: moonAlt, borderColor: 'gold', borderWidth: 2.5, pointRadius: 0, tension: 0.0 }, {label: 'Horizon', data: horizon, borderColor: 'black', borderWidth: 2, pointRadius: 0} ] }, options: { adapters: {date: {zone: plotTz}}, responsive: true, maintainAspectRatio: true, aspectRatio: 2, scales: { x: { type: 'time', time: { unit: (view === 'year') ? 'month' : 'day', displayFormats: (view === 'year') ? {month: 'MMM'} : {day: 'dd'} }, title: { display: true, text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}` } }, y: { min: -90, max: 90, title: {display: true, text: 'Altitude (°)'} } }, plugins: { legend: {position: 'right'}, title: {display: false, text: titleText, align: 'start', font: {size: 16}} } } });
+            window.altitudeChart = new Chart(ctx, { type: 'line', data: { datasets: [ { label: `${NOVA_GRAPH_DATA.objectName} Altitude`, data: objAlt, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(0) : '#36A2EB', borderWidth: 3, pointRadius: 0, tension: 0.2 }, { label: 'Moon Altitude', data: moonAlt, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(1) : 'gold', borderWidth: 2.5, pointRadius: 0, tension: 0.0 }, {label: 'Horizon', data: horizon, borderColor: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-black', 'black') : 'black', borderWidth: 2, pointRadius: 0} ] }, options: { adapters: {date: {zone: plotTz}}, responsive: true, maintainAspectRatio: true, aspectRatio: 2, scales: { x: { type: 'time', time: { unit: (view === 'year') ? 'month' : 'day', displayFormats: (view === 'year') ? {month: 'MMM'} : {day: 'dd'} }, title: { display: true, text: (view === 'year') ? `Month of ${year}` : `Day of ${year}-${selMonth}` } }, y: { min: -90, max: 90, title: {display: true, text: 'Altitude (°)'} } }, plugins: { legend: {position: 'right'}, title: {display: false, text: titleText, align: 'start', font: {size: 16}} } } });
         } catch (err) {
             console.error(`Could not render ${view} chart:`, err);
             const canvas = document.getElementById('altitudeChartCanvas');
@@ -2101,7 +2101,7 @@
                 // 3. Create CATALOG Layer
                 geoBeltLayer = A.catalog({
                     name: 'Geostationary Belt',
-                    color: '#e056fd',
+                    color: (window.stylingUtils && window.stylingUtils.getGeostationaryColor) ? window.stylingUtils.getGeostationaryColor() : '#e056fd',
                     sourceSize: 6,   // Safe minimum size to prevent canvas crash
                     shape: 'circle'
                 });
@@ -2129,7 +2129,7 @@
                 // 3. Create CATALOG Layer
                 geoBeltLayer = A.catalog({
                     name: 'Geostationary Belt',
-                    color: '#e056fd',
+                    color: (window.stylingUtils && window.stylingUtils.getGeostationaryColor) ? window.stylingUtils.getGeostationaryColor() : '#e056fd',
                     sourceSize: 6,   // Safe minimum size to prevent canvas crash
                     shape: 'circle'
                 });

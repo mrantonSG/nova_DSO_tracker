@@ -216,7 +216,7 @@
             const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
             let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
             if (rig.image_scale) {
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: #f5f5f5;"><small style="color: #666;">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
             }
             return `<li data-rig-id="${rig.rig_id}">
                         <div class="item-info">${detailsHtml}</div>
@@ -300,7 +300,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="imported-button" disabled style="background-color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium-alt', '#ccc') : '#ccc'}; color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555'}; cursor:default;">Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -318,7 +318,7 @@
                         `;
 
                         const imgHtml = obj.image_url
-                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid #ddd;" title="Has image">`
+                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium', '#ddd') : '#ddd'};" title="Has image">`
                             : '';
 
                         return `
@@ -340,7 +340,7 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
+                    objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555') + ';">No shared objects found from other users.</td></tr>';
                 }
 
                 // --- Render Shared Components ---
@@ -352,7 +352,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="imported-button" disabled style="background-color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium-alt', '#ccc') : '#ccc'}; color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555'}; cursor:default;">Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -376,7 +376,7 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared components found from other users.</td></tr>';
+                    componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555') + ';">No shared components found from other users.</td></tr>';
                 }
 
                 // --- Render Shared Views ---
@@ -388,7 +388,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="imported-button" disabled style="background-color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium-alt', '#ccc') : '#ccc'}; color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555'}; cursor:default;">Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -412,14 +412,14 @@
                         </tr>`;
                     }).join('');
                 } else {
-                    viewsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared views found from other users.</td></tr>';
+                    viewsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555') + ';">No shared views found from other users.</td></tr>';
                 }
             })
             .catch(error => {
                 console.error("Error fetching shared items:", error);
-                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
-                document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
-                document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
+                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="8" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">Error loading shared items.</td></tr>';
+                document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">Error loading shared items.</td></tr>';
+                document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">Error loading shared items.</td></tr>';
             });
     }
 
@@ -591,7 +591,7 @@
 
                 // 1. Show a "please wait" message
                 const msgContainer = document.getElementById('flash-message-container');
-                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: #007bff; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
+                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--info-color-alt2', '#007bff') : '#007bff'}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
 
                 fetch(url, {
                     method: "POST",
@@ -711,7 +711,7 @@
             if (data.status === 'success') {
                 // Flash success button state
                 btn.textContent = "Saved!";
-                btn.style.backgroundColor = "#28a745";
+                btn.style.backgroundColor = (window.stylingUtils && window.stylingUtils.getSuccessColor) ? window.stylingUtils.getSuccessColor() : "#28a745";
                 setTimeout(() => {
                     btn.textContent = originalText;
                     btn.style.backgroundColor = ""; // Reset to default
@@ -768,10 +768,10 @@
             if(counterEl) {
                 counterEl.textContent = `(${checkedCount} / ${MAX_ACTIVE_LOCATIONS} active)`;
                 if (checkedCount >= MAX_ACTIVE_LOCATIONS) {
-                    counterEl.style.color = '#dc3545';
+                    counterEl.style.color = (window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : '#dc3545';
                     counterEl.style.fontWeight = 'bold';
                 } else {
-                    counterEl.style.color = '#555';
+                    counterEl.style.color = (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555';
                     counterEl.style.fontWeight = 'normal';
                 }
             }
