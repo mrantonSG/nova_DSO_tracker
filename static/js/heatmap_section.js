@@ -243,11 +243,11 @@
         }
 
         const novaColorScale = [
-            [0.0, '#ffffff'],
-            [0.1, '#f0f4f5'],
-            [0.3, '#dce5eb'],
-            [0.6, '#83b4c5'],
-            [1.0, '#5a8491']
+            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', '#ffffff') : '#ffffff'],
+            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', '#f0f4f5') : '#f0f4f5'],
+            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', '#dce5eb') : '#dce5eb'],
+            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', '#83b4c5') : '#83b4c5'],
+            [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', '#5a8491') : '#5a8491']
         ];
 
         const trace = {
@@ -271,12 +271,12 @@
                 side: 'top',
                 tickangle: -90,
                 fixedrange: true,
-                tickfont: { size: 11, color: '#555' }
+                tickfont: { size: 11, color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555' }
             },
             yaxis: {
                 automargin: true,
                 fixedrange: true,
-                tickfont: { size: 11, color: '#333' }
+                tickfont: { size: 11, color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-primary', '#333') : '#333' }
             },
             dragmode: false,
             margin: { l: 180, r: 20, b: 20, t: 100 },

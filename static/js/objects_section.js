@@ -495,7 +495,7 @@
         .catch(err => {
             console.error(err);
             document.getElementById('duplicates-loading').style.display = 'none';
-            document.getElementById('duplicates-list').innerHTML = '<p style="color: red; text-align: center;">Error scanning for duplicates.</p>';
+            document.getElementById('duplicates-list').innerHTML = '<p style="color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + '; text-align: center;">Error scanning for duplicates.</p>';
         });
     }
 

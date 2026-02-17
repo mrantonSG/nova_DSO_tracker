@@ -69,11 +69,11 @@
                             // C. Add Clean Title - Nova Teal Brand Style
                             const title = doc.createElement('h3');
                             title.innerText = `APPENDIX: SESSION ${i+1}`;
-                            title.style.color = '#83b4c5';
+                            title.style.color = (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5';
                             title.style.fontSize = '11px';
                             title.style.textTransform = 'uppercase';
                             title.style.letterSpacing = '1px';
-                            title.style.borderBottom = '0.5pt solid #eee';
+                            title.style.borderBottom = '0.5pt solid ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#eee') : '#eee');
                             title.style.paddingBottom = '5px';
                             title.style.marginBottom = '15px';
                             wrapper.appendChild(title);
@@ -95,111 +95,7 @@
                 }
             }
 
-            // 2. INJECT PRINT-SPECIFIC CSS (Clean Modern Canvas - Nova Brand)
-            const printStyle = doc.createElement('style');
-            printStyle.textContent = `
-                @media print {
-                    /* Universal Print Reset */
-                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-
-                    @page { margin: 10mm; size: A4; }
-                    body { background-color: white !important; color: #333 !important; }
-
-                    .a4-page { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
-
-                    /* Clean Modern Canvas - Soft Inset Shadows for Cards */
-                    .report-block {
-                        box-shadow: inset 0 0 0 1000px #fdfdfd !important;
-                        border: 1px solid #eee !important;
-                        background-color: white !important;
-                        margin-bottom: 15px !important;
-                    }
-
-                    /* Clean Tables - Light Gray Dividers Only */
-                    table { border: none !important; }
-                    th, td { border-right: none !important; border-bottom: 0.5pt solid #eee !important; }
-                    .session-details-table td { border-bottom: 0.5pt solid #eee !important; }
-                    .session-image-container {
-                        border: 1px solid #eee !important;
-                        padding: 10px !important;
-                        box-shadow: inset 0 0 0 1000px #fafafa !important;
-                    }
-
-                    /* Typography - Roboto Only */
-                    * { font-family: 'Roboto', sans-serif !important; }
-
-                    /* Nova Brand - Teal Headers */
-                    .section-title { color: #83b4c5 !important; }
-                    .header-title { color: #83b4c5 !important; }
-                    .header-line { border-top: 2px solid #83b4c5 !important; }
-
-                    /* Soft Shading for Stats */
-                    .info-box { box-shadow: inset 0 0 0 1000px #f8f9fa !important; border: 1px solid #eee !important; }
-                    .session-details-table tr:first-child { box-shadow: inset 0 0 0 1000px #f8f9fa !important; }
-                    .exposures-table th { box-shadow: inset 0 0 0 1000px #f8f9fa !important; border-bottom: 1px solid #eee !important; }
-
-                    /* No-Cut Geometry - Prevent session blocks from breaking */
-                    .report-block, table, .info-box, .session-image-container, .session-notes-container {
-                        break-inside: avoid !important;
-                        page-break-inside: avoid !important;
-                    }
-
-                    /* Force Sessions to start on new pages */
-                    .session-appendix-wrapper {
-                        break-before: page !important;
-                        page-break-before: always !important;
-                        display: block;
-                        margin-top: 0 !important;
-                        margin-bottom: 0 !important;
-                    }
-
-                    /* Last session wrapper - no trailing page break */
-                    .session-appendix-wrapper:last-child {
-                        break-after: avoid !important;
-                        page-break-after: avoid !important;
-                    }
-
-                    /* Appended container - no extra space */
-                    #appended-session-reports {
-                        margin: 0 !important;
-                        padding: 0 !important;
-                    }
-
-                    /* Prevent empty trailing pages */
-                    html, body {
-                        height: auto !important;
-                        overflow: visible !important;
-                    }
-
-                    /* Keep the Title with the immediate following content */
-                    .session-appendix-wrapper h3 {
-                        break-after: avoid !important;
-                        page-break-after: avoid !important;
-                        margin-bottom: 10px;
-                        color: #83b4c5 !important;
-                        font-size: 11px !important;
-                        text-transform: uppercase !important;
-                        letter-spacing: 1px !important;
-                        border-bottom: 0.5pt solid #eee !important;
-                        padding-bottom: 5px !important;
-                    }
-
-                    /* Session Layout - Centered image with subtle frame */
-                    .session-image-container img {
-                        max-height: 350px !important;
-                        width: auto !important;
-                        object-fit: contain;
-                        display: block;
-                        margin: 0 auto !important;
-                    }
-
-                    /* Hide footers in print */
-                    .footer { display: none; }
-                }
-            `;
-            doc.head.appendChild(printStyle);
-
-            // 3. TRIGGER BROWSER PRINT
+            // 2. TRIGGER BROWSER PRINT
             buttonElement.textContent = "Check Popup...";
             setTimeout(() => {
                 iframe.contentWindow.focus();
@@ -663,7 +559,7 @@
                     const dawnPx = dawnMs ? x.getPixelForValue(dawnMs) : left;
 
                     ctx.save();
-                    ctx.fillStyle = 'rgba(211, 211, 211, 0.5)'; // Light gray shade
+                    ctx.fillStyle = (window.stylingUtils && window.stylingUtils.getCssVarAsRgba) ? window.stylingUtils.getCssVarAsRgba('--text-muted', '#888', 0.5) : 'rgba(211, 211, 211, 0.5)';
 
                     // Fill the "Daytime" areas
                     if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
@@ -683,7 +579,7 @@
                         {
                             label: `${objectName} Altitude`,
                             data: data.object_alt,
-                            borderColor: '#36A2EB', // Blue
+                            borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(0) : '#36A2EB',
                             borderWidth: 3,
                             pointRadius: 0,
                             tension: 0.1
@@ -699,7 +595,7 @@
                         {
                             label: 'Horizon',
                             data: Array(data.times.length).fill(0),
-                            borderColor: 'black',
+                            borderColor: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-black', 'black') : 'black',
                             borderWidth: 2,
                             pointRadius: 0
                         }

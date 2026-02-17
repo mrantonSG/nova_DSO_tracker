@@ -171,6 +171,16 @@
   --simulation-error-red: #f8d7da;
   --simulation-error-text: #721c24;
 
+  /* === SPECIAL PURPOSE COLORS === */
+  --color-geostationary: #e056fd;
+
+  /* === HEATMAP SCALE COLORS === */
+  --heatmap-scale-0: #ffffff;
+  --heatmap-scale-10: #f0f4f5;
+  --heatmap-scale-30: #dce5eb;
+  --heatmap-scale-60: #83b4c5;
+  --heatmap-scale-100: #5a8491;
+
   /* === SAMPLING COLORS === */
   --sampling-oversampled: #9b59b6;
   --sampling-slightly-oversampled: #3498db;
@@ -550,4 +560,107 @@
 
 /* Themed divider */
 .divider-themed { border-color: var(--border-light); }
+
+/* ===================================================================
+   PRINT STYLES (Journal Reports)
+   ================================================================ */
+
+@media print {
+    /* Universal Print Reset */
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+    @page { margin: 10mm; size: A4; }
+    body { background-color: var(--bg-white) !important; color: var(--text-primary) !important; }
+
+    .a4-page { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+
+    /* Clean Modern Canvas - Soft Inset Shadows for Cards */
+    .report-block {
+        box-shadow: inset 0 0 0 1000px var(--bg-offwhite) !important;
+        border: 1px solid var(--border-light) !important;
+        background-color: var(--bg-white) !important;
+        margin-bottom: 15px !important;
+    }
+
+    /* Clean Tables - Light Gray Dividers Only */
+    table { border: none !important; }
+    th, td { border-right: none !important; border-bottom: 0.5pt solid var(--border-light) !important; }
+    .session-details-table td { border-bottom: 0.5pt solid var(--border-light) !important; }
+    .session-image-container {
+        border: 1px solid var(--border-light) !important;
+        padding: 10px !important;
+        box-shadow: inset 0 0 0 1000px var(--bg-light-alt) !important;
+    }
+
+    /* Typography - Roboto Only */
+    * { font-family: 'Roboto', sans-serif !important; }
+
+    /* Nova Brand - Teal Headers */
+    .section-title { color: var(--primary-color) !important; }
+    .header-title { color: var(--primary-color) !important; }
+    .header-line { border-top: 2px solid var(--primary-color) !important; }
+
+    /* Soft Shading for Stats */
+    .info-box { box-shadow: inset 0 0 0 1000px var(--bg-light) !important; border: 1px solid var(--border-light) !important; }
+    .session-details-table tr:first-child { box-shadow: inset 0 0 0 1000px var(--bg-light) !important; }
+    .exposures-table th { box-shadow: inset 0 0 0 1000px var(--bg-light) !important; border-bottom: 1px solid var(--border-light) !important; }
+
+    /* No-Cut Geometry - Prevent session blocks from breaking */
+    .report-block, table, .info-box, .session-image-container, .session-notes-container {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+    }
+
+    /* Force Sessions to start on new pages */
+    .session-appendix-wrapper {
+        break-before: page !important;
+        page-break-before: always !important;
+        display: block;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* Last session wrapper - no trailing page break */
+    .session-appendix-wrapper:last-child {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    /* Appended container - no extra space */
+    #appended-session-reports {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Prevent empty trailing pages */
+    html, body {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    /* Keep the Title with the immediate following content */
+    .session-appendix-wrapper h3 {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+        margin-bottom: 10px;
+        color: var(--primary-color) !important;
+        font-size: 11px !important;
+        text-transform: uppercase !important;
+        letter-spacing: 1px !important;
+        border-bottom: 0.5pt solid var(--border-light) !important;
+        padding-bottom: 5px !important;
+    }
+
+    /* Session Layout - Centered image with subtle frame */
+    .session-image-container img {
+        max-height: 350px !important;
+        width: auto !important;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto !important;
+    }
+
+    /* Hide footers in print */
+    .footer { display: none; }
+}
 
