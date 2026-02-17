@@ -73,7 +73,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
               {% for category, message in messages %}
-                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px var(--shadow-medium);">
                       {{ message }}
                   </div>
               {% endfor %}
@@ -213,7 +213,7 @@
     {% include '_heatmap_section.html' %}
     {% include '_inspiration_section.html' %}
 
-    <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">
+    <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--overlay-light); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-light); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">
         <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;" id="loading-message">Updating data...</div>
 
         <div style="width: 100%; height: 10px; background: var(--bg-medium-alt); border-radius: 5px; overflow: hidden;">
@@ -233,7 +233,7 @@
   </iframe>
 </div>
 
-<div id="save-view-modal" class="modal-backdrop" data-action="close-save-view-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:3000;">
+<div id="save-view-modal" class="modal-backdrop" data-action="close-save-view-modal" style="display:none; position:fixed; inset:0; background:var(--overlay-dark); z-index:3000;">
     <div class="modal-content" data-stop-propagation="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px;">
         <h3 style="margin-top:0;">Save Current View</h3>
         <div style="display:flex; flex-direction:column; gap:10px;">
