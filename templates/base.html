@@ -7,22 +7,6 @@
 
     <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
 
-    <script>
-        // 1. PREVENT FLASH OF LIGHT MODE
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            const savedRedMode = localStorage.getItem('red-mode');
-            const html = document.documentElement;
-
-            if (savedTheme === 'dark-mode') {
-                html.classList.add('dark-mode');
-            }
-            if (savedRedMode === 'true') {
-                html.classList.add('red-mode');
-            }
-        })();
-    </script>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -75,8 +59,6 @@
                 &nbsp;
             {% endif %}
           </div>
-          <button id="theme-toggle-btn" class="action-button" title="Toggle Dark/Light Mode">Night View</button>
-          <button id="red-mode-btn" class="action-button" title="Toggle Red/Night Vision Mode">Red View</button>
       </div>
     </div>
 
