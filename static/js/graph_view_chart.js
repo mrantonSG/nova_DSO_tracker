@@ -229,13 +229,13 @@
         ctx.textBaseline = 'middle';
     
         const getTextColorForBackground = (rgbaColor) => {
-            if (!rgbaColor || !rgbaColor.startsWith('rgba')) return '#333';
+            if (!rgbaColor || !rgbaColor.startsWith('rgba')) return window.stylingUtils && window.stylingUtils.getColor ? window.stylingUtils.getColor('--text-primary', '#333') : '#333';
             try {
                 const [r, g, b] = rgbaColor.match(/\d+/g).map(Number);
                 const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
-                return luminance < 128 ? '#FFFFFF' : '#333';
+                return luminance < 128 ? (window.stylingUtils && window.stylingUtils.getColor ? window.stylingUtils.getColor('--text-white', '#fff') : '#fff') : (window.stylingUtils && window.stylingUtils.getColor ? window.stylingUtils.getColor('--text-primary', '#333') : '#333');
             } catch (e) {
-                return '#333';
+                return window.stylingUtils && window.stylingUtils.getColor ? window.stylingUtils.getColor('--text-primary', '#333') : '#333';
             }
         };
     
@@ -686,7 +686,7 @@
             position: 'start',
             rotation: 90,
             font: {size: 10, weight: '400'},
-            color: '#222',
+            color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-primary', '#222') : '#222',
             backgroundColor: 'rgba(255,255,255,0.92)',
             borderColor: 'rgba(0,0,0,0.15)',
             borderWidth: 1
@@ -1088,7 +1088,7 @@
             label: legendLabel,
             fullLabel: displayName || objectId, // Store full display name for tooltips
             data: plotData.object_alt,
-            borderColor: '#FF00FF', // Magenta
+            borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(3) : '#FF00FF', // Magenta (chart line 4)
             yAxisID: 'yAltitude',
             borderWidth: 3,
             pointRadius: 0,
@@ -1673,11 +1673,11 @@
                     (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
                     if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
                     if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
-                    fovLayer = A.graphicOverlay({color: '#83b4c5', lineWidth: 3});
+                    fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
                     aladin.addOverlay(fovLayer);
                     const canvas = document.getElementById('aladin-lite-div');
                     if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } }, 80); }); ro.observe(canvas); }
-                    (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = '3px solid #83b4c5'; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
+                    (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = `3px solid ${(window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5'}`; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
                     canvas.addEventListener('click', (ev) => { if (!ev.shiftKey) return; if (lockToObject) return; const rect = canvas.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top; const sky = aladin.pix2world(x, y); if (!sky) return; fovCenter = {ra: sky[0], dec: sky[1]}; updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } updateReadoutFromCenter(); });
 
                     // Remove any existing keydown handler before adding new one (prevents memory leaks)
@@ -1908,11 +1908,11 @@
             (function wireBlendAndConstellationUI(){ const blendSel = document.getElementById('blend-survey-select'), blendOp = document.getElementById('blend-opacity'); if (blendSel) blendSel.addEventListener('change', () => { ensureBlendLayer(); const v = Number(blendOp?.value || 0); setBlendOpacity(v); updateFramingChart(false); }); if (blendOp) { const sync = (e) => { setBlendOpacity(e.target.value); updateFramingChart(false); }; blendOp.addEventListener('input', sync); blendOp.addEventListener('change', sync); } try { if (blendOp) setBlendOpacity(blendOp.value); } catch(e) {} })();
             if (aladin.on) aladin.on('zoomChanged', () => { if (!lockToObject) return; const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } });
             if (aladin.on) aladin.on('baseLayerChanged', () => { try { const bop = document.getElementById('blend-opacity'); ensureBlendLayer(); if (bop) setBlendOpacity(bop.value); } catch (e) { console.warn('[nova] Could not reapply blend after base change:', e); } });
-            fovLayer = A.graphicOverlay({color: '#83b4c5', lineWidth: 3});
+            fovLayer = A.graphicOverlay({color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 3});
             aladin.addOverlay(fovLayer);
             const canvas = document.getElementById('aladin-lite-div');
             if (window.ResizeObserver && canvas) { let roTimer = null; const ro = new ResizeObserver(() => { clearTimeout(roTimer); roTimer = setTimeout(() => { const sel = document.getElementById('framing-rig-select'); if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; applyRigFovZoom(opt.dataset.fovw, opt.dataset.fovh); } updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } }, 80); }); ro.observe(canvas); }
-            (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = '3px solid #83b4c5'; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
+            (function ensureScreenOverlay(){ const host = document.getElementById('aladin-lite-div'); if (!host) return; if (!host.style.position) host.style.position = 'relative'; if (!document.getElementById('screen-fov-overlay')) { const ov = document.createElement('div'); ov.id = 'screen-fov-overlay'; ov.style.position = 'absolute'; ov.style.inset = '0'; ov.style.pointerEvents = 'none'; ov.style.zIndex = '5'; const rect = document.createElement('div'); rect.id = 'screen-fov-rect'; rect.style.position = 'absolute'; rect.style.border = `3px solid ${(window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5'}`; rect.style.boxSizing = 'border-box'; rect.style.left = '50%'; rect.style.top = '50%'; rect.style.transformOrigin = 'center center'; rect.style.display = 'none'; ov.appendChild(rect); host.appendChild(ov); } })();
             canvas.addEventListener('click', (ev) => { if (!ev.shiftKey) return; if (lockToObject) return; const rect = canvas.getBoundingClientRect(), x = ev.clientX - rect.left, y = ev.clientY - rect.top; const sky = aladin.pix2world(x, y); if (!sky) return; fovCenter = {ra: sky[0], dec: sky[1]}; updateFramingChart(false); if (lockToObject) { const sel = document.getElementById('framing-rig-select'), rot = parseFloat(document.getElementById('framing-rotation')?.value || '0') || 0; if (sel && sel.selectedIndex >= 0) { const opt = sel.options[sel.selectedIndex]; updateScreenFovOverlay(opt.dataset.fovw, opt.dataset.fovh, rot); } } updateReadoutFromCenter(); });
             // Remove any existing keydown handler before adding new one (prevents memory leaks)
             if (framingKeydownHandler) {
@@ -2298,7 +2298,7 @@
                 });
     
                 polyCoords.push(polyCoords[0]);
-                const fovPolygon = A.polygon(polyCoords, {color: '#83b4c5', lineWidth: 2});
+                const fovPolygon = A.polygon(polyCoords, {color: (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5', lineWidth: 2});
                 fovLayer.add(fovPolygon);
             }
         }
@@ -2369,7 +2369,7 @@
     
                 div.style.position = 'absolute';
                 div.style.boxSizing = 'border-box';
-                div.style.border = '2px solid #83b4c5'; // Pane border
+                div.style.border = `2px solid ${(window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5'}`; // Pane border
                 if (cols > 1 || rows > 1) {
                     div.style.background = 'rgba(131, 180, 197, 0.1)'; // Slight fill for mosaic
                     div.innerText = `${c+1},${r+1}`;
@@ -3041,7 +3041,7 @@
                     delBtn.title = "Delete Saved Framing";
                     delBtn.style.fontSize = '13px';
                     delBtn.style.padding = '6px 10px';
-                    delBtn.style.backgroundColor = '#c0392b'; // Red background
+                    delBtn.style.backgroundColor = (window.stylingUtils && window.stylingUtils.getDangerDarkColor) ? window.stylingUtils.getDangerDarkColor() : '#c0392b'; // Red background
                     delBtn.style.color = 'white'; // White text
     
                     delBtn.onclick = deleteSavedFraming;
