@@ -450,13 +450,13 @@
             name: 'Nova objects',
             shape: 'circle',          // use circular markers
             sourceSize: 10,
-            color: '#83b4c5',
+            color: window.stylingUtils && window.stylingUtils.getPrimaryColor ? window.stylingUtils.getPrimaryColor() : '#83b4c5',
             labelColumn: 'name',      // read label from the "name" field of each source
             displayLabel: true,       // draw the labels on the sky
-            labelColor: '#83b4c5',       // dark-ish blue labels
+            labelColor: window.stylingUtils && window.stylingUtils.getPrimaryColor ? window.stylingUtils.getPrimaryColor() : '#83b4c5',       // dark-ish blue labels
             labelFont: '16px sans-serif', // larger font for visibility
             labelHalo: true,          // white halo to separate text from background
-            labelHaloColor: '#fff',   // contrast halo for dark backgrounds
+            labelHaloColor: window.stylingUtils && window.stylingUtils.getCssVar('--text-white', '#fff') || '#fff',   // contrast halo for dark backgrounds
             onClick: (source) => {
                 if (!source || !source.data) return;
                 const objData = source.data;
@@ -830,12 +830,12 @@
      */
     function _buildChartDatasets(data, labels, objectName) {
         return [
-            { label: `${objectName} Altitude`, data: data.object_alt, borderColor: '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-            { label: 'Moon Altitude', data: data.moon_alt, borderColor: '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
-            { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: '#636e72', backgroundColor: 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
-            { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
-            { label: `${objectName} Azimuth`, data: data.object_az, borderColor: '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
-            { label: 'Moon Azimuth', data: data.moon_az, borderColor: '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
+            { label: `${objectName} Altitude`, data: data.object_alt, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(0) : '#36A2EB', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+            { label: 'Moon Altitude', data: data.moon_alt, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(1) : '#FFC107', yAxisID: 'yAltitude', borderWidth: 4, pointRadius: 0, tension: 0.1 },
+            { label: 'Horizon Mask', data: data.horizon_mask_alt, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(2) : '#636e72', backgroundColor: (window.stylingUtils && window.stylingUtils.getCssVarAsRgba) ? window.stylingUtils.getCssVarAsRgba('--chart-line-3', 'rgba(99, 110, 114, 0.3)', 0.3) : 'rgba(99, 110, 114, 0.3)', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: 'start' },
+            { label: 'Horizon', data: Array(labels.length).fill(0), borderColor: (window.stylingUtils && window.stylingUtils.getCssVar) ? window.stylingUtils.getCssVar('--text-primary', 'black') : 'black', yAxisID: 'yAltitude', borderWidth: 2, pointRadius: 0 },
+            { label: `${objectName} Azimuth`, data: data.object_az, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(0) : '#36A2EB', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 },
+            { label: 'Moon Azimuth', data: data.moon_az, borderColor: (window.stylingUtils && window.stylingUtils.getChartLineColor) ? window.stylingUtils.getChartLineColor(1) : '#FFC107', yAxisID: 'yAzimuth', borderDash: [5, 5], borderWidth: 3.5, pointRadius: 0, tension: 0.1 }
         ];
     }
 

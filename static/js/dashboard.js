@@ -1,7 +1,107 @@
 (function() {
     'use strict';
 
-        // ========================================================================
+    // ==========================================================================
+    // COLOR HELPER FUNCTIONS
+    // ==========================================================================
+
+    /**
+     * Get a CSS variable value or fallback to default
+     * @param {string} varName - CSS variable name (e.g., '--primary-color')
+     * @param {string} fallback - Fallback value
+     * @returns {string} The CSS variable value or fallback
+     */
+    function getColor(varName, fallback) {
+        if (window.stylingUtils && window.stylingUtils.getCssVar) {
+            return window.stylingUtils.getCssVar(varName, fallback);
+        }
+        return fallback;
+    }
+
+    /**
+     * Get primary color
+     * @returns {string} Primary color value
+     */
+    function getPrimaryColor() {
+        if (window.stylingUtils && window.stylingUtils.getPrimaryColor) {
+            return window.stylingUtils.getPrimaryColor();
+        }
+        return '#83b4c5';
+    }
+
+    /**
+     * Get text primary color
+     * @returns {string} Text primary color value
+     */
+    function getTextPrimaryColor() {
+        return getColor('--text-primary', '#333');
+    }
+
+    /**
+     * Get text secondary color
+     * @returns {string} Text secondary color value
+     */
+    function getTextSecondaryColor() {
+        return getColor('--text-secondary', '#555');
+    }
+
+    /**
+     * Get success color
+     * @returns {string} Success color value
+     */
+    function getSuccessColor() {
+        return getColor('--success-color', '#28a745');
+    }
+
+    /**
+     * Get danger color
+     * @returns {string} Danger color value
+     */
+    function getDangerColor() {
+        return getColor('--danger-color', '#dc3545');
+    }
+
+    /**
+     * Get danger text color
+     * @returns {string} Danger text color value
+     */
+    function getDangerTextColor() {
+        return getColor('--danger-text', '#721c24');
+    }
+
+    /**
+     * Get danger background color
+     * @returns {string} Danger background color value
+     */
+    function getDangerBgColor() {
+        return getColor('--danger-bg', '#f8d7da');
+    }
+
+    /**
+     * Get white background color
+     * @returns {string} White background color value
+     */
+    function getBgWhiteColor() {
+        return getColor('--bg-white', '#ffffff');
+    }
+
+    /**
+     * Get light background color
+     * @returns {string} Light background color value
+     */
+    function getBgLightColor() {
+        return getColor('--bg-light', '#f8f9fa');
+    }
+
+    /**
+     * Get border light color
+     * @returns {string} Border light color value
+     */
+    function getBorderLightColor() {
+        return getColor('--border-light', '#eee');
+    }
+
+    // ========================================================================
         // Configuration & Global State Variables
         // ========================================================================
         const IS_GUEST_USER = window.NOVA_INDEX.isGuest;
@@ -138,7 +238,7 @@
                     if(updateLabel) updateLabel.textContent = 'Mode';
                     if(updateValue) {
                         updateValue.textContent = 'Simulated';
-                        updateValue.style.color = '#ca0e0e'; // Green color for simulated text
+                        updateValue.style.color = getSuccessColor(); // Green color for simulated text
                     }
                 } else {
                     simDateInput.disabled = true;
@@ -146,7 +246,7 @@
                     simulatedTitleText.style.display = 'none';
                     if(updateLabel) updateLabel.textContent = 'Update';
                     if(updateValue) {
-                        updateValue.style.color = '#83b4c5'; // Restore original color
+                        updateValue.style.color = getPrimaryColor(); // Restore original color
                     }
                     // The timer interval will take care of resetting the value text
                 }
@@ -912,8 +1012,8 @@
                 row.dataset.impossible = objectData.is_geometrically_impossible ? 'true' : 'false';
     
                 if (objectData.error === true || (objectData['Common Name'] && String(objectData['Common Name']).startsWith("Error:"))) {
-                    row.style.backgroundColor = "#f8d7da";
-                    row.style.color = "#721c24";
+                    row.style.backgroundColor = getDangerBgColor();
+                    row.style.color = getDangerTextColor();
                     row.style.cursor = 'default';
                 } else if (objectData.is_geometrically_impossible) {
                     // Apply "Greyed Out" styling
@@ -968,7 +1068,7 @@
                             icon.innerHTML = '&#9432;'; // Circled i
                         icon.style.cursor = 'pointer';
                         icon.style.marginLeft = '8px';
-                        icon.style.color = '#83b4c5';
+                        icon.style.color = getPrimaryColor();
                         icon.style.fontSize = '1.2em';
                         icon.style.lineHeight = '1';
                         icon.title = "View Inspiration";
@@ -2185,7 +2285,7 @@
             // Show fetching message only if not already updating location UI
             if (!isLocationUpdating) {
             // --- END FIX ---
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Fetching...</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">Fetching...</td></tr>`;
             }
     
             // --- START FIX ---
@@ -2227,7 +2327,7 @@
                             allOutlookOpportunities = data.results || [];
                             sortOutlookTable(currentOutlookSort.columnKey, false);
                         } else {
-                            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#6795a4;">Waiting for background task...</td></tr>`;
+                            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">Waiting for background task...</td></tr>`;
                         }
                         // Poll again after a delay
                         setTimeout(fetchOutlookData, 10000);
@@ -2294,7 +2394,7 @@
             graphDiv.style.flex = '0 0 160px';
     
             graphDiv.style.marginTop = '2px';
-            graphDiv.style.backgroundColor = '#ffffff';
+            graphDiv.style.backgroundColor = getBgWhiteColor();
             graphDiv.style.marginBottom = '15px';
             // Removed position:relative and zIndex to prevent creating a stacking context that covers the footer
             targetContainer.parentNode.insertBefore(graphDiv, targetContainer.nextSibling);
@@ -2366,7 +2466,7 @@
                     type: 'scatter',
                     mode: 'lines',
                     fill: 'tozeroy',
-                    line: { color: '#83b4c5', width: 2 },
+                    line: { color: getPrimaryColor(), width: 2 },
                     fillcolor: 'rgba(131, 180, 197, 0.2)',
                     text: hoverTexts,
                     hoverinfo: 'text'

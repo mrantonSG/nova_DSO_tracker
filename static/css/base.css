@@ -159,6 +159,23 @@
   --sampling-slightly-oversampled: #3498db;
   --sampling-good: #2ecc71;
 
+  /* === CHART COLORS === */
+  --chart-line-1: #36A2EB;
+  --chart-line-2: #FFC107;
+  --chart-line-3: #636e72;
+  --chart-line-4: #FF00FF;
+  --chart-line-primary: #83b4c5;
+
+  /* === SIMULATION COLORS === */
+  --simulation-green: #ca0e0e;
+  --simulation-error-red: #f8d7da;
+  --simulation-error-text: #721c24;
+
+  /* === SAMPLING COLORS === */
+  --sampling-oversampled: #9b59b6;
+  --sampling-slightly-oversampled: #3498db;
+  --sampling-good: #2ecc71;
+
   /* === Z-INDEX SCALE === */
   --z-base: 1;
   --z-layer-1: 2;
