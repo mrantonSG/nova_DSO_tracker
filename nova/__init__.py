@@ -3235,7 +3235,7 @@ def _parse_phd2_log_content(content):
         sessions.append(current_session)
 
     if not sessions:
-        return "<p style='color: #666; font-style: italic;'>No guiding sessions found in this log. Ensure the log contains 'Guiding Begins' and data rows.</p>"
+        return "<p style='color: var(--text-tertiary); font-style: italic;'>No guiding sessions found in this log. Ensure the log contains 'Guiding Begins' and data rows.</p>"
 
     # --- Select Main Session (Longest) ---
     main_session = max(sessions, key=lambda s: len(s['data']))
@@ -3261,8 +3261,8 @@ def _parse_phd2_log_content(content):
     rms_dec = rms_dec_px * pixel_scale
     rms_tot = rms_tot_px * pixel_scale
 
-    # Color Grading (<0.5 Excellent, <0.8 Good, <1.0 Ok, >1.0 Poor)
-    rms_color = "#28a745" if rms_tot < 0.5 else "#17a2b8" if rms_tot < 0.8 else "#ffc107" if rms_tot < 1.0 else "#dc3545"
+    # Class Grading (<0.5 Excellent, <0.8 Good, <1.0 Ok, >1.0 Poor)
+    rms_class = "status-success" if rms_tot < 0.5 else "status-info" if rms_tot < 0.8 else "status-warning" if rms_tot < 1.0 else "status-danger"
 
     # --- Derived Metrics for HTML ---
     dither_c = main_session.get('dither_count', 0)
@@ -3285,18 +3285,18 @@ def _parse_phd2_log_content(content):
     else:
         dither_html = "<li><strong>Dithering:</strong> No dither commands detected in this session.</li>"
 
-    snr_color = "#28a745" if avg_snr >= 20 else "#ffc107" if avg_snr >= 10 else "#dc3545"
-    snr_html = f"""<li><strong>Signal Strength (SNR):</strong> <span style="color:{snr_color}">Avg {avg_snr:.1f}</span> (Range: {min_snr:.1f}-{max_snr:.1f}). Values consistently around 20–30 indicate a very healthy/strong signal, likely helped by the 2x binning.</li>"""
+    snr_class = "status-success" if avg_snr >= 20 else "status-warning" if avg_snr >= 10 else "status-danger"
+    snr_html = f"""<li><strong>Signal Strength (SNR):</strong> <span class="{snr_class}">Avg {avg_snr:.1f}</span> (Range: {min_snr:.1f}-{max_snr:.1f}). Values consistently around 20–30 indicate a very healthy/strong signal, likely helped by the 2x binning.</li>"""
 
     html = f"""
     <h3>PHD2 Guiding Analysis</h3>
     <p style="margin-bottom: 10px;"><strong>Profile:</strong> {profile_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
 
-    <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+    <hr style="margin: 10px 0; border: 0; border-top: 1px solid var(--border-light);">
 
     <div style="margin-bottom: 2px;"><strong>Performance (RMS)</strong></div>
     <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
-        <li><strong>Total RMS:</strong> <strong style="color: {rms_color};">{rms_tot:.2f}"</strong> (RA: {rms_ra:.2f}", Dec: {rms_dec:.2f}")</li>
+        <li><strong>Total RMS:</strong> <strong class="{rms_class}">{rms_tot:.2f}"</strong> (RA: {rms_ra:.2f}", Dec: {rms_dec:.2f}")</li>
         <li><strong>Pixel Scale:</strong> {pixel_scale}"/px</li>
         <li><strong>Duration:</strong> {int(duration.total_seconds() // 60)} min ({n} frames)</li>
     </ul>
@@ -3324,7 +3324,7 @@ def _parse_phd2_log_content(content):
     """
 
     if len(sessions) > 1:
-        html += f"<div style='margin-top:10px; font-size:0.85em; color:#999;'>* Analyzed longest session ({n} frames). Log contained {len(sessions)} runs.</div>"
+        html += f"<div style='margin-top:10px; font-size:0.85em; color:var(--text-muted);'>* Analyzed longest session ({n} frames). Log contained {len(sessions)} runs.</div>"
 
     return html
 
@@ -3375,10 +3375,10 @@ def _parse_asiair_log_content(content):
             parts = clean_msg.split(" Start")
             tgt = parts[0] if parts else "Unknown"
             raw_data_points.append({'dt': dt, 'type': 'target', 'name': tgt})
-            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Session Start", 'color': "#212529"})
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Session Start", 'color_class': "status-info"})
             continue
         elif "Autorun|End" in category or "[Autorun|End]" in msg:
-            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Session Ended", 'color': "#212529"})
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Session Ended", 'color_class': "status-info"})
             continue
 
         # Guiding / Dither
@@ -3389,25 +3389,25 @@ def _parse_asiair_log_content(content):
                 raw_data_points.append({'dt': dt, 'type': 'dither_end'})
             elif "Settle Timeout" in msg:
                 raw_data_points.append(
-                    {'dt': dt, 'type': 'event', 'text': "Guiding: Dither Settle Timeout", 'color': "#dc3545"})
+                    {'dt': dt, 'type': 'event', 'text': "Guiding: Dither Settle Timeout", 'color_class': "status-danger"})
             continue
 
         # Meridian Flip
         if "Meridian Flip" in category or "Meridian Flip" in msg:
             if "Start" in msg:
                 raw_data_points.append(
-                    {'dt': dt, 'type': 'event', 'text': "Meridian Flip: Sequence started", 'color': "#17a2b8"})
+                    {'dt': dt, 'type': 'event', 'text': "Meridian Flip: Sequence started", 'color_class': "status-info"})
             elif "failed" in msg:
                 # Store raw error message
-                raw_data_points.append({'dt': dt, 'type': 'event', 'text': f"ERROR: {msg}", 'color': "#dc3545"})
+                raw_data_points.append({'dt': dt, 'type': 'event', 'text': f"ERROR: {msg}", 'color_class': "status-danger"})
             elif "succeeded" in msg:
                 raw_data_points.append(
-                    {'dt': dt, 'type': 'event', 'text': "Meridian Flip: Success", 'color': "#28a745"})
+                    {'dt': dt, 'type': 'event', 'text': "Meridian Flip: Success", 'color_class': "status-success"})
             continue
 
         # Focus Events
         if ("AutoFocus" in category or "Auto Focus" in msg) and "Begin" in msg:
-            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Auto Focus Run", 'color': "#007bff"})
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "Auto Focus Run", 'color_class': "status-info"})
 
         # Environmental Data Extraction
         temp_match = ASIAIR_PATTERNS['temp'].search(msg)
@@ -3425,7 +3425,7 @@ def _parse_asiair_log_content(content):
                 raw_data_points.append({'dt': dt, 'type': 'stars', 'val': int(star_match.group(1))})
 
         if "Mount GoTo Home" in msg:
-            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "GoTo Home (Session End)", 'color': "#6c757d"})
+            raw_data_points.append({'dt': dt, 'type': 'event', 'text': "GoTo Home (Session End)", 'color_class': "status-secondary"})
 
     # --- 2. Session Grouping Logic ---
     if not raw_data_points:
@@ -3493,7 +3493,7 @@ def _parse_asiair_log_content(content):
             last_temp = temps[-1] if temps else None
             if last_temp is not None: focus_moves.append((last_temp, p['val']))
         elif ptype == 'event':
-            timeline_events.append((p['dt'], p['color'], p['text']))
+            timeline_events.append((p['dt'], p['color_class'], p['text']))
 
     # Metrics
     imaging_duration = total_exposure_sec
@@ -3526,7 +3526,7 @@ def _parse_asiair_log_content(content):
     <h3>ASIAIR Session Analysis</h3>
     <p style="margin-bottom: 10px;"><strong>Target:</strong> {target_name} &nbsp;|&nbsp; <strong>Date:</strong> {start_dt.strftime('%b %d, %Y')}</p>
 
-    <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+    <hr style="margin: 10px 0; border: 0; border-top: 1px solid var(--border-light);">
 
     <div style="margin-bottom: 2px;"><strong>Efficiency Metrics</strong></div>
     <ul style="margin-top: 0; margin-bottom: 12px; padding-left: 20px;">
@@ -3549,15 +3549,15 @@ def _parse_asiair_log_content(content):
     # --- 4. Timeline Rendering with Error Merging ---
     timeline_html_lines = []
 
-    for dt, color, text in timeline_events:
+    for dt, color_class, text in timeline_events:
         time_str = dt.strftime('%H:%M') if dt else "--:--"
 
         # Prepare content string
         if "ERROR" in text:
-            # Force Red for errors using inline style
-            content_html = f"<span style='color: #dc3545; font-weight: bold;'>{text}</span>"
+            # Use class for errors with bold styling
+            content_html = f"<span class='{color_class}' style='font-weight: bold;'>{text}</span>"
         else:
-            content_html = f"<span style='color: {color};'>{text}</span>"
+            content_html = f"<span class='{color_class}'>{text}</span>"
 
         # Check for merge condition:
         # If current is an ERROR, and we have a previous line, append it there.
@@ -3568,7 +3568,7 @@ def _parse_asiair_log_content(content):
             timeline_html_lines.append(merged_line)
         else:
             # Standard Line
-            row_html = f"<div style='margin-bottom: 2px;'><span style='color: #6c757d; font-family: monospace; margin-right: 8px;'>{time_str}</span> {content_html}</div>"
+            row_html = f"<div style='margin-bottom: 2px;'><span style='color: var(--text-muted); font-family: monospace; margin-right: 8px;'>{time_str}</span> {content_html}</div>"
             timeline_html_lines.append(row_html)
 
     # Join and append timeline
@@ -3578,7 +3578,7 @@ def _parse_asiair_log_content(content):
     # Warning if sessions were dropped
     if len(sessions) > 1:
         dropped_count = len(sessions) - 1
-        html += f"<div style='margin-top:10px; font-size:0.85em; color:#999;'>* Analyzed main imaging session only. Excluded {dropped_count} disconnected segment(s).</div>"
+        html += f"<div style='margin-top:10px; font-size:0.85em; color:var(--text-muted);'>* Analyzed main imaging session only. Excluded {dropped_count} disconnected segment(s).</div>"
 
     return html
 
