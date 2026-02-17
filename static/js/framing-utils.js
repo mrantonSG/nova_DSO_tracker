@@ -48,8 +48,21 @@ window.framingUtils_CONSTANTS = {
     // Geo belt point density
     GEO_BELT_RA_STEP_DEG: 0.2,        // Create a point every 0.2 degrees
 
-    // Colors
-    FOV_COLOR: '#83b4c5',
+    // Colors (use CSS variables, will be resolved at runtime)
+    FOV_COLOR: null,  // Will use CSS variable at runtime
+    _FOV_COLOR_VAR: '--primary-color',  // CSS variable name
+
+    /**
+     * Get the FOV color from CSS variable
+     * @returns {string} The FOV color value
+     */
+    getFovColor: function() {
+        if (window.stylingUtils && window.stylingUtils.getCssVar) {
+            return window.stylingUtils.getPrimaryColor();
+        }
+        // Fallback to hardcoded color
+        return '#83b4c5';
+    },
 };
 
 // ==========================================================================
