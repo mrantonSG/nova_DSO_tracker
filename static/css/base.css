@@ -526,3 +526,28 @@
 .status-strip select { background: transparent; border: none; font-weight: bold; color: var(--text-primary); font-size: 15px; padding: 0; cursor: pointer; }
 .status-strip select:focus { outline: none; }
 
+/* ===================================================================
+   STATUS UTILITY CLASSES
+   ================================================================ */
+
+.status-success { color: var(--success-color); }
+.status-warning { color: var(--warning-color); }
+.status-danger { color: var(--danger-color); }
+.status-info { color: var(--info-color); }
+.status-secondary { color: var(--text-muted); }
+
+/* Background variants */
+.status-bg-success { background-color: var(--success-bg); color: var(--success-text); }
+.status-bg-warning { background-color: var(--highlight-yellow); color: var(--highlight-yellow-text); }
+.status-bg-danger { background-color: var(--danger-bg); color: var(--danger-text); }
+.status-bg-info { background-color: var(--info-bg); color: var(--info-text); }
+
+/* Border variants */
+.status-border-success { border-color: var(--success-color); }
+.status-border-warning { border-color: var(--warning-color); }
+.status-border-danger { border-color: var(--danger-color); }
+.status-border-info { border-color: var(--info-color); }
+
+/* Themed divider */
+.divider-themed { border-color: var(--border-light); }
+
