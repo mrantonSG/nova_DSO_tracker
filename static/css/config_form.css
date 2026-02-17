@@ -162,7 +162,7 @@
     .file-button {
       padding: 5px 10px;
       font-size: 14px;
-      background-color: #98A5A8;
+      background-color: var(--bg-file-button);
       color: white;
       border: none;
       border-radius: 5px;
@@ -192,34 +192,26 @@
 
     /* Layout for Tabs + Toolbar Actions */
     .tab-container {
-        justify-content: space-between;
-        margin-top: 30px; /* Added spacing to separate from the top header */
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--border-medium-alt);
+        align-items: flex-end;
+        gap: 5px;
     }
     .tabs-left {
         display: flex;
         align-items: flex-end; /* Ensures tabs grow upwards from the bottom line */
+        flex-shrink: 0; /* Prevent tabs from being squeezed */
+        margin-bottom: -2px; /* Align tabs with border-bottom */
+        gap: 5px;
     }
     .tabs-right {
         display: flex;
         gap: 10px;
         padding-bottom: 5px;
         align-items: center;
-        padding-right: 5px;
-    }
-    .tabs-right form {
-        margin: 0;
-    }
-
-    /* --- New styling for native <select> dropdowns --- */
-    .tabs-left {
-        display: flex;
-    }
-    .tabs-right {
-        display: flex;
-        gap: 10px;
-        padding-bottom: 5px;
-        align-items: center;
-        padding-right: 5px;
+        margin-left: auto; /* Push actions to the right */
     }
     .tabs-right form {
         margin: 0;
@@ -446,7 +438,7 @@
     .column { background-color: var(--bg-light-alt); padding: 1.5em; border-radius: 8px; flex: 1; min-width: 350px;}
     .column h2, .column h3 { color: var(--text-primary); font-size: 16px; font-weight: bold; border-bottom: 1px solid var(--bg-light-gray-alt3); padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
     .column details > summary { cursor: pointer; font-weight: bold; }
-    .column hr { border: 0; border-top: 1px solid #ecf0f1; margin: 1.5em 0; }
+    .column hr { border: 0; border-top: 1px solid var(--border-divider); margin: 1.5em 0; }
     .column .form-group { margin-bottom: 1em; }
     .column .form-group label { display: block; margin-bottom: 5px; font-weight: normal; font-size: 14px; }
     .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: 1px solid var(--border-medium-alt); border-radius: 4px; box-sizing: border-box; }
@@ -541,11 +533,11 @@
         font-style: italic;
         color: var(--text-tertiary);
     }
-    .sampling-oversampled { color: #9b59b6; }
-    .sampling-slightly-oversampled { color: #3498db; }
-    .sampling-good { color: #2ecc71; }
-    .sampling-slightly-undersampled { color: #f39c12; }
-    .sampling-undersampled { color: #e74c3c; }
+    .sampling-oversampled { color: var(--sampling-oversampled); }
+    .sampling-slightly-oversampled { color: var(--sampling-slightly-oversampled); }
+    .sampling-good { color: var(--sampling-good); }
+    .sampling-slightly-undersampled { color: var(--warning-color-alt); }
+    .sampling-undersampled { color: var(--danger-color-darker); }
     .form-group {
       margin-top: 1em;
       margin-bottom: 1em;
@@ -673,7 +665,7 @@
     .shared-indicator {
         font-size: 12px;
         font-weight: bold;
-        color: #1a689e;
+        color: var(--info-badge);
         background: var(--info-bg-light);
         padding: 3px 8px;
         border-radius: 4px;

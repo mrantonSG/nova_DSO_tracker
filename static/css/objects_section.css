@@ -39,8 +39,8 @@
     .config-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     .config-table th, .config-table td { border: 1px solid var(--border-medium); padding: 8px 12px; text-align: left; }
     .config-table th { background-color: var(--bg-light-gray-alt2); }
-    .config-table .badge { background-color: #e9ecef; color: #495057; padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
-    .muted-text { color: #6c757d; }
+    .config-table .badge { background-color: var(--border-light-alt3); color: var(--accent-gray-text); padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
+    .muted-text { color: var(--accent-gray-medium); }
 
     /* --- Catalog/Source Styles (from previous step) --- */
     .readonly-notes {
@@ -56,7 +56,7 @@
     .catalog-source-badge {
         font-size: 13px;
         font-weight: bold;
-        color: #1a689e;
+        color: var(--info-badge);
         background: var(--info-bg-light);
         padding: 4px 8px;
         border-radius: 4px;

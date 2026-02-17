@@ -57,15 +57,15 @@
     </script>
 
   <div class="tab-container">
-    <div class="tabs-left">
-        <button class="tab-button" data-tab="general">General</button>
-        <button class="tab-button" data-tab="locations">Locations</button>
-        <button class="tab-button" data-tab="objects">Objects</button>
-        <button class="tab-button" data-tab="rigs">Rigs</button>
-        {% if not SINGLE_USER_MODE %}
-        <button class="tab-button" data-tab="shared">Shared Items</button>
-        {% endif %}
-    </div>
+        <div class="tabs-left">
+            <button class="tab-button" data-tab="general">General</button>
+            <button class="tab-button" data-tab="locations">Locations</button>
+            <button class="tab-button" data-tab="objects">Objects</button>
+            <button class="tab-button" data-tab="rigs">Rigs</button>
+            {% if not SINGLE_USER_MODE %}
+            <button class="tab-button" data-tab="shared">Shared Items</button>
+            {% endif %}
+        </div>
 
     <div class="tabs-right actions-group">
         <form method="post" action="{{ url_for('core.fetch_all_details') }}" id="fetch-details-form">
@@ -106,7 +106,6 @@
 
         {{ help_badge('data_management', 'Help with Data Tools') }}
     </div>
-  </div>
 
     <div id="general-tab-content" class="tab-content">
         <div class="config-section">

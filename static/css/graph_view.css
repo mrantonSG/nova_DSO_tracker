@@ -154,7 +154,7 @@ body {
 
 .content-section h3 {
     margin-top: 0;
-    color: #343a40;
+    color: var(--text-heading-dark);
     border-bottom: 1px solid var(--border-light-alt2);
     padding-bottom: 10px;
     font-size: 1.2em;
@@ -205,7 +205,7 @@ body {
     margin-top: 15px;
     padding: 15px;
     background-color: var(--bg-white);
-    border: 1px solid #bac8d3;
+    border: 1px solid var(--border-session-detail);
     border-radius: 4px;
     max-width: 770px;
 }
@@ -224,7 +224,7 @@ body {
 }
 
 .selected-session-details strong {
-    color: #1c2833;
+    color: var(--text-detail-strong);
 }
 
 .action-button-group {
@@ -290,7 +290,7 @@ hr.detail-separator {
 .opportunities-heading {
     font-size: 1.2em;
     font-weight: 600;
-    color: #343a40;
+    color: var(--text-heading-dark);
     margin-bottom: 10px;
 }
 
@@ -305,7 +305,7 @@ hr.detail-separator {
 }
 
 code {
-    background-color: #f5f5f5;
+    background-color: var(--bg-code-alt);
     padding: 2px 4px;
     border-radius: 4px;
     font-family: monospace;
@@ -315,7 +315,7 @@ code {
     white-space: pre-wrap;
     margin-top: 4px;
     padding-left: 10px;
-    border-left: 2px solid #eee;
+    border-left: 2px solid var(--border-light);
 }
 
 
@@ -327,24 +327,24 @@ code {
 }
 
 .session-history-table th, .session-history-table td {
-    border: 1px solid #dde;
+    border: 1px solid var(--border-session-table);
     padding: 6px 8px;
     text-align: left;
     vertical-align: middle;
 }
 
 .session-history-table th {
-    background-color: #e9ecef;
+    background-color: var(--border-light-alt3);
     font-weight: 600;
 }
 
 .session-history-table tr.clickable-session-row:hover {
-    background-color: #e6f7ff;
+    background-color: var(--highlight-blue-alt2);
     cursor: pointer;
 }
 
 .session-history-table tr.current-session-item {
-    background-color: #cfe2ff !important;
+    background-color: var(--highlight-blue) !important;
     font-weight: bold;
 }
 
@@ -372,8 +372,8 @@ code {
 
 .selected-session-details .form-data-value {
     padding: 8px 10px;
-    background-color: #e9ecef;
-    border: 1px solid #ced4da;
+    background-color: var(--border-light-alt3);
+    border: 1px solid var(--border-form);
     border-radius: 4px;
     min-height: 25px;
     word-wrap: break-word;
@@ -384,15 +384,15 @@ code {
 
 .selected-session-details div.form-data-value.preserve-newlines {
     min-height: 80px;
-    background-color: #fff;
-    border: 1px dashed #ced4da;
+    background-color: var(--bg-white);
+    border: 1px dashed var(--border-form);
 
 }
 
 div.form-data-value.preserve-newlines {
     min-height: 80px;
-    background-color: #fff;
-    border: 1px dashed #ced4da;
+    background-color: var(--bg-white);
+    border: 1px dashed var(--border-form);
 }
 
 .form-group label {
@@ -400,7 +400,7 @@ div.form-data-value.preserve-newlines {
     margin-bottom: 3px;
     font-weight: normal;
     font-size: 1em;
-    color: #495057;
+    color: var(--accent-gray-text);
     width: 320px;
 
 
@@ -413,10 +413,10 @@ div.form-data-value.preserve-newlines {
 .form-section-title {
     font-size: 1.1em;
     font-weight: bold;
-    color: #333;
+    color: var(--text-primary);
     margin-top: 20px;
     margin-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-light);
     padding-bottom: 5px;
 }
 
@@ -439,14 +439,14 @@ div.form-data-value.preserve-newlines {
 }
 
 .framing-table th, .framing-table td {
-    border: 1px solid #eee;
+    border: 1px solid var(--border-light);
     padding: 10px;
     text-align: left;
     font-size: 14px;
 }
 
 .framing-table th {
-    background-color: #f9f9f9;
+    background-color: var(--bg-light-alt);
     font-weight: 600;
 }
 
@@ -488,7 +488,7 @@ div.form-data-value.preserve-newlines {
     justify-content: space-between;
     gap: 12px;
     padding: 12px 56px 6px 16px;
-    border-bottom: 1px solid #83b4c5;
+    border-bottom: 1px solid var(--primary-color);
 }
 
 .brand-strong {
@@ -500,15 +500,15 @@ div.form-data-value.preserve-newlines {
 .brand-light {
     font-weight: 400;
     margin-left: 6px;
-    color: #555;
+    color: var(--text-secondary);
     font-size: 20px;
 }
 
 .fov-chip {
     font-size: 13px;
-    color: #444;
-    background: #f3f5f7;
-    border: 1px solid #e2e6ea;
+    color: var(--text-dark-alt);
+    background: var(--fov-bg);
+    border: 1px solid var(--border-framing);
     border-radius: 999px;
     padding: 4px 10px;
     white-space: nowrap;
@@ -522,11 +522,11 @@ div.form-data-value.preserve-newlines {
     z-index: var(--z-layer-2);
     line-height: 1;
     font-size: 22px;
-    color: #999;
+    color: var(--text-muted-alt);
 }
 
 .modal .close:hover {
-    color: #666;
+    color: var(--text-tertiary);
 }
 
 #framing-modal {
@@ -543,7 +543,7 @@ div.form-data-value.preserve-newlines {
     margin: 2vh auto;
     width: 98vw;
     height: 96vh;
-    background: #fff;
+    background: var(--bg-white);
     border-radius: 10px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
     overflow: hidden;
@@ -561,8 +561,8 @@ div.form-data-value.preserve-newlines {
     flex-wrap: wrap;
     gap: 10px 14px;
     align-items: center;
-    border-top: 1px solid #e9eef2;
-    border-bottom: 1px solid #e9eef2;
+    border-top: 1px solid var(--border-toolbar-divider);
+    border-bottom: 1px solid var(--border-toolbar-divider);
 }
 
 
@@ -639,17 +639,17 @@ div.form-data-value.preserve-newlines {
 }
 
 .fullscreen-btn:hover {
-    color: #0077aa;
+    color: var(--link-color-alt);
 }
 
 .close {
     font-size: 1.4rem;
     cursor: pointer;
-    color: #666;
+    color: var(--text-tertiary);
 }
 
 .close:hover {
-    color: #d00;
+    color: var(--danger-close);
 }
 
 .modal-controls {
@@ -675,12 +675,12 @@ div.form-data-value.preserve-newlines {
     border: 0;
     border-radius: 6px;
     background: transparent;
-    color: #444;
+    color: var(--text-dark-alt);
     cursor: pointer;
 }
 
 .close-btn:hover {
-    color: #d22;
+    color: var(--danger-close-hover);
 }
 
 #chart-container {
@@ -768,14 +768,14 @@ div.form-data-value.preserve-newlines {
 }
 
 /* Tab navigation styles moved to base.css for consistency across all pages */
-.tab-content { padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 6px 6px; }
+.tab-content { padding: 20px; background-color: var(--bg-light); border: 1px solid var(--border-light-alt2); border-top: none; border-radius: 0 0 6px 6px; }
 .loader-row td {
     text-align: center !important;
     padding: 40px 0;
     font-size: 1.1em;
     font-weight: 500;
-    color: #555;
-    background-color: #f8f9fa;
+    color: var(--text-secondary);
+    background-color: var(--bg-light);
 }
 #active-project-checkbox {
     transform: scale(1.5); /* Adjust this value to change the size */
@@ -788,13 +788,13 @@ div.form-data-value.preserve-newlines {
     justify-content: center;
     height: 100%;
     min-height: 200px;
-    background-color: #f8f9fa;
-    border: 1px dashed #ced4da;
+    background-color: var(--bg-light);
+    border: 1px dashed var(--border-form);
     border-radius: 6px;
     padding: 20px;
     box-sizing: border-box;
     text-align: center;
-    color: #555;
+    color: var(--text-secondary);
     font-size: 1.1em;
 }
 
@@ -833,7 +833,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 }
 .insp-detail-image-wrapper {
     position: relative;
-    background-color: #000;
+    background-color: var(--text-black);
     border-radius: 6px;
     overflow: hidden;
     max-height: 500px;
@@ -858,10 +858,10 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     pointer-events: none;
 }
 .insp-detail-text {
-    background: #fff;
+    background: var(--bg-white);
     padding: 20px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--text-lightest);
     border-radius: 6px;
     line-height: 1.6;
-    color: #444;
+    color: var(--text-dark-alt);
 }
