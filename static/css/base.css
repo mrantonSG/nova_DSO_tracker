@@ -587,6 +587,76 @@
 }
 
 /* ===================================================================
+   DARK MODE - TRIX EDITOR
+   ================================================================ */
+
+/* Trix toolbar background */
+[data-theme="dark"] trix-toolbar {
+    background-color: var(--bg-light-gray) !important;
+    border-color: var(--border-medium) !important;
+}
+
+/* Trix toolbar button groups */
+[data-theme="dark"] trix-toolbar .trix-button-group {
+    border-color: var(--border-medium) !important;
+}
+
+/* Trix toolbar buttons - match inactive tab styling */
+[data-theme="dark"] trix-toolbar .trix-button {
+    color: rgba(144, 144, 144, 0.9) !important;
+    border-color: var(--border-medium) !important;
+}
+
+/* Trix icon buttons - use filter to make black icons light */
+[data-theme="dark"] trix-toolbar .trix-button--icon::before {
+    filter: invert(0.7) !important;
+    opacity: 0.9 !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button:hover {
+    background-color: var(--bg-medium-alt) !important;
+    color: rgba(176, 176, 176, 0.95) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button:hover::before {
+    filter: invert(0.8) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button.trix-active {
+    background-color: var(--bg-medium-alt) !important;
+    color: rgba(224, 224, 224, 1) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button.trix-active::before {
+    filter: invert(0.85) !important;
+    opacity: 1 !important;
+}
+
+/* Trix disabled buttons */
+[data-theme="dark"] trix-toolbar .trix-button:disabled {
+    color: rgba(144, 144, 144, 0.4) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button:disabled::before {
+    filter: invert(0.4) !important;
+    opacity: 0.4 !important;
+}
+
+/* Trix editor content area */
+[data-theme="dark"] trix-editor {
+    background-color: var(--bg-medium) !important;
+    border-color: var(--border-medium) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Trix labels */
+[data-theme="dark"] .form-group.trix-group label,
+[data-theme="dark"] .notes-section label,
+[data-theme="dark"] .project-notes-section label {
+    color: var(--text-tertiary) !important;
+}
+
+/* ===================================================================
    BUTTON UTILITIES (Unified from dashboard, config_form, graph_view)
    ================================================================ */
 
