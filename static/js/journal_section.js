@@ -935,4 +935,87 @@
         initializeFormState();
     });
 
+    // ============================================
+    // THEME INTEGRATION
+    // ============================================
+
+    /**
+     * Update journal chart with theme-aware colors
+     * Updates grid colors, axis colors, and re-renders chart
+     */
+    function updateJournalChartForTheme() {
+        if (!window.journalChart) return;
+
+        const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme
+            ? window.stylingUtils.isDarkTheme()
+            : false;
+
+        // Theme-aware colors
+        const gridColor = isDark ? 'rgba(150, 150, 150, 0.3)' : 'rgba(128, 128, 128, 0.5)';
+        const textColor = isDark ? '#e0e0e0' : '#333';
+        const tickColor = isDark ? '#b0b0b0' : '#666';
+
+        // Update chart options with new colors
+        if (window.journalChart.options.scales) {
+            window.journalChart.options.scales.x.grid.color = gridColor;
+            window.journalChart.options.scales.y.grid.color = gridColor;
+
+            // Update tick colors
+            if (window.journalChart.options.scales.x.ticks) {
+                window.journalChart.options.scales.x.ticks.color = tickColor;
+            }
+            if (window.journalChart.options.scales.y.ticks) {
+                window.journalChart.options.scales.y.ticks.color = tickColor;
+            }
+
+            // Update title colors
+            if (window.journalChart.options.scales.x.title) {
+                window.journalChart.options.scales.x.title.color = textColor;
+            }
+            if (window.journalChart.options.scales.y.title) {
+                window.journalChart.options.scales.y.title.color = textColor;
+            }
+        }
+
+        // Update dataset colors
+        if (window.journalChart.data.datasets) {
+            // Object altitude
+            window.journalChart.data.datasets[0].borderColor = window.stylingUtils && window.stylingUtils.getChartLineColor
+                ? window.stylingUtils.getChartLineColor(0)
+                : '#36A2EB';
+
+            // Moon altitude
+            window.journalChart.data.datasets[1].borderColor = window.stylingUtils && window.stylingUtils.getColor
+                ? window.stylingUtils.getColor('--warning-color', '#FFC107')
+                : '#FFC107';
+
+            // Horizon
+            window.journalChart.data.datasets[2].borderColor = window.stylingUtils && window.stylingUtils.getColor
+                ? window.stylingUtils.getColor('--text-primary', '#333')
+                : '#333';
+        }
+
+        // Update chart with new options
+        window.journalChart.update('none');
+    }
+
+    // Register theme change callback
+    if (window.stylingUtils && window.stylingUtils.onThemeChange) {
+        window.stylingUtils.onThemeChange(function(event) {
+            console.log('[journal_section.js] Theme changed to:', event.detail.theme);
+            updateJournalChartForTheme();
+        });
+
+        // Initial update when stylingUtils is available
+        // Wait a bit for chart to be initialized
+        setTimeout(updateJournalChartForTheme, 100);
+    }
+
+    // ============================================
+    // END THEME INTEGRATION
+    // ============================================
+
+    // Expose theme update function for external calls
+    window.updateJournalChartForTheme = updateJournalChartForTheme;
+
 })();
