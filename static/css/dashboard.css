@@ -2,7 +2,7 @@
         font-family: 'Roboto', sans-serif;
         padding: 20px;
         margin: 0;
-        background-color: var(--bg-white);
+        background-color: var(--gray-50);
         color: var(--text-primary);
     }
 

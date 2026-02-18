@@ -1,6 +1,8 @@
 
 body {
   font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  background-color: var(--gray-50);
+  color: var(--text-primary);
 }
 
 /* FORCE floating behavior on the specific yellow alert banner */
