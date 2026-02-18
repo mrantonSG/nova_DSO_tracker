@@ -3201,4 +3201,109 @@
             window.removeEventListener('keydown', framingKeydownHandler);
         }
     });
-})();
+
+    // ============================================
+    // THEME INTEGRATION
+    // ============================================
+
+    /**
+     * Update chart options with theme-aware colors
+     * Updates grid colors, axis colors, and re-renders chart
+     */
+    function updateChartForTheme() {
+        if (!window.altitudeChart) return;
+
+        const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme
+            ? window.stylingUtils.isDarkTheme()
+            : false;
+
+        // Theme-aware colors
+        const gridColor = isDark ? 'rgba(150, 150, 150, 0.3)' : 'rgba(128, 128, 128, 0.5)';
+        const textColor = isDark ? '#e0e0e0' : '#333';
+        const tickColor = isDark ? '#b0b0b0' : '#666';
+
+        // Update chart options with new colors
+        if (window.altitudeChart.options.scales) {
+            window.altitudeChart.options.scales.x.grid.color = gridColor;
+            window.altitudeChart.options.scales.yAltitude.grid.color = gridColor;
+            window.altitudeChart.options.scales.yAzimuth.grid.drawOnChartArea = false;
+
+            // Update tick colors
+            if (window.altitudeChart.options.scales.x.ticks) {
+                window.altitudeChart.options.scales.x.ticks.color = tickColor;
+            }
+            if (window.altitudeChart.options.scales.yAltitude.ticks) {
+                window.altitudeChart.options.scales.yAltitude.ticks.color = tickColor;
+            }
+            if (window.altitudeChart.options.scales.yAzimuth.ticks) {
+                window.altitudeChart.options.scales.yAzimuth.ticks.color = tickColor;
+            }
+
+            // Update title colors
+            if (window.altitudeChart.options.scales.x.title) {
+                window.altitudeChart.options.scales.x.title.color = textColor;
+            }
+            if (window.altitudeChart.options.scales.yAltitude.title) {
+                window.altitudeChart.options.scales.yAltitude.title.color = textColor;
+            }
+            if (window.altitudeChart.options.scales.yAzimuth.title) {
+                window.altitudeChart.options.scales.yAzimuth.title.color = textColor;
+            }
+        }
+
+        // Update dataset colors
+        if (window.altitudeChart.data.datasets) {
+            // Object altitude
+            window.altitudeChart.data.datasets[0].borderColor = window.stylingUtils && window.stylingUtils.getChartLineColor
+                ? window.stylingUtils.getChartLineColor(0)
+                : '#36A2EB';
+
+            // Moon altitude
+            window.altitudeChart.data.datasets[1].borderColor = window.stylingUtils && window.stylingUtils.getChartLineColor
+                ? window.stylingUtils.getChartLineColor(1)
+                : '#FFC107';
+
+            // Horizon mask
+            window.altitudeChart.data.datasets[2].borderColor = window.stylingUtils && window.stylingUtils.getChartLineColor
+                ? window.stylingUtils.getChartLineColor(2)
+                : '#636e72';
+
+            // Horizon line
+            window.altitudeChart.data.datasets[3].borderColor = window.stylingUtils && window.stylingUtils.getColor
+                ? window.stylingUtils.getColor('--text-primary', '#333')
+                : '#333';
+
+            // Object azimuth
+            window.altitudeChart.data.datasets[4].borderColor = window.stylingUtils && window.stylingUtils.getChartLineColor
+                ? window.stylingUtils.getChartLineColor(0)
+                : '#36A2EB';
+
+            // Moon azimuth
+            window.altitudeChart.data.datasets[5].borderColor = window.stylingUtils && window.stylingUtils.getChartLineColor
+                ? window.stylingUtils.getChartLineColor(1)
+                : '#FFC107';
+        }
+
+        // Update chart with new options
+        window.altitudeChart.update('none');
+    }
+
+    // Register theme change callback
+    if (window.stylingUtils && window.stylingUtils.onThemeChange) {
+        window.stylingUtils.onThemeChange(function(event) {
+            console.log('[graph_view_chart.js] Theme changed to:', event.detail.theme);
+            updateChartForTheme();
+        });
+
+        // Initial update when stylingUtils is available
+        // Wait a bit for chart to be initialized
+        setTimeout(updateChartForTheme, 100);
+    }
+
+    // ============================================
+    // END THEME INTEGRATION
+    // ============================================
+
+    // Expose theme update function for external calls
+    window.updateChartForTheme = updateChartForTheme;
+

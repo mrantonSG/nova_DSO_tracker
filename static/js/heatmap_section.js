@@ -331,4 +331,125 @@
     window.updateHeatmapFilter = updateHeatmapFilter;
     window.fetchAndRenderHeatmap = fetchAndRenderHeatmap;
     window.resetHeatmapState = resetHeatmapState;
-})();
+
+    // ============================================
+    // THEME INTEGRATION
+    // ============================================
+
+    /**
+     * Update heatmap with theme-aware colors
+     * Re-renders the heatmap with new background and text colors
+     */
+    function updateHeatmapForTheme() {
+        if (!globalHeatmapData || !currentFilteredY) return;
+
+        const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme
+            ? window.stylingUtils.isDarkTheme()
+            : false;
+
+        // Theme-aware background colors (transparent for plot area)
+        const plotBgColor = isDark ? '#1e1e1e' : '#ffffff';
+        const paperBgColor = isDark ? '#121212' : '#ffffff';
+        const textColor = isDark ? '#e0e0e0' : '#333';
+        const tickColor = isDark ? '#b0b0b0' : '#666';
+
+        // Update color scale for heatmap (uses CSS variables that change with theme)
+        const novaColorScale = [
+            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', '#1a1a1a') : '#1a1a1a'],
+            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', '#2a3a3d') : '#2a3a3d'],
+            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', '#3d5a61') : '#3d5a61'],
+            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', '#83b4c5') : '#83b4c5'],
+            [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', '#a8d4e0') : '#a8d4e0']
+        ];
+
+        const trace = {
+            z: currentFilteredZ,
+            x: globalHeatmapData.x,
+            y: currentFilteredY,
+            type: 'heatmap',
+            colorscale: novaColorScale,
+            showscale: false,
+            xgap: 1,
+            ygap: 1,
+            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br>Score: %{z:.0f}/100<extra></extra>'
+        };
+
+        const calculatedHeight = Math.max(600, currentFilteredY.length * 15);
+
+        const layout = {
+            height: calculatedHeight,
+            xaxis: {
+                title: '',
+                side: 'top',
+                tickangle: -90,
+                fixedrange: true,
+                tickfont: { size: 11, color: tickColor }
+            },
+            yaxis: {
+                automargin: true,
+                fixedrange: true,
+                tickfont: { size: 11, color: textColor }
+            },
+            dragmode: false,
+            margin: { l: 180, r: 20, b: 20, t: 100 },
+            paper_bgcolor: paperBgColor,
+            plot_bgcolor: plotBgColor
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        const plotDiv = document.getElementById('yearly-heatmap-plot');
+        if (!plotDiv) return;
+
+        if (typeof Plotly === 'undefined') {
+            plotDiv.innerHTML = '<div style="color:orange; text-align:center; padding:20px;">Plotly library not loaded. Please check your internet connection or ad-blocker.</div>';
+            return;
+        }
+
+        // Re-plot the heatmap with new theme colors
+        Plotly.newPlot(plotDiv, [trace], layout, config).then(() => {
+            // Re-attach click listener
+            plotDiv.removeAllListeners('plotly_click');
+            plotDiv.on('plotly_click', function(evt){
+                if(evt.points && evt.points.length > 0) {
+                    const point = evt.points[0];
+                    const yIndex = currentFilteredY.indexOf(point.y);
+                    const xIndex = globalHeatmapData.x.indexOf(point.x);
+
+                    if (yIndex !== -1 && xIndex !== -1) {
+                        const objectId = currentFilteredIds[yIndex];
+                        if (globalHeatmapData.dates && globalHeatmapData.dates[xIndex]) {
+                            const dateStr = globalHeatmapData.dates[xIndex];
+                            const [year, month, day] = dateStr.split('-');
+                            const currentLoc = sessionStorage.getItem('selectedLocation');
+                            const locParam = currentLoc ? `&location=${encodeURIComponent(currentLoc)}` : '';
+                            window.location.assign(`/graph_dashboard/${encodeURIComponent(objectId)}?tab=chart&year=${year}&month=${month}&day=${day}${locParam}`);
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Register theme change callback
+    if (window.stylingUtils && window.stylingUtils.onThemeChange) {
+        window.stylingUtils.onThemeChange(function(event) {
+            console.log('[heatmap_section.js] Theme changed to:', event.detail.theme);
+            updateHeatmapForTheme();
+        });
+
+        // Initial update when stylingUtils is available
+        // Wait a bit for heatmap to be initialized
+        setTimeout(updateHeatmapForTheme, 100);
+    }
+
+    // ============================================
+    // END THEME INTEGRATION
+    // ============================================
+
+    // Expose theme update function for external calls
+    window.updateHeatmapForTheme = updateHeatmapForTheme;
+

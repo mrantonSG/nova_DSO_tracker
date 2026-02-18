@@ -101,6 +101,21 @@ window.novaState.fn = Object.assign(existingFn, {
 // ============================================
 
 document.addEventListener("DOMContentLoaded", function () {
+    // --- INITIALIZE THEME TOGGLE BUTTON ---
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Use stylingUtils.toggleTheme to switch theme
+            if (window.stylingUtils && window.stylingUtils.toggleTheme) {
+                window.stylingUtils.toggleTheme();
+            } else {
+                console.warn('[base.js] stylingUtils.toggleTheme not available');
+            }
+        });
+    }
+
     // --- INITIALIZE HELP MODAL ---
     // ModalController should be available now (preserved from modal-manager.js)
     if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
