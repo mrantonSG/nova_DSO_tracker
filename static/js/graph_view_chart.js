@@ -686,9 +686,9 @@
             position: 'start',
             rotation: 90,
             font: {size: 10, weight: '400'},
-            color: (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-primary', '#222') : '#222',
-            backgroundColor: 'rgba(255,255,255,0.92)',
-            borderColor: 'rgba(0,0,0,0.15)',
+            color: (window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme()) ? '#e0e0e0' : '#222',
+            backgroundColor: (window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme()) ? 'rgba(40,40,40,0.92)' : 'rgba(255,255,255,0.92)',
+            borderColor: (window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme()) ? 'rgba(100,100,100,0.5)' : 'rgba(0,0,0,0.15)',
             borderWidth: 1
         };
 
@@ -809,7 +809,9 @@
                 const duskPx = duskTime ? scales.x.getPixelForValue(duskTime) : right;
                 const dawnPx = dawnTime ? scales.x.getPixelForValue(dawnTime) : left;
                 ctx.save();
-                ctx.fillStyle = 'rgba(211, 211, 211, 1)';
+                // Use darker shade in dark mode
+                const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme && window.stylingUtils.isDarkTheme();
+                ctx.fillStyle = isDark ? 'rgba(50, 50, 50, 0.6)' : 'rgba(211, 211, 211, 0.7)';
                 if (duskPx < dawnPx) {
                     if (duskPx > left) ctx.fillRect(left, chartArea.top, duskPx - left, chartArea.height);
                     if (dawnPx < right) ctx.fillRect(dawnPx, chartArea.top, right - dawnPx, chartArea.height);
@@ -3222,6 +3224,11 @@
         const textColor = isDark ? '#e0e0e0' : '#333';
         const tickColor = isDark ? '#b0b0b0' : '#666';
 
+        // Annotation label colors
+        const annotationLabelColor = isDark ? '#e0e0e0' : '#222';
+        const annotationBgColor = isDark ? 'rgba(40,40,40,0.92)' : 'rgba(255,255,255,0.92)';
+        const annotationBorderColor = isDark ? 'rgba(100,100,100,0.5)' : 'rgba(0,0,0,0.15)';
+
         // Update chart options with new colors
         if (window.altitudeChart.options.scales) {
             window.altitudeChart.options.scales.x.grid.color = gridColor;
@@ -3248,6 +3255,20 @@
             }
             if (window.altitudeChart.options.scales.yAzimuth.title) {
                 window.altitudeChart.options.scales.yAzimuth.title.color = textColor;
+            }
+        }
+
+        // Update annotation label colors
+        if (window.altitudeChart.options.plugins && window.altitudeChart.options.plugins.annotation) {
+            const annotations = window.altitudeChart.options.plugins.annotation.annotations;
+            if (annotations) {
+                Object.keys(annotations).forEach(key => {
+                    if (annotations[key].label) {
+                        annotations[key].label.color = annotationLabelColor;
+                        annotations[key].label.backgroundColor = annotationBgColor;
+                        annotations[key].label.borderColor = annotationBorderColor;
+                    }
+                });
             }
         }
 

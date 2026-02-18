@@ -865,3 +865,94 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     line-height: 1.6;
     color: var(--text-dark-alt);
 }
+
+/* ===================================================================
+   DARK MODE OVERRIDES
+   ================================================================ */
+
+/* Date controls inputs and selects */
+[data-theme="dark"] .date-controls input,
+[data-theme="dark"] .date-controls select {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .date-controls input:focus,
+[data-theme="dark"] .date-controls select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Add object input */
+[data-theme="dark"] #object-search {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Secondary object select (Add Object) */
+[data-theme="dark"] #secondary-object-select {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Framing rig select */
+[data-theme="dark"] #framing-rig-select {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* View selector dropdown */
+[data-theme="dark"] .view-selector {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Trix Editor dark mode */
+[data-theme="dark"] trix-editor {
+    background-color: var(--bg-medium);
+    border-color: var(--border-medium);
+    color: var(--text-tertiary);
+}
+
+[data-theme="dark"] .trix-toolbar {
+    background-color: var(--bg-light-gray);
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .trix-toolbar .trix-button {
+    color: var(--text-tertiary) !important;
+}
+
+[data-theme="dark"] .trix-toolbar .trix-button svg {
+    fill: var(--text-tertiary) !important;
+    stroke: var(--text-tertiary) !important;
+}
+
+[data-theme="dark"] .trix-toolbar .trix-button:hover {
+    background-color: var(--bg-medium-alt);
+}
+
+[data-theme="dark"] .trix-toolbar .trix-button.active {
+    background-color: var(--bg-medium-alt);
+}
+
+/* Trix buttons in any context */
+[data-theme="dark"] trix-toolbar .trix-button {
+    color: var(--text-tertiary) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button svg {
+    fill: var(--text-tertiary) !important;
+}
+
+/* Notes section labels */
+[data-theme="dark"] .notes-section label,
+[data-theme="dark"] .form-group.trix-group label,
+[data-theme="dark"] .project-notes-section label {
+    color: var(--text-tertiary);
+}
