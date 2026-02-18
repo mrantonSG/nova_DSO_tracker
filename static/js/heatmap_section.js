@@ -453,3 +453,5 @@
     // Expose theme update function for external calls
     window.updateHeatmapForTheme = updateHeatmapForTheme;
 
+})();
+

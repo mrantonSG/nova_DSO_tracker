@@ -3307,3 +3307,5 @@
     // Expose theme update function for external calls
     window.updateChartForTheme = updateChartForTheme;
 
+})();
+

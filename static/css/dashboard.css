@@ -209,6 +209,9 @@
       font-family: 'Roboto', sans-serif;
       margin-top: 2px;
       margin-bottom: 2px;
+      border: 1px solid var(--border-medium);
+      background-color: var(--bg-white);
+      border-radius: 3px;
     }
 
     /* --- NEW: Unified Dropdown Styling --- */
@@ -481,3 +484,45 @@
       transform: translateX(20px);
     }
     /* --- End Simulation Mode --- */
+
+/* ===================================================================
+   DARK MODE OVERRIDES
+   ================================================================ */
+
+/* Filter row inputs */
+[data-theme="dark"] .filter-row input {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .filter-row input::placeholder {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .filter-row input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Filter row header cells */
+[data-theme="dark"] .filter-row th {
+    background-color: var(--bg-light-gray-alt2);
+}
+
+/* Simulation date input in dark mode */
+[data-theme="dark"] #sim-date-input {
+    background-color: var(--bg-medium);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #sim-date-input:disabled {
+    background-color: var(--bg-light-gray);
+    color: var(--text-muted);
+}
+
+/* Slider/switch in dark mode */
+[data-theme="dark"] .slider {
+    background-color: var(--bg-medium-alt);
+}
