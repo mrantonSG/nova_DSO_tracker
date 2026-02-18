@@ -2,6 +2,8 @@
       padding: 20px;
       margin: 0;
       font-family: 'Roboto', sans-serif;
+      background-color: var(--gray-50);
+      color: var(--text-primary);
     }
 
     fieldset {
@@ -533,9 +535,9 @@
         font-style: italic;
         color: var(--text-tertiary);
     }
-    .sampling-oversampled { color: var(--sampling-oversampled); }
-    .sampling-slightly-oversampled { color: var(--sampling-slightly-oversampled); }
-    .sampling-good { color: var(--sampling-good); }
+    .sampling-oversampled { color: var(--color-sampling-oversampled); }
+    .sampling-slightly-oversampled { color: var(--color-sampling-slightly-oversampled); }
+    .sampling-good { color: var(--color-sampling-good); }
     .sampling-slightly-undersampled { color: var(--warning-color-alt); }
     .sampling-undersampled { color: var(--danger-color-darker); }
     .form-group {
