@@ -54,10 +54,13 @@ window.stylingUtils_FALLBACKS = {
     // Special colors
     INFO_COLOR_ALT2: '#007bff',
     FOV_COLOR: '#83b4c5',
-    SIMULATION_GREEN: '#ca0e0e',
+    SIMULATION_ACTIVE: '#ca0e0e',
     SIMULATION_ERROR_RED: '#f8d7da',
     SIMULATION_ERROR_TEXT: '#721c24',
     GEOSTATIONARY_COLOR: '#e056fd',
+    SAMPLING_GOOD: '#2ecc71',
+    SAMPLING_OVERSAMPLED: '#9b59b6',
+    SAMPLING_SLIGHTLY_OVERSAMPLED: '#3498db',
 
     // Weather overlay colors (cloud and seeing conditions)
     WEATHER_CLOUD_1: 'rgba(135, 206, 250, 0.15)',  // Clear
@@ -217,10 +220,15 @@ window.stylingUtils_COLOR_VARS = {
     // Special
     INFO_ALT2: '--info-color-alt2',
     FOV: '--primary-color',
-    SIMULATION_GREEN: '--success-color',
+    SIMULATION_ACTIVE: '--color-simulation-active',
     SIMULATION_ERROR_RED: '--danger-bg',
     SIMULATION_ERROR_TEXT: '--danger-text',
-    GEOSTATIONARY: '--color-geostationary'
+    GEOSTATIONARY: '--color-geostationary',
+    SAMPLING_GOOD: '--color-sampling-good',
+    SAMPLING_OVERSAMPLED: '--color-sampling-oversampled',
+    SAMPLING_SLIGHTLY_OVERSAMPLED: '--color-sampling-slightly-oversampled',
+    NAV_PRIMARY: '--color-nav-primary',
+    NAV_PRIMARY_HOVER: '--color-nav-primary-hover'
 };
 
 // ==========================================================================
@@ -419,6 +427,72 @@ window.stylingUtils_getWeatherColor = function(condition, type) {
     return fallbackMap[condition] || fallbackMap[1];
 };
 
+/**
+ * Get simulation active color
+ * @returns {string} The computed simulation active color (red)
+ */
+window.stylingUtils_getSimulationActiveColor = function() {
+    return window.stylingUtils_getCssVar(
+        window.stylingUtils_COLOR_VARS.SIMULATION_ACTIVE,
+        window.stylingUtils_FALLBACKS.SIMULATION_ACTIVE
+    );
+};
+
+/**
+ * Get sampling good color
+ * @returns {string} The computed sampling good color (green)
+ */
+window.stylingUtils_getSamplingGoodColor = function() {
+    return window.stylingUtils_getCssVar(
+        window.stylingUtils_COLOR_VARS.SAMPLING_GOOD,
+        window.stylingUtils_FALLBACKS.SAMPLING_GOOD
+    );
+};
+
+/**
+ * Get sampling oversampled color
+ * @returns {string} The computed sampling oversampled color (purple)
+ */
+window.stylingUtils_getSamplingOversampledColor = function() {
+    return window.stylingUtils_getCssVar(
+        window.stylingUtils_COLOR_VARS.SAMPLING_OVERSAMPLED,
+        window.stylingUtils_FALLBACKS.SAMPLING_OVERSAMPLED
+    );
+};
+
+/**
+ * Get sampling slightly oversampled color
+ * @returns {string} The computed sampling slightly oversampled color (blue)
+ */
+window.stylingUtils_getSamplingSlightlyOversampledColor = function() {
+    return window.stylingUtils_getCssVar(
+        window.stylingUtils_COLOR_VARS.SAMPLING_SLIGHTLY_OVERSAMPLED,
+        window.stylingUtils_FALLBACKS.SAMPLING_SLIGHTLY_OVERSAMPLED
+    );
+};
+
+/**
+ * Get navigation primary color
+ * @returns {string} The computed navigation primary color
+ */
+window.stylingUtils_getNavPrimaryColor = function() {
+    return window.stylingUtils_getCssVar(
+        window.stylingUtils_COLOR_VARS.NAV_PRIMARY,
+        window.stylingUtils_FALLBACKS.PRIMARY_COLOR
+    );
+};
+
+/**
+ * Get navigation primary hover color
+ * @returns {string} The computed navigation primary hover color
+ */
+window.stylingUtils_getNavPrimaryHoverColor = function() {
+    return window.stylingUtils_getCssVar(
+        window.stylingUtils_COLOR_VARS.NAV_PRIMARY_HOVER,
+        window.stylingUtils_FALLBACKS.PRIMARY_DARK
+    );
+};
+
 // ==========================================================================
 // GLOBAL EXPORTS
 // ==========================================================================
@@ -463,5 +537,11 @@ window.stylingUtils = {
     getDangerColor: window.stylingUtils_getDangerColor,
     getDangerDarkColor: window.stylingUtils_getDangerDarkColor,
     getGeostationaryColor: window.stylingUtils_getGeostationaryColor,
-    getWeatherColor: window.stylingUtils_getWeatherColor
+    getWeatherColor: window.stylingUtils_getWeatherColor,
+    getSimulationActiveColor: window.stylingUtils_getSimulationActiveColor,
+    getSamplingGoodColor: window.stylingUtils_getSamplingGoodColor,
+    getSamplingOversampledColor: window.stylingUtils_getSamplingOversampledColor,
+    getSamplingSlightlyOversampledColor: window.stylingUtils_getSamplingSlightlyOversampledColor,
+    getNavPrimaryColor: window.stylingUtils_getNavPrimaryColor,
+    getNavPrimaryHoverColor: window.stylingUtils_getNavPrimaryHoverColor
 };
