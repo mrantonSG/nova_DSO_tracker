@@ -26,11 +26,12 @@
 
     <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
 
+    <!-- Trix CSS loaded first so our dark mode overrides work -->
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-regular.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ url_for('static', filename='fonts/roboto-v49-latin-700.woff2') }}" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js" defer></script>
     <script src="{{ url_for('static', filename='js/utils.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/modal-manager.js') }}" defer></script>

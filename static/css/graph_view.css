@@ -912,47 +912,66 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: var(--text-primary);
 }
 
-/* Trix Editor dark mode */
-[data-theme="dark"] trix-editor {
-    background-color: var(--bg-medium);
-    border-color: var(--border-medium);
-    color: var(--text-tertiary);
+/* ===================================================================
+   DARK MODE - TRIX EDITOR OVERRIDES (graph_view specific)
+   ================================================================ */
+
+/* Trix toolbar background */
+[data-theme="dark"] trix-toolbar {
+    background-color: var(--bg-light-gray) !important;
+    border-color: var(--border-medium) !important;
 }
 
-[data-theme="dark"] .trix-toolbar {
-    background-color: var(--bg-light-gray);
-    border-color: var(--border-medium);
+/* Trix toolbar button groups */
+[data-theme="dark"] trix-toolbar .trix-button-group {
+    border-color: var(--border-medium) !important;
 }
 
-[data-theme="dark"] .trix-toolbar .trix-button {
-    color: var(--text-tertiary) !important;
-}
-
-[data-theme="dark"] .trix-toolbar .trix-button svg {
-    fill: var(--text-tertiary) !important;
-    stroke: var(--text-tertiary) !important;
-}
-
-[data-theme="dark"] .trix-toolbar .trix-button:hover {
-    background-color: var(--bg-medium-alt);
-}
-
-[data-theme="dark"] .trix-toolbar .trix-button.active {
-    background-color: var(--bg-medium-alt);
-}
-
-/* Trix buttons in any context */
+/* Trix toolbar buttons - match inactive tab styling */
 [data-theme="dark"] trix-toolbar .trix-button {
-    color: var(--text-tertiary) !important;
+    color: rgba(144, 144, 144, 0.9) !important;
+    border-color: var(--border-medium) !important;
 }
 
-[data-theme="dark"] trix-toolbar .trix-button svg {
-    fill: var(--text-tertiary) !important;
+/* Trix icon buttons - use filter to make black icons light */
+[data-theme="dark"] trix-toolbar .trix-button--icon::before {
+    filter: invert(0.7) !important;
+    opacity: 0.9 !important;
 }
 
-/* Notes section labels */
-[data-theme="dark"] .notes-section label,
-[data-theme="dark"] .form-group.trix-group label,
-[data-theme="dark"] .project-notes-section label {
-    color: var(--text-tertiary);
+[data-theme="dark"] trix-toolbar .trix-button:hover {
+    background-color: var(--bg-medium-alt) !important;
+    color: rgba(176, 176, 176, 0.95) !important;
 }
+
+[data-theme="dark"] trix-toolbar .trix-button:hover::before {
+    filter: invert(0.8) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button.trix-active {
+    background-color: var(--bg-medium-alt) !important;
+    color: rgba(224, 224, 224, 1) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button.trix-active::before {
+    filter: invert(0.85) !important;
+    opacity: 1 !important;
+}
+
+/* Trix disabled buttons */
+[data-theme="dark"] trix-toolbar .trix-button:disabled {
+    color: rgba(144, 144, 144, 0.4) !important;
+}
+
+[data-theme="dark"] trix-toolbar .trix-button:disabled::before {
+    filter: invert(0.4) !important;
+    opacity: 0.4 !important;
+}
+
+/* Trix editor content area */
+[data-theme="dark"] trix-editor {
+    background-color: var(--bg-medium) !important;
+    border-color: var(--border-medium) !important;
+    color: var(--text-primary) !important;
+}
+
