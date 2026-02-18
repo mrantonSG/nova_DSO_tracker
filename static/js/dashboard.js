@@ -238,7 +238,7 @@
                     if(updateLabel) updateLabel.textContent = 'Mode';
                     if(updateValue) {
                         updateValue.textContent = 'Simulated';
-                        updateValue.style.color = getSuccessColor(); // Green color for simulated text
+                        updateValue.style.color = getDangerColor(); // Red color for simulated text
                     }
                 } else {
                     simDateInput.disabled = true;
