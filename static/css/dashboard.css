@@ -25,7 +25,7 @@
         table-layout: fixed;      /* honor explicit widths and prevent reflow jitter */
         word-wrap: break-word;
     }
-    th, td { border: 1px solid var(--border-medium); padding: 6px; font-size: 15px; }
+    th, td { border: 1px solid var(--border-medium); padding: 6px; font-size: 15px; color: var(--text-tertiary); }
 
 
     th[data-column-key="Object"],
@@ -121,7 +121,10 @@
     }
 
 
-    .highlight { background-color: var(--primary-color); }
+    .highlight {
+        background-color: var(--primary-color);
+        color: var(--text-black);
+    }
     .active-project-row { background-color: var(--highlight-active) !important; }
 
     /* --- Geometrically Impossible Rows --- */
