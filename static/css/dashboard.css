@@ -475,7 +475,7 @@
       border-radius: 50%;
     }
     input:checked + .slider {
-      background-color: var(--danger-color-darker);
+      background-color: var(--color-simulation-active);
     }
     input:checked + .slider:before {
       transform: translateX(20px);
