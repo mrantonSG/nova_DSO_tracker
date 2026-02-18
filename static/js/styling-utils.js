@@ -16,8 +16,8 @@
 // Fallback color constants (used if CSS variables are not defined)
 window.stylingUtils_FALLBACKS = {
     // Primary brand colors
-    PRIMARY_COLOR: '#3a6b7a',
-    PRIMARY_DARK: '#2a5b6a',
+    PRIMARY_COLOR: '#83b4c5',
+    PRIMARY_DARK: '#6795a4',
 
     // Chart colors
     CHART_LINE_BLUE: '#36A2EB',
@@ -53,7 +53,7 @@ window.stylingUtils_FALLBACKS = {
 
     // Special colors
     INFO_COLOR_ALT2: '#007bff',
-    FOV_COLOR: '#3a6b7a',
+    FOV_COLOR: '#83b4c5',
     SIMULATION_ACTIVE: '#ca0e0e',
     SIMULATION_ERROR_RED: '#f8d7da',
     SIMULATION_ERROR_TEXT: '#721c24',
