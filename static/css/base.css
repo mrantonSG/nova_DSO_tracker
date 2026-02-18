@@ -35,9 +35,9 @@
 
 :root {
   /* === PRIMARY BRAND COLORS === */
-  --primary-color: #3a6b7a;
-  --primary-dark: #2a5b6a;
-  --primary-light: #4a8b9a;
+  --primary-color: #83b4c5;
+  --primary-dark: #6795a4;
+  --primary-light: #a1b0b4;
   --primary-muted: #849398;
 
   /* === BACKGROUND COLORS === */
@@ -173,7 +173,7 @@
   --chart-line-2: #FFC107;
   --chart-line-3: #636e72;
   --chart-line-4: #FF00FF;
-  --chart-line-primary: #3a6b7a;
+  --chart-line-primary: #83b4c5;
 
   /* === SIMULATION COLORS === */
   --color-simulation-active: #ca0e0e;
@@ -194,7 +194,7 @@
   --heatmap-scale-0: #ffffff;
   --heatmap-scale-10: #f0f4f5;
   --heatmap-scale-30: #dce5eb;
-  --heatmap-scale-60: #3a6b7a;
+  --heatmap-scale-60: #83b4c5;
   --heatmap-scale-100: #5a8491;
 
   /* === Z-INDEX SCALE === */
