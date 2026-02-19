@@ -718,7 +718,9 @@
     background-color: var(--success-color-alt);
 }
 
-.btn-cancel {
+/* DEPRECATED: Use .btn-secondary instead */
+.btn-cancel,
+.cancel-btn {
     padding: 10px 20px;
     font-size: 16px;
     background-color: var(--accent-slate);
@@ -727,8 +729,31 @@
     border-radius: 5px;
     cursor: pointer;
 }
-.btn-cancel:hover {
+.btn-cancel:hover,
+.cancel-btn:hover {
     background-color: var(--accent-slate-dark);
+}
+
+/* Unified Secondary Button (replaces .btn-cancel, .guest-button, .notes-button) */
+.btn-secondary {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: var(--accent-slate);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+.btn-secondary:hover {
+    background-color: var(--accent-slate-dark);
+}
+
+/* Compact variant */
+.btn-secondary.compact {
+    padding: 5px 10px;
+    font-size: 14px;
 }
 
 .btn-delete {

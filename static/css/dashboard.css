@@ -267,6 +267,11 @@
     .table-wrapper::-webkit-scrollbar-thumb { background: var(--border-medium-alt); border-radius: 4px; }
     .table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
+    /* Dark mode scrollbar overrides */
+    [data-theme="dark"] .table-wrapper::-webkit-scrollbar { background: var(--bg-medium); }
+    [data-theme="dark"] .table-wrapper::-webkit-scrollbar-thumb { background: var(--bg-medium-alt2); border-radius: 4px; }
+    [data-theme="dark"] .table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--gray-500); }
+
     th .sort-indicator { font-size: 0.8em; margin-left: 5px; display: inline-block; }
 
 

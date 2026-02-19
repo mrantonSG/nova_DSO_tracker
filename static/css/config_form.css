@@ -307,10 +307,15 @@
         width: 100px;
         text-align: center;
     }
+    /* DEPRECATED: Use .btn-secondary.compact from base.css instead */
     .data-table .notes-button {
         padding: 4px 8px;
         font-size: 12px;
         background-color: var(--accent-slate);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
     }
     .data-table .notes-button:hover {
         background-color: var(--accent-slate-dark);

@@ -83,15 +83,16 @@
     input[type="submit"]:hover {
       background-color: var(--primary-dark);
     }
+    /* DEPRECATED: Use .btn-secondary from base.css instead */
     .guest-button {
-      background-color: var(--border-medium-alt);
-      color: var(--text-primary);
+      background-color: var(--accent-slate);
+      color: white;
       text-decoration: none;
       display: inline-block;
       text-align: center;
     }
     .guest-button:hover {
-      background-color: var(--text-light);
+      background-color: var(--accent-slate-dark);
     }
 
     .flash {
