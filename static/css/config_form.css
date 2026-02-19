@@ -307,7 +307,8 @@
         width: 100px;
         text-align: center;
     }
-    .data-table .import-button {
+    .data-table .import-button,
+    .data-table .notes-button {
         padding: var(--space-1) var(--space-2-5);
         font-size: var(--font-size-2xs);
     }
@@ -316,6 +317,15 @@
         font-size: var(--font-size-2xs);
         background-color: var(--accent-slate);
         color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: default;
+    }
+    .data-table .owner-button {
+        padding: var(--space-1) var(--space-2-5);
+        font-size: var(--font-size-2xs);
+        background-color: var(--border-medium-alt);
+        color: var(--text-secondary);
         border: none;
         border-radius: var(--radius-lg);
         cursor: default;
@@ -705,7 +715,7 @@
 [data-theme="dark"] .data-table .filter-row input,
 [data-theme="dark"] .data-table .filter-row select {
     background-color: var(--bg-medium-alt);
-    border-color: var(--border-medium);
+    border: 1px solid var(--border-medium);
     color: var(--text-primary);
 }
 

@@ -300,7 +300,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium-alt', '#ccc') : '#ccc'}; color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555'}; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="owner-button" disabled>Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -352,7 +352,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium-alt', '#ccc') : '#ccc'}; color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555'}; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="owner-button" disabled>Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
@@ -388,7 +388,7 @@
 
                         let actionButton = '';
                         if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-medium-alt', '#ccc') : '#ccc'}; color:${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#555') : '#555'}; cursor:default;">Owner</button>`;
+                            actionButton = `<button class="owner-button" disabled>Owner</button>`;
                         } else if (isImported) {
                             actionButton = `<button class="imported-button" disabled>Imported</button>`;
                         } else {
