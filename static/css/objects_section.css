@@ -90,3 +90,176 @@
         color: var(--text-light);
         font-style: italic;
     }
+
+    /* ===================================================================
+       DARK MODE - JOURNAL & PROJECT FORM OVERRIDES
+       ================================================================ */
+
+    /* Journal edit-mode form inputs */
+    [data-theme="dark"] .edit-mode-form .form-group input,
+    [data-theme="dark"] .edit-mode-form .form-group textarea,
+    [data-theme="dark"] .edit-mode-form .form-group select {
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .edit-mode-form .form-group input:focus,
+    [data-theme="dark"] .edit-mode-form .form-group textarea:focus,
+    [data-theme="dark"] .edit-mode-form .form-group select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    /* Journal form labels */
+    [data-theme="dark"] .edit-mode-form .form-group label {
+        color: var(--text-primary);
+    }
+
+    /* Form section titles */
+    [data-theme="dark"] .form-section-title {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-medium);
+    }
+
+    /* Project form inputs */
+    [data-theme="dark"] #project-edit-mode .form-group input,
+    [data-theme="dark"] #project-edit-mode .form-group select,
+    [data-theme="dark"] #project-edit-mode .form-group textarea,
+    [data-theme="dark"] #journal-project-edit-mode .form-group input,
+    [data-theme="dark"] #journal-project-edit-mode .form-group select,
+    [data-theme="dark"] #journal-project-edit-mode .form-group textarea,
+    [data-theme="dark"] #journal-project-add-mode .form-group input,
+    [data-theme="dark"] #journal-project-add-mode .form-group select,
+    [data-theme="dark"] #journal-project-add-mode .form-group textarea {
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] #project-edit-mode .form-group input:focus,
+    [data-theme="dark"] #project-edit-mode .form-group select:focus,
+    [data-theme="dark"] #project-edit-mode .form-group textarea:focus,
+    [data-theme="dark"] #journal-project-edit-mode .form-group input:focus,
+    [data-theme="dark"] #journal-project-edit-mode .form-group select:focus,
+    [data-theme="dark"] #journal-project-add-mode .form-group input:focus,
+    [data-theme="dark"] #journal-project-add-mode .form-group select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    /* Project form labels */
+    [data-theme="dark"] #project-edit-mode .form-group label,
+    [data-theme="dark"] #journal-project-edit-mode .form-group label,
+    [data-theme="dark"] #journal-project-add-mode .form-group label {
+        color: var(--text-primary) !important;
+    }
+
+    /* Notes sections */
+    [data-theme="dark"] .notes-section,
+    [data-theme="dark"] .journal-project-notes-section {
+        background-color: var(--bg-light);
+        border-color: var(--border-medium);
+    }
+
+    [data-theme="dark"] .notes-section h3,
+    [data-theme="dark"] .journal-project-notes-section h3 {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-medium);
+    }
+
+    [data-theme="dark"] .notes-section .notes-content,
+    [data-theme="dark"] .notes-content {
+        color: var(--text-primary);
+    }
+
+    /* Notes block */
+    [data-theme="dark"] .notes-block {
+        background-color: var(--bg-medium);
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    /* Sessions table */
+    [data-theme="dark"] .sessions-table th,
+    [data-theme="dark"] .sessions-table td {
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .sessions-table th {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .sessions-table tr:hover {
+        background-color: var(--bg-medium-alt);
+    }
+
+    /* Session history table */
+    [data-theme="dark"] .session-history-table th,
+    [data-theme="dark"] .session-history-table td {
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .session-history-table th {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .session-history-table tr.clickable-session-row:hover {
+        background-color: var(--bg-medium-alt);
+    }
+
+    [data-theme="dark"] .session-history-table tr.current-session-item {
+        background-color: var(--highlight-blue-alt) !important;
+    }
+
+    /* Stat boxes */
+    [data-theme="dark"] .stat-box,
+    [data-theme="dark"] .summary-box,
+    [data-theme="dark"] .journal-project-stat-box {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .stat-value,
+    [data-theme="dark"] .journal-project-stat-value {
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .stat-label,
+    [data-theme="dark"] .journal-project-stat-label {
+        color: var(--text-secondary);
+    }
+
+    /* Detail grid */
+    [data-theme="dark"] .detail-grid > dt {
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .detail-grid > dd {
+        color: var(--text-primary);
+    }
+
+    /* Detail header */
+    [data-theme="dark"] .detail-header h4,
+    [data-theme="dark"] .detail-header h2 {
+        color: var(--text-primary);
+    }
+
+    /* Report preview container */
+    [data-theme="dark"] .report-preview-container {
+        background-color: var(--bg-medium);
+    }
+
+    /* Project header clickable */
+    [data-theme="dark"] .project-header-clickable {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .project-header-clickable:hover {
+        background-color: var(--bg-medium-alt) !important;
+    }
+
+    [data-theme="dark"] .current-project-item {
+        background-color: var(--highlight-blue-alt) !important;
+    }

@@ -544,6 +544,207 @@
       margin-top: 1em;
       margin-bottom: 1em;
     }
+
+/* ===================================================================
+   DARK MODE OVERRIDES
+   ================================================================ */
+
+/* Body and main backgrounds */
+[data-theme="dark"] body {
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+}
+
+/* Block backgrounds */
+[data-theme="dark"] .block {
+    background: var(--bg-medium);
+}
+
+/* Config sections */
+[data-theme="dark"] .config-section {
+    background-color: var(--bg-medium);
+}
+
+[data-theme="dark"] .config-section h2,
+[data-theme="dark"] .config-section h3 {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-medium);
+}
+
+/* Column backgrounds */
+[data-theme="dark"] .column {
+    background-color: var(--bg-medium);
+}
+
+[data-theme="dark"] .column h2,
+[data-theme="dark"] .column h3 {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-medium);
+}
+
+[data-theme="dark"] .column hr {
+    border-top-color: var(--border-medium);
+}
+
+/* List items */
+[data-theme="dark"] .column li {
+    background-color: var(--bg-medium-alt);
+}
+
+/* Form inputs */
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .column .form-group input,
+[data-theme="dark"] .column .form-group select {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .column .form-group input:focus,
+[data-theme="dark"] .column .form-group select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+[data-theme="dark"] .form-group label,
+[data-theme="dark"] .column .form-group label {
+    color: var(--text-primary);
+}
+
+/* Inline fields inputs */
+[data-theme="dark"] .inline-fields input,
+[data-theme="dark"] .inline-fields select {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .inline-fields input:focus,
+[data-theme="dark"] .inline-fields select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Wide textareas */
+[data-theme="dark"] textarea.wide,
+[data-theme="dark"] textarea.project_field {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] textarea.wide:focus,
+[data-theme="dark"] textarea.project_field:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Native selects */
+[data-theme="dark"] select[name^="timezone_"],
+[data-theme="dark"] select[name="new_timezone"] {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Trix editor */
+[data-theme="dark"] .form-group trix-editor {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Inspiration container */
+[data-theme="dark"] .inspiration-container {
+    background-color: var(--bg-medium);
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .inspiration-container label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .inspiration-input {
+    background-color: var(--bg-medium-alt);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Dropdown content */
+[data-theme="dark"] .dropdown-content {
+    background-color: var(--bg-medium);
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.4);
+}
+
+[data-theme="dark"] .dropdown-content a {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .dropdown-content a:hover {
+    background-color: var(--bg-medium-alt);
+}
+
+/* Tab container */
+[data-theme="dark"] .tab-container {
+    border-bottom-color: var(--border-medium);
+}
+
+/* Data tables */
+[data-theme="dark"] #shared-tab-content .table-wrapper {
+    border-color: var(--border-medium);
+    background: var(--bg-medium);
+}
+
+[data-theme="dark"] .data-table th,
+[data-theme="dark"] .data-table td {
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .data-table th {
+    background-color: var(--bg-medium-alt);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .data-table .filter-row input,
+[data-theme="dark"] .data-table .filter-row select {
+    background-color: var(--bg-medium-alt);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Modal content */
+[data-theme="dark"] .modal-content {
+    background: var(--bg-light);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+[data-theme="dark"] .modal-content h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-notes-content {
+    background: var(--bg-medium);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Progress modal */
+[data-theme="dark"] #fetch-progress-content {
+    background: var(--bg-light);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+}
+
+[data-theme="dark"] .progress-track {
+    background: var(--bg-medium-alt);
+}
+
+/* Object grid container */
+[data-theme="dark"] .object-grid-container .share-control {
+    background: var(--bg-medium-alt);
+}
     .form-group {
         display: grid;
         grid-template-columns: 155px auto;
