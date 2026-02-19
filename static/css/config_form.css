@@ -745,6 +745,161 @@
 [data-theme="dark"] .object-grid-container .share-control {
     background: var(--bg-medium-alt);
 }
+
+/* ===================================================================
+   DARK MODE - LOCATIONS TAB
+   ================================================================ */
+
+/* Location blocks */
+[data-theme="dark"] .locations-list .block {
+    background: var(--bg-medium);
+}
+
+/* Location horizon mask and comments textareas */
+[data-theme="dark"] .locations-list textarea,
+[data-theme="dark"] .block textarea {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .locations-list textarea:focus,
+[data-theme="dark"] .block textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Location form inputs inside blocks */
+[data-theme="dark"] .locations-list input[type="text"],
+[data-theme="dark"] .locations-list input[type="number"],
+[data-theme="dark"] .block input[type="text"],
+[data-theme="dark"] .block input[type="number"] {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .locations-list input:focus,
+[data-theme="dark"] .block input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* ===================================================================
+   DARK MODE - OBJECTS TAB
+   ================================================================ */
+
+/* Object filter bar */
+[data-theme="dark"] #object-filter-bar {
+    background: var(--bg-medium);
+}
+
+/* Object filter inputs */
+[data-theme="dark"] #object-filter-bar input,
+[data-theme="dark"] #object-filter-bar select {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #object-filter-bar input:focus,
+[data-theme="dark"] #object-filter-bar select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Object filter selection bar */
+[data-theme="dark"] #object-filter-bar .selection-bar,
+[data-theme="dark"] #object-filter-bar > div[style*="background"] {
+    background: var(--bg-medium-alt) !important;
+}
+
+/* Object blocks */
+[data-theme="dark"] .objects-list .block {
+    background: var(--bg-medium);
+}
+
+/* Object inline field inputs */
+[data-theme="dark"] .objects-list input[type="text"],
+[data-theme="dark"] .objects-list input[type="number"],
+[data-theme="dark"] .objects-list textarea {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .objects-list input:focus,
+[data-theme="dark"] .objects-list textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Inspiration container inputs in objects section */
+[data-theme="dark"] .object-grid-container input,
+[data-theme="dark"] .object-grid-container textarea:not(trix-editor) {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .object-grid-container input:focus,
+[data-theme="dark"] .object-grid-container textarea:not(trix-editor):focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Inline inspiration container styles (hardcoded in template) */
+[data-theme="dark"] .inspiration-container[style*="background: var(--bg-white)"],
+[data-theme="dark"] .inspiration-container {
+    background: var(--bg-medium) !important;
+    border-color: var(--border-medium) !important;
+}
+
+/* Add object section */
+[data-theme="dark"] .object-add-container input[type="text"],
+[data-theme="dark"] .object-add-container input[type="number"],
+[data-theme="dark"] .object-add-container textarea {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .object-add-container input:focus,
+[data-theme="dark"] .object-add-container textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Import catalog table */
+[data-theme="dark"] .config-table th {
+    background-color: var(--bg-medium-alt);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .config-table td {
+    background-color: var(--bg-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .config-table th,
+[data-theme="dark"] .config-table td {
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .config-table .badge {
+    background-color: var(--bg-medium-alt);
+    color: var(--text-secondary);
+}
+
+/* Duplicates modal content */
+[data-theme="dark"] #duplicates-modal .modal-content {
+    background: var(--bg-light);
+}
+
+[data-theme="dark"] #duplicates-modal p {
+    color: var(--text-tertiary);
+}
+
     .form-group {
         display: grid;
         grid-template-columns: 155px auto;
