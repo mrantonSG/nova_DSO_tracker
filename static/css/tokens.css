@@ -85,3 +85,48 @@
   --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.4);
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
+
+/* =====================================================================
+   FORM VALIDATION STATES
+   Input validation and helper text components
+   ===================================================================== */
+
+/* Error state input */
+.input-error,
+.input.error {
+    border-color: var(--danger-color);
+}
+.input-error:focus,
+.input.error:focus {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+    outline: none;
+}
+
+/* Success state input */
+.input-success,
+.input.success {
+    border-color: var(--success-color);
+}
+.input-success:focus,
+.input.success:focus {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+    outline: none;
+}
+
+/* Helper text base style */
+.helper-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-top: var(--space-1);
+    display: block;
+}
+
+/* Helper text variants */
+.helper-text.error {
+    color: var(--danger-color);
+}
+.helper-text.success {
+    color: var(--success-color);
+}
