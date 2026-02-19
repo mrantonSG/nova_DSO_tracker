@@ -692,27 +692,68 @@
    SEMANTIC ACTION BUTTONS
    ================================================================ */
 
-.btn-edit {
+/* Shared button base styles and states */
+.btn-edit,
+.btn-save,
+.btn-secondary,
+.btn-delete,
+.btn-ghost {
     padding: 10px 20px;
     font-size: 16px;
-    background-color: var(--primary-color);
-    color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+    transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.1s ease;
+}
+
+/* Button focus-visible state */
+.btn-edit:focus-visible,
+.btn-save:focus-visible,
+.btn-secondary:focus-visible,
+.btn-delete:focus-visible,
+.btn-ghost:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Button active state */
+.btn-edit:active,
+.btn-save:active,
+.btn-secondary:active,
+.btn-delete:active,
+.btn-ghost:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+}
+
+/* Button disabled state */
+.btn-edit:disabled,
+.btn-save:disabled,
+.btn-secondary:disabled,
+.btn-delete:disabled,
+.btn-ghost:disabled {
+    background-color: var(--gray-400);
+    color: var(--gray-600);
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+}
+
+/* Primary button variant (btn-edit uses primary color) */
+.btn-edit {
+    background-color: var(--primary-color);
+    color: white;
 }
 .btn-edit:hover {
     background-color: var(--primary-dark);
 }
 
+/* Save button variant (success/green) */
 .btn-save {
-    padding: 10px 20px;
-    font-size: 16px;
     background-color: var(--success-color);
     color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
 }
 .btn-save:hover {
     background-color: var(--success-color-alt);
@@ -722,15 +763,8 @@
    SECONDARY BUTTON
    ================================================================ */
 .btn-secondary {
-    padding: 10px 20px;
-    font-size: 16px;
     background-color: var(--accent-slate);
     color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
 }
 .btn-secondary:hover {
     background-color: var(--accent-slate-dark);
@@ -746,24 +780,113 @@
    DANGER BUTTON
    ================================================================ */
 .btn-delete {
-    padding: 10px 20px;
-    font-size: 16px;
     background-color: var(--danger-color);
     color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
 }
 .btn-delete:hover {
     background-color: var(--danger-color-dark);
 }
 
-/* Compact variant */
+/* ===================================================================
+   GHOST BUTTON
+   ================================================================ */
+.btn-ghost {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-medium);
+}
+.btn-ghost:hover {
+    background-color: var(--bg-light-gray);
+    border-color: var(--border-medium-alt);
+}
+.btn-ghost:disabled {
+    background-color: transparent;
+    border-color: var(--gray-400);
+}
+
+/* Compact variants */
 .btn-edit.compact,
 .btn-save.compact,
-.btn-delete.compact {
+.btn-delete.compact,
+.btn-ghost.compact {
     padding: 5px 10px;
     font-size: 14px;
+}
+
+/* ===================================================================
+   FORM INPUT COMPONENT
+   Unified input styling using design tokens
+   ================================================================ */
+
+.input,
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group select,
+.form-group textarea {
+    padding: var(--input-padding-y) var(--input-padding-x);
+    border: var(--input-border-width) solid var(--input-border-color);
+    border-radius: var(--input-border-radius);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    color: var(--text-primary);
+    background-color: var(--bg-white);
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Input focus state */
+.input:focus,
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="date"]:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="email"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(131, 180, 197, 0.25);
+    outline: none;
+}
+
+/* Input disabled state */
+.input:disabled,
+.form-group input[type="text"]:disabled,
+.form-group input[type="number"]:disabled,
+.form-group input[type="date"]:disabled,
+.form-group input[type="password"]:disabled,
+.form-group input[type="email"]:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+    background-color: var(--bg-light-gray);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Dark mode input states */
+[data-theme="dark"] .input:focus,
+[data-theme="dark"] .form-group input[type="text"]:focus,
+[data-theme="dark"] .form-group input[type="number"]:focus,
+[data-theme="dark"] .form-group input[type="date"]:focus,
+[data-theme="dark"] .form-group input[type="password"]:focus,
+[data-theme="dark"] .form-group input[type="email"]:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(131, 180, 197, 0.35);
+}
+
+[data-theme="dark"] .input:disabled,
+[data-theme="dark"] .form-group input[type="text"]:disabled,
+[data-theme="dark"] .form-group input[type="number"]:disabled,
+[data-theme="dark"] .form-group input[type="date"]:disabled,
+[data-theme="dark"] .form-group input[type="password"]:disabled,
+[data-theme="dark"] .form-group input[type="email"]:disabled,
+[data-theme="dark"] .form-group select:disabled,
+[data-theme="dark"] .form-group textarea:disabled {
+    background-color: var(--bg-medium);
 }
 
 /* ===================================================================
