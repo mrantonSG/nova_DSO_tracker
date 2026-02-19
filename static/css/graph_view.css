@@ -6,7 +6,7 @@ body {
 #back-button {
     margin-top: 0;
     padding: var(--space-2-5) var(--space-5);
-    font-size: var(--fs-base);
+    font-size: var(--font-size-base);
     background-color: var(--primary-color);
     color: white;
     border: none;
@@ -42,7 +42,7 @@ body {
 }
 
 .date-controls label, .date-controls input, .date-controls select {
-    font-size: var(--fs-sm);
+    font-size: var(--font-size-sm);
     padding: var(--space-1);
 }
 
@@ -59,7 +59,7 @@ body {
     max-width: 970px;
     height: 150px;
     box-sizing: border-box;
-    font-size: var(--fs-md);
+    font-size: var(--font-size-md);
 }
 
 /* .inline-button styles moved to base.css */
@@ -115,18 +115,18 @@ body {
 }
 
 .secondary-info-line-main small {
-    font-size: var(--fs-xs);
+    font-size: var(--font-size-xs);
     color: var(--text-tertiary);
 }
 
 .secondary-info-line-main p {
     margin: 0;
-    font-size: var(--fs-base);
+    font-size: var(--font-size-base);
 }
 
 .secondary-info-line-main span {
     font-weight: bold;
-    font-size: var(--fs-base);
+    font-size: var(--font-size-base);
     color: var(--text-black);
 }
 
@@ -158,7 +158,7 @@ body {
     border-bottom: 1px solid var(--border-light-alt2);
     padding-bottom: var(--space-2-5);
     font-size: 1.2em;
-    font-weight: var(--fw-semibold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .sessions-history-list {
@@ -214,13 +214,13 @@ body {
     margin-top: 0;
     color: var(--accent-teal);
     font-size: 1.05em;
-    font-weight: var(--fw-semibold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .selected-session-details p, .selected-session-details div {
     margin-bottom: 6px;
     font-size: 0.9em;
-    line-height: var(--lh-normal);
+    line-height: var(--line-height-normal);
 }
 
 .selected-session-details strong {
@@ -239,13 +239,13 @@ body {
     margin-right: 8px;
 
     margin-bottom: 5px;
-    font-size: var(--fs-2xs);
+    font-size: var(--font-size-2xs);
     padding: var(--space-1-5) var(--space-3);
     text-decoration: none;
     box-sizing: border-box;
     display: inline-block;
     vertical-align: middle;
-    line-height: var(--lh-tight);
+    line-height: var(--line-height-tight);
 }
 
 hr.detail-separator {
@@ -259,7 +259,7 @@ hr.detail-separator {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    font-size: var(--fs-sm);
+    font-size: var(--font-size-sm);
     table-layout: fixed;
 }
 
@@ -272,7 +272,7 @@ hr.detail-separator {
 #opportunities-table th {
     background-color: var(--primary-color);
     color: white;
-    font-weight: var(--fw-normal);
+    font-weight: var(--font-weight-normal);
 }
 
 #opportunities-table tr:nth-child(even) {
@@ -289,7 +289,7 @@ hr.detail-separator {
 
 .opportunities-heading {
     font-size: 1.2em;
-    font-weight: var(--fw-semibold);
+    font-weight: var(--font-weight-semibold);
     color: var(--text-heading-dark);
     margin-bottom: 10px;
 }
@@ -335,7 +335,7 @@ code {
 
 .session-history-table th {
     background-color: var(--border-light-alt3);
-    font-weight: var(--fw-semibold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .session-history-table tr.clickable-session-row:hover {
@@ -378,7 +378,7 @@ code {
     min-height: 25px;
     word-wrap: break-word;
     font-size: 1.1em;
-    line-height: var(--lh-normal);
+    line-height: var(--line-height-normal);
 }
 
 
@@ -398,7 +398,7 @@ div.form-data-value.preserve-newlines {
 .form-group label {
     display: block;
     margin-bottom: 3px;
-    font-weight: var(--fw-normal);
+    font-weight: var(--font-weight-normal);
     font-size: 1em;
     color: var(--accent-gray-text);
     width: 320px;
@@ -442,12 +442,12 @@ div.form-data-value.preserve-newlines {
     border: 1px solid var(--border-light);
     padding: var(--space-2-5);
     text-align: left;
-    font-size: var(--fs-sm);
+    font-size: var(--font-size-sm);
 }
 
 .framing-table th {
     background-color: var(--bg-light-alt);
-    font-weight: var(--fw-semibold);
+    font-weight: var(--font-weight-semibold);
 }
 
 .modal {
@@ -471,7 +471,7 @@ div.form-data-value.preserve-newlines {
 }
 
 .framing-controls select, .framing-controls button {
-    font-size: var(--fs-sm);
+    font-size: var(--font-size-sm);
     padding: var(--space-1);
 }
 
@@ -492,20 +492,20 @@ div.form-data-value.preserve-newlines {
 }
 
 .brand-strong {
-    font-weight: 800;
+    font-weight: var(--font-weight-bold);
     letter-spacing: 0.2px;
-    font-size: var(--fs-xl);
+    font-size: var(--font-size-xl);
 }
 
 .brand-light {
-    font-weight: var(--fw-normal);
+    font-weight: var(--font-weight-normal);
     margin-left: 6px;
     color: var(--text-secondary);
-    font-size: var(--fs-xl);
+    font-size: var(--font-size-xl);
 }
 
 .fov-chip {
-    font-size: var(--fs-2xs);
+    font-size: var(--font-size-2xs);
     color: var(--text-dark-alt);
     background: var(--fov-bg);
     border: 1px solid var(--border-framing);
@@ -521,7 +521,7 @@ div.form-data-value.preserve-newlines {
     right: 12px;
     z-index: var(--z-layer-2);
     line-height: 1;
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     color: var(--text-muted-alt);
 }
 
@@ -670,7 +670,7 @@ div.form-data-value.preserve-newlines {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--fs-lg);
+    font-size: var(--font-size-lg);
     line-height: 1;
     border: 0;
     border-radius: var(--radius-lg);
@@ -773,7 +773,7 @@ div.form-data-value.preserve-newlines {
     text-align: center !important;
     padding: 40px 0;
     font-size: 1.1em;
-    font-weight: var(--fw-medium);
+    font-weight: var(--font-weight-medium);
     color: var(--text-secondary);
     background-color: var(--bg-light);
 }
@@ -853,7 +853,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     background: rgba(0, 0, 0, 0.7);
     color: rgba(255, 255, 255, 0.9);
     padding: var(--space-1) var(--space-2);
-    font-size: var(--fs-xs);
+    font-size: var(--font-size-xs);
     border-radius: var(--radius-md);
     pointer-events: none;
 }
@@ -862,7 +862,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     padding: var(--space-5);
     border: 1px solid var(--text-lightest);
     border-radius: var(--radius-lg);
-    line-height: var(--lh-relaxed);
+    line-height: var(--line-height-relaxed);
     color: var(--text-dark-alt);
 }
 
