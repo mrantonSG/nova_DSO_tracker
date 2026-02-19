@@ -1,7 +1,7 @@
 
     body {
       font-family: Roboto, sans-serif;
-      padding: 20px;
+      padding: var(--space-5);
       max-width: 500px;
       margin: auto;
     }
@@ -28,7 +28,7 @@
     }
     input[type="text"],
     input[type="password"] {
-      padding: 10px;  /* Login-specific: slightly larger than --input-padding-y */
+      padding: var(--space-2-5);  /* Login-specific: slightly larger than --input-padding-y */
       margin-top: var(--space-1);
       font-size: var(--font-size-base);
       border: var(--input-border-width) solid var(--input-border-color);
@@ -44,7 +44,7 @@
       text-align: center;
     }
     input[type="submit"] {
-      padding: 10px var(--space-4);
+      padding: var(--space-2-5) var(--space-4);
       font-size: var(--font-size-base);
       border: none;
       border-radius: var(--radius-lg);
@@ -57,7 +57,7 @@
     }
     /* Login page specific overrides for .btn-secondary */
     .button-row .btn-secondary {
-      padding: 10px var(--space-4);
+      padding: var(--space-2-5) var(--space-4);
       flex: 1;
       text-align: center;
     }
