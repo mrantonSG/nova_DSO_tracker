@@ -207,29 +207,29 @@
     .filter-row input {
       width: 95%;
       box-sizing: border-box;
-      padding: 4px;
+      padding: var(--space-1);  /* Compact: 4px */
       font-size: 13px;
       font-family: 'Roboto', sans-serif;
       margin-top: 2px;
       margin-bottom: 2px;
-      border: 1px solid var(--border-medium);
+      border: var(--input-border-width) solid var(--input-border-color);
       background-color: var(--bg-white);
-      border-radius: 3px;
+      border-radius: var(--radius-sm);
     }
 
     /* --- NEW: Unified Dropdown Styling --- */
     .styled-select {
         height: 35px;
-        font-size: 16px;
-        padding: 5px;
+        font-size: var(--font-size-base);
+        padding: var(--space-1);
         padding-right: 30px; /* Make space for custom arrow */
         box-sizing: border-box;
         font-family: 'Roboto', sans-serif;
 
         /* Appearance from screenshot */
         background-color: var(--bg-medium);
-        border: 1px solid var(--border-medium-alt);
-        border-radius: 4px;
+        border: var(--input-border-width) solid var(--input-border-color);
+        border-radius: var(--input-border-radius);
 
         /* Custom arrow */
         appearance: none;
@@ -500,7 +500,7 @@
 /* Filter row inputs */
 [data-theme="dark"] .filter-row input {
     background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 

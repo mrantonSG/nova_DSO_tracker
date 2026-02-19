@@ -31,7 +31,7 @@ body {
     background-color: var(--primary-color);
     color: var(--text-white);
     padding: 18px 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .header h1 {
@@ -68,10 +68,10 @@ body {
 }
 .item-card {
     background-color: var(--bg-white);
-    border-radius: 8px;
-    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-xl);
+    border: var(--input-border-width) solid var(--border-medium);
     padding: 15px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
 }
 .item-card h3 {
     margin: 0 0 10px 0;
@@ -99,9 +99,9 @@ body {
 }
 .location-item {
     background-color: var(--bg-white);
-    border: 1px solid var(--border-medium);
-    padding: 20px 15px;
-    border-radius: 8px;
+    border: var(--input-border-width) solid var(--border-medium);
+    padding: var(--space-5) 15px;
+    border-radius: var(--radius-xl);
     font-size: 1.1rem;
     cursor: pointer;
     user-select: none;
@@ -118,17 +118,17 @@ body {
 }
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: var(--space-1);
+    font-weight: var(--font-weight-bold);
     font-size: 0.9rem;
 }
 .form-group input,
 .form-group textarea {
     width: 100%;
-    padding: 12px;
+    padding: var(--space-3);  /* Mobile: 12px (larger touch target) */
     font-size: 1rem;
-    border: 1px solid var(--border-medium);
-    border-radius: 5px;
+    border: var(--input-border-width) solid var(--input-border-color);
+    border-radius: var(--radius-lg);
     box-sizing: border-box; /* Important */
     color: var(--text-primary);
 }
@@ -149,9 +149,9 @@ trix-editor {
     background-color: var(--primary-color);
     color: var(--text-white);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-lg);
     font-size: 1.1rem;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     text-align: center;
     cursor: pointer;
     text-decoration: none;
@@ -172,24 +172,24 @@ trix-editor {
     right: 0;
     display: flex;
     background-color: var(--bg-light-gray-alt4); /* Use main page background */
-    border-top: 1px solid var(--border-medium);
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
-    padding: 5px; /* Add padding around the bar */
-    gap: 5px; /* Add a small gap between buttons */
+    border-top: var(--input-border-width) solid var(--border-medium);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-1); /* Add padding around the bar */
+    gap: var(--space-1); /* Add a small gap between buttons */
     padding-bottom: env(safe-area-inset-bottom);
     transform: translateZ(0);
 }
 .mobile-nav a {
     flex: 1; /* Each item takes equal width */
     text-align: center;
-    padding: 14px 5px; /* Make buttons taller */
+    padding: 14px var(--space-1); /* Make buttons taller */
     color: var(--text-primary);
     text-decoration: none;
     font-size: 0.9rem; /* Slightly larger text */
-    font-weight: 500;
-    border-radius: 8px; /* Rounded corners for buttons */
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-xl); /* Rounded corners for buttons */
     background-color: var(--bg-white);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     transition: background-color 0.2s, color 0.2s;
 }
 
@@ -197,7 +197,7 @@ trix-editor {
 .mobile-nav a.active {
     background-color: var(--primary-dark); /* Your app's green color */
     color: var(--text-white);
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     border-color: var(--primary-dark);
 }
 

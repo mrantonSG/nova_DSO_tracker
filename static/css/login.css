@@ -23,31 +23,31 @@
       flex-direction: column;
     }
     label {
-      margin-top: 10px;
-      font-size: 14px;
+      margin-top: var(--space-2);
+      font-size: var(--font-size-sm);
     }
     input[type="text"],
     input[type="password"] {
-      padding: 10px;
-      margin-top: 4px;
-      font-size: 16px;
-      border: 1px solid var(--border-medium-alt);
-      border-radius: 4px;
+      padding: 10px;  /* Login-specific: slightly larger than --input-padding-y */
+      margin-top: var(--space-1);
+      font-size: var(--font-size-base);
+      border: var(--input-border-width) solid var(--input-border-color);
+      border-radius: var(--input-border-radius);
     }
     .button-row {
       display: flex;
-      gap: 10px;
-      margin-top: 20px;
+      gap: var(--space-2);
+      margin-top: var(--space-5);
     }
     .button-row > * {
       flex: 1;
       text-align: center;
     }
     input[type="submit"] {
-      padding: 10px 16px;
-      font-size: 16px;
+      padding: 10px var(--space-4);
+      font-size: var(--font-size-base);
       border: none;
-      border-radius: 5px;
+      border-radius: var(--radius-lg);
       cursor: pointer;
       background-color: var(--primary-color);
       color: white;
@@ -57,16 +57,16 @@
     }
     /* Login page specific overrides for .btn-secondary */
     .button-row .btn-secondary {
-      padding: 10px 16px;
+      padding: 10px var(--space-4);
       flex: 1;
       text-align: center;
     }
 
     .flash {
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      font-size: 14px;
+      padding: var(--space-2);
+      margin-bottom: var(--space-2);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
     }
     .flash.success { background-color: var(--success-bg); color: var(--success-text); }
     .flash.error   { background-color: var(--danger-bg); color: var(--danger-text); }

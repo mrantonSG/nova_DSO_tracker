@@ -446,7 +446,7 @@
     width: 90%;
     max-width: 700px;
     border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-modal);
     max-height: 85vh;
     overflow-y: auto;
     margin: 0;
@@ -472,7 +472,7 @@
     display: block;
     margin: 10px auto;
     border-radius: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
 }
 .help-trigger { cursor: pointer; color: var(--primary-color); font-size: 1.2em; margin-left: 5px; vertical-align: middle; }
 .help-trigger:hover { color: var(--text-help-hover); }
