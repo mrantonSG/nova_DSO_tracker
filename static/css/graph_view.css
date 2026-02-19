@@ -1,16 +1,16 @@
 body {
-    padding: 20px;
+    padding: var(--space-5);
     margin: 0;
 }
 
 #back-button {
     margin-top: 0;
-    padding: 10px 20px;
-    font-size: 16px;
+    padding: var(--space-2-5) var(--space-5);
+    font-size: var(--fs-base);
     background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
 }
 
@@ -21,7 +21,7 @@ body {
 #chart-section img {
     max-width: 100%;
     height: auto;
-    border-radius: 5px;
+    border-radius: var(--radius-lg);
     margin-bottom: 10px;
     margin-bottom: 20px;
 }
@@ -42,8 +42,8 @@ body {
 }
 
 .date-controls label, .date-controls input, .date-controls select {
-    font-size: 14px;
-    padding: 4px;
+    font-size: var(--fs-sm);
+    padding: var(--space-1);
 }
 
 .view-buttons {
@@ -59,13 +59,13 @@ body {
     max-width: 970px;
     height: 150px;
     box-sizing: border-box;
-    font-size: 15px;
+    font-size: var(--fs-md);
 }
 
 /* .inline-button styles moved to base.css */
 
 .button-container {
-    padding: 10px;
+    padding: var(--space-2-5);
     margin-left: 50px;
 }
 
@@ -115,18 +115,18 @@ body {
 }
 
 .secondary-info-line-main small {
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: var(--text-tertiary);
 }
 
 .secondary-info-line-main p {
     margin: 0;
-    font-size: 16px;
+    font-size: var(--fs-base);
 }
 
 .secondary-info-line-main span {
     font-weight: bold;
-    font-size: 16px;
+    font-size: var(--fs-base);
     color: var(--text-black);
 }
 
@@ -145,10 +145,10 @@ body {
 
 .content-section {
     margin-top: 25px;
-    padding: 20px;
+    padding: var(--space-5);
     background-color: var(--bg-light);
     border: 1px solid var(--border-light-alt2);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     margin-bottom: 25px;
 }
 
@@ -156,9 +156,9 @@ body {
     margin-top: 0;
     color: var(--text-heading-dark);
     border-bottom: 1px solid var(--border-light-alt2);
-    padding-bottom: 10px;
+    padding-bottom: var(--space-2-5);
     font-size: 1.2em;
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
 }
 
 .sessions-history-list {
@@ -167,7 +167,7 @@ body {
     max-height: 250px;
     overflow-y: auto;
     border: 1px solid var(--border-light-alt2);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     background-color: var(--bg-white);
     margin-top: 10px;
 }
@@ -206,7 +206,7 @@ body {
     padding: 15px;
     background-color: var(--bg-white);
     border: 1px solid var(--border-session-detail);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     max-width: 770px;
 }
 
@@ -214,13 +214,13 @@ body {
     margin-top: 0;
     color: var(--accent-teal);
     font-size: 1.05em;
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
 }
 
 .selected-session-details p, .selected-session-details div {
     margin-bottom: 6px;
     font-size: 0.9em;
-    line-height: 1.5;
+    line-height: var(--lh-normal);
 }
 
 .selected-session-details strong {
@@ -239,13 +239,13 @@ body {
     margin-right: 8px;
 
     margin-bottom: 5px;
-    font-size: 13px;
-    padding: 6px 12px;
+    font-size: var(--fs-2xs);
+    padding: var(--space-1-5) var(--space-3);
     text-decoration: none;
     box-sizing: border-box;
     display: inline-block;
     vertical-align: middle;
-    line-height: 1.2;
+    line-height: var(--lh-tight);
 }
 
 hr.detail-separator {
@@ -259,20 +259,20 @@ hr.detail-separator {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    font-size: 14px;
+    font-size: var(--fs-sm);
     table-layout: fixed;
 }
 
 #opportunities-table th, #opportunities-table td {
     border: 1px solid var(--border-medium-alt);
-    padding: 8px 12px;
+    padding: var(--space-2) var(--space-3);
     text-align: left;
 }
 
 #opportunities-table th {
     background-color: var(--primary-color);
     color: white;
-    font-weight: normal;
+    font-weight: var(--fw-normal);
 }
 
 #opportunities-table tr:nth-child(even) {
@@ -289,7 +289,7 @@ hr.detail-separator {
 
 .opportunities-heading {
     font-size: 1.2em;
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
     color: var(--text-heading-dark);
     margin-bottom: 10px;
 }
@@ -307,7 +307,7 @@ hr.detail-separator {
 code {
     background-color: var(--bg-code-alt);
     padding: 2px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     font-family: monospace;
 }
 
@@ -328,14 +328,14 @@ code {
 
 .session-history-table th, .session-history-table td {
     border: 1px solid var(--border-session-table);
-    padding: 6px 8px;
+    padding: var(--space-1-5) var(--space-2);
     text-align: left;
     vertical-align: middle;
 }
 
 .session-history-table th {
     background-color: var(--border-light-alt3);
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
 }
 
 .session-history-table tr.clickable-session-row:hover {
@@ -371,14 +371,14 @@ code {
 }
 
 .selected-session-details .form-data-value {
-    padding: 8px 10px;
+    padding: var(--space-2) var(--space-2-5);
     background-color: var(--border-light-alt3);
     border: 1px solid var(--border-form);
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     min-height: 25px;
     word-wrap: break-word;
     font-size: 1.1em;
-    line-height: 1.5;
+    line-height: var(--lh-normal);
 }
 
 
@@ -398,7 +398,7 @@ div.form-data-value.preserve-newlines {
 .form-group label {
     display: block;
     margin-bottom: 3px;
-    font-weight: normal;
+    font-weight: var(--fw-normal);
     font-size: 1em;
     color: var(--accent-gray-text);
     width: 320px;
@@ -417,7 +417,7 @@ div.form-data-value.preserve-newlines {
     margin-top: 20px;
     margin-bottom: 10px;
     border-bottom: 1px solid var(--border-light);
-    padding-bottom: 5px;
+    padding-bottom: var(--space-1);
 }
 
 .form-row {
@@ -440,14 +440,14 @@ div.form-data-value.preserve-newlines {
 
 .framing-table th, .framing-table td {
     border: 1px solid var(--border-light);
-    padding: 10px;
+    padding: var(--space-2-5);
     text-align: left;
-    font-size: 14px;
+    font-size: var(--fs-sm);
 }
 
 .framing-table th {
     background-color: var(--bg-light-alt);
-    font-weight: 600;
+    font-weight: var(--fw-semibold);
 }
 
 .modal {
@@ -471,8 +471,8 @@ div.form-data-value.preserve-newlines {
 }
 
 .framing-controls select, .framing-controls button {
-    font-size: 14px;
-    padding: 5px;
+    font-size: var(--fs-sm);
+    padding: var(--space-1);
 }
 
 
@@ -494,23 +494,23 @@ div.form-data-value.preserve-newlines {
 .brand-strong {
     font-weight: 800;
     letter-spacing: 0.2px;
-    font-size: 20px;
+    font-size: var(--fs-xl);
 }
 
 .brand-light {
-    font-weight: 400;
+    font-weight: var(--fw-normal);
     margin-left: 6px;
     color: var(--text-secondary);
-    font-size: 20px;
+    font-size: var(--fs-xl);
 }
 
 .fov-chip {
-    font-size: 13px;
+    font-size: var(--fs-2xs);
     color: var(--text-dark-alt);
     background: var(--fov-bg);
     border: 1px solid var(--border-framing);
     border-radius: 999px;
-    padding: 4px 10px;
+    padding: var(--space-1) var(--space-2-5);
     white-space: nowrap;
     margin-right: 48px;
 }
@@ -544,7 +544,7 @@ div.form-data-value.preserve-newlines {
     width: 98vw;
     height: 96vh;
     background: var(--bg-white);
-    border-radius: 10px;
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-overlay);
     overflow: hidden;
     display: flex;
@@ -553,7 +553,7 @@ div.form-data-value.preserve-newlines {
 
 #framing-header,
 #framing-toolbar {
-    padding: 10px 16px;
+    padding: var(--space-2-5) var(--space-4);
 }
 
 #framing-toolbar {
@@ -578,7 +578,7 @@ div.form-data-value.preserve-newlines {
 #aladin-lite-div {
     flex: 1 1 auto;
     min-height: 200px;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
@@ -670,10 +670,10 @@ div.form-data-value.preserve-newlines {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: var(--fs-lg);
     line-height: 1;
     border: 0;
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     background: transparent;
     color: var(--text-dark-alt);
     cursor: pointer;
@@ -768,12 +768,12 @@ div.form-data-value.preserve-newlines {
 }
 
 /* Tab navigation styles moved to base.css for consistency across all pages */
-.tab-content { padding: 20px; background-color: var(--bg-light); border: 1px solid var(--border-light-alt2); border-top: none; border-radius: 0 0 6px 6px; }
+.tab-content { padding: var(--space-5); background-color: var(--bg-light); border: 1px solid var(--border-light-alt2); border-top: none; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
 .loader-row td {
     text-align: center !important;
     padding: 40px 0;
     font-size: 1.1em;
-    font-weight: 500;
+    font-weight: var(--fw-medium);
     color: var(--text-secondary);
     background-color: var(--bg-light);
 }
@@ -790,8 +790,8 @@ div.form-data-value.preserve-newlines {
     min-height: 200px;
     background-color: var(--bg-light);
     border: 1px dashed var(--border-form);
-    border-radius: 6px;
-    padding: 20px;
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
     box-sizing: border-box;
     text-align: center;
     color: var(--text-secondary);
@@ -814,7 +814,7 @@ trix-editor figure.attachment, .trix-content figure.attachment, .project-notes-s
 trix-editor img, .trix-content img, .notes-block img, .notes-content img, .project-notes-section img {
     max-width: 100% !important;
     height: auto !important;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
 }
 
 /* FIX: Hide Trix metadata (filenames) - High Specificity */
@@ -834,7 +834,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 .insp-detail-image-wrapper {
     position: relative;
     background-color: var(--text-black);
-    border-radius: 6px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     max-height: 500px;
     display: flex;
@@ -852,17 +852,17 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     right: 10px;
     background: rgba(0, 0, 0, 0.7);
     color: rgba(255, 255, 255, 0.9);
-    padding: 4px 8px;
-    font-size: 12px;
-    border-radius: 4px;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--fs-xs);
+    border-radius: var(--radius-md);
     pointer-events: none;
 }
 .insp-detail-text {
     background: var(--bg-white);
-    padding: 20px;
+    padding: var(--space-5);
     border: 1px solid var(--text-lightest);
-    border-radius: 6px;
-    line-height: 1.6;
+    border-radius: var(--radius-lg);
+    line-height: var(--lh-relaxed);
     color: var(--text-dark-alt);
 }
 
@@ -980,7 +980,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     background: var(--bg-medium);
     border: 1px solid var(--border-medium);
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
 }
 
 [data-theme="dark"] #framing-modal input[type="range"]::-webkit-slider-thumb {
