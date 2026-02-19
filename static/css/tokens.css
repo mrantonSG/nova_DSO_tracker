@@ -10,7 +10,9 @@
      Based on existing values found in codebase: 11px, 14px, 16px, 18px, 20px, 24px
      ================================================================ */
   --font-size-xs: 11px;      /* Captions, small labels, version numbers */
+  --font-size-2xs: 13px;     /* Small captions, fine print */
   --font-size-sm: 14px;      /* Form labels, secondary text, small buttons */
+  --font-size-md: 15px;      /* Medium emphasis text */
   --font-size-base: 16px;    /* Body text, standard buttons */
   --font-size-lg: 18px;      /* Emphasized body text */
   --font-size-xl: 20px;      /* Page titles, section headers */
@@ -18,6 +20,7 @@
 
   --font-weight-normal: 400;
   --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
   --line-height-tight: 1.2;
@@ -29,7 +32,9 @@
      4px base unit, powers of 2 progression
      ================================================================ */
   --space-1: 4px;
+  --space-1-5: 6px;
   --space-2: 8px;
+  --space-2-5: 10px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
@@ -60,6 +65,15 @@
   --input-border-width: 1px;
   --input-border-radius: 4px;
   --input-border-color: var(--border-medium);
+
+  /* =================================================================
+     BUTTON TOKENS
+     Standard and compact button sizing
+     ================================================================ */
+  --btn-padding-y: 10px;
+  --btn-padding-x: 20px;
+  --btn-padding-compact-y: 5px;
+  --btn-padding-compact-x: 10px;
 
   /* =================================================================
      BORDER RADIUS SCALE
