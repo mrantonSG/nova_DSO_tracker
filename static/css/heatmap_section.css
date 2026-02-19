@@ -11,8 +11,8 @@
         align-items: center;
         margin-bottom: 10px;
         background-color: var(--bg-light-alt);
-        padding: 10px;
-        border-radius: 4px;
+        padding: var(--space-2-5);
+        border-radius: var(--radius-md);
         border: 1px solid var(--border-light);
     }
     #heatmap-legend-text {
@@ -33,12 +33,12 @@
         transform: translateX(-50%);
         background: rgba(255,255,255,0.95);
         padding: 20px 40px;
-        border-radius: 8px;
+        border-radius: var(--radius-xl);
         box-shadow: var(--shadow-lg);
         z-index: var(--z-dropdown);
         text-align: center;
         color: var(--primary-dark);
-        font-weight: bold;
+        font-weight: var(--font-weight-bold);
         border: 1px solid var(--border-medium);
         min-width: 300px;
     }

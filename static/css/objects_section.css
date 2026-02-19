@@ -1,7 +1,7 @@
     /* Copied from journal for consistent sub-tabs */
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
-    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: 15px; }
-    .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+    .detail-tab-button { padding: var(--space-2) var(--space-4); cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: var(--font-size-md); }
+    .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: var(--font-weight-semibold); }
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; }
 
@@ -29,39 +29,39 @@
     }
     /* --- NEW: Style for the filter select dropdown --- */
     #object-filter-bar select {
-        font-size: 14px;
-        padding: 5px;
+        font-size: var(--font-size-sm);
+        padding: var(--space-1);
         box-sizing: border-box;
         font-family: 'Roboto', sans-serif;
         border: 1px solid var(--border-medium-alt);
-        border-radius: 4px;
+        border-radius: var(--radius-md);
     }
     .config-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    .config-table th, .config-table td { border: 1px solid var(--border-medium); padding: 8px 12px; text-align: left; }
+    .config-table th, .config-table td { border: 1px solid var(--border-medium); padding: var(--space-2) var(--space-3); text-align: left; }
     .config-table th { background-color: var(--bg-light-gray-alt2); }
-    .config-table .badge { background-color: var(--border-light-alt3); color: var(--accent-gray-text); padding: 3px 8px; border-radius: 10px; font-size: 0.8em; }
+    .config-table .badge { background-color: var(--border-light-alt3); color: var(--accent-gray-text); padding: 3px 8px; border-radius: var(--radius-xl); font-size: 0.8em; }
     .muted-text { color: var(--accent-gray-medium); }
 
     /* --- Catalog/Source Styles (from previous step) --- */
     .readonly-notes {
         background: var(--bg-light);
         border: 1px solid var(--border-light-alt2);
-        border-radius: 4px;
+        border-radius: var(--radius-md);
         padding: 10px 15px;
         min-height: 50px;
-        font-size: 14px;
+        font-size: var(--font-size-sm);
         color: var(--accent-gray-text);
         word-wrap: break-word;
     }
     .catalog-source-badge {
-        font-size: 13px;
-        font-weight: bold;
+        font-size: var(--font-size-2xs);
+        font-weight: var(--font-weight-bold);
         color: var(--info-badge);
         background: var(--info-bg-light);
-        padding: 4px 8px;
-        border-radius: 4px;
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-md);
         display: inline-block;
-        line-height: 1.5;
+        line-height: var(--line-height-normal);
     }
     /* NEW STYLE: Ensure checkbox scale is consistent */
     .objects-list .inline-fields input[type="checkbox"] {
@@ -75,7 +75,7 @@
     .trix-lazy-box {
         background-color: var(--bg-white);
         border: 1px solid var(--border-medium-alt);
-        border-radius: 3px;
+        border-radius: var(--radius-sm);
         padding: 0.7em;
         height: 150px;     /* Matches standard editor height */
         overflow-y: auto;

@@ -1,7 +1,7 @@
 
     body {
         font-family: 'Roboto', sans-serif;
-        padding: 20px;
+        padding: var(--space-5);
         margin: 0;
         background-color: var(--bg-white);
         color: var(--text-primary);
@@ -13,10 +13,10 @@
         margin-bottom: 30px;
         margin-left: 0;
         margin-right: auto;
-        padding: 20px;
+        padding: var(--space-5);
         background-color: var(--bg-light-alt);
         border: 1px solid var(--border-medium);
-        border-radius: 8px;
+        border-radius: var(--radius-xl);
     }
     .form-group { margin-bottom: 15px; }
     .form-group label {
@@ -41,7 +41,7 @@
     .form-group textarea { min-height: 100px; }
     .form-actions { margin-top: var(--space-5); text-align: right; }
     .form-actions button {
-        padding: 10px var(--space-5);
+        padding: var(--space-2-5) var(--space-5);
         font-size: var(--font-size-base);
         background-color: var(--primary-color);
         color: white;
