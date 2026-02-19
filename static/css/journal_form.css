@@ -21,9 +21,9 @@
     .form-group { margin-bottom: 15px; }
     .form-group label {
       display: block;
-      margin-bottom: 5px;
-      font-weight: normal;
-      font-size: 14px;
+      margin-bottom: var(--space-1);
+      font-weight: var(--font-weight-normal);
+      font-size: var(--font-size-sm);
 
     }
     .form-group input[type="text"],
@@ -32,34 +32,34 @@
     .form-group select,
     .form-group textarea {
         width: 100%;
-        padding: 8px;
-        border: 1px solid var(--border-medium-alt);
-        border-radius: 4px;
+        padding: var(--input-padding-y) var(--input-padding-x);
+        border: var(--input-border-width) solid var(--input-border-color);
+        border-radius: var(--input-border-radius);
         box-sizing: border-box;
-        font-size: 14px;
+        font-size: var(--font-size-sm);
     }
     .form-group textarea { min-height: 100px; }
-    .form-actions { margin-top: 20px; text-align: right; }
+    .form-actions { margin-top: var(--space-5); text-align: right; }
     .form-actions button {
-        padding: 10px 20px;
-        font-size: 16px;
+        padding: 10px var(--space-5);
+        font-size: var(--font-size-base);
         background-color: var(--primary-color);
         color: white;
         border: none;
-        border-radius: 5px;
+        border-radius: var(--radius-lg);
         cursor: pointer;
-        margin-left: 10px;
+        margin-left: var(--space-2);
     }
     .form-actions button[type="button"] { background-color: var(--text-light); }
     .form-actions button:hover { opacity: 0.9; }
     .form-section-title {
-        font-size: 16px;
-        font-weight: bold;
+        font-size: var(--font-size-base);
+        font-weight: var(--font-weight-bold);
         color: var(--text-primary);
         margin-top: 25px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid var(--border-light);
-        padding-bottom: 5px;
+        margin-bottom: var(--space-2);
+        border-bottom: var(--input-border-width) solid var(--border-light);
+        padding-bottom: var(--space-1);
     }
     .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
     .form-row .form-group { flex: 1; min-width: 200px;}
@@ -96,7 +96,7 @@
     [data-theme="dark"] .form-group select,
     [data-theme="dark"] .form-group textarea {
         background-color: var(--bg-medium);
-        border: 1px solid var(--border-medium);
+        border: var(--input-border-width) solid var(--border-medium);
         color: var(--text-primary);
     }
 

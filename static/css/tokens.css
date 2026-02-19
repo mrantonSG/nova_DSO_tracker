@@ -39,18 +39,17 @@
 
   /* =================================================================
      SHADOW SCALE
-     Based on 7 hardcoded shadows identified in audit:
-     - 0 1px 3px (item cards)
-     - 0 2px 4px (mobile header)
-     - 0 4px 10px (alert banner)
-     - 0 5px 15px (modals)
-     - 0 10px 25px (progress modal)
-     - 0 12px 32px (framing modal)
+     Tiered shadows for elevation hierarchy
      ================================================================ */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);     /* Subtle: cards, items */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);      /* Medium: headers, dropdowns */
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);   /* Large: elevated panels */
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);    /* Extra large: notifications */
+
+  /* Semantic shadow tokens */
+  --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.3);      /* Standard modals */
+  --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.2);     /* Floating panels, progress */
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.25);  /* Fullscreen overlays */
 
   /* =================================================================
      INPUT TOKENS
@@ -80,4 +79,9 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+
+  /* Semantic shadows - stronger in dark mode */
+  --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
 }

@@ -545,7 +545,7 @@ div.form-data-value.preserve-newlines {
     height: 96vh;
     background: var(--bg-white);
     border-radius: 10px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-overlay);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -919,7 +919,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 /* Framing modal content container */
 [data-theme="dark"] #framing-modal-content {
     background: var(--bg-light);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-overlay);
 }
 
 /* Framing header */

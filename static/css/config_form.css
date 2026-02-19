@@ -18,12 +18,12 @@
       color: var(--text-primary);
     }
     label {
-      font-size: 14px;
-      margin-right: 5px;
+      font-size: var(--font-size-sm);
+      margin-right: var(--space-1);
     }
     input, select, textarea {
-      font-size: 14px;
-      padding: 5px;
+      font-size: var(--font-size-sm);
+      padding: var(--space-1);  /* Compact: 4px (smaller than standard --input-padding-y) */
       box-sizing: border-box;
       font-family: 'Roboto', sans-serif;
     }
@@ -31,8 +31,8 @@
       border: 0px solid var(--border-medium);
       background: var(--bg-light-gray-alt3);
       padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 4px;
+      margin-bottom: var(--space-2);
+      border-radius: var(--radius-md);
     }
     .error {
       color: var(--danger-color);
@@ -45,15 +45,15 @@
     .config-section {
         padding: 1.5em;
         background-color: var(--bg-light-alt);
-        border-radius: 8px;
+        border-radius: var(--radius-xl);
     }
     .config-section h2, .config-section h3 {
         color: var(--text-primary);
-        font-size: 20px;
-        font-weight: bold;
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
         margin-top: 0;
         margin-bottom: 1.5em;
-        border-bottom: 1px solid var(--bg-light-gray-alt3);
+        border-bottom: var(--input-border-width) solid var(--bg-light-gray-alt3);
         padding-bottom: 0.5em;
     }
 
@@ -347,7 +347,7 @@
         max-width: 700px;
         max-height: 80vh;
         overflow-y: auto;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        box-shadow: var(--shadow-modal);
     }
     .modal-content h3 {
         margin-top: 0;
@@ -383,7 +383,7 @@
         border-radius: 8px;
         width: 350px;
         text-align: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        box-shadow: var(--shadow-float);
     }
     .progress-track {
         width: 100%;
@@ -434,17 +434,17 @@
     .column details > summary { cursor: pointer; font-weight: bold; }
     .column hr { border: 0; border-top: 1px solid var(--border-divider); margin: 1.5em 0; }
     .column .form-group { margin-bottom: 1em; }
-    .column .form-group label { display: block; margin-bottom: 5px; font-weight: normal; font-size: 14px; }
-    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: 1px solid var(--border-medium-alt); border-radius: 4px; box-sizing: border-box; }
+    .column .form-group label { display: block; margin-bottom: var(--space-1); font-weight: var(--font-weight-normal); font-size: var(--font-size-sm); }
+    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: var(--input-border-width) solid var(--input-border-color); border-radius: var(--input-border-radius); box-sizing: border-box; }
     .column ul { list-style-type: none; padding: 0; }
     .column button {
       background-color: var(--primary-color);
       color: white;
-      padding: 5px 10px;
+      padding: var(--space-1) var(--space-2);
       border: none;
-      border-radius: 5px;
+      border-radius: var(--radius-lg);
       cursor: pointer;
-      font-size: 14px;
+      font-size: var(--font-size-sm);
     }
     .column button:hover {
       background-color: var(--primary-dark);
@@ -454,12 +454,12 @@
       border: none;
       padding: 0.8em;
       margin-bottom: 0.5em;
-      border-radius: 4px;
+      border-radius: var(--radius-md);
       font-size: 0.95em;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: var(--space-2);
     }
     .column li .item-info {
         flex-grow: 1;
@@ -472,9 +472,9 @@
     .edit-btn, .delete-btn {
         color: white;
         border: none;
-        padding: 5px 10px;
-        font-size: 14px;
-        border-radius: 5px;
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--font-size-sm);
+        border-radius: var(--radius-lg);
         cursor: pointer;
         text-decoration: none;
         display: inline-block;
@@ -495,17 +495,17 @@
       position: absolute;
       background-color: var(--bg-light-gray-alt);
       min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      box-shadow: var(--shadow-lg);
       z-index: var(--z-base);
-      border-radius: 5px;
+      border-radius: var(--radius-lg);
       overflow: hidden;
     }
     .dropdown-content a {
       color: black;
-      padding: 12px 16px;
+      padding: var(--space-3) var(--space-4);
       text-decoration: none;
       display: block;
-      font-size: 14px;
+      font-size: var(--font-size-sm);
     }
     .dropdown-content a:hover {
       background-color: var(--border-medium);
@@ -515,15 +515,15 @@
     }
       .sampling-info {
         font-size: 0.9em;
-        margin-top: 5px;
+        margin-top: var(--space-1);
         display: block;
-        font-weight: bold;
+        font-weight: var(--font-weight-bold);
     }
     .sampling-binning-tip {
         font-size: 0.8em;
         display: block;
         margin-top: 2px;
-        font-weight: normal;
+        font-weight: var(--font-weight-normal);
         font-style: italic;
         color: var(--text-tertiary);
     }
@@ -589,7 +589,7 @@
 [data-theme="dark"] .column .form-group input,
 [data-theme="dark"] .column .form-group select {
     background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
@@ -610,7 +610,7 @@
 [data-theme="dark"] .inline-fields input,
 [data-theme="dark"] .inline-fields select {
     background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
@@ -624,7 +624,7 @@
 [data-theme="dark"] textarea.wide,
 [data-theme="dark"] textarea.project_field {
     background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
@@ -638,14 +638,14 @@
 [data-theme="dark"] select[name^="timezone_"],
 [data-theme="dark"] select[name="new_timezone"] {
     background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
 /* Trix editor */
 [data-theme="dark"] .form-group trix-editor {
     background-color: var(--bg-medium);
-    border: 1px solid var(--border-medium);
+    border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
@@ -668,7 +668,7 @@
 /* Dropdown content */
 [data-theme="dark"] .dropdown-content {
     background-color: var(--bg-medium);
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-lg);
 }
 
 [data-theme="dark"] .dropdown-content a {
@@ -710,7 +710,7 @@
 /* Modal content */
 [data-theme="dark"] .modal-content {
     background: var(--bg-light);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-modal);
 }
 
 [data-theme="dark"] .modal-content h3 {
@@ -726,7 +726,7 @@
 /* Progress modal */
 [data-theme="dark"] #fetch-progress-content {
     background: var(--bg-light);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-float);
 }
 
 [data-theme="dark"] .progress-track {
