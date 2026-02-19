@@ -6,6 +6,7 @@
     let isFetching = false;
     let currentFilteredIds = [];
     let currentFilteredY = [];
+    let currentFilteredZ = [];
 
     // Force Plotly to resize when the browser window changes
     window.addEventListener('resize', function() {
@@ -220,6 +221,7 @@
 
         currentFilteredIds = filteredIds;
         currentFilteredY = filteredY;
+        currentFilteredZ = filteredZ;
 
         // Moon Overlays
         const shapes = [];
