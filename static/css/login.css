@@ -43,56 +43,23 @@
       flex: 1;
       text-align: center;
     }
-    input[type="submit"],
-    .guest-button {
+    input[type="submit"] {
       padding: 10px 16px;
       font-size: 16px;
       border: none;
       border-radius: 5px;
       cursor: pointer;
-    }
-    input[type="submit"] {
       background-color: var(--primary-color);
       color: white;
     }
     input[type="submit"]:hover {
       background-color: var(--primary-dark);
     }
-    .guest-button {
-      background-color: var(--border-medium-alt);
-      color: var(--text-primary);
-      text-decoration: none;
-      display: inline-block;
-    }
-    .guest-button:hover {
-      background-color: var(--text-light);
-    }
-
-    input[type="submit"],
-    .guest-button {
+    /* Login page specific overrides for .btn-secondary */
+    .button-row .btn-secondary {
       padding: 10px 16px;
-      font-size: 16px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    input[type="submit"] {
-      background-color: var(--primary-color);
-      color: white;
-    }
-    input[type="submit"]:hover {
-      background-color: var(--primary-dark);
-    }
-    /* DEPRECATED: Use .btn-secondary from base.css instead */
-    .guest-button {
-      background-color: var(--accent-slate);
-      color: white;
-      text-decoration: none;
-      display: inline-block;
+      flex: 1;
       text-align: center;
-    }
-    .guest-button:hover {
-      background-color: var(--accent-slate-dark);
     }
 
     .flash {

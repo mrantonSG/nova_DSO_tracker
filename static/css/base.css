@@ -718,23 +718,9 @@
     background-color: var(--success-color-alt);
 }
 
-/* DEPRECATED: Use .btn-secondary instead */
-.btn-cancel,
-.cancel-btn {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: var(--accent-slate);
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-.btn-cancel:hover,
-.cancel-btn:hover {
-    background-color: var(--accent-slate-dark);
-}
-
-/* Unified Secondary Button (replaces .btn-cancel, .guest-button, .notes-button) */
+/* ===================================================================
+   SECONDARY BUTTON
+   ================================================================ */
 .btn-secondary {
     padding: 10px 20px;
     font-size: 16px;
@@ -756,6 +742,9 @@
     font-size: 14px;
 }
 
+/* ===================================================================
+   DANGER BUTTON
+   ================================================================ */
 .btn-delete {
     padding: 10px 20px;
     font-size: 16px;
@@ -772,7 +761,6 @@
 /* Compact variant */
 .btn-edit.compact,
 .btn-save.compact,
-.btn-cancel.compact,
 .btn-delete.compact {
     padding: 5px 10px;
     font-size: 14px;
