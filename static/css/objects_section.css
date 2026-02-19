@@ -263,3 +263,60 @@
     [data-theme="dark"] .current-project-item {
         background-color: var(--highlight-blue-alt) !important;
     }
+
+    /* ===================================================================
+       DARK MODE - OBJECTS SECTION SPECIFIC
+       ================================================================ */
+
+    /* Detail tabs container */
+    [data-theme="dark"] .detail-tabs-container {
+        border-bottom-color: var(--border-medium);
+    }
+
+    [data-theme="dark"] .detail-tab-button {
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .detail-tab-button.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    [data-theme="dark"] .detail-tab-button:hover {
+        color: var(--text-primary);
+        background-color: var(--bg-medium);
+    }
+
+    /* Readonly notes */
+    [data-theme="dark"] .readonly-notes {
+        background: var(--bg-medium);
+        border-color: var(--border-medium);
+        color: var(--text-secondary);
+    }
+
+    /* Catalog source badge */
+    [data-theme="dark"] .catalog-source-badge {
+        background: var(--bg-medium-alt);
+        color: var(--info-color);
+    }
+
+    /* Trix lazy box */
+    [data-theme="dark"] .trix-lazy-box {
+        background-color: var(--bg-medium);
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .trix-lazy-box:hover {
+        background-color: var(--bg-medium-alt);
+        border-color: var(--primary-color);
+    }
+
+    [data-theme="dark"] .trix-placeholder-text {
+        color: var(--text-muted);
+    }
+
+    /* Muted text */
+    [data-theme="dark"] .muted-text {
+        color: var(--text-tertiary);
+    }
