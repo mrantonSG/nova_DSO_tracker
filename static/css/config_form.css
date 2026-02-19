@@ -549,7 +549,8 @@
 
 /* Block backgrounds */
 [data-theme="dark"] .block {
-    background: var(--bg-medium);
+    background: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
 }
 
 /* Config sections */
@@ -581,6 +582,7 @@
 /* List items */
 [data-theme="dark"] .column li {
     background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
 }
 
 /* Form inputs */
@@ -744,7 +746,8 @@
 
 /* Location blocks */
 [data-theme="dark"] .locations-list .block {
-    background: var(--bg-medium);
+    background: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
 }
 
 /* Location horizon mask and comments textareas */
@@ -808,7 +811,8 @@
 
 /* Object blocks */
 [data-theme="dark"] .objects-list .block {
-    background: var(--bg-medium);
+    background: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
 }
 
 /* Object inline field inputs */
