@@ -28,6 +28,116 @@
     .form-group.trix-editor-container { margin-top: 15px; }
 
     #project-edit-mode { display: none; } /* Start hidden */
+
+    /* ===================================================================
+       DARK MODE OVERRIDES
+       ================================================================ */
+
+    /* Stat boxes */
+    [data-theme="dark"] .stat-box {
+        background-color: var(--bg-medium);
+    }
+    [data-theme="dark"] .stat-value {
+        color: var(--text-primary);
+    }
+    [data-theme="dark"] .stat-label {
+        color: var(--text-secondary);
+    }
+
+    /* Final image container */
+    [data-theme="dark"] .final-image-container img {
+        border-color: var(--border-medium);
+    }
+
+    /* Sessions table */
+    [data-theme="dark"] .sessions-table th,
+    [data-theme="dark"] .sessions-table td {
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+    [data-theme="dark"] .sessions-table th {
+        background-color: var(--bg-medium);
+    }
+    [data-theme="dark"] .sessions-table tr:hover {
+        background-color: var(--bg-medium-alt);
+    }
+
+    /* Notes sections */
+    [data-theme="dark"] .notes-section {
+        background-color: var(--bg-light);
+        border-color: var(--border-medium);
+    }
+    [data-theme="dark"] .notes-section h3 {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-medium);
+    }
+    [data-theme="dark"] .notes-section .notes-content {
+        color: var(--text-primary);
+    }
+
+    /* Form inputs */
+    [data-theme="dark"] .form-group label {
+        color: var(--text-secondary);
+    }
+    [data-theme="dark"] .form-group input,
+    [data-theme="dark"] .form-group select,
+    [data-theme="dark"] .form-group textarea {
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium);
+        color: var(--text-primary);
+    }
+    [data-theme="dark"] .form-group input:focus,
+    [data-theme="dark"] .form-group select:focus,
+    [data-theme="dark"] .form-group textarea:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+    [data-theme="dark"] .form-group input::placeholder,
+    [data-theme="dark"] .form-group textarea::placeholder {
+        color: var(--text-muted);
+    }
+
+    /* Project edit mode - more specific selectors */
+    [data-theme="dark"] #project-edit-mode .form-group input,
+    [data-theme="dark"] #project-edit-mode .form-group select,
+    [data-theme="dark"] #project-edit-mode .form-group textarea {
+        background-color: var(--bg-medium) !important;
+        border: 1px solid var(--border-medium) !important;
+        color: var(--text-primary) !important;
+    }
+    [data-theme="dark"] #project-edit-mode .form-group input:focus,
+    [data-theme="dark"] #project-edit-mode .form-group select:focus,
+    [data-theme="dark"] #project-edit-mode .form-group textarea:focus {
+        border-color: var(--primary-color) !important;
+        outline: none;
+    }
+    [data-theme="dark"] #project-edit-mode .form-group label {
+        color: var(--text-secondary) !important;
+    }
+    /* Select dropdown styling */
+    [data-theme="dark"] #project-edit-mode .form-group select {
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23b0b0b0%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4l128-128c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%27%2F%3E%3C%2Fsvg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 10px center !important;
+        background-size: 10px !important;
+        padding-right: 30px !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+    }
+    [data-theme="dark"] #project-edit-mode .form-group select option {
+        background-color: var(--bg-dark-secondary);
+        color: var(--text-primary);
+    }
+    /* Notes section in edit mode */
+    [data-theme="dark"] #project-edit-mode .notes-section {
+        background-color: var(--bg-light) !important;
+        border-color: var(--border-medium) !important;
+    }
+    [data-theme="dark"] #project-edit-mode .notes-section h3 {
+        color: var(--text-primary) !important;
+        border-bottom-color: var(--border-medium) !important;
+    }
 </style>
 
 <div id="project-story-container">

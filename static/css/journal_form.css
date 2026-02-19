@@ -63,3 +63,106 @@
     }
     .form-row { display: flex; gap: 20px; flex-wrap: wrap; }
     .form-row .form-group { flex: 1; min-width: 200px;}
+
+    /* ===================================================================
+       DARK MODE OVERRIDES
+       ================================================================ */
+
+    /* Body and container */
+    [data-theme="dark"] body {
+        background-color: var(--bg-light);
+    }
+
+    [data-theme="dark"] .form-container {
+        background-color: var(--bg-light);
+        border-color: var(--border-medium);
+    }
+
+    /* All labels */
+    [data-theme="dark"] .form-group label {
+        color: var(--text-primary);
+    }
+
+    /* Section titles */
+    [data-theme="dark"] .form-section-title {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-medium);
+    }
+
+    /* Form inputs */
+    [data-theme="dark"] .form-group input[type="text"],
+    [data-theme="dark"] .form-group input[type="number"],
+    [data-theme="dark"] .form-group input[type="date"],
+    [data-theme="dark"] .form-group select,
+    [data-theme="dark"] .form-group textarea {
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .form-group input:focus,
+    [data-theme="dark"] .form-group select:focus,
+    [data-theme="dark"] .form-group textarea:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    /* Placeholder text */
+    [data-theme="dark"] .form-group input::placeholder,
+    [data-theme="dark"] .form-group textarea::placeholder {
+        color: var(--text-muted);
+    }
+
+    /* Helper text (e.g., under Monochrome Filter Exposures) */
+    [data-theme="dark"] .form-container p {
+        color: var(--text-secondary) !important;
+    }
+
+    /* Cancel button */
+    [data-theme="dark"] .form-actions button[type="button"] {
+        background-color: var(--bg-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .form-actions button[type="button"]:hover {
+        background-color: var(--bg-medium-alt);
+    }
+
+    /* Select dropdown styling for dark mode */
+    [data-theme="dark"] .form-group select {
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27292.4%27%20height%3D%27292.4%27%3E%3Cpath%20fill%3D%27%23b0b0b0%27%20d%3D%27M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4l128-128c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%27%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 10px;
+        padding-right: 30px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+
+    [data-theme="dark"] .form-group select option {
+        background-color: var(--bg-dark-secondary);
+        color: var(--text-primary);
+    }
+
+    /* Date input calendar icon support for dark mode */
+    [data-theme="dark"] .form-group input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.7);
+        cursor: pointer;
+    }
+
+    /* Number input spinners for dark mode */
+    [data-theme="dark"] .form-group input[type="number"]::-webkit-inner-spin-button,
+    [data-theme="dark"] .form-group input[type="number"]::-webkit-outer-spin-button {
+        filter: invert(0.7);
+    }
+
+    /* Primary submit button in dark mode */
+    [data-theme="dark"] .form-actions button[type="submit"] {
+        background-color: var(--primary-color);
+    }
+
+    [data-theme="dark"] .form-actions button[type="submit"]:hover {
+        background-color: var(--primary-dark);
+        opacity: 1;
+    }

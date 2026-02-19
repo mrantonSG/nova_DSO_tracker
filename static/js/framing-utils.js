@@ -136,8 +136,8 @@ window.framingUtils_parseFramingQueryString = function(queryString) {
         ra: parseOptionalFloat('ra'),
         dec: parseOptionalFloat('dec'),
         rot: parseOptionalFloat('rot'),
-        survey: upgradeLegacySurveyUrl(q.get('survey')),
-        blend: upgradeLegacySurveyUrl(q.get('blend')),
+        survey: window.framingUtils_upgradeLegacySurveyUrl(q.get('survey')),
+        blend: window.framingUtils_upgradeLegacySurveyUrl(q.get('blend')),
         blendOp: parseOptionalFloat('blend_op'),
         m_cols: q.get('m_cols'),
         m_rows: q.get('m_rows'),
@@ -183,7 +183,7 @@ window.framingUtils_buildFramingQueryString = function(state) {
     if (Number.isFinite(state.dec)) qp.set('dec', state.dec.toFixed(6));
 
     // Rotation (normalized to 0-360)
-    qp.set('rot', String(Math.round(normalizeAngle(state.rot))));
+    qp.set('rot', String(Math.round(window.framingUtils_normalizeAngle(state.rot))));
 
     // Survey settings
     if (state.survey) qp.set('survey', state.survey);
@@ -293,7 +293,7 @@ window.framingUtils_calculateRequiredFov = function(fovW_deg, fovH_deg, rotation
         return NaN;
     }
 
-    const th = degToRad(rotationDeg);
+    const th = window.framingUtils_degToRad(rotationDeg);
 
     // Calculate bounding box dimensions after rotation
     const needWidthDeg = Math.abs(fovW_deg * Math.cos(th)) + Math.abs(fovH_deg * Math.sin(th));
@@ -374,8 +374,8 @@ window.framingUtils_rotate2d = function(x, y, angleRad) {
  * @returns {Object} Basis vectors {cX, cY, cZ, eX, eY, eZ, nX, nY, nZ}
  */
 window.framingUtils_calculateTangentPlaneBasis = function(ra0_deg, dec0_deg) {
-    const ra0 = degToRad(ra0_deg);
-    const dec0 = degToRad(dec0_deg);
+    const ra0 = window.framingUtils_degToRad(ra0_deg);
+    const dec0 = window.framingUtils_degToRad(dec0_deg);
 
     // Center unit vector
     const cX = Math.cos(dec0) * Math.cos(ra0);
@@ -419,7 +419,7 @@ window.framingUtils_planeToSkyGnomonic = function(x_deg, y_deg, ra0_deg, dec0_de
     }
 
     // Calculate tangent plane basis vectors
-    const { cX, cY, cZ, eX, eY, eZ, nX, nY, nZ } = calculateTangentPlaneBasis(ra0_deg, dec0_deg);
+    const { cX, cY, cZ, eX, eY, eZ, nX, nY, nZ } = window.framingUtils_calculateTangentPlaneBasis(ra0_deg, dec0_deg);
 
     // Direction in tangent plane
     const dirX = (dx * eX + dy * nX) / r;
@@ -439,7 +439,7 @@ window.framingUtils_planeToSkyGnomonic = function(x_deg, y_deg, ra0_deg, dec0_de
     if (ra < 0) ra += 2 * Math.PI;
     const dec = Math.asin(pZ);
 
-    return [radToDeg(ra), radToDeg(dec)];
+    return [window.framingUtils_radToDeg(ra), window.framingUtils_radToDeg(dec)];
 }
 
 /**
@@ -454,10 +454,10 @@ window.framingUtils_planeToSkyGnomonic = function(x_deg, y_deg, ra0_deg, dec0_de
  */
 window.framingUtils_skyToPlaneGnomonic = function(ra_deg, dec_deg, ra0_deg, dec0_deg) {
     // Convert to radians
-    const ra = degToRad(ra_deg);
-    const dec = degToRad(dec_deg);
-    const ra0 = degToRad(ra0_deg);
-    const dec0 = degToRad(dec0_deg);
+    const ra = window.framingUtils_degToRad(ra_deg);
+    const dec = window.framingUtils_degToRad(dec_deg);
+    const ra0 = window.framingUtils_degToRad(ra0_deg);
+    const dec0 = window.framingUtils_degToRad(dec0_deg);
 
     // Check if point is in projection (cos(zenith_angle) > 0)
     const cosC = Math.sin(dec0) * Math.sin(dec) + Math.cos(dec0) * Math.cos(dec) * Math.cos(ra - ra0);
@@ -470,7 +470,7 @@ window.framingUtils_skyToPlaneGnomonic = function(ra_deg, dec_deg, ra0_deg, dec0
     const x = k * Math.cos(dec) * Math.sin(ra - ra0);
     const y = k * (Math.cos(dec0) * Math.sin(dec) - Math.sin(dec0) * Math.cos(dec) * Math.cos(ra - ra0));
 
-    return [radToDeg(x), radToDeg(y)];
+    return [window.framingUtils_radToDeg(x), window.framingUtils_radToDeg(y)];
 }
 
 // ==========================================================================
@@ -505,17 +505,17 @@ window.framingUtils_calculateMosaicPanesSpherical = function({
     const panes = [];
 
     // Calculate step sizes with overlap
-    const { stepW, stepH } = calculateMosaicDimensions(
+    const { stepW, stepH } = window.framingUtils_calculateMosaicDimensions(
         fovW_deg, fovH_deg, cols, rows, overlapPct
     );
 
     // Rotation angle (inverted for CSS vs math convention)
-    const ang = -degToRad(rotDeg);
+    const ang = -window.framingUtils_degToRad(rotDeg);
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             // Calculate unrotated offset from mosaic center (in degrees)
-            const { cx_off, cy_off } = calculatePaneOffset(
+            const { cx_off, cy_off } = window.framingUtils_calculatePaneOffset(
                 c, r, cols, rows, stepW, stepH
             );
 
@@ -533,7 +533,7 @@ window.framingUtils_calculateMosaicPanesSpherical = function({
             if (Math.abs(paneDecDeg) > 89.9) {
                 cosDec = window.framingUtils_CONSTANTS.MIN_COS_DEC; // Prevent division by zero near poles
             } else {
-                cosDec = Math.cos(degToRad(paneDecDeg));
+                cosDec = Math.cos(window.framingUtils_degToRad(paneDecDeg));
             }
             const raOffsetDeg = rx / cosDec;
 
@@ -541,7 +541,7 @@ window.framingUtils_calculateMosaicPanesSpherical = function({
             let paneRaDeg = raCenterDeg + raOffsetDeg;
 
             // Normalize RA to [0, 360) range
-            paneRaDeg = normalizeAngle(paneRaDeg);
+            paneRaDeg = window.framingUtils_normalizeAngle(paneRaDeg);
 
             panes.push({
                 col: c,
@@ -583,7 +583,7 @@ window.framingUtils_calculateMosaicPanesGnomonic = function({
     const panes = [];
 
     // Calculate step sizes with overlap
-    const { stepW, stepH } = calculateMosaicDimensions(
+    const { stepW, stepH } = window.framingUtils_calculateMosaicDimensions(
         fovW_deg, fovH_deg, cols, rows, overlapPct
     );
 
@@ -592,12 +592,12 @@ window.framingUtils_calculateMosaicPanesGnomonic = function({
     const halfH = fovH_deg / 2;
 
     // Rotation angle (inverted for CSS vs math convention)
-    const ang = -degToRad(rotDeg);
+    const ang = -window.framingUtils_degToRad(rotDeg);
 
     for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
             // Calculate offset of this pane's center from mosaic center (unrotated)
-            const { cx_off, cy_off } = calculatePaneOffset(
+            const { cx_off, cy_off } = window.framingUtils_calculatePaneOffset(
                 c, r, cols, rows, stepW, stepH
             );
 
@@ -613,10 +613,10 @@ window.framingUtils_calculateMosaicPanesGnomonic = function({
                 const totalY = ky + cy_off;
 
                 // Rotate around mosaic center
-                const [rx, ry] = rotate2d(totalX, totalY, ang);
+                const [rx, ry] = window.framingUtils_rotate2d(totalX, totalY, ang);
 
                 // Project to sky (negate X for RA direction)
-                return planeToSkyGnomonic(-rx, ry, raCenterDeg, decCenterDeg);
+                return window.framingUtils_planeToSkyGnomonic(-rx, ry, raCenterDeg, decCenterDeg);
             });
 
             panes.push(polyCoords);
@@ -643,7 +643,7 @@ window.framingUtils_calculateNudgedCenter = function(center, dxArcmin, dyArcmin)
     const dxDeg = dxArcmin / window.framingUtils_CONSTANTS.ARCMIN_PER_DEG;
     const dyDeg = dyArcmin / window.framingUtils_CONSTANTS.ARCMIN_PER_DEG;
 
-    const decRad = degToRad(center.dec);
+    const decRad = window.framingUtils_degToRad(center.dec);
 
     // RA offset varies with 1/cos(Dec) due to converging meridians
     let newRa = center.ra;
@@ -654,7 +654,7 @@ window.framingUtils_calculateNudgedCenter = function(center, dxArcmin, dyArcmin)
     const newDec = center.dec + dyDeg;
 
     // Normalize RA to [0, 360)
-    const normalizedRa = normalizeAngle(newRa);
+    const normalizedRa = window.framingUtils_normalizeAngle(newRa);
 
     return { ra: normalizedRa, dec: newDec };
 }
@@ -670,7 +670,7 @@ window.framingUtils_calculateNudgedCenter = function(center, dxArcmin, dyArcmin)
  * @returns {number} Apparent declination of geo belt in degrees
  */
 window.framingUtils_calculateGeoBeltDeclination = function(observerLatDeg) {
-    const latRad = degToRad(observerLatDeg);
+    const latRad = window.framingUtils_degToRad(observerLatDeg);
 
     // Geostationary parallax calculation
     const num = window.framingUtils_CONSTANTS.EARTH_RADIUS_KM * Math.sin(latRad);
@@ -678,7 +678,7 @@ window.framingUtils_calculateGeoBeltDeclination = function(observerLatDeg) {
     const parallaxRad = Math.atan2(num, den);
 
     // Geo belt appears on opposite side of celestial equator
-    return -radToDeg(parallaxRad);
+    return -window.framingUtils_radToDeg(parallaxRad);
 }
 
 /**

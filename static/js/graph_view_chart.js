@@ -2144,8 +2144,11 @@
                     raPoints.push(ra);
                 }
             }
-            geoBeltLayer.addSources(raPoints);
-    
+
+            // Convert RA values to proper Aladin Source objects
+            const sources = raPoints.map(ra => A.source(ra, apparentDec, {}));
+            geoBeltLayer.addSources(sources);
+
         } catch (e) {
             console.error("[Nova] Critical Error in toggleGeoBelt:", e);
         }

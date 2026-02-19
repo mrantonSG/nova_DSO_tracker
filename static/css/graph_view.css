@@ -913,6 +913,133 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 }
 
 /* ===================================================================
+   DARK MODE - FRAMING MODAL OVERRIDES
+   ================================================================ */
+
+/* Framing modal content container */
+[data-theme="dark"] #framing-modal-content {
+    background: var(--bg-light);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Framing header */
+[data-theme="dark"] #framing-header {
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+}
+
+/* Framing toolbar */
+[data-theme="dark"] #framing-toolbar {
+    background-color: var(--bg-light);
+    border-top-color: var(--border-medium);
+    border-bottom-color: var(--border-medium);
+}
+
+/* Framing body */
+[data-theme="dark"] #framing-body {
+    background-color: var(--bg-light);
+}
+
+/* All inputs in framing modal */
+[data-theme="dark"] #framing-modal input[type="text"],
+[data-theme="dark"] #framing-modal input[type="number"],
+[data-theme="dark"] #framing-modal input[type="range"],
+[data-theme="dark"] #framing-modal input[type="checkbox"] {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #framing-modal input[type="text"]:focus,
+[data-theme="dark"] #framing-modal input[type="number"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* All selects in framing modal */
+[data-theme="dark"] #framing-modal select {
+    background-color: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #framing-modal select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Range slider track */
+[data-theme="dark"] #framing-modal input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    border: none;
+}
+
+[data-theme="dark"] #framing-modal input[type="range"]::-webkit-slider-runnable-track {
+    background: var(--bg-medium);
+    border: 1px solid var(--border-medium);
+    height: 6px;
+    border-radius: 3px;
+}
+
+[data-theme="dark"] #framing-modal input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--primary-color);
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    margin-top: -5px;
+}
+
+/* All labels and text in framing modal */
+[data-theme="dark"] #framing-modal label,
+[data-theme="dark"] #framing-modal .inline-label,
+[data-theme="dark"] #framing-modal .framing-controls label,
+[data-theme="dark"] #framing-modal .framing-controls span,
+[data-theme="dark"] #framing-toolbar label,
+[data-theme="dark"] #framing-toolbar span {
+    color: var(--text-primary) !important;
+}
+
+/* Readout values */
+[data-theme="dark"] .framing-readout,
+[data-theme="dark"] .framing-readout span {
+    color: var(--text-primary);
+}
+
+/* Framing table */
+[data-theme="dark"] .framing-table {
+    background-color: var(--bg-light);
+}
+
+[data-theme="dark"] .framing-table th,
+[data-theme="dark"] .framing-table td {
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .framing-table th {
+    background-color: var(--bg-medium);
+}
+
+[data-theme="dark"] .framing-table td {
+    background-color: var(--bg-light);
+}
+
+/* Modal close and fullscreen buttons */
+[data-theme="dark"] .fullscreen-btn,
+[data-theme="dark"] .close-btn {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .fullscreen-btn:hover,
+[data-theme="dark"] .close-btn:hover {
+    color: var(--text-primary);
+}
+
+/* ===================================================================
    DARK MODE - TRIX EDITOR OVERRIDES (graph_view specific)
    ================================================================ */
 

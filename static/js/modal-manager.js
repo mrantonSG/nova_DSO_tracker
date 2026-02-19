@@ -171,7 +171,9 @@
 
                 // Focus on the first focusable element that is NOT a close button
                 // This prevents scrolling to the bottom when close button is focused
-                const nonCloseElements = focusableElements.filter(el => {
+                // Convert NodeList to Array for .filter() support
+                const focusableArray = Array.from(focusableElements);
+                const nonCloseElements = focusableArray.filter(el => {
                     return !el.matches('[data-action*="close"], .close-btn, #close-modal');
                 });
                 if (nonCloseElements.length > 0 && nonCloseElements[0].focus) {
