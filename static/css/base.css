@@ -309,7 +309,7 @@
   --accent-high: #2196F3;
   --accent-slate: #778899;
   --accent-slate-dark: #5a6875;
-  --accent-teal: #2c3e50;
+  --accent-teal: #5a9eb8;            /* Lighter teal for dark mode readability */
   --accent-gray: #7f8c8d;
   --accent-gray-text: #495057;
   --accent-gray-medium: #6c757d;
