@@ -5,43 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Session Report</title>
     <style>
+        /* Universal Print Reset */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+        /* CSS Variables for Print Layout */
+        :root {
+            --bg-light-gray: #f0f0f0;
+            --bg-white: #ffffff;
+            --bg-light: #f8f9fa;
+            --bg-light-alt: #fafafa;
+            --bg-offwhite: #fdfdfd;
+            --text-primary: #333;
+            --text-secondary: #555;
+            --text-muted: #888;
+            --text-light: #ccc;
+            --border-light: #eee;
+            --primary-color: #83b4c5;
+            --warning-color-alt: #f39c12;
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 400;
+            src: url('../fonts/roboto-v49-latin-regular.woff2') format('woff2');
+        }
+
+        @font-face {
+            font-family: 'Roboto';
+            font-style: normal;
+            font-weight: 700;
+            src: url('../fonts/roboto-v49-latin-700.woff2') format('woff2');
+        }
+
         body {
-            background-color: #f0f2f5;
+            background-color: var(--bg-light-gray);
             display: flex;
             justify-content: center;
             padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #333;
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-primary);
             font-size: 11px;
         }
-        /* UPDATED: Padding set to 15mm to match Project Report and PDF Generator math */
         .a4-page {
             width: 210mm;
-            background-color: #ffffff;
+            background-color: var(--bg-white);
             padding: 15mm;
             box-sizing: border-box;
         }
         h1, h2, h3, h4 { margin: 0; font-weight: 700; }
         p { line-height: 1.4; margin: 0; }
 
-        /* Header */
+        /* Nova Brand Header */
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
         .header-logo img { height: 35px; width: auto; }
-        .header-logo-text { font-size: 22px; font-weight: 800; color: #000; letter-spacing: -0.5px; line-height: 1; }
-        .header-logo-text span { font-weight: 300; color: #555; margin-left: 4px; font-size: 20px;}
-        .header-title { text-align: right; font-size: 14px; color: #83b4c5; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .header-line { border: 0; border-top: 2px solid #83b4c5; margin-bottom: 15px; }
+        .header-logo-text { font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.5px; line-height: 1; }
+        .header-logo-text span { font-weight: 300; color: var(--primary-color); margin-left: 4px; font-size: 20px; }
+        .header-title { text-align: right; font-size: 14px; color: var(--primary-color); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .header-line { border: 0; border-top: 2px solid var(--primary-color); margin-bottom: 15px; }
 
         /* Target Info */
-        .target-info { text-align: center; margin-bottom: 15px; }
-        .target-info h1 { font-size: 18px; color: #222; margin-bottom: 2px; }
+        .target-info { text-align: center; margin-bottom: 12px; }
+        .target-info h1 { font-size: 18px; color: var(--text-primary); margin-bottom: 2px; }
 
-        /* Tables */
-        .session-details-table { width: 100%; font-size: 11px; border-collapse: collapse; border: 1px solid #ddd; margin-bottom: 0; }
-        .session-details-table tr:first-child { background-color: #f8f9fa; }
-        .session-details-table td { padding: 5px 8px; border-right: 1px solid #eee; }
-        .session-details-table strong { color: #555; text-transform: uppercase; font-size: 10px; font-weight: 700; }
-        .session-rating { font-size: 14px; color: #f39c12; letter-spacing: 2px; }
+        /* Modern Table Style - Clean Canvas */
+        .session-details-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+        .session-details-table tr:first-child { box-shadow: inset 0 0 0 1000px var(--bg-light); }
+        .session-details-table td { padding: 6px 8px; border-bottom: 0.5pt solid var(--border-light); }
+        .session-details-table td:first-child { border-right: 0.5pt solid var(--border-light); }
+        .session-details-table td:nth-child(3) { border-right: 0.5pt solid var(--border-light); }
+        .session-details-table strong { color: var(--primary-color); text-transform: uppercase; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; }
+        .session-rating { font-size: 14px; color: var(--warning-color-alt); letter-spacing: 2px; }
 
         /* Main Columns */
         .main-content-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -51,44 +85,101 @@
         /* Page Break Safety */
         tr { page-break-inside: avoid; break-inside: avoid; }
 
-        /* Report Block: The Atomic Unit for PDF Splitting */
-        .report-block { display: block; background-color: #fff; margin-bottom: 20px; }
+        /* Report Block: Clean Modern Card with Soft Shadow */
+        .report-block {
+            display: block;
+            background-color: var(--bg-white);
+            margin-bottom: 15px;
+            padding: 12px;
+            box-shadow: inset 0 0 0 1000px var(--bg-offwhite);
+            border: 1px solid var(--border-light);
+            break-inside: avoid;
+        }
 
         /* Spacing for PDF Headers */
         .pdf-header-clone { margin-bottom: 15px; }
 
-        /* Titles */
-        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #83b4c5; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-bottom: 6px; margin-top: 15px; }
+        /* Section Titles - Nova Teal */
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            border-bottom: 0.5pt solid var(--border-light);
+            padding-bottom: 4px;
+            margin-bottom: 8px;
+            margin-top: 15px;
+            letter-spacing: 0.5px;
+        }
         .section-title:first-child { margin-top: 0; }
 
-        /* Image & Notes */
-        .session-image-container { border: 1px solid #ccc; border-radius: 3px; padding: 5px; background-color: #fff; }
-        .session-image-container img { max-width: 100%; height: auto; display: block; border-radius: 2px; }
-        .session-image-caption { text-align: center; font-style: italic; color: #777; margin-top: 6px; font-size: 10px; }
+        /* Modern Image - Centered with Subtle Frame */
+        .session-image-container {
+            padding: 10px;
+            background-color: var(--bg-white);
+            text-align: center;
+            box-shadow: inset 0 0 0 1000px var(--bg-light-alt);
+            border: 1px solid var(--border-light);
+        }
+        .session-image-container img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+        .session-image-caption { text-align: center; font-style: italic; color: var(--text-muted); margin-top: 6px; font-size: 10px; }
 
-        .session-notes-container { border: 1px solid #eee; padding: 10px; border-radius: 3px; min-height: 150px; font-size: 11px; background: #fff; color: #333; }
+        /* Notes Container - Clean Modern Look */
+        .session-notes-container {
+            padding: 10px;
+            min-height: 150px;
+            font-size: 11px;
+            line-height: 1.5;
+            box-shadow: inset 0 0 0 1000px var(--bg-light-alt);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }
         .session-notes-container p, .session-notes-container div { margin-bottom: 8px; }
-        .session-notes-container img { max-width: 100% !important; max-height: 350px !important; object-fit: contain; display: block; margin: 10px 0; }
+        .session-notes-container img { max-width: 100% !important; max-height: 350px !important; object-fit: contain; display: block; margin: 10px auto; }
         .session-notes-container figure { max-width: 100% !important; margin: 0; }
 
-        /* Info Boxes */
-        .info-box { border: 1px solid #eee; padding: 6px 10px; border-radius: 3px; font-size: 11px; line-height: 1.5; margin-bottom: 10px; color: #333; }
-        .info-box.stats { background: #f8f9fa; }
+        /* Modern Info Boxes - Soft Shadows */
+        .info-box {
+            padding: 8px 10px;
+            font-size: 11px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 0 1000px var(--bg-light);
+            border: 1px solid var(--border-light);
+            color: var(--text-primary);
+        }
         .info-box .detail-line { display: block; }
-        .info-box .detail-line strong { color: #444; font-weight: 600; width: 115px; display: inline-block; vertical-align: top; }
+        .info-box .detail-line strong { color: var(--text-secondary); font-weight: 600; width: 115px; display: inline-block; vertical-align: top; }
 
         /* Equipment Specifics */
-        .acq-details-block strong, .setup-notes-line strong, .acq-line strong { width: 90px !important; }
-        .camera-details-block .detail-line strong { width: 90px !important; }
+        .acq-details-block strong, .setup-notes-line strong, .acq-line strong { width: 100px !important; }
+        .camera-details-block .detail-line strong { width: 100px !important; }
         .acq-line { display: block; }
 
-        /* Exposures Table */
+        /* Exposures Table - Modern Clean Style */
         .exposures-table { width: 100%; font-size: 11px; border-collapse: collapse; }
-        .exposures-table th { background-color: #f4f4f4; padding: 4px 6px; border: 1px solid #ddd; text-align: left; font-weight: 600; white-space: nowrap; }
-        .exposures-table td { padding: 4px 6px; border: 1px solid #ddd; }
+        .exposures-table th {
+            padding: 5px 8px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            box-shadow: inset 0 0 0 1000px var(--bg-light);
+        }
+        .exposures-table th, .exposures-table td { border-bottom: 0.5pt solid var(--border-light); }
+        .exposures-table td { padding: 5px 8px; }
         .exposures-table th:nth-child(2), .exposures-table td:nth-child(2), .exposures-table th:nth-child(3), .exposures-table td:nth-child(3) { text-align: right; width: 50px; }
 
-        .footer { margin-top: 25px; padding-top: 10px; border-top: 1px solid #eee; width: 100%; text-align: center; color: #aaa; font-size: 10px; }
+        /* Footer - Clean Minimal */
+        .footer {
+            margin-top: 25px;
+            padding-top: 12px;
+            border-top: 0.5pt solid var(--border-light);
+            width: 100%;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
@@ -115,7 +206,8 @@
         </table>
         <hr class="header-line">
 
-        <div class="target-info report-block">
+        <!-- Target Title - Clean Centered -->
+        <div class="target-info">
             <h1>{{ display_value(object_details['Common Name']) }} {% if object_details['Object'] and object_details['Object'] != object_details['Common Name'] %}{{ display_value(object_details['Object']) }}{% endif %}</h1>
         </div>
 
@@ -140,16 +232,16 @@
                         <div class="session-image-container" style="min-height: 200px;">
                             {% if image_url %}
                                 <img src="{{ image_url }}" style="max-height: 350px; object-fit: contain;">
-                                <p class="session-image-caption" style="font-weight:bold; color:#555;">{{ image_source_label }}</p>
+                                <p class="session-image-caption" style="font-weight:bold; color:var(--text-secondary);">{{ image_source_label }}</p>
                             {% else %}
-                                <div style="width: 100%; height: 200px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 12px;">[No Image]</div>
+                                <div style="width: 100%; height: 200px; box-shadow: inset 0 0 0 1000px var(--bg-light); display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 12px;">[No Image]</div>
                             {% endif %}
                             <p class="session-image-caption">Total Integration: {{ display_value(integ_str) }}</p>
                         </div>
 
                         <h4 class="section-title">Notes & Reflections</h4>
                         <div class="session-notes-container" style="min-height: 200px;">
-                            {{ session.notes | safe | default('-') }}
+                            {{ session.notes | sanitize_html | safe | default('-') }}
                         </div>
                     </td>
 
@@ -171,7 +263,7 @@
                         <h4 class="section-title">Equipment & Acquisition</h4>
                         <div class="info-box acq">
                             {% if session.rig_name_snapshot %}
-                                <div style="font-weight: 600; margin-bottom: 5px; color: #212529; border-bottom: 1px dashed #eee;">Rig: {{ display_value(session.rig_name_snapshot) }}</div>
+                                <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-primary); border-bottom: 1px dashed var(--border-light);">Rig: {{ display_value(session.rig_name_snapshot) }}</div>
                                 <div class="acq-details-block" style="font-size: 1em; margin-bottom: 0px; line-height: 1.4;">
                                     <div class="detail-line"><strong>Telescope:</strong> {{ display_value(session.telescope_name_snapshot) }}</div>
                                     {% if session.reducer_name_snapshot %}
@@ -183,7 +275,7 @@
                                     <div class="detail-line"><strong>Gain / Offset:</strong> {{ display_value(session.gain_setting) }} / {{ display_value(session.offset_setting) }}</div>
                                     <div class="detail-line"><strong>Temp (Set/Avg):</strong> {{ display_value(session.camera_temp_setpoint_c) }}°C / {{ display_value(session.camera_temp_actual_avg_c) }}°C</div>
                                 </div>
-                                <div class="acq-details-block" style="font-size: 1em; line-height: 1.4; margin-bottom: 8px; padding-top: 5px; border-top: 1px solid #f8f9fa;">
+                                <div class="acq-details-block" style="font-size: 1em; line-height: 1.4; margin-bottom: 8px; padding-top: 5px; border-top: 1px solid var(--bg-light);">
                                     <div class="detail-line"><strong>FL / Ratio:</strong> {{ session.rig_efl_snapshot | round(0) if session.rig_efl_snapshot is number else '-' }} mm (f/{{ session.rig_fr_snapshot | round(1) if session.rig_fr_snapshot is number else '-' }})</div>
                                     <div class="detail-line"><strong>Scale / FOV:</strong> {{ session.rig_scale_snapshot | round(2) if session.rig_scale_snapshot is number else '-' }}"/px ({{ session.rig_fov_w_snapshot | round(1) if session.rig_fov_w_snapshot is number else '-' }}' &times; {{ session.rig_fov_h_snapshot | round(1) if session.rig_fov_h_snapshot is number else '-' }}')</div>
                                 </div>
@@ -191,7 +283,7 @@
                                     <strong>Setup Notes:</strong> {{ display_value(session.telescope_setup_notes) }}
                                 </div>
                             {% else %}
-                                <div style="font-weight: 600; margin-bottom: 5px; color: #212529; border-bottom: 1px dashed #eee;">Rig/Setup: {{ display_value(session.telescope_setup_notes) }}</div>
+                                <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-primary); border-bottom: 1px dashed var(--border-light);">Rig/Setup: {{ display_value(session.telescope_setup_notes) }}</div>
                             {% endif %}
                             <br>
                             <div class="acq-line"><strong>Acquisition SW:</strong> {{ display_value(session.acquisition_software) }}</div>
@@ -230,7 +322,8 @@
             </table>
         </div>
 
-        <div class="footer report-block">Report generated by Nova DSO Tracker | {{ today_date }}</div>
+        <!-- Footer - Clean Minimal -->
+        <div class="footer">Report generated by Nova DSO Tracker | {{ today_date }}</div>
     </div>
 </body>
 </html>

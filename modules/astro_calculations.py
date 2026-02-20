@@ -11,8 +11,13 @@ import pytz
 from datetime import datetime, timedelta
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body
 from astropy.time import Time
+from astropy.utils import iers
 import astropy.units as u
 import copy
+
+# Disable IERS auto-download to speed up startup (uses bundled data instead)
+iers.conf.auto_download = False
+iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 
 def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
     """
@@ -86,9 +91,8 @@ def calculate_transit_time(ra, dec, lat, lon, tz_name, local_date_str):
             if night_crossings:
                 return ", ".join([nc.strftime('%H:%M') for nc in night_crossings])
 
-        # Fallback: if no night transits found or polar day/night, return only the primary upper transit
-        upper_transits = [c for c in crossings if c.strftime('%H:%M') == ut_local.strftime('%H:%M')]
-        return upper_transits[0].strftime('%H:%M') if upper_transits else "N/A"
+        # Fallback: if no night transits found or polar day/night, return the earliest crossing
+        return crossings[0].strftime('%H:%M') if crossings else "N/A"
 
     except (ephem.AlwaysUpError, ephem.NeverUpError):
         # For circumpolar or never-rising objects, we can calculate the highest point differently.
@@ -529,7 +533,7 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
 
         # Calculate the true minimum altitude for each point in time using the mask
         min_altitudes = np.array(
-            [interpolate_horizon(az, sorted_mask, altitude_threshold) for az in azimuths])  # <-- FIXED LINE
+            [interpolate_horizon(az, sorted_mask, altitude_threshold, _presorted=True) for az in azimuths])
     else:
         # If no mask, the minimum altitude is the same for all azimuths
         min_altitudes = np.full_like(altitudes, altitude_threshold)
@@ -559,20 +563,23 @@ def calculate_observable_duration_vectorized(ra, dec, lat, lon, local_date, tz_n
 
     return timedelta(minutes=observable_minutes), max_altitude, observable_from, observable_to
 
-def interpolate_horizon(azimuth, horizon_mask, default_altitude):
+def interpolate_horizon(azimuth, horizon_mask, default_altitude, _presorted=False):
     if not horizon_mask:
         return default_altitude
 
-    # Create a deep copy to avoid modifying the original config data
-    mask_copy = copy.deepcopy(horizon_mask)
+    if _presorted:
+        sorted_mask = horizon_mask
+    else:
+        # Create a deep copy to avoid modifying the original config data
+        mask_copy = copy.deepcopy(horizon_mask)
 
-    # Ensure no mask point is lower than the baseline threshold
-    for point in mask_copy:
-        if point[1] < default_altitude:
-            point[1] = default_altitude
+        # Ensure no mask point is lower than the baseline threshold
+        for point in mask_copy:
+            if point[1] < default_altitude:
+                point[1] = default_altitude
 
-    # Sort the processed mask
-    sorted_mask = sorted(mask_copy, key=lambda p: p[0])
+        # Sort the processed mask
+        sorted_mask = sorted(mask_copy, key=lambda p: p[0])
 
     # Build a complete 0-360 degree profile for interpolation
     profile = [[0, default_altitude]]

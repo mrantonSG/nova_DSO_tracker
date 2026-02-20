@@ -1,0 +1,322 @@
+    /* Copied from journal for consistent sub-tabs */
+    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
+    .detail-tab-button { padding: var(--space-2) var(--space-4); cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: var(--font-size-md); }
+    .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: var(--font-weight-semibold); }
+    .detail-tab-content { display: none; }
+    .detail-tab-content.active { display: block; }
+
+    /* Moved from config_form (Object-specific styles) */
+    .object-add-container .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    .add-object-details-indent {
+      margin-left: 0px;
+    }
+    .add-object-details-indent > div {
+      gap: 15px;
+    }
+    #object-filter-bar {
+      padding: 10px 15px;
+      background: var(--bg-light-alt);
+    }
+    #object-filter-bar .inline-fields {
+      margin-bottom: 0;
+      gap: 20px;
+    }
+    /* --- NEW: Style for the filter select dropdown --- */
+    #object-filter-bar select {
+        font-size: var(--font-size-sm);
+        padding: var(--space-1);
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+        border: 1px solid var(--border-medium-alt);
+        border-radius: var(--radius-md);
+    }
+    .config-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    .config-table th, .config-table td { border: 1px solid var(--border-medium); padding: var(--space-2) var(--space-3); text-align: left; }
+    .config-table th { background-color: var(--bg-light-gray-alt2); }
+    .config-table .badge { background-color: var(--border-light-alt3); color: var(--accent-gray-text); padding: 3px 8px; border-radius: var(--radius-xl); font-size: 0.8em; }
+    .muted-text { color: var(--accent-gray-medium); }
+
+    /* --- Catalog/Source Styles (from previous step) --- */
+    .readonly-notes {
+        background: var(--bg-light);
+        border: 1px solid var(--border-light-alt2);
+        border-radius: var(--radius-md);
+        padding: 10px 15px;
+        min-height: 50px;
+        font-size: var(--font-size-sm);
+        color: var(--accent-gray-text);
+        word-wrap: break-word;
+    }
+    .catalog-source-badge {
+        font-size: var(--font-size-2xs);
+        font-weight: var(--font-weight-bold);
+        color: var(--info-badge);
+        background: var(--info-bg-light);
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-md);
+        display: inline-block;
+        line-height: var(--line-height-normal);
+    }
+    /* NEW STYLE: Ensure checkbox scale is consistent */
+    .objects-list .inline-fields input[type="checkbox"] {
+        transform: scale(1.5);
+        transform-origin: center left;
+        margin-top: 0;
+        margin-right: 5px;
+    }
+
+    /* Lazy Load Trix Container - Mimics the look of an initialized editor */
+    .trix-lazy-box {
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-medium-alt);
+        border-radius: var(--radius-sm);
+        padding: 0.7em;
+        height: 150px;     /* Matches standard editor height */
+        overflow-y: auto;
+        cursor: text;      /* Indicates interactability */
+        position: relative;
+    }
+    .trix-lazy-box:hover {
+        border-color: var(--primary-color); /* Visual feedback on hover */
+        background-color: var(--bg-offwhite);
+    }
+    .trix-placeholder-text {
+        color: var(--text-light);
+        font-style: italic;
+    }
+
+    /* ===================================================================
+       DARK MODE - JOURNAL & PROJECT FORM OVERRIDES
+       ================================================================ */
+
+    /* Journal edit-mode form inputs */
+    [data-theme="dark"] .edit-mode-form .form-group input,
+    [data-theme="dark"] .edit-mode-form .form-group textarea,
+    [data-theme="dark"] .edit-mode-form .form-group select {
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .edit-mode-form .form-group input:focus,
+    [data-theme="dark"] .edit-mode-form .form-group textarea:focus,
+    [data-theme="dark"] .edit-mode-form .form-group select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    /* Journal form labels */
+    [data-theme="dark"] .edit-mode-form .form-group label {
+        color: var(--text-primary);
+    }
+
+    /* Form section titles */
+    [data-theme="dark"] .form-section-title {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-medium);
+    }
+
+    /* Project form inputs */
+    [data-theme="dark"] #project-edit-mode .form-group input,
+    [data-theme="dark"] #project-edit-mode .form-group select,
+    [data-theme="dark"] #project-edit-mode .form-group textarea,
+    [data-theme="dark"] #journal-project-edit-mode .form-group input,
+    [data-theme="dark"] #journal-project-edit-mode .form-group select,
+    [data-theme="dark"] #journal-project-edit-mode .form-group textarea,
+    [data-theme="dark"] #journal-project-add-mode .form-group input,
+    [data-theme="dark"] #journal-project-add-mode .form-group select,
+    [data-theme="dark"] #journal-project-add-mode .form-group textarea {
+        background-color: var(--bg-medium);
+        border: 1px solid var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] #project-edit-mode .form-group input:focus,
+    [data-theme="dark"] #project-edit-mode .form-group select:focus,
+    [data-theme="dark"] #project-edit-mode .form-group textarea:focus,
+    [data-theme="dark"] #journal-project-edit-mode .form-group input:focus,
+    [data-theme="dark"] #journal-project-edit-mode .form-group select:focus,
+    [data-theme="dark"] #journal-project-add-mode .form-group input:focus,
+    [data-theme="dark"] #journal-project-add-mode .form-group select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+    }
+
+    /* Project form labels */
+    [data-theme="dark"] #project-edit-mode .form-group label,
+    [data-theme="dark"] #journal-project-edit-mode .form-group label,
+    [data-theme="dark"] #journal-project-add-mode .form-group label {
+        color: var(--text-primary) !important;
+    }
+
+    /* Notes sections */
+    [data-theme="dark"] .notes-section,
+    [data-theme="dark"] .journal-project-notes-section {
+        background-color: var(--bg-light);
+        border-color: var(--border-medium);
+    }
+
+    [data-theme="dark"] .notes-section h3,
+    [data-theme="dark"] .journal-project-notes-section h3 {
+        color: var(--text-primary);
+        border-bottom-color: var(--border-medium);
+    }
+
+    [data-theme="dark"] .notes-section .notes-content,
+    [data-theme="dark"] .notes-content {
+        color: var(--text-primary);
+    }
+
+    /* Notes block */
+    [data-theme="dark"] .notes-block {
+        background-color: var(--bg-medium);
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    /* Sessions table */
+    [data-theme="dark"] .sessions-table th,
+    [data-theme="dark"] .sessions-table td {
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .sessions-table th {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .sessions-table tr:hover {
+        background-color: var(--bg-medium-alt);
+    }
+
+    /* Session history table */
+    [data-theme="dark"] .session-history-table th,
+    [data-theme="dark"] .session-history-table td {
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .session-history-table th {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .session-history-table tr.clickable-session-row:hover {
+        background-color: var(--bg-medium-alt);
+    }
+
+    [data-theme="dark"] .session-history-table tr.current-session-item {
+        background-color: var(--highlight-blue-alt) !important;
+    }
+
+    /* Stat boxes */
+    [data-theme="dark"] .stat-box,
+    [data-theme="dark"] .summary-box,
+    [data-theme="dark"] .journal-project-stat-box {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .stat-value,
+    [data-theme="dark"] .journal-project-stat-value {
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .stat-label,
+    [data-theme="dark"] .journal-project-stat-label {
+        color: var(--text-secondary);
+    }
+
+    /* Detail grid */
+    [data-theme="dark"] .detail-grid > dt {
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .detail-grid > dd {
+        color: var(--text-primary);
+    }
+
+    /* Detail header */
+    [data-theme="dark"] .detail-header h4,
+    [data-theme="dark"] .detail-header h2 {
+        color: var(--text-primary);
+    }
+
+    /* Report preview container */
+    [data-theme="dark"] .report-preview-container {
+        background-color: var(--bg-medium);
+    }
+
+    /* Project header clickable */
+    [data-theme="dark"] .project-header-clickable {
+        background-color: var(--bg-medium);
+    }
+
+    [data-theme="dark"] .project-header-clickable:hover {
+        background-color: var(--bg-medium-alt) !important;
+    }
+
+    [data-theme="dark"] .current-project-item {
+        background-color: var(--highlight-blue-alt) !important;
+    }
+
+    /* ===================================================================
+       DARK MODE - OBJECTS SECTION SPECIFIC
+       ================================================================ */
+
+    /* Detail tabs container */
+    [data-theme="dark"] .detail-tabs-container {
+        border-bottom-color: var(--border-medium);
+    }
+
+    [data-theme="dark"] .detail-tab-button {
+        color: var(--text-secondary);
+    }
+
+    [data-theme="dark"] .detail-tab-button.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    [data-theme="dark"] .detail-tab-button:hover {
+        color: var(--text-primary);
+        background-color: var(--bg-medium);
+    }
+
+    /* Readonly notes */
+    [data-theme="dark"] .readonly-notes {
+        background: var(--bg-medium);
+        border-color: var(--border-medium);
+        color: var(--text-secondary);
+    }
+
+    /* Catalog source badge */
+    [data-theme="dark"] .catalog-source-badge {
+        background: var(--bg-medium-alt);
+        color: var(--info-color);
+    }
+
+    /* Trix lazy box */
+    [data-theme="dark"] .trix-lazy-box {
+        background-color: var(--bg-medium);
+        border-color: var(--border-medium);
+        color: var(--text-primary);
+    }
+
+    [data-theme="dark"] .trix-lazy-box:hover {
+        background-color: var(--bg-medium-alt);
+        border-color: var(--primary-color);
+    }
+
+    [data-theme="dark"] .trix-placeholder-text {
+        color: var(--text-muted);
+    }
+
+    /* Muted text */
+    [data-theme="dark"] .muted-text {
+        color: var(--text-tertiary);
+    }

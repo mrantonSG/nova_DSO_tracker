@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% from "macros.html" import status_item, form_group, help_badge, action_button, tab_button %}
 
-{% block title %}Graph – Nova DSO Tracker{% endblock %}
+{% block title %}{{ alt_name | default(object_name, True) }} ({{ object_name }}) – Nova DSO Tracker{% endblock %}
 
 {% block head_extra %}
 <script>
     const IS_GUEST_USER = {{ is_guest | tojson }};
 </script>
-<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8"></script>
+<script src="{{ url_for('static', filename='js/aladin.js') }}" charset="utf-8" defer></script>
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
@@ -19,934 +20,31 @@
         window.location.href = url;
     };
 </script>
-<style>
-    body {
-        padding: 20px;
-        margin: 0;
-    }
-
-    #back-button {
-        margin-top: 0;
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #83b4c5;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-    }
-
-    #back-button:hover {
-        background-color: #6795a4 !important;
-    }
-
-    #chart-section img {
-        max-width: 100%;
-        height: auto;
-        border-radius: 5px;
-        margin-bottom: 10px;
-        margin-bottom: 20px;
-    }
-
-    #chart-section {
-        margin-top: 1px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .date-controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-
-    .date-controls label, .date-controls input, .date-controls select {
-        font-size: 14px;
-        padding: 4px;
-    }
-
-    .view-buttons {
-        margin-top: 10px;
-        display: flex;
-        gap: 10px;
-    }
-
-    .view-button {
-        background-color: #83b4c5;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        padding: 8px 16px;
-        font-size: 14px;
-    }
-
-    .view-button:hover {
-        background-color: #6795a4;
-    }
-
-    #project-field {
-        width: 100%;
-        max-width: 970px;
-        height: 150px;
-        box-sizing: border-box;
-        font-size: 15px;
-    }
-
-    .inline-button {
-        background-color: #83b4c5;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        padding: 10px 20px;
-        font-size: 16px;
-        margin-right: 10px;
-    }
-
-    .button-container {
-        padding: 10px;
-        margin-left: 50px;
-    }
-
-    .top-info-grid {
-        display: flex;
-        align-items: stretch;
-        margin-bottom: 40px;
-    }
-
-    .info-button-column {
-        flex-shrink: 0;
-        padding-right: 15px;
-        margin-right: 15px;
-        border-right: 1px solid #ccc;
-
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .info-details-column {
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;
-    }
-
-    .primary-info-line .inline-button {
-        margin-right: 15px;
-        flex-shrink: 0;
-    }
-
-    .object-title-block-main {
-        margin-bottom: 10px;
-    }
-
-    .object-common-name {
-        font-size: 1.4em;
-        font-weight: bold;
-        color: #333;
-    }
-
-    .secondary-info-line-main {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 20px;
-        align-items: center;
-    }
-
-    .secondary-info-line-main small {
-        font-size: 12px;
-        color: #666;
-    }
-
-    .secondary-info-line-main p {
-        margin: 0;
-        font-size: 16px;
-    }
-
-    .secondary-info-line-main span {
-        font-weight: bold;
-        font-size: 16px;
-        color: #000;
-    }
-
-    .object-title-block {
-        flex-grow: 1;
-    }
-
-    .object-id-name {
-        font-size: 1.2em;
-        font-weight: bold;
-        color: #555;
-        margin-left: 4px;
-    }
-
-    .inline-button:hover {
-        background-color: #6795a4 !important;
-    }
-
-    .content-section {
-        margin-top: 25px;
-        padding: 20px;
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        margin-bottom: 25px;
-    }
-
-    .content-section h3 {
-        margin-top: 0;
-        color: #343a40;
-        border-bottom: 1px solid #ced4da;
-        padding-bottom: 10px;
-        font-size: 1.2em;
-        font-weight: 600;
-    }
-
-    .sessions-history-list {
-        list-style-type: none;
-        padding-left: 0;
-        max-height: 250px;
-        overflow-y: auto;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        background-color: #fff;
-        margin-top: 10px;
-    }
-
-    .sessions-history-list li {
-        padding: 7px 10px;
-        border-bottom: 1px dotted #e0e0e0;
-        font-size: 0.85em;
-    }
-
-    .sessions-history-list li:last-child {
-        border-bottom: none;
-    }
-
-    .sessions-history-list li a {
-        text-decoration: none;
-        color: #0056b3;
-    }
-
-    .sessions-history-list li a:hover {
-        text-decoration: underline;
-    }
-
-    .sessions-history-list li.current-session-item {
-        background-color: #cfe2ff;
-        border-left: 3px solid #0056b3;
-        padding-left: 7px;
-    }
-
-    .sessions-history-list li.current-session-item a {
-        font-weight: bold;
-    }
-
-    .selected-session-details {
-        margin-top: 15px;
-        padding: 15px;
-        background-color: #ffffff;
-        border: 1px solid #bac8d3;
-        border-radius: 4px;
-        max-width: 770px;
-    }
-
-    .selected-session-details h4 {
-        margin-top: 0;
-        color: #2c3e50;
-        font-size: 1.05em;
-        font-weight: 600;
-    }
-
-    .selected-session-details p, .selected-session-details div {
-        margin-bottom: 6px;
-        font-size: 0.9em;
-        line-height: 1.5;
-    }
-
-    .selected-session-details strong {
-        color: #1c2833;
-    }
-
-    .action-button-group {
-        display: flex;
-        align-items: center;
-
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-
-    .action-button-group .inline-button {
-        margin-right: 8px;
-
-        margin-bottom: 5px;
-        font-size: 13px;
-        padding: 6px 12px;
-        text-decoration: none;
-        box-sizing: border-box;
-        display: inline-block;
-        vertical-align: middle;
-        line-height: 1.2;
-    }
-
-    hr.detail-separator {
-        border: 0;
-        height: 1px;
-        background: #e0e0e0;
-        margin: 10px 0;
-    }
-
-    #opportunities-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        font-size: 14px;
-        table-layout: fixed;
-    }
-
-    #opportunities-table th, #opportunities-table td {
-        border: 1px solid #ccc;
-        padding: 8px 12px;
-        text-align: left;
-    }
-
-    #opportunities-table th {
-        background-color: #83b4c5;
-        color: white;
-        font-weight: normal;
-    }
-
-    #opportunities-table tr:nth-child(even) {
-        background-color: #f2f2f2;
-    }
-
-    #opportunities-table tr:hover {
-        background-color: #e1f0f5;
-    }
-
-    #opportunities-section {
-        margin-top: 0;
-    }
-
-    .opportunities-heading {
-        font-size: 1.2em;
-        font-weight: 600;
-        color: #343a40;
-        margin-bottom: 10px;
-    }
-
-    #opportunities-table th,
-    #opportunities-table td {
-        text-align: center !important;
-        vertical-align: middle !important;
-    }
-
-    .highlight {
-        background-color: #d6ecff !important;
-    }
-
-    code {
-        background-color: #f5f5f5;
-        padding: 2px 4px;
-        border-radius: 4px;
-        font-family: monospace;
-    }
-
-    .preserve-newlines {
-        white-space: pre-wrap;
-        margin-top: 4px;
-        padding-left: 10px;
-        border-left: 2px solid #eee;
-    }
-
-
-    .session-history-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        font-size: 0.85em;
-    }
-
-    .session-history-table th, .session-history-table td {
-        border: 1px solid #dde;
-        padding: 6px 8px;
-        text-align: left;
-        vertical-align: middle;
-    }
-
-    .session-history-table th {
-        background-color: #e9ecef;
-        font-weight: 600;
-    }
-
-    .session-history-table tr.clickable-session-row:hover {
-        background-color: #e6f7ff;
-        cursor: pointer;
-    }
-
-    .session-history-table tr.current-session-item {
-        background-color: #cfe2ff !important;
-        font-weight: bold;
-    }
-
-    .session-history-table td.col-date, .session-history-table th.col-date {
-        width: 120px;
-    }
-
-    .session-history-table td.col-location, .session-history-table th.col-location {
-        width: 150px;
-    }
-
-    .session-history-table td.col-setup, .session-history-table th.col-setup {
-        width: auto;
-    }
-
-    .session-history-table td.col-integ, .session-history-table th.col-integ {
-        width: 100px;
-        text-align: center;
-    }
-
-    .session-history-table td.col-rating, .session-history-table th.col-rating {
-        width: 100px;
-        text-align: center;
-    }
-
-    .selected-session-details .form-data-value {
-        padding: 8px 10px;
-        background-color: #e9ecef;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        min-height: 25px;
-        word-wrap: break-word;
-        font-size: 1.1em;
-        line-height: 1.5;
-    }
-
-
-    .selected-session-details div.form-data-value.preserve-newlines {
-        min-height: 80px;
-        background-color: #fff;
-        border: 1px dashed #ced4da;
-
-    }
-
-    div.form-data-value.preserve-newlines {
-        min-height: 80px;
-        background-color: #fff;
-        border: 1px dashed #ced4da;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 3px;
-        font-weight: normal;
-        font-size: 1em;
-        color: #495057;
-        width: 320px;
-
-
-    }
-
-    .form-group {
-        margin-bottom: 10px;
-    }
-
-    .form-section-title {
-        font-size: 1.1em;
-        font-weight: bold;
-        color: #333;
-        margin-top: 20px;
-        margin-bottom: 10px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-    }
-
-    .form-row {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
-
-    .form-row .form-group {
-        flex: 1;
-        min-width: 200px;
-    }
-
-
-    .framing-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 15px;
-    }
-
-    .framing-table th, .framing-table td {
-        border: 1px solid #eee;
-        padding: 10px;
-        text-align: left;
-        font-size: 14px;
-    }
-
-    .framing-table th {
-        background-color: #f9f9f9;
-        font-weight: 600;
-    }
-
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.6);
-    }
-
-    .framing-controls {
-        margin-bottom: 15px;
-        display: flex;
-        gap: 20px;
-        align-items: center;
-        color: black;
-    }
-
-    .framing-controls select, .framing-controls button {
-        font-size: 14px;
-        padding: 5px;
-    }
-
-
-    #aladin-lite-div .aladin-location,
-    #aladin-lite-div .aladin-mouse-position {
-        display: none !important;
-    }
-
-
-    .modal-header-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 12px 56px 6px 16px;
-        border-bottom: 1px solid #83b4c5;
-    }
-
-    .brand-strong {
-        font-weight: 800;
-        letter-spacing: 0.2px;
-        font-size: 20px;
-    }
-
-    .brand-light {
-        font-weight: 400;
-        margin-left: 6px;
-        color: #555;
-        font-size: 20px;
-    }
-
-    .fov-chip {
-        font-size: 13px;
-        color: #444;
-        background: #f3f5f7;
-        border: 1px solid #e2e6ea;
-        border-radius: 999px;
-        padding: 4px 10px;
-        white-space: nowrap;
-        margin-right: 48px;
-    }
-
-    .modal .close {
-        position: absolute;
-        top: 10px;
-        right: 12px;
-        z-index: 3;
-        line-height: 1;
-        font-size: 22px;
-        color: #999;
-    }
-
-    .modal .close:hover {
-        color: #666;
-    }
-
-    #framing-modal {
-        position: fixed;
-        inset: 0;
-        display: none;
-        background: rgba(0, 0, 0, 0.6);
-        z-index: 1000;
-    }
-
-
-    #framing-modal-content {
-        position: relative;
-        margin: 2vh auto;
-        width: 98vw;
-        height: 96vh;
-        background: #fff;
-        border-radius: 10px;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    #framing-header,
-    #framing-toolbar {
-        padding: 10px 16px;
-    }
-
-    #framing-toolbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px 14px;
-        align-items: center;
-        border-top: 1px solid #e9eef2;
-        border-bottom: 1px solid #e9eef2;
-    }
-
-
-    #framing-body {
-        flex: 1 1 auto;
-        min-height: 240px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        padding: 10px 16px 14px 16px;
-    }
-
-    #aladin-lite-div {
-        flex: 1 1 auto;
-        min-height: 200px;
-        border-radius: 6px;
-        overflow: hidden;
-    }
-
-    .framing-readout {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 12px;
-        align-items: center;
-        margin: 8px 0 10px;
-    }
-
-    @media (max-width: 1280px) {
-        #framing-modal-content {
-            width: 96vw;
-            height: 92vh;
-            margin: 2vh auto;
-        }
-
-        #framing-toolbar, #framing-body {
-            padding-left: 12px;
-            padding-right: 12px;
-        }
-
-        #framing-toolbar {
-            gap: 8px 10px;
-        }
-    }
-
-    @media (max-width: 900px) {
-        .framing-readout {
-            gap: 6px 10px;
-        }
-
-        .inline-label {
-            white-space: nowrap;
-            font-size: 0.95rem;
-        }
-    }
-
-    .framing-controls {
-        padding-left: 16px;
-        padding-right: 16px;
-    }
-
-    #framing-modal-content.fullscreen {
-        width: 98vw !important;
-        height: 96vh !important;
-        margin: 2vh auto !important;
-    }
-
-    .fullscreen-btn {
-        float: right;
-        border: none;
-        background: transparent;
-        font-size: 1.3rem;
-        cursor: pointer;
-        margin-right: 10px;
-    }
-
-    .fullscreen-btn:hover {
-        color: #0077aa;
-    }
-
-    .close {
-        font-size: 1.4rem;
-        cursor: pointer;
-        color: #666;
-    }
-
-    .close:hover {
-        color: #d00;
-    }
-
-    .modal-controls {
-        position: absolute;
-        top: 8px;
-        right: 12px;
-        z-index: 2;
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        pointer-events: auto;
-    }
-
-    .fullscreen-btn,
-    .close-btn {
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-        line-height: 1;
-        border: 0;
-        border-radius: 6px;
-        background: transparent;
-        color: #444;
-        cursor: pointer;
-    }
-
-    .close-btn:hover {
-        color: #d22;
-    }
-
-    #chart-container {
-        position: relative;
-        width: 100%;
-        max-width: 1000px;
-        margin: auto;
-        height: 55vh;
-    }
-
-    #altitudeChartCanvas {
-        display: block;
-        margin-left: 0;
-    }
-
-    .chart-container,
-    .canvas-wrapper,
-    #chart-container,
-    #chart-area {
-        position: relative;
-
-    }
-
-    #altitudeChartCanvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
-
-    .loading-overlay.hidden {
-        opacity: 0;
-        visibility: hidden;
-    }
-
-    #chart-wrapper {
-        width: 80%;
-        max-width: 1100px;
-        margin-left: 0;
-    }
-
-    #chart-area {
-        position: relative;
-    }
-
-    /* Weather overlay container: shares the exact width and parent as the chart canvas */
-    #weather-overlay {
-        position: relative;
-        margin: 0;
-        padding: 0; /* keep at 0 so pixel math stays exact */
-        width: 100%;
-    }
-
-    #altitudeChartCanvas {
-        display: block;
-        width: 100% !important;
-        height: auto !important;
-    }
-
-    .loading-overlay {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        /* Slightly more opaque background to make the logo pop */
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(4px);
-        z-index: 10;
-        opacity: 1;
-        visibility: visible;
-        transition: opacity 300ms ease, visibility 300ms ease;
-    }
-
-    /* Pulse animation for the brand logo */
-    .loading-logo {
-        animation: nova-pulse 1.8s ease-in-out infinite;
-        background-color: transparent !important; /* Forces browser transparency */
-        mix-blend-mode: multiply; /* Optional: Knocks out pure white backgrounds if the export failed */
-    }
-
-    @keyframes nova-pulse {
-        0% { transform: scale(0.95); opacity: 0.8; }
-        50% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(0.95); opacity: 0.8; }
-    }
-
-    /* Styles for the new tab navigation */
-    .tab-container { display: flex; margin-bottom: 10px; border-bottom: 2px solid #ccc; align-items: flex-end; }
-    .tab-button { padding: 8px 20px; cursor: pointer; border: 1px solid #ccc; border-bottom: none; background-color: #e9e9e9; margin-right: 5px; border-radius: 5px 5px 0 0; font-size: 16px; color: #666; margin-bottom: 0; }
-    .tab-button:hover { background-color: #dcdcdc; }
-    .tab-button.active { padding: 12px 20px; background-color: #fff; border-color: #ccc; border-bottom: 2px solid #fff; position: relative; top: 2px; font-weight: bold; color: #333; z-index: 1; }
-    .tab-content { display: none; padding: 20px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 6px 6px; }
-    .tab-content.active { display: block; }
-    .loader-row td {
-        text-align: center !important;
-        padding: 40px 0;
-        font-size: 1.1em;
-        font-weight: 500;
-        color: #555;
-        background-color: #f8f9fa;
-    }
-    #active-project-checkbox {
-        transform: scale(1.5); /* Adjust this value to change the size */
-        vertical-align: middle; /* Keeps it nicely aligned with the text */
-    }
-    .offline-message {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        min-height: 200px;
-        background-color: #f8f9fa;
-        border: 1px dashed #ced4da;
-        border-radius: 6px;
-        padding: 20px;
-        box-sizing: border-box;
-        text-align: center;
-        color: #555;
-        font-size: 1.1em;
-    }
-
-    .offline-message svg {
-        width: 64px;
-        height: 64px;
-        margin-bottom: 15px;
-        opacity: 0.5;
-    }
-
-    /* FIX: Constrain images in notes (View & Edit modes) */
-    trix-editor figure.attachment, .trix-content figure.attachment, .project-notes-section figure.attachment {
-        max-width: 100% !important;
-        margin: 0 auto 1em auto;
-    }
-
-    trix-editor img, .trix-content img, .notes-block img, .notes-content img, .project-notes-section img {
-        max-width: 100% !important;
-        height: auto !important;
-        border-radius: 4px;
-    }
-
-    /* FIX: Hide Trix metadata (filenames) - High Specificity */
-    trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .attachment__size,
-    .trix-content .attachment__caption, .trix-content .attachment__name, .trix-content .attachment__size,
-    .attachment__caption, .attachment__name, .attachment__size {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* Inspiration Detail Styles */
-    .insp-detail-container {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .insp-detail-image-wrapper {
-        position: relative;
-        background-color: #000;
-        border-radius: 6px;
-        overflow: hidden;
-        max-height: 500px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .insp-detail-image-wrapper img {
-        max-width: 100%;
-        max-height: 500px;
-        object-fit: contain;
-    }
-    .insp-detail-badge {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        background: rgba(0, 0, 0, 0.7);
-        color: rgba(255, 255, 255, 0.9);
-        padding: 4px 8px;
-        font-size: 12px;
-        border-radius: 4px;
-        pointer-events: none;
-    }
-    .insp-detail-text {
-        background: #fff;
-        padding: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        line-height: 1.6;
-        color: #444;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}">
 {% endblock %}
 
 {% block page_title %}
-    <h2>
+    <h2 id="graph-title">
         {{ alt_name | default(object_name, True) }}
-        <span class="subtitle">({{ object_name }})</span>
+        <span class="subtitle" id="graph-title-subtitle">
+            <span id="primary-id">({{ object_name }})</span>
+            <span id="secondary-separator" class="title-separator" style="display:none;"> &amp;</span>
+            <span id="secondary-name" style="display:none;"></span>
+            <span id="secondary-id" style="display:none;">()</span>
+        </span>
     </h2>
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" style="background-color: #7f8c8d;" onclick="window.location.href='{{ url_for('index') }}'">← Back to Dashboard</button>
+    {{ action_button('← Back to Dashboard', data_attrs='style="background-color: var(--primary-color);" data-action="navigate" data-url="' ~ url_for('core.index') ~ '"') }}
 {% endblock %}
 
 {% block header_content %}
 <div class="status-strip">
-    <div class="status-item">
-        <span class="status-label">Location</span>
-        <span class="status-value" id="location-display">{{ header_location_name }}</span>
-    </div>
-    <div class="status-item">
-        <span class="status-label">Graph Date</span>
-        <span class="status-value" id="date-display">{{ header_date_display }}</span>
-    </div>
-    <div class="status-item">
-        <span class="status-label">Moon</span>
-        <span class="status-value" id="phase-display">{{ header_moon_phase }}%</span>
-    </div>
-     <div class="status-item">
-        <span class="status-label">Moon Sep.</span>
-        <span class="status-value" id="separation-display">{{ header_moon_separation }}°</span>
-    </div>
+    {{ status_item('Location', header_location_name, value_id='location-display') }}
+    {{ status_item('Graph Date', header_date_display, value_id='date-display') }}
+    {{ status_item('Moon', header_moon_phase ~ '%', value_id='phase-display') }}
+    {{ status_item('Moon Sep.', header_moon_separation ~ '°', value_id='separation-display') }}
     <div class="status-item">
         <span class="status-label">ASTR. DUSK / DAWN</span>
         <span class="status-value"><span id="dusk-display">{{ header_astro_dusk }}</span> - <span id="dawn-display">{{ header_astro_dawn }}</span></span>
@@ -959,7 +57,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -983,11 +81,11 @@
     });
 </script>
 <div class="tab-container">
-    <button class="tab-button" data-tab="chart" onclick="showTab('chart')">Chart</button>
-    <button class="tab-button" data-tab="framing" onclick="showTab('framing')">Notes & Framing</button>
-    <button class="tab-button" data-tab="opportunities" onclick="showTab('opportunities')">Opportunities</button>
-    <button class="tab-button" data-tab="journal" onclick="showTab('journal')">Journal</button>
-    <button class="tab-button" data-tab="simbad" onclick="showTab('simbad')">SIMBAD</button>
+    <button class="tab-button" data-tab="chart" data-action="show-tab">Chart</button>
+    <button class="tab-button" data-tab="framing" data-action="show-tab">Notes & Framing</button>
+    <button class="tab-button" data-tab="opportunities" data-action="show-tab">Opportunities</button>
+    <button class="tab-button" data-tab="journal" data-action="show-tab">Journal</button>
+    <button class="tab-button" data-tab="simbad" data-action="show-tab">SIMBAD</button>
 </div>
 
 <div id="chart-tab" class="tab-content">
@@ -1000,7 +98,7 @@
                         <img src="{{ url_for('static', filename='nova_logo.png') }}" alt="Nova Logo" class="loading-logo"
                              style="width: 70px; height: auto; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
 
-                        <div style="color: #83b4c5; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; font-size: 13px;">
+                        <div style="color: var(--primary-color); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; font-size: 13px;">
                             Loading Chart
                         </div>
                     </div>
@@ -1017,9 +115,16 @@
                 </select>
                 <label for="year-select">Year:</label>
                 <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;"/>
-                <button class="view-button" data-view="day" onclick="changeView('day')">Day View</button>
-                <button class="view-button" data-view="month" onclick="changeView('month')">Month View</button>
-                <button class="view-button" data-view="year" onclick="changeView('year')">Year View</button>
+                <button class="view-button" data-view="day" data-action="change-view">Day View</button>
+                <button class="view-button" data-view="month" data-action="change-view">Month View</button>
+                <button class="view-button" data-view="year" data-action="change-view">Year View</button>
+                <span id="secondary-object-controls" style="margin-left: 24px; padding-left: 24px; border-left: 1px solid var(--border-medium-alt, var(--border-medium-alt, #ccc)); display: inline-flex; align-items: center; gap: 8px;">
+                    <label for="secondary-object-select">Add Object:</label>
+                    <select id="secondary-object-select" disabled style="min-width: 180px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <option value="">Loading...</option>
+                    </select>
+                    <span class="help-badge" data-help-topic="secondary_object_comparison" title="How objects are ranked">?</span>
+                </span>
             </div>
         </div>
     </div>
@@ -1032,9 +137,9 @@
 <div id="framing-tab" class="tab-content">
 
     <div class="detail-tabs-container">
-        <button type="button" class="detail-tab-button active" data-tab="notes" onclick="showProjectSubTab('notes')">Notes & Framing</button>
-        <button type="button" class="detail-tab-button" data-tab="inspiration" onclick="showProjectSubTab('inspiration')">Inspiration</button>
-        <button type="button" class="detail-tab-button" data-tab="framing-scout" onclick="showProjectSubTab('framing-scout')">Rig Data</button>
+        {{ tab_button('Notes & Framing', 'notes', active=True, data_action='show-project-subtab') }}
+        {{ tab_button('Inspiration', 'inspiration', data_action='show-project-subtab') }}
+        {{ tab_button('Rig Data', 'framing-scout', data_action='show-project-subtab') }}
     </div>
 
     <div id="notes-sub-tab" class="detail-tab-content active">
@@ -1045,21 +150,21 @@
             <trix-editor input="project-field-hidden" id="project-field-editor"
                          style="min-height: 150px; height: auto;"></trix-editor>
 
-            <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:#333;"></div>
+            <div id="project-quick-link" style="margin:6px 0 12px; font-size:14px; color:var(--text-primary);"></div>
 
             <div style="margin-top: 15px; margin-bottom: 5px;">
-                <label style="font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: #333;">
+                <label style="font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                     <input type="checkbox" id="active-project-checkbox" style="transform: scale(1.3);"
                            {% if object_main_details.ActiveProject %}checked{% endif %}>
                     Active Project
                 </label>
             </div>
             <div class="button-group" style="margin-top: 15px;">
-                <button class="inline-button" onclick="saveProject()">Save Notes</button>
-                <button class="inline-button" onclick="openFramingAssistant()">Show Framing</button>
-                <button id="open-in-stellarium" class="inline-button" onclick="openInStellarium()" style="display: none;">Open in Stellarium</button>
+                <button class="inline-button" data-action="save-project">Save Notes</button>
+                <button class="inline-button" data-action="open-framing-assistant">Show Framing</button>
+                <button id="open-in-stellarium" class="inline-button" data-action="open-stellarium" style="display: none;">Open in Stellarium</button>
             </div>
-            <div id="stellarium-status" style="margin-top: 10px; color: #666;"></div>
+            <div id="stellarium-status" style="margin-top: 10px; color: var(--text-tertiary);"></div>
         </div>
     </div>
 
@@ -1068,7 +173,7 @@
             <h3 style="display:flex; justify-content:space-between; align-items:center;">
                 Inspiration Content
                 {% if not object_main_details.image_url and not object_main_details.description_text %}
-                <a href="{{ url_for('config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">Edit Object to Add Content</a>
+                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">Edit Object to Add Content</a>
                 {% endif %}
             </h3>
 
@@ -1085,10 +190,10 @@
 
                 {% if object_main_details.description_text %}
                 <div class="insp-detail-text">
-                    <h4 style="margin-top:0; color:#333;">Description</h4>
+                    <h4 style="margin-top:0; color:var(--text-primary);">Description</h4>
                     <p style="white-space: pre-wrap;">{{ object_main_details.description_text }}</p>
                     {% if object_main_details.image_source_link %}
-                        <p style="margin-top:15px; font-size:0.9em; color:#666;">
+                        <p style="margin-top:15px; font-size:0.9em; color:var(--text-tertiary);">
                             Source: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or 'External Source' }}</a>
                         </p>
                     {% endif %}
@@ -1096,7 +201,7 @@
                 {% endif %}
             </div>
             {% else %}
-            <div style="text-align:center; padding:40px; color:#666; border: 2px dashed #ddd; border-radius: 6px;">
+            <div style="text-align:center; padding:40px; color:var(--text-tertiary); border: 2px dashed var(--text-lighter); border-radius: 6px;">
                 <p>No inspiration content (custom image or description) has been added for this object yet.</p>
                 <p style="font-size: 0.9em;">Go to <strong>Configuration > Manage Objects</strong> to add one.</p>
             </div>
@@ -1108,7 +213,7 @@
         {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
         <div class="content-section">
             <h3>Framing With Your Rigs</h3>
-            <p style="font-size:13px; color: #666; margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
+            <p style="font-size:13px; color: var(--text-tertiary); margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
             <table class="framing-table">
                 <thead>
                 <tr>
@@ -1124,12 +229,12 @@
                 {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
                 {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
                 {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
-                {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "#e74c3c" %}
-                {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "#f39c12" %}
+                {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "var(--danger-color)" %}
+                {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "var(--warning-color-alt)" %}
                 {% else %}{% set fit_ratio = (object_size / fov_min) * 100 %}
-                {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "#9b59b6" %}
-                {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "#3498db" %}
-                {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "#2ecc71" %}{% endif %}{% endif %}
+                {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "var(--text-muted)" %}
+                {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "var(--info-color-alt)" %}
+                {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "var(--success-color-alt)" %}{% endif %}{% endif %}
                 <tr>
                     <td><strong>{{ rig.rig_name }}</strong></td>
                     <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
@@ -1152,64 +257,65 @@
 
 <div id="simbad-tab" class="tab-content">
     <div id="simbadContainer">
-        <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid #ddd;"></iframe>
+        <iframe id="simbadIframe" style="width:100%; height:1200px; border:1px solid var(--text-lighter);"></iframe>
     </div>
 </div>
 
 
-<div id="framing-modal" class="modal">
+<div id="framing-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="framing-modal-title">
     <div id="framing-modal-content">
         <div class="modal-controls">
-            <button type="button" class="close-btn" aria-label="Close" title="Close" onclick="closeFramingAssistant()">×</button>
+            <button type="button" class="close-btn" aria-label="Close" title="Close" data-action="close-framing-assistant">×</button>
+            <h2 id="framing-modal-title" class="sr-only">Framing Assistant</h2>
         </div>
         <div class="modal-header-bar">
             <div class="brand">
                 <span class="brand-strong">Nova</span><span class="brand-light">DSO Tracker</span>
-                <span class="help-badge" onclick="openHelp('framing_assistant')" title="Help with Framing">?</span>
+                {{ help_badge('framing_assistant', 'Help with Framing') }}
             </div>
             <span id="fov-vs-object" class="fov-chip"></span>
         </div>
         <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
-            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" onchange="applyLockToObject(this.checked)" checked> Lock FOV</label>
-            <label style="display:flex;align-items:center;gap:6px;margin-left:8px;" title="Displays the approximate location of geostationary satellites (corrected for your latitude)"><input type="checkbox" id="show-geo-belt" onchange="toggleGeoBelt(this.checked)"> Geo Belt</label>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="flipFraming90()">Flip 90°</button>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="copyFramingUrl()">Copy framing URL</button>
-            <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" onclick="saveFramingToDB()">Save Framing</button>
+            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" data-action="toggle-lock-fov" checked> Lock FOV</label>
+            <label style="display:flex;align-items:center;gap:6px;margin-left:8px;" title="Displays the approximate location of geostationary satellites (corrected for your latitude)"><input type="checkbox" id="show-geo-belt" data-action="toggle-geo-belt" checked> Geo Belt</label>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="flip-framing">Flip 90°</button>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="copy-framing-url">Copy framing URL</button>
+            <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="save-framing-db">Save Framing</button>
 
-            <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid #ccc;">
+            <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">Rig:</label>
-                <select id="framing-rig-select" onchange="updateFramingChart(true); updateFovVsObjectLabel();" style="max-width:240px; font-size:14px;">
+                <select id="framing-rig-select" data-action="update-framing-rig" style="max-width:240px; font-size:14px;">
                     {% if available_rigs %}{% for rig in available_rigs %}
                     <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
                     {% endfor %}{% else %}<option value="">No rigs configured</option>{% endif %}
                 </select>
             </div>
 
-            <div style="display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid #ccc; flex-grow: 1;">
+            <div style="display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt); flex-grow: 1;">
               <label for="framing-rotation" style="font-weight:bold;" title="Position Angle (0°=North, 90°=East)">Rotation (PA):</label>
-              <input type="range" id="framing-rotation" min="0" max="360" value="0" step="0.5" oninput="onRotationInput(this.value)" onchange="onRotationInput(this.value)" style="flex-grow: 1; height: 6px; cursor: pointer;"/>
-              <span id="rotation-value" style="min-width: 45px; font-weight: bold; color: #333; text-align: right;">0°</span>
+              <input type="range" id="framing-rotation" min="0" max="360" value="0" step="0.5" data-action="rotation-input" style="flex-grow: 1; height: 6px; cursor: pointer;"/>
+              <span id="rotation-value" style="min-width: 45px; font-weight: bold; color: var(--text-primary); text-align: right;">0°</span>
             </div>
         </div>
         <div class="framing-controls">
             <div style="display:flex; align-items:center; gap:10px;">
                 <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Mosaic (Col x Row)</label>
+                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">Mosaic (Col x Row)</label>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" onchange="updateFramingChart(false)" title="Columns">
+                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="Columns">
                         <span style="font-size:14px; font-weight:bold;">x</span>
-                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" onchange="updateFramingChart(false)" title="Rows">
+                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="Rows">
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:#444; font-weight:bold; line-height:1;">Overlap %</label>
-                    <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" onchange="updateFramingChart(false)">
+                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">Overlap %</label>
+                    <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" data-action="update-mosaic">
                 </div>
-                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" onclick="copyAsiairMosaic()" title="Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.">Copy Plan (CSV)</button>
+                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" data-action="copy-mosaic-csv" title="Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.">Copy Plan (CSV)</button>
             </div>
             <div>
                 <label for="survey-select">Survey:</label>
-                <select id="survey-select" onchange="setSurvey(this.value)">
+                <select id="survey-select" data-action="change-survey">
                     <option value="P/DSS2/color">DSS2 (color)</option>
                     <option value="P/DESI-Legacy-Surveys/DR10/color">Legacy Survey DR10 (Deep/Sharp)</option>
                     <option value="P/DES/DR2/Color">Dark Energy Survey DR2 (Deep)</option>
@@ -1250,29 +356,29 @@
             </div>
         </div>
         <div class="framing-controls" style="flex-wrap: wrap;">
-            <div><label>Brightness</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
-            <div><label>Contrast</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
-            <div><label>Gamma</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" oninput="updateImageAdjustments()"></div>
-            <div><label>Saturation</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" oninput="updateImageAdjustments()"></div>
+            <div><label>Brightness</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+            <div><label>Contrast</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+            <div><label>Gamma</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" data-action="update-image-adjustments"></div>
+            <div><label>Saturation</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:11px; font-weight:bold; color:#555; background:#f0f2f5; padding:2px 6px; border-radius:4px; border:1px solid #dce2e7; cursor:help;" title="Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.">JNow</span>
+                <span style="font-size:11px; font-weight:bold; color:var(--text-secondary); background:var(--bg-light-gray); padding:2px 6px; border-radius:4px; border:1px solid var(--border-light-alt2); cursor:help;" title="Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.">JNow</span>
                 <label style="font-size:14px; font-weight:bold;">RA</label>
                 <input id="ra-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
                 <label style="font-size:14px; font-weight:bold;">Dec</label>
                 <input id="dec-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="copyRaDec()">Copy</button>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="copy-ra-dec">Copy</button>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:12px;color:#555;">Tip: Click on the sky to move the FOV center.</span>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" onclick="resetFovCenterToObject()">Recenter to object</button>
+                <span style="font-size:12px;color:var(--text-secondary);">Tip: Click on the sky to move the FOV center.</span>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="recenter-fov">Recenter to object</button>
                 <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" onclick="nudgeFov(0, +1)">↑</button>
+                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" data-action="nudge-fov" data-dx="0" data-dy="1">↑</button>
                     <div>
-                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Left" onclick="nudgeFov(-1, 0)">←</button>
-                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" onclick="nudgeFov(+1, 0)">→</button>
+                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Left" data-action="nudge-fov" data-dx="-1" data-dy="0">←</button>
+                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" data-action="nudge-fov" data-dx="1" data-dy="0">→</button>
                     </div>
-                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" onclick="nudgeFov(0, -1)">↓</button>
-                    <span style="font-size:12px;color:#555;">(1′ steps)</span>
+                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" data-action="nudge-fov" data-dx="0" data-dy="-1">↓</button>
+                    <span style="font-size:12px;color:var(--text-secondary);">(1′ steps)</span>
                 </div>
             </div>
         </div>
@@ -1280,12 +386,12 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
@@ -1323,336 +429,9 @@
         allObjects: {{ framing_objects | tojson }}
     };
 </script>
-<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=kb_fix_v4"></script>
-<script>
-    // --- Patch: Update Separation on Date Change ---
-    document.addEventListener("DOMContentLoaded", function() {
-        const updateSep = async () => {
-            const d = document.getElementById('day-select').value;
-            const m = document.getElementById('month-select').value;
-            const y = document.getElementById('year-select').value;
-            try {
-                const url = `/get_date_info/${encodeURIComponent(window.NOVA_GRAPH_DATA.objectName)}?day=${d}&month=${m}&year=${y}`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data.separation && document.getElementById('separation-display')) {
-                    document.getElementById('separation-display').textContent = data.separation + "° sep";
-                }
-                // Redundancy: Ensure phase is strictly updated
-                if (data.phase !== undefined && document.getElementById('phase-display')) {
-                    document.getElementById('phase-display').textContent = data.phase + "%";
-                }
-            } catch(e) { console.error("Sep update failed", e); }
-        };
+<script src="{{ url_for('static', filename='js/framing-utils.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/graph_view_chart.js') }}?v=dark_theme_v3" defer></script>
+<script src="{{ url_for('static', filename='js/graph_view.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/journal_section.js') }}" defer></script>
 
-        ['day-select', 'month-select', 'year-select'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.addEventListener('change', updateSep);
-        });
-        document.querySelectorAll('.view-button').forEach(btn => {
-            btn.addEventListener('click', () => setTimeout(updateSep, 500));
-        });
-    });
-
-// --- Sub-Tab Control Logic ---
-function showProjectSubTab(tabName) {
-    document.querySelectorAll('#framing-tab .detail-tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('#framing-tab .detail-tab-button').forEach(button => button.classList.remove('active'));
-
-    document.getElementById(tabName + '-sub-tab').classList.add('active');
-    document.querySelector(`#framing-tab .detail-tab-button[data-tab="${tabName}"]`).classList.add('active');
-
-    // Auto-select view mode when entering the project detail tab
-    if (tabName === 'project-detail') {
-        // Only run if a project is actually linked (i.e., the container exists)
-        if (document.getElementById('project-view-mode')) {
-            // Ensure View Mode is active (and edit mode is hidden)
-            toggleProjectSubTabEdit(false, true);
-        }
-    }
-}
-
-// Trix helper for loading content into EDIT mode editors
-function loadTrixContentEdit(editorId, htmlContent) {
-    const editorElement = document.getElementById(editorId);
-    if (editorElement && editorElement.editor) {
-         editorElement.editor.loadHTML(htmlContent);
-    } else if (editorElement) {
-         const hiddenInput = document.getElementById(editorElement.getAttribute('input'));
-         if (hiddenInput) {
-             hiddenInput.value = htmlContent;
-         }
-         editorElement.addEventListener('trix-initialize', function() {
-             editorElement.editor.loadHTML(hiddenInput.value);
-         }, { once: true });
-    }
-}
-
-// Toggle logic for the EDIT mode inside the Project Detail sub-tab
-function toggleProjectSubTabEdit(enable, justSwitchedTab = false) {
-    const viewMode = document.getElementById('project-view-mode');
-    const editMode = document.getElementById('project-edit-mode');
-    const editButton = document.getElementById('edit-button-project');
-
-    if (!viewMode || !editMode) return;
-
-    if (enable) {
-        // Switch to Edit Mode
-        viewMode.style.display = 'none';
-        editMode.style.display = 'block';
-        if (editButton) editButton.style.display = 'none';
-
-        // Ensure Trix editors are populated when entering edit mode
-        loadTrixContentEdit('goals-editor-edit', document.getElementById('goals-hidden').value);
-        loadTrixContentEdit('description-editor-edit', document.getElementById('description-hidden').value);
-        loadTrixContentEdit('framing-editor-edit', document.getElementById('framing-hidden').value);
-        loadTrixContentEdit('processing-editor-edit', document.getElementById('processing-hidden').value);
-
-    } else {
-        // Switch to View Mode
-        viewMode.style.display = 'block';
-        editMode.style.display = 'none';
-        if (editButton) editButton.style.display = 'inline-block';
-
-        // If canceling the edit, reload the page to discard unsaved changes and update the view data.
-        if (!justSwitchedTab) {
-            // We must clear the session ID to return to the correct view of the object's page
-            window.location.href = window.location.href.split('?')[0] + '?tab=framing';
-        }
-    }
-}
-
-
-// --- Active Project Checkbox Handler (The Fix) ---
-(function(){
-  const cb = document.getElementById('active-project-checkbox');
-  if (!cb) return;
-  cb.addEventListener('change', async (e) => {
-
-    const objectName = {{ object_name|tojson }};
-    const isActive = e.target.checked;
-
-    // 1. Handle Guest User (visual/session-only update)
-    if (IS_GUEST_USER) {
-        sessionStorage.setItem(`nova_guest_active_${objectName}`, isActive);
-        console.log(`Guest mode: Set ${objectName} active status to ${isActive} (visual/session only)`);
-        return;
-    }
-
-    // 2. Handle Authenticated User (API call to database)
-    try {
-      const res = await fetch('/update_project_active', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // This dedicated endpoint updates *only* the active_project flag in the database
-        body: JSON.stringify({ object: objectName, active: isActive })
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.status !== 'success') {
-        alert('Failed to update Active Project: ' + (data.error || res.status));
-        e.target.checked = !e.target.checked; // Revert the checkbox on API error
-      } else {
-          console.log(`Successfully updated Active Project status for ${objectName} to ${isActive}`);
-      }
-    } catch (err) {
-      alert('Failed to update Active Project: ' + err);
-      e.target.checked = !e.target.checked; // Revert the checkbox on network error
-    }
-  });
-})();
-// --- End Active Project Checkbox Handler ---
-
-
-// --- Main Initialization Block (DOMContentLoaded) ---
-document.addEventListener('DOMContentLoaded', (event) => {
-    // --- Existing Guest/Trix Setup ---
-    if (IS_GUEST_USER) {
-        const trixEditor = document.getElementById('project-field-editor');
-        const saveButton = document.querySelector('button[onclick="saveProject()"]');
-
-        if (trixEditor) {
-            trixEditor.addEventListener('trix-initialize', () => {
-                trixEditor.editor.element.setAttribute('disabled', 'true');
-            });
-        }
-        if (saveButton) saveButton.style.display = 'none';
-
-        const objectName = {{ object_name|tojson }};
-        const storageKey = `nova_guest_active_${objectName}`;
-        const savedState = sessionStorage.getItem(storageKey);
-        const checkbox = document.getElementById('active-project-checkbox');
-
-        if (checkbox && savedState !== null) {
-            checkbox.checked = (savedState === 'true');
-        }
-    }
-
-    // --- Project Edit Form Submission Handler (New Logic) ---
-    const editForm = document.getElementById('project-edit-form');
-    if (editForm) {
-        editForm.addEventListener('submit', function(e) {
-            // Update hidden inputs just before submission
-            document.getElementById('goals-hidden').value = document.getElementById('goals-editor-edit').value;
-            document.getElementById('description-hidden').value = document.getElementById('description-editor-edit').value;
-            document.getElementById('framing-hidden').value = document.getElementById('framing-editor-edit').value;
-            document.getElementById('processing-hidden').value = document.getElementById('processing-editor-edit').value;
-        });
-    }
-
-    // --- Tab Initialization ---
-    const params = new URLSearchParams(window.location.search);
-    const tabFromUrl = params.get('tab');
-    const periodFromUrl = params.get('period'); // Get the period (e.g., 'yearly')
-
-    const lastTab = localStorage.getItem('lastActiveTab-{{ object_name|tojson }}');
-    const tabToShow = tabFromUrl || lastTab || 'chart';
-
-    showTab(tabToShow);
-
-    // --- Auto-Switch Chart View ---
-    if (tabToShow === 'chart' && periodFromUrl === 'yearly') {
-        // Wait briefly for the external chart script to load
-        setTimeout(() => {
-            if (typeof changeView === 'function') {
-                console.log("Auto-switching to Year View based on URL parameter.");
-                changeView('year');
-            }
-        }, 300);
-    }
-
-    // --- Initialize Project Notes Editor (Trix) ---
-    // Content is now loaded natively via the 'value' attribute on the hidden input #project-field-hidden
-    // This prevents race conditions where Trix initializes before JS can inject content.
-
-    // --- Initialize Project Sub-Tab ---
-    if (tabToShow === 'framing') {
-        showProjectSubTab('notes');
-    }
-});
-
-
-// --- Original Helper Functions ---
-let opportunitiesLoaded = false; // Flag to prevent multiple fetches
-let simbadLoaded = false; // Flag for SIMBAD iframe
-
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
-
-    document.getElementById(tabName + '-tab').classList.add('active');
-    document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
-
-    localStorage.setItem('lastActiveTab-{{ object_name|tojson }}', tabName);
-
-    if (tabName === 'opportunities' && !opportunitiesLoaded) {
-        loadImagingOpportunities();
-    }
-
-    if (tabName === 'simbad' && !simbadLoaded) {
-        loadSimbadInfo();
-    }
-
-    // If we switch to the main Framing tab, ensure the sub-tab defaults to 'notes'
-    if (tabName === 'framing') {
-        showProjectSubTab('notes');
-    }
-}
-// ... (the rest of the original functions: loadSimbadInfo, loadImagingOpportunities) ...
-    function loadSimbadInfo() {
-        if (simbadLoaded) return;
-
-        if (!navigator.onLine) {
-            if (typeof displayOfflineMessage === 'function') {
-                displayOfflineMessage('simbadContainer', 'SIMBAD requires an active internet connection to load data.');
-            } else {
-                document.getElementById('simbadContainer').innerHTML = '<div class="offline-message" style="min-height: 400px;">SIMBAD requires an active internet connection.</div>';
-            }
-            simbadLoaded = true;
-            return;
-        }
-
-        const iframe = document.getElementById('simbadIframe');
-        const objectName = {{ object_name|tojson }};
-        iframe.src = `https://simbad.u-strasbg.fr/simbad/sim-basic?Ident=${encodeURIComponent(objectName)}&submit=SIMBAD+search`;
-        simbadLoaded = true;
-    }
-
-    async function loadImagingOpportunities() {
-        if (opportunitiesLoaded) return;
-
-        const tableBody = document.getElementById('opportunities-body');
-        const objectName = {{ object_name|tojson }};
-
-        tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">Loading...</td></tr>';
-
-        try {
-            const plotLat = window.NOVA_GRAPH_DATA.plotLat;
-            const plotLon = window.NOVA_GRAPH_DATA.plotLon;
-            const plotTz = window.NOVA_GRAPH_DATA.plotTz;
-
-            const params = new URLSearchParams({
-                plot_lat: plotLat,
-                plot_lon: plotLon,
-                plot_tz: plotTz
-            });
-
-            const fetchUrl = `/get_imaging_opportunities/${encodeURIComponent(objectName)}?${params.toString()}`;
-
-            const response = await fetch(fetchUrl);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-
-            tableBody.innerHTML = '';
-
-            if (data.status === 'success') {
-                if (data.results && data.results.length > 0) {
-                    data.results.forEach(opp => {
-                        const row = document.createElement('tr');
-                        const [year, month, day] = opp.date.split('-');
-                        const url = `/graph_dashboard/${encodeURIComponent(objectName)}?year=${parseInt(year)}&month=${parseInt(month)}&day=${parseInt(day)}&tab=chart&location=${encodeURIComponent(window.NOVA_GRAPH_DATA.plotLocName || '')}`;
-                        row.style.cursor = 'pointer';
-                        row.onclick = () => { window.location.href = url; };
-
-                        const icsUrl = new URL(`/generate_ics/${encodeURIComponent(objectName)}`, window.location.origin);
-                        icsUrl.searchParams.append('date', opp.date);
-                        icsUrl.searchParams.append('from_time', opp.from_time);
-                        icsUrl.searchParams.append('to_time', opp.to_time);
-                        icsUrl.searchParams.append('max_alt', opp.max_alt);
-                        icsUrl.searchParams.append('moon_illum', opp.moon_illumination);
-                        icsUrl.searchParams.append('obs_dur', opp.obs_minutes);
-                        icsUrl.searchParams.append('lat', plotLat);
-                        icsUrl.searchParams.append('lon', plotLon);
-                        icsUrl.searchParams.append('tz', plotTz);
-
-                        row.innerHTML = `
-                            <td>${new Date(opp.date + 'T00:00:00Z').toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })}</td>
-                            <td>${opp.from_time}</td>
-                            <td>${opp.to_time}</td>
-                            <td>${opp.obs_minutes}</td>
-                            <td>${opp.max_alt}</td>
-                            <td>${opp.moon_illumination}</td>
-                            <td>${opp.moon_separation}</td>
-                            <td>${opp.rating}</td>
-                            <td><a href="${icsUrl.href}" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" onclick="event.stopPropagation();">📅</a></td>
-                        `;
-                        tableBody.appendChild(row);
-                    });
-                } else {
-                    tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
-                }
-                opportunitiesLoaded = true;
-            } else {
-                tableBody.innerHTML = `<tr><td colspan="9">Error loading opportunities: ${data.message || 'Unknown error'}</td></tr>`;
-                opportunitiesLoaded = true;
-            }
-        } catch (error) {
-            console.error('Error fetching imaging opportunities:', error);
-            tableBody.innerHTML = `<tr><td colspan="9">Failed to load imaging opportunities. Check console for details. (${error.message})</td></tr>`;
-            opportunitiesLoaded = true;
-        }
-    }
-</script>
 {% endblock %}
