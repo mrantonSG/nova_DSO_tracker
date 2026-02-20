@@ -912,6 +912,11 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: var(--text-primary);
 }
 
+/* Loading overlay - dark background for night view */
+[data-theme="dark"] .loading-overlay {
+    background: rgba(30, 30, 35, 0.9);
+}
+
 /* ===================================================================
    DARK MODE - FRAMING MODAL OVERRIDES
    ================================================================ */
