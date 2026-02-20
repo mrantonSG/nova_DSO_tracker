@@ -80,7 +80,7 @@
             addForm.style.display = 'none';
 
             try {
-                const response = await fetch("{{ url_for('search_object') }}", {
+                const response = await fetch("{{ url_for('core.search_object') }}", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ object: objectName })
@@ -116,7 +116,7 @@
                 formData.append('file', file);
 
                 // 2. Post it to your (already existing) upload endpoint
-                fetch("{{ url_for('upload_editor_image') }}", {
+                fetch("{{ url_for('tools.upload_editor_image') }}", {
                     method: 'POST',
                     body: formData
                 })
@@ -162,7 +162,7 @@
 
             try {
                 // ... (rest of the save logic is the same) ...
-                const response = await fetch("{{ url_for('confirm_object') }}", {
+                const response = await fetch("{{ url_for('core.confirm_object') }}", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)

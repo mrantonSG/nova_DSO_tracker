@@ -79,6 +79,7 @@ def db_session(monkeypatch):
     )
 
     monkeypatch.setattr('nova.SessionLocal', TestSessionLocal)
+    monkeypatch.setattr('nova.helpers.SessionLocal', TestSessionLocal)
     monkeypatch.setattr('nova.get_db', TestSessionLocal)
     monkeypatch.setattr(TestSessionLocal, 'remove', lambda: None)
 

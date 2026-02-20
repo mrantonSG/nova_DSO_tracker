@@ -1,0 +1,78 @@
+
+    body {
+      font-family: Roboto, sans-serif;
+      padding: var(--space-5);
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .header-container {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 50px;
+    }
+    .header-container h1,
+    .header-container h3 {
+      margin: 0;
+      padding: 0;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-top: var(--space-2);
+      font-size: var(--font-size-sm);
+    }
+    input[type="text"],
+    input[type="password"] {
+      padding: var(--space-2-5);  /* Login-specific: slightly larger than --input-padding-y */
+      margin-top: var(--space-1);
+      font-size: var(--font-size-base);
+      border: var(--input-border-width) solid var(--input-border-color);
+      border-radius: var(--input-border-radius);
+    }
+    .button-row {
+      display: flex;
+      gap: var(--space-2);
+      margin-top: var(--space-5);
+    }
+    .button-row > * {
+      flex: 1;
+      text-align: center;
+    }
+    input[type="submit"] {
+      padding: var(--space-2-5) var(--space-4);
+      font-size: var(--font-size-base);
+      border: none;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      background-color: var(--primary-color);
+      color: white;
+    }
+    input[type="submit"]:hover {
+      background-color: var(--primary-dark);
+    }
+    /* Login page specific overrides for .btn-secondary */
+    .button-row .btn-secondary {
+      padding: var(--space-2-5) var(--space-4);
+      flex: 1;
+      text-align: center;
+    }
+
+    .flash {
+      padding: var(--space-2);
+      margin-bottom: var(--space-2);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+    }
+    .flash.success { background-color: var(--success-bg); color: var(--success-text); }
+    .flash.error   { background-color: var(--danger-bg); color: var(--danger-text); }
+    .flash.info    { background-color: var(--info-bg); color: var(--info-text); }
+
+    /* Hide the right-side header elements (User menu, Night/Red buttons) for the login page */
+    .header-right {
+        display: none !important;
+    }

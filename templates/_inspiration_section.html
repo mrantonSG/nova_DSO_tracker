@@ -13,8 +13,8 @@
     }
 
     .astro-tile {
-        background: #fff;
-        border: 1px solid #e0e0e0;
+        background: var(--bg-white);
+        border: 1px solid var(--text-lightest);
         border-radius: 8px;
         overflow: hidden;
         transition: transform 0.2s, box-shadow 0.2s;
@@ -33,10 +33,10 @@
     .tile-image {
         width: 100%;
         height: 200px;
-        background-color: #2c3e50; /* Dark background for space images */
+        background-color: var(--accent-teal); /* Dark background for space images */
         position: relative;
         overflow: hidden;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--bg-medium-alt);
     }
 
     .tile-image img {
@@ -72,13 +72,13 @@
         margin-bottom: 4px;
     }
 
-    .tile-title { font-size: 1.2em; font-weight: 700; color: #2c3e50; }
-    .tile-type { font-size: 0.75em; text-transform: uppercase; color: #83b4c5; font-weight: 600; background: #f0f8fa; padding: 2px 6px; border-radius: 4px; }
-    .tile-common-name { font-size: 0.9em; color: #666; font-style: italic; margin-bottom: 10px; }
+    .tile-title { font-size: 1.2em; font-weight: 700; color: var(--accent-teal); }
+    .tile-type { font-size: 0.75em; text-transform: uppercase; color: var(--primary-color); font-weight: 600; background: var(--bg-light-gray); padding: 2px 6px; border-radius: 4px; }
+    .tile-common-name { font-size: 0.9em; color: var(--text-tertiary); font-style: italic; margin-bottom: 10px; }
 
     .tile-summary {
         font-size: 0.85em;
-        color: #555;
+        color: var(--text-secondary);
         line-height: 1.5;
         margin-bottom: 15px;
         display: -webkit-box;
@@ -92,14 +92,14 @@
         gap: 8px;
         margin-top: auto;
         font-size: 0.8em;
-        color: #555;
+        color: var(--text-secondary);
     }
 
     .tile-stat-pill {
-        background: #f7f9fa;
+        background: var(--bg-light);
         padding: 4px 8px;
         border-radius: 4px;
-        border: 1px solid #e1e8ed;
+        border: 1px solid var(--border-light-alt);
     }
 
     /* --- Modal Styles --- */
@@ -116,7 +116,7 @@
     }
 
     .insp-modal-content {
-        background-color: #fff;
+        background-color: var(--bg-white);
         margin: 5vh auto;
         width: 90%;
         max-width: 800px;
@@ -142,7 +142,7 @@
 
     .insp-modal-image {
         width: 40%;
-        background: #000;
+        background: var(--text-black);
         min-height: 300px;
         position: relative;
     }
@@ -160,13 +160,13 @@
         flex-direction: column;
     }
 
-    .insp-modal-title { font-size: 2em; font-weight: bold; margin: 0 0 5px 0; color: #2c3e50; }
-    .insp-modal-subtitle { font-size: 1.2em; color: #666; font-style: italic; margin-bottom: 20px; }
+    .insp-modal-title { font-size: 2em; font-weight: bold; margin: 0 0 5px 0; color: var(--accent-teal); }
+    .insp-modal-subtitle { font-size: 1.2em; color: var(--text-tertiary); font-style: italic; margin-bottom: 20px; }
 
     .insp-modal-text {
         font-size: 1em;
         line-height: 1.6;
-        color: #444;
+        color: var(--text-dark-alt);
         margin-bottom: 25px;
     }
 
@@ -174,14 +174,14 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
-        background: #f8f9fa;
+        background: var(--bg-light);
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 25px;
     }
 
-    .insp-data-item strong { display: block; font-size: 0.8em; color: #888; text-transform: uppercase; }
-    .insp-data-item span { font-size: 1.1em; font-weight: 600; color: #333; }
+    .insp-data-item strong { display: block; font-size: 0.8em; color: var(--text-muted); text-transform: uppercase; }
+    .insp-data-item span { font-size: 1.1em; font-weight: 600; color: var(--text-primary); }
 
     .insp-modal-footer {
         margin-top: auto;
@@ -193,26 +193,31 @@
 
     .modal-attribution {
         font-size: 0.8em;
-        color: #999;
+        color: var(--text-muted-alt);
     }
 
     .modal-attribution a {
-        color: #999;
+        color: var(--text-muted-alt);
         text-decoration: underline;
     }
 
     .btn-close-modal {
         background: transparent;
-        border: 1px solid #ccc;
+        border: 1px solid var(--border-medium-alt);
         padding: 8px 20px;
         border-radius: 6px;
         cursor: pointer;
         font-size: 14px;
+        color: var(--text-primary);
+    }
+
+    .btn-close-modal:hover {
+        background: var(--bg-light-gray);
     }
 
     .btn-view-graph {
-        background: #83b4c5;
-        color: white;
+        background: var(--primary-color);
+        color: var(--text-white);
         border: none;
         padding: 8px 20px;
         border-radius: 6px;
@@ -220,11 +225,11 @@
         font-size: 14px;
         font-weight: bold;
     }
-    .btn-view-graph:hover { background: #6795a4; }
+    .btn-view-graph:hover { background: var(--primary-dark); }
 
     /* Skeleton Loading State */
-    .skeleton-pulse { animation: pulse 1.5s infinite ease-in-out; background-color: #eee; }
-    @keyframes pulse { 0% { background-color: #eee; } 50% { background-color: #ddd; } 100% { background-color: #eee; } }
+    .skeleton-pulse { animation: pulse 1.5s infinite ease-in-out; background-color: var(--bg-medium-alt); }
+    @keyframes pulse { 0% { background-color: var(--bg-medium-alt); } 50% { background-color: var(--text-lighter); } 100% { background-color: var(--bg-medium-alt); } }
 
     @media (max-width: 700px) {
         .insp-modal-body { flex-direction: column; }
@@ -234,9 +239,9 @@
 
     /* --- New Educational States --- */
     .inspiration-banner {
-        background: #f0f8fa;
-        border: 1px solid #bce8f1;
-        color: #31708f;
+        background: var(--bg-light-gray);
+        border: 1px solid var(--info-color-alt);
+        color: var(--info-text);
         padding: 15px 20px;
         margin-bottom: 25px;
         border-radius: 8px;
@@ -247,11 +252,11 @@
         line-height: 1.5;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    .inspiration-banner strong { color: #245269; font-size: 15px; }
+    .inspiration-banner strong { color: var(--text-primary); font-size: 15px; }
     .inspiration-banner .close-banner {
         cursor: pointer;
         font-weight: bold;
-        color: #31708f;
+        color: var(--info-text);
         opacity: 0.5;
         margin-left: auto;
         font-size: 18px;
@@ -265,10 +270,10 @@
 
         text-align: center;
         padding: 60px 20px;
-        color: #666;
-        background: #f9f9f9;
+        color: var(--text-tertiary);
+        background: var(--bg-light-alt);
         border-radius: 12px;
-        border: 2px dashed #e0e0e0;
+        border: 2px dashed var(--text-lightest);
         /* Center horizontally and limit width for better appearance */
         margin: 40px auto;
         max-width: 600px;
@@ -279,18 +284,18 @@
         display: inline-block;
         max-width: 450px;
         font-size: 14px;
-        background: #fff;
+        background: var(--bg-white);
         padding: 20px 25px;
         border-radius: 8px;
-        border: 1px solid #eee;
+        border: 1px solid var(--bg-medium-alt);
         box-shadow: 0 4px 10px rgba(0,0,0,0.03);
     }
 
     /* Loading Spinner */
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     .insp-spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #3498db;
+        border: 4px solid var(--bg-light-gray);
+        border-top: 4px solid var(--info-color-alt);
         border-radius: 50%;
         width: 50px;
         height: 50px;
@@ -301,27 +306,27 @@
 
 <div id="inspiration-tab-content" style="display:none;">
     <div id="inspiration-controls" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
-        <button type="button" onclick="renderInspirationGrid(event)" style="padding: 10px 20px; border:1px solid #ccc; border-radius:4px; font-size:14px; background:#fff; cursor: pointer;">
+        <button type="button" data-action="refresh-inspiration" style="padding: 10px 20px; border:1px solid var(--border-medium-alt); border-radius:4px; font-size:14px; background:var(--bg-white); color:var(--text-primary); cursor: pointer;">
             ↻ Refresh Suggestions
         </button>
     </div>
 
     <div id="inspiration-wrapper">
         <div id="inspiration-grid" class="inspiration-grid"></div>
-        <div id="inspiration-loading" style="display:none; text-align:center; padding:40px; color:#666;">
+        <div id="inspiration-loading" style="display:none; text-align:center; padding:40px; color:var(--text-tertiary);">
             Processing targets...
         </div>
     </div>
 </div>
 
-<div id="inspiration-modal" class="insp-modal-backdrop" onclick="closeInspirationModal()">
-    <div class="insp-modal-content" onclick="event.stopPropagation()">
+<div id="inspiration-modal" class="insp-modal-backdrop" aria-labelledby="insp-modal-title" role="dialog" aria-modal="true">
+    <div class="insp-modal-content" data-stop-propagation="true">
         <div class="insp-modal-body">
             <div class="insp-modal-image">
                 <img id="modal-img" src="" alt="Object Image">
             </div>
             <div class="insp-modal-details">
-                <h2 id="modal-title" class="insp-modal-title"></h2>
+                <h2 id="insp-modal-title" class="insp-modal-title"></h2>
                 <div id="modal-subtitle" class="insp-modal-subtitle"></div>
 
                 <div id="modal-text" class="insp-modal-text"></div>
@@ -336,7 +341,7 @@
                 <div class="insp-modal-footer">
                     <div id="modal-attribution" class="modal-attribution">Source: Wiki</div>
                     <div style="display:flex; gap:10px; flex-shrink: 0;">
-                        <button class="btn-close-modal" onclick="closeInspirationModal()">Close</button>
+                        <button class="btn-close-modal" data-action="close-inspiration-modal">Close</button>
                         <button class="btn-view-graph" id="modal-graph-btn">View Charts &rarr;</button>
                     </div>
                 </div>
@@ -353,6 +358,30 @@
         if (size > 60) size = 60;
         return `https://archive.stsci.edu/cgi-bin/dss_search?v=poss2ukstu_red&r=${ra}&d=${dec}&e=J2000&h=${size}&w=${size}&f=gif&c=none`;
     }
+
+    // ========================================================================
+    // MODAL INITIALIZATION
+    // ========================================================================
+    let inspirationModalController = null;
+
+    // Initialize modal controller when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
+            inspirationModalController = new window.novaState.fn.ModalController('inspiration-modal', {
+                contentId: null, // No separate content wrapper for inspiration modal
+                displayStyle: 'block',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                ariaLabelledBy: 'insp-modal-title',
+                skipFocus: true // Don't auto-focus any element when opening
+            });
+
+            // Store reference in window.novaState for global access
+            window.novaState.fn.inspirationModal = inspirationModalController;
+        } else {
+            console.warn('[Inspiration] ModalController not available, using fallback behavior');
+        }
+    });
 
     // ========================================================================
     // 3. MAIN LOGIC (Failsafe)
@@ -414,11 +443,11 @@
                 grid.innerHTML = `
                     <div class="empty-state-styled">
                         ${iconHtml}
-                        <h3 style="margin: 0 0 10px 0; color: #333;">${title}</h3>
+                        <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">${title}</h3>
                         <p style="margin: 0 0 25px 0;">${reason}</p>
                         <div class="empty-state-box">
-                            <strong style="color:#333;">How to populate this gallery:</strong>
-                            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #555; line-height:1.6;">
+                            <strong style="color:var(--text-primary);">How to populate this gallery:</strong>
+                            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: var(--text-secondary); line-height:1.6;">
                                 <li><strong>Check Filters:</strong> Clear filters on the Position tab.</li>
                                 <li><strong>Check Database:</strong> Ensure you have objects in <em>Configuration</em>.</li>
                                 <li><strong>Visibility:</strong> We only show objects observable during <em>tonight's session</em>.</li>
@@ -481,9 +510,9 @@
                         <strong>Add Your Own Inspiration!</strong><br>
                         You are currently seeing automated survey images (DSS2).<br>
                         Did you know you can display your own astrophotos or favorite reference images here?<br>
-                        <span style="color:#555; font-size:0.9em; margin-top:4px; display:block;">Go to <strong>Configuration &gt; Manage Objects</strong> to add "Inspiration Content" (Image URLs, Credits, Descriptions) to your targets.</span>
+                        <span style="color:var(--text-secondary); font-size:0.9em; margin-top:4px; display:block;">Go to <strong>Configuration &gt; Manage Objects</strong> to add "Inspiration Content" (Image URLs, Credits, Descriptions) to your targets.</span>
                     </div>
-                    <span class="close-banner" onclick="this.parentElement.remove()">✕</span>
+                    <span class="close-banner" data-action="close-banner">✕</span>
                 `;
                 // Insert before the grid container
                 wrapper.insertBefore(banner, grid);
@@ -556,9 +585,9 @@
                     const setOfflineState = () => {
                         tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
                         tile.querySelector('.tile-image').innerHTML = `
-                            <div class="offline-message" style="height:100%; min-height:0; border:none; background:#f8f9fa; border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
+                            <div class="offline-message" style="height:100%; min-height:0; border:none; background:var(--bg-light); border-radius:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
                                 <div style="font-size:24px; opacity:0.3; margin-bottom:5px; filter: grayscale(1);">📡</div>
-                                <div style="font-size:12px; color:#999;">Offline</div>
+                                <div style="font-size:12px; color:var(--text-muted-alt);">Offline</div>
                             </div>`;
                     };
 
@@ -581,7 +610,7 @@
                         badgeEl.style.display = 'block';
                     } else {
                         // No image URL found
-                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#999;">No Image</div>';
+                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">No Image</div>';
                         tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
                     }
 
@@ -614,9 +643,16 @@
     }
 
     function openInspirationModal(obj, imgSrc, summary, source, wikiUrl) {
-        const modal = document.getElementById('inspiration-modal');
         const imgEl = document.getElementById('modal-img');
         const imgContainer = document.querySelector('.insp-modal-image');
+        const modalController = inspirationModalController || (window.novaState && window.novaState.fn.inspirationModal);
+
+        if (!modalController) {
+            console.warn('[Inspiration] ModalController not available, using fallback');
+            const modal = document.getElementById('inspiration-modal');
+            modal.style.display = 'block';
+            // Continue with rest of function
+        }
 
         // Helper to show offline/error state inside the modal
         const showOfflinePlaceholder = () => {
@@ -625,8 +661,8 @@
             if (!imgContainer.querySelector('.offline-message')) {
                 const offlineDiv = document.createElement('div');
                 offlineDiv.className = 'offline-message';
-                offlineDiv.style.cssText = "height:100%; min-height:0; border:none; background:#f4f4f4; display:flex; flex-direction:column; align-items:center; justify-content:center; width: 100%;";
-                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:#777;">Image unavailable</div>';
+                offlineDiv.style.cssText = "height:100%; min-height:0; border:none; background:var(--code-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; width: 100%;";
+                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">Image unavailable</div>';
                 imgContainer.appendChild(offlineDiv);
             }
         };
@@ -655,7 +691,7 @@
         }
 
         // 3. Populate Data
-        document.getElementById('modal-title').textContent = obj.Object;
+        document.getElementById('insp-modal-title').textContent = obj.Object;
         document.getElementById('modal-subtitle').textContent = obj['Common Name'] || "";
         document.getElementById('modal-alt').textContent = obj['Max Altitude (°)'];
         document.getElementById('modal-transit').textContent = obj['Transit Time'];
@@ -682,11 +718,43 @@
         // 5. Setup Action Buttons
         document.getElementById('modal-graph-btn').onclick = () => showGraph(obj.Object, null, 'chart');
 
-        // 6. SHOW MODAL (This is the critical line)
-        modal.style.display = 'block';
+        // 6. OPEN MODAL
+        if (modalController) {
+            modalController.open();
+        } else {
+            document.getElementById('inspiration-modal').style.display = 'block';
+        }
     }
 
     function closeInspirationModal() {
-        document.getElementById('inspiration-modal').style.display = 'none';
+        const modalController = inspirationModalController || (window.novaState && window.novaState.fn.inspirationModal);
+        if (modalController) {
+            modalController.close();
+        } else {
+            document.getElementById('inspiration-modal').style.display = 'none';
+        }
     }
+
+    // --- Event delegation for inspiration section data-actions ---
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        // Handle data-actions
+        switch(action) {
+            case 'refresh-inspiration':
+                renderInspirationGrid(e);
+                return;
+            case 'close-inspiration-modal':
+                closeInspirationModal();
+                e.preventDefault();
+                return;
+        }
+    });
+
+    // Expose functions for use by other scripts
+    window.renderInspirationGrid = renderInspirationGrid;
+    window.closeInspirationModal = closeInspirationModal;
 </script>

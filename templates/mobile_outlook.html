@@ -7,7 +7,7 @@
 <style>
     .asiair-btn {
         background-color: var(--primary-dark);
-        color: white;
+        color: var(--text-white);
         padding: 6px 10px;
         border-radius: 4px;
         text-decoration: none;
@@ -47,7 +47,7 @@
 
         // Use the helper function to get ?location=... if it's set
         const locationQuery = getLocationQueryParam();
-        const fetchUrl = `{{ url_for('get_outlook_data') }}${locationQuery}`;
+        const fetchUrl = `{{ url_for('core.get_outlook_data') }}${locationQuery}`;
 
         async function fetchOutlook() {
             try {
@@ -88,7 +88,7 @@
 
                     // Construct Mosaic URL
                     const safeObj = encodeURIComponent(item.object_name);
-                    const baseMosaicUrl = "{{ url_for('mobile_mosaic_view', object_name='__OBJ__') }}";
+                    const baseMosaicUrl = "{{ url_for('mobile.mobile_mosaic_view', object_name='__OBJ__') }}";
                     // Append source param
                     const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=outlook";
 

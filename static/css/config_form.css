@@ -1,0 +1,1063 @@
+    body {
+      padding: var(--space-5);
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--gray-50);
+      color: var(--text-primary);
+    }
+
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+    legend {
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-bold);
+      padding: 0 var(--space-1);
+      color: var(--text-primary);
+    }
+    label {
+      font-size: var(--font-size-sm);
+      margin-right: var(--space-1);
+    }
+    input, select, textarea {
+      font-size: var(--font-size-sm);
+      padding: var(--space-1);  /* Compact: 4px (smaller than standard --input-padding-y) */
+      box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
+    }
+    .block {
+      border: 0px solid var(--border-medium);
+      background: var(--bg-light-gray-alt3);
+      padding: 15px;
+      margin-bottom: var(--space-2);
+      border-radius: var(--radius-md);
+    }
+    .error {
+      color: var(--danger-color);
+    }
+
+    .message,
+    .progress-message {
+      color: var(--primary-dark);
+    }
+    .config-section {
+        padding: 1.5em;
+        background-color: var(--bg-light-alt);
+        border-radius: var(--radius-xl);
+    }
+    .config-section h2, .config-section h3 {
+        color: var(--text-primary);
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-bold);
+        margin-top: 0;
+        margin-bottom: 1.5em;
+        border-bottom: var(--input-border-width) solid var(--bg-light-gray-alt3);
+        padding-bottom: 0.5em;
+    }
+
+    input.wide {
+      width: 300px;
+    }
+    input.short {
+      width: 150px;
+    }
+    .inline-fields label {
+      display: inline-block;
+      width: 20px;
+      text-align: left;
+      margin: 0;
+      padding: 0;
+    }
+    .location-id {
+      width: 100px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+    }
+    .object-id {
+      width: 100px;
+    }
+
+    h3, h4 {
+      font-weight: var(--font-weight-normal);
+    }
+
+    input.object_field {
+      width: 65px;
+    }
+    .field-small-numeric {
+      width: 102px;
+    }
+    input.name_field {
+      width: 250px;
+    }
+    input.project_field {
+      width: 300px;
+    }
+    textarea.wide, textarea.project_field {
+      width: 300px;
+      height: 60px;
+      box-sizing: border-box;
+    }
+    .inline-fields {
+      display: flex;
+      flex-wrap: wrap;        /* allow wrapping instead of forcing one long row */
+      align-items: flex-start;
+      gap: 15px;
+      margin: 0 0 var(--space-2-5) 0;
+    }
+    .inline-fields > div {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-1);
+    }
+    .inline-fields input,
+    .inline-fields textarea {
+      margin-top: 0;
+      box-sizing: border-box;
+      font-size: var(--font-size-md);
+    }
+
+    .locations-list, .objects-list {
+      margin-top: var(--space-5);
+    }
+    .short-label {
+      display: inline-block;
+      width: auto !important;
+      margin-right: 2px !important;
+      text-align: left !important;
+      white-space: nowrap;
+    }
+    .long-label {
+      display: inline-block;
+      width: 70px !important;
+      margin-right: var(--space-1) !important;
+      text-align: left !important;
+      white-space: nowrap;
+    }
+    .verylong-label {
+      display: inline-block;
+      width: 140px !important;
+      margin-right: var(--space-1) !important;
+      text-align: left !important;
+      white-space: nowrap;
+    }
+    /* .dlback-button styles moved to base.css */
+    .info-container-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-5);
+      gap: var(--space-5);
+    }
+
+    .left-group,
+    .right-group {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2-5);
+    }
+
+    .file-button {
+      padding: var(--space-1) var(--space-2-5);
+      font-size: var(--font-size-sm);
+      background-color: var(--bg-file-button);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .file-button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .second-row-fields {
+      margin-left: 117px;
+    }
+    @media (max-width: 1200px) {
+      .second-row-fields {
+        margin-left: 0;
+      }
+    }
+    .objects-list .inline-fields input[type="checkbox"],
+    .block .inline-fields input[type="checkbox"] {
+      transform: scale(1.5);
+      transform-origin: center left;
+      margin-top: 0;
+      margin-right: var(--space-1);
+    }
+    /* Tab styles moved to base.css for consistency across all pages */
+
+    /* Layout for Tabs + Toolbar Actions */
+    .tab-container {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--border-medium-alt);
+        align-items: flex-end;
+        gap: var(--space-1);
+    }
+    .tabs-left {
+        display: flex;
+        align-items: flex-end; /* Ensures tabs grow upwards from the bottom line */
+        flex-shrink: 0; /* Prevent tabs from being squeezed */
+        margin-bottom: -2px; /* Align tabs with border-bottom */
+        gap: var(--space-1);
+    }
+    .tabs-right {
+        display: flex;
+        gap: var(--space-2-5);
+        padding-bottom: var(--space-1);
+        align-items: center;
+        margin-left: auto; /* Push actions to the right */
+    }
+    .tabs-right form {
+        margin: 0;
+    }
+
+    /* --- New styling for native <select> dropdowns --- */
+    select[name^="timezone_"], select[name="new_timezone"] {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right var(--space-2-5) center;
+        background-size: var(--space-2-5);
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-medium-alt);
+        border-radius: var(--radius-md);
+        padding-right: 30px; /* Make space for the arrow */
+    }
+    /* "Add New Location" dropdown */
+    select[name="new_timezone"] {
+        width: 100%;
+        max-width: 300px;
+    }
+    /* Existing location dropdowns */
+    select[name^="timezone_"] {
+        width: 250px;
+    }
+    /* This class will be added by JS to bring the whole block forward */
+    .block.dropdown-is-open {
+        z-index: var(--z-dropdown);
+    }
+    /* --- Styles for Shared Items Tab --- */
+    #shared-tab-content .table-wrapper {
+        overflow-x: auto;
+        border: 1px solid var(--border-medium);
+        border-radius: var(--radius-md);
+        background: var(--bg-white);
+    }
+    .data-table {
+        width: 100%;
+        min-width: 1000px; /* Increase min-width to prevent squeezing text */
+        border-collapse: collapse;
+        table-layout: fixed; /* Keep fixed layout for predictable column sizing */
+    }
+    .data-table td {
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal; /* Allow internal wrapping for notes/names */
+        line-height: var(--line-height-tight);
+    }
+    /* Specific Column Sizing to ensure readability */
+    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 50px; }  /* Img */
+    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 100px; } /* Object ID */
+    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 220px; } /* Common Name */
+    .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 80px; }  /* Type */
+    .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 100px; } /* Con */
+    .data-table th:nth-child(6), .data-table td:nth-child(6) { width: 150px; } /* Shared By */
+    .data-table th:nth-child(7), .data-table td:nth-child(7) { width: 90px; }  /* Notes */
+    .data-table th:nth-child(8), .data-table td:nth-child(8) { width: 110px; } /* Action */
+    .data-table th, .data-table td {
+        border: 1px solid var(--border-medium);
+        padding: var(--space-2) var(--space-2-5);
+        font-size: var(--font-size-sm);
+        text-align: left;
+        word-wrap: break-word;
+    }
+    .data-table th {
+        background-color: var(--bg-light-gray-alt2);
+        font-weight: var(--font-weight-semibold);
+        padding-top: var(--space-2-5);
+        padding-bottom: var(--space-2-5);
+    }
+    .data-table .filter-row th {
+        padding: var(--space-1-5) var(--space-2);
+    }
+    .data-table .filter-row input,
+    .data-table .filter-row select {
+        width: 95%;
+        box-sizing: border-box;
+        padding: var(--space-1);
+        font-size: var(--font-size-2xs);
+        font-family: 'Roboto', sans-serif;
+    }
+    .data-table .action-cell {
+        width: 120px;
+        text-align: center;
+    }
+    .data-table .notes-cell {
+        width: 100px;
+        text-align: center;
+    }
+    .data-table .import-button,
+    .data-table .notes-button {
+        padding: var(--space-1) var(--space-2-5);
+        font-size: var(--font-size-2xs);
+    }
+    .data-table .imported-button {
+        padding: var(--space-1) var(--space-2-5);
+        font-size: var(--font-size-2xs);
+        background-color: var(--accent-slate);
+        color: white;
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: default;
+    }
+    .data-table .owner-button {
+        padding: var(--space-1) var(--space-2-5);
+        font-size: var(--font-size-2xs);
+        background-color: var(--border-medium-alt);
+        color: var(--text-secondary);
+        border: none;
+        border-radius: var(--radius-lg);
+        cursor: default;
+    }
+
+    /* --- Modal Styles --- */
+    .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: var(--z-modal);
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+    }
+    .modal-backdrop.is-visible {
+        display: block;
+        opacity: 1;
+    }
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--bg-white);
+        border-radius: var(--radius-xl);
+        padding: 20px 25px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-modal);
+    }
+    .modal-content h3 {
+        margin-top: 0;
+    }
+    .modal-notes-content {
+        background: var(--bg-light);
+        border: 1px solid var(--border-light-alt2);
+        border-radius: var(--radius-md);
+        padding: 10px 15px;
+        min-height: 100px;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+    .modal-notes-content p { margin-top: 0; }
+    .modal-close-btn {
+        margin-top: 15px;
+        float: right;
+    }
+
+    /* Progress Modal Styles */
+    #fetch-progress-modal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: var(--z-overlay);
+        align-items: center;
+        justify-content: center;
+    }
+    #fetch-progress-content {
+        background: white;
+        padding: 25px;
+        border-radius: var(--radius-xl);
+        width: 350px;
+        text-align: center;
+        box-shadow: var(--shadow-float);
+    }
+    .progress-track {
+        width: 100%;
+        height: var(--space-2);
+        background: var(--border-light);
+        border-radius: var(--radius-md);
+        margin: var(--space-5) 0;
+        overflow: hidden;
+    }
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        width: 5%; /* Start visible */
+    }
+
+    /* Active Animation Class */
+    .progress-fill.active {
+        background-image: linear-gradient(
+            45deg,
+            rgba(255, 255, 255, 0.3) 25%,
+            transparent 25%,
+            transparent 50%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0.3) 75%,
+            transparent 75%,
+            transparent
+        );
+        background-size: 40px 40px;
+        /* Run two animations: Stripes (movement) and Grow (width) */
+        animation:
+            progress-stripes 1s linear infinite,
+            progress-grow 1s ease-out forwards; /* Duration set by JS */
+    }
+
+    @keyframes progress-stripes {
+        from { background-position: 40px 0; }
+        to { background-position: 0 0; }
+    }
+
+    @keyframes progress-grow {
+        0% { width: 5%; }
+        100% { width: 98%; }
+    }
+
+    .container { display: flex; gap: 2em; flex-wrap: wrap; }
+    .column { background-color: var(--bg-light-alt); padding: 1.5em; border-radius: var(--radius-xl); flex: 1; min-width: 350px;}
+    .column h2, .column h3 { color: var(--text-primary); font-size: var(--font-size-base); font-weight: var(--font-weight-bold); border-bottom: 1px solid var(--bg-light-gray-alt3); padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
+    .column details > summary { cursor: pointer; font-weight: var(--font-weight-bold); }
+    .column hr { border: 0; border-top: 1px solid var(--border-divider); margin: 1.5em 0; }
+    .column .form-group { margin-bottom: 1em; }
+    .column .form-group label { display: block; margin-bottom: var(--space-1); font-weight: var(--font-weight-normal); font-size: var(--font-size-sm); }
+    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: var(--input-border-width) solid var(--input-border-color); border-radius: var(--input-border-radius); box-sizing: border-box; }
+    .column ul { list-style-type: none; padding: 0; }
+    .column button {
+      background-color: var(--primary-color);
+      color: white;
+      padding: var(--space-1) var(--space-2);
+      border: none;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      font-size: var(--font-size-sm);
+    }
+    .column button:hover {
+      background-color: var(--primary-dark);
+    }
+    .column li {
+      background-color: var(--bg-light-gray-alt3);
+      border: none;
+      padding: 0.8em;
+      margin-bottom: 0.5em;
+      border-radius: var(--radius-md);
+      font-size: 0.95em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .column li .item-info {
+        flex-grow: 1;
+    }
+    .column li .item-actions {
+        display: flex;
+        gap: var(--space-1);
+        flex-shrink: 0;
+    }
+    .edit-btn, .delete-btn {
+        color: white;
+        border: none;
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--font-size-sm);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .edit-btn { background-color: var(--accent-slate); }
+    .edit-btn:hover { background-color: var(--accent-slate-dark); }
+    .delete-btn { background-color: var(--danger-color); }
+    .delete-btn:hover { background-color: var(--danger-color-dark); }
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-btn {
+      padding-right: var(--space-5);
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: var(--bg-light-gray-alt);
+      min-width: 160px;
+      box-shadow: var(--shadow-lg);
+      z-index: var(--z-base);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .dropdown-content a {
+      color: black;
+      padding: var(--space-3) var(--space-4);
+      text-decoration: none;
+      display: block;
+      font-size: var(--font-size-sm);
+    }
+    .dropdown-content a:hover {
+      background-color: var(--border-medium);
+    }
+    .show {
+      display: block;
+    }
+      .sampling-info {
+        font-size: 0.9em;
+        margin-top: var(--space-1);
+        display: block;
+        font-weight: var(--font-weight-bold);
+    }
+    .sampling-binning-tip {
+        font-size: 0.8em;
+        display: block;
+        margin-top: 2px;
+        font-weight: var(--font-weight-normal);
+        font-style: italic;
+        color: var(--text-tertiary);
+    }
+    .sampling-oversampled { color: var(--color-sampling-oversampled); }
+    .sampling-slightly-oversampled { color: var(--color-sampling-slightly-oversampled); }
+    .sampling-good { color: var(--color-sampling-good); }
+    .sampling-slightly-undersampled { color: var(--warning-color-alt); }
+    .sampling-undersampled { color: var(--danger-color-darker); }
+    .form-group {
+      margin-top: 1em;
+      margin-bottom: 1em;
+    }
+
+/* ===================================================================
+   DARK MODE OVERRIDES
+   ================================================================ */
+
+/* Body and main backgrounds */
+[data-theme="dark"] body {
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+}
+
+/* Block backgrounds */
+[data-theme="dark"] .block {
+    background: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+}
+
+/* Config sections */
+[data-theme="dark"] .config-section {
+    background-color: var(--bg-medium);
+}
+
+[data-theme="dark"] .config-section h2,
+[data-theme="dark"] .config-section h3 {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-medium);
+}
+
+/* Column backgrounds */
+[data-theme="dark"] .column {
+    background-color: var(--bg-medium);
+}
+
+[data-theme="dark"] .column h2,
+[data-theme="dark"] .column h3 {
+    color: var(--text-primary);
+    border-bottom-color: var(--border-medium);
+}
+
+[data-theme="dark"] .column hr {
+    border-top-color: var(--border-medium);
+}
+
+/* List items */
+[data-theme="dark"] .column li {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+}
+
+/* Form inputs */
+[data-theme="dark"] .form-group input,
+[data-theme="dark"] .form-group select,
+[data-theme="dark"] .column .form-group input,
+[data-theme="dark"] .column .form-group select {
+    background-color: var(--bg-medium-alt);
+    border: var(--input-border-width) solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .form-group input:focus,
+[data-theme="dark"] .form-group select:focus,
+[data-theme="dark"] .column .form-group input:focus,
+[data-theme="dark"] .column .form-group select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+[data-theme="dark"] .form-group label,
+[data-theme="dark"] .column .form-group label {
+    color: var(--text-primary);
+}
+
+/* Inline fields inputs */
+[data-theme="dark"] .inline-fields input,
+[data-theme="dark"] .inline-fields select {
+    background-color: var(--bg-medium-alt);
+    border: var(--input-border-width) solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .inline-fields input:focus,
+[data-theme="dark"] .inline-fields select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Wide textareas */
+[data-theme="dark"] textarea.wide,
+[data-theme="dark"] textarea.project_field {
+    background-color: var(--bg-medium-alt);
+    border: var(--input-border-width) solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] textarea.wide:focus,
+[data-theme="dark"] textarea.project_field:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Native selects */
+[data-theme="dark"] select[name^="timezone_"],
+[data-theme="dark"] select[name="new_timezone"] {
+    background-color: var(--bg-medium-alt);
+    border: var(--input-border-width) solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Trix editor */
+[data-theme="dark"] .form-group trix-editor {
+    background-color: var(--bg-medium-alt);
+    border: var(--input-border-width) solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Inspiration container */
+[data-theme="dark"] .inspiration-container {
+    background-color: var(--bg-medium-alt);
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .inspiration-container label {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .inspiration-input {
+    background-color: var(--bg-medium-alt);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Dropdown content */
+[data-theme="dark"] .dropdown-content {
+    background-color: var(--bg-medium);
+    box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] .dropdown-content a {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .dropdown-content a:hover {
+    background-color: var(--bg-medium-alt);
+}
+
+/* Tab container */
+[data-theme="dark"] .tab-container {
+    border-bottom-color: var(--border-medium);
+}
+
+/* Data tables */
+[data-theme="dark"] #shared-tab-content .table-wrapper {
+    border-color: var(--border-medium);
+    background: var(--bg-medium);
+}
+
+[data-theme="dark"] .data-table th,
+[data-theme="dark"] .data-table td {
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .data-table th {
+    background-color: var(--bg-medium-alt);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .data-table .filter-row input,
+[data-theme="dark"] .data-table .filter-row select {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Modal content */
+[data-theme="dark"] .modal-content {
+    background: var(--bg-light);
+    box-shadow: var(--shadow-modal);
+}
+
+[data-theme="dark"] .modal-content h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .modal-notes-content {
+    background: var(--bg-medium);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* Progress modal */
+[data-theme="dark"] #fetch-progress-content {
+    background: var(--bg-light);
+    box-shadow: var(--shadow-float);
+}
+
+[data-theme="dark"] .progress-track {
+    background: var(--bg-medium-alt);
+}
+
+/* Object grid container */
+[data-theme="dark"] .object-grid-container .share-control {
+    background: var(--bg-medium-alt);
+}
+
+/* ===================================================================
+   DARK MODE - NUMBER INPUT SPINNERS (up/down arrows)
+   ================================================================ */
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: inner-spin-button;
+    opacity: 1;
+    filter: invert(0.7);
+}
+
+/* Firefox */
+[data-theme="dark"] input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Re-enable spinners for Firefox on hover/focus */
+[data-theme="dark"] input[type="number"]:hover,
+[data-theme="dark"] input[type="number"]:focus {
+    -moz-appearance: number-input;
+}
+
+/* ===================================================================
+   DARK MODE - LOCATIONS TAB
+   ================================================================ */
+
+/* Location blocks */
+[data-theme="dark"] .locations-list .block {
+    background: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+}
+
+/* Location horizon mask and comments textareas */
+[data-theme="dark"] .locations-list textarea,
+[data-theme="dark"] .block textarea {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .locations-list textarea:focus,
+[data-theme="dark"] .block textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Location form inputs inside blocks */
+[data-theme="dark"] .locations-list input[type="text"],
+[data-theme="dark"] .locations-list input[type="number"],
+[data-theme="dark"] .block input[type="text"],
+[data-theme="dark"] .block input[type="number"] {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .locations-list input:focus,
+[data-theme="dark"] .block input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* ===================================================================
+   DARK MODE - OBJECTS TAB
+   ================================================================ */
+
+/* Object filter bar */
+[data-theme="dark"] #object-filter-bar {
+    background: var(--bg-medium);
+}
+
+/* Object filter inputs */
+[data-theme="dark"] #object-filter-bar input,
+[data-theme="dark"] #object-filter-bar select {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] #object-filter-bar input:focus,
+[data-theme="dark"] #object-filter-bar select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Object filter selection bar */
+[data-theme="dark"] #object-filter-bar .selection-bar,
+[data-theme="dark"] #object-filter-bar > div[style*="background"] {
+    background: var(--bg-medium-alt) !important;
+}
+
+/* Object blocks */
+[data-theme="dark"] .objects-list .block {
+    background: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+}
+
+/* Object inline field inputs */
+[data-theme="dark"] .objects-list input[type="text"],
+[data-theme="dark"] .objects-list input[type="number"],
+[data-theme="dark"] .objects-list textarea {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .objects-list input:focus,
+[data-theme="dark"] .objects-list textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Inspiration container inputs in objects section */
+[data-theme="dark"] .object-grid-container input,
+[data-theme="dark"] .object-grid-container textarea:not(trix-editor) {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .object-grid-container input:focus,
+[data-theme="dark"] .object-grid-container textarea:not(trix-editor):focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Inline inspiration container styles (hardcoded in template) */
+[data-theme="dark"] .inspiration-container[style*="background: var(--bg-white)"],
+[data-theme="dark"] .inspiration-container {
+    background: var(--bg-medium) !important;
+    border-color: var(--border-medium) !important;
+}
+
+/* Add object section */
+[data-theme="dark"] .object-add-container input[type="text"],
+[data-theme="dark"] .object-add-container input[type="number"],
+[data-theme="dark"] .object-add-container textarea {
+    background-color: var(--bg-medium-alt);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .object-add-container input:focus,
+[data-theme="dark"] .object-add-container textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+/* Import catalog table */
+[data-theme="dark"] .config-table th {
+    background-color: var(--bg-medium-alt);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .config-table td {
+    background-color: var(--bg-medium);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .config-table th,
+[data-theme="dark"] .config-table td {
+    border-color: var(--border-medium);
+}
+
+[data-theme="dark"] .config-table .badge {
+    background-color: var(--bg-medium-alt);
+    color: var(--text-secondary);
+}
+
+/* Duplicates modal content */
+[data-theme="dark"] #duplicates-modal .modal-content {
+    background: var(--bg-light);
+}
+
+[data-theme="dark"] #duplicates-modal p {
+    color: var(--text-tertiary);
+}
+
+    .form-group {
+        display: grid;
+        grid-template-columns: 155px auto;
+        align-items: center;
+        grid-row-gap: var(--space-1);
+        margin-top: var(--space-5);
+        margin-bottom: var(--space-5);
+    }
+    .form-group small {
+        grid-column-start: 2;
+    }
+    .form-group select.form-control {
+        justify-self: start;
+    }
+    /* --- Styles for Trix Editor in Config --- */
+    .form-group trix-editor {
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-medium-alt);
+        padding: 0.7em;
+        min-height: 100px; /* Keep a minimum height */
+        height: 150px;     /* Set a default height */
+        overflow-y: auto;  /* Allow scrolling within the editor */
+    }
+    .form-group.trix-group {
+        display: block;
+        grid-template-columns: none;
+    }
+    .form-group.trix-group label {
+        display: block;
+        margin-bottom: var(--space-1);
+        grid-column: 1 / -1;
+    }
+    .form-group.trix-group trix-editor {
+        grid-column: 1 / -1;
+    }
+    /* --- Styles for Inspiration Fields --- */
+    .inspiration-container {
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-light-alt);
+        border-radius: var(--radius-md);
+        padding: var(--space-3);
+        margin-top: var(--space-2-5);
+    }
+    .inspiration-container label {
+        font-weight: var(--font-weight-bold);
+        color: var(--text-secondary);
+        font-size: 0.85em;
+        margin-bottom: var(--space-1);
+        display: block;
+    }
+    .inspiration-row {
+        display: flex;
+        gap: var(--space-2-5);
+        margin-bottom: var(--space-2);
+    }
+    .inspiration-row > div {
+        flex: 1;
+    }
+    .inspiration-input {
+        width: 100%;
+        padding: var(--space-1);
+        border: 1px solid var(--border-medium-alt);
+        border-radius: var(--radius-sm);
+        font-size: var(--font-size-2xs);
+    }
+    /* --- Styles for Sharing UI --- */
+    .share-control {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1-5);
+        margin-top: var(--space-2-5);
+        margin-bottom: var(--space-2-5);
+    }
+    .share-control label {
+        margin: 0;
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-md);
+    }
+    .share-control input[type="checkbox"] {
+        transform: scale(1.3);
+    }
+    /* --- Responsive Object Layout (fields + notes) --- */
+    .object-grid-container {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr); /* default: single column, safe on laptops */
+        gap: var(--space-5);
+        align-items: flex-start;
+    }
+    .object-grid-container > div {
+        /* Applies to both the left and right columns */
+        display: flex;
+        flex-direction: column;
+        gap: 15px; /* Spacing between note editors and field groups */
+        min-width: 0; /* Prevent overflow in flex/grid layouts */
+    }
+
+    /* Make Trix labels consistent */
+    .object-grid-container .form-group.trix-group {
+        margin: 0;
+    }
+    .object-grid-container .form-group.trix-group label {
+        grid-column: 1 / -1; /* Full width label */
+        margin-bottom: var(--space-1);
+        font-weight: var(--font-weight-bold);
+        color: var(--text-primary);
+        font-size: var(--font-size-sm);
+    }
+    .object-grid-container .share-control {
+        margin: 0;
+        padding: var(--space-1) var(--space-2);
+        background: var(--bg-light-gray); /* Slightly different background for the control */
+        border-radius: var(--radius-md);
+    }
+
+    /* On very wide screens, use a two-column layout (fields | notes) */
+    @media (min-width: 1400px) {
+        .object-grid-container {
+            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); /* Left column slightly wider */
+        }
+    }
+    .shared-indicator {
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-bold);
+        color: var(--info-badge);
+        background: var(--info-bg-light);
+        padding: 3px var(--space-2);
+        border-radius: var(--radius-md);
+    }
+    #telemetry_enabled { transform: scale(1.2); transform-origin: center left; }
+    #sampling_interval {
+      font-size: var(--font-size-md);
+    }

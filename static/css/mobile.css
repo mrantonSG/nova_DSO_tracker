@@ -1,17 +1,6 @@
 /* static/css/mobile.css */
 /* A mobile-first stylesheet for the companion app */
 
-:root {
-    --bg-color: #f4f7f6;
-    --text-color: #333;
-    --primary-color: #83b4c5;
-    --primary-dark: #6795a4;
-    --border-color: #ddd;
-    --card-bg: #ffffff;
-    --accent-rise: #4CAF50;
-    --accent-set: #F44336;
-    --accent-high: #2196F3;
-}
 /* Update header styles for new two-line title */
 .header {
     padding: 12px 20px; /* Make header a bit shorter */
@@ -30,8 +19,8 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0 0 100px 0; /* Add padding at the bottom for the nav bar */
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    background-color: var(--bg-light-gray-alt4);
+    color: var(--text-primary);
     height: 100%; /* Make body fill the html */
     overflow: hidden; /* Prevent body from scrolling */
     display: flex; /* Use flex to lay out header/main */
@@ -40,9 +29,9 @@ body {
 
 .header {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-white);
     padding: 18px 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
 }
 
 .header h1 {
@@ -64,7 +53,7 @@ body {
 .loading, .message {
     text-align: center;
     padding: 40px 20px;
-    color: #888;
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -78,11 +67,11 @@ body {
     gap: 12px;
 }
 .item-card {
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-white);
+    border-radius: var(--radius-xl);
+    border: var(--input-border-width) solid var(--border-medium);
     padding: 15px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-sm);
 }
 .item-card h3 {
     margin: 0 0 10px 0;
@@ -96,7 +85,7 @@ body {
     font-size: 0.95rem;
 }
 .item-card-grid strong {
-    color: #555;
+    color: var(--text-secondary);
 }
 
 /* --- Location Page --- */
@@ -109,17 +98,17 @@ body {
     gap: 10px;
 }
 .location-item {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    padding: 20px 15px;
-    border-radius: 8px;
+    background-color: var(--bg-white);
+    border: var(--input-border-width) solid var(--border-medium);
+    padding: var(--space-5) 15px;
+    border-radius: var(--radius-xl);
     font-size: 1.1rem;
     cursor: pointer;
     user-select: none;
 }
 .location-item.active {
     background-color: var(--primary-dark);
-    color: white;
+    color: var(--text-white);
     border-color: var(--primary-dark);
 }
 
@@ -129,27 +118,27 @@ body {
 }
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: var(--space-1);
+    font-weight: var(--font-weight-bold);
     font-size: 0.9rem;
 }
 .form-group input,
 .form-group textarea {
     width: 100%;
-    padding: 12px;
+    padding: var(--space-3);  /* Mobile: 12px (larger touch target) */
     font-size: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 5px;
+    border: var(--input-border-width) solid var(--input-border-color);
+    border-radius: var(--radius-lg);
     box-sizing: border-box; /* Important */
-    color: var(--text-color);
+    color: var(--text-primary);
 }
 .form-group input:disabled {
-    background-color: #eee;
+    background-color: var(--bg-medium-alt);
 }
 
 /* Trix Editor simple */
 trix-editor {
-    background-color: white;
+    background-color: var(--bg-white);
     min-height: 150px;
 }
 
@@ -158,11 +147,11 @@ trix-editor {
     width: 100%;
     padding: 15px;
     background-color: var(--primary-color);
-    color: white;
+    color: var(--text-white);
     border: none;
-    border-radius: 5px;
+    border-radius: var(--radius-lg);
     font-size: 1.1rem;
-    font-weight: bold;
+    font-weight: var(--font-weight-bold);
     text-align: center;
     cursor: pointer;
     text-decoration: none;
@@ -171,7 +160,7 @@ trix-editor {
     background-color: var(--primary-dark);
 }
 .button:disabled {
-    background-color: #ccc;
+    background-color: var(--border-medium-alt);
     cursor: not-allowed;
 }
 
@@ -182,33 +171,33 @@ trix-editor {
     left: 0;
     right: 0;
     display: flex;
-    background-color: var(--bg-color); /* Use main page background */
-    border-top: 1px solid var(--border-color);
-    box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
-    padding: 5px; /* Add padding around the bar */
-    gap: 5px; /* Add a small gap between buttons */
+    background-color: var(--bg-light-gray-alt4); /* Use main page background */
+    border-top: var(--input-border-width) solid var(--border-medium);
+    box-shadow: var(--shadow-sm);
+    padding: var(--space-1); /* Add padding around the bar */
+    gap: var(--space-1); /* Add a small gap between buttons */
     padding-bottom: env(safe-area-inset-bottom);
     transform: translateZ(0);
 }
 .mobile-nav a {
     flex: 1; /* Each item takes equal width */
     text-align: center;
-    padding: 14px 5px; /* Make buttons taller */
-    color: #333;
+    padding: 14px var(--space-1); /* Make buttons taller */
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 0.9rem; /* Slightly larger text */
-    font-weight: 500;
-    border-radius: 8px; /* Rounded corners for buttons */
-    background-color: #fff;
-    border: 1px solid #ddd;
+    font-weight: var(--font-weight-medium);
+    border-radius: var(--radius-xl); /* Rounded corners for buttons */
+    background-color: var(--bg-white);
+    border: var(--input-border-width) solid var(--border-medium);
     transition: background-color 0.2s, color 0.2s;
 }
 
 /* This is the "nova-green" active button */
 .mobile-nav a.active {
     background-color: var(--primary-dark); /* Your app's green color */
-    color: white;
-    font-weight: bold;
+    color: var(--text-white);
+    font-weight: var(--font-weight-bold);
     border-color: var(--primary-dark);
 }
 
@@ -218,8 +207,8 @@ trix-editor {
 }
 .form-group input[readonly] {
     font-size: 1.1rem;
-    background-color: #f0f0f0; /* A very light gray */
-    color: #333; /* Make sure text is dark */
+    background-color: var(--bg-light-gray); /* A very light gray */
+    color: var(--text-primary); /* Make sure text is dark */
     /* This prevents the browser from overriding the size */
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -244,15 +233,15 @@ trix-editor {
     right: 10px;
     font-size: 0.8rem;
     padding: 4px 10px;
-    background-color: #eee;
-    color: #333;
+    background-color: var(--bg-medium-alt);
+    color: var(--text-primary);
     text-decoration: none;
     border-radius: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-medium-alt);
     font-weight: 500;
 }
 .edit-button:hover {
-    background-color: #ddd;
+    background-color: var(--border-medium);
 }
 /* --- Link in Header to Main Site --- */
 .header {
@@ -265,7 +254,7 @@ trix-editor {
     top: 15px;
     right: 15px;
     text-decoration: none;
-    color: white;
+    color: var(--text-white);
     font-size: 0.8rem;
     font-weight: 500;
     background: rgba(0, 0, 0, 0.2);

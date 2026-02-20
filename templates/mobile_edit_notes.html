@@ -46,7 +46,7 @@
                 formData.append('file', file);
 
                 // 2. Post it to your (already existing) upload endpoint
-                fetch("{{ url_for('upload_editor_image') }}", {
+                fetch("{{ url_for('tools.upload_editor_image') }}", {
                     method: 'POST',
                     body: formData
                 })
@@ -89,7 +89,7 @@
 
             try {
                 // ... (rest of the fetch/save logic is the same) ...
-                const response = await fetch("{{ url_for('update_project') }}", {
+                const response = await fetch("{{ url_for('core.update_project') }}", {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(payload)
@@ -106,7 +106,7 @@
                     saveButton.textContent = 'Save Notes';
 
                     setTimeout(() => {
-                        window.location.href = "{{ url_for('mobile_up_now') }}";
+                        window.location.href = "{{ url_for('mobile.mobile_up_now') }}";
                     }, 1500);
 
                 } else {

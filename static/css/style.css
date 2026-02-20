@@ -1,20 +1,22 @@
 
 body {
   font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  background-color: var(--gray-50);
+  color: var(--text-primary);
 }
 
 /* FORCE floating behavior on the specific yellow alert banner */
-.alert, .alert-warning {
+.alert-warning {
   position: fixed !important;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 99999;
+  z-index: var(--z-notification);
   width: auto;
   min-width: 400px;
   max-width: 80%;
-  border-radius: 5px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   margin: 0;
 }
 

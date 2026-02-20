@@ -1,0 +1,146 @@
+/* ===================================================================
+   DESIGN SYSTEM TOKENS
+   Single source of truth for typography, spacing, shadows, and inputs.
+   Loaded before all other CSS files to enable token usage across the codebase.
+   ================================================================ */
+
+:root {
+  /* =================================================================
+     TYPOGRAPHY SCALE
+     Based on existing values found in codebase: 11px, 14px, 16px, 18px, 20px, 24px
+     ================================================================ */
+  --font-size-xs: 11px;      /* Captions, small labels, version numbers */
+  --font-size-2xs: 13px;     /* Small captions, fine print */
+  --font-size-sm: 14px;      /* Form labels, secondary text, small buttons */
+  --font-size-md: 15px;      /* Medium emphasis text */
+  --font-size-base: 16px;    /* Body text, standard buttons */
+  --font-size-lg: 18px;      /* Emphasized body text */
+  --font-size-xl: 20px;      /* Page titles, section headers */
+  --font-size-2xl: 24px;     /* Brand title, major headings */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* =================================================================
+     SPACING SCALE
+     4px base unit, powers of 2 progression
+     ================================================================ */
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+
+  /* =================================================================
+     SHADOW SCALE
+     Tiered shadows for elevation hierarchy
+     ================================================================ */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);     /* Subtle: cards, items */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);      /* Medium: headers, dropdowns */
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);   /* Large: elevated panels */
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);    /* Extra large: notifications */
+
+  /* Semantic shadow tokens */
+  --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.3);      /* Standard modals */
+  --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.2);     /* Floating panels, progress */
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.25);  /* Fullscreen overlays */
+
+  /* =================================================================
+     INPUT TOKENS
+     Based on most common values found in codebase
+     ================================================================ */
+  --input-padding-y: 8px;
+  --input-padding-x: 12px;
+  --input-border-width: 1px;
+  --input-border-radius: 4px;
+  --input-border-color: var(--border-medium);
+
+  /* =================================================================
+     BUTTON TOKENS
+     Standard and compact button sizing
+     ================================================================ */
+  --btn-padding-y: 10px;
+  --btn-padding-x: 20px;
+  --btn-padding-compact-y: 5px;
+  --btn-padding-compact-x: 10px;
+
+  /* =================================================================
+     BORDER RADIUS SCALE
+     ================================================================ */
+  --radius-sm: 3px;     /* Filter inputs, small elements */
+  --radius-md: 4px;     /* Standard inputs, buttons */
+  --radius-lg: 5px;     /* Larger buttons, cards */
+  --radius-xl: 8px;     /* Modals, containers */
+}
+
+/* =====================================================================
+   DARK MODE SHADOW ADJUSTMENTS
+   Increased opacity for visibility against dark backgrounds
+   ===================================================================== */
+:root[data-theme="dark"] {
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+
+  /* Semantic shadows - stronger in dark mode */
+  --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.5);
+  --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.4);
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* =====================================================================
+   FORM VALIDATION STATES
+   Input validation and helper text components
+   ===================================================================== */
+
+/* Error state input */
+.input-error,
+.input.error {
+    border-color: var(--danger-color);
+}
+.input-error:focus,
+.input.error:focus {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+    outline: none;
+}
+
+/* Success state input */
+.input-success,
+.input.success {
+    border-color: var(--success-color);
+}
+.input-success:focus,
+.input.success:focus {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+    outline: none;
+}
+
+/* Helper text base style */
+.helper-text {
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
+    margin-top: var(--space-1);
+    display: block;
+}
+
+/* Helper text variants */
+.helper-text.error {
+    color: var(--danger-color);
+}
+.helper-text.success {
+    color: var(--success-color);
+}

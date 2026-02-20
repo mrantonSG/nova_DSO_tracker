@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import form_group, help_badge %}
 
 {% block title %}Nova – Configuration{% endblock %}
 
@@ -7,752 +8,7 @@
 
   <meta charset="UTF-8">
   <title>Configuration Form</title>
-  <style>
-    body {
-      padding: 20px;
-      margin: 0;
-      font-family: 'Roboto', sans-serif;
-    }
-
-    fieldset {
-      border: none;
-      padding: 0;
-      margin: 0;
-    }
-    legend {
-      font-size: 16px;
-      font-weight: bold;
-      padding: 0 5px;
-      color: #333;
-    }
-    label {
-      font-size: 14px;
-      margin-right: 5px;
-    }
-    input, select, textarea {
-      font-size: 14px;
-      padding: 5px;
-      box-sizing: border-box;
-      font-family: 'Roboto', sans-serif;
-    }
-    .block {
-      border: 0px solid #ddd;
-      background: #ecf1f1;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-    }
-    .error {
-      color: #dc3545;
-    }
-
-    .message,
-    .progress-message {
-      color: #6795a4;
-    }
-    .config-section {
-        padding: 1.5em;
-        background-color: #f9f9f9;
-        border-radius: 8px;
-    }
-    .config-section h2, .config-section h3 {
-        color: #333;
-        font-size: 20px;
-        font-weight: bold;
-        margin-top: 0;
-        margin-bottom: 1.5em;
-        border-bottom: 1px solid #ecf0f1;
-        padding-bottom: 0.5em;
-    }
-
-    input.wide {
-      width: 300px;
-    }
-    input.short {
-      width: 150px;
-    }
-    .inline-fields label {
-      display: inline-block;
-      width: 20px;
-      text-align: left;
-      margin: 0;
-      padding: 0;
-    }
-    .location-id {
-      width: 100px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-    }
-    .object-id {
-      width: 100px;
-    }
-
-    h3, h4 {
-      font-weight: normal;
-    }
-
-    input.object_field {
-      width: 65px;
-    }
-    .field-small-numeric {
-      width: 102px;
-    }
-    input.name_field {
-      width: 250px;
-    }
-    input.project_field {
-      width: 300px;
-    }
-    textarea.wide, textarea.project_field {
-      width: 300px;
-      height: 60px;
-      box-sizing: border-box;
-    }
-    .inline-fields {
-      display: flex;
-      flex-wrap: wrap;        /* allow wrapping instead of forcing one long row */
-      align-items: flex-start;
-      gap: 15px;
-      margin: 0 0 10px 0;
-    }
-    .inline-fields > div {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 5px;
-    }
-    .inline-fields input,
-    .inline-fields textarea {
-      margin-top: 0;
-      box-sizing: border-box;
-      font-size: 15px;
-    }
-
-    .locations-list, .objects-list {
-      margin-top: 20px;
-    }
-    .short-label {
-      display: inline-block;
-      width: auto !important;
-      margin-right: 2px !important;
-      text-align: left !important;
-      white-space: nowrap;
-    }
-    .long-label {
-      display: inline-block;
-      width: 70px !important;
-      margin-right: 5px !important;
-      text-align: left !important;
-      white-space: nowrap;
-    }
-    .verylong-label {
-      display: inline-block;
-      width: 140px !important;
-      margin-right: 5px !important;
-      text-align: left !important;
-      white-space: nowrap;
-    }
-    .dlback-button {
-      margin-top: 0;
-      padding: 10px 20px;
-      font-size: 16px;
-      background-color: #83b4c5;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .dlback-button:hover {
-      background-color: #6795a4 !important;
-    }
-    .info-container-main {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      gap: 20px;
-    }
-
-    .left-group,
-    .right-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .file-button {
-      padding: 5px 10px;
-      font-size: 14px;
-      background-color: #98A5A8;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    .file-button:hover {
-      background-color: #6795a4;
-    }
-
-    .second-row-fields {
-      margin-left: 117px;
-    }
-    @media (max-width: 1200px) {
-      .second-row-fields {
-        margin-left: 0;
-      }
-    }
-    .objects-list .inline-fields input[type="checkbox"],
-    .block .inline-fields input[type="checkbox"] {
-      transform: scale(1.5);
-      transform-origin: center left;
-      margin-top: 0;
-      margin-right: 5px;
-    }
-    .tab-container {
-        display: flex;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #ccc;
-    }
-    .tab-button {
-        padding: 8px 20px;
-        cursor: pointer;
-        border: 1px solid #ccc;
-        border-bottom: none;
-        background-color: #e9e9e9;
-        margin-right: 5px;
-        border-radius: 5px 5px 0 0;
-        font-size: 16px;
-        color: #666;
-        margin-bottom: 0;
-    }
-    .tab-button:hover {
-        background-color: #dcdcdc;
-    }
-    .tab-button.active {
-        padding: 12px 20px;
-        background-color: #fff;
-        border-color: #ccc;
-        border-bottom: 2px solid #fff;
-        position: relative;
-        top: 2px;
-        font-weight: bold;
-        color: #333;
-        z-index: 1;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Layout for Tabs + Toolbar Actions */
-    .tab-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-top: 30px; /* Added spacing to separate from the top header */
-        margin-bottom: 15px;
-        border-bottom: 2px solid #ccc;
-    }
-    .tabs-left {
-        display: flex;
-        align-items: flex-end; /* Ensures tabs grow upwards from the bottom line */
-    }
-    .tabs-right {
-        display: flex;
-        gap: 10px;
-        padding-bottom: 5px;
-        align-items: center;
-        padding-right: 5px;
-    }
-    .tabs-right form {
-        margin: 0;
-    }
-
-    /* --- New styling for native <select> dropdowns --- */
-    .tab-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #ccc;
-    }
-    .tabs-left {
-        display: flex;
-    }
-    .tabs-right {
-        display: flex;
-        gap: 10px;
-        padding-bottom: 5px;
-        align-items: center;
-        padding-right: 5px;
-    }
-    .tabs-right form {
-        margin: 0;
-    }
-
-    /* --- New styling for native <select> dropdowns --- */
-    select[name^="timezone_"], select[name="new_timezone"] {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20128c3.6%203.6%207.8%205.4%2013%205.4s9.4-1.8%2013-5.4L287%2095c3.6-3.6%205.4-7.8%205.4-13%200-5-1.8-9.2-5.4-12.8z%22%2F%3E%3C%2Fsvg%3E');
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-        background-size: 10px;
-        background-color: #fff;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding-right: 30px; /* Make space for the arrow */
-    }
-    /* "Add New Location" dropdown */
-    select[name="new_timezone"] {
-        width: 100%;
-        max-width: 300px;
-    }
-    /* Existing location dropdowns */
-    select[name^="timezone_"] {
-        width: 250px;
-    }
-    /* This class will be added by JS to bring the whole block forward */
-    .block.dropdown-is-open {
-        z-index: 100;
-    }
-    /* --- Styles for Shared Items Tab --- */
-    #shared-tab-content .table-wrapper {
-        overflow-x: auto;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        background: #fff;
-    }
-    .data-table {
-        width: 100%;
-        min-width: 1000px; /* Increase min-width to prevent squeezing text */
-        border-collapse: collapse;
-        table-layout: fixed; /* Keep fixed layout for predictable column sizing */
-    }
-    .data-table td {
-        vertical-align: middle;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: normal; /* Allow internal wrapping for notes/names */
-        line-height: 1.3;
-    }
-    /* Specific Column Sizing to ensure readability */
-    .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 50px; }  /* Img */
-    .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 100px; } /* Object ID */
-    .data-table th:nth-child(3), .data-table td:nth-child(3) { width: 220px; } /* Common Name */
-    .data-table th:nth-child(4), .data-table td:nth-child(4) { width: 80px; }  /* Type */
-    .data-table th:nth-child(5), .data-table td:nth-child(5) { width: 100px; } /* Con */
-    .data-table th:nth-child(6), .data-table td:nth-child(6) { width: 150px; } /* Shared By */
-    .data-table th:nth-child(7), .data-table td:nth-child(7) { width: 90px; }  /* Notes */
-    .data-table th:nth-child(8), .data-table td:nth-child(8) { width: 110px; } /* Action */
-    .data-table th, .data-table td {
-        border: 1px solid #ddd;
-        padding: 8px 10px;
-        font-size: 14px;
-        text-align: left;
-        word-wrap: break-word;
-    }
-    .data-table th {
-        background-color: #f2f2f2;
-        font-weight: 600;
-        padding-top: 10px;
-        padding-bottom: 10px;
-    }
-    .data-table .filter-row th {
-        padding: 6px 8px;
-    }
-    .data-table .filter-row input,
-    .data-table .filter-row select {
-        width: 95%;
-        box-sizing: border-box;
-        padding: 5px;
-        font-size: 13px;
-        font-family: 'Roboto', sans-serif;
-    }
-    .data-table .action-cell {
-        width: 120px;
-        text-align: center;
-    }
-    .data-table .notes-cell {
-        width: 100px;
-        text-align: center;
-    }
-    .data-table .notes-button {
-        padding: 4px 8px;
-        font-size: 12px;
-        background-color: #778899;
-    }
-    .data-table .notes-button:hover {
-        background-color: #5a6875;
-    }
-    .data-table .import-button {
-        padding: 5px 10px;
-        font-size: 13px;
-    }
-    .data-table .imported-button {
-        padding: 5px 10px;
-        font-size: 13px;
-        background-color: #778899;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: default;
-    }
-
-    /* --- Modal Styles --- */
-    .modal-backdrop {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.6);
-        z-index: 2000;
-        opacity: 0;
-        transition: opacity 0.2s ease-in-out;
-    }
-    .modal-backdrop.is-visible {
-        display: block;
-        opacity: 1;
-    }
-    .modal-content {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: #fff;
-        border-radius: 8px;
-        padding: 20px 25px;
-        width: 90%;
-        max-width: 700px;
-        max-height: 80vh;
-        overflow-y: auto;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    .modal-content h3 {
-        margin-top: 0;
-    }
-    .modal-notes-content {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        padding: 10px 15px;
-        min-height: 100px;
-        max-height: 50vh;
-        overflow-y: auto;
-    }
-    .modal-notes-content p { margin-top: 0; }
-    .modal-close-btn {
-        margin-top: 15px;
-        float: right;
-    }
-
-    /* Progress Modal Styles */
-    #fetch-progress-modal {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.6);
-        z-index: 3000;
-        align-items: center;
-        justify-content: center;
-    }
-    #fetch-progress-content {
-        background: white;
-        padding: 25px;
-        border-radius: 8px;
-        width: 350px;
-        text-align: center;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
-    .progress-track {
-        width: 100%;
-        height: 8px;
-        background: #eee;
-        border-radius: 4px;
-        margin: 20px 0;
-        overflow: hidden;
-    }
-    .progress-fill {
-        height: 100%;
-        background: #83b4c5;
-        width: 5%; /* Start visible */
-    }
-
-    /* Active Animation Class */
-    .progress-fill.active {
-        background-image: linear-gradient(
-            45deg,
-            rgba(255, 255, 255, 0.3) 25%,
-            transparent 25%,
-            transparent 50%,
-            rgba(255, 255, 255, 0.3) 50%,
-            rgba(255, 255, 255, 0.3) 75%,
-            transparent 75%,
-            transparent
-        );
-        background-size: 40px 40px;
-        /* Run two animations: Stripes (movement) and Grow (width) */
-        animation:
-            progress-stripes 1s linear infinite,
-            progress-grow 1s ease-out forwards; /* Duration set by JS */
-    }
-
-    @keyframes progress-stripes {
-        from { background-position: 40px 0; }
-        to { background-position: 0 0; }
-    }
-
-    @keyframes progress-grow {
-        0% { width: 5%; }
-        100% { width: 98%; }
-    }
-
-    .container { display: flex; gap: 2em; flex-wrap: wrap; }
-    .column { background-color: #f9f9f9; padding: 1.5em; border-radius: 8px; flex: 1; min-width: 350px;}
-    .column h2, .column h3 { color: #333; font-size: 16px; font-weight: bold; border-bottom: 1px solid #ecf0f1; padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
-    .column details > summary { cursor: pointer; font-weight: bold; }
-    .column hr { border: 0; border-top: 1px solid #ecf0f1; margin: 1.5em 0; }
-    .column .form-group { margin-bottom: 1em; }
-    .column .form-group label { display: block; margin-bottom: 5px; font-weight: normal; font-size: 14px; }
-    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    .column ul { list-style-type: none; padding: 0; }
-    .column button {
-      background-color: #83b4c5;
-      color: white;
-      padding: 5px 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .column button:hover {
-      background-color: #6795a4;
-    }
-    .column li {
-      background-color: #ecf1f1;
-      border: none;
-      padding: 0.8em;
-      margin-bottom: 0.5em;
-      border-radius: 4px;
-      font-size: 0.95em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-    .column li .item-info {
-        flex-grow: 1;
-    }
-    .column li .item-actions {
-        display: flex;
-        gap: 5px;
-        flex-shrink: 0;
-    }
-    .edit-btn, .delete-btn {
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        font-size: 14px;
-        border-radius: 5px;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-block;
-    }
-    .edit-btn { background-color: #778899; }
-    .edit-btn:hover { background-color: #5a6875; }
-    .delete-btn { background-color: #dc3545; }
-    .delete-btn:hover { background-color: #c82333; }
-    .dropdown {
-      position: relative;
-      display: inline-block;
-    }
-    .dropdown-btn {
-      padding-right: 20px;
-    }
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      background-color: #f1f1f1;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    .dropdown-content a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-      font-size: 14px;
-    }
-    .dropdown-content a:hover {
-      background-color: #ddd;
-    }
-    .show {
-      display: block;
-    }
-      .sampling-info {
-        font-size: 0.9em;
-        margin-top: 5px;
-        display: block;
-        font-weight: bold;
-    }
-    .sampling-binning-tip {
-        font-size: 0.8em;
-        display: block;
-        margin-top: 2px;
-        font-weight: normal;
-        font-style: italic;
-        color: #666;
-    }
-    .sampling-oversampled { color: #9b59b6; }
-    .sampling-slightly-oversampled { color: #3498db; }
-    .sampling-good { color: #2ecc71; }
-    .sampling-slightly-undersampled { color: #f39c12; }
-    .sampling-undersampled { color: #e74c3c; }
-    .form-group {
-      margin-top: 1em;
-      margin-bottom: 1em;
-    }
-    .form-group {
-        display: grid;
-        grid-template-columns: 155px auto;
-        align-items: center;
-        grid-row-gap: 5px;
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-    .form-group small {
-        grid-column-start: 2;
-    }
-    .form-group select.form-control {
-        justify-self: start;
-    }
-    /* --- Styles for Trix Editor in Config --- */
-    .form-group trix-editor {
-        background-color: #fff;
-        border: 1px solid #ccc;
-        padding: 0.7em;
-        min-height: 100px; /* Keep a minimum height */
-        height: 150px;     /* Set a default height */
-        overflow-y: auto;  /* Allow scrolling within the editor */
-    }
-    .form-group.trix-group {
-        display: block;
-        grid-template-columns: none;
-    }
-    .form-group.trix-group label {
-        display: block;
-        margin-bottom: 5px;
-        grid-column: 1 / -1;
-    }
-    .form-group.trix-group trix-editor {
-        grid-column: 1 / -1;
-    }
-    /* --- Styles for Inspiration Fields --- */
-    .inspiration-container {
-        background-color: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-        padding: 12px;
-        margin-top: 10px;
-    }
-    .inspiration-container label {
-        font-weight: bold;
-        color: #555;
-        font-size: 0.85em;
-        margin-bottom: 4px;
-        display: block;
-    }
-    .inspiration-row {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 8px;
-    }
-    .inspiration-row > div {
-        flex: 1;
-    }
-    .inspiration-input {
-        width: 100%;
-        padding: 5px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        font-size: 13px;
-    }
-    /* --- Styles for Sharing UI --- */
-    .share-control {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin-top: 10px;
-        margin-bottom: 10px;
-    }
-    .share-control label {
-        margin: 0;
-        font-weight: bold;
-        font-size: 15px;
-    }
-    .share-control input[type="checkbox"] {
-        transform: scale(1.3);
-    }
-    /* --- Responsive Object Layout (fields + notes) --- */
-    .object-grid-container {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr); /* default: single column, safe on laptops */
-        gap: 20px;
-        align-items: flex-start;
-    }
-    .object-grid-container > div {
-        /* Applies to both the left and right columns */
-        display: flex;
-        flex-direction: column;
-        gap: 15px; /* Spacing between note editors and field groups */
-        min-width: 0; /* Prevent overflow in flex/grid layouts */
-    }
-
-    /* Make Trix labels consistent */
-    .object-grid-container .form-group.trix-group {
-        margin: 0;
-    }
-    .object-grid-container .form-group.trix-group label {
-        grid-column: 1 / -1; /* Full width label */
-        margin-bottom: 5px;
-        font-weight: bold;
-        color: #333;
-        font-size: 14px;
-    }
-    .object-grid-container .share-control {
-        margin: 0;
-        padding: 5px 8px;
-        background: #f0f0f0; /* Slightly different background for the control */
-        border-radius: 4px;
-    }
-
-    /* On very wide screens, use a two-column layout (fields | notes) */
-    @media (min-width: 1400px) {
-        .object-grid-container {
-            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); /* Left column slightly wider */
-        }
-    }
-    .shared-indicator {
-        font-size: 12px;
-        font-weight: bold;
-        color: #1a689e;
-        background: #e1f0f5;
-        padding: 3px 8px;
-        border-radius: 4px;
-    }
-    #telemetry_enabled { transform: scale(1.2); transform-origin: center left; }
-    #sampling_interval {
-      font-size: 15px;
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}">
 {% endblock %}
 </head>
 <body>
@@ -767,7 +23,7 @@
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" onclick="window.location.href='{{ url_for('index') }}'">← Back to Dashboard</button>
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">← Back to Dashboard</button>
 {% endblock %}
 
 {% block body %}
@@ -776,7 +32,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ '#c0392b' if category == 'error' else '#27ae60' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                         {{ message }}
                     </div>
                 {% endfor %}
@@ -801,62 +57,62 @@
     </script>
 
   <div class="tab-container">
-    <div class="tabs-left">
-        <button class="tab-button" data-tab="general">General</button>
-        <button class="tab-button" data-tab="locations">Locations</button>
-        <button class="tab-button" data-tab="objects">Objects</button>
-        <button class="tab-button" data-tab="rigs">Rigs</button>
-        {% if not SINGLE_USER_MODE %}
-        <button class="tab-button" data-tab="shared">Shared Items</button>
-        {% endif %}
-    </div>
+        <div class="tabs-left">
+            <button class="tab-button" data-tab="general">General</button>
+            <button class="tab-button" data-tab="locations">Locations</button>
+            <button class="tab-button" data-tab="objects">Objects</button>
+            <button class="tab-button" data-tab="rigs">Rigs</button>
+            {% if not SINGLE_USER_MODE %}
+            <button class="tab-button" data-tab="shared">Shared Items</button>
+            {% endif %}
+        </div>
 
     <div class="tabs-right actions-group">
-        <form method="post" action="{{ url_for('fetch_all_details') }}" id="fetch-details-form">
+        <form method="post" action="{{ url_for('core.fetch_all_details') }}" id="fetch-details-form">
             <button type="submit" class="file-button" id="fetch-details-button">Fetch Missing Details</button>
         </form>
 
         <div class="dropdown">
             <button class="file-button dropdown-btn">Download ▼</button>
             <div class="dropdown-content">
-                <a href="{{ url_for('download_config') }}">Configuration</a>
-                <a href="{{ url_for('download_journal') }}">Journal</a>
-                <a href="{{ url_for('download_rig_config') }}">Rigs</a>
-                <a href="{{ url_for('download_journal_photos') }}">Journal Photos</a>
+                <a href="{{ url_for('tools.download_config') }}">Configuration</a>
+                <a href="{{ url_for('tools.download_journal') }}">Journal</a>
+                <a href="{{ url_for('tools.download_rig_config') }}">Rigs</a>
+                <a href="{{ url_for('tools.download_journal_photos') }}">Journal Photos</a>
             </div>
         </div>
 
         <div class="dropdown">
             <button class="file-button dropdown-btn">Import ▼</button>
             <div class="dropdown-content">
-                <form id="form-import-config" action="{{ url_for('import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-config').click(); return false;">Configuration</a>
+                <form id="form-import-config" action="{{ url_for('tools.import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-config">Configuration</a>
                     <input type="file" name="file" id="file-import-config" accept=".yaml" style="display:none;" onchange="handleImportSubmit(this, 'configuration')">
                 </form>
-                <form id="form-import-journal" action="{{ url_for('import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-journal').click(); return false;">Journal</a>
+                <form id="form-import-journal" action="{{ url_for('tools.import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-journal">Journal</a>
                     <input type="file" name="file" id="file-import-journal" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'journal')">
                 </form>
-                <form id="form-import-rigs" action="{{ url_for('import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-rigs').click(); return false;">Rigs</a>
+                <form id="form-import-rigs" action="{{ url_for('tools.import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-rigs">Rigs</a>
                     <input type="file" name="file" id="file-import-rigs" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'rigs file')">
                 </form>
-                <form id="form-import-photos" action="{{ url_for('import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" onclick="document.getElementById('file-import-photos').click(); return false;">Journal Photos</a>
+                <form id="form-import-photos" action="{{ url_for('tools.import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-photos">Journal Photos</a>
                     <input type="file" name="file" id="file-import-photos" accept=".zip" style="display:none;" onchange="handleImportSubmit(this, 'journal photos archive')">
                 </form>
             </div>
         </div>
 
-        <span class="help-badge" onclick="openHelp('data_management')" title="Help with Data Tools">?</span>
+        {{ help_badge('data_management', 'Help with Data Tools') }}
     </div>
-  </div>
+    </div>
 
     <div id="general-tab-content" class="tab-content">
         <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
               General Settings
-              <span class="help-badge" onclick="openHelp('general_settings')" title="Click for help">?</span>
+              {{ help_badge('general_settings', 'Click for help') }}
           </h2>
           <form method="post">
               <div class="inline-fields">
@@ -960,8 +216,8 @@
     <div class="config-section">
       <h2 style="display: flex; align-items: center; gap: 15px;">
         Locations Configuration
-        <span class="help-badge" onclick="openHelp('locations_general')" title="Click for help">?</span>
-        <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: #555;"></span>
+        {{ help_badge('locations_general', 'Click for help') }}
+        <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: var(--text-secondary);"></span>
       </h2>
 
       <form method="post">
@@ -1000,9 +256,15 @@
                  <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                     <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">
                         Horizon Mask:
-                        <span class="help-badge" onclick="openHelp('horizon_mask')" title="Help">?</span>
+                        {{ help_badge('horizon_mask', 'Help') }}
                     </label>
-                    <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
+                    <div>
+                        <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
+                        <div style="margin-top: 4px;">
+                            <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_new" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
+                            <input type="file" id="hzn_import_new" class="hzn-file-input" data-textarea-id="new_horizon_mask" style="display:none;" accept=".hzn,.txt">
+                        </div>
+                    </div>
                  </div>
             </div>
 
@@ -1012,7 +274,7 @@
                     <label class="short-label" for="new_comments" style="padding-top: 5px;">Comments:</label>
                     <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="new-comment-counter"></textarea>
                     <div></div>
-                    <small id="new-comment-counter" style="color: #666;">0 / 500</small>
+                    <small id="new-comment-counter" style="color: var(--text-tertiary);">0 / 500</small>
                  </div>
             </div>
             <button type="submit" name="submit_new_location" value="1" class="action-button" style="margin-top: 10px;">Add</button>
@@ -1059,7 +321,13 @@
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                         <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
-                        <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
+                        <div>
+                            <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
+                            <div style="margin-top: 4px;">
+                                <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_{{ loop.index }}" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
+                                <input type="file" id="hzn_import_{{ loop.index }}" class="hzn-file-input" data-textarea-id="horizon_mask_{{ loc_key }}" style="display:none;" accept=".hzn,.txt">
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="inline-fields">
@@ -1068,7 +336,7 @@
                         <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
                         <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
                         <div></div>
-                        <small id="comment-counter-{{ loop.index }}" style="color: #666;">{{ (loc_val.get('comments') or '')|length }} / 500</small>
+                        <small id="comment-counter-{{ loop.index }}" style="color: var(--text-tertiary);">{{ (loc_val.get('comments') or '')|length }} / 500</small>
                     </div>
                 </div>
             </div>
@@ -1085,12 +353,12 @@
         <div class="column">
             <h2 style="display: flex; align-items: center; gap: 10px;">
                 1. Define Your Components
-                <span class="help-badge" onclick="openHelp('rigs_general')" title="Help with Rigs">?</span>
+                {{ help_badge('rigs_general', 'Help with Rigs') }}
             </h2>
-            <p style="font-size:14px; color: #555;">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
+            <p style="font-size:14px; color: var(--text-secondary);">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
             <details open>
                 <summary><h3>Telescopes (<span id="tele-count">0</span>)</h3></summary>
-                <form action="{{ url_for('add_component') }}" method="post" id="form-telescope">
+                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
                     <input type="hidden" name="component_type" value="telescopes">
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
@@ -1111,7 +379,7 @@
 
             <details open>
                 <summary><h3>Cameras (<span id="cam-count">0</span>)</h3></summary>
-                <form action="{{ url_for('add_component') }}" method="post" id="form-camera">
+                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-camera">
                     <input type="hidden" name="component_type" value="cameras">
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
@@ -1133,7 +401,7 @@
 
             <details open>
                 <summary><h3>Reducers / Extenders (<span id="red-count">0</span>)</h3></summary>
-                <form action="{{ url_for('add_component') }}" method="post" id="form-reducer">
+                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-reducer">
                     <input type="hidden" name="component_type" value="reducers_extenders">
                     <input type="hidden" name="component_id" value="">
                     <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
@@ -1153,8 +421,8 @@
 
         <div class="column">
             <h2>2. Configure Your Rigs</h2>
-            <p style="font-size:14px; color: #555;">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
-            <form action="{{ url_for('add_rig') }}" method="post" id="form-rig">
+            <p style="font-size:14px; color: var(--text-secondary);">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
+            <form action="{{ url_for('tools.add_rig') }}" method="post" id="form-rig">
                 <input type="hidden" name="rig_id" value="">
                 <div class="form-group"><label for="rig_name">Rig Name:</label><input type="text" name="rig_name" id="rig_name" required placeholder="e.g., C11 Deep Sky Rig"></div>
                 <div class="form-group">
@@ -1214,7 +482,7 @@
       <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
               Shared Items from Other Users
-              <span class="help-badge" onclick="openHelp('shared_items_general')" title="Help with Shared Items">?</span>
+              {{ help_badge('shared_items_general', 'Help with Shared Items') }}
           </h2>
           <p>Here you can find Objects and Components shared by other users in the system. Click "Import" to add a copy to your own configuration.</p>
 
@@ -1250,7 +518,7 @@
                       </tr>
                   </thead>
                   <tbody id="shared-objects-body">
-                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
@@ -1279,7 +547,7 @@
                       </tr>
                   </thead>
                   <tbody id="shared-views-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
@@ -1315,919 +583,56 @@
                       </tr>
                   </thead>
                   <tbody id="shared-components-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">Loading...</td></tr>
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
                   </tbody>
               </table>
           </div>
       </div>
   </div>
 
-  <div id="notes-modal" class="modal-backdrop" onclick="closeNotesModal()">
-      <div class="modal-content" onclick="event.stopPropagation()">
+  <div id="notes-modal" class="modal-backdrop" data-action="close-notes-modal">
+      <div class="modal-content" data-stop-propagation="true">
           <h3 id="notes-modal-title">Shared Notes</h3>
           <div id="notes-modal-content" class="modal-notes-content">
               </div>
-          <button class="inline-button modal-close-btn" onclick="closeNotesModal()">Close</button>
+          <button class="inline-button modal-close-btn" data-action="close-notes-modal">Close</button>
       </div>
   </div>
 
   <div id="fetch-progress-modal">
       <div id="fetch-progress-content">
-          <h3 style="margin-top:0; color:#333;">Fetching Details...</h3>
+          <h3 style="margin-top:0; color:var(--text-primary);">Fetching Details...</h3>
           <div class="progress-track">
               <div id="fetch-progress-bar" class="progress-fill"></div>
           </div>
-          <p id="fetch-progress-text" style="color:#666; font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
+          <p id="fetch-progress-text" style="color:var(--text-tertiary); font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
       </div>
   </div>
   <br>
 
 <script>
+    // --- Configuration data for external config_form.js ---
+    window.NOVA_CONFIG_FORM = {
+        currentUsername: "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}",
+        telemetryEnabled: {{ 'true' if telemetry_enabled else 'false' }},
+        urls: {
+            updateComponent: "{{ url_for('tools.update_component') }}",
+            deleteComponent: "{{ url_for('tools.delete_component') }}",
+            deleteRig: "{{ url_for('tools.delete_rig') }}",
+            streamFetchDetails: "{{ url_for('core.stream_fetch_details') }}",
+            uploadEditorImage: "{{ url_for('tools.upload_editor_image') }}"
+        }
+    };
+
     // --- Global variables ---
     const CURRENT_USERNAME = "{{ 'default' if SINGLE_USER_MODE else (current_user.username if current_user.is_authenticated else '') }}";
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
-    let rigSort = localStorage.getItem('rigSort') || 'name-asc';
+    let rigSort = localStorage.getItem('rigSort') || 'name-asc';    console.log('Inline script loaded, rigsData:', typeof rigsData, rigsData);
 
-    // --- Rigs Tab Functions ---
-
-    function populateComponentFormForEdit(type, id) {
-        let componentListKey;
-        if (type === 'telescope') componentListKey = 'telescopes';
-        else if (type === 'camera') componentListKey = 'cameras';
-        else if (type === 'reducer_extender') componentListKey = 'reducers_extenders';
-        else return console.error("Unknown component type:", type);
-
-        const component = rigsData.components[componentListKey].find(c => c.id == id);
-        if (!component) return console.error("Could not find component with ID:", id);
-
-        const formType = type === 'reducer_extender' ? 'reducer' : type;
-        const form = document.getElementById(`form-${formType}`);
-        form.action = "{{ url_for('update_component') }}";
-        form.querySelector('input[name="component_id"]').value = component.id;
-        form.querySelector('input[name="name"]').value = component.name;
-
-        if (type === 'telescope') {
-            form.querySelector('input[name="aperture_mm"]').value = component.aperture_mm;
-            form.querySelector('input[name="focal_length_mm"]').value = component.focal_length_mm;
-        } else if (type === 'camera') {
-            form.querySelector('input[name="sensor_width_mm"]').value = component.sensor_width_mm;
-            form.querySelector('input[name="sensor_height_mm"]').value = component.sensor_height_mm;
-            form.querySelector('input[name="pixel_size_um"]').value = component.pixel_size_um;
-        } else if (type === 'reducer_extender') {
-            form.querySelector('input[name="factor"]').value = component.factor;
-        }
-
-        // --- START: New Share Logic ---
-        const shareCheckbox = form.querySelector('input[name="is_shared"]');
-        if (shareCheckbox) {
-            shareCheckbox.checked = component.is_shared || false;
-            // Disable sharing if it's an imported item
-            if (component.original_user_id) {
-                shareCheckbox.disabled = true;
-                shareCheckbox.checked = false; // Can't re-share an imported item
-            } else {
-                shareCheckbox.disabled = false;
-            }
-        }
-        // --- END: New Share Logic ---
-
-        form.querySelector('button[type="submit"]').textContent = 'Update Component';
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function populateRigFormForEdit(id) {
-        const rig = rigsData.rigs.find(r => r.rig_id === id);
-        if (!rig) return;
-
-        const form = document.getElementById('form-rig');
-        form.querySelector('input[name="rig_id"]').value = rig.rig_id;
-        form.querySelector('input[name="rig_name"]').value = rig.rig_name;
-        form.querySelector('select[name="telescope_id"]').value = rig.telescope_id;
-        form.querySelector('select[name="camera_id"]').value = rig.camera_id;
-        form.querySelector('select[name="reducer_extender_id"]').value = rig.reducer_extender_id || '';
-        form.querySelector('button[type="submit"]').textContent = 'Update Rig';
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function safeNum(v, fallback = null) {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : fallback;
-    }
-
-    function compareBy(a, b, getter, dir = 'asc') {
-        const av = getter(a), bv = getter(b);
-        const aNull = (av === null || av === undefined);
-        const bNull = (bv === null || bv === undefined);
-        if (aNull && bNull) return 0;
-        if (aNull) return 1;
-        if (bNull) return -1;
-        if (av < bv) return dir === 'asc' ? -1 : 1;
-        if (av > bv) return dir === 'asc' ? 1 : -1;
-        return 0;
-    }
-
-    function sortRigs(rigs, sortValue) {
-        const [key, dir] = sortValue.split('-');
-        const getterMap = {
-            name: (r) => (r.rig_name || '').toLowerCase(),
-            fl:   (r) => safeNum(r.effective_focal_length, null),
-            fr:   (r) => safeNum(r.f_ratio, null),
-            scale:(r) => safeNum(r.image_scale, null),
-            fovw: (r) => safeNum(r.fov_w_arcmin, null),
-            recent: (r) => {
-                const ts = r.created_at || r.updated_at || '';
-                const tnum = Date.parse(ts);
-                return Number.isFinite(tnum) ? tnum : (r.rig_id || '').toString();
-            }
-        };
-        const getter = getterMap[key] || getterMap.name;
-        const rigsCopy = rigs.slice();
-        rigsCopy.sort((a, b) => compareBy(a, b, getter, dir));
-        return rigsCopy;
-    }
-
-    function fetchRigsData() {
-        if (rigsDataLoaded) return;
-        fetch('/get_rig_data')
-            .then(response => response.json())
-            .then(data => {
-                rigsData = data;
-                if (data.sort_preference && typeof data.sort_preference === 'string') {
-                    rigSort = data.sort_preference;
-                    localStorage.setItem('rigSort', rigSort);
-                    const sortSelectEl = document.getElementById('rig-sort');
-                    if (sortSelectEl) sortSelectEl.value = rigSort;
-                }
-                renderRigsUI();
-                updateSamplingInfo();
-                rigsDataLoaded = true;
-            })
-            .catch(error => console.error("Error fetching rigs data:", error));
-    }
-
-    function renderRigsUI() {
-        const data = rigsData;
-        if (!data.components) return;
-
-        const { telescopes, cameras, reducers_extenders } = data.components;
-        const { rigs } = data;
-        const sortSelectEl = document.getElementById('rig-sort');
-        const currentSort = sortSelectEl ? (sortSelectEl.value || rigSort) : rigSort;
-        if (sortSelectEl && sortSelectEl.value !== currentSort) {
-            sortSelectEl.value = currentSort;
-        }
-        const rigsSorted = sortRigs(rigs, currentSort);
-
-        // --- Helper to create shared/imported indicator ---
-        const createIndicator = (c) => {
-            if (c.original_user_id) return ' <span class="shared-indicator" title="Imported item">Imported</span>';
-            if (c.is_shared) return ' <span class="shared-indicator" title="You are sharing this item">Shared</span>';
-            return '';
-        };
-
-        document.getElementById('telescope-list').innerHTML = telescopes.map(t => `
-            <li>
-                <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
-                <div class="item-actions">
-                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
-                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
-                        <input type="hidden" name="component_id" value="${t.id}"><input type="hidden" name="component_type" value="telescopes">
-                        <button type="submit" class="delete-btn">Delete</button>
-                    </form>
-                </div>
-            </li>`).join('') || '<li>No telescopes defined.</li>';
-
-        document.getElementById('camera-list').innerHTML = cameras.map(c => `
-            <li>
-                <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
-                <div class="item-actions">
-                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
-                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
-                        <input type="hidden" name="component_id" value="${c.id}"><input type="hidden" name="component_type" value="cameras">
-                        <button type="submit" class="delete-btn">Delete</button>
-                    </form>
-                </div>
-            </li>`).join('') || '<li>No cameras defined.</li>';
-
-        document.getElementById('reducer-list').innerHTML = reducers_extenders.map(r => `
-            <li>
-                <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
-                <div class="item-actions">
-                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
-                    <form action="{{ url_for('delete_component') }}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
-                        <input type="hidden" name="component_id" value="${r.id}"><input type="hidden" name="component_type" value="reducers_extenders">
-                        <button type="submit" class="delete-btn">Delete</button>
-                    </form>
-                </div>
-            </li>`).join('') || '<li>No reducers defined.</li>';
-
-        const teleSelect = document.getElementById('tele_select');
-        const camSelect = document.getElementById('cam_select');
-        const redSelect = document.getElementById('red_select');
-        if(teleSelect) teleSelect.innerHTML = '<option value="" disabled selected>-- Select a Telescope --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        if(camSelect) camSelect.innerHTML = '<option value="" disabled selected>-- Select a Camera --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        if(redSelect) redSelect.innerHTML = '<option value="">-- None --</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
-
-        const rigList = document.getElementById('existing-rigs-list');
-        rigList.innerHTML = rigsSorted.map(rig => {
-            const tele = telescopes.find(t => t.id === rig.telescope_id);
-            const cam = cameras.find(c => c.id === rig.camera_id);
-            const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
-            let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
-            if (rig.image_scale) {
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: #f5f5f5;"><small style="color: #666;">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
-            }
-            return `<li data-rig-id="${rig.rig_id}">
-                        <div class="item-info">${detailsHtml}</div>
-                        <div class="item-actions">
-                            <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
-                            <form action="{{ url_for('delete_rig') }}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
-                                <input type="hidden" name="rig_id" value="${rig.rig_id}">
-                                <button type="submit" class="delete-btn">Delete</button>
-                            </form>
-                        </div>
-                    </li>`;
-        }).join('') || '<li>No rigs configured yet.</li>';
-
-        document.getElementById('tele-count').innerText = telescopes.length;
-        document.getElementById('cam-count').innerText = cameras.length;
-        document.getElementById('red-count').innerText = reducers_extenders.length;
-        document.getElementById('rig-count').innerText = rigs.length;
-    }
-
-    function updateSamplingInfo() {
-        const seeingSelect = document.getElementById('seeing-select');
-        const selectedSeeing = seeingSelect.value;
-        const rigListItems = document.querySelectorAll('#existing-rigs-list li');
-
-        rigListItems.forEach(item => {
-            const infoContainer = item.querySelector('.item-info');
-            infoContainer.querySelectorAll('.sampling-info, .sampling-binning-tip').forEach(el => el.remove());
-            if (selectedSeeing === 'none') return;
-
-            const rigId = item.dataset.rigId;
-            const rigIdNum = parseInt(rigId, 10);
-            const rig = rigsData.rigs.find(r => r.rig_id === rigIdNum);
-            if (rig && rig.image_scale) {
-                const imageScale = rig.image_scale;
-                const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
-                const seeingAvg = (seeingLow + seeingHigh) / 2;
-                const samplingAvg = seeingAvg / imageScale;
-
-                let text = '', colorClass = '', isOversampled = false;
-                if (samplingAvg > 4.0) { text = `Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-oversampled'; isOversampled = true; }
-                else if (samplingAvg > 3.0) { text = `Slightly Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-oversampled'; isOversampled = true; }
-                else if (samplingAvg >= 1.0) { text = `Good Sampling: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-good'; }
-                else if (samplingAvg >= 0.67) { text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-undersampled'; }
-                else { text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-undersampled'; }
-
-                const infoEl = document.createElement('span');
-                infoEl.className = `sampling-info ${colorClass}`;
-                infoEl.textContent = text;
-                infoContainer.appendChild(infoEl);
-
-                if (isOversampled) {
-                    const binningEl = document.createElement('small');
-                    binningEl.className = 'sampling-binning-tip';
-                    const binnedScale = (imageScale * 2).toFixed(2);
-                    const binnedSampling = (samplingAvg / 2).toFixed(1);
-                    binningEl.textContent = `Tip: 2x2 binning would yield ~${binnedScale}"/px (${binnedSampling} px/FWHM)`;
-                    infoContainer.appendChild(binningEl);
-                }
-            }
-        });
-    }
-    function fetchSharedItems() {
-        fetch('/api/get_shared_items')
-            .then(response => response.json())
-            .then(data => {
-                const objectsBody = document.getElementById('shared-objects-body');
-                const componentsBody = document.getElementById('shared-components-body');
-                const viewsBody = document.getElementById('shared-views-body');
-
-                const importedObjectIds = new Set(data.imported_object_ids || []);
-                const importedComponentIds = new Set(data.imported_component_ids || []);
-                const importedViewIds = new Set(data.imported_view_ids || []);
-
-                // --- Render Shared Objects ---
-                if (data.objects && data.objects.length > 0) {
-                    objectsBody.innerHTML = data.objects.map(obj => {
-                        const isImported = importedObjectIds.has(obj.id);
-                        const isOwner = (obj.shared_by_user === CURRENT_USERNAME);
-                        const status = isImported ? 'imported' : 'unimported';
-
-                        let actionButton = '';
-                        if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
-                        } else if (isImported) {
-                            actionButton = `<button class="imported-button" disabled>Imported</button>`;
-                        } else {
-                            actionButton = `<button class="action-button import-button" onclick="importSharedItem(${obj.id}, 'object', this)">Import</button>`;
-                        }
-
-                        const dataAttrs = `
-                            data-id="${obj.id}"
-                            data-status="${status}"
-                            data-object_name="${obj.object_name}"
-                            data-common_name="${obj.common_name}"
-                            data-type="${obj.type || ''}"
-                            data-constellation="${obj.constellation || ''}"
-                            data-shared_by_user="${obj.shared_by_user}"
-                        `;
-
-                        const imgHtml = obj.image_url
-                            ? `<img src="${obj.image_url}" style="width: 34px; height: 34px; object-fit: cover; border-radius: 3px; vertical-align: middle; border: 1px solid #ddd;" title="Has image">`
-                            : '';
-
-                        return `
-                        <tr ${dataAttrs}>
-                            <td style="text-align: center; padding: 4px;">${imgHtml}</td>
-                            <td><strong>${obj.object_name}</strong></td>
-                            <td>${obj.common_name}</td>
-                            <td>${obj.type || 'N/A'}</td>
-                            <td>${obj.constellation || 'N/A'}</td>
-                            <td>${obj.shared_by_user}</td>
-                            <td class="notes-cell">
-                                <button class="action-button notes-button"
-                                        data-notes="${(obj.shared_notes || '').replace(/"/g, '&quot;')}"
-                                        onclick="showSharedNotes('${obj.object_name}', this.dataset.notes)">
-                                    View
-                                </button>
-                            </td>
-                            <td class="action-cell">${actionButton}</td>
-                        </tr>`;
-                    }).join('');
-                } else {
-                    objectsBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #555;">No shared objects found from other users.</td></tr>';
-                }
-
-                // --- Render Shared Components ---
-                if (data.components && data.components.length > 0) {
-                    componentsBody.innerHTML = data.components.map(comp => {
-                        const isImported = importedComponentIds.has(comp.id);
-                        const isOwner = (comp.shared_by_user === CURRENT_USERNAME);
-                        const status = isImported ? 'imported' : 'unimported';
-
-                        let actionButton = '';
-                        if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
-                        } else if (isImported) {
-                            actionButton = `<button class="imported-button" disabled>Imported</button>`;
-                        } else {
-                            actionButton = `<button class="action-button import-button" onclick="importSharedItem(${comp.id}, 'component', this)">Import</button>`;
-                        }
-
-                        const dataAttrs = `
-                            data-id="${comp.id}"
-                            data-status="${status}"
-                            data-name="${comp.name}"
-                            data-kind="${comp.kind}"
-                            data-shared_by_user="${comp.shared_by_user}"
-                        `;
-
-                        return `
-                        <tr ${dataAttrs}>
-                            <td><strong>${comp.name}</strong></td>
-                            <td>${comp.kind}</td>
-                            <td>${comp.shared_by_user}</td>
-                            <td class="action-cell">${actionButton}</td>
-                        </tr>`;
-                    }).join('');
-                } else {
-                    componentsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared components found from other users.</td></tr>';
-                }
-
-                // --- Render Shared Views ---
-                if (data.views && data.views.length > 0) {
-                    viewsBody.innerHTML = data.views.map(view => {
-                        const isImported = importedViewIds.has(view.id);
-                        const isOwner = (view.shared_by_user === CURRENT_USERNAME);
-                        const status = isImported ? 'imported' : 'unimported';
-
-                        let actionButton = '';
-                        if (isOwner) {
-                            actionButton = `<button class="imported-button" disabled style="background-color:#ccc; color:#555; cursor:default;">Owner</button>`;
-                        } else if (isImported) {
-                            actionButton = `<button class="imported-button" disabled>Imported</button>`;
-                        } else {
-                            actionButton = `<button class="action-button import-button" onclick="importSharedItem(${view.id}, 'view', this)">Import</button>`;
-                        }
-
-                        const dataAttrs = `
-                            data-id="${view.id}"
-                            data-status="${status}"
-                            data-name="${view.name}"
-                            data-description="${view.description || ''}"
-                            data-shared_by_user="${view.shared_by_user}"
-                        `;
-
-                        return `
-                        <tr ${dataAttrs}>
-                            <td><strong>${view.name}</strong></td>
-                            <td>${view.description || '-'}</td>
-                            <td>${view.shared_by_user}</td>
-                            <td class="action-cell">${actionButton}</td>
-                        </tr>`;
-                    }).join('');
-                } else {
-                    viewsBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px; color: #555;">No shared views found from other users.</td></tr>';
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching shared items:", error);
-                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
-                document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
-                document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: red;">Error loading shared items.</td></tr>';
-            });
-    }
-
-    function importSharedItem(itemId, itemType, button) {
-        if (!confirm(`Are you sure you want to import this ${itemType}?`)) {
-            return;
-        }
-
-        button.disabled = true;
-        button.textContent = 'Importing...';
-
-        fetch('/api/import_item', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: itemId, type: itemType })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
-                button.textContent = 'Imported';
-                button.className = 'imported-button'; // Change class
-
-                // Update the row's status for filtering
-                const row = button.closest('tr');
-                if(row) row.dataset.status = 'imported';
-            } else {
-                alert(`Error: ${data.message}`);
-                button.disabled = false;
-                button.textContent = 'Import';
-            }
-        })
-        .catch(error => {
-            console.error('Import failed:', error);
-            alert('Import failed. See console for details.');
-            button.disabled = false;
-            button.textContent = 'Import';
-        });
-    }
-
-    function showSharedNotes(objectName, notesHtml) {
-        document.getElementById('notes-modal-title').textContent = `Shared Notes for ${objectName}`;
-        document.getElementById('notes-modal-content').innerHTML = notesHtml; // Notes are pre-sanitized by the backend
-        document.getElementById('notes-modal').classList.add('is-visible');
-    }
-
-    function closeNotesModal() {
-        document.getElementById('notes-modal').classList.remove('is-visible');
-    }
-
-    function filterSharedTables() {
-        ['objects', 'components', 'views'].forEach(type => {
-            const tableId = `shared-${type}-table`;
-            const bodyId = `shared-${type}-body`;
-            const table = document.getElementById(tableId);
-            const body = document.getElementById(bodyId);
-            if (!table || !body) return;
-
-            // 1. Get all filter values from the header
-            const filters = {};
-            table.querySelectorAll('.filter-row [data-col]').forEach(input => {
-                filters[input.dataset.col] = input.value.toLowerCase();
-            });
-
-            // 2. Loop through all data rows in the body
-            body.querySelectorAll('tr[data-id]').forEach(row => {
-                let show = true;
-
-                // Check each filter against the row's data
-                for (const col in filters) {
-                    const filterVal = filters[col];
-                    if (filterVal === 'all') continue; // Skip 'all' dropdowns
-
-                    const rowVal = (row.dataset[col] || '').toLowerCase();
-
-                    if (col === 'status') {
-                        if (filterVal === 'imported' && rowVal !== 'imported') show = false;
-                        if (filterVal === 'unimported' && rowVal !== 'unimported') show = false;
-                    } else {
-                        if (!rowVal.includes(filterVal)) {
-                            show = false;
-                        }
-                    }
-                    if (!show) break; // Stop checking if one filter fails
-                }
-
-                row.style.display = show ? '' : 'none';
-            });
-        });
-    }
-
-    function confirmAndFetchDetails(formElement) {
-        if (!confirm("This will scan all your objects and fetch missing details (Type, Magnitude, Size, etc.) from external databases.\n\nDepending on your library size, this may take a few moments.\n\nProceed?")) {
-            return;
-        }
-
-        const button = document.getElementById('fetch-details-button');
-        const modal = document.getElementById('fetch-progress-modal');
-        const bar = document.getElementById('fetch-progress-bar');
-        const text = document.getElementById('fetch-progress-text');
-
-        if (button) { button.disabled = true; button.innerText = 'Connecting...'; }
-        if (modal) modal.style.display = 'flex';
-
-        // Reset bar visual state for manual control (disable CSS animation for width)
-        if (bar) {
-            bar.style.width = '0%';
-            bar.classList.add('active'); // Keep stripes
-            bar.style.animation = 'progress-stripes 1s linear infinite'; // Only stripes, no growth
-        }
-
-        const evtSource = new EventSource("{{ url_for('stream_fetch_details') }}");
-
-        evtSource.onmessage = function(e) {
-            try {
-                const data = JSON.parse(e.data);
-
-                if (data.error) {
-                    text.innerText = "Error: " + data.error;
-                    text.style.color = "red";
-                    evtSource.close();
-                    if(button) { button.disabled = false; button.innerText = 'Retry'; }
-                    return;
-                }
-
-                // Update UI
-                if (data.progress !== undefined && bar) {
-                    bar.style.width = data.progress + '%';
-                }
-                if (data.message && text) {
-                    text.innerText = data.message;
-                }
-
-                // Completion
-                if (data.done) {
-                    evtSource.close();
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 800);
-                }
-            } catch (err) {
-                console.error("Stream parse error:", err);
-            }
-        };
-
-        evtSource.onerror = function(err) {
-            console.error("EventSource failed:", err);
-            evtSource.close();
-            if (text) {
-                text.innerText = "Connection lost. Refreshing page...";
-            }
-            setTimeout(() => window.location.reload(), 2000);
-        };
-    }
-    // --- NEW Import Handler (replaces setupImport) ---
-        function handleImportSubmit(fileInput, entityName) {
-            if (!fileInput.files[0]) return; // No file selected
-
-            let confirmMsg = `This will import the ${entityName}. Are you sure?`;
-            if (entityName === 'configuration' || entityName === 'journal' || entityName === 'rigs file') {
-                confirmMsg = `This will merge/overwrite your current ${entityName}. The existing data will be backed up. Are you sure?`;
-            }
-
-            if (confirm(confirmMsg)) {
-                // User confirmed, submit via fetch
-                const formData = new FormData();
-                formData.append("file", fileInput.files[0]);
-                const url = fileInput.form.action; // Get URL from the form's action attribute
-
-                // 1. Show a "please wait" message
-                const msgContainer = document.getElementById('flash-message-container');
-                if (msgContainer) msgContainer.innerHTML = `<div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: #007bff; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">Importing ${entityName}, please wait...</div>`;
-
-                fetch(url, {
-                    method: "POST",
-                    body: formData,
-                    redirect: 'manual'  // <-- CRITICAL: Do NOT follow the redirect
-                })
-                .then(resp => {
-                    // resp.type will be 'opaqueredirect' if the server-side
-                    // (Python) finished and sent a redirect(). This is SUCCESS.
-                    // resp.ok will be true if the server just sent 200 OK (no redirect).
-                    // resp.ok will be false if the server sent 400/500 (an error).
-
-                    if (resp.ok || resp.type === 'opaqueredirect') {
-                        // SUCCESS! The server has set the flash message.
-                        // Now we reload the page to see it.
-                        window.location.reload();
-                    } else {
-                        // This handles server errors (4xx, 5xx)
-                        throw new Error(`Import failed: Server returned status ${resp.status}`);
-                    }
-                })
-                .catch(err => {
-                    // This catches network failures or the error thrown above
-                    alert(`${entityName} import failed: ${err.message}`);
-                    if (msgContainer) msgContainer.innerHTML = '';
-                    fileInput.value = ""; // Clear on failure
-                });
-
-            } else {
-                // User cancelled, clear the file input so they can try again
-                fileInput.value = "";
-            }
-        }
-    // --- Image Upload Logic ---
-    function uploadObjectImage(fileInput, targetInputId) {
-        if (!fileInput.files[0]) return;
-
-        const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
-
-        const btn = fileInput.previousElementSibling; // The upload button
-        const originalText = btn.textContent;
-        btn.textContent = "...";
-        btn.disabled = true;
-
-        fetch("{{ url_for('upload_editor_image') }}", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.url) {
-                document.getElementById(targetInputId).value = data.url;
-                btn.textContent = "Done";
-                setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 1500);
-            } else {
-                alert("Upload error: " + (data.error || "Unknown error"));
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
-        })
-        .catch(err => {
-            console.error("Upload failed:", err);
-            alert("Upload failed. See console.");
-            btn.textContent = originalText;
-            btn.disabled = false;
-        });
-
-        fileInput.value = ""; // Reset
-    }
-
-    // --- Save Logic for Objects (API) ---
-    function saveObjectData(btn, objectName) {
-        const originalText = btn.textContent;
-        btn.textContent = "Saving...";
-        btn.disabled = true;
-
-        // Helper to safely get value by ID
-        const getVal = (id) => {
-            const el = document.getElementById(id);
-            return el ? (el.type === 'checkbox' ? el.checked : el.value) : "";
-        };
-
-        // Gather ALL fields to prevent overwriting with nulls
-        // Note: IDs match the standard naming convention (e.g. ra_M31)
-        const payload = {
-            object_id: objectName,
-            name: getVal(`name_${objectName}`),
-            ra: getVal(`ra_${objectName}`),
-            dec: getVal(`dec_${objectName}`),
-            constellation: getVal(`constellation_${objectName}`),
-            type: getVal(`type_${objectName}`),
-            magnitude: getVal(`magnitude_${objectName}`),
-            size: getVal(`size_${objectName}`),
-            sb: getVal(`sb_${objectName}`),
-            is_active: getVal(`active_project_${objectName}`),
-            project_notes: getVal(`project_${objectName}`), // Trix updates hidden input
-            is_shared: getVal(`is_shared_${objectName}`),
-            shared_notes: getVal(`shared_notes_${objectName}`),
-
-            // --- NEW INSPIRATION FIELDS ---
-            image_url: getVal(`image_url_${objectName}`),
-            image_credit: getVal(`image_credit_${objectName}`),
-            image_source_link: getVal(`image_source_link_${objectName}`), // Ensure image link is saved
-            description_text: getVal(`description_text_${objectName}`),
-            description_credit: getVal(`description_credit_${objectName}`), // Ensure text credit is saved
-            description_source_link: getVal(`description_source_link_${objectName}`) // Ensure text link is saved
-        };
-
-        fetch('/api/update_object', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                // Flash success button state
-                btn.textContent = "Saved!";
-                btn.style.backgroundColor = "#28a745";
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.backgroundColor = ""; // Reset to default
-                    btn.disabled = false;
-                }, 2000);
-            } else {
-                alert("Error saving: " + data.message);
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Network error saving object.");
-            btn.textContent = originalText;
-            btn.disabled = false;
-        });
-    }
-    // --- Main Initializer ---
-    document.addEventListener('DOMContentLoaded', () => {
-
-        let locationDropdownsInitialized = false; // Flag to check if dropdowns are init
-
-        // --- NEW: Location Limit & Counter Logic ---
-        const MAX_ACTIVE_LOCATIONS = 5;
-
-        function setupCharCounters() {
-            document.querySelectorAll('textarea[maxlength][data-counter-id]').forEach(textarea => {
-                const counterId = textarea.dataset.counterId;
-                const counterEl = document.getElementById(counterId);
-                if (counterEl) {
-                    const updateCounter = () => { counterEl.textContent = `${textarea.value.length} / ${textarea.maxLength}`; };
-                    textarea.addEventListener('input', updateCounter);
-                    updateCounter();
-                }
-            });
-        }
-
-        function manageActiveLocationLimit() {
-            const checkboxes = document.querySelectorAll('.locations-list .active-location-checkbox');
-            const checkedCount = document.querySelectorAll('.locations-list .active-location-checkbox:checked').length;
-            const counterEl = document.getElementById('active-location-counter');
-
-            if(counterEl) {
-                counterEl.textContent = `(${checkedCount} / ${MAX_ACTIVE_LOCATIONS} active)`;
-                if (checkedCount >= MAX_ACTIVE_LOCATIONS) {
-                    counterEl.style.color = '#dc3545';
-                    counterEl.style.fontWeight = 'bold';
-                } else {
-                    counterEl.style.color = '#555';
-                    counterEl.style.fontWeight = 'normal';
-                }
-            }
-
-            if (checkedCount >= MAX_ACTIVE_LOCATIONS) {
-                checkboxes.forEach(cb => {
-                    if (!cb.checked) {
-                        cb.disabled = true;
-                        cb.closest('div').style.opacity = '0.5';
-                    }
-                });
-            } else {
-                checkboxes.forEach(cb => {
-                    cb.disabled = false;
-                    cb.closest('div').style.opacity = '1';
-                });
-            }
-        }
-        // --- END of new logic block ---
-
-        // --- Anonymous telemetry client ping (once per 24h) ---
-        try {
-          const TELEMETRY_KEY = 'novaTelemetryPingAt', lastPing = parseInt(localStorage.getItem(TELEMETRY_KEY) || '0', 10), now = Date.now(), DAY_MS = 86400000;
-          const telemetryEnabled = {{ 'true' if config.get('telemetry', {}).get('enabled', True) else 'false' }};
-          if (telemetryEnabled && (now - lastPing) > DAY_MS) {
-            fetch('/telemetry/ping', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ browser_user_agent: navigator.userAgent })})
-              .then(() => localStorage.setItem(TELEMETRY_KEY, String(now))).catch(()=>{});
-          }
-        } catch (e) {}
-
-        // --- Tab Management ---
-        const tabs = document.querySelectorAll('.tab-button');
-        const contentPanels = {
-            general: document.getElementById('general-tab-content'),
-            locations: document.getElementById('locations-tab-content'),
-            objects: document.getElementById('objects-tab-content'),
-            rigs: document.getElementById('rigs-tab-content'),
-            shared: document.getElementById('shared-tab-content')
-        };
-        let activeTab = localStorage.getItem('activeConfigTab') || 'general';
-
-        // ---
-        // --- THIS IS THE CORRECTED FUNCTION TO RUN LOCATION SCRIPTS
-        // ---
-        function initializeLocationDropdowns() {
-            // Guard: Only run this one time
-            if (locationDropdownsInitialized) return;
-
-            // This needs to run *after* the tab is visible
-            setTimeout(() => {
-                if (document.getElementById('locations-tab-content')) {
-                    setupCharCounters();
-                    manageActiveLocationLimit();
-                    document.querySelectorAll('.active-location-checkbox').forEach(cb => {
-                        cb.addEventListener('change', manageActiveLocationLimit);
-                    });
-                    locationDropdownsInitialized = true; // Mark as done
-                }
-            }, 0); // 0ms timeout waits for next browser tick
-        }
-
-        function updateTabDisplay() {
-            Object.values(contentPanels).forEach(panel => { if(panel) panel.style.display = 'none'; });
-            tabs.forEach(tab => tab.classList.toggle('active', tab.dataset.tab === activeTab));
-            if (contentPanels[activeTab]) contentPanels[activeTab].style.display = 'block';
-
-            // --- THIS IS THE KEY CHANGE ---
-            // Call the init function when the tab is shown
-            if (activeTab === 'locations') {
-                initializeLocationDropdowns();
-            }
-            // --- END KEY CHANGE ---
-
-            if (activeTab === 'rigs') fetchRigsData();
-            if (activeTab === 'shared' && contentPanels['shared']) { fetchSharedItems(); }
-            localStorage.setItem('activeConfigTab', activeTab);
-        }
-        tabs.forEach(tab => tab.addEventListener('click', () => { activeTab = tab.dataset.tab; updateTabDisplay(); }));
-        updateTabDisplay(); // Run on page load
-
-        // --- NEW: Trix Editor File Upload Handler ---
-        function handleTrixAttachmentAdd(event) {
-            if (!event.attachment.file) { return; }
-            const file = event.attachment.file;
-            const formData = new FormData();
-            formData.append("file", file);
-            event.attachment.setUploadProgress(0);
-            fetch("{{ url_for('upload_editor_image') }}", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.url) {
-                    event.attachment.setAttributes({
-                        url: data.url,
-                        href: data.url
-                    });
-                    event.attachment.setUploadProgress(100);
-                } else if (data.error) {
-                    console.error("Trix upload error:", data.error);
-                    event.attachment.remove();
-                    alert("Image upload failed: " + data.error);
-                }
-            })
-            .catch(error => {
-                console.error("Trix upload network error:", error);
-                event.attachment.remove();
-                alert("Image upload failed: Network error. See console for details.");
-            });
-        }
-        document.addEventListener("trix-attachment-add", handleTrixAttachmentAdd);
-        // --- END: Trix Editor File Upload Handler ---
-
-        // --- Rigs Setup ---
-        const seeingSelect = document.getElementById('seeing-select');
-        if (seeingSelect) seeingSelect.addEventListener('change', updateSamplingInfo);
-        const rigSortEl = document.getElementById('rig-sort');
-        if (rigSortEl) {
-            rigSortEl.value = rigSort;
-            rigSortEl.addEventListener('change', () => {
-                rigSort = rigSortEl.value;
-                localStorage.setItem('rigSort', rigSort);
-                fetch('/set_rig_sort_preference', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sort: rigSort }) });
-                if (rigsDataLoaded) { renderRigsUI(); updateSamplingInfo(); }
-            });
-        }
-
-        // --- Fetch Details Logic ---
-        const fetchDetailsForm = document.getElementById('fetch-details-form');
-        if (fetchDetailsForm) fetchDetailsForm.addEventListener('submit', function(e) { e.preventDefault(); confirmAndFetchDetails(this); });
-
-
-        // --- Dropdown Menu & Import Logic ---
-        document.querySelectorAll('.dropdown-btn').forEach(button => {
-            button.addEventListener('click', e => {
-                document.querySelectorAll('.dropdown-content.show').forEach(d => { if (d !== button.nextElementSibling) d.classList.remove('show'); });
-                button.nextElementSibling.classList.toggle('show');
-                e.stopPropagation();
-            });
-        });
-        window.addEventListener('click', e => { if (!e.target.matches('.dropdown-btn')) document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show')); });
-
-
-    });
 </script>
 
+    <script src="{{ url_for('static', filename='js/config_form.js') }}" defer></script>
 {% endblock %}
 </body>
 </html>
