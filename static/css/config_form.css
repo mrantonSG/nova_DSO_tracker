@@ -600,7 +600,7 @@
 [data-theme="dark"] .form-group select,
 [data-theme="dark"] .column .form-group input,
 [data-theme="dark"] .column .form-group select {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
@@ -621,7 +621,7 @@
 /* Inline fields inputs */
 [data-theme="dark"] .inline-fields input,
 [data-theme="dark"] .inline-fields select {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
@@ -635,7 +635,7 @@
 /* Wide textareas */
 [data-theme="dark"] textarea.wide,
 [data-theme="dark"] textarea.project_field {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
@@ -649,21 +649,21 @@
 /* Native selects */
 [data-theme="dark"] select[name^="timezone_"],
 [data-theme="dark"] select[name="new_timezone"] {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
 /* Trix editor */
 [data-theme="dark"] .form-group trix-editor {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: var(--input-border-width) solid var(--border-medium);
     color: var(--text-primary);
 }
 
 /* Inspiration container */
 [data-theme="dark"] .inspiration-container {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border-color: var(--border-medium);
 }
 
@@ -751,6 +751,29 @@
 }
 
 /* ===================================================================
+   DARK MODE - NUMBER INPUT SPINNERS (up/down arrows)
+   ================================================================ */
+
+/* WebKit browsers (Chrome, Safari, Edge) */
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: inner-spin-button;
+    opacity: 1;
+    filter: invert(0.7);
+}
+
+/* Firefox */
+[data-theme="dark"] input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Re-enable spinners for Firefox on hover/focus */
+[data-theme="dark"] input[type="number"]:hover,
+[data-theme="dark"] input[type="number"]:focus {
+    -moz-appearance: number-input;
+}
+
+/* ===================================================================
    DARK MODE - LOCATIONS TAB
    ================================================================ */
 
@@ -763,7 +786,7 @@
 /* Location horizon mask and comments textareas */
 [data-theme="dark"] .locations-list textarea,
 [data-theme="dark"] .block textarea {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: 1px solid var(--border-medium);
     color: var(--text-primary);
 }
@@ -779,7 +802,7 @@
 [data-theme="dark"] .locations-list input[type="number"],
 [data-theme="dark"] .block input[type="text"],
 [data-theme="dark"] .block input[type="number"] {
-    background-color: var(--bg-medium);
+    background-color: var(--bg-medium-alt);
     border: 1px solid var(--border-medium);
     color: var(--text-primary);
 }
