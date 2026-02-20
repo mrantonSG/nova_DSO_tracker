@@ -52,6 +52,7 @@
      * @param {string} options.displayStyle - CSS display value when open (default: 'block')
      * @param {string} options.visibleClass - CSS class to add when visible (optional)
      * @param {string} options.ariaLabelledBy - Element ID for aria-labelledby (optional)
+     * @param {boolean} options.skipFocus - If true, don't auto-focus any element (default: false)
      */
     class ModalController {
         constructor(modalId, options = {}) {
@@ -75,6 +76,7 @@
                 visibleClass: options.visibleClass || null,
                 ariaLabelledBy: options.ariaLabelledBy || null,
                 cacheKey: options.cacheKey || null,
+                skipFocus: options.skipFocus || false,
                 onOpen: options.onOpen || null,
                 onClose: options.onClose || null,
                 beforeOpen: options.beforeOpen || null,
@@ -160,15 +162,16 @@
          * @private
          */
         _setInitialFocus() {
+            // Always reset scroll position on all potential scroll containers
+            this._resetScrollPosition();
+
+            // If skipFocus is enabled, don't focus any element
+            if (this.options.skipFocus) {
+                return;
+            }
+
             const focusableElements = this._getFocusableElements();
             if (focusableElements.length > 0) {
-                // Reset scroll position to top before focusing
-                if (this.contentElement) {
-                    this.contentElement.scrollTop = 0;
-                } else {
-                    this.modalElement.scrollTop = 0;
-                }
-
                 // Focus on the first focusable element that is NOT a close button
                 // This prevents scrolling to the bottom when close button is focused
                 // Convert NodeList to Array for .filter() support
@@ -183,6 +186,26 @@
                     focusableElements[0].focus();
                 }
             }
+        }
+
+        /**
+         * Reset scroll position on all scrollable containers within the modal
+         * @private
+         */
+        _resetScrollPosition() {
+            // Reset main modal element scroll
+            this.modalElement.scrollTop = 0;
+
+            // Reset content element scroll if it exists
+            if (this.contentElement) {
+                this.contentElement.scrollTop = 0;
+            }
+
+            // Reset scroll on common scrollable containers within the modal
+            const scrollContainers = this.modalElement.querySelectorAll('.insp-modal-body, .modal-content, .help-body, [style*="overflow"]');
+            scrollContainers.forEach(el => {
+                el.scrollTop = 0;
+            });
         }
 
         /**

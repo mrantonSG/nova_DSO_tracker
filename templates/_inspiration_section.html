@@ -372,7 +372,8 @@
                 displayStyle: 'block',
                 closeOnBackdrop: true,
                 closeOnEscape: true,
-                ariaLabelledBy: 'insp-modal-title'
+                ariaLabelledBy: 'insp-modal-title',
+                skipFocus: true // Don't auto-focus any element when opening
             });
 
             // Store reference in window.novaState for global access

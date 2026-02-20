@@ -125,7 +125,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 visibleClass: 'is-visible',
                 closeOnBackdrop: true,
                 closeOnEscape: true,
-                ariaLabelledBy: 'help-modal-title'
+                ariaLabelledBy: 'help-modal-title',
+                skipFocus: true // Don't auto-focus any element when opening
             });
             helpModalInitialized = true;
             console.log('[base.js] Help modal controller initialized successfully');
