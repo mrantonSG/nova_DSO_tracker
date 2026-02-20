@@ -566,41 +566,14 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN camera_name_snapshot VARCHAR(256);")
                 print("[DB PATCH] Added missing column journal_sessions.camera_name_snapshot")
 
-            # --- Deduplicate external_id values before creating unique index ---
-            # Find duplicate external_id values (non-NULL only)
-            dup_check = conn.exec_driver_sql("""
-                SELECT external_id, COUNT(*) as cnt
-                FROM journal_sessions
-                WHERE external_id IS NOT NULL
-                GROUP BY external_id
-                HAVING COUNT(*) > 1
-            """).fetchall()
-
-            if dup_check:
-                print(f"[DB PATCH] Found {len(dup_check)} duplicate external_id value(s). Resolving...")
-                for (ext_id, count) in dup_check:
-                    # Get all rows with this duplicate external_id (keep the one with lowest id)
-                    rows = conn.exec_driver_sql(
-                        "SELECT id FROM journal_sessions WHERE external_id = ? ORDER BY id",
-                        (ext_id,)
-                    ).fetchall()
-                    # Regenerate external_id for all but the first (oldest) row
-                    for row in rows[1:]:
-                        new_id = uuid.uuid4().hex
-                        conn.exec_driver_sql(
-                            "UPDATE journal_sessions SET external_id = ? WHERE id = ?",
-                            (new_id, row[0])
-                        )
-                        print(f"[DB PATCH] Regenerated external_id for journal_sessions.id={row[0]} (was '{ext_id}' -> '{new_id}')")
-
             try:
                 conn.exec_driver_sql(
                     "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
                 )
-                print("[DB PATCH] Created unique index uq_journal_external_id on journal_sessions")
             except Exception as idx_err:
-                # Index creation may fail if it already exists
-                print(f"[DB PATCH] Could not create journal external_id index: {idx_err}")
+                # Index creation may fail if it already exists or table structure differs
+                # Also may fail due to IntegrityError from duplicate external_id values
+                print(f"[DB PATCH] Could not create journal external_id index (may already exist or have duplicates): {idx_err}")
 
             # --- PERFORMANCE: Add Composite Index for Journal Sessions ---
             try:
