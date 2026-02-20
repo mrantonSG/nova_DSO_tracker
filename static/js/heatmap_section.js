@@ -339,10 +339,28 @@
     // ============================================
 
     /**
+     * Update legend text based on current theme
+     */
+    function updateHeatmapLegendText() {
+        const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme
+            ? window.stylingUtils.isDarkTheme()
+            : false;
+
+        const legendText = document.getElementById('heatmap-legend-text');
+        if (legendText) {
+            const qualityText = isDark ? 'Brighter Green = Best Quality' : 'Darker Green = Best Quality';
+            legendText.textContent = `* Vertical light bands = Full Moon (Washed out). ${qualityText}. Click object names to view details.`;
+        }
+    }
+
+    /**
      * Update heatmap with theme-aware colors
      * Re-renders the heatmap with new background and text colors
      */
     function updateHeatmapForTheme() {
+        // Update legend text first
+        updateHeatmapLegendText();
+
         if (!globalHeatmapData || !currentFilteredY) return;
 
         const isDark = window.stylingUtils && window.stylingUtils.isDarkTheme
@@ -443,7 +461,10 @@
             updateHeatmapForTheme();
         });
 
-        // Initial update when stylingUtils is available
+        // Initial legend text update (happens immediately, doesn't need heatmap data)
+        updateHeatmapLegendText();
+
+        // Initial heatmap update when stylingUtils is available
         // Wait a bit for heatmap to be initialized
         setTimeout(updateHeatmapForTheme, 100);
     }
@@ -454,6 +475,7 @@
 
     // Expose theme update function for external calls
     window.updateHeatmapForTheme = updateHeatmapForTheme;
+    window.updateHeatmapLegendText = updateHeatmapLegendText;
 
 })();
 
