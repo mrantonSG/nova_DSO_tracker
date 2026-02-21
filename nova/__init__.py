@@ -129,6 +129,7 @@ from nova.helpers import (
 from nova.workers.weather import weather_cache_worker
 from nova.workers.updates import check_for_updates
 from nova.workers.heatmap import heatmap_background_worker
+from nova.workers.iers import iers_refresh_worker
 
 from nova.blueprints.core import core_bp
 from nova.blueprints.api import api_bp
@@ -12537,6 +12538,11 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         heatmap_thread = threading.Thread(target=heatmap_background_worker, args=(app,))
         heatmap_thread.daemon = True
         heatmap_thread.start()
+
+        print("[STARTUP] Starting background IERS data refresh thread...")
+        iers_thread = threading.Thread(target=iers_refresh_worker, args=(app,))
+        iers_thread.daemon = True
+        iers_thread.start()
 
 
 @app.cli.command("reset-guest-from-template")
