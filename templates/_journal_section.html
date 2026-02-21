@@ -343,6 +343,29 @@
         color: var(--text-primary) !important;
         border-bottom-color: var(--border-medium) !important;
     }
+
+    /* Log Analysis Styles */
+    .log-analysis-container { padding: 15px 0; }
+    .log-analysis-tabs { display: flex; gap: 8px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-medium-alt); }
+    .log-analysis-tab-btn { padding: 6px 14px; cursor: pointer; border: 1px solid var(--border-medium); background-color: var(--bg-light); color: var(--text-secondary); border-radius: 4px; font-size: 13px; transition: all 0.2s ease; }
+    .log-analysis-tab-btn:hover { background-color: var(--bg-medium); }
+    .log-analysis-tab-btn.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .log-analysis-content { display: none; }
+    .log-analysis-content.active { display: block; }
+    .log-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 25px; }
+    .log-stat-card { background-color: var(--bg-light); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; text-align: center; }
+    .log-stat-value { display: block; font-size: 1.6em; font-weight: 700; color: var(--primary-color); }
+    .log-stat-label { display: block; font-size: 0.75em; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+    .log-stats-inline { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; font-size: 0.9em; color: var(--text-secondary); }
+    .log-stats-inline strong { color: var(--text-primary); }
+    .log-chart-container { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; margin-bottom: 20px; min-height: 300px; }
+    .log-af-runs-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .log-af-vcurve-card { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; }
+    .log-af-vcurve-card h5 { margin: 0 0 10px 0; font-size: 0.9em; color: var(--text-secondary); }
+    .log-af-vcurve-card canvas { max-height: 200px; }
+    [data-theme="dark"] .log-stat-card { background-color: var(--bg-medium); border-color: var(--border-dark); }
+    [data-theme="dark"] .log-chart-container,
+    [data-theme="dark"] .log-af-vcurve-card { background-color: #0a0f1e; border-color: var(--border-dark); }
 </style>
 
 {% from "macros.html" import form_group, stat_box, tab_button, detail_row %}
@@ -428,6 +451,9 @@
                     <button class="detail-tab-button active" data-tab="summary" data-action="show-detail-tab">Summary</button>
                     <button class="detail-tab-button" data-tab="acq" data-action="show-detail-tab">Equipment & Acquisition</button>
                     <button class="detail-tab-button" data-tab="outcome" data-action="show-detail-tab">Calibration & Outcome</button>
+                    {% if entry.asiair_log_content or entry.phd2_log_content %}
+                    <button class="detail-tab-button" data-tab="logs" data-action="show-detail-tab">Logs</button>
+                    {% endif %}
                     <button class="detail-tab-button" data-tab="report" data-action="show-detail-tab">Session Report</button>
                 </div>
 
@@ -584,6 +610,87 @@
                                 </button>
                             </div>
                             <iframe id="report-preview-frame" data-src="{{ url_for('journal.show_journal_report_page', session_id=entry.id) }}" class="report-iframe"></iframe>
+                        </div>
+                    </div>
+
+                    {# --- LOG ANALYSIS TAB --- #}
+                    <div id="logs-tab" class="detail-tab-content">
+                        <div class="log-analysis-container" data-session-id="{{ entry.id }}">
+                            <div class="log-analysis-tabs">
+                                <button class="log-analysis-tab-btn active" data-log-tab="overview">Overview</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="guiding">Guiding</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="dithering">Dithering</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="autofocus">AutoFocus</button>
+                            </div>
+
+                            {# Overview Tab #}
+                            <div id="log-overview-tab" class="log-analysis-content active">
+                                <div class="log-stats-grid">
+                                    <div class="log-stat-card">
+                                        <span class="log-stat-value" id="log-total-exposures">-</span>
+                                        <span class="log-stat-label">Exposures</span>
+                                    </div>
+                                    <div class="log-stat-card">
+                                        <span class="log-stat-value" id="log-total-time">-</span>
+                                        <span class="log-stat-label">Total Time</span>
+                                    </div>
+                                    <div class="log-stat-card">
+                                        <span class="log-stat-value" id="log-guiding-rms">-</span>
+                                        <span class="log-stat-label">Guiding RMS</span>
+                                    </div>
+                                    <div class="log-stat-card">
+                                        <span class="log-stat-value" id="log-dither-count">-</span>
+                                        <span class="log-stat-label">Dithers</span>
+                                    </div>
+                                    <div class="log-stat-card">
+                                        <span class="log-stat-value" id="log-af-count">-</span>
+                                        <span class="log-stat-label">AF Runs</span>
+                                    </div>
+                                    <div class="log-stat-card">
+                                        <span class="log-stat-value" id="log-pixel-scale">-</span>
+                                        <span class="log-stat-label">Pixel Scale</span>
+                                    </div>
+                                </div>
+                                <div class="log-chart-container">
+                                    <canvas id="log-overview-chart"></canvas>
+                                </div>
+                            </div>
+
+                            {# Guiding Tab #}
+                            <div id="log-guiding-tab" class="log-analysis-content">
+                                <div class="log-stats-inline">
+                                    <span>RA RMS: <strong id="log-ra-rms">-</strong>"</span>
+                                    <span>Dec RMS: <strong id="log-dec-rms">-</strong>"</span>
+                                    <span>Total RMS: <strong id="log-total-rms">-</strong>"</span>
+                                    <span>Frames: <strong id="log-frame-count">-</strong></span>
+                                </div>
+                                <div class="log-chart-container">
+                                    <canvas id="log-guiding-chart"></canvas>
+                                </div>
+                                <div class="log-chart-container">
+                                    <canvas id="log-correction-chart"></canvas>
+                                </div>
+                            </div>
+
+                            {# Dithering Tab #}
+                            <div id="log-dithering-tab" class="log-analysis-content">
+                                <div class="log-stats-inline">
+                                    <span>Total Dithers: <strong id="log-dither-total">-</strong></span>
+                                    <span>Settle Success: <strong id="log-settle-success">-</strong></span>
+                                    <span>Settle Timeout: <strong id="log-settle-timeout">-</strong></span>
+                                </div>
+                                <div class="log-chart-container">
+                                    <canvas id="log-dither-chart"></canvas>
+                                </div>
+                            </div>
+
+                            {# AutoFocus Tab #}
+                            <div id="log-autofocus-tab" class="log-analysis-content">
+                                <div class="log-stats-inline">
+                                    <span>AF Runs: <strong id="log-af-total">-</strong></span>
+                                </div>
+                                <div class="log-af-runs-container" id="log-af-runs"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -854,8 +961,67 @@
                     </div>
                     {% if selected_session_data and selected_session_data.session_image_file %}<div class="form-group full-width"><label>Current Image:</label><div style="display: flex; align-items: center; gap: 15px;"><span style="font-family: monospace; font-size: 13px;">{{ selected_session_data.session_image_file }}</span><label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;"><input type="checkbox" name="delete_session_image" value="1"> Delete Image</label></div></div>{% endif %}
                     <div class="form-group full-width"><label for="session_image">Upload New or Replace Image (optional, max 5MB)</label><input type="file" id="session_image" name="session_image" accept="image/jpeg, image/png, image/gif"></div>
+
+                    {# --- Session Logs Section --- #}
+                    <div class="form-section-title" style="margin-top: 20px; font-weight: 600; color: var(--text-secondary); font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Session Logs (Optional)</div>
+                    <div class="form-row" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            {% if selected_session_data and selected_session_data.asiair_log_content %}
+                            <label style="font-weight: 600; color: var(--text-primary);">ASIAIR Log:</label>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="color: var(--success-color); font-size: 12px;">✓ Uploaded</span>
+                                <label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 12px;">
+                                    <input type="checkbox" name="delete_asiair_log" value="1"> Delete
+                                </label>
+                            </div>
+                            {% else %}
+                            <label for="asiair_log">ASIAIR Autorun Log (.txt/.log)</label>
+                            <input type="file" id="asiair_log" name="asiair_log" accept=".txt,.log">
+                            {% endif %}
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            {% if selected_session_data and selected_session_data.phd2_log_content %}
+                            <label style="font-weight: 600; color: var(--text-primary);">PHD2 Guide Log:</label>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="color: var(--success-color); font-size: 12px;">✓ Uploaded</span>
+                                <label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 12px;">
+                                    <input type="checkbox" name="delete_phd2_log" value="1"> Delete
+                                </label>
+                            </div>
+                            {% else %}
+                            <label for="phd2_log">PHD2 Guide Log (.txt/.log)</label>
+                            <input type="file" id="phd2_log" name="phd2_log" accept=".txt,.log">
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+{# --- Log Analysis Charts Initialization --- #}
+<script src="{{ url_for('static', filename='js/session_log_charts.js') }}"></script>
+<script>
+// Initialize log analysis when Logs tab is shown
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.detail-tab-button[data-tab="logs"]');
+    if (btn) {
+        const container = document.querySelector('.log-analysis-container');
+        if (container) {
+            const sessionId = container.dataset.sessionId;
+            if (sessionId) {
+                window.initSessionLogAnalysis(sessionId);
+            }
+        }
+    }
+});
+
+// Cleanup when switching sessions
+document.addEventListener('click', function(e) {
+    const sessionItem = e.target.closest('.session-list-item, .clickable-session-row');
+    if (sessionItem) {
+        window.cleanupSessionLogCharts && window.cleanupSessionLogCharts();
+    }
+});
+</script>

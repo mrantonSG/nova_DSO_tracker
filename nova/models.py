@@ -322,6 +322,11 @@ class JournalSession(Base):
     calculated_integration_time_minutes = Column(Float, nullable=True)
     external_id = Column(String(64), nullable=True, index=True)
 
+    # --- Log content stored directly in database ---
+    asiair_log_content = Column(Text, nullable=True)     # Raw ASIAIR autorun log
+    phd2_log_content = Column(Text, nullable=True)       # Raw PHD2 guide log
+    log_analysis_cache = Column(Text, nullable=True)     # Cached JSON from parse-once
+
     user = relationship("DbUser", back_populates="sessions")
     project = relationship("Project", back_populates="sessions")
     rig_snapshot = relationship("Rig", foreign_keys=[rig_id_snapshot]) # <-- ADDED THIS
