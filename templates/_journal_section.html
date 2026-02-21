@@ -358,8 +358,9 @@
     .log-stat-label { display: block; font-size: 0.75em; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
     .log-stats-inline { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 15px; font-size: 0.9em; color: var(--text-secondary); }
     .log-stats-inline strong { color: var(--text-primary); }
-    .log-chart-container { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; margin-bottom: 20px; min-height: 300px; }
-    .log-af-runs-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .log-chart-container { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; margin-bottom: 20px; min-height: 300px; max-width: 970px; overflow-x: auto; }
+    .log-chart-container canvas { min-width: 100%; }
+    .log-af-runs-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 970px; }
     .log-af-vcurve-card { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; }
     .log-af-vcurve-card h5 { margin: 0 0 10px 0; font-size: 0.9em; color: var(--text-secondary); }
     .log-af-vcurve-card canvas { max-height: 200px; }
