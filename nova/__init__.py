@@ -3639,6 +3639,85 @@ def api_parse_asiair_log():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+@api_bp.route('/api/session/<int:session_id>/log-analysis')
+@login_required
+def get_session_log_analysis(session_id):
+    """
+    Return structured log data for Chart.js visualization with parse-once caching.
+
+    Returns:
+    {
+        'has_logs': bool,
+        'asiair': {...} or null,
+        'phd2': {...} or null,
+        'combined': {...}
+    }
+    """
+    import json
+    from nova.log_parser import parse_asiair_log, parse_phd2_log
+
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    db = get_db()
+    user = db.query(DbUser).filter_by(username=username).one_or_none()
+
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    session = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
+    if not session:
+        return jsonify({'error': 'Session not found'}), 404
+
+    # 1. Return cached result if available
+    if session.log_analysis_cache:
+        try:
+            return jsonify(json.loads(session.log_analysis_cache))
+        except json.JSONDecodeError:
+            pass  # Fall through to re-parse if cache is corrupt
+
+    # 2. Parse logs if any exist
+    result = {
+        'has_logs': False,
+        'asiair': None,
+        'phd2': None,
+        'combined': {
+            'exposures': [],
+            'dithers': [],
+            'af_runs': [],
+            'meridian_flips': [],
+            'frames': [],
+            'rms': [],
+            'run_bounds': [],
+            'stats': {}
+        }
+    }
+
+    if session.asiair_log_content:
+        result['asiair'] = parse_asiair_log(session.asiair_log_content)
+        result['has_logs'] = True
+        result['combined']['exposures'] = result['asiair']['exposures']
+        result['combined']['dithers'] = result['asiair']['dithers']
+        result['combined']['af_runs'] = result['asiair']['af_runs']
+        result['combined']['meridian_flips'] = result['asiair']['meridian_flips']
+        result['combined']['stats']['asiair'] = result['asiair']['stats']
+
+    if session.phd2_log_content:
+        result['phd2'] = parse_phd2_log(session.phd2_log_content)
+        result['has_logs'] = True
+        result['combined']['frames'] = result['phd2']['frames']
+        result['combined']['rms'] = result['phd2']['rms']
+        result['combined']['run_bounds'] = result['phd2']['run_bounds']
+        result['combined']['stats']['pixel_scale'] = result['phd2']['pixel_scale']
+        result['combined']['stats']['phd2'] = result['phd2']['stats']
+
+    # 3. Cache the result if parsing happened
+    if result['has_logs']:
+        session.log_analysis_cache = json.dumps(result)
+        db.commit()
+
+    return jsonify(result)
+
+
 @api_bp.route('/api/get_plot_data/<path:object_name>')
 def get_plot_data(object_name):
     load_full_astro_context()  # Ensures g context is loaded if needed
@@ -6200,6 +6279,17 @@ def journal_add():
                     file.save(os.path.join(user_upload_dir, new_filename))
                     new_session.session_image_file = new_filename
 
+            # --- Log file uploads (stored as TEXT in DB) ---
+            if 'asiair_log' in request.files:
+                log_file = request.files['asiair_log']
+                if log_file and log_file.filename != '':
+                    new_session.asiair_log_content = log_file.read().decode('utf-8', errors='ignore')
+
+            if 'phd2_log' in request.files:
+                log_file = request.files['phd2_log']
+                if log_file and log_file.filename != '':
+                    new_session.phd2_log_content = log_file.read().decode('utf-8', errors='ignore')
+
             db.commit()
             flash("New journal entry added successfully!", "success")
             # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
@@ -6401,6 +6491,36 @@ def journal_edit(session_id):
                 os.makedirs(user_upload_dir, exist_ok=True)
                 file.save(os.path.join(user_upload_dir, new_filename))
                 session_to_edit.session_image_file = new_filename
+
+        # --- Log file handling (stored as TEXT in DB) ---
+        # Track if we need to invalidate the analysis cache
+        invalidate_cache = False
+
+        # Log file uploads
+        if 'asiair_log' in request.files:
+            log_file = request.files['asiair_log']
+            if log_file and log_file.filename != '':
+                session_to_edit.asiair_log_content = log_file.read().decode('utf-8', errors='ignore')
+                invalidate_cache = True
+
+        if 'phd2_log' in request.files:
+            log_file = request.files['phd2_log']
+            if log_file and log_file.filename != '':
+                session_to_edit.phd2_log_content = log_file.read().decode('utf-8', errors='ignore')
+                invalidate_cache = True
+
+        # Log deletion via checkbox
+        if request.form.get('delete_asiair_log') == '1':
+            session_to_edit.asiair_log_content = None
+            invalidate_cache = True
+
+        if request.form.get('delete_phd2_log') == '1':
+            session_to_edit.phd2_log_content = None
+            invalidate_cache = True
+
+        # Invalidate analysis cache if logs changed
+        if invalidate_cache:
+            session_to_edit.log_analysis_cache = None
 
         db.commit()
         flash("Journal entry updated successfully!", "success")
