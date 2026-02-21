@@ -445,6 +445,10 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
     col_map = {}
     first_session_start = None  # Absolute start time of first session
 
+    # Track settle windows for RMS exclusion
+    pending_settle_start_h = None  # hours offset when settle started
+    settle_windows = []  # [{h_start, h_end}, ...]
+
     for line in lines:
         line = line.strip()
         if not line:
@@ -510,10 +514,30 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
         # --- SETTLING STATE CHANGE ---
         if "SETTLING STATE CHANGE" in line.upper():
             lower_line = line.lower()
-            if 'settling complete' in lower_line or 'complete' in lower_line:
+            # Calculate current hours from last frame time in session
+            current_h = None
+            if current_session is not None and current_session['frames']:
+                current_h = current_session['hours_offset'] + (current_session['frames'][-1][0] / 3600.0)
+            elif current_session is not None:
+                # No frames yet - use session start offset
+                current_h = current_session['hours_offset']
+
+            if 'settling started' in lower_line or 'started' in lower_line:
+                # Record settle start at current time
+                if current_session is not None and current_h is not None:
+                    pending_settle_start_h = current_h
+            elif 'settling complete' in lower_line or 'complete' in lower_line:
                 result['stats']['settle_success_count'] += 1
+                # Close settle window
+                if pending_settle_start_h is not None and current_h is not None:
+                    settle_windows.append({'h_start': pending_settle_start_h, 'h_end': current_h})
+                    pending_settle_start_h = None
             elif 'timeout' in lower_line or 'failed' in lower_line:
                 result['stats']['settle_timeout_count'] += 1
+                # Close settle window even on timeout
+                if pending_settle_start_h is not None and current_h is not None:
+                    settle_windows.append({'h_start': pending_settle_start_h, 'h_end': current_h})
+                    pending_settle_start_h = None
             continue
 
         # --- DITHER marker ---
@@ -634,18 +658,92 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
             round(total_rms_px * ps, 3)
         ])
 
-    # Compute overall stats
+    # --- Outlier filtering using IQR method ---
+    def filter_outliers_iqr(values: List[float]) -> List[float]:
+        """
+        Remove outliers using IQR method (3x IQR upper bound).
+        Only removes genuine extreme outliers, not normal guiding variations.
+        """
+        if len(values) < 4:
+            return values
+        sorted_v = sorted(values)
+        q1 = sorted_v[len(sorted_v) // 4]
+        q3 = sorted_v[3 * len(sorted_v) // 4]
+        iqr = q3 - q1
+        upper = q3 + 3.0 * iqr  # 3x IQR is conservative
+        return [v for v in values if abs(v) <= upper]
+
+    # Compute overall stats with outlier filtering
     all_ra = [f[1] for f in all_frames]
     all_dec = [f[2] for f in all_frames]
 
-    result['stats']['ra_rms_px'] = round(math.sqrt(sum(r * r for r in all_ra) / len(all_ra)), 3)
-    result['stats']['dec_rms_px'] = round(math.sqrt(sum(d * d for d in all_dec) / len(all_dec)), 3)
-    result['stats']['total_rms_px'] = round(math.sqrt(sum(r * r + d * d for r, d in zip(all_ra, all_dec)) / len(all_ra)), 3)
+    all_ra_clean = filter_outliers_iqr(all_ra)
+    all_dec_clean = filter_outliers_iqr(all_dec)
+    outliers_removed = len(all_ra) - len(all_ra_clean) + len(all_dec) - len(all_dec_clean)
+
+    result['stats']['ra_rms_px'] = round(math.sqrt(sum(r * r for r in all_ra_clean) / len(all_ra_clean)), 3) if all_ra_clean else 0
+    result['stats']['dec_rms_px'] = round(math.sqrt(sum(d * d for d in all_dec_clean) / len(all_dec_clean)), 3) if all_dec_clean else 0
+    result['stats']['total_rms_px'] = round(math.sqrt(result['stats']['ra_rms_px']**2 + result['stats']['dec_rms_px']**2), 3)
 
     result['stats']['ra_rms_as'] = round(result['stats']['ra_rms_px'] * ps, 3)
     result['stats']['dec_rms_as'] = round(result['stats']['dec_rms_px'] * ps, 3)
     result['stats']['total_rms_as'] = round(result['stats']['total_rms_px'] * ps, 3)
     result['stats']['total_frames'] = len(all_frames)
+    result['stats']['outliers_removed'] = outliers_removed
+
+    # --- Store settle windows for reference ---
+    result['settle_windows'] = settle_windows
+
+    # --- Validate pixel_scale before imaging stats calculation ---
+    if ps is None or ps == 0:
+        ps = 1.0  # Fallback to avoid division issues
+        result['pixel_scale'] = ps
+
+    # --- Calculate imaging-only RMS (excluding dither/settle periods) ---
+    def is_during_settle(h: float, windows: List[Dict], buffer_h: float = 0.0083) -> bool:
+        """
+        Check if hour h falls within any settle window.
+        buffer_h: pre-dither buffer in hours (0.0083h = 0.5min default)
+        """
+        for w in windows:
+            # Apply buffer before h_start to catch the dither motion itself
+            if (w['h_start'] - buffer_h) <= h <= w['h_end']:
+                return True
+        return False
+
+    if settle_windows:
+        # Filter frames that are NOT during settle
+        imaging_frames = [f for f in all_frames if not is_during_settle(f[0], settle_windows)]
+
+        if imaging_frames:
+            imaging_ra = [f[1] for f in imaging_frames]
+            imaging_dec = [f[2] for f in imaging_frames]
+
+            # Apply outlier filtering to imaging frames too
+            imaging_ra_clean = filter_outliers_iqr(imaging_ra)
+            imaging_dec_clean = filter_outliers_iqr(imaging_dec)
+            imaging_outliers = len(imaging_ra) - len(imaging_ra_clean) + len(imaging_dec) - len(imaging_dec_clean)
+
+            imaging_ra_rms_px = math.sqrt(sum(r * r for r in imaging_ra_clean) / len(imaging_ra_clean)) if imaging_ra_clean else 0
+            imaging_dec_rms_px = math.sqrt(sum(d * d for d in imaging_dec_clean) / len(imaging_dec_clean)) if imaging_dec_clean else 0
+            imaging_total_rms_px = math.sqrt(imaging_ra_rms_px**2 + imaging_dec_rms_px**2)
+
+            result['stats']['imaging'] = {
+                'ra_rms_as': round(imaging_ra_rms_px * ps, 3),
+                'dec_rms_as': round(imaging_dec_rms_px * ps, 3),
+                'total_rms_as': round(imaging_total_rms_px * ps, 3),
+                'frame_count': len(imaging_frames),
+                'outliers_removed': imaging_outliers
+            }
+
+    # Store "all frames" stats under 'all' key for consistency
+    result['stats']['all'] = {
+        'ra_rms_as': result['stats']['ra_rms_as'],
+        'dec_rms_as': result['stats']['dec_rms_as'],
+        'total_rms_as': result['stats']['total_rms_as'],
+        'frame_count': len(all_frames),
+        'outliers_removed': outliers_removed
+    }
 
     # --- Decimation: Apply LTTB to reduce data size ---
     DECIMATION_THRESHOLD = 1000
