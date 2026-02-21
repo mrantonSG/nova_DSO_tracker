@@ -364,9 +364,20 @@
     .log-af-vcurve-card { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; }
     .log-af-vcurve-card h5 { margin: 0 0 10px 0; font-size: 0.9em; color: var(--text-secondary); }
     .log-af-vcurve-card canvas { max-height: 200px; }
+    .log-data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+    .log-data-table th, .log-data-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border-light); }
+    .log-data-table th { color: var(--text-muted); font-weight: 500; text-transform: uppercase; font-size: 0.8em; }
+    .log-data-table td { color: var(--text-primary); }
+    .log-data-table tbody tr:hover { background-color: var(--bg-light); }
+    .log-status-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 500; }
+    .log-status-success { background-color: rgba(72, 199, 142, 0.2); color: #48c78e; }
+    .log-status-fail { background-color: rgba(255, 99, 132, 0.2); color: #ff6384; }
     [data-theme="dark"] .log-stat-card { background-color: var(--bg-medium); border-color: var(--border-dark); }
     [data-theme="dark"] .log-chart-container,
     [data-theme="dark"] .log-af-vcurve-card { background-color: #0a0f1e; border-color: var(--border-dark); }
+    [data-theme="dark"] .log-data-table th { border-color: var(--border-dark); }
+    [data-theme="dark"] .log-data-table td { border-color: var(--border-dark); }
+    [data-theme="dark"] .log-data-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.05); }
 </style>
 
 {% from "macros.html" import form_group, stat_box, tab_button, detail_row %}
@@ -654,6 +665,34 @@
                                 </div>
                                 <div class="log-chart-container">
                                     <canvas id="log-overview-chart"></canvas>
+                                </div>
+                                {# Plate Solve Results Table #}
+                                <div class="log-chart-container" id="log-plate-solve-panel" style="display:none;">
+                                    <h5 style="margin: 0 0 12px 0; color: var(--text-secondary);">Plate Solve Results</h5>
+                                    <table class="log-data-table" id="log-plate-solve-table">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Time</th>
+                                                <th>RA</th>
+                                                <th>Dec</th>
+                                                <th>Angle</th>
+                                                <th>Stars</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                    <div id="log-pointing-drift" class="log-stats-inline" style="margin-top: 12px; display:none;"></div>
+                                </div>
+                                {# Autocenter Accuracy Chart #}
+                                <div class="log-chart-container" id="log-autocenter-panel" style="display:none; min-height: auto;">
+                                    <h5 style="margin: 0 0 8px 0; color: var(--text-secondary);">Autocenter Accuracy Over Time</h5>
+                                    <p style="margin: 0 0 12px 0; font-size: 0.85em; color: var(--text-muted);">Distance from target center per centering attempt</p>
+                                    <div class="log-stats-inline" id="log-autocenter-stats"></div>
+                                    <div style="height: 300px;">
+                                        <canvas id="log-autocenter-chart"></canvas>
+                                    </div>
                                 </div>
                             </div>
 

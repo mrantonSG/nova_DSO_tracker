@@ -103,6 +103,7 @@ ASIAIR_PATTERNS = {
     'plate_solve': re.compile(r'Solve succeeded:\s*RA:([0-9hms]+)\s+DEC:([+-]?[0-9°\'\"]+)\s+Angle\s*=\s*([\d.]+)', re.IGNORECASE),
     'plate_solve_stars': re.compile(r'Star\s+number\s*=\s*(\d+)', re.IGNORECASE),
     'autocenter_distance': re.compile(r'distance\s*=\s*([\d.]+)%\s*\(([\d.]+)°?\)', re.IGNORECASE),
+    'autocenter_success': re.compile(r'\[AutoCenter\|End\]\s*The target is centered', re.IGNORECASE),
     'autorun_begin': re.compile(r'\[Autorun\|Begin\]', re.IGNORECASE),
     'autorun_end': re.compile(r'\[Autorun\|End\]', re.IGNORECASE),
     'shooting_plan': re.compile(r'Shooting\s+(\d+)\s+\w+\s+frames?,\s*exposure\s+([\d.]+)(s|ms)\s*(?:Bin(\d+))?', re.IGNORECASE),
@@ -243,6 +244,7 @@ def parse_asiair_log(content: str) -> Dict[str, Any]:
             continue
 
         # --- AutoCenter Results ---
+        # Case 1: "Too far from center, distance = X%"
         autocenter_match = ASIAIR_PATTERNS['autocenter_distance'].search(line)
         if autocenter_match:
             result['autocenters'].append({
@@ -250,7 +252,18 @@ def parse_asiair_log(content: str) -> Dict[str, Any]:
                 'ts': dt.isoformat(),
                 'distance_pct': float(autocenter_match.group(1)),
                 'distance_deg': float(autocenter_match.group(2)),
-                'centered': 'centered' in line.lower()
+                'centered': False
+            })
+            continue
+
+        # Case 2: "The target is centered" (no distance in log)
+        if ASIAIR_PATTERNS['autocenter_success'].search(line):
+            result['autocenters'].append({
+                'h': round(hours_elapsed, 4),
+                'ts': dt.isoformat(),
+                'distance_pct': 0.0,
+                'distance_deg': 0.0,
+                'centered': True
             })
             continue
 

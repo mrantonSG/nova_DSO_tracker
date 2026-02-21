@@ -34,7 +34,8 @@
         dither: null,
         afCurves: [],
         guidePulseScatter: null,
-        guidePulseDuration: null
+        guidePulseDuration: null,
+        autocenter: null
     };
 
     // --- Cached data ---
@@ -386,6 +387,243 @@
                         display: false,
                         min: 0,
                         max: 0.15
+                    }
+                }
+            }
+        });
+
+        // === Plate Solve Table ===
+        renderPlateSolveTable(asiair, sessionStart, hoursToTime);
+
+        // === Autocenter Chart ===
+        renderAutocenterChart(asiair, sessionStart, hoursToTime);
+    }
+
+    /**
+     * Parse RA string (e.g., "12h34m56s") to decimal degrees
+     */
+    function parseRaToDegrees(raStr) {
+        if (!raStr) return null;
+        try {
+            const match = raStr.match(/(\d+)h(\d+)m(\d+(?:\.\d+)?)s/i);
+            if (match) {
+                const hours = parseFloat(match[1]);
+                const mins = parseFloat(match[2]);
+                const secs = parseFloat(match[3]);
+                return (hours + mins / 60 + secs / 3600) * 15;  // 1 hour = 15 degrees
+            }
+            console.warn('Failed to parse RA string:', raStr);
+            return null;
+        } catch (e) {
+            console.warn('Error parsing RA string:', raStr, e);
+            return null;
+        }
+    }
+
+    /**
+     * Parse Dec string (e.g., "+12°34'56\"") to decimal degrees
+     */
+    function parseDecToDegrees(decStr) {
+        if (!decStr) return null;
+        try {
+            const match = decStr.match(/([+-]?)(\d+)[°](\d+)'(\d+(?:\.\d+)?)"?/);
+            if (match) {
+                const sign = match[1] === '-' ? -1 : 1;
+                const deg = parseFloat(match[2]);
+                const mins = parseFloat(match[3]);
+                const secs = parseFloat(match[4]);
+                return sign * (deg + mins / 60 + secs / 3600);
+            }
+            console.warn('Failed to parse Dec string:', decStr);
+            return null;
+        } catch (e) {
+            console.warn('Error parsing Dec string:', decStr, e);
+            return null;
+        }
+    }
+
+    /**
+     * Render Plate Solve Results Table
+     */
+    function renderPlateSolveTable(asiair, sessionStart, hoursToTime) {
+        const panel = document.getElementById('log-plate-solve-panel');
+        const tableBody = document.querySelector('#log-plate-solve-table tbody');
+        const driftEl = document.getElementById('log-pointing-drift');
+
+        if (!panel || !tableBody) return;
+
+        const solves = asiair?.plate_solves || [];
+        if (solves.length === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+        tableBody.innerHTML = '';
+
+        solves.forEach((solve, idx) => {
+            const row = document.createElement('tr');
+            const timeStr = hoursToTime(solve.h);
+            const angle = solve.angle !== null && solve.angle !== undefined
+                ? `${solve.angle.toFixed(1)}°`
+                : '-';
+            const stars = solve.stars || 0;
+
+            row.innerHTML = `
+                <td>${idx + 1}</td>
+                <td>${timeStr}</td>
+                <td style="font-family: monospace; font-size: 0.9em;">${solve.ra || '-'}</td>
+                <td style="font-family: monospace; font-size: 0.9em;">${solve.dec || '-'}</td>
+                <td>${angle}</td>
+                <td>${stars}</td>
+                <td><span class="log-status-badge log-status-success">✓ Solved</span></td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        // Calculate pointing drift if 2+ solves
+        if (solves.length >= 2) {
+            const first = solves[0];
+            const last = solves[solves.length - 1];
+
+            const raFirst = parseRaToDegrees(first.ra);
+            const raLast = parseRaToDegrees(last.ra);
+            const decFirst = parseDecToDegrees(first.dec);
+            const decLast = parseDecToDegrees(last.dec);
+            const timeSpan = last.h - first.h;
+
+            // Only show drift if time span > 5 minutes (0.083 hours)
+            if (timeSpan > 0.083 && raFirst !== null && raLast !== null && decFirst !== null && decLast !== null) {
+                const raDrift = raLast - raFirst;
+                const decDrift = decLast - decFirst;
+                const angleDrift = (last.angle || 0) - (first.angle || 0);
+
+                driftEl.innerHTML = `
+                    <span>Pointing drift over ${timeSpan.toFixed(1)}h —</span>
+                    <span>RA: <strong>${raDrift >= 0 ? '+' : ''}${raDrift.toFixed(2)}°</strong></span>
+                    <span>Dec: <strong>${decDrift >= 0 ? '+' : ''}${decDrift.toFixed(2)}°</strong></span>
+                    <span>Rotation: <strong>${angleDrift >= 0 ? '+' : ''}${angleDrift.toFixed(1)}°</strong></span>
+                `;
+                driftEl.style.display = 'flex';
+            } else {
+                driftEl.style.display = 'none';
+            }
+        } else {
+            driftEl.style.display = 'none';
+        }
+    }
+
+    /**
+     * Render Autocenter Accuracy Chart
+     */
+    function renderAutocenterChart(asiair, sessionStart, hoursToTime) {
+        const panel = document.getElementById('log-autocenter-panel');
+        const canvas = document.getElementById('log-autocenter-chart');
+        const statsEl = document.getElementById('log-autocenter-stats');
+
+        if (!panel || !canvas) return;
+
+        const autocenters = asiair?.autocenters || [];
+
+        // Need at least 2 entries for a meaningful chart
+        if (autocenters.length < 2) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = 'block';
+
+        // Calculate stats
+        const total = autocenters.length;
+        const centeredCount = autocenters.filter(ac => ac.centered).length;
+        const successRate = total > 0 ? Math.round((centeredCount / total) * 100) : 0;
+        const distances = autocenters.map(ac => ac.distance_pct || 0);
+        const avgDistance = distances.reduce((a, b) => a + b, 0) / distances.length;
+        const bestDistance = Math.min(...distances);
+        const worstDistance = Math.max(...distances);
+
+        statsEl.innerHTML = `
+            <span>Total: <strong>${total}</strong></span>
+            <span>Success: <strong>${successRate}%</strong></span>
+            <span>Avg: <strong>${avgDistance.toFixed(2)}%</strong></span>
+            <span>Best: <strong>${bestDistance.toFixed(2)}%</strong></span>
+            <span>Worst: <strong>${worstDistance.toFixed(2)}%</strong></span>
+        `;
+
+        if (charts.autocenter) charts.autocenter.destroy();
+
+        const dark = isDarkTheme();
+
+        // Check if time spread is meaningful (> 5 minutes = 0.083 hours)
+        const hours = autocenters.map(ac => ac.h);
+        const timeSpread = Math.max(...hours) - Math.min(...hours);
+        const useTimeAxis = timeSpread > 0.083;
+
+        // Prepare labels based on time spread
+        let labels, xTitle;
+        if (useTimeAxis) {
+            labels = autocenters.map(ac => hoursToTime(ac.h));
+            xTitle = 'Time';
+        } else {
+            labels = autocenters.map((_, i) => `#${i + 1}`);
+            xTitle = 'Attempt #';
+        }
+
+        charts.autocenter = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Distance (%)',
+                    data: autocenters.map(ac => ac.distance_pct || 0),
+                    backgroundColor: autocenters.map(ac =>
+                        ac.centered ? 'rgba(72, 199, 142, 0.7)' : 'rgba(255, 99, 132, 0.7)'
+                    ),
+                    borderColor: autocenters.map(ac =>
+                        ac.centered ? 'rgba(72, 199, 142, 1)' : 'rgba(255, 99, 132, 1)'
+                    ),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                const idx = context[0].dataIndex;
+                                if (useTimeAxis) {
+                                    return hoursToTime(autocenters[idx].h);
+                                } else {
+                                    return `Attempt ${idx + 1}`;
+                                }
+                            },
+                            afterLabel: function(context) {
+                                const ac = autocenters[context.dataIndex];
+                                const deg = ac.distance_deg ? `${ac.distance_deg.toFixed(3)}°` : '-';
+                                const centered = ac.centered ? 'Yes' : 'No';
+                                return [`Distance: ${deg}`, `Centered: ${centered}`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: xTitle, color: dark ? COLORS.text : '#333' },
+                        ticks: {
+                            color: dark ? COLORS.text : '#666',
+                            maxTicksLimit: 10
+                        },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    },
+                    y: {
+                        min: 0,
+                        title: { display: true, text: 'Distance (%)', color: dark ? COLORS.text : '#333' },
+                        ticks: { color: dark ? COLORS.text : '#666' },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
                     }
                 }
             }
@@ -1062,6 +1300,7 @@
         if (charts.dither) { charts.dither.destroy(); charts.dither = null; }
         if (charts.guidePulseScatter) { charts.guidePulseScatter.destroy(); charts.guidePulseScatter = null; }
         if (charts.guidePulseDuration) { charts.guidePulseDuration.destroy(); charts.guidePulseDuration = null; }
+        if (charts.autocenter) { charts.autocenter.destroy(); charts.autocenter = null; }
         charts.afCurves.forEach(c => c.destroy());
         charts.afCurves = [];
         logData = null;
