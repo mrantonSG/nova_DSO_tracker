@@ -794,6 +794,13 @@
             // Use actual last data point for max (no padding beyond data)
             const maxHours = phd2.rms[phd2.rms.length - 1][0];
 
+            // Calculate zoomed Y-max: total RMS (all frames) × 2
+            const totalRmsAll = phd2.stats?.all?.total_rms_as || phd2.stats?.total_rms_as || 5;
+            const zoomedYMax = totalRmsAll * 2;
+
+            // Track zoom state
+            let guidingZoomed = false;
+
             charts.guiding = new Chart(rmsCanvas, {
                 type: 'line',
                 data: {
@@ -872,7 +879,7 @@
                         },
                         y: {
                             min: 0,
-                            max: 15,  // Cap at 15" - values above are outliers that compress the useful range
+                            max: 15,  // Default cap at 15" - zoomed mode uses total_rms × 2
                             title: { display: true, text: 'RMS (arcsec)', color: dark ? COLORS.text : '#333' },
                             ticks: { color: dark ? COLORS.text : '#666' },
                             grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
@@ -880,6 +887,22 @@
                     }
                 }
             });
+
+            // Add zoom toggle button handler
+            const zoomBtn = document.getElementById('log-guiding-zoom-btn');
+            if (zoomBtn) {
+                zoomBtn.onclick = function() {
+                    guidingZoomed = !guidingZoomed;
+                    if (guidingZoomed) {
+                        charts.guiding.options.scales.y.max = zoomedYMax;
+                        zoomBtn.textContent = '⛶ Full';
+                    } else {
+                        charts.guiding.options.scales.y.max = 15;
+                        zoomBtn.textContent = '⛶ Zoom';
+                    }
+                    charts.guiding.update('none'); // Instant update without animation
+                };
+            }
         }
 
         // === GUIDE PULSE ANALYSIS ===
