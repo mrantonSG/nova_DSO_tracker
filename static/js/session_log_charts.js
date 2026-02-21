@@ -29,7 +29,6 @@
 
     // --- Chart instances for cleanup ---
     let charts = {
-        overview: null,
         guiding: null,
         dither: null,
         afCurves: [],
@@ -182,7 +181,7 @@
     }
 
     /**
-     * Render Overview Tab - Key stats and combined timeline
+     * Render Overview Tab - Key stats and swimlane timeline
      */
     function renderOverviewTab() {
         const asiair = logData.asiair;
@@ -209,121 +208,11 @@
                 phd2.stats?.total_frames || '-';
         }
 
-        // Create timeline chart combining RMS and exposures
-        const canvas = document.getElementById('log-overview-chart');
-        if (!canvas) return;
-
-        if (charts.overview) charts.overview.destroy();
-
-        const datasets = [];
-
-        // Add RMS data from PHD2
-        if (phd2 && phd2.rms && phd2.rms.length > 0) {
-            datasets.push({
-                label: 'RA RMS (")',
-                data: phd2.rms.map(r => ({ x: r[0], y: r[1] })),
-                borderColor: COLORS.ra,
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.2,
-                yAxisID: 'y'
-            });
-            datasets.push({
-                label: 'Dec RMS (")',
-                data: phd2.rms.map(r => ({ x: r[0], y: r[2] })),
-                borderColor: COLORS.dec,
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.2,
-                yAxisID: 'y'
-            });
-        }
-
-        // Add exposure markers from ASIAIR
-        if (asiair && asiair.exposures && asiair.exposures.length > 0) {
-            datasets.push({
-                label: 'Exposures',
-                data: asiair.exposures.map(e => ({ x: e.h, y: 0.05 })),
-                borderColor: COLORS.exposures,
-                backgroundColor: COLORS.exposures,
-                showLine: false,
-                pointRadius: 2,
-                pointStyle: 'rectRot',
-                yAxisID: 'y1'
-            });
-        }
-
-        // Add dither markers
-        if (asiair && asiair.dithers && asiair.dithers.length > 0) {
-            datasets.push({
-                label: 'Dithers',
-                data: asiair.dithers.map(d => ({ x: d.h, y: 0.08 })),
-                borderColor: d => d.ok ? COLORS.success : COLORS.timeout,
-                backgroundColor: d => d.ok ? COLORS.success : COLORS.timeout,
-                showLine: false,
-                pointRadius: 4,
-                pointStyle: 'triangle',
-                yAxisID: 'y1'
-            });
-        }
-
-        // Add AF markers
-        if (asiair && asiair.af_runs && asiair.af_runs.length > 0) {
-            datasets.push({
-                label: 'AutoFocus',
-                data: asiair.af_runs.filter(r => r.h).map(r => ({ x: r.h, y: 0.1 })),
-                borderColor: COLORS.af,
-                backgroundColor: COLORS.af,
-                showLine: false,
-                pointRadius: 6,
-                pointStyle: 'star',
-                yAxisID: 'y1'
-            });
-        }
-
-        // Add Meridian Flip markers (green cross/plus symbol)
-        if (asiair && asiair.meridian_flips && asiair.meridian_flips.length > 0) {
-            datasets.push({
-                label: 'Meridian Flip',
-                data: asiair.meridian_flips.filter(mf => mf.h).map(mf => ({ x: mf.h, y: 0.12 })),
-                borderColor: COLORS.meridianFlip,
-                backgroundColor: COLORS.meridianFlip,
-                showLine: false,
-                pointRadius: 8,
-                pointStyle: 'crossRot',  // X/cross symbol
-                yAxisID: 'y1'
-            });
-        }
-
-        if (datasets.length === 0) {
-            canvas.parentElement.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No data to display.</p>';
-            return;
-        }
-
-        // Calculate max hours from all datasets to end exactly at last data point
-        let maxHours = 0;
-        datasets.forEach(ds => {
-            if (ds.data && ds.data.length > 0) {
-                const dsMax = Math.max(...ds.data.map(p => p.x));
-                if (dsMax > maxHours) maxHours = dsMax;
-            }
-        });
-
         // Get session start time for clock display (prefer ASIAIR, fall back to PHD2)
-        // Use explicit checks since || can fail with empty strings
         const sessionStartStr = (asiair && asiair.session_start) ? asiair.session_start
                             : (phd2 && phd2.session_start) ? phd2.session_start
                             : null;
         const sessionStart = sessionStartStr ? new Date(sessionStartStr) : null;
-
-        // Debug: log session start for troubleshooting
-        if (sessionStart) {
-            console.log('Overview chart: session_start =', sessionStartStr, '→', sessionStart.toLocaleString());
-        } else {
-            console.log('Overview chart: No session_start available, using hours offset');
-        }
 
         // Helper to convert hours to clock time string
         const hoursToTime = (hours) => {
@@ -332,71 +221,255 @@
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         };
 
-        const dark = isDarkTheme();
-
-        charts.overview = new Chart(canvas, {
-            type: 'scatter',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: {
-                    legend: {
-                        labels: { color: dark ? COLORS.text : '#333' }
-                    },
-                    tooltip: {
-                        mode: 'nearest',
-                        intersect: false,
-                        callbacks: {
-                            title: function(items) {
-                                if (items.length > 0) {
-                                    return hoursToTime(items[0].parsed.x);
-                                }
-                                return '';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        type: 'linear',
-                        min: 0,
-                        max: maxHours > 0 ? maxHours : undefined,  // End exactly at last data point
-                        title: { display: true, text: 'Time (Local)', color: dark ? COLORS.text : '#333' },
-                        ticks: {
-                            color: dark ? COLORS.text : '#666',
-                            callback: function(value) {
-                                return hoursToTime(value);
-                            }
-                        },
-                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
-                    },
-                    y: {
-                        type: 'linear',
-                        position: 'left',
-                        title: { display: true, text: 'RMS (arcsec)', color: dark ? COLORS.text : '#333' },
-                        ticks: { color: dark ? COLORS.text : '#666' },
-                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' },
-                        min: 0,
-                        max: 15  // Cap at 15" - values above are outliers
-                    },
-                    y1: {
-                        type: 'linear',
-                        position: 'right',
-                        display: false,
-                        min: 0,
-                        max: 0.15
-                    }
-                }
-            }
-        });
+        // Render swimlane timeline
+        renderOverviewSwimlane(asiair, sessionStart, hoursToTime);
 
         // === Plate Solve Table ===
         renderPlateSolveTable(asiair, sessionStart, hoursToTime);
 
         // === Autocenter Chart ===
         renderAutocenterChart(asiair, sessionStart, hoursToTime);
+    }
+
+    /**
+     * Render Overview Swimlane Timeline (SVG)
+     */
+    function renderOverviewSwimlane(asiair, sessionStart, hoursToTime) {
+        const container = document.getElementById('log-overview-container');
+        const svg = document.getElementById('log-overview-chart');
+        const tooltip = document.getElementById('log-overview-tooltip');
+
+        if (!svg || !container) return;
+
+        // Collect all events
+        const exposures = (asiair?.exposures || []).map(e => ({ h: e.h, type: 'exposure' }));
+        const dithers = (asiair?.dithers || []).map(d => ({ h: d.h, type: 'dither', ok: d.ok }));
+        const afRuns = (asiair?.af_runs || []).filter(r => r.h).map(r => ({ h: r.h, type: 'af' }));
+        const meridianFlips = (asiair?.meridian_flips || []).filter(mf => mf.h).map(mf => ({ h: mf.h, type: 'mf' }));
+
+        const allEvents = [...exposures, ...dithers, ...afRuns, ...meridianFlips];
+
+        if (allEvents.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px;">No timeline data to display.</p>';
+            return;
+        }
+
+        // Calculate time range
+        const maxHours = Math.max(...allEvents.map(e => e.h), 0.1);
+
+        // Swimlane configuration
+        const rowHeight = 36;
+        const labelWidth = 90;
+        const chartPadding = { left: 10, right: 20, top: 10, bottom: 25 };
+        const rows = [
+            { id: 'exposures', label: 'Exposures', color: '#3b82f6', events: exposures },
+            { id: 'dithers', label: 'Dithers', color: '#ef4444', events: dithers },
+            { id: 'af', label: 'AutoFocus', color: '#fbbf24', events: afRuns },
+            { id: 'mf', label: 'Meridian Flip', color: '#10b981', events: meridianFlips }
+        ];
+
+        // Calculate dimensions
+        const totalHeight = rows.length * rowHeight + chartPadding.top + chartPadding.bottom;
+        const containerWidth = container.clientWidth - 30; // Account for padding
+        const chartWidth = containerWidth - labelWidth - chartPadding.left - chartPadding.right;
+
+        // Set SVG dimensions
+        svg.setAttribute('width', containerWidth);
+        svg.setAttribute('height', totalHeight);
+        svg.innerHTML = '';
+
+        const dark = isDarkTheme();
+        const textColor = dark ? '#b0b0b0' : '#666';
+        const labelColor = dark ? '#e0e0e0' : '#333';
+        const dividerColor = dark ? 'rgba(150, 150, 150, 0.3)' : 'rgba(0, 0, 0, 0.1)';
+
+        // Helper to convert hours to X position
+        const hoursToX = (h) => labelWidth + chartPadding.left + (h / maxHours) * chartWidth;
+
+        // Create SVG namespace helper
+        const ns = 'http://www.w3.org/2000/svg';
+        const createEl = (tag, attrs) => {
+            const el = document.createElementNS(ns, tag);
+            Object.entries(attrs || {}).forEach(([k, v]) => el.setAttribute(k, v));
+            return el;
+        };
+
+        // Draw each row
+        rows.forEach((row, rowIndex) => {
+            const y = chartPadding.top + rowIndex * rowHeight;
+
+            // Row label
+            const label = createEl('text', {
+                x: labelWidth - 10,
+                y: y + rowHeight / 2 + 4,
+                'text-anchor': 'end',
+                'font-size': '12',
+                'font-family': 'system-ui, -apple-system, sans-serif',
+                fill: labelColor
+            });
+            label.textContent = row.label;
+            svg.appendChild(label);
+
+            // Row divider (except after last row)
+            if (rowIndex < rows.length - 1) {
+                const divider = createEl('line', {
+                    x1: labelWidth,
+                    y1: y + rowHeight,
+                    x2: containerWidth - chartPadding.right,
+                    y2: y + rowHeight,
+                    stroke: dividerColor,
+                    'stroke-width': 1
+                });
+                svg.appendChild(divider);
+            }
+
+            // Draw events
+            row.events.forEach(event => {
+                const x = hoursToX(event.h);
+                const centerY = y + rowHeight / 2;
+
+                if (row.id === 'exposures') {
+                    // Thin vertical line for exposures
+                    const line = createEl('line', {
+                        x1: x,
+                        y1: y + 4,
+                        x2: x,
+                        y2: y + rowHeight - 4,
+                        stroke: row.color,
+                        'stroke-width': 1,
+                        'data-type': 'exposure',
+                        'data-time': event.h
+                    });
+                    svg.appendChild(line);
+                } else if (row.id === 'dithers') {
+                    // Slightly thicker line for dithers
+                    const color = event.ok ? row.color : '#ff6384';
+                    const line = createEl('line', {
+                        x1: x,
+                        y1: y + 4,
+                        x2: x,
+                        y2: y + rowHeight - 4,
+                        stroke: color,
+                        'stroke-width': 2,
+                        'data-type': 'dither',
+                        'data-time': event.h,
+                        'data-ok': event.ok
+                    });
+                    svg.appendChild(line);
+                } else if (row.id === 'af') {
+                    // Star/asterisk for AutoFocus
+                    const star = createEl('text', {
+                        x: x,
+                        y: centerY + 4,
+                        'text-anchor': 'middle',
+                        'font-size': '16',
+                        'font-weight': 'bold',
+                        fill: row.color,
+                        'data-type': 'af',
+                        'data-time': event.h
+                    });
+                    star.textContent = '✦';
+                    svg.appendChild(star);
+                } else if (row.id === 'mf') {
+                    // Double vertical line for Meridian Flip
+                    const line1 = createEl('line', {
+                        x1: x - 3,
+                        y1: y + 6,
+                        x2: x - 3,
+                        y2: y + rowHeight - 6,
+                        stroke: row.color,
+                        'stroke-width': 2
+                    });
+                    const line2 = createEl('line', {
+                        x1: x + 3,
+                        y1: y + 6,
+                        x2: x + 3,
+                        y2: y + rowHeight - 6,
+                        stroke: row.color,
+                        'stroke-width': 2
+                    });
+                    const group = createEl('g', {
+                        'data-type': 'mf',
+                        'data-time': event.h
+                    });
+                    group.appendChild(line1);
+                    group.appendChild(line2);
+                    svg.appendChild(group);
+                }
+            });
+        });
+
+        // Draw X axis labels
+        const xAxisY = chartPadding.top + rows.length * rowHeight + 5;
+        const numTicks = Math.min(10, Math.ceil(maxHours * 2) + 1);
+        const tickInterval = maxHours / (numTicks - 1);
+
+        for (let i = 0; i < numTicks; i++) {
+            const h = i * tickInterval;
+            const x = hoursToX(h);
+
+            // Tick mark
+            const tick = createEl('line', {
+                x1: x,
+                y1: xAxisY - 5,
+                x2: x,
+                y2: xAxisY,
+                stroke: textColor,
+                'stroke-width': 1
+            });
+            svg.appendChild(tick);
+
+            // Label
+            const label = createEl('text', {
+                x: x,
+                y: xAxisY + 12,
+                'text-anchor': 'middle',
+                'font-size': '11',
+                'font-family': 'system-ui, -apple-system, sans-serif',
+                fill: textColor
+            });
+            label.textContent = hoursToTime(h);
+            svg.appendChild(label);
+        }
+
+        // Tooltip handling
+        const showTooltip = (e, text) => {
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left + 10;
+            const y = e.clientY - rect.top - 10;
+            tooltip.textContent = text;
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+            tooltip.style.display = 'block';
+        };
+
+        const hideTooltip = () => {
+            tooltip.style.display = 'none';
+        };
+
+        // Add event listeners for tooltips
+        svg.querySelectorAll('[data-type]').forEach(el => {
+            const type = el.getAttribute('data-type');
+            const time = parseFloat(el.getAttribute('data-time'));
+            const timeStr = hoursToTime(time);
+
+            let text;
+            if (type === 'exposure') {
+                text = `Exposure at ${timeStr}`;
+            } else if (type === 'dither') {
+                const ok = el.getAttribute('data-ok') === 'true';
+                text = `Dither at ${timeStr} (${ok ? 'settled' : 'timeout'})`;
+            } else if (type === 'af') {
+                text = `AutoFocus at ${timeStr}`;
+            } else if (type === 'mf') {
+                text = `Meridian Flip at ${timeStr}`;
+            }
+
+            el.style.cursor = 'pointer';
+            el.addEventListener('mouseenter', (e) => showTooltip(e, text));
+            el.addEventListener('mousemove', (e) => showTooltip(e, text));
+            el.addEventListener('mouseleave', hideTooltip);
+        });
     }
 
     /**
@@ -1295,7 +1368,6 @@
      * Cleanup function for when leaving session view
      */
     window.cleanupSessionLogCharts = function() {
-        if (charts.overview) { charts.overview.destroy(); charts.overview = null; }
         if (charts.guiding) { charts.guiding.destroy(); charts.guiding = null; }
         if (charts.dither) { charts.dither.destroy(); charts.dither = null; }
         if (charts.guidePulseScatter) { charts.guidePulseScatter.destroy(); charts.guidePulseScatter = null; }
