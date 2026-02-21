@@ -668,8 +668,20 @@
                                 <div class="log-chart-container">
                                     <canvas id="log-guiding-chart"></canvas>
                                 </div>
+                                {# Guide Pulse Analysis Section #}
+                                <div class="log-stats-inline" id="log-pulse-stats" style="display:none;">
+                                    <span>Avg RA Pulse: <strong id="log-avg-ra-pulse">-</strong> px</span>
+                                    <span>Avg Dec Pulse: <strong id="log-avg-dec-pulse">-</strong> px</span>
+                                    <span>Avg RA Dur: <strong id="log-avg-ra-dur">-</strong> ms</span>
+                                    <span>Avg Dec Dur: <strong id="log-avg-dec-dur">-</strong> ms</span>
+                                    <span id="log-ra-dominant-container" style="display:none;">RA Dir: <strong id="log-ra-dominant">-</strong></span>
+                                    <span id="log-dec-dominant-container" style="display:none;">Dec Dir: <strong id="log-dec-dominant">-</strong></span>
+                                </div>
                                 <div class="log-chart-container">
-                                    <canvas id="log-correction-chart"></canvas>
+                                    <canvas id="log-guide-pulse-scatter-chart"></canvas>
+                                </div>
+                                <div class="log-chart-container">
+                                    <canvas id="log-guide-pulse-duration-chart"></canvas>
                                 </div>
                             </div>
 
