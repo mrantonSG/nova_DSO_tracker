@@ -377,7 +377,7 @@
                         ticks: { color: dark ? COLORS.text : '#666' },
                         grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' },
                         min: 0,
-                        suggestedMax: 1
+                        max: 15  // Cap at 15" - values above are outliers
                     },
                     y1: {
                         type: 'linear',
@@ -518,6 +518,8 @@
                             grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
                         },
                         y: {
+                            min: 0,
+                            max: 15,  // Cap at 15" - values above are outliers that compress the useful range
                             title: { display: true, text: 'RMS (arcsec)', color: dark ? COLORS.text : '#333' },
                             ticks: { color: dark ? COLORS.text : '#666' },
                             grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
