@@ -781,12 +781,6 @@
                     console.log('[JOURNAL_SECTION] load-session:', actionBtn.dataset.url);
                     loadSessionViaAjax(e, actionBtn.dataset.url, actionBtn);
                     break;
-                case 'trigger-file-input':
-                    console.log('[JOURNAL_SECTION] trigger-file-input:', actionBtn.dataset.targetId);
-                    e.preventDefault();
-                    const fileInput = document.getElementById(actionBtn.dataset.targetId);
-                    if (fileInput) fileInput.click();
-                    break;
             }
         });
     }
@@ -816,54 +810,6 @@
         if (projectAddForm) {
             projectAddForm.addEventListener('submit', function(e) {
                 document.getElementById('goals-hidden-add').value = document.getElementById('goals-editor-add').value;
-            });
-        }
-
-        // --- ASIAIR LOG IMPORT HANDLER ---
-        const logInput = document.getElementById('asiair_log_input');
-        if (logInput) {
-            logInput.addEventListener('change', async function() {
-                if (this.files.length === 0) return;
-
-                const formData = new FormData();
-                formData.append('file', this.files[0]);
-
-                // Show loading state on button
-                const btn = this.nextElementSibling;
-                const originalText = btn.textContent;
-                btn.textContent = "Parsing...";
-                btn.disabled = true;
-
-                try {
-                    const response = await fetch('/api/parse_asiair_log', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!response.ok) throw new Error("Parse failed");
-
-                    const data = await response.json();
-
-                    if (data.status === 'success') {
-                        const editor = document.getElementById('journal-notes-editor');
-                        if (editor && editor.editor) {
-                            // Insert content at the beginning
-                            editor.editor.setSelectedRange([0, 0]);
-                            editor.editor.insertHTML(data.html);
-                            // Add a break after
-                            editor.editor.insertLineBreak();
-                        }
-                    } else {
-                        alert("Error parsing log: " + data.message);
-                    }
-                } catch (e) {
-                    console.error(e);
-                    alert("Failed to upload/parse log file.");
-                } finally {
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                    this.value = ''; // Reset input
-                }
             });
         }
     }
