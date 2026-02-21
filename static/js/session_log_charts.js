@@ -200,8 +200,17 @@
         }
 
         if (phd2) {
+            // Get total RMS - prefer stats, fall back to calculating from rms array
+            let totalRmsAs = phd2.stats?.total_rms_as;
+            if (!totalRmsAs && phd2.rms && phd2.rms.length > 0) {
+                const raVals = phd2.rms.map(r => r[1]);
+                const decVals = phd2.rms.map(r => r[2]);
+                const raRms = Math.sqrt(raVals.reduce((sum, v) => sum + v * v, 0) / raVals.length);
+                const decRms = Math.sqrt(decVals.reduce((sum, v) => sum + v * v, 0) / decVals.length);
+                totalRmsAs = Math.sqrt(raRms * raRms + decRms * decRms).toFixed(3);
+            }
             document.getElementById('log-guiding-rms').textContent =
-                phd2.stats?.total_rms_as ? `${phd2.stats.total_rms_as}"` : '-';
+                totalRmsAs ? `${totalRmsAs}"` : '-';
             document.getElementById('log-pixel-scale').textContent =
                 phd2.pixel_scale ? `${phd2.pixel_scale}"/px` : '-';
             document.getElementById('log-frame-count').textContent =
@@ -716,11 +725,43 @@
             return;
         }
 
-        // Update stats
-        document.getElementById('log-ra-rms').textContent = phd2.stats?.ra_rms_as || '-';
-        document.getElementById('log-dec-rms').textContent = phd2.stats?.dec_rms_as || '-';
-        document.getElementById('log-total-rms').textContent = phd2.stats?.total_rms_as || '-';
-        document.getElementById('log-frame-count').textContent = phd2.stats?.total_frames?.toLocaleString() || '-';
+        // Update stats - show imaging-only if available, else fall back to all-frames
+        const hasImagingStats = phd2.stats?.imaging && phd2.settle_windows?.length > 0;
+        const allStats = phd2.stats?.all || phd2.stats;
+        const imagingStats = phd2.stats?.imaging || allStats;
+
+        // Helper: calculate RMS from phd2.rms array when stats are missing
+        // phd2.rms format: [h, ra_rms_as, dec_rms_as, total_rms_as]
+        const calculateRmsFromRmsArray = () => {
+            if (!phd2.rms || phd2.rms.length === 0) return null;
+            const raVals = phd2.rms.map(r => r[1]);
+            const decVals = phd2.rms.map(r => r[2]);
+            const raRms = Math.sqrt(raVals.reduce((sum, v) => sum + v * v, 0) / raVals.length);
+            const decRms = Math.sqrt(decVals.reduce((sum, v) => sum + v * v, 0) / decVals.length);
+            const totalRms = Math.sqrt(raRms * raRms + decRms * decRms);
+            return { ra_rms_as: raRms.toFixed(3), dec_rms_as: decRms.toFixed(3), total_rms_as: totalRms.toFixed(3) };
+        };
+
+        // Get stats - prefer parsed stats, fall back to calculating from rms array
+        const finalStats = (imagingStats?.ra_rms_as !== undefined) ? imagingStats : (calculateRmsFromRmsArray() || {});
+
+        // Primary row: imaging-only (or all-frames if no settle data)
+        document.getElementById('log-ra-rms').textContent = finalStats.ra_rms_as || '-';
+        document.getElementById('log-dec-rms').textContent = finalStats.dec_rms_as || '-';
+        document.getElementById('log-total-rms').textContent = finalStats.total_rms_as || '-';
+        document.getElementById('log-frame-count').textContent = finalStats.frame_count?.toLocaleString() || '-';
+
+        // Secondary row: all-frames (only if we have imaging stats)
+        const allFramesRow = document.getElementById('log-all-frames-stats');
+        if (hasImagingStats && allFramesRow) {
+            document.getElementById('log-all-ra-rms').textContent = allStats.ra_rms_as || '-';
+            document.getElementById('log-all-dec-rms').textContent = allStats.dec_rms_as || '-';
+            document.getElementById('log-all-total-rms').textContent = allStats.total_rms_as || '-';
+            allFramesRow.style.display = '';
+        } else if (allFramesRow) {
+            // No settle windows - hide secondary row
+            allFramesRow.style.display = 'none';
+        }
 
         // Get session start time for clock display
         // Also check ASIAIR session_start as fallback in case PHD2 log doesn't have it

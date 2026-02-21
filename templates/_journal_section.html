@@ -704,11 +704,16 @@
 
                             {# Guiding Tab #}
                             <div id="log-guiding-tab" class="log-analysis-content">
-                                <div class="log-stats-inline">
+                                <div class="log-stats-inline" id="log-imaging-stats">
                                     <span>RA RMS: <strong id="log-ra-rms">-</strong>"</span>
                                     <span>Dec RMS: <strong id="log-dec-rms">-</strong>"</span>
                                     <span>Total RMS: <strong id="log-total-rms">-</strong>"</span>
-                                    <span>Frames: <strong id="log-frame-count">-</strong></span>
+                                    <span>Imaging Frames: <strong id="log-frame-count">-</strong></span>
+                                </div>
+                                <div class="log-stats-inline" id="log-all-frames-stats" style="font-size: 0.85em; color: var(--text-muted); margin-top: -4px;">
+                                    <span>Including dithers — RA: <strong id="log-all-ra-rms">-</strong>"</span>
+                                    <span>Dec: <strong id="log-all-dec-rms">-</strong>"</span>
+                                    <span>Total: <strong id="log-all-total-rms">-</strong>"</span>
                                 </div>
                                 <div class="log-chart-container">
                                     <canvas id="log-guiding-chart"></canvas>
