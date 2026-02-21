@@ -31,9 +31,10 @@
     let charts = {
         overview: null,
         guiding: null,
-        correction: null,
         dither: null,
-        afCurves: []
+        afCurves: [],
+        guidePulseScatter: null,
+        guidePulseDuration: null
     };
 
     // --- Cached data ---
@@ -529,54 +530,336 @@
             });
         }
 
-        // Correction scatter chart
-        const corrCanvas = document.getElementById('log-correction-chart');
-        if (corrCanvas && phd2.frames && phd2.frames.length > 0) {
-            if (charts.correction) charts.correction.destroy();
+        // === GUIDE PULSE ANALYSIS ===
+        if (phd2.frames && phd2.frames.length > 0) {
+            const frames = phd2.frames;
 
-            const dark = isDarkTheme();
+            // Calculate stats and check direction data availability
+            const raPulses = frames.map(f => f[4]).filter(v => v !== null && v !== 0);
+            const decPulses = frames.map(f => f[5]).filter(v => v !== null && v !== 0);
+            const raDurs = frames.map(f => f[8]).filter(v => v !== null && v !== 0);
+            const decDurs = frames.map(f => f[9]).filter(v => v !== null && v !== 0);
 
-            // Downsample for performance
-            const step = Math.max(1, Math.floor(phd2.frames.length / 500));
-            const sampledFrames = phd2.frames.filter((_, i) => i % step === 0);
+            const raDirs = frames.map(f => f[6]).filter(v => v !== null && v !== '');
+            const decDirs = frames.map(f => f[7]).filter(v => v !== null && v !== '');
 
-            charts.correction = new Chart(corrCanvas, {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Guide Corrections',
-                        data: sampledFrames.map(f => ({ x: f[1], y: f[2] })),
-                        backgroundColor: 'rgba(96, 165, 250, 0.3)',
-                        borderColor: COLORS.ra,
-                        pointRadius: 1.5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Guide Correction Scatter (RA vs Dec)',
-                            color: dark ? COLORS.text : '#333'
+            const directionNullRatio = 1 - ((raDirs.length + decDirs.length) / (frames.length * 2));
+            const hasGoodDirectionData = directionNullRatio < 0.8;
+
+            // Calculate averages
+            const avgRaPulse = raPulses.length > 0 ? (raPulses.reduce((a, b) => a + b, 0) / raPulses.length) : 0;
+            const avgDecPulse = decPulses.length > 0 ? (decPulses.reduce((a, b) => a + b, 0) / decPulses.length) : 0;
+            const avgRaDur = raDurs.length > 0 ? (raDurs.reduce((a, b) => a + b, 0) / raDurs.length) : 0;
+            const avgDecDur = decDurs.length > 0 ? (decDurs.reduce((a, b) => a + b, 0) / decDurs.length) : 0;
+
+            // Calculate dominant directions
+            const raEastCount = raDirs.filter(d => d === 'E').length;
+            const raWestCount = raDirs.filter(d => d === 'W').length;
+            const decNorthCount = decDirs.filter(d => d === 'N').length;
+            const decSouthCount = decDirs.filter(d => d === 'S').length;
+
+            const dominantRaDir = raEastCount > raWestCount ? 'E' : (raWestCount > raEastCount ? 'W' : 'tie');
+            const dominantDecDir = decNorthCount > decSouthCount ? 'N' : (decSouthCount > decNorthCount ? 'S' : 'tie');
+
+            // Update stats panel
+            const pulseStatsEl = document.getElementById('log-pulse-stats');
+            if (pulseStatsEl) {
+                document.getElementById('log-avg-ra-pulse').textContent = avgRaPulse.toFixed(2);
+                document.getElementById('log-avg-dec-pulse').textContent = avgDecPulse.toFixed(2);
+                document.getElementById('log-avg-ra-dur').textContent = Math.round(avgRaDur);
+                document.getElementById('log-avg-dec-dur').textContent = Math.round(avgDecDur);
+
+                if (hasGoodDirectionData) {
+                    document.getElementById('log-ra-dominant-container').style.display = 'inline';
+                    document.getElementById('log-dec-dominant-container').style.display = 'inline';
+                    document.getElementById('log-ra-dominant').textContent = dominantRaDir === 'tie' ? 'E=W' : dominantRaDir;
+                    document.getElementById('log-dec-dominant').textContent = dominantDecDir === 'tie' ? 'N=S' : dominantDecDir;
+                }
+
+                pulseStatsEl.style.display = 'flex';
+            }
+
+            // === GUIDE PULSE SCATTER CHART ===
+            const scatterCanvas = document.getElementById('log-guide-pulse-scatter-chart');
+            if (scatterCanvas) {
+                if (charts.guidePulseScatter) charts.guidePulseScatter.destroy();
+
+                const dark = isDarkTheme();
+
+                // Filter frames with non-zero guide distances (actual corrections)
+                const correctionFrames = frames.filter(f =>
+                    (f[4] !== null && f[4] !== 0) || (f[5] !== null && f[5] !== 0)
+                );
+
+                // Downsample if needed
+                const step = Math.max(1, Math.floor(correctionFrames.length / 1000));
+                const sampledCorrections = correctionFrames.filter((_, i) => i % step === 0);
+
+                // Percentile helper for axis calculation (local scope)
+                function percentile(arr, p) {
+                    if (!arr.length) return 0;
+                    const sorted = [...arr].sort((a, b) => a - b);
+                    const idx = Math.floor(sorted.length * p);
+                    return sorted[Math.min(idx, sorted.length - 1)];
+                }
+
+                // Calculate axis range using 95th percentile (avoid outlier distortion)
+                const raValues = sampledCorrections.map(f => Math.abs(f[4] || 0));
+                const decValues = sampledCorrections.map(f => Math.abs(f[5] || 0));
+                const maxAbs = Math.max(0.1, percentile(raValues, 0.95), percentile(decValues, 0.95)) * 1.15;
+
+                // Separate normal points from outliers (beyond axis range)
+                const isOutlier = (f) => Math.abs(f[4] || 0) > maxAbs || Math.abs(f[5] || 0) > maxAbs;
+
+                // Create separate datasets for direction-based legend + outliers
+                let scatterDatasets;
+                if (hasGoodDirectionData) {
+                    const eastFrames = sampledCorrections.filter(f => f[6] === 'E' && !isOutlier(f));
+                    const westFrames = sampledCorrections.filter(f => f[6] === 'W' && !isOutlier(f));
+                    const otherFrames = sampledCorrections.filter(f => f[6] !== 'E' && f[6] !== 'W' && !isOutlier(f));
+                    const outlierFrames = sampledCorrections.filter(isOutlier);
+
+                    scatterDatasets = [
+                        {
+                            label: 'East (RA+)',
+                            data: eastFrames.map(f => ({ x: f[4] || 0, y: f[5] || 0, frame: f })),
+                            backgroundColor: 'rgba(99, 179, 237, 0.6)',
+                            pointRadius: 3,
+                            pointHoverRadius: 5
                         },
-                        legend: { display: false }
-                    },
-                    scales: {
-                        x: {
-                            title: { display: true, text: 'RA Correction (px)', color: dark ? COLORS.text : '#333' },
-                            ticks: { color: dark ? COLORS.text : '#666' },
-                            grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                        {
+                            label: 'West (RA-)',
+                            data: westFrames.map(f => ({ x: f[4] || 0, y: f[5] || 0, frame: f })),
+                            backgroundColor: 'rgba(252, 129, 74, 0.6)',
+                            pointRadius: 3,
+                            pointHoverRadius: 5
                         },
-                        y: {
-                            title: { display: true, text: 'Dec Correction (px)', color: dark ? COLORS.text : '#333' },
-                            ticks: { color: dark ? COLORS.text : '#666' },
-                            grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                        {
+                            label: 'Other/Unknown',
+                            data: otherFrames.map(f => ({ x: f[4] || 0, y: f[5] || 0, frame: f })),
+                            backgroundColor: 'rgba(160, 160, 160, 0.4)',
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Outliers',
+                            data: outlierFrames.map(f => ({ x: f[4] || 0, y: f[5] || 0, frame: f })),
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointStyle: 'triangle'
+                        }
+                    ].filter(ds => ds.data.length > 0);
+                } else {
+                    const normalFrames = sampledCorrections.filter(f => !isOutlier(f));
+                    const outlierFrames = sampledCorrections.filter(isOutlier);
+
+                    scatterDatasets = [
+                        {
+                            label: 'Guide Corrections',
+                            data: normalFrames.map(f => ({ x: f[4] || 0, y: f[5] || 0, frame: f })),
+                            backgroundColor: 'rgba(96, 165, 250, 0.5)',
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        },
+                        {
+                            label: 'Outliers',
+                            data: outlierFrames.map(f => ({ x: f[4] || 0, y: f[5] || 0, frame: f })),
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointStyle: 'triangle'
+                        }
+                    ].filter(ds => ds.data.length > 0);
+                }
+
+                // Custom plugin to draw crosshair at origin
+                const crosshairPlugin = {
+                    id: 'originCrosshair',
+                    beforeDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+
+                        if (!xAxis || !yAxis) return;
+
+                        ctx.save();
+                        ctx.strokeStyle = dark ? 'rgba(150, 150, 150, 0.5)' : 'rgba(100, 100, 100, 0.5)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 4]);
+
+                        // Vertical line at x=0 using scale conversion
+                        const xZero = xAxis.getPixelForValue(0);
+                        if (xZero >= xAxis.left && xZero <= xAxis.right) {
+                            ctx.beginPath();
+                            ctx.moveTo(xZero, yAxis.top);
+                            ctx.lineTo(xZero, yAxis.bottom);
+                            ctx.stroke();
+                        }
+
+                        // Horizontal line at y=0 using scale conversion
+                        const yZero = yAxis.getPixelForValue(0);
+                        if (yZero >= yAxis.top && yZero <= yAxis.bottom) {
+                            ctx.beginPath();
+                            ctx.moveTo(xAxis.left, yZero);
+                            ctx.lineTo(xAxis.right, yZero);
+                            ctx.stroke();
+                        }
+
+                        ctx.restore();
+                    }
+                };
+
+                charts.guidePulseScatter = new Chart(scatterCanvas, {
+                    type: 'scatter',
+                    plugins: [crosshairPlugin],
+                    data: { datasets: scatterDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Guide Pulse Scatter',
+                                color: dark ? COLORS.text : '#333'
+                            },
+                            subtitle: {
+                                display: true,
+                                text: 'Each point = one guide frame correction',
+                                color: dark ? 'rgba(176, 176, 176, 0.7)' : 'rgba(100, 100, 100, 0.7)',
+                                font: { size: 11 }
+                            },
+                            legend: {
+                                display: hasGoodDirectionData,
+                                labels: { color: dark ? COLORS.text : '#333' }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const frame = context.raw.frame;
+                                        const raDir = frame[6] || '-';
+                                        const decDir = frame[7] || '-';
+                                        const snr = frame[3] !== null ? frame[3].toFixed(1) : '-';
+                                        return `RA: ${context.parsed.x.toFixed(2)}px ${raDir} | Dec: ${context.parsed.y.toFixed(2)}px ${decDir} | SNR: ${snr}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                min: -maxAbs,
+                                max: maxAbs,
+                                title: { display: true, text: 'RA Correction (px)', color: dark ? COLORS.text : '#333' },
+                                ticks: { color: dark ? COLORS.text : '#666' },
+                                grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                            },
+                            y: {
+                                min: -maxAbs,
+                                max: maxAbs,
+                                title: { display: true, text: 'Dec Correction (px)', color: dark ? COLORS.text : '#333' },
+                                ticks: { color: dark ? COLORS.text : '#666' },
+                                grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
+
+            // === GUIDE PULSE DURATION CHART ===
+            const durationCanvas = document.getElementById('log-guide-pulse-duration-chart');
+            if (durationCanvas) {
+                if (charts.guidePulseDuration) charts.guidePulseDuration.destroy();
+
+                const dark = isDarkTheme();
+
+                // Filter frames with non-zero durations
+                const raDurData = frames
+                    .filter(f => f[8] !== null && f[8] !== 0)
+                    .map(f => ({ x: f[0], y: f[8] }));
+                const decDurData = frames
+                    .filter(f => f[9] !== null && f[9] !== 0)
+                    .map(f => ({ x: f[0], y: f[9] }));
+
+                // Get max hours from RMS data or frames
+                const durMaxHours = phd2.rms && phd2.rms.length > 0
+                    ? phd2.rms[phd2.rms.length - 1][0]
+                    : (frames.length > 0 ? frames[frames.length - 1][0] : undefined);
+
+                charts.guidePulseDuration = new Chart(durationCanvas, {
+                    type: 'line',
+                    data: {
+                        datasets: [
+                            {
+                                label: 'RA Duration (ms)',
+                                data: raDurData,
+                                borderColor: COLORS.ra,
+                                backgroundColor: 'transparent',
+                                borderWidth: 1,
+                                pointRadius: 0,
+                                tension: 0
+                            },
+                            {
+                                label: 'Dec Duration (ms)',
+                                data: decDurData,
+                                borderColor: COLORS.dec,
+                                backgroundColor: 'transparent',
+                                borderWidth: 1,
+                                pointRadius: 0,
+                                tension: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Guide Pulse Duration Over Time',
+                                color: dark ? COLORS.text : '#333'
+                            },
+                            legend: {
+                                labels: { color: dark ? COLORS.text : '#333' }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    title: function(items) {
+                                        if (items.length > 0) {
+                                            return hoursToTime(items[0].parsed.x);
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                min: 0,
+                                max: durMaxHours,
+                                title: { display: true, text: 'Time (Local)', color: dark ? COLORS.text : '#333' },
+                                ticks: {
+                                    color: dark ? COLORS.text : '#666',
+                                    callback: function(value) {
+                                        return hoursToTime(value);
+                                    }
+                                },
+                                grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                            },
+                            y: {
+                                min: 0,
+                                title: { display: true, text: 'Pulse Duration (ms)', color: dark ? COLORS.text : '#333' },
+                                ticks: { color: dark ? COLORS.text : '#666' },
+                                grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                            }
+                        }
+                    }
+                });
+            }
         }
     }
 
@@ -776,8 +1059,9 @@
     window.cleanupSessionLogCharts = function() {
         if (charts.overview) { charts.overview.destroy(); charts.overview = null; }
         if (charts.guiding) { charts.guiding.destroy(); charts.guiding = null; }
-        if (charts.correction) { charts.correction.destroy(); charts.correction = null; }
         if (charts.dither) { charts.dither.destroy(); charts.dither = null; }
+        if (charts.guidePulseScatter) { charts.guidePulseScatter.destroy(); charts.guidePulseScatter = null; }
+        if (charts.guidePulseDuration) { charts.guidePulseDuration.destroy(); charts.guidePulseDuration = null; }
         charts.afCurves.forEach(c => c.destroy());
         charts.afCurves = [];
         logData = null;
