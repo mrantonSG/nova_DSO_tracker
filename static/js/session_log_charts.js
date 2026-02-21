@@ -21,6 +21,7 @@
         exposures: '#3b82f6', // Blue for exposures
         dither: '#f472b6',    // Pink for dither
         af: '#fbbf24',        // Yellow for autofocus
+        meridianFlip: '#10b981', // Emerald green for meridian flip
         grid: 'rgba(150, 150, 150, 0.3)',
         text: '#b0b0b0',
         background: '#0a0f1e'
@@ -280,10 +281,54 @@
             });
         }
 
+        // Add Meridian Flip markers (green cross/plus symbol)
+        if (asiair && asiair.meridian_flips && asiair.meridian_flips.length > 0) {
+            datasets.push({
+                label: 'Meridian Flip',
+                data: asiair.meridian_flips.filter(mf => mf.h).map(mf => ({ x: mf.h, y: 0.12 })),
+                borderColor: COLORS.meridianFlip,
+                backgroundColor: COLORS.meridianFlip,
+                showLine: false,
+                pointRadius: 8,
+                pointStyle: 'crossRot',  // X/cross symbol
+                yAxisID: 'y1'
+            });
+        }
+
         if (datasets.length === 0) {
             canvas.parentElement.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 20px;">No data to display.</p>';
             return;
         }
+
+        // Calculate max hours from all datasets to end exactly at last data point
+        let maxHours = 0;
+        datasets.forEach(ds => {
+            if (ds.data && ds.data.length > 0) {
+                const dsMax = Math.max(...ds.data.map(p => p.x));
+                if (dsMax > maxHours) maxHours = dsMax;
+            }
+        });
+
+        // Get session start time for clock display (prefer ASIAIR, fall back to PHD2)
+        // Use explicit checks since || can fail with empty strings
+        const sessionStartStr = (asiair && asiair.session_start) ? asiair.session_start
+                            : (phd2 && phd2.session_start) ? phd2.session_start
+                            : null;
+        const sessionStart = sessionStartStr ? new Date(sessionStartStr) : null;
+
+        // Debug: log session start for troubleshooting
+        if (sessionStart) {
+            console.log('Overview chart: session_start =', sessionStartStr, '→', sessionStart.toLocaleString());
+        } else {
+            console.log('Overview chart: No session_start available, using hours offset');
+        }
+
+        // Helper to convert hours to clock time string
+        const hoursToTime = (hours) => {
+            if (!sessionStart) return hours.toFixed(1) + 'h';
+            const date = new Date(sessionStart.getTime() + hours * 3600 * 1000);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        };
 
         const dark = isDarkTheme();
 
@@ -300,14 +345,29 @@
                     },
                     tooltip: {
                         mode: 'nearest',
-                        intersect: false
+                        intersect: false,
+                        callbacks: {
+                            title: function(items) {
+                                if (items.length > 0) {
+                                    return hoursToTime(items[0].parsed.x);
+                                }
+                                return '';
+                            }
+                        }
                     }
                 },
                 scales: {
                     x: {
                         type: 'linear',
-                        title: { display: true, text: 'Hours', color: dark ? COLORS.text : '#333' },
-                        ticks: { color: dark ? COLORS.text : '#666' },
+                        min: 0,
+                        max: maxHours > 0 ? maxHours : undefined,  // End exactly at last data point
+                        title: { display: true, text: 'Time (Local)', color: dark ? COLORS.text : '#333' },
+                        ticks: {
+                            color: dark ? COLORS.text : '#666',
+                            callback: function(value) {
+                                return hoursToTime(value);
+                            }
+                        },
                         grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
                     },
                     y: {
@@ -350,21 +410,44 @@
         document.getElementById('log-total-rms').textContent = phd2.stats?.total_rms_as || '-';
         document.getElementById('log-frame-count').textContent = phd2.stats?.total_frames?.toLocaleString() || '-';
 
+        // Get session start time for clock display
+        // Also check ASIAIR session_start as fallback in case PHD2 log doesn't have it
+        const asiair = logData.asiair;
+        const sessionStartStr = (phd2 && phd2.session_start) ? phd2.session_start
+                            : (asiair && asiair.session_start) ? asiair.session_start
+                            : null;
+        const sessionStart = sessionStartStr ? new Date(sessionStartStr) : null;
+
+        // Debug: log session start for troubleshooting
+        if (sessionStart) {
+            console.log('Guiding chart: session_start =', sessionStartStr, '→', sessionStart.toLocaleString());
+        } else {
+            console.log('Guiding chart: No session_start available, using hours offset');
+        }
+
+        // Helper to convert hours to clock time string
+        const hoursToTime = (hours) => {
+            if (!sessionStart) return hours.toFixed(1) + 'h';
+            const date = new Date(sessionStart.getTime() + hours * 3600 * 1000);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        };
+
         // RMS Chart
         const rmsCanvas = document.getElementById('log-guiding-chart');
         if (rmsCanvas && phd2.rms && phd2.rms.length > 0) {
             if (charts.guiding) charts.guiding.destroy();
 
             const dark = isDarkTheme();
+            // Use actual last data point for max (no padding beyond data)
+            const maxHours = phd2.rms[phd2.rms.length - 1][0];
 
             charts.guiding = new Chart(rmsCanvas, {
                 type: 'line',
                 data: {
-                    labels: phd2.rms.map(r => r[0].toFixed(2)),
                     datasets: [
                         {
                             label: 'RA RMS (")',
-                            data: phd2.rms.map(r => r[1]),
+                            data: phd2.rms.map(r => ({ x: r[0], y: r[1] })),
                             borderColor: COLORS.ra,
                             backgroundColor: 'rgba(96, 165, 250, 0.1)',
                             borderWidth: 2,
@@ -374,7 +457,7 @@
                         },
                         {
                             label: 'Dec RMS (")',
-                            data: phd2.rms.map(r => r[2]),
+                            data: phd2.rms.map(r => ({ x: r[0], y: r[2] })),
                             borderColor: COLORS.dec,
                             backgroundColor: 'rgba(244, 114, 182, 0.1)',
                             borderWidth: 2,
@@ -384,7 +467,7 @@
                         },
                         {
                             label: 'Total RMS (")',
-                            data: phd2.rms.map(r => r[3]),
+                            data: phd2.rms.map(r => ({ x: r[0], y: r[3] })),
                             borderColor: COLORS.total,
                             backgroundColor: 'transparent',
                             borderWidth: 2,
@@ -394,7 +477,53 @@
                         }
                     ]
                 },
-                options: getChartOptions('Guiding RMS Over Time', 'RMS (arcsec)')
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Guiding RMS Over Time',
+                            color: dark ? COLORS.text : '#333'
+                        },
+                        legend: {
+                            labels: { color: dark ? COLORS.text : '#333' }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: function(items) {
+                                    if (items.length > 0) {
+                                        return hoursToTime(items[0].parsed.x);
+                                    }
+                                    return '';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: 0,
+                            max: maxHours,  // End exactly at last data point
+                            title: { display: true, text: 'Time (Local)', color: dark ? COLORS.text : '#333' },
+                            ticks: {
+                                color: dark ? COLORS.text : '#666',
+                                callback: function(value) {
+                                    return hoursToTime(value);
+                                }
+                            },
+                            grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'RMS (arcsec)', color: dark ? COLORS.text : '#333' },
+                            ticks: { color: dark ? COLORS.text : '#666' },
+                            grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                        }
+                    }
+                }
             });
         }
 

@@ -3668,10 +3668,17 @@ def get_session_log_analysis(session_id):
     if not session:
         return jsonify({'error': 'Session not found'}), 404
 
-    # 1. Return cached result if available
+    # 1. Return cached result if available and valid (has session_start for clock time)
     if session.log_analysis_cache:
         try:
-            return jsonify(json.loads(session.log_analysis_cache))
+            cached = json.loads(session.log_analysis_cache)
+            # Invalidate old cache that doesn't have session_start
+            asiair = cached.get('asiair')
+            phd2 = cached.get('phd2')
+            has_session_start = (asiair and asiair.get('session_start')) or (phd2 and phd2.get('session_start'))
+            if has_session_start:
+                return jsonify(cached)
+            # Old cache without session_start - fall through to re-parse
         except json.JSONDecodeError:
             pass  # Fall through to re-parse if cache is corrupt
 
