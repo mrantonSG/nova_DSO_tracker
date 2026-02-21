@@ -10,6 +10,79 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 
 
+# --- LTTB Downsampling Algorithm ---
+
+def lttb_downsample(points: List[List], threshold: int, x_idx: int = 0, y_idx: int = 1) -> List[List]:
+    """
+    Largest-Triangle-Three-Buckets (LTTB) downsampling algorithm.
+
+    Preserves visual shape of time-series data while reducing point count.
+
+    Args:
+        points: List of points, each point is a list/tuple of values
+        threshold: Target number of points (if len(points) <= threshold, returns unchanged)
+        x_idx: Index of x-value in each point (default 0)
+        y_idx: Index of y-value in each point for triangle area calculation (default 1)
+
+    Returns:
+        Downsampled list of points, preserving all original fields
+    """
+    n = len(points)
+    if n <= threshold or n < 3:
+        return points
+
+    # Result list
+    sampled = [points[0]]  # Always keep first point
+
+    # Bucket size (divide remaining n-2 points into threshold-2 buckets)
+    bucket_size = (n - 2) / (threshold - 2)
+
+    a = 0  # Index of previously selected point
+
+    for i in range(threshold - 2):
+        # Calculate bucket range
+        bucket_start = int((i + 1) * bucket_size) + 1
+        bucket_end = int((i + 2) * bucket_size) + 1
+        if bucket_end > n - 1:
+            bucket_end = n - 1
+
+        # Calculate average point of next bucket
+        next_bucket_start = bucket_end
+        next_bucket_end = int((i + 3) * bucket_size) + 1 if i + 3 <= threshold - 2 else n
+        if next_bucket_end > n:
+            next_bucket_end = n
+
+        if next_bucket_start < next_bucket_end:
+            avg_x = sum(points[j][x_idx] for j in range(next_bucket_start, next_bucket_end)) / (next_bucket_end - next_bucket_start)
+            avg_y = sum(points[j][y_idx] for j in range(next_bucket_start, next_bucket_end)) / (next_bucket_end - next_bucket_start)
+        else:
+            avg_x = points[min(next_bucket_start, n - 1)][x_idx]
+            avg_y = points[min(next_bucket_start, n - 1)][y_idx]
+
+        # Find point in current bucket that maximizes triangle area
+        max_area = -1
+        max_idx = bucket_start
+
+        px = points[a][x_idx]
+        py = points[a][y_idx]
+
+        for j in range(bucket_start, bucket_end):
+            # Triangle area formula
+            x = points[j][x_idx]
+            y = points[j][y_idx]
+            area = abs((px * (y - avg_y) + x * (avg_y - py) + avg_x * (py - y)) / 2)
+            if area > max_area:
+                max_area = area
+                max_idx = j
+
+        sampled.append(points[max_idx])
+        a = max_idx
+
+    sampled.append(points[-1])  # Always keep last point
+
+    return sampled
+
+
 # --- ASIAIR Log Patterns ---
 ASIAIR_PATTERNS = {
     'timestamp': re.compile(r'^(\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2})'),
@@ -291,6 +364,29 @@ def parse_asiair_log(content: str) -> Dict[str, Any]:
         last_exp = result['exposures'][-1]
         result['stats']['total_time_min'] = round(last_exp['h'] * 60, 1)
 
+    # --- Precision reduction: Round float values ---
+    for exp in result['exposures']:
+        exp['h'] = round(exp['h'], 4)
+        exp['dur'] = round(exp['dur'], 4)
+    for d in result['dithers']:
+        d['h'] = round(d['h'], 4)
+        d['dur'] = round(d['dur'], 4)
+    for mf in result['meridian_flips']:
+        mf['h'] = round(mf['h'], 4)
+    for ps in result['plate_solves']:
+        ps['h'] = round(ps['h'], 4)
+        ps['angle'] = round(ps['angle'], 4)
+    for ac in result['autocenters']:
+        ac['h'] = round(ac['h'], 4)
+        ac['distance_pct'] = round(ac['distance_pct'], 4)
+        ac['distance_deg'] = round(ac['distance_deg'], 4)
+    for af in result['af_runs']:
+        af['h'] = round(af['h'], 4)
+        if af['temp'] is not None:
+            af['temp'] = round(af['temp'], 2)
+        for pt in af.get('points', []):
+            pt['sz'] = round(pt['sz'], 4)
+
     # Store session start time for clock time display
     if session_start:
         result['session_start'] = session_start.isoformat()
@@ -537,6 +633,28 @@ def parse_phd2_log(content: str) -> Dict[str, Any]:
     result['stats']['dec_rms_as'] = round(result['stats']['dec_rms_px'] * ps, 3)
     result['stats']['total_rms_as'] = round(result['stats']['total_rms_px'] * ps, 3)
     result['stats']['total_frames'] = len(all_frames)
+
+    # --- Decimation: Apply LTTB to reduce data size ---
+    DECIMATION_THRESHOLD = 1000
+    original_frames_count = len(result['frames'])
+    original_rms_count = len(result['rms'])
+
+    if original_frames_count > DECIMATION_THRESHOLD:
+        result['frames'] = lttb_downsample(result['frames'], DECIMATION_THRESHOLD, x_idx=0, y_idx=1)
+        result['stats']['frames_original_count'] = original_frames_count
+        result['stats']['frames_decimated'] = True
+
+    if original_rms_count > DECIMATION_THRESHOLD:
+        result['rms'] = lttb_downsample(result['rms'], DECIMATION_THRESHOLD, x_idx=0, y_idx=3)  # Use total_rms for shape
+        result['stats']['rms_original_count'] = original_rms_count
+        result['stats']['rms_decimated'] = True
+
+    # --- Precision reduction: Round all floats to 4 decimal places ---
+    def round_point(point):
+        return [round(v, 4) if isinstance(v, float) else v for v in point]
+
+    result['frames'] = [round_point(f) for f in result['frames']]
+    result['rms'] = [round_point(r) for r in result['rms']]
 
     # Store session start time for clock time display
     if first_session_start:

@@ -155,6 +155,92 @@ def to_yaml_filter(data):
         return ''
 
 
+# === Log file storage helpers ===
+
+LOGS_DIR = os.path.join(INSTANCE_PATH, 'logs')
+ASIAIR_LOGS_DIR = os.path.join(LOGS_DIR, 'asiair')
+PHD2_LOGS_DIR = os.path.join(LOGS_DIR, 'phd2')
+
+
+def _ensure_log_dirs():
+    """Ensure log directories exist."""
+    os.makedirs(ASIAIR_LOGS_DIR, exist_ok=True)
+    os.makedirs(PHD2_LOGS_DIR, exist_ok=True)
+
+
+def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None) -> str:
+    """
+    Save log content to filesystem and return the relative path.
+
+    Args:
+        session_id: The session ID
+        log_type: 'asiair' or 'phd2'
+        content: The raw log content
+        original_filename: Optional original filename for reference
+
+    Returns:
+        Relative path like 'instance/logs/asiair/278_Autorun_Log.txt'
+    """
+    _ensure_log_dirs()
+
+    # Sanitize filename
+    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', original_filename or 'log.txt')
+    if len(safe_name) > 100:
+        safe_name = safe_name[:100]
+
+    filename = f"{session_id}_{safe_name}"
+
+    if log_type == 'asiair':
+        filepath = os.path.join(ASIAIR_LOGS_DIR, filename)
+    else:
+        filepath = os.path.join(PHD2_LOGS_DIR, filename)
+
+    with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
+        f.write(content)
+
+    # Return path relative to instance/
+    return os.path.join('instance', 'logs', log_type, filename)
+
+
+def read_log_content(db_value: str) -> str:
+    """
+    Read log content from either filesystem path or raw content.
+
+    Args:
+        db_value: Either a filesystem path or raw log content
+
+    Returns:
+        The raw log content
+    """
+    if not db_value:
+        return None
+
+    # Check if it's a filesystem path (no newlines = path, has newlines = raw content)
+    if '\n' not in db_value and db_value.startswith('instance/logs/'):
+        # It's a filesystem path - read from file
+        # Convert relative path to absolute
+        if db_value.startswith('instance/'):
+            filepath = os.path.join(os.path.dirname(INSTANCE_PATH), db_value)
+        else:
+            filepath = db_value
+
+        try:
+            with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read()
+        except FileNotFoundError:
+            return None
+    else:
+        # It's raw content (legacy format)
+        return db_value
+
+
+def is_log_path(db_value: str) -> bool:
+    """Check if the db_value is a filesystem path vs raw content."""
+    if not db_value:
+        return False
+    return '\n' not in db_value and db_value.startswith('instance/logs/')
+
+
 # === Data conversion helpers ===
 
 def safe_float(value_str):
