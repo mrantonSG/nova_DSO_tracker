@@ -290,11 +290,19 @@
                 }
             });
     
-            // On load - always start in Real-Time mode
-            // const savedSimMode = localStorage.getItem('simModeActive') === 'true';
-            // let savedSimDate = localStorage.getItem('simDate');
-            simModeToggle.checked = false;
-            applySimState(false, null);
+            // On load - restore saved simulation mode state if available
+            const savedSimMode = localStorage.getItem('simModeActive') === 'true';
+            const savedSimDate = localStorage.getItem('simDate');
+            if (savedSimMode && savedSimDate) {
+                simModeToggle.checked = true;
+                simDateInput.value = savedSimDate;
+                applySimState(true, savedSimDate);
+                // Update data for simulation mode on load
+                updateDataForSim();
+            } else {
+                simModeToggle.checked = false;
+                applySimState(false, null);
+            }
         }
     
         // ========================================================================
