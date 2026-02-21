@@ -1006,14 +1006,7 @@
                     <div class="form-section-title">Outcome & Reflections</div>
                     {{ form_group('session_rating_subjective', 'Session Rating (1-5 ★):', type='number', min=1, max=5) }}
                     <div class="form-group">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 5px;">
-                            <label style="margin-bottom: 0;">General Notes, Problems, Learnings:</label>
-
-                            <input type="file" id="asiair_log_input" style="display: none;" accept=".txt,.log">
-                            <button type="button" class="inline-button" style="font-size: 11px; padding: 3px 8px; background-color: var(--primary-color);" data-action="trigger-file-input" data-target-id="asiair_log_input">
-                                BETA: Import Log (ASIAIR / PHD2)
-                            </button>
-                        </div>
+                        <label>General Notes, Problems, Learnings:</label>
                         <input type="hidden" id="journal-notes-hidden" name="general_notes_problems_learnings">
                         <trix-editor input="journal-notes-hidden" id="journal-notes-editor" style="min-height: 120px; height: auto; background-color: var(--bg-white);"></trix-editor>
                     </div>
