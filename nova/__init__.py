@@ -124,7 +124,8 @@ from nova.helpers import (
     _mkdirp, _backup_with_rotation, _atomic_write_yaml, _FileLock,
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
     load_effective_settings,
-    get_imaging_criteria, _HAS_FCNTL
+    get_imaging_criteria, _HAS_FCNTL,
+    save_log_to_filesystem, read_log_content
 )
 from nova.workers.weather import weather_cache_worker
 from nova.workers.updates import check_for_updates
@@ -3650,8 +3651,7 @@ def get_session_log_analysis(session_id):
     {
         'has_logs': bool,
         'asiair': {...} or null,
-        'phd2': {...} or null,
-        'combined': {...}
+        'phd2': {...} or null
     }
     """
     import json
@@ -3686,36 +3686,19 @@ def get_session_log_analysis(session_id):
     result = {
         'has_logs': False,
         'asiair': None,
-        'phd2': None,
-        'combined': {
-            'exposures': [],
-            'dithers': [],
-            'af_runs': [],
-            'meridian_flips': [],
-            'frames': [],
-            'rms': [],
-            'run_bounds': [],
-            'stats': {}
-        }
+        'phd2': None
     }
 
-    if session.asiair_log_content:
-        result['asiair'] = parse_asiair_log(session.asiair_log_content)
+    # Parse logs - use read_log_content to handle both filesystem paths and legacy raw content
+    asiair_content = read_log_content(session.asiair_log_content)
+    if asiair_content:
+        result['asiair'] = parse_asiair_log(asiair_content)
         result['has_logs'] = True
-        result['combined']['exposures'] = result['asiair']['exposures']
-        result['combined']['dithers'] = result['asiair']['dithers']
-        result['combined']['af_runs'] = result['asiair']['af_runs']
-        result['combined']['meridian_flips'] = result['asiair']['meridian_flips']
-        result['combined']['stats']['asiair'] = result['asiair']['stats']
 
-    if session.phd2_log_content:
-        result['phd2'] = parse_phd2_log(session.phd2_log_content)
+    phd2_content = read_log_content(session.phd2_log_content)
+    if phd2_content:
+        result['phd2'] = parse_phd2_log(phd2_content)
         result['has_logs'] = True
-        result['combined']['frames'] = result['phd2']['frames']
-        result['combined']['rms'] = result['phd2']['rms']
-        result['combined']['run_bounds'] = result['phd2']['run_bounds']
-        result['combined']['stats']['pixel_scale'] = result['phd2']['pixel_scale']
-        result['combined']['stats']['phd2'] = result['phd2']['stats']
 
     # 3. Cache the result if parsing happened
     if result['has_logs']:
@@ -6286,18 +6269,36 @@ def journal_add():
                     file.save(os.path.join(user_upload_dir, new_filename))
                     new_session.session_image_file = new_filename
 
-            # --- Log file uploads (stored as TEXT in DB) ---
+            # --- Log file uploads (stored on filesystem, path in DB) ---
+            # Read content first, we'll save after commit when we have the session ID
+            asiair_content = None
+            asiair_filename = None
+            phd2_content = None
+            phd2_filename = None
+
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
                 if log_file and log_file.filename != '':
-                    new_session.asiair_log_content = log_file.read().decode('utf-8', errors='ignore')
+                    asiair_content = log_file.read().decode('utf-8', errors='ignore')
+                    asiair_filename = log_file.filename
 
             if 'phd2_log' in request.files:
                 log_file = request.files['phd2_log']
                 if log_file and log_file.filename != '':
-                    new_session.phd2_log_content = log_file.read().decode('utf-8', errors='ignore')
+                    phd2_content = log_file.read().decode('utf-8', errors='ignore')
+                    phd2_filename = log_file.filename
 
-            db.commit()
+            db.commit()  # Commit to get session ID
+
+            # Now save logs to filesystem with session ID
+            if asiair_content:
+                path = save_log_to_filesystem(new_session.id, 'asiair', asiair_content, asiair_filename)
+                new_session.asiair_log_content = path
+            if phd2_content:
+                path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename)
+                new_session.phd2_log_content = path
+            if asiair_content or phd2_content:
+                db.commit()
             flash("New journal entry added successfully!", "success")
             # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
             return redirect(url_for('core.graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
@@ -6503,17 +6504,21 @@ def journal_edit(session_id):
         # Track if we need to invalidate the analysis cache
         invalidate_cache = False
 
-        # Log file uploads
+        # Log file uploads (stored on filesystem, path in DB)
         if 'asiair_log' in request.files:
             log_file = request.files['asiair_log']
             if log_file and log_file.filename != '':
-                session_to_edit.asiair_log_content = log_file.read().decode('utf-8', errors='ignore')
+                content = log_file.read().decode('utf-8', errors='ignore')
+                path = save_log_to_filesystem(session_to_edit.id, 'asiair', content, log_file.filename)
+                session_to_edit.asiair_log_content = path
                 invalidate_cache = True
 
         if 'phd2_log' in request.files:
             log_file = request.files['phd2_log']
             if log_file and log_file.filename != '':
-                session_to_edit.phd2_log_content = log_file.read().decode('utf-8', errors='ignore')
+                content = log_file.read().decode('utf-8', errors='ignore')
+                path = save_log_to_filesystem(session_to_edit.id, 'phd2', content, log_file.filename)
+                session_to_edit.phd2_log_content = path
                 invalidate_cache = True
 
         # Log deletion via checkbox
