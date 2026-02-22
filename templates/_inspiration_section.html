@@ -57,19 +57,30 @@
         object-fit: cover;
     }
 
-    /* FACELIFT: Attribution Badge overlay on image */
-    .img-source-badge {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        background: rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: rgba(255, 255, 255, 0.8);
+    /* FACELIFT: Common badge base styles */
+    .img-source-badge,
+    .tile-type {
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 4px;
         padding: 2px 6px;
         font-size: 9px;
         font-weight: 700;
+        color: rgba(255, 255, 255, 0.85);
         font-family: var(--nova-font-mono, 'DM Mono', monospace);
-        border-radius: 4px;
+        backdrop-filter: blur(4px);
+    }
+
+    /* FACELIFT: Attribution Badge overlay on image - bottom-left */
+    .img-source-badge {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        right: auto;
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         pointer-events: none;
     }
 
@@ -101,15 +112,7 @@
         position: absolute;
         top: -34px;
         right: 8px;
-        background: rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
-        padding: 2px 6px;
-        font-size: 9px;
-        font-weight: 700;
         text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.9);
-        font-family: var(--nova-font-mono, 'DM Mono', monospace);
     }
 
     /* FACELIFT: Common name - 11px, nova-text-3 */
