@@ -12,6 +12,7 @@
     window.sessionLogChartsInitialized = true;
 
     // --- Color Scheme (Brand palette - matches base.css) ---
+    // NOTE: COLORS are for data elements (lines, bars). Text/grid colors use getThemeColors().
     const COLORS = {
         ra: 'rgba(131, 180, 197, 0.85)',     // Primary teal 85% opacity
         dec: '#d4899e',                       // Soft rose (muted pink)
@@ -22,10 +23,48 @@
         dither: '#d4899e',                    // Soft rose (matches dec)
         af: '#ffc107',                        // Brand warning amber
         meridianFlip: '#5eb570',              // Soft chart green
-        grid: 'rgba(220, 220, 220, 0.6)',     // Bright grid - clearly visible
-        text: '#ffffff',                      // Pure white for dark mode
-        background: '#0a0f1e'
     };
+
+    /**
+     * Get theme-aware colors for chart UI elements (text, grid, tooltips).
+     * Uses stylingUtils CSS variables with fallbacks for WCAG-compliant contrast.
+     * @returns {Object} Theme colors: { text, textMuted, grid, tooltipBg, tooltipTitle, tooltipBody, tooltipBorder }
+     */
+    function getThemeColors() {
+        const dark = isDarkTheme();
+
+        // Use stylingUtils if available for CSS variable integration
+        if (window.stylingUtils) {
+            return {
+                text: dark
+                    ? window.stylingUtils.getThemeFallback('TEXT_PRIMARY')
+                    : window.stylingUtils.getThemeFallback('TEXT_PRIMARY'),
+                textMuted: dark ? '#b0b0b0' : '#666666',
+                grid: dark
+                    ? 'rgba(180, 180, 180, 0.25)'
+                    : 'rgba(0, 0, 0, 0.1)',
+                tooltipBg: dark
+                    ? 'rgba(40, 40, 40, 0.95)'
+                    : 'rgba(255, 255, 255, 0.92)',
+                tooltipTitle: dark ? '#f0f0f0' : '#222222',
+                tooltipBody: dark ? '#dddddd' : '#444444',
+                tooltipBorder: dark
+                    ? 'rgba(120, 120, 120, 0.5)'
+                    : 'rgba(0, 0, 0, 0.15)'
+            };
+        }
+
+        // Fallback without stylingUtils
+        return {
+            text: dark ? '#e0e0e0' : '#333333',
+            textMuted: dark ? '#b0b0b0' : '#666666',
+            grid: dark ? 'rgba(180, 180, 180, 0.25)' : 'rgba(0, 0, 0, 0.1)',
+            tooltipBg: dark ? 'rgba(40, 40, 40, 0.95)' : 'rgba(255, 255, 255, 0.92)',
+            tooltipTitle: dark ? '#f0f0f0' : '#222222',
+            tooltipBody: dark ? '#dddddd' : '#444444',
+            tooltipBorder: dark ? 'rgba(120, 120, 120, 0.5)' : 'rgba(0, 0, 0, 0.15)'
+        };
+    }
 
     // --- Chart instances for cleanup ---
     let charts = {
@@ -213,9 +252,13 @@
 
     /**
      * Get common Chart.js options
+     * @param {string} title - Chart title
+     * @param {string} yLabel - Y-axis label
+     * @param {string} xLabel - X-axis label (default: 'Hours')
+     * @returns {Object} Chart.js options object
      */
     function getChartOptions(title, yLabel, xLabel = 'Hours') {
-        const dark = isDarkTheme();
+        const themeColors = getThemeColors();
         return {
             responsive: true,
             maintainAspectRatio: false,
@@ -224,20 +267,20 @@
                 title: {
                     display: !!title,
                     text: title,
-                    color: dark ? COLORS.text : '#333'
+                    color: themeColors.text
                 },
                 legend: {
                     labels: {
-                        color: dark ? COLORS.text : '#333',
+                        color: themeColors.text,
                         usePointStyle: true,
                         pointStyle: 'circle'
                     }
                 },
                 tooltip: {
-                    backgroundColor: dark ? 'rgba(40, 40, 40, 0.95)' : 'rgba(255, 255, 255, 0.92)',
-                    titleColor: dark ? '#f0f0f0' : '#222',
-                    bodyColor: dark ? '#ddd' : '#444',
-                    borderColor: dark ? 'rgba(120, 120, 120, 0.5)' : 'rgba(0, 0, 0, 0.15)',
+                    backgroundColor: themeColors.tooltipBg,
+                    titleColor: themeColors.tooltipTitle,
+                    bodyColor: themeColors.tooltipBody,
+                    borderColor: themeColors.tooltipBorder,
                     borderWidth: 1
                 }
             },
@@ -246,31 +289,74 @@
                     title: {
                         display: true,
                         text: xLabel,
-                        color: dark ? COLORS.text : '#333'
+                        color: themeColors.text
                     },
                     ticks: {
-                        color: dark ? COLORS.text : '#666',
+                        color: themeColors.textMuted,
                         maxTicksLimit: 10
                     },
                     grid: {
-                        color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)'
+                        color: themeColors.grid
                     }
                 },
                 y: {
                     title: {
                         display: true,
                         text: yLabel,
-                        color: dark ? COLORS.text : '#333'
+                        color: themeColors.text
                     },
                     ticks: {
-                        color: dark ? COLORS.text : '#666'
+                        color: themeColors.textMuted
                     },
                     grid: {
-                        color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)'
+                        color: themeColors.grid
                     }
                 }
             }
         };
+    }
+
+    /**
+     * Update chart options for theme changes (mutates chart.options in-place)
+     * This is called when theme changes to update colors without destroying charts.
+     * @param {Chart} chart - Chart.js instance to update
+     */
+    function updateChartThemeColors(chart) {
+        if (!chart || !chart.options) return;
+
+        const themeColors = getThemeColors();
+
+        // Update plugins
+        if (chart.options.plugins) {
+            if (chart.options.plugins.title) {
+                chart.options.plugins.title.color = themeColors.text;
+            }
+            if (chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = themeColors.text;
+            }
+            if (chart.options.plugins.tooltip) {
+                chart.options.plugins.tooltip.backgroundColor = themeColors.tooltipBg;
+                chart.options.plugins.tooltip.titleColor = themeColors.tooltipTitle;
+                chart.options.plugins.tooltip.bodyColor = themeColors.tooltipBody;
+                chart.options.plugins.tooltip.borderColor = themeColors.tooltipBorder;
+            }
+        }
+
+        // Update scales
+        ['x', 'y'].forEach(function(axis) {
+            if (chart.options.scales && chart.options.scales[axis]) {
+                const scale = chart.options.scales[axis];
+                if (scale.title) {
+                    scale.title.color = themeColors.text;
+                }
+                if (scale.ticks) {
+                    scale.ticks.color = themeColors.textMuted;
+                }
+                if (scale.grid) {
+                    scale.grid.color = themeColors.grid;
+                }
+            }
+        });
     }
 
     /**
@@ -381,9 +467,10 @@
         svg.innerHTML = '';
 
         const dark = isDarkTheme();
-        const textColor = dark ? COLORS.text : '#666';       // Use consistent bright text
-        const labelColor = dark ? COLORS.text : '#333';      // Use consistent text color
-        const dividerColor = dark ? 'rgba(200, 200, 200, 0.35)' : 'rgba(0, 0, 0, 0.1)';  // Match grid brightness
+        const themeColors = getThemeColors();
+        const textColor = themeColors.textMuted;
+        const labelColor = themeColors.text;
+        const dividerColor = themeColors.grid;
 
         // Helper to convert hours to X position
         const hoursToX = (h) => labelWidth + chartPadding.left + (h / maxHours) * chartWidth;
@@ -2347,8 +2434,9 @@
     };
 
     /**
-     * Resize all charts when theme changes (prevents Y-axis stretch)
-     * Uses delay + requestAnimationFrame to ensure CSS transitions complete
+     * Update all charts when theme changes.
+     * Updates chart colors AND resizes to prevent Y-axis stretch.
+     * Uses delay + requestAnimationFrame to ensure CSS transitions complete.
      */
     let themeResizeTimeout = null;
     window.addEventListener('themeChanged', function() {
@@ -2359,20 +2447,22 @@
             clearTimeout(themeResizeTimeout);
         }
 
-        // Wait for CSS transition (300ms) then resize charts
+        // Wait for CSS transition (300ms) then update charts
         themeResizeTimeout = setTimeout(function() {
             requestAnimationFrame(function() {
-                // Resize all Chart.js instances
+                // Update and resize all Chart.js instances
                 Object.keys(charts).forEach(function(key) {
                     if (key === 'afCurves') {
                         // Array of chart instances
                         charts.afCurves.forEach(function(chart) {
                             if (chart && typeof chart.resize === 'function') {
+                                updateChartThemeColors(chart);
                                 chart.resize();
                                 chart.update('none');
                             }
                         });
                     } else if (charts[key] && typeof charts[key].resize === 'function') {
+                        updateChartThemeColors(charts[key]);
                         charts[key].resize();
                         charts[key].update('none');
                     }
