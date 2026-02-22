@@ -76,13 +76,7 @@ body {
     padding: var(--space-1);
 }
 
-.view-buttons {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-}
-
-/* .view-button styles moved to base.css */
+/* .view-buttons and .view-button styles are in the CHART CONTROLS section below */
 
 #project-field {
     width: 100%;
@@ -1342,5 +1336,315 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 :root[data-theme="dark"] #framing-tab,
 :root[data-theme="dark"] #framing-tab .detail-tab-content {
     background-color: var(--nova-bg, #0f1118);
+}
+
+/* =================================================================
+   CHART CONTAINER - FACELIFT STYLES
+   Reference: nova-desktop-facelift.html
+   ================================================================ */
+
+/* Chart wrapper - the main container for the chart canvas */
+#chart-area {
+    background: var(--nova-surface, var(--bg-white));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    border-radius: var(--nova-radius, 10px);
+    box-shadow: var(--nova-shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+    padding: 12px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+/* Dark mode chart container */
+:root[data-theme="dark"] #chart-area {
+    background: #161b24;
+    border-color: rgba(255,255,255,0.07);
+}
+
+/* Canvas inside chart area */
+#chart-area canvas {
+    border-radius: var(--nova-radius-sm, 5px);
+}
+
+/* =================================================================
+   CHART CONTROLS ROW - FACELIFT STYLES
+   Day/Month/Year buttons + date inputs + Add Object dropdown
+   ================================================================ */
+
+/* Controls row container */
+.date-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 0 0;
+    margin-top: 12px;
+    border-top: 1px solid var(--nova-border-light, var(--border-light));
+}
+
+/* Labels in date controls */
+.date-controls label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nova-text-2, var(--text-secondary));
+    font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+}
+
+/* =================================================================
+   VIEW BUTTONS - SEGMENTED CONTROL STYLE
+   Day View / Month View / Year View as a pill group
+   ================================================================ */
+
+/* View buttons container - wraps the three view buttons */
+.date-controls .view-buttons {
+    display: inline-flex;
+    background: var(--nova-surface-alt, var(--bg-light));
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
+    margin: 0;
+}
+
+/* Individual view buttons - segmented control style */
+/* Higher specificity (.date-controls .view-button) to override base.css */
+.date-controls .view-button {
+    padding: 5px 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+    color: var(--nova-text-3, var(--text-tertiary));
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.01em;
+    box-shadow: none;
+}
+
+.date-controls .view-button:hover {
+    color: var(--nova-text-2, var(--text-secondary));
+    background: transparent;
+    box-shadow: none;
+}
+
+/* Active view button */
+.date-controls .view-button.active,
+.date-controls .view-button[data-active="true"],
+.date-controls .view-button[aria-pressed="true"] {
+    background: var(--nova-surface, var(--bg-white));
+    color: var(--nova-accent, var(--primary-color));
+    box-shadow: var(--nova-shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+}
+
+/* Dark mode view buttons */
+:root[data-theme="dark"] .date-controls .view-buttons {
+    background: rgba(255,255,255,0.04);
+}
+
+:root[data-theme="dark"] .date-controls .view-button {
+    color: var(--nova-text-3, rgba(255,255,255,0.30));
+    background: transparent;
+}
+
+:root[data-theme="dark"] .date-controls .view-button:hover {
+    color: var(--nova-text-2, rgba(255,255,255,0.55));
+    background: transparent;
+}
+
+:root[data-theme="dark"] .date-controls .view-button.active,
+:root[data-theme="dark"] .date-controls .view-button[data-active="true"],
+:root[data-theme="dark"] .date-controls .view-button[aria-pressed="true"] {
+    background: var(--nova-surface, var(--bg-dark-secondary));
+    color: var(--nova-accent, #7aafc0);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.30);
+}
+
+/* =================================================================
+   DATE INPUTS - FACELIFT STYLES
+   Day / Month / Year numeric inputs
+   ================================================================ */
+
+/* Number inputs for day and year */
+.date-controls input[type="number"] {
+    font-family: var(--nova-font-mono, 'DM Mono', monospace);
+    font-size: 12px;
+    border: 1px solid var(--nova-border, var(--border-medium));
+    border-radius: 5px;
+    background: var(--nova-surface, var(--bg-white));
+    color: var(--nova-text-2, var(--text-secondary));
+    padding: 4px 8px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s ease;
+    -moz-appearance: textfield;
+}
+
+.date-controls input[type="number"]::-webkit-outer-spin-button,
+.date-controls input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.date-controls input[type="number"]:focus {
+    border-color: var(--nova-accent-mid, var(--primary-light));
+}
+
+/* Month select dropdown */
+.date-controls select {
+    font-family: var(--nova-font-mono, 'DM Mono', monospace);
+    font-size: 12px;
+    border: 1px solid var(--nova-border, var(--border-medium));
+    border-radius: 5px;
+    background: var(--nova-surface, var(--bg-white));
+    color: var(--nova-text-2, var(--text-secondary));
+    padding: 4px 28px 4px 8px;
+    text-align: center;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.15s ease;
+}
+
+.date-controls select:focus {
+    border-color: var(--nova-accent-mid, var(--primary-light));
+}
+
+/* Dark mode date inputs */
+:root[data-theme="dark"] .date-controls input[type="number"] {
+    background: var(--nova-surface, var(--bg-dark-secondary));
+    border-color: var(--nova-border, rgba(255,255,255,0.07));
+    color: var(--nova-text-2, rgba(255,255,255,0.55));
+}
+
+:root[data-theme="dark"] .date-controls input[type="number"]:focus {
+    border-color: var(--nova-accent-mid, #8ec8da);
+}
+
+:root[data-theme="dark"] .date-controls select {
+    background-color: var(--nova-surface, var(--bg-dark-secondary));
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    border-color: var(--nova-border, rgba(255,255,255,0.07));
+    color: var(--nova-text-2, rgba(255,255,255,0.55));
+}
+
+:root[data-theme="dark"] .date-controls select:focus {
+    border-color: var(--nova-accent-mid, #8ec8da);
+}
+
+/* =================================================================
+   SECONDARY OBJECT CONTROLS - FACELIFT STYLES
+   "Add Object" dropdown and help icon
+   ================================================================ */
+
+/* Secondary object controls container */
+#secondary-object-controls {
+    margin-left: 24px;
+    padding-left: 24px;
+    border-left: 1px solid var(--nova-border, var(--border-medium));
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Add Object label */
+#secondary-object-controls label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--nova-text-2, var(--text-secondary));
+}
+
+/* Add Object select dropdown */
+#secondary-object-select {
+    font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+    font-size: 12px;
+    border: 1px solid var(--nova-border, var(--border-medium));
+    border-radius: 5px;
+    background: var(--nova-surface, var(--bg-white));
+    color: var(--nova-text-2, var(--text-secondary));
+    padding: 4px 28px 4px 8px;
+    min-width: 180px;
+    max-width: 250px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#secondary-object-select:focus {
+    border-color: var(--nova-accent-mid, var(--primary-light));
+}
+
+#secondary-object-select:disabled {
+    background-color: var(--nova-surface-alt, var(--bg-light));
+    color: var(--nova-text-4, var(--text-light));
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Dark mode Add Object select */
+:root[data-theme="dark"] #secondary-object-controls {
+    border-left-color: var(--nova-border, rgba(255,255,255,0.07));
+}
+
+:root[data-theme="dark"] #secondary-object-select {
+    background-color: var(--nova-surface, var(--bg-dark-secondary));
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    border-color: var(--nova-border, rgba(255,255,255,0.07));
+    color: var(--nova-text-2, rgba(255,255,255,0.55));
+}
+
+:root[data-theme="dark"] #secondary-object-select:focus {
+    border-color: var(--nova-accent-mid, #8ec8da);
+}
+
+:root[data-theme="dark"] #secondary-object-select:disabled {
+    background-color: rgba(255,255,255,0.02);
+    color: var(--nova-text-4, rgba(255,255,255,0.18));
+}
+
+/* Help badge in date controls - icon button style */
+#secondary-object-controls .help-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid var(--nova-border, var(--border-medium));
+    background: var(--nova-surface-alt, var(--bg-light));
+    color: var(--nova-text-3, var(--text-tertiary));
+    font-size: 10px;
+    font-weight: 700;
+    font-family: serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+#secondary-object-controls .help-badge:hover {
+    background: var(--nova-accent-bg, var(--primary-bg));
+    border-color: var(--nova-accent-light, var(--primary-light));
+    color: var(--nova-accent, var(--primary-color));
+}
+
+/* Dark mode help badge */
+:root[data-theme="dark"] #secondary-object-controls .help-badge {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--nova-border, rgba(255,255,255,0.07));
+    color: var(--nova-text-3, rgba(255,255,255,0.30));
+}
+
+:root[data-theme="dark"] #secondary-object-controls .help-badge:hover {
+    background: rgba(122,175,192,0.1);
+    border-color: rgba(122,175,192,0.2);
+    color: var(--nova-accent, #7aafc0);
 }
 

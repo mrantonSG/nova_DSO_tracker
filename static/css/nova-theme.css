@@ -421,6 +421,7 @@ dd {
   --nova-accent-mid: var(--primary-light);
   --nova-shadow-sm: var(--shadow-sm);
   --nova-radius-sm: var(--radius-sm);
+  --nova-radius: var(--radius-lg);
 }
 
 /* Dark mode header tokens */
