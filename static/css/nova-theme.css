@@ -2008,25 +2008,23 @@ label input[type="checkbox"],
    ================================================================ */
 
 /* Custom select dropdown styling */
+select,
 .form-group select,
 select.styled-select,
-select[name^="timezone_"],
-select[name="new_timezone"],
 .styled-select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
+  background-size: 10px 6px;
   padding-right: 28px;
   cursor: pointer;
 }
 
 /* Dark mode dropdown arrow */
-:root[data-theme="dark"] .form-group select,
-:root[data-theme="dark"] select.styled-select,
-:root[data-theme="dark"] select[name^="timezone_"],
-:root[data-theme="dark"] select[name="new_timezone"] {
+:root[data-theme="dark"] select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-size: 10px 6px;
 }
 
 /* Dropdown option styling */
