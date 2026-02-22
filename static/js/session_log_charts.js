@@ -22,8 +22,8 @@
         dither: '#f472b6',    // Pink for dither
         af: '#fbbf24',        // Yellow for autofocus
         meridianFlip: '#10b981', // Emerald green for meridian flip
-        grid: 'rgba(150, 150, 150, 0.3)',
-        text: '#b0b0b0',
+        grid: 'rgba(180, 180, 180, 0.5)',
+        text: '#d8d8d8',
         background: '#0a0f1e'
     };
 
