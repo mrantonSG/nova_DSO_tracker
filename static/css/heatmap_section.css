@@ -2,9 +2,12 @@
         position: relative;
         min-height: 600px;
     }
+
     #heatmap-wrapper {
         width: 100%;
     }
+
+    /* Heatmap controls bar */
     #heatmap-controls {
         display: flex;
         justify-content: space-between;
@@ -15,13 +18,26 @@
         border-radius: var(--radius-md);
         border: 1px solid var(--border-light);
     }
+
+    /* Legend line - italic, muted */
     #heatmap-legend-text {
-        font-size: 0.9em;
-        color: var(--text-tertiary);
+        font-size: 11px;
+        color: var(--text-muted);
+        font-style: italic;
+        margin-bottom: 12px;
     }
+
+    /* Heatmap container - gap-based grid effect via background */
     #yearly-heatmap-plot {
         width: 100%;
         min-height: 600px;
+        background: var(--border-color);
+        border-radius: var(--radius-md);
+    }
+
+    /* Dark mode heatmap container */
+    [data-theme="dark"] #yearly-heatmap-plot {
+        background: rgba(255,255,255,0.06);
     }
 
     /* Fixed Loader Styling with Progress Bar */
@@ -31,14 +47,65 @@
         top: 150px;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(255,255,255,0.95);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.12));
         padding: 20px 40px;
-        border-radius: var(--radius-xl);
-        box-shadow: var(--shadow-lg);
         z-index: var(--z-dropdown);
         text-align: center;
-        color: var(--primary-dark);
+        color: var(--text-primary);
         font-weight: var(--font-weight-bold);
-        border: 1px solid var(--border-medium);
         min-width: 300px;
+    }
+
+    /* Dark mode loader */
+    [data-theme="dark"] #heatmap-loading {
+        background: var(--bg-tertiary);
+        border-color: rgba(122,175,192,0.2);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    /* ============================================
+       PLOTLY HEATMAP OVERRIDES
+       The heatmap uses Plotly.js which renders to canvas.
+       These styles affect the surrounding container and
+       any HTML elements Plotly generates for labels.
+       ============================================ */
+
+    /* Y-axis (object name column) - Plotly generates SVG text */
+    #yearly-heatmap-plot .ytick text {
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 11px !important;
+        fill: var(--text-secondary) !important;
+    }
+
+    /* X-axis (date/week headers) - Plotly generates SVG text */
+    #yearly-heatmap-plot .xtick text {
+        font-family: var(--font-mono, 'DM Mono', monospace) !important;
+        font-size: 9px !important;
+        fill: var(--text-muted) !important;
+        letter-spacing: 0.03em !important;
+        text-align: center !important;
+    }
+
+    /* Hover tooltip - Plotly's built-in tooltip */
+    .hovertext {
+        font-family: 'DM Sans', sans-serif !important;
+    }
+
+    .hovertext path {
+        fill: var(--bg-secondary) !important;
+        stroke: var(--border-color) !important;
+        stroke-width: 1px !important;
+    }
+
+    [data-theme="dark"] .hovertext path {
+        fill: var(--bg-tertiary) !important;
+        stroke: rgba(122,175,192,0.2) !important;
+    }
+
+    .hovertext text {
+        fill: var(--text-primary) !important;
+        font-size: 12px !important;
     }

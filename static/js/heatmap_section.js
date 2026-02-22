@@ -17,6 +17,7 @@
     });
 
     function updateHeatmapFilter() {
+        console.log('[heatmap] updateHeatmapFilter called');
         renderHeatmapFromCache();
     }
 
@@ -148,6 +149,7 @@
         // --- UPDATED: Use Global Toggle ---
         const activeToggle = document.getElementById('global-active-toggle');
         const onlyActive = activeToggle ? activeToggle.checked : false;
+        console.log('[heatmap] renderHeatmapFromCache called, onlyActive:', onlyActive, 'activeToggle:', activeToggle);
         // ----------------------------------
 
         // Get Saved View Settings from Global (index.html)
@@ -203,6 +205,17 @@
         let filteredZ = [];
         let filteredIds = [];
 
+        // Count active/inactive for debugging
+        let activeCount = 0;
+        let inactiveCount = 0;
+        if (data.active) {
+            data.active.forEach(a => {
+                if (a === 1) activeCount++;
+                else inactiveCount++;
+            });
+        }
+        console.log('[heatmap] Active counts: active=', activeCount, 'inactive=', inactiveCount, 'onlyActive=', onlyActive);
+
         for(let i=0; i < data.y.length; i++) {
             if (onlyActive && data.active[i] === 0) continue;
             if (!checkViewMatch(i)) continue;
@@ -211,6 +224,8 @@
             filteredZ.push(data.z[i]);
             filteredIds.push(data.ids[i]);
         }
+
+        console.log('[heatmap] Filtered results: total=', data.y.length, 'filtered=', filteredY.length);
 
         if (filteredY.length === 0) {
              plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">No projects found.<br><br><small>Adjust filters or Saved View.</small></div>`;
@@ -245,11 +260,12 @@
         }
 
         const novaColorScale = [
-            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', '#ffffff') : '#ffffff'],
-            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', '#f0f4f5') : '#f0f4f5'],
-            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', '#dce5eb') : '#dce5eb'],
-            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', '#83b4c5') : '#83b4c5'],
-            [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', '#5a8491') : '#5a8491']
+            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', 'rgba(0,0,0,0.02)') : 'rgba(0,0,0,0.02)'],
+            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', 'rgba(122,175,192,0.15)') : 'rgba(122,175,192,0.15)'],
+            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', 'rgba(122,175,192,0.35)') : 'rgba(122,175,192,0.35)'],
+            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', 'rgba(122,175,192,0.55)') : 'rgba(122,175,192,0.55)'],
+            [0.8, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-80', '#7aafc0') : '#7aafc0'],
+            [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', '#4a8fa0') : '#4a8fa0']
         ];
 
         const trace = {
@@ -259,9 +275,9 @@
             type: 'heatmap',
             colorscale: novaColorScale,
             showscale: false,
-            xgap: 1,
-            ygap: 1,
-            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br>Score: %{z:.0f}/100<extra></extra>'
+            xgap: 2,
+            ygap: 2,
+            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br><span style="color:#7aafc0;font-weight:600">Score: %{z:.0f}/100</span><extra></extra>'
         };
 
         const calculatedHeight = Math.max(600, filteredY.length * 15);
@@ -348,8 +364,8 @@
 
         const legendText = document.getElementById('heatmap-legend-text');
         if (legendText) {
-            const qualityText = isDark ? 'Brighter Green = Best Quality' : 'Darker Green = Best Quality';
-            legendText.textContent = `* Vertical light bands = Full Moon (Washed out). ${qualityText}. Click object names to view details.`;
+            const qualityText = isDark ? 'Brighter teal = Best visibility' : 'Darker teal = Best visibility';
+            legendText.textContent = `* Vertical bands = Full Moon. ${qualityText}. Click any cell to view details.`;
         }
     }
 
@@ -375,10 +391,11 @@
 
         // Update color scale for heatmap (uses CSS variables that change with theme)
         const novaColorScale = [
-            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', '#1a1a1a') : '#1a1a1a'],
-            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', '#2a3a3d') : '#2a3a3d'],
-            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', '#3d5a61') : '#3d5a61'],
-            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', '#83b4c5') : '#83b4c5'],
+            [0.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-0', 'rgba(255,255,255,0.02)') : 'rgba(255,255,255,0.02)'],
+            [0.1, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-10', 'rgba(122,175,192,0.15)') : 'rgba(122,175,192,0.15)'],
+            [0.3, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-30', 'rgba(122,175,192,0.35)') : 'rgba(122,175,192,0.35)'],
+            [0.6, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-60', 'rgba(122,175,192,0.55)') : 'rgba(122,175,192,0.55)'],
+            [0.8, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-80', '#7aafc0') : '#7aafc0'],
             [1.0, (window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--heatmap-scale-100', '#a8d4e0') : '#a8d4e0']
         ];
 
@@ -389,9 +406,9 @@
             type: 'heatmap',
             colorscale: novaColorScale,
             showscale: false,
-            xgap: 1,
-            ygap: 1,
-            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br>Score: %{z:.0f}/100<extra></extra>'
+            xgap: 2,
+            ygap: 2,
+            hovertemplate: '<b>%{y}</b><br>Week: %{x}<br><span style="color:#7aafc0;font-weight:600">Score: %{z:.0f}/100</span><extra></extra>'
         };
 
         const calculatedHeight = Math.max(600, currentFilteredY.length * 15);

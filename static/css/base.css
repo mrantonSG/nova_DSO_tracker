@@ -196,11 +196,18 @@
   --color-geostationary: #e056fd;
 
   /* === HEATMAP SCALE COLORS === */
-  --heatmap-scale-0: #ffffff;
-  --heatmap-scale-10: #eef6f9;
-  --heatmap-scale-30: #c5dce5;
-  --heatmap-scale-60: #5a8fa0;
-  --heatmap-scale-100: #4a7a8a;
+  /* Empty/Not observable → Score 0 */
+  --heatmap-scale-0: rgba(0,0,0,0.02);
+  /* Score 1-20 */
+  --heatmap-scale-10: rgba(122,175,192,0.15);
+  /* Score 21-40 */
+  --heatmap-scale-30: rgba(122,175,192,0.35);
+  /* Score 41-60 */
+  --heatmap-scale-60: rgba(122,175,192,0.55);
+  /* Score 61-80 */
+  --heatmap-scale-80: #7aafc0;
+  /* Score 81-100 */
+  --heatmap-scale-100: #4a8fa0;
 
   /* === Z-INDEX SCALE === */
   --z-base: 1;
@@ -382,10 +389,17 @@
   --color-geostationary: #e056fd;
 
   /* === HEATMAP SCALE COLORS - DARK THEME === */
-  --heatmap-scale-0: #0f1118;
-  --heatmap-scale-10: #1a2530;
-  --heatmap-scale-30: #2a4050;
-  --heatmap-scale-60: #7aafc0;
+  /* Empty/Not observable → Score 0 */
+  --heatmap-scale-0: rgba(255,255,255,0.02);
+  /* Score 1-20 */
+  --heatmap-scale-10: rgba(122,175,192,0.15);
+  /* Score 21-40 */
+  --heatmap-scale-30: rgba(122,175,192,0.35);
+  /* Score 41-60 */
+  --heatmap-scale-60: rgba(122,175,192,0.55);
+  /* Score 61-80 */
+  --heatmap-scale-80: #7aafc0;
+  /* Score 81-100 */
   --heatmap-scale-100: #a8d4e0;
 }
 
