@@ -32,7 +32,7 @@
         font-size: var(--font-size-sm);
         padding: var(--space-1);
         box-sizing: border-box;
-        font-family: 'Roboto', sans-serif;
+        font-family: 'DM Sans', 'Roboto', sans-serif;
         border: 1px solid var(--border-medium-alt);
         border-radius: var(--radius-md);
     }
