@@ -732,10 +732,8 @@
                                     <span>Dec: <strong id="log-all-dec-rms">-</strong>"</span>
                                     <span>Total: <strong id="log-all-total-rms">-</strong>"</span>
                                 </div>
-                                <div style="display: flex; justify-content: flex-end; margin-bottom: 4px;">
-                                    <button type="button" id="log-guiding-zoom-btn" class="btn btn-sm btn-outline-secondary" style="font-size: 0.75em; padding: 2px 8px;">⛶ Zoom</button>
-                                </div>
-                                <div class="log-chart-container">
+                                <div class="log-chart-container" style="position: relative;">
+                                    <button type="button" id="log-guiding-zoom-btn" class="btn btn-sm btn-outline-secondary" style="position: absolute; top: 8px; right: 8px; font-size: 0.75em; padding: 2px 8px; z-index: 10;">⛶ Zoom</button>
                                     <canvas id="log-guiding-chart"></canvas>
                                 </div>
                                 {# Guide Pulse Analysis Section #}
