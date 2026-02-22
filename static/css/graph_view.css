@@ -3,19 +3,49 @@ body {
     margin: 0;
 }
 
+/* =================================================================
+   OBJECT DETAIL HEADER - FACELIFT STYLES
+   Reference: nova-desktop-facelift.html (.ca-header, .cb-header)
+   ================================================================ */
+
+/* Back to Dashboard button - ghost/secondary style */
+.header-right .action-button[data-action="navigate"],
+.header-actions .action-button,
 #back-button {
     margin-top: 0;
-    padding: var(--space-2-5) var(--space-5);
-    font-size: var(--font-size-base);
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: var(--radius-lg);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent !important;
+    color: var(--nova-accent, var(--primary-color));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    border-radius: 6px;
     cursor: pointer;
+    font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+    transition: background 0.15s ease;
+    letter-spacing: 0.01em;
 }
 
+.header-right .action-button[data-action="navigate"]:hover,
+.header-actions .action-button:hover,
 #back-button:hover {
-    background-color: var(--primary-dark) !important;
+    background: var(--nova-surface-alt, var(--bg-light-gray)) !important;
+    border-color: var(--nova-border, var(--border-medium));
+}
+
+/* Dark mode back button */
+:root[data-theme="dark"] .header-right .action-button[data-action="navigate"],
+:root[data-theme="dark"] .header-actions .action-button,
+:root[data-theme="dark"] #back-button {
+    background: transparent;
+    border-color: var(--nova-border, rgba(255,255,255,0.07));
+    color: var(--nova-text-2, rgba(255,255,255,0.55));
+}
+
+:root[data-theme="dark"] .header-right .action-button[data-action="navigate"]:hover,
+:root[data-theme="dark"] .header-actions .action-button:hover,
+:root[data-theme="dark"] #back-button:hover {
+    background: rgba(255,255,255,0.04) !important;
 }
 
 #chart-section img {
@@ -745,13 +775,17 @@ div.form-data-value.preserve-newlines {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Slightly more opaque background to make the logo pop */
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--nova-surface, rgba(255, 255, 255, 0.85));
     backdrop-filter: blur(4px);
     z-index: var(--z-layer-3);
     opacity: 1;
     visibility: visible;
     transition: opacity 300ms ease, visibility 300ms ease;
+}
+
+/* Dark mode loading overlay */
+:root[data-theme="dark"] .loading-overlay {
+    background: var(--nova-surface, rgba(22, 27, 36, 0.9));
 }
 
 /* Pulse animation for the brand logo */
@@ -768,7 +802,7 @@ div.form-data-value.preserve-newlines {
 }
 
 /* Tab navigation styles moved to base.css for consistency across all pages */
-.tab-content { padding: var(--space-5); background-color: var(--bg-light); border: 1px solid var(--border-light-alt2); border-top: none; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+/* Note: .tab-content background now uses nova theme variables - see end of file */
 .loader-row td {
     text-align: center !important;
     padding: 40px 0;
@@ -912,10 +946,7 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
     color: var(--text-primary);
 }
 
-/* Loading overlay - dark background for night view */
-[data-theme="dark"] .loading-overlay {
-    background: rgba(30, 30, 35, 0.9);
-}
+/* Loading overlay dark mode - see earlier in file for nova-themed version */
 
 /* ===================================================================
    DARK MODE - FRAMING MODAL OVERRIDES
@@ -1045,4 +1076,271 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 }
 
 /* NOTE: Trix dark mode overrides consolidated in base.css (lines 594-657) */
+
+/* =================================================================
+   OBJECT DETAIL PAGE TITLE - FACELIFT STYLES
+   #graph-title contains the object name and ID
+   ================================================================ */
+
+/* Main object name - Blue Snowball */
+#graph-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--nova-text, var(--text-primary));
+    margin: 0;
+    line-height: 1.3;
+}
+
+/* Subtitle container (ID in parentheses) */
+#graph-title .subtitle {
+    font-weight: 400;
+    margin-left: 8px;
+}
+
+/* Primary object ID - (NGC 7662) */
+#graph-title .subtitle #primary-id,
+#graph-title .subtitle span[id*="id"] {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--nova-text-3, var(--text-tertiary));
+    font-family: var(--nova-font-mono, 'DM Mono', monospace);
+}
+
+/* Secondary object separator and name */
+#graph-title .subtitle .title-separator {
+    margin: 0 6px;
+    color: var(--nova-text-4, var(--text-light));
+}
+
+/* Dark mode title adjustments */
+:root[data-theme="dark"] #graph-title {
+    color: var(--nova-text, rgba(255,255,255,0.92));
+}
+
+:root[data-theme="dark"] #graph-title .subtitle #primary-id,
+:root[data-theme="dark"] #graph-title .subtitle span[id*="id"] {
+    color: var(--nova-text-3, rgba(255,255,255,0.30));
+}
+
+/* =================================================================
+   DETAIL STATUS STRIP - FACELIFT STYLES
+   Matches dashboard status strip height (40px) and style
+   ================================================================ */
+
+/* Status strip container on detail page */
+.status-strip {
+    background: var(--nova-surface-alt, var(--bg-light));
+    border: none;
+    border-bottom: 1px solid var(--nova-border-light, var(--border-light));
+    border-radius: 0;
+    height: 40px;
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 0;
+    font-size: 13px;
+    flex-wrap: nowrap;
+}
+
+/* Status item labels - 9px uppercase */
+.status-strip .status-item .status-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--nova-text-4, var(--text-light));
+}
+
+/* Status item values - 13px */
+.status-strip .status-item .status-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--nova-text, var(--text-primary));
+}
+
+/* Mono font for dates/times/numbers in status values */
+.status-strip .status-item .status-value #date-display,
+.status-strip .status-item .status-value #dusk-display,
+.status-strip .status-item .status-value #dawn-display,
+.status-strip .status-item .status-value #separation-display,
+.status-strip .status-item .status-value #phase-display {
+    font-family: var(--nova-font-mono, 'DM Mono', monospace);
+    font-size: 13px;
+}
+
+/* Dusk/Dawn status item - inline layout */
+.status-strip .status-item:last-child {
+    flex-direction: row;
+    gap: 8px;
+}
+
+/* Dark mode status strip */
+:root[data-theme="dark"] .status-strip {
+    background: var(--nova-surface, var(--bg-dark-secondary));
+    border-bottom-color: var(--nova-border, rgba(255,255,255,0.07));
+}
+
+:root[data-theme="dark"] .status-strip .status-item .status-label {
+    color: var(--nova-text-4, rgba(255,255,255,0.18));
+}
+
+:root[data-theme="dark"] .status-strip .status-item .status-value {
+    color: var(--nova-text, rgba(255,255,255,0.92));
+}
+
+/* =================================================================
+   DETAIL PAGE TAB BAR - FACELIFT STYLES
+   Uses .tab-container and .tab-button from nova-theme.css
+   ================================================================ */
+
+/* Tab bar on detail page inherits from nova-theme.css */
+/* Just ensure proper background for the content area below */
+
+.tab-content {
+    background-color: var(--nova-bg, var(--gray-50));
+    padding: var(--space-5);
+    border: none;
+    border-top: none;
+    border-radius: 0;
+}
+
+/* =================================================================
+   SUB-TAB ROW (Notes & Framing sub-tabs) - FACELIFT STYLES
+   Slightly inset, with softer active indicator
+   ================================================================ */
+
+/* Sub-tab container */
+.detail-tabs-container {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 28px 0 28px;
+    background: var(--nova-surface-alt, var(--bg-light));
+    border-bottom: 1px solid var(--nova-border, var(--border-medium));
+    height: 40px;
+    margin-bottom: 0;
+}
+
+/* Individual sub-tab buttons */
+.detail-tab-button {
+    padding: 0 14px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+    color: var(--nova-text-3, var(--text-tertiary));
+    cursor: pointer;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: transparent;
+    white-space: nowrap;
+    transition: color 0.15s ease, border-color 0.15s ease;
+    letter-spacing: 0.01em;
+    border-radius: 0;
+}
+
+.detail-tab-button:hover {
+    color: var(--nova-text-2, var(--text-secondary));
+    background: transparent;
+}
+
+/* Active sub-tab - softer accent at 70% opacity */
+.detail-tab-button.active {
+    color: var(--nova-accent, var(--primary-color));
+    font-weight: 600;
+    border-bottom-color: var(--nova-accent-mid, var(--primary-light));
+    background: transparent;
+}
+
+/* Help badge in sub-tabs */
+.detail-tabs-container .help-badge {
+    margin-left: 4px;
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
+    border-width: 1px;
+}
+
+/* Dark mode sub-tabs */
+:root[data-theme="dark"] .detail-tabs-container {
+    background: var(--nova-surface, var(--bg-dark-secondary));
+    border-bottom-color: var(--nova-border, rgba(255,255,255,0.07));
+}
+
+:root[data-theme="dark"] .detail-tab-button {
+    color: var(--nova-text-3, rgba(255,255,255,0.30));
+}
+
+:root[data-theme="dark"] .detail-tab-button:hover {
+    color: var(--nova-text-2, rgba(255,255,255,0.55));
+}
+
+:root[data-theme="dark"] .detail-tab-button.active {
+    color: var(--nova-accent, #7aafc0);
+    border-bottom-color: var(--nova-accent, #7aafc0);
+}
+
+/* =================================================================
+   SUB-TAB CONTENT PANELS - FACELIFT STYLES
+   ================================================================ */
+
+/* Sub-tab content area */
+.detail-tab-content {
+    display: none;
+    padding: var(--space-5);
+    background-color: var(--nova-bg, var(--gray-50));
+}
+
+.detail-tab-content.active {
+    display: block;
+}
+
+/* =================================================================
+   CONTENT SECTION BACKGROUND - FACELIFT STYLES
+   Ensure white space below chart controls matches --nova-bg
+   ================================================================ */
+
+.content-section {
+    margin-top: 25px;
+    padding: var(--space-5);
+    background-color: var(--nova-surface, var(--bg-white));
+    border: 1px solid var(--nova-border, var(--border-light-alt2));
+    border-radius: var(--radius-lg, 12px);
+    margin-bottom: 25px;
+}
+
+/* Chart section and tab content backgrounds */
+#chart-section,
+#chart-tab,
+.tab-content {
+    background-color: var(--nova-bg, var(--gray-50));
+}
+
+/* Ensure framing tab uses proper background */
+#framing-tab {
+    background-color: var(--nova-bg, var(--gray-50));
+}
+
+#framing-tab .detail-tab-content {
+    background-color: var(--nova-bg, var(--gray-50));
+}
+
+/* Dark mode content section */
+:root[data-theme="dark"] .content-section {
+    background-color: var(--nova-surface, var(--bg-dark-secondary));
+    border-color: var(--nova-border, rgba(255,255,255,0.07));
+}
+
+:root[data-theme="dark"] #chart-section,
+:root[data-theme="dark"] #chart-tab,
+:root[data-theme="dark"] .tab-content,
+:root[data-theme="dark"] #framing-tab,
+:root[data-theme="dark"] #framing-tab .detail-tab-content {
+    background-color: var(--nova-bg, #0f1118);
+}
 
