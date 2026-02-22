@@ -1,3 +1,9 @@
+/* ===================================================================
+   CONFIG FORM FACELIFT
+   Visual facelift overrides for Configuration page.
+   Reference: nova-desktop-facelift.html
+   ================================================================ */
+
     body {
       padding: var(--space-5);
       margin: 0;
@@ -27,13 +33,117 @@
       box-sizing: border-box;
       font-family: 'DM Sans', 'Roboto', sans-serif;
     }
-    .block {
-      border: 0px solid var(--border-medium);
-      background: var(--bg-light-gray-alt3);
-      padding: 15px;
-      margin-bottom: var(--space-2);
-      border-radius: var(--radius-md);
+
+    /* =================================================================
+       1. TAB BAR TREATMENT
+       Same treatment as dashboard tab bar from PROMPT 4.
+       Uses styles from nova-theme.css .tab-container and .tab-button.
+       Right-side action buttons use primary/secondary from PROMPT 6.
+       ================================================================ */
+
+    /* Tab bar inherits from nova-theme.css */
+    .tab-container {
+      background: var(--nova-surface, var(--bg-white));
+      border-bottom: 1px solid var(--nova-border, var(--border-medium));
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 2px;
+      flex-wrap: nowrap;
     }
+
+    .tabs-left {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      margin-bottom: -1px;
+      gap: 0;
+    }
+
+    .tabs-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 0;
+    }
+
+    /* Right-side action buttons: primary/secondary treatment */
+    .tabs-right .file-button {
+      background: var(--nova-accent-bg, var(--primary-bg));
+      border: 1px solid var(--nova-accent-light, var(--primary-light));
+      color: var(--nova-accent, var(--primary-color));
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+      cursor: pointer;
+      transition: background 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+
+    .tabs-right .file-button:hover {
+      background: var(--nova-accent-light, var(--primary-light));
+    }
+
+    .tabs-right .file-button.dropdown-btn {
+      padding-right: 28px;
+      position: relative;
+    }
+
+    /* Primary action: Fetch Missing Details */
+    #fetch-details-button {
+      background: var(--nova-accent, var(--primary-color));
+      color: white;
+      border: none;
+      box-shadow: var(--nova-shadow-sm, var(--shadow-sm));
+    }
+
+    #fetch-details-button:hover {
+      filter: brightness(0.9);
+    }
+
+    /* Help icon (?) next to action buttons: icon button treatment */
+    .tabs-right .help-badge {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: var(--nova-surface-alt, var(--bg-light));
+      border: 1px solid var(--nova-border, var(--border-medium));
+      color: var(--nova-text-3, var(--text-tertiary));
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-left: 4px;
+    }
+
+    .tabs-right .help-badge:hover {
+      background: var(--nova-accent-bg, var(--primary-bg));
+      border-color: var(--nova-accent-light, var(--primary-light));
+      color: var(--nova-accent, var(--primary-color));
+    }
+
+    /* =================================================================
+       2. BLOCK / CARD STYLING
+       Form groups wrapped in subtle cards.
+       ================================================================ */
+
+    .block {
+      background: var(--nova-surface, var(--bg-white));
+      border: 1px solid var(--nova-border, var(--border-medium));
+      border-radius: var(--nova-radius, var(--radius-lg));
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
     .error {
       color: var(--danger-color);
     }
@@ -42,20 +152,62 @@
     .progress-message {
       color: var(--primary-dark);
     }
+
+    /* =================================================================
+       3. SECTION HEADERS
+       "General Settings", "Location Settings", etc.
+       ================================================================ */
+
     .config-section {
-        padding: 1.5em;
-        background-color: var(--bg-light-alt);
-        border-radius: var(--radius-xl);
+        padding: 24px;
+        background-color: var(--nova-surface, var(--bg-white));
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: var(--nova-radius, var(--radius-lg));
     }
-    .config-section h2, .config-section h3 {
-        color: var(--text-primary);
-        font-size: var(--font-size-xl);
-        font-weight: var(--font-weight-bold);
+
+    .config-section h2,
+    .config-section h3 {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--nova-text, var(--text-primary));
         margin-top: 0;
-        margin-bottom: 1.5em;
-        border-bottom: var(--input-border-width) solid var(--bg-light-gray-alt3);
-        padding-bottom: 0.5em;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
     }
+
+    /* ? help icon next to section title: icon button, preserved */
+    .config-section h2 .help-badge,
+    .config-section h3 .help-badge {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1.5px solid var(--nova-border, var(--border-medium));
+      color: var(--nova-text-4, var(--text-light));
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      vertical-align: middle;
+    }
+
+    .config-section h2 .help-badge:hover,
+    .config-section h3 .help-badge:hover {
+      border-color: var(--nova-accent-light, var(--primary-light));
+      color: var(--nova-accent, var(--primary-color));
+    }
+
+    /* =================================================================
+       4. LABEL + INPUT PAIRS
+       Labels: font-size:13px; font-weight:500; color:var(--nova-text-2)
+       Inputs: same as PROMPT 6 text inputs
+       Description text below checkboxes:
+       font-size:12px; color:var(--nova-text-3); margin-left:20px;
+       ================================================================ */
 
     input.wide {
       width: 300px;
@@ -63,13 +215,17 @@
     input.short {
       width: 150px;
     }
+
     .inline-fields label {
       display: inline-block;
-      width: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--nova-text-2, var(--text-secondary));
       text-align: left;
       margin: 0;
       padding: 0;
     }
+
     .location-id {
       width: 100px;
       display: flex;
@@ -84,9 +240,24 @@
       font-weight: var(--font-weight-normal);
     }
 
+    /* Text inputs - PROMPT 6 style */
     input.object_field {
       width: 65px;
+      border: 1px solid var(--nova-border, var(--border-medium));
+      border-radius: var(--nova-radius-sm, 5px);
+      background: var(--nova-surface, var(--bg-white));
+      padding: 5px 10px;
+      font-size: 13px;
+      color: var(--nova-text, var(--text-primary));
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
+
+    input.object_field:focus {
+      border-color: var(--nova-accent-mid, var(--primary-light));
+      box-shadow: 0 0 0 3px var(--nova-accent-bg, var(--primary-bg));
+    }
+
     .field-small-numeric {
       width: 102px;
     }
@@ -124,6 +295,8 @@
     .locations-list, .objects-list {
       margin-top: var(--space-5);
     }
+
+    /* Label width classes */
     .short-label {
       display: inline-block;
       width: auto !important;
@@ -145,7 +318,59 @@
       text-align: left !important;
       white-space: nowrap;
     }
+
+    /* Description text below checkboxes */
+    .inline-fields small.form-text,
+    .inline-fields small.text-muted {
+      font-size: 12px;
+      color: var(--nova-text-3, var(--text-tertiary));
+      margin-left: 20px;
+      display: block;
+      margin-top: 4px;
+    }
     /* .dlback-button styles moved to base.css */
+    /* =================================================================
+       5. SAVE SETTINGS BUTTON
+       Primary button treatment from PROMPT 6.
+       ================================================================ */
+
+    .action-button[name="submit_general"],
+    .action-button[name="submit_locations"],
+    .action-button[name="submit_objects"],
+    .action-button[type="submit"] {
+      background: var(--nova-accent, var(--primary-color));
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+      box-shadow: var(--nova-shadow-sm, var(--shadow-sm));
+      cursor: pointer;
+      transition: filter 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      margin-top: 10px;
+    }
+
+    .action-button[name="submit_general"]:hover,
+    .action-button[name="submit_locations"]:hover,
+    .action-button[name="submit_objects"]:hover,
+    .action-button[type="submit"]:hover {
+      filter: brightness(0.9);
+    }
+
+    /* Dark mode button glow */
+    :root[data-theme="dark"] .action-button[name="submit_general"],
+    :root[data-theme="dark"] .action-button[name="submit_locations"],
+    :root[data-theme="dark"] .action-button[name="submit_objects"],
+    :root[data-theme="dark"] .action-button[type="submit"] {
+      box-shadow: 0 0 16px rgba(122,175,192,0.2), var(--nova-shadow-sm, var(--shadow-sm));
+    }
+
     .info-container-main {
       display: flex;
       align-items: center;
@@ -246,19 +471,29 @@
     .block.dropdown-is-open {
         z-index: var(--z-dropdown);
     }
+    /* =================================================================
+       6. TABLES IN CONFIG
+       Objects list, Locations list, Rigs list - same table treatment as PROMPT 5.
+       Smaller scale, same tokens.
+       ================================================================ */
+
     /* --- Styles for Shared Items Tab --- */
     #shared-tab-content .table-wrapper {
         overflow-x: auto;
-        border: 1px solid var(--border-medium);
-        border-radius: var(--radius-md);
-        background: var(--bg-white);
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: 10px;
+        background: var(--nova-surface, var(--bg-white));
+        box-shadow: var(--nova-shadow-sm, var(--shadow-sm));
     }
+
     .data-table {
         width: 100%;
         min-width: 1000px; /* Increase min-width to prevent squeezing text */
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
         table-layout: fixed; /* Keep fixed layout for predictable column sizing */
     }
+
     .data-table td {
         vertical-align: middle;
         overflow: hidden;
@@ -266,6 +501,7 @@
         white-space: normal; /* Allow internal wrapping for notes/names */
         line-height: var(--line-height-tight);
     }
+
     /* Specific Column Sizing to ensure readability */
     .data-table th:nth-child(1), .data-table td:nth-child(1) { width: 50px; }  /* Img */
     .data-table th:nth-child(2), .data-table td:nth-child(2) { width: 100px; } /* Object ID */
@@ -275,30 +511,73 @@
     .data-table th:nth-child(6), .data-table td:nth-child(6) { width: 150px; } /* Shared By */
     .data-table th:nth-child(7), .data-table td:nth-child(7) { width: 90px; }  /* Notes */
     .data-table th:nth-child(8), .data-table td:nth-child(8) { width: 110px; } /* Action */
-    .data-table th, .data-table td {
-        border: 1px solid var(--border-medium);
+
+    .data-table th,
+    .data-table td {
+        border: none;
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
         padding: var(--space-2) var(--space-2-5);
         font-size: var(--font-size-sm);
         text-align: left;
         word-wrap: break-word;
     }
+
+    .data-table thead tr:first-child {
+        background: var(--nova-surface-alt, var(--bg-light));
+        border-bottom: 1px solid var(--nova-border, var(--border-medium));
+    }
+
     .data-table th {
-        background-color: var(--bg-light-gray-alt2);
-        font-weight: var(--font-weight-semibold);
+        background-color: var(--nova-surface-alt, var(--bg-light));
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: var(--nova-text-4, var(--text-light));
         padding-top: var(--space-2-5);
         padding-bottom: var(--space-2-5);
     }
+
+    .data-table tbody tr {
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
+        transition: background 0.1s ease;
+    }
+
+    .data-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .data-table tbody tr:hover {
+        background: var(--nova-row-hover, var(--hover-bg));
+    }
+
     .data-table .filter-row th {
         padding: var(--space-1-5) var(--space-2);
+        background: var(--nova-surface, var(--bg-white));
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
     }
+
     .data-table .filter-row input,
     .data-table .filter-row select {
         width: 95%;
         box-sizing: border-box;
-        padding: var(--space-1);
-        font-size: var(--font-size-2xs);
-        font-family: 'DM Sans', 'Roboto', sans-serif;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: 4px;
+        background: var(--nova-surface-alt, var(--bg-light));
+        color: var(--nova-text-3, var(--text-tertiary));
+        outline: none;
     }
+
+    .data-table .filter-row input:focus,
+    .data-table .filter-row select:focus {
+        border-color: var(--nova-accent-mid, var(--primary-light));
+        background: var(--nova-surface, var(--bg-white));
+        color: var(--nova-text, var(--text-primary));
+    }
+
     .data-table .action-cell {
         width: 120px;
         text-align: center;
@@ -307,28 +586,93 @@
         width: 100px;
         text-align: center;
     }
+
+    /* =================================================================
+       7. ACTION BUTTONS WITHIN TABLE ROWS
+       Edit: accent-light button style
+       Delete: subtle red variant
+       font-size:11px; padding:3px 8px;
+       ================================================================ */
+
     .data-table .import-button,
-    .data-table .notes-button {
-        padding: var(--space-1) var(--space-2-5);
-        font-size: var(--font-size-2xs);
+    .data-table .notes-button,
+    .data-table .action-cell button,
+    .data-table .action-cell .import-button {
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
     }
+
+    /* Edit / Import buttons: accent-light style */
+    .data-table .import-button,
+    .data-table .notes-button,
+    .edit-btn {
+        background: var(--nova-accent-bg, var(--primary-bg));
+        border: 1px solid var(--nova-accent-light, var(--primary-light));
+        color: var(--nova-accent, var(--primary-color));
+    }
+
+    .data-table .import-button:hover,
+    .data-table .notes-button:hover,
+    .edit-btn:hover {
+        background: var(--nova-accent-light, var(--primary-light));
+    }
+
+    /* Delete button: subtle red variant */
+    .delete-btn {
+        background: rgba(180,60,60,0.08);
+        color: #a04040;
+        border: 1px solid rgba(180,60,60,0.15);
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+        transition: all 0.15s ease;
+    }
+
+    .delete-btn:hover {
+        background: rgba(180,60,60,0.15);
+        border-color: rgba(180,60,60,0.25);
+    }
+
+    /* Dark mode Delete button */
+    :root[data-theme="dark"] .delete-btn {
+        background: rgba(200,80,80,0.1);
+        color: #d06060;
+        border: 1px solid rgba(200,80,80,0.15);
+    }
+
+    :root[data-theme="dark"] .delete-btn:hover {
+        background: rgba(200,80,80,0.18);
+        border-color: rgba(200,80,80,0.25);
+    }
+
     .data-table .imported-button {
-        padding: var(--space-1) var(--space-2-5);
-        font-size: var(--font-size-2xs);
-        background-color: var(--accent-slate);
-        color: white;
-        border: none;
-        border-radius: var(--radius-lg);
+        padding: 3px 8px;
+        font-size: 11px;
+        background-color: var(--nova-surface-alt, var(--bg-light));
+        color: var(--nova-text-2, var(--text-secondary));
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: 4px;
         cursor: default;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
     }
     .data-table .owner-button {
-        padding: var(--space-1) var(--space-2-5);
-        font-size: var(--font-size-2xs);
-        background-color: var(--border-medium-alt);
-        color: var(--text-secondary);
-        border: none;
-        border-radius: var(--radius-lg);
+        padding: 3px 8px;
+        font-size: 11px;
+        background-color: var(--nova-surface-alt, var(--bg-light));
+        color: var(--nova-text-3, var(--text-tertiary));
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: 4px;
         cursor: default;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
     }
 
     /* --- Modal Styles --- */
@@ -438,90 +782,208 @@
         100% { width: 98%; }
     }
 
+    /* =================================================================
+       8. RIGS SECTION - COLUMN LAYOUT
+       Container with columns for components and rigs.
+       ================================================================ */
+
     .container { display: flex; gap: 2em; flex-wrap: wrap; }
-    .column { background-color: var(--bg-light-alt); padding: 1.5em; border-radius: var(--radius-xl); flex: 1; min-width: 350px;}
-    .column h2, .column h3 { color: var(--text-primary); font-size: var(--font-size-base); font-weight: var(--font-weight-bold); border-bottom: 1px solid var(--bg-light-gray-alt3); padding-bottom: 0.5em; margin-top: 0; margin-bottom: 1em; }
-    .column details > summary { cursor: pointer; font-weight: var(--font-weight-bold); }
-    .column hr { border: 0; border-top: 1px solid var(--border-divider); margin: 1.5em 0; }
-    .column .form-group { margin-bottom: 1em; }
-    .column .form-group label { display: block; margin-bottom: var(--space-1); font-weight: var(--font-weight-normal); font-size: var(--font-size-sm); }
-    .column .form-group input, .column .form-group select { width: 100%; padding: 0.7em; border: var(--input-border-width) solid var(--input-border-color); border-radius: var(--input-border-radius); box-sizing: border-box; }
+
+    .column {
+        background-color: var(--nova-surface, var(--bg-white));
+        border: 1px solid var(--nova-border, var(--border-medium));
+        padding: 24px;
+        border-radius: var(--nova-radius, var(--radius-lg));
+        flex: 1;
+        min-width: 350px;
+    }
+
+    .column h2,
+    .column h3 {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: var(--nova-text, var(--text-primary));
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
+        padding-bottom: 10px;
+        margin-top: 0;
+        margin-bottom: 16px;
+    }
+
+    .column details > summary {
+        cursor: pointer;
+        font-weight: var(--font-weight-bold);
+        font-size: 13px;
+        color: var(--nova-text, var(--text-primary));
+    }
+
+    .column hr {
+        border: 0;
+        border-top: 1px solid var(--nova-border-light, var(--border-light));
+        margin: 1.5em 0;
+    }
+
+    .column .form-group {
+        margin-bottom: 1em;
+    }
+
+    .column .form-group label {
+        display: block;
+        margin-bottom: var(--space-1);
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--nova-text-2, var(--text-secondary));
+    }
+
+    .column .form-group input,
+    .column .form-group select {
+        width: 100%;
+        padding: 6px 10px;
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: var(--nova-radius-sm, 5px);
+        box-sizing: border-box;
+        font-size: 13px;
+        background: var(--nova-surface, var(--bg-white));
+        color: var(--nova-text, var(--text-primary));
+        outline: none;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .column .form-group input:focus,
+    .column .form-group select:focus {
+        border-color: var(--nova-accent-mid, var(--primary-light));
+        box-shadow: 0 0 0 3px var(--nova-accent-bg, var(--primary-bg));
+    }
+
     .column ul { list-style-type: none; padding: 0; }
+
     .column button {
-      background-color: var(--primary-color);
-      color: white;
-      padding: var(--space-1) var(--space-2);
-      border: none;
-      border-radius: var(--radius-lg);
-      cursor: pointer;
-      font-size: var(--font-size-sm);
+        background: var(--nova-accent, var(--primary-color));
+        color: white;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+        box-shadow: var(--nova-shadow-sm, var(--shadow-sm));
+        transition: filter 0.15s ease;
     }
+
     .column button:hover {
-      background-color: var(--primary-dark);
+        filter: brightness(0.9);
     }
+
+    /* List items in Rigs section - card style */
     .column li {
-      background-color: var(--bg-light-gray-alt3);
-      border: none;
-      padding: 0.8em;
-      margin-bottom: 0.5em;
-      border-radius: var(--radius-md);
-      font-size: 0.95em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: var(--space-2);
+        background-color: var(--nova-surface-alt, var(--bg-light));
+        border: 1px solid var(--nova-border-light, var(--border-light));
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        border-radius: var(--nova-radius-sm, 5px);
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-2);
     }
+
     .column li .item-info {
         flex-grow: 1;
     }
+
     .column li .item-actions {
         display: flex;
         gap: var(--space-1);
         flex-shrink: 0;
     }
-    .edit-btn, .delete-btn {
-        color: white;
-        border: none;
-        padding: var(--space-1) var(--space-2);
-        font-size: var(--font-size-sm);
-        border-radius: var(--radius-lg);
+
+    /* Edit/Delete buttons in column lists - small size */
+    .column li .edit-btn,
+    .column li .delete-btn {
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: 4px;
         cursor: pointer;
         text-decoration: none;
         display: inline-block;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
     }
-    .edit-btn { background-color: var(--accent-slate); }
-    .edit-btn:hover { background-color: var(--accent-slate-dark); }
-    .delete-btn { background-color: var(--danger-color); }
-    .delete-btn:hover { background-color: var(--danger-color-dark); }
+
+    .column li .edit-btn {
+        background: var(--nova-accent-bg, var(--primary-bg));
+        border: 1px solid var(--nova-accent-light, var(--primary-light));
+        color: var(--nova-accent, var(--primary-color));
+    }
+
+    .column li .edit-btn:hover {
+        background: var(--nova-accent-light, var(--primary-light));
+    }
+
+    .column li .delete-btn {
+        background: rgba(180,60,60,0.08);
+        color: #a04040;
+        border: 1px solid rgba(180,60,60,0.15);
+    }
+
+    .column li .delete-btn:hover {
+        background: rgba(180,60,60,0.15);
+    }
+
+    /* Dark mode list item buttons */
+    :root[data-theme="dark"] .column li .delete-btn {
+        background: rgba(200,80,80,0.1);
+        color: #d06060;
+        border: 1px solid rgba(200,80,80,0.15);
+    }
+
+    :root[data-theme="dark"] .column li .delete-btn:hover {
+        background: rgba(200,80,80,0.18);
+    }
+
+    /* =================================================================
+       9. DROPDOWNS (Download▾, Import▾)
+       ================================================================ */
+
     .dropdown {
-      position: relative;
-      display: inline-block;
+        position: relative;
+        display: inline-block;
     }
+
     .dropdown-btn {
-      padding-right: var(--space-5);
+        padding-right: var(--space-5);
     }
+
     .dropdown-content {
-      display: none;
-      position: absolute;
-      background-color: var(--bg-light-gray-alt);
-      min-width: 160px;
-      box-shadow: var(--shadow-lg);
-      z-index: var(--z-base);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
+        display: none;
+        position: absolute;
+        background-color: var(--nova-surface, var(--bg-white));
+        min-width: 160px;
+        box-shadow: var(--nova-shadow-lg, var(--shadow-lg));
+        z-index: var(--z-dropdown, 100);
+        border-radius: var(--nova-radius, var(--radius-lg));
+        overflow: hidden;
+        border: 1px solid var(--nova-border, var(--border-medium));
+        right: 0;
     }
+
     .dropdown-content a {
-      color: black;
-      padding: var(--space-3) var(--space-4);
-      text-decoration: none;
-      display: block;
-      font-size: var(--font-size-sm);
+        color: var(--nova-text, var(--text-primary));
+        padding: var(--space-2-5) var(--space-4);
+        text-decoration: none;
+        display: block;
+        font-size: var(--font-size-sm);
+        transition: background 0.15s ease;
     }
+
     .dropdown-content a:hover {
-      background-color: var(--border-medium);
+        background-color: var(--nova-surface-alt, var(--bg-light));
     }
+
     .show {
-      display: block;
+        display: block;
     }
       .sampling-info {
         font-size: 0.9em;
@@ -553,46 +1015,48 @@
 
 /* Body and main backgrounds */
 [data-theme="dark"] body {
-    background-color: var(--bg-light);
-    color: var(--text-primary);
+    background-color: var(--nova-bg, var(--bg-light));
+    color: var(--nova-text, var(--text-primary));
 }
 
 /* Block backgrounds */
 [data-theme="dark"] .block {
-    background: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
+    background: var(--nova-surface, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
 }
 
 /* Config sections */
 [data-theme="dark"] .config-section {
-    background-color: var(--bg-medium);
+    background-color: var(--nova-surface, var(--bg-medium));
+    border-color: var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .config-section h2,
 [data-theme="dark"] .config-section h3 {
-    color: var(--text-primary);
-    border-bottom-color: var(--border-medium);
+    color: var(--nova-text, var(--text-primary));
+    border-bottom-color: var(--nova-border-light, var(--border-medium));
 }
 
 /* Column backgrounds */
 [data-theme="dark"] .column {
-    background-color: var(--bg-medium);
+    background-color: var(--nova-surface, var(--bg-medium));
+    border-color: var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .column h2,
 [data-theme="dark"] .column h3 {
-    color: var(--text-primary);
-    border-bottom-color: var(--border-medium);
+    color: var(--nova-text, var(--text-primary));
+    border-bottom-color: var(--nova-border-light, var(--border-medium));
 }
 
 [data-theme="dark"] .column hr {
-    border-top-color: var(--border-medium);
+    border-top-color: var(--nova-border-light, var(--border-medium));
 }
 
 /* List items */
 [data-theme="dark"] .column li {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border-light, var(--border-medium));
 }
 
 /* Form inputs */
@@ -600,154 +1064,201 @@
 [data-theme="dark"] .form-group select,
 [data-theme="dark"] .column .form-group input,
 [data-theme="dark"] .column .form-group select {
-    background-color: var(--bg-medium-alt);
-    border: var(--input-border-width) solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .form-group input:focus,
 [data-theme="dark"] .form-group select:focus,
 [data-theme="dark"] .column .form-group input:focus,
 [data-theme="dark"] .column .form-group select:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
 [data-theme="dark"] .form-group label,
 [data-theme="dark"] .column .form-group label {
-    color: var(--text-primary);
+    color: var(--nova-text-2, var(--text-primary));
 }
 
 /* Inline fields inputs */
 [data-theme="dark"] .inline-fields input,
 [data-theme="dark"] .inline-fields select {
-    background-color: var(--bg-medium-alt);
-    border: var(--input-border-width) solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .inline-fields input:focus,
 [data-theme="dark"] .inline-fields select:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
 /* Wide textareas */
 [data-theme="dark"] textarea.wide,
 [data-theme="dark"] textarea.project_field {
-    background-color: var(--bg-medium-alt);
-    border: var(--input-border-width) solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] textarea.wide:focus,
 [data-theme="dark"] textarea.project_field:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
 /* Native selects */
 [data-theme="dark"] select[name^="timezone_"],
 [data-theme="dark"] select[name="new_timezone"] {
-    background-color: var(--bg-medium-alt);
-    border: var(--input-border-width) solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 /* Trix editor */
 [data-theme="dark"] .form-group trix-editor {
-    background-color: var(--bg-medium-alt);
-    border: var(--input-border-width) solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 /* Inspiration container */
 [data-theme="dark"] .inspiration-container {
-    background-color: var(--bg-medium-alt);
-    border-color: var(--border-medium);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border-color: var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .inspiration-container label {
-    color: var(--text-secondary);
+    color: var(--nova-text-2, var(--text-secondary));
 }
 
 [data-theme="dark"] .inspiration-input {
-    background-color: var(--bg-medium-alt);
-    border-color: var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border-color: var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 /* Dropdown content */
 [data-theme="dark"] .dropdown-content {
-    background-color: var(--bg-medium);
-    box-shadow: var(--shadow-lg);
+    background-color: var(--nova-surface, var(--bg-medium));
+    box-shadow: var(--nova-shadow-lg, var(--shadow-lg));
+    border-color: var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .dropdown-content a {
-    color: var(--text-primary);
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .dropdown-content a:hover {
-    background-color: var(--bg-medium-alt);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
 }
 
 /* Tab container */
 [data-theme="dark"] .tab-container {
-    border-bottom-color: var(--border-medium);
+    background: var(--nova-surface, var(--bg-medium));
+    border-bottom-color: var(--nova-border, var(--border-medium));
+}
+
+/* Dark mode tabs-right buttons */
+[data-theme="dark"] .tabs-right .file-button {
+    background: rgba(122,175,192,0.12);
+    border-color: rgba(122,175,192,0.2);
+    color: var(--nova-accent, #7aafc0);
+}
+
+[data-theme="dark"] .tabs-right .file-button:hover {
+    background: rgba(122,175,192,0.2);
+}
+
+[data-theme="dark"] .tabs-right .help-badge {
+    background: rgba(255,255,255,0.04);
+    border-color: var(--nova-border, var(--border-medium));
+    color: var(--nova-text-3, var(--text-tertiary));
+}
+
+[data-theme="dark"] .tabs-right .help-badge:hover {
+    background: rgba(122,175,192,0.12);
+    border-color: rgba(122,175,192,0.2);
+    color: var(--nova-accent, #7aafc0);
 }
 
 /* Data tables */
 [data-theme="dark"] #shared-tab-content .table-wrapper {
-    border-color: var(--border-medium);
-    background: var(--bg-medium);
-}
-
-[data-theme="dark"] .data-table th,
-[data-theme="dark"] .data-table td {
-    border-color: var(--border-medium);
+    border-color: var(--nova-border, var(--border-medium));
+    background: var(--nova-surface, var(--bg-medium));
 }
 
 [data-theme="dark"] .data-table th {
-    background-color: var(--bg-medium-alt);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    color: var(--nova-text-4, var(--text-light));
+    border-bottom-color: var(--nova-border, var(--border-medium));
+}
+
+[data-theme="dark"] .data-table td {
+    border-bottom-color: var(--nova-border-light, var(--border-light));
+    color: var(--nova-text-2, var(--text-secondary));
+}
+
+[data-theme="dark"] .data-table tbody tr:hover {
+    background: var(--nova-row-hover, rgba(122,175,192,0.06));
+}
+
+[data-theme="dark"] .data-table .filter-row th {
+    background: var(--nova-surface, var(--bg-medium));
+    border-bottom-color: var(--nova-border-light, var(--border-light));
 }
 
 [data-theme="dark"] .data-table .filter-row input,
 [data-theme="dark"] .data-table .filter-row select {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border-color: var(--nova-border, var(--border-medium));
+    color: var(--nova-text-3, var(--text-tertiary));
+}
+
+[data-theme="dark"] .data-table .filter-row input:focus,
+[data-theme="dark"] .data-table .filter-row select:focus {
+    border-color: rgba(122,175,192,0.3);
+    background: var(--nova-surface, var(--bg-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 /* Modal content */
 [data-theme="dark"] .modal-content {
-    background: var(--bg-light);
-    box-shadow: var(--shadow-modal);
+    background: var(--nova-surface, var(--bg-light));
+    box-shadow: var(--nova-shadow-modal, var(--shadow-modal));
+    border: 1px solid var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .modal-content h3 {
-    color: var(--text-primary);
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .modal-notes-content {
-    background: var(--bg-medium);
-    border-color: var(--border-medium);
-    color: var(--text-primary);
+    background: var(--nova-surface-alt, var(--bg-medium));
+    border-color: var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 /* Progress modal */
 [data-theme="dark"] #fetch-progress-content {
-    background: var(--bg-light);
-    box-shadow: var(--shadow-float);
+    background: var(--nova-surface, var(--bg-light));
+    box-shadow: var(--nova-shadow-float, var(--shadow-float));
+    border: 1px solid var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .progress-track {
-    background: var(--bg-medium-alt);
+    background: var(--nova-surface-alt, var(--bg-medium-alt));
 }
 
 /* Object grid container */
 [data-theme="dark"] .object-grid-container .share-control {
-    background: var(--bg-medium-alt);
+    background: var(--nova-surface-alt, var(--bg-medium-alt));
 }
 
 /* ===================================================================
@@ -779,21 +1290,22 @@
 
 /* Location blocks */
 [data-theme="dark"] .locations-list .block {
-    background: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
+    background: var(--nova-surface, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
 }
 
 /* Location horizon mask and comments textareas */
 [data-theme="dark"] .locations-list textarea,
 [data-theme="dark"] .block textarea {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .locations-list textarea:focus,
 [data-theme="dark"] .block textarea:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
@@ -802,14 +1314,15 @@
 [data-theme="dark"] .locations-list input[type="number"],
 [data-theme="dark"] .block input[type="text"],
 [data-theme="dark"] .block input[type="number"] {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .locations-list input:focus,
 [data-theme="dark"] .block input:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
@@ -819,114 +1332,117 @@
 
 /* Object filter bar */
 [data-theme="dark"] #object-filter-bar {
-    background: var(--bg-medium);
+    background: var(--nova-surface, var(--bg-medium));
 }
 
 /* Object filter inputs */
 [data-theme="dark"] #object-filter-bar input,
 [data-theme="dark"] #object-filter-bar select {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] #object-filter-bar input:focus,
 [data-theme="dark"] #object-filter-bar select:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
     outline: none;
 }
 
 /* Object filter selection bar */
 [data-theme="dark"] #object-filter-bar .selection-bar,
 [data-theme="dark"] #object-filter-bar > div[style*="background"] {
-    background: var(--bg-medium-alt) !important;
+    background: var(--nova-surface-alt, var(--bg-medium-alt)) !important;
 }
 
 /* Object blocks */
 [data-theme="dark"] .objects-list .block {
-    background: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
+    background: var(--nova-surface, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
 }
 
 /* Object inline field inputs */
 [data-theme="dark"] .objects-list input[type="text"],
 [data-theme="dark"] .objects-list input[type="number"],
 [data-theme="dark"] .objects-list textarea {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .objects-list input:focus,
 [data-theme="dark"] .objects-list textarea:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
 /* Inspiration container inputs in objects section */
 [data-theme="dark"] .object-grid-container input,
 [data-theme="dark"] .object-grid-container textarea:not(trix-editor) {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .object-grid-container input:focus,
 [data-theme="dark"] .object-grid-container textarea:not(trix-editor):focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
 /* Inline inspiration container styles (hardcoded in template) */
 [data-theme="dark"] .inspiration-container[style*="background: var(--bg-white)"],
 [data-theme="dark"] .inspiration-container {
-    background: var(--bg-medium) !important;
-    border-color: var(--border-medium) !important;
+    background: var(--nova-surface, var(--bg-medium)) !important;
+    border-color: var(--nova-border, var(--border-medium)) !important;
 }
 
 /* Add object section */
 [data-theme="dark"] .object-add-container input[type="text"],
 [data-theme="dark"] .object-add-container input[type="number"],
 [data-theme="dark"] .object-add-container textarea {
-    background-color: var(--bg-medium-alt);
-    border: 1px solid var(--border-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    border: 1px solid var(--nova-border, var(--border-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .object-add-container input:focus,
 [data-theme="dark"] .object-add-container textarea:focus {
-    border-color: var(--primary-color);
+    border-color: var(--nova-accent-mid, var(--primary-light));
+    box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
     outline: none;
 }
 
 /* Import catalog table */
 [data-theme="dark"] .config-table th {
-    background-color: var(--bg-medium-alt);
-    color: var(--text-primary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .config-table td {
-    background-color: var(--bg-medium);
-    color: var(--text-primary);
+    background-color: var(--nova-surface, var(--bg-medium));
+    color: var(--nova-text, var(--text-primary));
 }
 
 [data-theme="dark"] .config-table th,
 [data-theme="dark"] .config-table td {
-    border-color: var(--border-medium);
+    border-color: var(--nova-border, var(--border-medium));
 }
 
 [data-theme="dark"] .config-table .badge {
-    background-color: var(--bg-medium-alt);
-    color: var(--text-secondary);
+    background-color: var(--nova-surface-alt, var(--bg-medium-alt));
+    color: var(--nova-text-2, var(--text-secondary));
 }
 
 /* Duplicates modal content */
 [data-theme="dark"] #duplicates-modal .modal-content {
-    background: var(--bg-light);
+    background: var(--nova-surface, var(--bg-light));
 }
 
 [data-theme="dark"] #duplicates-modal p {
-    color: var(--text-tertiary);
+    color: var(--nova-text-3, var(--text-tertiary));
 }
 
     .form-group {
