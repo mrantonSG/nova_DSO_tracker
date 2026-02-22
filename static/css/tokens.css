@@ -23,6 +23,9 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
+  /* Font families */
+  --font-mono: 'DM Mono', 'Courier New', monospace;
+
   --line-height-tight: 1.2;
   --line-height-normal: 1.5;
   --line-height-relaxed: 1.6;
@@ -46,8 +49,8 @@
      SHADOW SCALE
      Tiered shadows for elevation hierarchy
      ================================================================ */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);     /* Subtle: cards, items */
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);      /* Medium: headers, dropdowns */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);     /* Subtle: cards, items */
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);      /* Medium: headers, dropdowns */
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);   /* Large: elevated panels */
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);    /* Extra large: notifications */
 
@@ -78,10 +81,10 @@
   /* =================================================================
      BORDER RADIUS SCALE
      ================================================================ */
-  --radius-sm: 3px;     /* Filter inputs, small elements */
-  --radius-md: 4px;     /* Standard inputs, buttons */
-  --radius-lg: 5px;     /* Larger buttons, cards */
-  --radius-xl: 8px;     /* Modals, containers */
+  --radius-sm: 5px;     /* Filter inputs, small elements */
+  --radius-md: 8px;     /* Standard inputs, buttons */
+  --radius-lg: 12px;     /* Larger buttons, cards */
+  --radius-xl: 16px;     /* Modals, containers */
 }
 
 /* =====================================================================
@@ -89,8 +92,8 @@
    Increased opacity for visibility against dark backgrounds
    ===================================================================== */
 :root[data-theme="dark"] {
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.40);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
 
