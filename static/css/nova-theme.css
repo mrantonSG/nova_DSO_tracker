@@ -1,0 +1,1558 @@
+/* ===================================================================
+   NOVA THEME — TYPOGRAPHY SYSTEM
+   Visual facelift typography overrides for Nova DSO Tracker.
+   These are additive styles that build on base.css and tokens.css.
+
+   Reference: nova-desktop-facelift.html
+   ================================================================ */
+
+/* =================================================================
+   CSS CUSTOM PROPERTIES — NOVA THEME EXTENSIONS
+   ================================================================ */
+
+:root {
+  /* === FONT FAMILIES === */
+  --nova-font-sans: 'DM Sans', 'Roboto', system-ui, -apple-system, sans-serif;
+  --nova-font-mono: 'DM Mono', 'Courier New', monospace;
+
+  /* === TEXT COLORS (semantic aliases) === */
+  --nova-text: var(--text-primary);
+  --nova-text-2: var(--text-secondary);
+  --nova-text-3: var(--text-tertiary);
+  --nova-text-4: var(--text-light);
+  --nova-accent: var(--primary-color);
+  --nova-accent-mid: var(--primary-light);
+  --nova-bg: var(--gray-50);
+
+  /* === COLUMN HEADER TOKENS === */
+  --nova-header-size: 10px;
+  --nova-header-weight: 700;
+  --nova-header-tracking: 0.09em;
+  --nova-header-color: var(--text-light);
+
+  /* === SUB-LABEL TOKENS === */
+  --nova-sub-size: 9px;
+  --nova-sub-weight: 400;
+  --nova-sub-tracking: 0;
+  --nova-sub-opacity: 0.7;
+
+  /* === TABLE TOKENS === */
+  --nova-row-hover: #f0f7fa;
+  --nova-alt-high-bg: #daf0f5;
+  --nova-alt-high-text: #2a7a90;
+  --nova-alt-high-border: transparent;
+  --nova-alt-med-bg: #e8f5f0;
+  --nova-alt-med-text: #2a7060;
+  --nova-alt-med-border: transparent;
+  --nova-alt-low-bg: #f0f0f0;
+  --nova-alt-low-text: #606060;
+  --nova-alt-low-border: transparent;
+  --nova-trend-up: #2a9060;
+  --nova-trend-down: #999;
+  --nova-star-color: #c09030;
+}
+
+/* Dark mode adjustments */
+:root[data-theme="dark"] {
+  --nova-text: rgba(255,255,255,0.92);
+  --nova-text-2: rgba(255,255,255,0.55);
+  --nova-text-3: rgba(255,255,255,0.30);
+  --nova-text-4: rgba(255,255,255,0.18);
+  --nova-accent: #7aafc0;
+  --nova-accent-mid: #8ec8da;
+  --nova-bg: #0f1118;
+  --nova-header-color: rgba(255,255,255,0.18);
+
+  /* Table tokens - dark mode */
+  --nova-row-hover: rgba(122,175,192,0.06);
+  --nova-alt-high-bg: rgba(40,180,200,0.12);
+  --nova-alt-high-text: #6dc8da;
+  --nova-alt-high-border: rgba(40,180,200,0.15);
+  --nova-alt-med-bg: rgba(80,160,130,0.12);
+  --nova-alt-med-text: #6dcab0;
+  --nova-alt-med-border: rgba(80,160,130,0.15);
+  --nova-alt-low-bg: rgba(255,255,255,0.05);
+  --nova-alt-low-text: var(--nova-text-3);
+  --nova-alt-low-border: var(--nova-border);
+  --nova-trend-up: #6dcab0;
+  --nova-trend-down: var(--nova-text-4);
+  --nova-star-color: #d4a840;
+}
+
+/* =================================================================
+   1. BASE BODY TEXT
+   ================================================================ */
+
+body {
+  font-family: var(--nova-font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--nova-text);
+  background: var(--nova-bg);
+}
+
+/* =================================================================
+   2. DATA MONO CLASS & NUMERIC COLUMNS
+   For numeric values in tables (altitude, azimuth, transit times,
+   minutes, degrees).
+
+   OPTION A: Apply .data-mono class manually to <td> elements
+   OPTION B: Use data-column-key attribute selectors (automatically
+             applied by dashboard.js)
+   ================================================================ */
+
+/* Manual class for numeric data cells */
+.data-mono {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Auto-apply monospace to numeric columns via data-column-key attribute */
+/* These columns contain numeric data that should use monospace font */
+td[data-column-key="Altitude Current"],
+td[data-column-key="Azimuth Current"],
+td[data-column-key="Altitude 11PM"],
+td[data-column-key="Azimuth 11PM"],
+td[data-column-key="Transit Time"],
+td[data-column-key="Observable Duration (min)"],
+td[data-column-key="Max Altitude (°)"],
+td[data-column-key="Angular Separation (°)"],
+td[data-column-key="Magnitude"],
+td[data-column-key="Size"],
+td[data-column-key="SB"],
+td[data-column-key="Max Altitude"] {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Object ID column - monospace for catalog designators */
+td[data-column-key="Object"] {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Journal table numeric columns */
+td[data-journal-column-key="calculated_integration_time_minutes"],
+td[data-journal-column-key="session_rating_subjective"] {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Outlook table numeric columns */
+td[data-outlook-column-key="max_alt"],
+td[data-outlook-column-key="obs_dur"] {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* =================================================================
+   3. LOGO TREATMENT
+   Targets the brand-group structure in base.html:
+   <div class="brand-group">
+     <h1><span>Nova</span> DSO Tracker <small>vX.X</small></h1>
+   </div>
+   ================================================================ */
+
+/* "Nova" word - the accent-colored span */
+.brand-group h1 span {
+  font-weight: 700;
+  color: var(--nova-accent);
+  letter-spacing: -0.03em;
+  font-size: 17px;
+}
+
+/* "DSO Tracker" - the text after the span within h1 */
+/* Note: CSS cannot directly target a text node. The h1 itself
+   provides the base styling, with the span overriding for "Nova" */
+.brand-group h1 {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--nova-text-2);
+  letter-spacing: -0.01em;
+}
+
+/* Re-apply Nova styling since it inherits from h1 */
+.brand-group h1 span {
+  font-size: 17px;
+}
+
+/* Version number - the <small> element */
+.brand-group h1 small {
+  font-size: 10px;
+  color: var(--nova-text-4);
+  font-family: var(--nova-font-mono);
+  font-weight: 400;
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+
+/* =================================================================
+   4. PAGE TITLE
+   Targets .injected-title h2 and .page-title classes used in
+   templates for page-specific titles (Dashboard, Configuration, etc.)
+   ================================================================ */
+
+.injected-title h2,
+.page-title,
+h2.page-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--nova-text);
+}
+
+/* =================================================================
+   5. COLUMN HEADERS IN TABLES
+   Targets standard <th> elements and specific table header classes.
+   Sub-labels are spans within headers for units like "Current", "11 PM", etc.
+   ================================================================ */
+
+/* Main column header style */
+th,
+.table-header,
+.ca-th, .cb-th, .cc-th {
+  font-size: var(--nova-header-size);
+  font-weight: var(--nova-header-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--nova-header-tracking);
+  color: var(--nova-header-color);
+}
+
+/* Sub-labels within column headers (units, times) */
+/* The main app uses .subtext class within <th> for sub-labels */
+th .subtext,
+th span.th-sub,
+.ca-th-sub, .cb-th-sub, .cc-th-sub,
+th small,
+.table-header-sub {
+  font-size: var(--nova-sub-size);
+  font-weight: var(--nova-sub-weight);
+  letter-spacing: var(--nova-sub-tracking);
+  display: block;
+  text-transform: none;
+  margin-top: 1px;
+  opacity: var(--nova-sub-opacity);
+  color: var(--nova-header-color);
+}
+
+/* =================================================================
+   6. SECTION LABELS / MICRO-LABELS
+   Small uppercase labels above form groups in Configuration and
+   similar section dividers throughout the app.
+   ================================================================ */
+
+.section-label,
+.micro-label,
+.form-section-label,
+.config-section-title {
+  font-size: var(--nova-header-size);
+  font-weight: var(--nova-header-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--nova-header-tracking);
+  color: var(--nova-header-color);
+  margin-bottom: var(--space-2, 8px);
+}
+
+/* =================================================================
+   STAT BOX / STATUS ITEM LABELS
+   Targets the macros: stat_box, status_item
+   ================================================================ */
+
+/* Stat box label (from macros.html) */
+.stat-box .stat-label,
+.stat-label {
+  font-size: var(--nova-header-size);
+  font-weight: var(--nova-header-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--nova-header-tracking);
+  color: var(--nova-header-color);
+}
+
+/* Stat box value - semibold primary text */
+.stat-box .stat-value,
+.stat-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-text);
+}
+
+/* Status item from macros.html - inherits from above */
+.status-item .status-label {
+  font-size: var(--nova-header-size);
+  font-weight: var(--nova-header-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--nova-header-tracking);
+  color: var(--nova-header-color);
+}
+
+.status-item .status-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-text);
+}
+
+/* =================================================================
+   TAB BUTTONS (from macros.html: tab_button)
+   ================================================================ */
+
+.detail-tab-button {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.detail-tab-button.active {
+  font-weight: 600;
+}
+
+/* =================================================================
+   ALTITUDE BADGES
+   Numeric altitude values displayed as colored badges
+   ================================================================ */
+
+.alt-badge,
+.altitude-badge,
+[class*="alt-badge"],
+[class*="ca-alt-"],
+[class*="cb-alt-"],
+[class*="cc-alt-"] {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* =================================================================
+   FORM GROUP LABELS (from macros.html: form_group)
+   ================================================================ */
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nova-text-2);
+  letter-spacing: 0.01em;
+}
+
+/* =================================================================
+   BUTTON TYPOGRAPHY (from macros.html: action_button)
+   ================================================================ */
+
+.action-button {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* =================================================================
+   HELP BADGE (from macros.html: help_badge)
+   ================================================================ */
+
+.help-badge {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: serif;
+}
+
+/* =================================================================
+   DETAIL ROW (from macros.html: detail_row)
+   Definition list pairs for object details
+   ================================================================ */
+
+dt {
+  font-size: var(--nova-header-size);
+  font-weight: var(--nova-header-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--nova-header-tracking);
+  color: var(--nova-header-color);
+}
+
+dd {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-text);
+}
+
+/* =================================================================
+   UPDATE/TIMESTAMP INDICATORS
+   Small mono text for "last updated" displays
+   ================================================================ */
+
+.update-indicator,
+.last-update,
+.ca-update, .cb-update, .cc-update,
+#next-update-timer {
+  font-size: 11px;
+  font-family: var(--nova-font-mono);
+  font-weight: 500;
+}
+
+/* Status strip time/date values */
+#date,
+#time,
+#dusk,
+#dawn {
+  font-family: var(--nova-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* =================================================================
+   HEADER & STATUS STRIP FACELIFT
+   Reference: nova-desktop-facelift.html (.ca-header, .cb-header)
+   ================================================================ */
+
+/* Add missing Nova theme tokens for header styling */
+:root {
+  --nova-surface: var(--bg-white);
+  --nova-surface-alt: var(--bg-light);
+  --nova-border: var(--border-medium);
+  --nova-border-light: var(--border-light);
+  --nova-accent-light: var(--primary-light);
+  --nova-accent-bg: var(--primary-bg);
+  --nova-accent-mid: var(--primary-light);
+  --nova-shadow-sm: var(--shadow-sm);
+  --nova-radius-sm: var(--radius-sm);
+}
+
+/* Dark mode header tokens */
+:root[data-theme="dark"] {
+  --nova-surface: var(--bg-dark-secondary);
+  --nova-surface-alt: var(--bg-dark-primary);
+  --nova-border: rgba(255,255,255,0.07);
+  --nova-border-light: rgba(255,255,255,0.04);
+  --nova-accent-light: rgba(122,175,192,0.2);
+  --nova-accent-bg: rgba(122,175,192,0.1);
+  --nova-accent-mid: #8ec8da;
+}
+
+/* =================================================================
+   1. MAIN HEADER BAR (.app-header)
+   Top bar with logo + title + Config button
+   ================================================================ */
+
+.app-header {
+  background: var(--nova-surface);
+  border-bottom: 1px solid var(--nova-border);
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  box-shadow: var(--nova-shadow-sm);
+  position: relative;
+}
+
+/* Subtle gradient line under header */
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--nova-accent-light) 30%, var(--nova-accent-light) 70%, transparent);
+  pointer-events: none;
+}
+
+/* Dark mode gradient line */
+:root[data-theme="dark"] .app-header::after {
+  background: linear-gradient(90deg, transparent, rgba(122,175,192,0.2) 40%, rgba(122,175,192,0.2) 60%, transparent);
+}
+
+/* =================================================================
+   2. DARK MODE HEADER STAR-FIELD TEXTURE
+   Concept B: subtle star dots in the header background
+   ================================================================ */
+
+:root[data-theme="dark"] .app-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1px 1px at 8% 30%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 70%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 42% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 40%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 65%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 15% 55%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 45%, rgba(255,255,255,0.5) 0%, transparent 100%);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* =================================================================
+   3. STATUS STRIP (.status-strip)
+   Bar with Location, Time, Moon, Dusk/Dawn, Simulation controls
+   ================================================================ */
+
+.status-strip {
+  background: var(--nova-surface-alt);
+  border: none;
+  border-bottom: 1px solid var(--nova-border-light);
+  border-radius: 0;
+  height: 40px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 0;
+  font-size: 13px;
+  flex-wrap: nowrap;
+}
+
+/* Status item (label + value pair) */
+.status-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+/* Status labels - uppercase micro-labels */
+.status-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--nova-text-4);
+}
+
+/* Status values - primary text */
+.status-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-text);
+}
+
+/* Numeric values in status strip use mono */
+.status-value #date,
+.status-value #time,
+.status-value #dusk,
+.status-value #dawn,
+.status-value .data-mono {
+  font-family: var(--nova-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Location select in status strip */
+.status-strip select,
+#location-select {
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  color: var(--nova-text);
+  font-size: 13px;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-family: var(--nova-font-sans);
+}
+
+.status-strip select:focus,
+#location-select:focus {
+  outline: none;
+}
+
+/* =================================================================
+   4. SIMULATION CONTROLS
+   Toggle + label + help icon + date input
+   ================================================================ */
+
+#simulation-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  min-width: auto;
+}
+
+/* Simulation toggle label */
+#simulation-controls label[for="sim-mode-toggle"],
+#simulation-controls .status-label {
+  font-size: 11px;
+  color: var(--nova-text-4);
+  font-weight: 500;
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Help icon (?) in simulation controls */
+#simulation-controls .help-badge {
+  font-size: 11px;
+  width: 16px;
+  height: 16px;
+  color: var(--nova-text-4);
+  opacity: 0.5;
+  cursor: pointer;
+  border-color: var(--nova-text-4);
+  margin-left: 4px;
+}
+
+#simulation-controls .help-badge:hover {
+  opacity: 1;
+}
+
+/* Toggle switch track (off state) */
+.switch .slider {
+  background-color: var(--nova-border);
+}
+
+/* Toggle switch track (on state) */
+.switch input:checked + .slider {
+  background-color: var(--nova-accent-mid);
+}
+
+/* Toggle switch thumb */
+.switch .slider::before {
+  background-color: white;
+  box-shadow: var(--nova-shadow-sm);
+}
+
+/* Date input in simulation controls */
+#sim-date-input {
+  border: 1px solid var(--nova-border);
+  border-radius: var(--nova-radius-sm);
+  background: var(--nova-surface);
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  color: var(--nova-text-2);
+  padding: 3px 8px;
+  height: 28px;
+  font-weight: 500;
+}
+
+#sim-date-input:focus {
+  border-color: var(--nova-accent-mid);
+  outline: none;
+}
+
+#sim-date-input:disabled {
+  background: var(--nova-surface-alt);
+  color: var(--nova-text-4);
+}
+
+/* Dark mode date input */
+:root[data-theme="dark"] #sim-date-input {
+  background: var(--nova-surface);
+  border-color: var(--nova-border);
+  color: var(--nova-text-2);
+}
+
+:root[data-theme="dark"] #sim-date-input:focus {
+  border-color: var(--nova-accent-mid);
+}
+
+/* =================================================================
+   5. UPDATE TIMER BADGE
+   "in 38s" countdown display
+   ================================================================ */
+
+#next-update-timer {
+  font-size: 11px;
+  font-family: var(--nova-font-mono);
+  color: var(--nova-accent);
+  background: var(--nova-accent-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+:root[data-theme="dark"] #next-update-timer {
+  background: rgba(122,175,192,0.1);
+}
+
+/* =================================================================
+   6. CONFIG BUTTON (.action-button in header)
+   Primary action button styling
+   ================================================================ */
+
+.header-right .action-button {
+  background: var(--nova-accent);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nova-font-sans);
+  box-shadow: var(--nova-shadow-sm);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.header-right .action-button:hover {
+  filter: brightness(0.9);
+}
+
+/* Dark mode Config button with glow */
+:root[data-theme="dark"] .header-right .action-button {
+  box-shadow: 0 0 16px rgba(122,175,192,0.2), var(--nova-shadow-sm);
+}
+
+/* =================================================================
+   7. THEME TOGGLE BUTTON (moon/sun icon)
+   Dark mode toggle button styling
+   ================================================================ */
+
+.theme-toggle-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--nova-surface-alt);
+  border: 1px solid var(--nova-border);
+  color: var(--nova-text-3);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.theme-toggle-button:hover {
+  background: var(--nova-surface);
+  border-color: var(--nova-accent-mid);
+  color: var(--nova-text);
+}
+
+.theme-toggle-button .theme-icon {
+  position: absolute;
+}
+
+/* =================================================================
+   8. USER/LOGOUT AREA
+   Username display and logout link
+   ================================================================ */
+
+.user-menu {
+  font-size: 12px;
+  color: var(--nova-text-3);
+  border-right: none;
+  padding-right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-menu a,
+.user-menu button[type="submit"] {
+  color: var(--nova-accent);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.user-menu a:hover,
+.user-menu button[type="submit"]:hover {
+  color: var(--nova-accent-mid);
+}
+
+/* Dark mode user avatar circle */
+:root[data-theme="dark"] .user-menu::before {
+  content: attr(data-initial);
+  /* Fallback if no data-initial - show first char of username */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5a8fa0, #7aafc0);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  margin-right: 6px;
+  text-transform: uppercase;
+}
+
+/* =================================================================
+   9. HEADER LEFT SECTION
+   Brand group, divider, page title
+   ================================================================ */
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Header divider line */
+.header-divider {
+  height: 18px;
+  width: 1px;
+  background: var(--nova-border);
+}
+
+/* =================================================================
+   10. DARK MODE STATUS STRIP VARIATIONS
+   ================================================================ */
+
+:root[data-theme="dark"] .status-strip {
+  background: var(--nova-surface);
+  border-bottom-color: var(--nova-border);
+}
+
+:root[data-theme="dark"] .status-strip select,
+:root[data-theme="dark"] #location-select {
+  color: var(--nova-text);
+}
+
+/* Simulated status strip (green tint) */
+.status-strip.simulated {
+  background-color: var(--success-bg);
+  border-radius: 0;
+}
+
+:root[data-theme="dark"] .status-strip.simulated {
+  background-color: rgba(76,175,80,0.08);
+}
+
+/* =================================================================
+   OBJECT NAMES IN TABLES
+   Monospace styling for catalog designators (NGC 7662, M31, etc.)
+   ================================================================ */
+
+.object-name,
+.obj-id,
+.ca-td-obj, .cb-td-obj, .cc-td-obj {
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nova-text);
+}
+
+/* =================================================================
+   TAB BAR STYLING
+   Reference: nova-desktop-facelift.html (.ca-tabs, .cb-tabs)
+   ================================================================ */
+
+/* 1. TAB BAR CONTAINER */
+.tab-container {
+  background: var(--nova-surface);
+  border-bottom: 1px solid var(--nova-border);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 2px;
+}
+
+/* 2. INDIVIDUAL TAB BUTTONS */
+.tab-button {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--nova-font-sans);
+  color: var(--nova-text-3);
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px; /* overlaps container border */
+  white-space: nowrap;
+  background: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  letter-spacing: 0.01em;
+}
+
+.tab-button:hover {
+  color: var(--nova-text-2);
+}
+
+.tab-button.active {
+  color: var(--nova-accent);
+  font-weight: 600;
+  border-bottom-color: var(--nova-accent-mid);
+}
+
+/* 3. HELP ICON NEXT TO TABS */
+.tab-container .help-badge {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--nova-border);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: serif;
+  color: var(--nova-text-4);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  margin-left: 10px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.tab-container .help-badge:hover {
+  border-color: var(--nova-accent-mid);
+  color: var(--nova-accent);
+}
+
+/* 4. SAVED VIEWS CONTAINER (right side of tab bar) */
+#saved-views-container {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Saved Views Dropdown */
+#saved-views-container .styled-select,
+#saved-views-dropdown {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--nova-border);
+  background: var(--nova-surface-alt);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--nova-font-sans);
+  color: var(--nova-text-3);
+  min-width: 140px;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+#saved-views-container .styled-select:focus,
+#saved-views-dropdown:focus {
+  border-color: var(--nova-accent-mid);
+  outline: none;
+}
+
+/* 5. SAVE/DELETE BUTTONS IN TAB BAR */
+#save-view-btn,
+#delete-view-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nova-font-sans);
+  background: var(--nova-accent-bg);
+  border: 1px solid var(--nova-accent-light);
+  color: var(--nova-accent);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+#save-view-btn:hover,
+#delete-view-btn:hover {
+  background: var(--nova-accent-light);
+}
+
+/* 6. ACTIVE ONLY CHECKBOX */
+#saved-views-container label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--nova-text-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+#global-active-toggle {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--nova-accent);
+  cursor: pointer;
+}
+
+/* 7. DETAIL PAGE TAB BAR (Chart / Notes & Framing / Opportunities / Journal / SIMBAD) */
+/* Uses the same .tab-container and .tab-button styles as the main dashboard */
+
+/* 8. SECONDARY TAB ROW (inside Notes & Framing) */
+.detail-tabs-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid var(--nova-border-light);
+  margin-bottom: 16px;
+}
+
+.detail-tab-button {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--nova-font-sans);
+  color: var(--nova-text-3);
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  white-space: nowrap;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.detail-tab-button:hover {
+  color: var(--nova-text-2);
+}
+
+.detail-tab-button.active {
+  color: var(--nova-accent);
+  font-weight: 600;
+  background: var(--nova-accent-bg);
+}
+
+/* Dark mode adjustments for secondary tabs */
+:root[data-theme="dark"] .detail-tab-button.active {
+  background: rgba(122, 175, 192, 0.1);
+}
+
+/* 9. DARK MODE TAB BAR ENHANCEMENTS */
+:root[data-theme="dark"] .tab-container {
+  background: var(--nova-surface);
+  border-bottom-color: var(--nova-border);
+}
+
+:root[data-theme="dark"] .tab-button {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme="dark"] .tab-button:hover {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+:root[data-theme="dark"] .tab-button.active {
+  color: var(--nova-accent);
+  border-bottom-color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] #saved-views-container .styled-select,
+:root[data-theme="dark"] #saved-views-dropdown {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: var(--nova-border);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+:root[data-theme="dark"] #saved-views-container .styled-select:focus,
+:root[data-theme="dark"] #saved-views-dropdown:focus {
+  border-color: rgba(122, 175, 192, 0.3);
+}
+
+:root[data-theme="dark"] #save-view-btn,
+:root[data-theme="dark"] #delete-view-btn {
+  background: rgba(122, 175, 192, 0.12);
+  border-color: rgba(122, 175, 192, 0.2);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] #save-view-btn:hover,
+:root[data-theme="dark"] #delete-view-btn:hover {
+  background: rgba(122, 175, 192, 0.2);
+}
+
+:root[data-theme="dark"] #saved-views-container label {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* =================================================================
+   DATA TABLES STYLING
+   Reference: nova-desktop-facelift.html (.ca-table, .cb-table)
+   ================================================================ */
+
+/* =================================================================
+   1. TABLE WRAPPER
+   Container div with rounded corners and shadow
+   ================================================================ */
+
+.table-wrapper {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--nova-border);
+  box-shadow: var(--nova-shadow-sm);
+  background: var(--nova-surface);
+  margin-bottom: 20px;
+}
+
+/* =================================================================
+   2. TABLE BASE
+   ================================================================ */
+
+.table-wrapper table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: var(--nova-surface);
+}
+
+/* Remove duplicate borders from dashboard.css - use our unified styling */
+.table-wrapper table th,
+.table-wrapper table td {
+  border: none;
+}
+
+/* =================================================================
+   3. TABLE HEADER ROW
+   ================================================================ */
+
+.table-wrapper thead tr:first-child {
+  background: var(--nova-surface-alt);
+  border-bottom: 1px solid var(--nova-border);
+}
+
+/* =================================================================
+   4. HEADER CELLS (<th>)
+   ================================================================ */
+
+.table-wrapper thead tr:first-child th {
+  padding: 9px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--nova-text-4);
+  text-align: left;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* Center-align numeric columns in header */
+.table-wrapper thead tr:first-child th[data-column-key]:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
+.table-wrapper thead tr:first-child th[data-journal-column-key]:not([data-journal-column-key="object_name"]):not([data-journal-column-key="target_common_name"]):not([data-journal-column-key="project_name"]):not([data-journal-column-key="location_name"]):not([data-journal-column-key="telescope_setup_notes"]),
+.table-wrapper thead tr:first-child th[data-outlook-column-key]:not([data-outlook-column-key="object_name"]):not([data-outlook-column-key="common_name"]) {
+  text-align: center;
+}
+
+/* =================================================================
+   5. SUB-LABELS IN HEADERS
+   Units like "(Current)", "(11 PM)", etc.
+   ================================================================ */
+
+.table-wrapper th .subtext,
+.table-wrapper th span.subtext {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  display: block;
+  opacity: 0.75;
+  margin-top: 1px;
+  color: var(--nova-text-4);
+}
+
+/* =================================================================
+   6. SORTING INDICATORS
+   Active sort column gets accent color
+   ================================================================ */
+
+.table-wrapper th.sortable {
+  cursor: pointer;
+}
+
+.table-wrapper th.sortable:hover {
+  color: var(--nova-text-2);
+}
+
+/* Sort arrow indicator */
+.table-wrapper th .sort-indicator {
+  font-size: 0.8em;
+  margin-left: 5px;
+  display: inline-block;
+  color: var(--nova-text-4);
+}
+
+/* Active sort column */
+.table-wrapper th[data-sort-dir="asc"] .sort-indicator::after,
+.table-wrapper th[data-sort-dir="desc"] .sort-indicator::after {
+  color: var(--nova-accent);
+}
+
+/* =================================================================
+   7. FILTER ROW
+   Row containing filter inputs
+   ================================================================ */
+
+.table-wrapper .filter-row {
+  background: var(--nova-surface);
+  border-bottom: 1px solid var(--nova-border-light);
+}
+
+.table-wrapper .filter-row th {
+  padding: 6px 12px;
+  background: var(--nova-surface);
+  vertical-align: top;
+}
+
+/* Filter inputs */
+.table-wrapper .filter-row input[type="text"],
+.table-wrapper .filter-row input[type="number"] {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--nova-border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--nova-text-3);
+  background: var(--nova-surface-alt);
+  font-family: var(--nova-font-sans);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+/* Placeholder styling */
+.table-wrapper .filter-row input::placeholder {
+  color: var(--nova-text-4);
+}
+
+/* Focus state */
+.table-wrapper .filter-row input:focus {
+  border-color: var(--nova-accent-mid);
+  background: var(--nova-surface);
+  color: var(--nova-text);
+}
+
+/* =================================================================
+   8. DATA ROWS
+   ================================================================ */
+
+.table-wrapper tbody tr {
+  border-bottom: 1px solid var(--nova-border-light);
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.table-wrapper tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table-wrapper tbody tr:hover {
+  background: var(--nova-row-hover);
+}
+
+/* Dark mode: left accent bar on hover */
+:root[data-theme="dark"] .table-wrapper tbody tr:hover td:first-child {
+  border-left: 2px solid var(--nova-accent);
+  padding-left: 10px;
+}
+
+/* =================================================================
+   9. DATA CELLS (<td>)
+   ================================================================ */
+
+.table-wrapper tbody td {
+  padding: 0 12px;
+  height: 36px;
+  font-size: 13px;
+  color: var(--nova-text-2);
+  vertical-align: middle;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* =================================================================
+   10. OBJECT ID COLUMN
+   First column with catalog designators (NGC/IC/SH codes)
+   ================================================================ */
+
+/* Object ID in Position tab */
+.table-wrapper tbody td[data-column-key="Object"],
+/* Object ID in Journal tab */
+.table-wrapper tbody td[data-journal-column-key="object_name"],
+/* Object ID in Outlook tab */
+.table-wrapper tbody td[data-outlook-column-key="object_name"] {
+  font-weight: 600;
+  color: var(--nova-text);
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+}
+
+/* =================================================================
+   11. ⓘ INFO BUTTON
+   Next to object names in the Name column
+   ================================================================ */
+
+.table-wrapper .info-icon,
+.table-wrapper tbody td .info-icon {
+  font-size: 11px;
+  color: var(--nova-text-4);
+  opacity: 0.35;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.table-wrapper .info-icon:hover,
+.table-wrapper tbody td .info-icon:hover {
+  opacity: 0.9;
+  color: var(--nova-accent);
+}
+
+/* =================================================================
+   12. ALTITUDE BADGE
+   Highlighted cell with current altitude (uses .highlight class)
+   ================================================================ */
+
+.table-wrapper tbody td.highlight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  padding: 3px 8px;
+  border-radius: var(--nova-radius-sm);
+  font-family: var(--nova-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  background: var(--nova-alt-med-bg);
+  color: var(--nova-alt-med-text);
+}
+
+/* High altitude (>=75°) - apply via JS class or use default styling */
+.table-wrapper tbody td.highlight[data-alt-tier="high"],
+.table-wrapper tbody td.highlight.alt-high {
+  background: var(--nova-alt-high-bg);
+  color: var(--nova-alt-high-text);
+}
+
+/* Medium altitude (>=60°) - default */
+.table-wrapper tbody td.highlight[data-alt-tier="med"],
+.table-wrapper tbody td.highlight.alt-med {
+  background: var(--nova-alt-med-bg);
+  color: var(--nova-alt-med-text);
+}
+
+/* Low altitude (<60°) */
+.table-wrapper tbody td.highlight[data-alt-tier="low"],
+.table-wrapper tbody td.highlight.alt-low {
+  background: var(--nova-alt-low-bg);
+  color: var(--nova-alt-low-text);
+}
+
+/* Dark mode altitude badges with borders */
+:root[data-theme="dark"] .table-wrapper tbody td.highlight {
+  border: 1px solid var(--nova-alt-med-border);
+}
+
+:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="high"],
+:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-high {
+  background: var(--nova-alt-high-bg);
+  color: var(--nova-alt-high-text);
+  border-color: var(--nova-alt-high-border);
+}
+
+:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="med"],
+:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-med {
+  background: var(--nova-alt-med-bg);
+  color: var(--nova-alt-med-text);
+  border-color: var(--nova-alt-med-border);
+}
+
+:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="low"],
+:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-low {
+  background: var(--nova-alt-low-bg);
+  color: var(--nova-alt-low-text);
+  border-color: var(--nova-alt-low-border);
+}
+
+/* Obstructed altitude badge (yellow warning) */
+.table-wrapper tbody td.highlight.obstructed {
+  background-color: var(--highlight-yellow) !important;
+  color: var(--highlight-yellow-text) !important;
+  border: none;
+}
+
+/* =================================================================
+   13. HIGHLIGHTED/SELECTED ROW
+   Currently selected or observing object
+   ================================================================ */
+
+.table-wrapper tbody tr.active-project-row {
+  background: var(--nova-accent-bg);
+  border-left: 2px solid var(--nova-accent-mid);
+}
+
+:root[data-theme="dark"] .table-wrapper tbody tr.active-project-row {
+  background: rgba(122,175,192,0.08);
+  border-left-color: var(--nova-accent);
+}
+
+/* =================================================================
+   14. TREND ARROWS (↑ ↓)
+   ================================================================ */
+
+.table-wrapper tbody td[data-column-key="Trend"] {
+  font-size: 12px;
+}
+
+/* Up trend */
+.table-wrapper tbody .trend-up,
+.table-wrapper tbody td[data-column-key="Trend"] .trend-up {
+  color: var(--nova-trend-up);
+}
+
+/* Down trend */
+.table-wrapper tbody .trend-down,
+.table-wrapper tbody td[data-column-key="Trend"] .trend-down {
+  color: var(--nova-trend-down);
+}
+
+/* Direct arrow styling */
+.table-wrapper tbody td[data-column-key="Trend"]:has(span:not(.trend-down)):not(:has(.trend-down)) {
+  color: var(--nova-trend-up);
+}
+
+/* =================================================================
+   15. STAR RATINGS
+   In Journal/Outlook tabs
+   ================================================================ */
+
+.table-wrapper tbody td[data-journal-column-key="session_rating_subjective"],
+.table-wrapper tbody td[data-outlook-column-key="rating"] {
+  color: var(--nova-star-color);
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+/* =================================================================
+   16. GEOMETRICALLY IMPOSSIBLE ROWS
+   Objects that never rise above threshold
+   ================================================================ */
+
+.table-wrapper tbody tr.geometrically-impossible {
+  background-color: var(--nova-surface-alt);
+  color: var(--nova-text-4);
+}
+
+.table-wrapper tbody tr.geometrically-impossible td {
+  font-style: italic;
+  color: var(--nova-text-4);
+}
+
+.table-wrapper tbody tr.geometrically-impossible:hover {
+  background-color: var(--nova-surface);
+  cursor: help;
+}
+
+/* =================================================================
+   17. CLICKABLE ROWS
+   ================================================================ */
+
+.table-wrapper tbody tr.clickable-row:hover {
+  background-color: var(--nova-row-hover);
+  cursor: pointer;
+}
+
+/* =================================================================
+   18. CONFIG TABLES
+   Tables in configuration pages
+   ================================================================ */
+
+.config-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--nova-surface);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--nova-border);
+}
+
+.config-table thead tr {
+  background: var(--nova-surface-alt);
+  border-bottom: 1px solid var(--nova-border);
+}
+
+.config-table th {
+  padding: 9px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--nova-text-4);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.config-table td {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--nova-text-2);
+  border-bottom: 1px solid var(--nova-border-light);
+  vertical-align: middle;
+}
+
+.config-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.config-table tbody tr:hover td {
+  background: var(--nova-row-hover);
+}
+
+/* =================================================================
+   19. DARK MODE TABLE OVERRIDES
+   ================================================================ */
+
+/* Filter row inputs - dark mode */
+:root[data-theme="dark"] .table-wrapper .filter-row input[type="text"],
+:root[data-theme="dark"] .table-wrapper .filter-row input[type="number"] {
+  background: rgba(255,255,255,0.03);
+  border-color: var(--nova-border);
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] .table-wrapper .filter-row input::placeholder {
+  color: var(--nova-text-4);
+}
+
+:root[data-theme="dark"] .table-wrapper .filter-row input:focus {
+  border-color: rgba(122,175,192,0.3);
+  background: var(--nova-surface);
+  color: var(--nova-text);
+}
+
+/* Table header - dark mode */
+:root[data-theme="dark"] .table-wrapper thead tr:first-child {
+  background: var(--bg-dark-primary, #1c2230);
+}
+
+:root[data-theme="dark"] .table-wrapper thead tr:first-child th {
+  color: rgba(255,255,255,0.18);
+}
+
+/* Data rows - dark mode */
+:root[data-theme="dark"] .table-wrapper tbody td {
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+
+/* Geometrically impossible - dark mode */
+:root[data-theme="dark"] .table-wrapper tbody tr.geometrically-impossible {
+  background-color: rgba(255,255,255,0.02);
+}
+
+:root[data-theme="dark"] .table-wrapper tbody tr.geometrically-impossible td {
+  color: rgba(255,255,255,0.25);
+}
+
+/* Config tables - dark mode */
+:root[data-theme="dark"] .config-table {
+  background: var(--nova-surface);
+  border-color: var(--nova-border);
+}
+
+:root[data-theme="dark"] .config-table thead tr {
+  background: var(--bg-dark-primary, #1c2230);
+}
+
+:root[data-theme="dark"] .config-table td {
+  border-bottom-color: rgba(255,255,255,0.04);
+}
+
+:root[data-theme="dark"] .config-table tbody tr:hover td {
+  background: rgba(122,175,192,0.06);
+}
