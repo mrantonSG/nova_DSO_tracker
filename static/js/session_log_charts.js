@@ -801,39 +801,73 @@
             // Track zoom state
             let guidingZoomed = false;
 
+            // --- Detect gaps in RMS data to break connecting lines ---
+            // Calculate median time interval from first 50 intervals
+            const rms = phd2.rms;
+            const intervals = [];
+            for (let i = 0; i < Math.min(rms.length - 1, 50); i++) {
+                intervals.push(rms[i + 1][0] - rms[i][0]);
+            }
+            const typicalInterval = intervals.length > 0
+                ? intervals.sort((a, b) => a - b)[Math.floor(intervals.length / 2)]
+                : 0.1;  // Default 6 minutes if no intervals
+
+            // Build datasets with null gaps where time difference > typicalInterval * 5
+            const raData = [];
+            const decData = [];
+            const totalData = [];
+            const gapThreshold = typicalInterval * 5;
+
+            for (let i = 0; i < rms.length; i++) {
+                raData.push({ x: rms[i][0], y: rms[i][1] });
+                decData.push({ x: rms[i][0], y: rms[i][2] });
+                totalData.push({ x: rms[i][0], y: rms[i][3] });
+
+                // If gap to next point exceeds threshold, insert null to break the line
+                if (i < rms.length - 1 && (rms[i + 1][0] - rms[i][0]) > gapThreshold) {
+                    const nullX = rms[i][0] + 0.001;
+                    raData.push({ x: nullX, y: null });
+                    decData.push({ x: nullX, y: null });
+                    totalData.push({ x: nullX, y: null });
+                }
+            }
+
             charts.guiding = new Chart(rmsCanvas, {
                 type: 'line',
                 data: {
                     datasets: [
                         {
                             label: 'RA RMS (")',
-                            data: phd2.rms.map(r => ({ x: r[0], y: r[1] })),
+                            data: raData,
                             borderColor: COLORS.ra,
                             backgroundColor: 'rgba(96, 165, 250, 0.1)',
                             borderWidth: 2,
                             pointRadius: 0,
                             tension: 0.2,
-                            fill: true
+                            fill: true,
+                            spanGaps: false
                         },
                         {
                             label: 'Dec RMS (")',
-                            data: phd2.rms.map(r => ({ x: r[0], y: r[2] })),
+                            data: decData,
                             borderColor: COLORS.dec,
                             backgroundColor: 'rgba(244, 114, 182, 0.1)',
                             borderWidth: 2,
                             pointRadius: 0,
                             tension: 0.2,
-                            fill: true
+                            fill: true,
+                            spanGaps: false
                         },
                         {
                             label: 'Total RMS (")',
-                            data: phd2.rms.map(r => ({ x: r[0], y: r[3] })),
+                            data: totalData,
                             borderColor: COLORS.total,
                             backgroundColor: 'transparent',
                             borderWidth: 2,
                             borderDash: [5, 5],
                             pointRadius: 0,
-                            tension: 0.2
+                            tension: 0.2,
+                            spanGaps: false
                         }
                     ]
                 },
