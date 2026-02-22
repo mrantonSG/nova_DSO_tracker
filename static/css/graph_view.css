@@ -1072,6 +1072,212 @@ trix-editor .attachment__caption, trix-editor .attachment__name, trix-editor .at
 /* NOTE: Trix dark mode overrides consolidated in base.css (lines 594-657) */
 
 /* =================================================================
+   FRAMING MODAL - FACELIFT STYLES
+   Enhanced dark mode for the control panel above Aladin Lite sky canvas
+   ================================================================ */
+
+/* Light mode framing controls - clean white panel */
+.framing-controls {
+    background: var(--nova-surface, #ffffff);
+    border-bottom: 1px solid var(--nova-border-light, rgba(0,0,0,0.04));
+    color: var(--nova-text, #141414);
+    padding: 10px 16px;
+    margin-bottom: 0;
+}
+
+/* Framing controls in dark mode - midnight panel */
+:root[data-theme="dark"] .framing-controls {
+    background: #161b24;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.8);
+}
+
+/* All inputs in framing controls - dark mode */
+:root[data-theme="dark"] .framing-controls input[type="text"],
+:root[data-theme="dark"] .framing-controls input[type="number"] {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+}
+
+:root[data-theme="dark"] .framing-controls input[type="text"]:focus,
+:root[data-theme="dark"] .framing-controls input[type="number"]:focus {
+    border-color: var(--nova-accent, #7aafc0);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(122,175,192,0.15);
+}
+
+/* All selects in framing controls - dark mode */
+:root[data-theme="dark"] .framing-controls select {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+:root[data-theme="dark"] .framing-controls select:focus {
+    border-color: var(--nova-accent, #7aafc0);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(122,175,192,0.15);
+}
+
+/* Range sliders in framing controls - dark mode */
+:root[data-theme="dark"] .framing-controls input[type="range"] {
+    accent-color: var(--nova-accent, #7aafc0);
+    background: transparent;
+}
+
+:root[data-theme="dark"] .framing-controls input[type="range"]::-webkit-slider-runnable-track {
+    background: rgba(255,255,255,0.1);
+    height: 4px;
+    border-radius: 2px;
+}
+
+:root[data-theme="dark"] .framing-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--nova-accent, #7aafc0);
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    margin-top: -5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+:root[data-theme="dark"] .framing-controls input[type="range"]::-moz-range-track {
+    background: rgba(255,255,255,0.1);
+    height: 4px;
+    border-radius: 2px;
+}
+
+:root[data-theme="dark"] .framing-controls input[type="range"]::-moz-range-thumb {
+    background: var(--nova-accent, #7aafc0);
+    height: 14px;
+    width: 14px;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Checkbox styling in framing controls */
+:root[data-theme="dark"] .framing-controls input[type="checkbox"] {
+    accent-color: var(--nova-accent, #7aafc0);
+}
+
+/* Labels in framing controls - dark mode */
+:root[data-theme="dark"] .framing-controls label {
+    color: rgba(255,255,255,0.7);
+}
+
+/* Inline buttons in framing controls - dark mode */
+:root[data-theme="dark"] .framing-controls .inline-button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+:root[data-theme="dark"] .framing-controls .inline-button:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.95);
+}
+
+/* Divider lines in framing controls - dark mode */
+:root[data-theme="dark"] .framing-controls [style*="border-left:1px solid"] {
+    border-left-color: rgba(255,255,255,0.07) !important;
+}
+
+/* Modal header bar - dark mode */
+:root[data-theme="dark"] .modal-header-bar {
+    background: #161b24;
+    border-bottom-color: var(--nova-accent, #7aafc0);
+}
+
+:root[data-theme="dark"] .modal-header-bar .brand-strong {
+    color: var(--nova-accent, #7aafc0);
+}
+
+:root[data-theme="dark"] .modal-header-bar .brand-light {
+    color: rgba(255,255,255,0.55);
+}
+
+/* FOV chip in header - dark mode */
+:root[data-theme="dark"] .fov-chip {
+    background: rgba(122,175,192,0.12);
+    border-color: rgba(122,175,192,0.2);
+    color: var(--nova-accent, #7aafc0);
+}
+
+/* =================================================================
+   SIMBAD TAB - IFRAME CONTAINER STYLING
+   Cross-origin iframe cannot be styled directly, but we can style
+   the container and optionally apply CSS filters in dark mode
+   ================================================================ */
+
+/* SIMBAD container wrapper */
+#simbadContainer {
+    border-radius: var(--nova-radius, 10px);
+    overflow: hidden;
+    box-shadow: var(--nova-shadow-sm, 0 1px 3px rgba(0,0,0,0.08));
+    background: var(--nova-surface, #ffffff);
+}
+
+/* SIMBAD iframe - base styling */
+#simbadIframe {
+    border: none;
+    border-radius: var(--nova-radius, 10px);
+    display: block;
+    background: #ffffff;
+}
+
+/* Dark mode SIMBAD container */
+:root[data-theme="dark"] #simbadContainer {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    background: var(--nova-surface, #161b24);
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+/*
+ * Dark mode SIMBAD iframe filter
+ *
+ * IMPORTANT NOTE: This filter makes the white SIMBAD background tolerable
+ * in dark mode, but it may affect the appearance of astronomical images
+ * (Aladin sky view) embedded in SIMBAD pages. If this causes issues:
+ *
+ * OPTION A: Remove the filter entirely and accept the white background
+ * OPTION B: Apply a lighter filter (e.g., just brightness reduction)
+ * OPTION C: Use CSS @container queries when browser support improves
+ *
+ * Current implementation uses invert + hue-rotate which approximates
+ * a dark theme while keeping text readable.
+ */
+:root[data-theme="dark"] #simbadIframe {
+    filter: invert(0.88) hue-rotate(180deg) brightness(0.97);
+    background: #161b24;
+}
+
+/* SIMBAD tab content area */
+#simbad-tab {
+    background-color: var(--nova-bg, var(--gray-50));
+    padding: var(--space-5);
+}
+
+:root[data-theme="dark"] #simbad-tab {
+    background-color: var(--nova-bg, #0f1118);
+}
+
+/* =================================================================
    OBJECT DETAIL PAGE TITLE - FACELIFT STYLES
    #graph-title contains the object name and ID
    ================================================================ */
