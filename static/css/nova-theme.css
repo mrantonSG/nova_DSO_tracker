@@ -2275,3 +2275,351 @@ button:disabled {
   color: var(--nova-text-4);
   cursor: not-allowed;
 }
+
+/* =================================================================
+   FINAL POLISH — THE DETAILS THAT MAKE IT FEEL FINISHED
+   Reference: nova-desktop-facelift.html (scrollbars, focus rings,
+   selection, transitions, tooltips, empty states, dark mode depth)
+   ================================================================ */
+
+/* =================================================================
+   1. CUSTOM SCROLLBARS (webkit)
+   Subtle, non-intrusive scrollbars that match the theme
+   ================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.25);
+}
+
+/* Dark mode scrollbars */
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+}
+
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* =================================================================
+   2. FOCUS RINGS — Branded focus indicator
+   Replaces browser default with accent-colored ring
+   ================================================================ */
+
+*:focus-visible {
+  outline: 2px solid var(--nova-accent-mid);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Remove focus ring from elements that shouldn't show it */
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline-offset: 1px;
+}
+
+/* =================================================================
+   3. TEXT SELECTION COLOR
+   Branded highlight when selecting text
+   ================================================================ */
+
+::selection {
+  background: var(--nova-accent-light);
+  color: var(--nova-text);
+}
+
+::-moz-selection {
+  background: var(--nova-accent-light);
+  color: var(--nova-text);
+}
+
+/* Dark mode selection */
+:root[data-theme="dark"] ::selection {
+  background: rgba(122,175,192,0.25);
+  color: rgba(255,255,255,0.95);
+}
+
+:root[data-theme="dark"] ::-moz-selection {
+  background: rgba(122,175,192,0.25);
+  color: rgba(255,255,255,0.95);
+}
+
+/* =================================================================
+   4. TRANSITIONS ON INTERACTIVE ELEMENTS
+   Smooth, consistent hover/focus transitions
+   ================================================================ */
+
+a,
+button,
+[role="button"],
+.tab,
+.tab-button,
+.detail-tab-button,
+tr[onclick],
+td[onclick],
+.clickable-row {
+  transition: color 0.15s ease,
+              background 0.15s ease,
+              border-color 0.15s ease,
+              box-shadow 0.15s ease,
+              opacity 0.15s ease;
+}
+
+/* =================================================================
+   5. LOADING STATES
+   Spinners and loading indicators use accent color
+   ================================================================ */
+
+.spinner,
+.loading-spinner,
+.loading-indicator,
+.spinner-border,
+.loader {
+  border-color: var(--nova-accent-bg);
+  border-top-color: var(--nova-accent);
+}
+
+/* Generic rotating spinner */
+@keyframes nova-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner,
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--nova-accent-bg);
+  border-top-color: var(--nova-accent);
+  border-radius: 50%;
+  animation: nova-spin 0.8s linear infinite;
+}
+
+/* Loading text */
+.loading-text,
+.loading-message {
+  color: var(--nova-text-3);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* =================================================================
+   6. TOOLTIP STYLING
+   Popups on ⓘ help buttons and title attributes
+   ================================================================ */
+
+/* Title attribute tooltips (browser native, styled via pseudo-element where supported) */
+[title] {
+  text-decoration: none;
+}
+
+/* Custom tooltip classes used in the app */
+.tooltip,
+.tooltip-content,
+.tooltip-inner,
+.qtip-content,
+.help-tooltip {
+  background: var(--nova-text);
+  color: var(--nova-bg);
+  font-size: 11px;
+  font-weight: 500;
+  font-family: var(--nova-font-sans);
+  border-radius: 5px;
+  padding: 5px 9px;
+  box-shadow: var(--nova-shadow-sm);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+/* Dark mode tooltip */
+:root[data-theme="dark"] .tooltip,
+:root[data-theme="dark"] .tooltip-content,
+:root[data-theme="dark"] .tooltip-inner,
+:root[data-theme="dark"] .qtip-content,
+:root[data-theme="dark"] .help-tooltip {
+  background: var(--nova-surface-alt);
+  color: var(--nova-text);
+  border: 1px solid var(--nova-border);
+}
+
+/* Tooltip arrow (if using Tippy.js or similar) */
+.tippy-box {
+  background: var(--nova-text);
+  font-size: 11px;
+  font-family: var(--nova-font-sans);
+  border-radius: 5px;
+}
+
+:root[data-theme="dark"] .tippy-box {
+  background: var(--nova-surface-alt);
+  border: 1px solid var(--nova-border);
+}
+
+/* =================================================================
+   7. EMPTY STATE MESSAGES
+   "No results", "No good imaging opportunities", etc.
+   ================================================================ */
+
+.empty-state,
+.empty-message,
+.no-results,
+.no-data,
+.no-imaging-opportunities {
+  color: var(--nova-text-4);
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+  padding: 32px 16px;
+}
+
+/* Specific empty state in tables */
+.table-wrapper .empty-state,
+.table-wrapper .no-results {
+  padding: 24px 16px;
+  color: var(--nova-text-4);
+}
+
+/* Empty state with icon */
+.empty-state-icon {
+  font-size: 32px;
+  color: var(--nova-text-4);
+  opacity: 0.5;
+  margin-bottom: 8px;
+}
+
+/* =================================================================
+   8. DARK MODE: BODY BACKGROUND GRADIENT
+   Subtle depth to prevent flat black look
+   ================================================================ */
+
+:root[data-theme="dark"] body {
+  background: radial-gradient(ellipse at 20% 0%, #161e2a 0%, #0f1118 50%);
+  background-attachment: fixed;
+}
+
+/* =================================================================
+   9. DARK MODE: HEADER STAR FIELD
+   Subtle star dots in the header for dark mode
+   (Already added for .app-header in PROMPT 3, adding for .main-header
+    if it exists as an alternate class)
+   ================================================================ */
+
+/* Ensure star field works for both .app-header and .main-header */
+:root[data-theme="dark"] .main-header {
+  position: relative;
+  overflow: hidden;
+}
+
+:root[data-theme="dark"] .main-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1px 1px at 8% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 22% 70%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 20%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,0.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 75% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 15% 50%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 52% 42%, rgba(255,255,255,0.45) 0%, transparent 100%);
+  opacity: 0.7;
+  z-index: 0;
+}
+
+/* Ensure header content is above star field */
+:root[data-theme="dark"] .main-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* =================================================================
+   10. MISC POLISH — SMALL REFINEMENTS
+   ================================================================ */
+
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevent text selection on UI elements that shouldn't be selectable */
+button,
+.btn,
+.action-button,
+.tab-button,
+.tab,
+.no-select {
+  user-select: none;
+}
+
+/* Ensure images don't overflow */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Code/monospace inline elements */
+code,
+.code,
+.mono {
+  font-family: var(--nova-font-mono);
+  font-size: 0.9em;
+  background: var(--nova-surface-alt);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+:root[data-theme="dark"] code,
+:root[data-theme="dark"] .code,
+:root[data-theme="dark"] .mono {
+  background: rgba(255,255,255,0.05);
+}
+
+/* Horizontal rules / dividers */
+hr,
+.divider {
+  border: none;
+  height: 1px;
+  background: var(--nova-border-light);
+  margin: 16px 0;
+}
+
+:root[data-theme="dark"] hr,
+:root[data-theme="dark"] .divider {
+  background: var(--nova-border);
+}
+
+/* Badge/tag styling */
+.badge,
+.tag,
+.label-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  background: var(--nova-accent-bg);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] .badge,
+:root[data-theme="dark"] .tag,
+:root[data-theme="dark"] .label-badge {
+  background: rgba(122,175,192,0.12);
+}
