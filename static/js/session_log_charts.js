@@ -11,19 +11,19 @@
     if (window.sessionLogChartsInitialized) return;
     window.sessionLogChartsInitialized = true;
 
-    // --- Color Scheme (Dark theme optimized) ---
+    // --- Color Scheme (Brand palette - matches base.css) ---
     const COLORS = {
-        ra: '#60a5fa',        // Blue for RA
-        dec: '#f472b6',       // Pink for Dec
-        total: '#a78bfa',     // Purple for Total
-        success: '#34d399',   // Green for success
-        timeout: '#ef4444',   // Red for timeout
-        exposures: '#3b82f6', // Blue for exposures
-        dither: '#f472b6',    // Pink for dither
-        af: '#fbbf24',        // Yellow for autofocus
-        meridianFlip: '#10b981', // Emerald green for meridian flip
-        grid: 'rgba(180, 180, 180, 0.5)',
-        text: '#d8d8d8',
+        ra: 'rgba(131, 180, 197, 0.85)',     // Primary teal 85% opacity
+        dec: '#d4899e',                       // Soft rose (muted pink)
+        total: '#9b8ec4',                     // Muted purple
+        success: '#5eb570',                   // Soft chart green (not message green)
+        timeout: '#e09090',                   // Soft coral/salmon (not harsh red)
+        exposures: '#83b4c5',                 // Brand primary teal
+        dither: '#d4899e',                    // Soft rose (matches dec)
+        af: '#ffc107',                        // Brand warning amber
+        meridianFlip: '#5eb570',              // Soft chart green
+        grid: 'rgba(220, 220, 220, 0.6)',     // Bright grid - clearly visible
+        text: '#ffffff',                      // Pure white for dark mode
         background: '#0a0f1e'
     };
 
@@ -51,8 +51,8 @@
         '#eab308',  // Run 7: Yellow
         '#ef4444',  // Run 8: Red
     ];
-    const AF_DRIFT_COLOR = '#f59e0b';  // Amber/Gold for drift line
-    const AF_TEMP_DRIFT_COLOR = '#f59e0b';  // Amber/Gold for temp drift card
+    const AF_DRIFT_COLOR = '#ffc107';  // Brand warning amber for drift line
+    const AF_TEMP_DRIFT_COLOR = '#ffc107';  // Brand warning amber for temp drift card
 
     // --- Parabola Fitting Helpers (for V-curves) ---
 
@@ -234,10 +234,10 @@
                     }
                 },
                 tooltip: {
-                    backgroundColor: dark ? 'rgba(40, 40, 40, 0.92)' : 'rgba(255, 255, 255, 0.92)',
-                    titleColor: dark ? '#e0e0e0' : '#222',
-                    bodyColor: dark ? '#ccc' : '#444',
-                    borderColor: dark ? 'rgba(100, 100, 100, 0.5)' : 'rgba(0, 0, 0, 0.15)',
+                    backgroundColor: dark ? 'rgba(40, 40, 40, 0.95)' : 'rgba(255, 255, 255, 0.92)',
+                    titleColor: dark ? '#f0f0f0' : '#222',
+                    bodyColor: dark ? '#ddd' : '#444',
+                    borderColor: dark ? 'rgba(120, 120, 120, 0.5)' : 'rgba(0, 0, 0, 0.15)',
                     borderWidth: 1
                 }
             },
@@ -364,10 +364,10 @@
         const labelWidth = 90;
         const chartPadding = { left: 10, right: 20, top: 10, bottom: 25 };
         const rows = [
-            { id: 'exposures', label: 'Exposures', color: '#3b82f6', events: exposures },
-            { id: 'dithers', label: 'Dithers', color: '#ef4444', events: dithers },
-            { id: 'af', label: 'AutoFocus', color: '#fbbf24', events: afRuns },
-            { id: 'mf', label: 'Meridian Flip', color: '#10b981', events: meridianFlips }
+            { id: 'exposures', label: 'Exposures', color: COLORS.exposures, events: exposures },
+            { id: 'dithers', label: 'Dithers', color: COLORS.dither, events: dithers },
+            { id: 'af', label: 'AutoFocus', color: COLORS.af, events: afRuns },
+            { id: 'mf', label: 'Meridian Flip', color: COLORS.meridianFlip, events: meridianFlips }
         ];
 
         // Calculate dimensions
@@ -381,9 +381,9 @@
         svg.innerHTML = '';
 
         const dark = isDarkTheme();
-        const textColor = dark ? '#b0b0b0' : '#666';
-        const labelColor = dark ? '#e0e0e0' : '#333';
-        const dividerColor = dark ? 'rgba(150, 150, 150, 0.3)' : 'rgba(0, 0, 0, 0.1)';
+        const textColor = dark ? COLORS.text : '#666';       // Use consistent bright text
+        const labelColor = dark ? COLORS.text : '#333';      // Use consistent text color
+        const dividerColor = dark ? 'rgba(200, 200, 200, 0.35)' : 'rgba(0, 0, 0, 0.1)';  // Match grid brightness
 
         // Helper to convert hours to X position
         const hoursToX = (h) => labelWidth + chartPadding.left + (h / maxHours) * chartWidth;
@@ -445,7 +445,7 @@
                     svg.appendChild(line);
                 } else if (row.id === 'dithers') {
                     // Slightly thicker line for dithers
-                    const color = event.ok ? row.color : '#ff6384';
+                    const color = event.ok ? row.color : '#c4889e';  // Soft rose for failed dithers
                     const line = createEl('line', {
                         x1: x,
                         y1: y + 4,
@@ -1230,7 +1230,7 @@
                             subtitle: {
                                 display: true,
                                 text: 'Each point = one guide frame correction',
-                                color: dark ? 'rgba(176, 176, 176, 0.7)' : 'rgba(100, 100, 100, 0.7)',
+                                color: dark ? COLORS.text : 'rgba(100, 100, 100, 0.7)',
                                 font: { size: 11 }
                             },
                             legend: {
@@ -1545,7 +1545,7 @@
                     if (y < chart.chartArea.top || y > chart.chartArea.bottom) return;
 
                     ctx.save();
-                    ctx.strokeStyle = '#f97316';  // Orange/red
+                    ctx.strokeStyle = COLORS.af;  // Brand warning amber
                     ctx.lineWidth = 1.5;
                     ctx.setLineDash([6, 4]);
                     ctx.beginPath();
@@ -1554,7 +1554,7 @@
                     ctx.stroke();
 
                     // Label at right end
-                    ctx.fillStyle = '#f97316';
+                    ctx.fillStyle = COLORS.af;
                     ctx.font = '10px system-ui, -apple-system, sans-serif';
                     ctx.textAlign = 'right';
                     ctx.textBaseline = 'bottom';
@@ -2278,7 +2278,56 @@
         container.querySelectorAll('.log-analysis-content').forEach(c => c.classList.remove('active'));
         const targetContent = container.querySelector(`#log-${tabName}-tab`);
         if (targetContent) targetContent.classList.add('active');
+
+        // Resize charts in the newly visible tab (fixes compressed charts after theme change)
+        requestAnimationFrame(function() {
+            resizeChartsForTab(tabName);
+        });
     });
+
+    /**
+     * Resize charts for a specific tab
+     */
+    function resizeChartsForTab(tabName) {
+        const resizeChart = function(chart) {
+            if (chart && typeof chart.resize === 'function') {
+                chart.resize();
+                chart.update('none');
+            }
+        };
+
+        switch(tabName) {
+            case 'overview':
+                // Overview has SVG swimlane, re-render if needed
+                if (logData && logData.asiair) {
+                    const sessionStartStr = logData.asiair.session_start ||
+                        (logData.phd2 && logData.phd2.session_start);
+                    const sessionStart = sessionStartStr ? new Date(sessionStartStr) : null;
+                    const hoursToTime = function(hours) {
+                        if (!sessionStart) return hours.toFixed(1) + 'h';
+                        const date = new Date(sessionStart.getTime() + hours * 3600 * 1000);
+                        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    };
+                    renderOverviewSwimlane(logData.asiair, sessionStart, hoursToTime);
+                }
+                resizeChart(charts.autocenter);
+                break;
+            case 'guiding':
+                resizeChart(charts.guiding);
+                resizeChart(charts.guidePulseScatter);
+                resizeChart(charts.guidePulseDuration);
+                resizeChart(charts.guidingSnr);
+                break;
+            case 'dithering':
+                resizeChart(charts.dither);
+                break;
+            case 'autofocus':
+                resizeChart(charts.afOverlay);
+                resizeChart(charts.afDrift);
+                charts.afCurves.forEach(resizeChart);
+                break;
+        }
+    }
 
     /**
      * Cleanup function for when leaving session view
@@ -2298,15 +2347,53 @@
     };
 
     /**
-     * Re-render all charts when theme changes
+     * Resize all charts when theme changes (prevents Y-axis stretch)
+     * Uses delay + requestAnimationFrame to ensure CSS transitions complete
      */
+    let themeResizeTimeout = null;
     window.addEventListener('themeChanged', function() {
-        if (logData && logData.has_logs) {
-            renderOverviewTab();
-            renderGuidingTab();
-            renderDitheringTab();
-            renderAutoFocusTab();
+        if (!logData || !logData.has_logs) return;
+
+        // Debounce: only trigger once per theme change
+        if (themeResizeTimeout) {
+            clearTimeout(themeResizeTimeout);
         }
+
+        // Wait for CSS transition (300ms) then resize charts
+        themeResizeTimeout = setTimeout(function() {
+            requestAnimationFrame(function() {
+                // Resize all Chart.js instances
+                Object.keys(charts).forEach(function(key) {
+                    if (key === 'afCurves') {
+                        // Array of chart instances
+                        charts.afCurves.forEach(function(chart) {
+                            if (chart && typeof chart.resize === 'function') {
+                                chart.resize();
+                                chart.update('none');
+                            }
+                        });
+                    } else if (charts[key] && typeof charts[key].resize === 'function') {
+                        charts[key].resize();
+                        charts[key].update('none');
+                    }
+                });
+
+                // Re-render SVG swimlane (needs full redraw for color changes)
+                if (logData.asiair) {
+                    const sessionStartStr = logData.asiair.session_start ||
+                        (logData.phd2 && logData.phd2.session_start);
+                    const sessionStart = sessionStartStr ? new Date(sessionStartStr) : null;
+                    const hoursToTime = function(hours) {
+                        if (!sessionStart) return hours.toFixed(1) + 'h';
+                        const date = new Date(sessionStart.getTime() + hours * 3600 * 1000);
+                        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    };
+                    renderOverviewSwimlane(logData.asiair, sessionStart, hoursToTime);
+                }
+
+                themeResizeTimeout = null;
+            });
+        }, 300);
     });
 
 })();
