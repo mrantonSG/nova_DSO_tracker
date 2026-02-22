@@ -577,6 +577,17 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN camera_name_snapshot VARCHAR(256);")
                 print("[DB PATCH] Added missing column journal_sessions.camera_name_snapshot")
 
+            # --- Log content columns for ASIAIR and PHD2 log analysis ---
+            if "asiair_log_content" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN asiair_log_content TEXT;")
+                print("[DB PATCH] Added missing column journal_sessions.asiair_log_content")
+            if "phd2_log_content" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN phd2_log_content TEXT;")
+                print("[DB PATCH] Added missing column journal_sessions.phd2_log_content")
+            if "log_analysis_cache" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN log_analysis_cache TEXT;")
+                print("[DB PATCH] Added missing column journal_sessions.log_analysis_cache")
+
             # --- Deduplicate external_id values before creating unique index ---
             dup_check = conn.exec_driver_sql("""
                 SELECT external_id, COUNT(*) as cnt
