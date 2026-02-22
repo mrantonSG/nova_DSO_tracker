@@ -201,11 +201,14 @@
 
     /**
      * Check if dark theme is active
+     * Falls back to checking data-theme attribute directly if stylingUtils not available
      */
     function isDarkTheme() {
-        return window.stylingUtils && window.stylingUtils.isDarkTheme
-            ? window.stylingUtils.isDarkTheme()
-            : true;
+        if (window.stylingUtils && window.stylingUtils.isDarkTheme) {
+            return window.stylingUtils.isDarkTheme();
+        }
+        // Fallback: check data-theme attribute directly
+        return document.documentElement.getAttribute('data-theme') === 'dark';
     }
 
     /**
@@ -2293,5 +2296,17 @@
         charts.afCurves = [];
         logData = null;
     };
+
+    /**
+     * Re-render all charts when theme changes
+     */
+    window.addEventListener('themeChanged', function() {
+        if (logData && logData.has_logs) {
+            renderOverviewTab();
+            renderGuidingTab();
+            renderDitheringTab();
+            renderAutoFocusTab();
+        }
+    });
 
 })();
