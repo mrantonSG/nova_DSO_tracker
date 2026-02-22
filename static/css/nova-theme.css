@@ -759,24 +759,6 @@ dd {
   color: var(--nova-accent-mid);
 }
 
-/* Dark mode user avatar circle */
-:root[data-theme="dark"] .user-menu::before {
-  content: attr(data-initial);
-  /* Fallback if no data-initial - show first char of username */
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #5a8fa0, #7aafc0);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-  margin-right: 6px;
-  text-transform: uppercase;
-}
-
 /* =================================================================
    9. HEADER LEFT SECTION
    Brand group, divider, page title
@@ -876,7 +858,18 @@ dd {
 .tab-button.active {
   color: var(--nova-accent);
   font-weight: 600;
-  border-bottom-color: var(--nova-accent-mid);
+  border-bottom-color: transparent;
+}
+
+.tab-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--nova-accent-mid);
+  border-radius: 2px 2px 0 0;
 }
 
 /* 3. HELP ICON NEXT TO TABS */
@@ -937,10 +930,12 @@ dd {
 /* 5. SAVE/DELETE BUTTONS IN TAB BAR */
 #save-view-btn,
 #delete-view-btn {
-  padding: 4px 12px;
+  height: 28px;
+  padding: 0 12px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
   font-family: var(--nova-font-sans);
   background: var(--nova-accent-bg);
   border: 1px solid var(--nova-accent-light);
@@ -1030,7 +1025,10 @@ dd {
 
 :root[data-theme="dark"] .tab-button.active {
   color: var(--nova-accent);
-  border-bottom-color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] .tab-button.active::after {
+  background: var(--nova-accent);
 }
 
 :root[data-theme="dark"] #saved-views-container .styled-select,
@@ -1222,13 +1220,38 @@ dd {
    ================================================================ */
 
 .table-wrapper tbody tr {
-  border-bottom: 1px solid var(--nova-border-light);
   cursor: pointer;
   transition: background 0.1s ease;
 }
 
-.table-wrapper tbody tr:last-child {
+/* Row separator lines on td cells (tr borders don't work with border-collapse: separate) */
+.table-wrapper tbody td {
+  border-bottom: 1px solid var(--nova-border-light);
+}
+
+.table-wrapper tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Section header row (e.g., "NOW OBSERVABLE" divider) */
+.table-wrapper tbody tr.section-row td,
+.table-wrapper tbody tr[data-type="section"] td {
+  background: linear-gradient(90deg, var(--nova-accent-bg), transparent);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--nova-accent);
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--nova-accent-light);
+}
+
+:root[data-theme="dark"] .table-wrapper tbody tr.section-row td,
+:root[data-theme="dark"] .table-wrapper tbody tr[data-type="section"] td {
+  background: linear-gradient(90deg, rgba(122,175,192,0.08), transparent);
+  color: var(--nova-accent);
+  border-bottom: 1px solid rgba(122,175,192,0.15);
 }
 
 .table-wrapper tbody tr:hover {
@@ -1295,16 +1318,24 @@ dd {
 
 /* =================================================================
    12. ALTITUDE BADGE
-   Highlighted cell with current altitude (uses .highlight class)
+   Highlighted cell with current altitude - pill badge inside cell
+   The .highlight class is on the td, the .alt-badge span inside gets styled
    ================================================================ */
 
+/* Cell itself has transparent background - badge styling is on the span */
 .table-wrapper tbody td.highlight {
+  background: transparent;
+}
+
+/* Altitude badge pill - the span inside the td */
+.table-wrapper tbody td.highlight .alt-badge,
+.table-wrapper tbody td.highlight span.alt-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 62px;
-  padding: 3px 8px;
-  border-radius: var(--nova-radius-sm);
+  padding: 3px 9px;
+  border-radius: 5px;
   font-family: var(--nova-font-mono);
   font-size: 12px;
   font-weight: 500;
@@ -1313,55 +1344,57 @@ dd {
   color: var(--nova-alt-med-text);
 }
 
-/* High altitude (>=75°) - apply via JS class or use default styling */
-.table-wrapper tbody td.highlight[data-alt-tier="high"],
-.table-wrapper tbody td.highlight.alt-high {
+/* High altitude (>=75°) */
+.table-wrapper tbody td.highlight[data-alt-tier="high"] .alt-badge,
+.table-wrapper tbody td.highlight.alt-high .alt-badge {
   background: var(--nova-alt-high-bg);
   color: var(--nova-alt-high-text);
 }
 
 /* Medium altitude (>=60°) - default */
-.table-wrapper tbody td.highlight[data-alt-tier="med"],
-.table-wrapper tbody td.highlight.alt-med {
+.table-wrapper tbody td.highlight[data-alt-tier="med"] .alt-badge,
+.table-wrapper tbody td.highlight.alt-med .alt-badge {
   background: var(--nova-alt-med-bg);
   color: var(--nova-alt-med-text);
 }
 
 /* Low altitude (<60°) */
-.table-wrapper tbody td.highlight[data-alt-tier="low"],
-.table-wrapper tbody td.highlight.alt-low {
+.table-wrapper tbody td.highlight[data-alt-tier="low"] .alt-badge,
+.table-wrapper tbody td.highlight.alt-low .alt-badge {
   background: var(--nova-alt-low-bg);
   color: var(--nova-alt-low-text);
 }
 
 /* Dark mode altitude badges with borders */
-:root[data-theme="dark"] .table-wrapper tbody td.highlight {
+:root[data-theme="dark"] .table-wrapper tbody td.highlight .alt-badge,
+:root[data-theme="dark"] .table-wrapper tbody td.highlight span.alt-badge {
   border: 1px solid var(--nova-alt-med-border);
 }
 
-:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="high"],
-:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-high {
+:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="high"] .alt-badge,
+:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-high .alt-badge {
   background: var(--nova-alt-high-bg);
   color: var(--nova-alt-high-text);
   border-color: var(--nova-alt-high-border);
 }
 
-:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="med"],
-:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-med {
+:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="med"] .alt-badge,
+:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-med .alt-badge {
   background: var(--nova-alt-med-bg);
   color: var(--nova-alt-med-text);
   border-color: var(--nova-alt-med-border);
 }
 
-:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="low"],
-:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-low {
+:root[data-theme="dark"] .table-wrapper tbody td.highlight[data-alt-tier="low"] .alt-badge,
+:root[data-theme="dark"] .table-wrapper tbody td.highlight.alt-low .alt-badge {
   background: var(--nova-alt-low-bg);
   color: var(--nova-alt-low-text);
   border-color: var(--nova-alt-low-border);
 }
 
 /* Obstructed altitude badge (yellow warning) */
-.table-wrapper tbody td.highlight.obstructed {
+.table-wrapper tbody td.highlight.obstructed .alt-badge,
+.table-wrapper tbody td.highlight.obstructed span.alt-badge {
   background-color: var(--highlight-yellow) !important;
   color: var(--highlight-yellow-text) !important;
   border: none;

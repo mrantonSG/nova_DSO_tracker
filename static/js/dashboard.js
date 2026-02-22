@@ -831,14 +831,27 @@
 
         const isAboveThreshold = parseFloat(rawValue) >= altitudeThreshold;
 
+        // Helper to wrap cell content in a span.alt-badge
+        function wrapInBadge(cell, value) {
+            const span = document.createElement('span');
+            span.className = 'alt-badge';
+            span.textContent = value;
+            cell.textContent = '';
+            cell.appendChild(span);
+        }
+
         if (config.dataKey === 'Altitude Current' && isAboveThreshold && !objectData.error) {
             td.classList.add('highlight');
             if (objectData.is_obstructed_now) td.classList.add('obstructed');
+            // Wrap the altitude value in a span for the pill badge styling
+            wrapInBadge(td, td.textContent);
         }
 
         if (config.dataKey === 'Altitude 11PM' && isAboveThreshold && !objectData.error) {
             td.classList.add('highlight');
             if (objectData.is_obstructed_at_11pm) td.classList.add('obstructed');
+            // Wrap the altitude value in a span for the pill badge styling
+            wrapInBadge(td, td.textContent);
         }
     }
 
@@ -1120,6 +1133,16 @@
     
                     td.innerHTML = ''; // Clear any existing text
                     td.appendChild(container);
+                } else if (columnKey === 'Trend') {
+                    // Trend column - wrap in span with appropriate class for coloring
+                    const trendSpan = document.createElement('span');
+                    if (rawValue === '↑') {
+                        trendSpan.className = 'trend-up';
+                    } else if (rawValue === '↓') {
+                        trendSpan.className = 'trend-down';
+                    }
+                    trendSpan.textContent = displayValue;
+                    td.appendChild(trendSpan);
                 } else {
                         td.textContent = displayValue;
                     }

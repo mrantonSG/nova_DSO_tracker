@@ -88,8 +88,15 @@
     /* --- END OF ADD --- */
 
     td.highlight.obstructed {
-        background-color: var(--highlight-yellow) !important; /* A light yellow/orange */
-        color: var(--highlight-yellow-text); /* A darker text color for readability */
+        background-color: transparent;
+    }
+    td.highlight.obstructed .alt-badge {
+        background-color: var(--nova-accent-bg, #eef6f9) !important;
+        color: var(--nova-accent, #5a8fa0) !important;
+    }
+    :root[data-theme="dark"] td.highlight.obstructed .alt-badge {
+        background-color: rgba(122,175,192,0.1) !important;
+        color: #7aafc0 !important;
     }
 
     #data-table th:not([data-column-key="Object"]):not([data-column-key="Common Name"]),
@@ -219,17 +226,17 @@
 
     /* --- NEW: Unified Dropdown Styling --- */
     .styled-select {
-        height: 35px;
-        font-size: var(--font-size-base);
-        padding: var(--space-1);
-        padding-right: 30px; /* Make space for custom arrow */
+        height: 28px;
+        font-size: 12px;
+        padding: 3px 28px 3px 10px;
         box-sizing: border-box;
         font-family: 'DM Sans', 'Roboto', sans-serif;
+        line-height: 1.2;
 
         /* Appearance from screenshot */
         background-color: var(--bg-medium);
         border: var(--input-border-width) solid var(--input-border-color);
-        border-radius: var(--input-border-radius);
+        border-radius: 6px;
 
         /* Custom arrow */
         appearance: none;
@@ -333,15 +340,28 @@
     }
 
     #remove-filters-btn {
-      padding: var(--space-2-5) var(--space-5);
-      font-size: var(--font-size-base);
-      background-color: var(--primary-light);
-      color: white;
-      border: none;
-      border-radius: var(--radius-lg);
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      background: transparent;
+      color: var(--text-secondary, #4a4a4a);
+      border: 1px solid var(--border-color, #e5e2dc);
+      border-radius: 6px;
       cursor: pointer;
+      height: auto;
+      width: auto;
+      box-shadow: none;
     }
-    #remove-filters-btn:hover { background-color: var(--primary-muted) !important; }
+    #remove-filters-btn:hover {
+      background: var(--bg-tertiary, #f7f5f2);
+    }
+    :root[data-theme="dark"] #remove-filters-btn {
+      color: rgba(255,255,255,0.55);
+      border-color: rgba(255,255,255,0.1);
+    }
+    :root[data-theme="dark"] #remove-filters-btn:hover {
+      background: rgba(255,255,255,0.05);
+    }
 
     th[data-column-key="Type"], td[data-column-key="Type"],
     th[data-column-key="Magnitude"], td[data-column-key="Magnitude"],
