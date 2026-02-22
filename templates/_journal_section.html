@@ -1,21 +1,28 @@
 <style>
-    .journal-container { display: flex; gap: 25px; align-items: flex-start; }
-    /* FIX: Sticky Left Column */
+    /* ===================================================================
+       JOURNAL SPLIT PANE - FACELIFT
+       ================================================================ */
+
+    .journal-container { display: flex; gap: 0; align-items: flex-start; }
+
+    /* FACELIFT: Sticky Left Column (Session List) */
     .session-list-column {
-        flex: 0 0 450px;
-        /* Keeps the list pinned to the screen while you scroll the long report on the right */
+        flex: 0 0 420px;
         position: sticky;
         top: 20px;
         max-height: calc(100vh - 40px);
         overflow-y: auto;
+        border-right: 1px solid var(--nova-border, var(--border-medium));
+        background: var(--nova-surface-alt, var(--bg-light));
     }
 
-    /* FIX: Uncapped Right Column */
+    /* FACELIFT: Right Column (Session Detail Form) */
     .session-detail-column {
         flex: 1 1 auto;
-        /* Removing max-height/overflow here eliminates the nested "double" scrollbar */
-        padding-right: 15px;
+        padding: 0 24px 24px 24px;
+        background: var(--nova-surface, var(--bg-white));
     }
+
     .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
     .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: 15px; }
     .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
@@ -79,27 +86,162 @@
     .notes-block { margin-top: 8px; padding: 10px; background-color: var(--bg-light); border: 1px solid var(--border-light-alt2); border-radius: 4px; white-space: pre-wrap; min-height: 60px; }
     .session-list-column h4, .session-detail-column h4 { font-size: 1.2em; font-weight: 600; margin-top: 0; margin-bottom: 0; color: var(--text-primary); }
 
-    /* Form specific styles */
+    /* FACELIFT: Form specific styles */
     .edit-mode-form .form-group input,
     .edit-mode-form .form-group textarea,
-    .edit-mode-form .form-group select { width: 100%; padding: 8px; border: 1px solid var(--border-medium-alt); border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    .edit-mode-form .form-group select {
+        width: 100%;
+        padding: 5px 10px;
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: var(--nova-radius-sm, 4px);
+        background: var(--nova-surface, var(--bg-white));
+        color: var(--nova-text, var(--text-primary));
+        font-size: 13px;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif);
+        box-sizing: border-box;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .edit-mode-form .form-group input:focus,
+    .edit-mode-form .form-group textarea:focus,
+    .edit-mode-form .form-group select:focus {
+        border-color: var(--nova-accent-mid, var(--primary-light));
+        box-shadow: 0 0 0 3px var(--nova-accent-bg, rgba(122,175,192,0.1));
+        outline: none;
+    }
+
     .edit-mode-form .form-group textarea { min-height: 100px; }
 
-    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75em; }
-    .history-header .inline-button { font-size: 13px; padding: 6px 12px; margin-right: 0; }
+    /* FACELIFT: Session Rating Stars - accent color */
+    .edit-mode-form input[type="number"][name="session_rating_subjective"],
+    input[name="session_rating_subjective"] {
+        accent-color: var(--nova-accent, var(--primary-color));
+    }
+
+    .history-header {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light));
+    }
+
+    .history-header h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--nova-text, var(--text-primary));
+        margin: 0;
+    }
+
+    /* FACELIFT: Full-width buttons in history header */
+    .history-header .inline-button {
+        width: 100%;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 8px 14px;
+        margin-right: 0;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-align: center;
+    }
+
     .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
     .detail-header .action-button-group { margin: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
     .form-group.full-width { flex-basis: 100%; }
     .form-group.full-width label { width: auto; }
 
-    .session-history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85em; }
-    .session-history-table th, .session-history-table td { border: 1px solid var(--border-medium); padding: 6px 8px; text-align: left; vertical-align: middle; }
-    .session-history-table th { background-color: var(--border-light-alt3); font-weight: 600; }
-    .session-history-table tr.clickable-session-row:hover { background-color: var(--highlight-blue-alt2); cursor: pointer; }
-    .session-history-table tr.current-session-item { background-color: var(--highlight-blue) !important; font-weight: bold; }
-    .session-history-table td.col-date, .session-history-table th.col-date { width: 120px; }
-    .session-history-table td.col-integ, .session-history-table th.col-integ { width: 100px; text-align: center; }
-    .session-history-table td.col-rating, .session-history-table th.col-rating { width: 100px; text-align: center; }
+    /* FACELIFT: Session History Table */
+    .session-history-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .session-history-table th,
+    .session-history-table td {
+        border: none;
+        padding: 0;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    /* FACELIFT: Session rows in list */
+    .session-history-table tbody tr.clickable-session-row,
+    .session-history-table tbody tr.project-header-clickable {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--nova-border-light, var(--border-light-alt2));
+        cursor: pointer;
+        transition: background 0.1s ease;
+        display: block;
+    }
+
+    .session-history-table tbody tr.clickable-session-row:hover {
+        background: var(--nova-row-hover, var(--bg-light-gray));
+    }
+
+    /* FACELIFT: Active/selected session row */
+    .session-history-table tbody tr.current-session-item {
+        background: var(--nova-accent-bg, var(--highlight-blue)) !important;
+        border-left: 2px solid var(--nova-accent, var(--primary-color));
+        padding-left: 14px;
+    }
+
+    /* FACELIFT: Project header row */
+    .session-history-table th[colspan="3"] {
+        padding: 10px 16px;
+        background: var(--nova-surface, var(--bg-white));
+        border-bottom: 1px solid var(--nova-border, var(--border-medium));
+        border-top: none;
+    }
+
+    .session-history-table th[colspan="3"].project-header-clickable {
+        background: var(--nova-surface-alt, var(--bg-light-gray));
+    }
+
+    .session-history-table th[colspan="3"].project-header-clickable:hover {
+        background: var(--nova-row-hover, var(--info-bg-light)) !important;
+    }
+
+    .session-history-table th[colspan="3"].current-project-item {
+        background: var(--nova-accent-bg, var(--highlight-blue)) !important;
+        border-left: 2px solid var(--nova-accent, var(--link-color));
+        padding-left: 14px;
+    }
+
+    /* FACELIFT: Date in session row */
+    .session-history-table td.col-date {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--nova-text, var(--text-primary));
+        width: auto;
+        min-width: 140px;
+        display: inline-block;
+        padding: 10px 0 0 16px;
+    }
+
+    .session-history-table td.col-date small {
+        font-size: 11px;
+        color: var(--nova-text-3, var(--text-tertiary));
+        font-weight: 400;
+    }
+
+    .session-history-table td.col-integ,
+    .session-history-table td.col-rating {
+        width: auto;
+        text-align: left;
+        display: inline-block;
+        padding: 10px 16px 10px 0;
+        font-size: 12px;
+        font-family: var(--nova-font-mono, 'DM Mono', monospace);
+        color: var(--nova-text-2, var(--text-secondary));
+    }
+
+    .session-history-table th.col-date,
+    .session-history-table th.col-integ,
+    .session-history-table th.col-rating {
+        display: none; /* Hide table headers, using row-based layout */
+    }
 
     /* Styles for the Journal Project View */
     .project-header-clickable {
@@ -159,10 +301,20 @@
        DARK MODE OVERRIDES
        ================================================================ */
 
-    /* Session list column */
+    /* FACELIFT: Session list column */
+    [data-theme="dark"] .session-list-column {
+        border-right-color: var(--nova-border, rgba(255,255,255,0.07));
+        background: var(--nova-surface-alt, var(--bg-dark-primary));
+    }
+
+    /* FACELIFT: Session detail column */
+    [data-theme="dark"] .session-detail-column {
+        background: var(--nova-surface, var(--bg-dark-secondary));
+    }
+
     [data-theme="dark"] .session-list-column h4,
     [data-theme="dark"] .session-detail-column h4 {
-        color: var(--text-primary);
+        color: var(--nova-text, rgba(255,255,255,0.92));
     }
 
     /* Detail tabs */
@@ -202,22 +354,29 @@
         color: var(--text-primary);
     }
 
-    /* Edit mode form inputs */
+    /* FACELIFT: Edit mode form inputs */
     [data-theme="dark"] .edit-mode-form .form-group input,
     [data-theme="dark"] .edit-mode-form .form-group textarea,
     [data-theme="dark"] .edit-mode-form .form-group select {
-        background-color: var(--bg-medium) !important;
-        border: 1px solid var(--border-medium) !important;
-        color: var(--text-primary) !important;
+        background: var(--nova-surface, var(--bg-dark-secondary)) !important;
+        border: 1px solid var(--nova-border, rgba(255,255,255,0.07)) !important;
+        color: var(--nova-text, rgba(255,255,255,0.92)) !important;
     }
     [data-theme="dark"] .edit-mode-form .form-group input:focus,
     [data-theme="dark"] .edit-mode-form .form-group textarea:focus,
     [data-theme="dark"] .edit-mode-form .form-group select:focus {
-        border-color: var(--primary-color) !important;
+        border-color: var(--nova-accent-mid, #8ec8da) !important;
+        box-shadow: 0 0 0 3px rgba(122,175,192,0.1) !important;
         outline: none;
     }
     [data-theme="dark"] .edit-mode-form .form-group label {
-        color: var(--text-secondary) !important;
+        color: var(--nova-text-2, rgba(255,255,255,0.55)) !important;
+    }
+
+    /* FACELIFT: Session rating stars - accent color in dark mode */
+    [data-theme="dark"] .edit-mode-form input[type="number"][name="session_rating_subjective"],
+    [data-theme="dark"] input[name="session_rating_subjective"] {
+        accent-color: var(--nova-accent, #7aafc0);
     }
 
     /* Form section title */
@@ -226,20 +385,54 @@
         border-bottom-color: var(--border-medium);
     }
 
-    /* Session history table */
+    /* FACELIFT: Session history table */
     [data-theme="dark"] .session-history-table th,
     [data-theme="dark"] .session-history-table td {
-        border-color: var(--border-medium);
-        color: var(--text-primary);
+        color: var(--nova-text, rgba(255,255,255,0.92));
     }
-    [data-theme="dark"] .session-history-table th {
-        background-color: var(--bg-medium);
+
+    [data-theme="dark"] .session-history-table th[colspan="3"] {
+        background: var(--nova-surface, var(--bg-dark-secondary));
+        border-bottom-color: var(--nova-border, rgba(255,255,255,0.07));
     }
+
+    [data-theme="dark"] .session-history-table th[colspan="3"].project-header-clickable {
+        background: var(--nova-surface-alt, var(--bg-dark-primary));
+    }
+
+    [data-theme="dark"] .session-history-table th[colspan="3"].project-header-clickable:hover {
+        background: var(--nova-row-hover, rgba(122,175,192,0.06)) !important;
+    }
+
+    [data-theme="dark"] .session-history-table tbody tr.clickable-session-row {
+        border-bottom-color: var(--nova-border-light, rgba(255,255,255,0.04));
+    }
+
     [data-theme="dark"] .session-history-table tr.clickable-session-row:hover {
-        background-color: var(--bg-medium-alt);
+        background: var(--nova-row-hover, rgba(122,175,192,0.06));
     }
+
     [data-theme="dark"] .session-history-table tr.current-session-item {
-        background-color: var(--highlight-blue-alt) !important;
+        background: var(--nova-accent-bg, rgba(122,175,192,0.08)) !important;
+        border-left-color: var(--nova-accent, #7aafc0);
+    }
+
+    [data-theme="dark"] .session-history-table td.col-date {
+        color: var(--nova-text, rgba(255,255,255,0.92));
+    }
+
+    [data-theme="dark"] .session-history-table td.col-date small {
+        color: var(--nova-text-3, rgba(255,255,255,0.30));
+    }
+
+    [data-theme="dark"] .session-history-table td.col-integ,
+    [data-theme="dark"] .session-history-table td.col-rating {
+        color: var(--nova-text-2, rgba(255,255,255,0.55));
+    }
+
+    /* FACELIFT: History header buttons */
+    [data-theme="dark"] .history-header {
+        border-bottom-color: var(--nova-border-light, rgba(255,255,255,0.04));
     }
 
     /* Project header */
@@ -250,7 +443,8 @@
         background-color: var(--bg-medium-alt) !important;
     }
     [data-theme="dark"] .current-project-item {
-        background-color: var(--highlight-blue-alt) !important;
+        background-color: var(--nova-accent-bg, rgba(122,175,192,0.08)) !important;
+        border-left-color: var(--nova-accent, #7aafc0);
     }
 
     /* Journal project stat box */
@@ -407,13 +601,13 @@
 <div class="journal-container">
     <div class="session-list-column">
         <div class="history-header">
-            <h4>Session History:</h4>
-            <div style="display: flex; gap: 8px;">
-                <button type="button" class="inline-button" style="padding: 6px 12px; font-size: 13px;" data-action="add-project">Add New Project</button>
-                <button type="button" class="inline-button" style="padding: 6px 12px; font-size: 13px;" data-action="add-session">Add New Session</button>
+            <h4>Session History</h4>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" class="btn-primary block" data-action="add-project">Add New Project</button>
+                <button type="button" class="btn-secondary block" data-action="add-session">Add New Session</button>
             </div>
         </div>
-        <div class="table-wrapper" style="border-top: 1px solid var(--border-light-alt2);">
+        <div class="table-wrapper" style="border: none; border-radius: 0; box-shadow: none; background: transparent;">
             <table class="session-history-table">
                 <thead><tr><th class="col-date">Date & Location</th><th class="col-integ">Integ.</th><th class="col-rating">Rating</th></tr></thead>
                 <tbody>

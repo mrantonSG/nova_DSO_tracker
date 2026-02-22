@@ -6,18 +6,23 @@
         min-height: 200px;
     }
 
+    /* FACELIFT: Card grid with 1px gap using border as separator */
     .inspiration-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 25px;
+        gap: 1px;
+        background: var(--nova-border, var(--border-medium));
+        border-radius: 10px;
+        overflow: hidden;
     }
 
+    /* FACELIFT: Card styling */
     .astro-tile {
-        background: var(--bg-white);
-        border: 1px solid var(--text-lightest);
-        border-radius: 8px;
+        background: var(--nova-surface, var(--bg-white));
+        border: none;
+        border-radius: 0;
         overflow: hidden;
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: box-shadow 0.15s ease;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -26,17 +31,24 @@
     }
 
     .astro-tile:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        z-index: 1;
+        position: relative;
     }
 
+    [data-theme="dark"] .astro-tile:hover {
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    /* FACELIFT: Card image area - edge-to-edge, no border-radius */
     .tile-image {
         width: 100%;
         height: 200px;
-        background-color: var(--accent-teal); /* Dark background for space images */
+        background-color: var(--nova-surface-alt, var(--bg-light-alt));
         position: relative;
         overflow: hidden;
-        border-bottom: 1px solid var(--bg-medium-alt);
+        border-bottom: none;
+        border-radius: 0;
     }
 
     .tile-image img {
@@ -45,21 +57,24 @@
         object-fit: cover;
     }
 
-    /* Attribution Badge overlay on image */
+    /* FACELIFT: Attribution Badge overlay on image */
     .img-source-badge {
         position: absolute;
-        bottom: 5px;
-        right: 5px;
-        background: rgba(0, 0, 0, 0.6);
+        bottom: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         color: rgba(255, 255, 255, 0.8);
         padding: 2px 6px;
-        font-size: 10px;
+        font-size: 9px;
+        font-weight: 700;
+        font-family: var(--nova-font-mono, 'DM Mono', monospace);
         border-radius: 4px;
         pointer-events: none;
     }
 
     .tile-content {
-        padding: 15px;
+        padding: 12px 14px;
         flex-grow: 1;
         display: flex;
         flex-direction: column;
@@ -68,38 +83,70 @@
     .tile-header {
         display: flex;
         justify-content: space-between;
-        align-items: baseline;
+        align-items: flex-start;
+        margin-bottom: 2px;
+        position: relative;
+    }
+
+    /* FACELIFT: Object name - 13px, font-weight:700, nova-text */
+    .tile-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--nova-text, var(--text-primary));
+        font-family: var(--nova-font-mono, 'DM Mono', monospace);
+    }
+
+    /* FACELIFT: Type badge - positioned top-right, overlay style */
+    .tile-type {
+        position: absolute;
+        top: -34px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: var(--nova-font-mono, 'DM Mono', monospace);
+    }
+
+    /* FACELIFT: Common name - 11px, nova-text-3 */
+    .tile-common-name {
+        font-size: 11px;
+        color: var(--nova-text-3, var(--text-tertiary));
+        font-style: italic;
         margin-bottom: 4px;
     }
 
-    .tile-title { font-size: 1.2em; font-weight: 700; color: var(--accent-teal); }
-    .tile-type { font-size: 0.75em; text-transform: uppercase; color: var(--primary-color); font-weight: 600; background: var(--bg-light-gray); padding: 2px 6px; border-radius: 4px; }
-    .tile-common-name { font-size: 0.9em; color: var(--text-tertiary); font-style: italic; margin-bottom: 10px; }
-
     .tile-summary {
-        font-size: 0.85em;
-        color: var(--text-secondary);
+        font-size: 12px;
+        color: var(--nova-text-2, var(--text-secondary));
         line-height: 1.5;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         display: -webkit-box;
         -webkit-line-clamp: 3;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        flex-grow: 1;
     }
 
+    /* FACELIFT: Alt/Dur stats - 11px, mono, nova-text-3 */
     .tile-stats {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         margin-top: auto;
-        font-size: 0.8em;
-        color: var(--text-secondary);
+        font-size: 11px;
+        font-family: var(--nova-font-mono, 'DM Mono', monospace);
+        color: var(--nova-text-3, var(--text-tertiary));
     }
 
     .tile-stat-pill {
-        background: var(--bg-light);
-        padding: 4px 8px;
-        border-radius: 4px;
-        border: 1px solid var(--border-light-alt);
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+        border: none;
     }
 
     /* --- Modal Styles --- */
@@ -302,11 +349,121 @@
         animation: spin 1s linear infinite;
         margin: 0 auto 20px auto;
     }
+
+    /* ===================================================================
+       DARK MODE OVERRIDES - INSPIRATION GALLERY
+       ================================================================ */
+
+    [data-theme="dark"] .inspiration-grid {
+        background: var(--nova-border, rgba(255,255,255,0.07));
+    }
+
+    [data-theme="dark"] .astro-tile {
+        background: var(--nova-surface, var(--bg-dark-secondary));
+    }
+
+    [data-theme="dark"] .tile-image {
+        background-color: var(--nova-surface-alt, var(--bg-dark-primary));
+    }
+
+    [data-theme="dark"] .tile-title {
+        color: var(--nova-text, rgba(255,255,255,0.92));
+    }
+
+    [data-theme="dark"] .tile-common-name {
+        color: var(--nova-text-3, rgba(255,255,255,0.30));
+    }
+
+    [data-theme="dark"] .tile-summary {
+        color: var(--nova-text-2, rgba(255,255,255,0.55));
+    }
+
+    [data-theme="dark"] .tile-stats {
+        color: var(--nova-text-3, rgba(255,255,255,0.30));
+    }
+
+    [data-theme="dark"] .inspiration-banner {
+        background: var(--nova-surface-alt, var(--bg-dark-primary));
+        border-color: var(--nova-accent-light, rgba(122,175,192,0.2));
+    }
+
+    [data-theme="dark"] .inspiration-banner strong {
+        color: var(--nova-text, rgba(255,255,255,0.92));
+    }
+
+    [data-theme="dark"] .empty-state-styled {
+        background: var(--nova-surface-alt, var(--bg-dark-primary));
+        border-color: var(--nova-border, rgba(255,255,255,0.07));
+    }
+
+    [data-theme="dark"] .empty-state-box {
+        background: var(--nova-surface, var(--bg-dark-secondary));
+        border-color: var(--nova-border, rgba(255,255,255,0.07));
+    }
+
+    [data-theme="dark"] .insp-modal-content {
+        background-color: var(--nova-surface, var(--bg-dark-secondary));
+    }
+
+    [data-theme="dark"] .insp-modal-title {
+        color: var(--nova-accent, #7aafc0);
+    }
+
+    [data-theme="dark"] .insp-modal-subtitle {
+        color: var(--nova-text-3, rgba(255,255,255,0.30));
+    }
+
+    [data-theme="dark"] .insp-modal-text {
+        color: var(--nova-text-2, rgba(255,255,255,0.55));
+    }
+
+    [data-theme="dark"] .insp-data-grid {
+        background: var(--nova-surface-alt, var(--bg-dark-primary));
+    }
+
+    [data-theme="dark"] .insp-data-item strong {
+        color: var(--nova-text-4, rgba(255,255,255,0.18));
+    }
+
+    [data-theme="dark"] .insp-data-item span {
+        color: var(--nova-text, rgba(255,255,255,0.92));
+    }
+
+    [data-theme="dark"] .modal-attribution {
+        color: var(--nova-text-3, rgba(255,255,255,0.30));
+    }
+
+    [data-theme="dark"] .modal-attribution a {
+        color: var(--nova-accent, #7aafc0);
+    }
+
+    [data-theme="dark"] .btn-close-modal {
+        background: transparent;
+        border-color: var(--nova-border, rgba(255,255,255,0.07));
+        color: var(--nova-text, rgba(255,255,255,0.92));
+    }
+
+    [data-theme="dark"] .btn-close-modal:hover {
+        background: var(--nova-surface-alt, var(--bg-dark-primary));
+    }
+
+    [data-theme="dark"] .btn-view-graph {
+        background: var(--nova-accent, #7aafc0);
+    }
+
+    [data-theme="dark"] .btn-view-graph:hover {
+        background: var(--nova-accent-mid, #8ec8da);
+    }
+
+    [data-theme="dark"] .insp-spinner {
+        border-color: var(--nova-surface-alt, var(--bg-dark-primary));
+        border-top-color: var(--nova-accent, #7aafc0);
+    }
 </style>
 
 <div id="inspiration-tab-content" style="display:none;">
-    <div id="inspiration-controls" style="margin-bottom: 15px; display: flex; justify-content: flex-end;">
-        <button type="button" data-action="refresh-inspiration" style="padding: 10px 20px; border:1px solid var(--border-medium-alt); border-radius:4px; font-size:14px; background:var(--bg-white); color:var(--text-primary); cursor: pointer;">
+    <div id="inspiration-controls" style="margin-bottom: 16px; display: flex; justify-content: flex-end;">
+        <button type="button" data-action="refresh-inspiration" class="btn-accent-light">
             ↻ Refresh Suggestions
         </button>
     </div>
