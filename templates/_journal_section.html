@@ -3,6 +3,229 @@
        JOURNAL SPLIT PANE - FACELIFT
        ================================================================ */
 
+    /* ===================================================================
+       JOURNAL BUTTON STYLES (3-Class System)
+       ================================================================ */
+
+    /* Override all inline-style buttons in journal section */
+    /* PRIMARY Button (teal) - Edit, Save, Create */
+    .journal-btn-primary,
+    button[data-action="edit-session"],
+    button[data-action="toggle-project-edit"],
+    #form-submit-button,
+    .detail-header .action-button-group button[type="submit"][data-action="download-report"],
+    .report-toolbar button[type="submit"][data-action="download-report"],
+    button[data-action="edit-project"] {
+        background: var(--primary-color) !important;
+        color: #ffffff !important;
+        border: none !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        cursor: pointer;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .journal-btn-primary:hover,
+    button[data-action="edit-session"]:hover,
+    button[data-action="toggle-project-edit"]:hover,
+    #form-submit-button:hover,
+    .detail-header .action-button-group button[type="submit"][data-action="download-report"]:hover,
+    .report-toolbar button[type="submit"][data-action="download-report"]:hover {
+        filter: brightness(0.9);
+    }
+
+    /* GHOST Button - Duplicate, Cancel, Download, Upload */
+    .journal-btn-ghost,
+    button[data-action="cancel-form"],
+    #form-cancel-button,
+    .btn-secondary[data-cancel-url],
+    /* Targeting inline-styled Duplicate button */
+    .action-button-group form[action*="duplicate"] button,
+    /* Targeting inline-styled Download buttons */
+    .report-toolbar a.inline-button {
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-medium) !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        cursor: pointer;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: none !important;
+    }
+    .journal-btn-ghost:hover,
+    button[data-action="cancel-form"]:hover,
+    #form-cancel-button:hover,
+    .btn-secondary[data-cancel-url]:hover,
+    .action-button-group form[action*="duplicate"] button:hover,
+    .report-toolbar a.inline-button:hover {
+        background: var(--bg-light-gray) !important;
+        border-color: var(--border-medium) !important;
+    }
+
+    /* DANGER Button - Delete This Session, Delete Project */
+    .journal-btn-danger,
+    .action-button-group form[action*="delete"] button,
+    form[data-confirm] button {
+        background: rgba(180,60,60,0.08) !important;
+        color: #a04040 !important;
+        border: 1px solid rgba(180,60,60,0.18) !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        cursor: pointer;
+        box-shadow: none !important;
+    }
+    .journal-btn-danger:hover,
+    .action-button-group form[action*="delete"] button:hover,
+    form[data-confirm] button:hover {
+        background: rgba(180,60,60,0.15) !important;
+    }
+
+    /* Override inline styles that set primary/save colors */
+    .inline-button[style*="var(--primary-color)"],
+    .inline-button[style*="var(--success-color)"],
+    .inline-button[style*="var(--warning-color)"] {
+        background: var(--primary-color) !important;
+        color: #ffffff !important;
+        border: none !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    }
+    .inline-button[style*="var(--primary-color)"]:hover,
+    .inline-button[style*="var(--success-color)"]:hover,
+    .inline-button[style*="var(--warning-color)"]:hover {
+        filter: brightness(0.9);
+    }
+
+    /* Override inline styles that set info/cyan/blue colors to ghost */
+    .inline-button[style*="var(--info-color)"],
+    .inline-button[style*="var(--info-color-alt2)"] {
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-medium) !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        box-shadow: none !important;
+        text-decoration: none !important;
+        display: inline-flex;
+        align-items: center;
+    }
+    .inline-button[style*="var(--info-color)"]:hover,
+    .inline-button[style*="var(--info-color-alt2)"]:hover {
+        background: var(--bg-light-gray) !important;
+        border-color: var(--border-medium) !important;
+    }
+
+    /* Override inline styles that set danger colors */
+    .inline-button[style*="var(--danger-color)"] {
+        background: rgba(180,60,60,0.08) !important;
+        color: #a04040 !important;
+        border: 1px solid rgba(180,60,60,0.18) !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        box-shadow: none !important;
+    }
+    .inline-button[style*="var(--danger-color)"]:hover {
+        background: rgba(180,60,60,0.15) !important;
+    }
+
+    /* Override gray Cancel button style */
+    .inline-button[style*="accent-gray-medium"] {
+        background: transparent !important;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-medium) !important;
+        padding: 6px 14px !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        font-family: var(--nova-font-sans, 'DM Sans', sans-serif) !important;
+        box-shadow: none !important;
+    }
+    .inline-button[style*="accent-gray-medium"]:hover {
+        background: var(--bg-tertiary) !important;
+    }
+
+    /* ===================================================================
+       DARK MODE OVERRIDES FOR JOURNAL BUTTONS
+       ================================================================ */
+
+    /* PRIMARY buttons in dark mode */
+    [data-theme="dark"] .journal-btn-primary,
+    [data-theme="dark"] button[data-action="edit-session"],
+    [data-theme="dark"] button[data-action="toggle-project-edit"],
+    [data-theme="dark"] #form-submit-button,
+    [data-theme="dark"] .detail-header .action-button-group button[type="submit"][data-action="download-report"],
+    [data-theme="dark"] .report-toolbar button[type="submit"][data-action="download-report"],
+    [data-theme="dark"] .inline-button[style*="var(--primary-color)"],
+    [data-theme="dark"] .inline-button[style*="var(--success-color)"],
+    [data-theme="dark"] .inline-button[style*="var(--warning-color)"] {
+        box-shadow: 0 0 14px rgba(122,175,192,0.2);
+    }
+
+    /* GHOST buttons in dark mode */
+    [data-theme="dark"] .journal-btn-ghost,
+    [data-theme="dark"] button[data-action="cancel-form"],
+    [data-theme="dark"] #form-cancel-button,
+    [data-theme="dark"] .btn-secondary[data-cancel-url],
+    [data-theme="dark"] .action-button-group form[action*="duplicate"] button,
+    [data-theme="dark"] .report-toolbar a.inline-button,
+    [data-theme="dark"] .inline-button[style*="accent-gray-medium"],
+    [data-theme="dark"] .inline-button[style*="var(--info-color)"],
+    [data-theme="dark"] .inline-button[style*="var(--info-color-alt2)"] {
+        color: rgba(255,255,255,0.55) !important;
+        border-color: rgba(255,255,255,0.1) !important;
+    }
+    [data-theme="dark"] .journal-btn-ghost:hover,
+    [data-theme="dark"] button[data-action="cancel-form"]:hover,
+    [data-theme="dark"] #form-cancel-button:hover,
+    [data-theme="dark"] .btn-secondary[data-cancel-url]:hover,
+    [data-theme="dark"] .action-button-group form[action*="duplicate"] button:hover,
+    [data-theme="dark"] .report-toolbar a.inline-button:hover,
+    [data-theme="dark"] .inline-button[style*="accent-gray-medium"]:hover,
+    [data-theme="dark"] .inline-button[style*="var(--info-color)"]:hover,
+    [data-theme="dark"] .inline-button[style*="var(--info-color-alt2)"]:hover {
+        background: rgba(255,255,255,0.05) !important;
+    }
+
+    /* DANGER buttons in dark mode */
+    [data-theme="dark"] .journal-btn-danger,
+    [data-theme="dark"] .action-button-group form[action*="delete"] button,
+    [data-theme="dark"] form[data-confirm] button,
+    [data-theme="dark"] .inline-button[style*="var(--danger-color)"] {
+        background: rgba(200,80,80,0.1) !important;
+        color: #d06060 !important;
+        border-color: rgba(200,80,80,0.2) !important;
+    }
+    [data-theme="dark"] .journal-btn-danger:hover,
+    [data-theme="dark"] .action-button-group form[action*="delete"] button:hover,
+    [data-theme="dark"] form[data-confirm] button:hover,
+    [data-theme="dark"] .inline-button[style*="var(--danger-color)"]:hover {
+        background: rgba(200,80,80,0.18) !important;
+    }
+
+    /* ===================================================================
+       JOURNAL SPLIT PANE - FACELIFT
+       ================================================================ */
+
     .journal-container { display: flex; gap: 0; align-items: flex-start; }
 
     /* FACELIFT: Sticky Left Column (Session List) */
