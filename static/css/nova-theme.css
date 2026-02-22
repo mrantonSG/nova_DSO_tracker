@@ -1556,3 +1556,721 @@ dd {
 :root[data-theme="dark"] .config-table tbody tr:hover td {
   background: rgba(122,175,192,0.06);
 }
+
+/* =================================================================
+   BUTTON AND FORM ELEMENT SYSTEM
+   Reference: nova-desktop-facelift.html (.ca-btn-primary, .ca-btn-ghost,
+   .ca-icon-btn, .ca-filter-input sections)
+   ================================================================ */
+
+/* =================================================================
+   1. PRIMARY BUTTON
+   Used for main actions: Configuration, Save, Submit, etc.
+   ================================================================ */
+
+/* Target all primary action buttons across the app */
+.btn-primary,
+.btn-edit,
+.action-button,
+.action-button.primary,
+input[type="submit"],
+button[type="submit"],
+.form-actions button[type="submit"],
+.column button,
+.file-button,
+.edit-btn,
+.btn-save {
+  background: var(--nova-accent);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nova-font-sans);
+  box-shadow: var(--nova-shadow-sm);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover,
+.btn-edit:hover,
+.action-button:hover,
+.action-button.primary:hover,
+input[type="submit"]:hover,
+button[type="submit"]:hover,
+.form-actions button[type="submit"]:hover,
+.column button:hover,
+.file-button:hover,
+.edit-btn:hover,
+.btn-save:hover {
+  filter: brightness(0.9);
+}
+
+.btn-primary:active,
+.btn-edit:active,
+.action-button:active,
+.action-button.primary:active,
+input[type="submit"]:active,
+button[type="submit"]:active,
+.form-actions button[type="submit"]:active,
+.column button:active,
+.file-button:active,
+.edit-btn:active,
+.btn-save:active {
+  filter: brightness(0.8);
+}
+
+/* Dark mode primary button with glow */
+:root[data-theme="dark"] .btn-primary,
+:root[data-theme="dark"] .btn-edit,
+:root[data-theme="dark"] .action-button,
+:root[data-theme="dark"] .action-button.primary,
+:root[data-theme="dark"] input[type="submit"],
+:root[data-theme="dark"] button[type="submit"],
+:root[data-theme="dark"] .form-actions button[type="submit"],
+:root[data-theme="dark"] .column button,
+:root[data-theme="dark"] .file-button,
+:root[data-theme="dark"] .edit-btn,
+:root[data-theme="dark"] .btn-save {
+  box-shadow: 0 0 16px rgba(122,175,192,0.2), var(--nova-shadow-sm);
+}
+
+/* =================================================================
+   2. SECONDARY / GHOST BUTTON
+   Used for secondary actions, cancel, user menus
+   ================================================================ */
+
+.btn-secondary,
+.btn-ghost,
+.form-actions button[type="button"],
+.dlback-button,
+.view-button {
+  background: transparent;
+  color: var(--nova-text-2);
+  border: 1px solid var(--nova-border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--nova-font-sans);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.btn-secondary:hover,
+.btn-ghost:hover,
+.form-actions button[type="button"]:hover,
+.dlback-button:hover,
+.view-button:hover {
+  background: var(--nova-surface-alt);
+}
+
+/* Dark mode ghost button */
+:root[data-theme="dark"] .btn-secondary,
+:root[data-theme="dark"] .btn-ghost,
+:root[data-theme="dark"] .form-actions button[type="button"],
+:root[data-theme="dark"] .dlback-button,
+:root[data-theme="dark"] .view-button {
+  border-color: var(--nova-border);
+  color: var(--nova-text-2);
+}
+
+:root[data-theme="dark"] .btn-secondary:hover,
+:root[data-theme="dark"] .btn-ghost:hover,
+:root[data-theme="dark"] .form-actions button[type="button"]:hover,
+:root[data-theme="dark"] .dlback-button:hover,
+:root[data-theme="dark"] .view-button:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+/* =================================================================
+   3. ACCENT-LIGHT BUTTON
+   Used for "Save" in tab bar, "Add to Cal", subtle accent actions
+   ================================================================ */
+
+.btn-accent,
+.btn-accent-light,
+#save-view-btn,
+#delete-view-btn,
+.cb-save-btn,
+.ca-btn-accent {
+  background: var(--nova-accent-bg);
+  border: 1px solid var(--nova-accent-light);
+  color: var(--nova-accent);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nova-font-sans);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-accent:hover,
+.btn-accent-light:hover,
+#save-view-btn:hover,
+#delete-view-btn:hover,
+.cb-save-btn:hover,
+.ca-btn-accent:hover {
+  background: var(--nova-accent-light);
+}
+
+/* Dark mode accent-light button */
+:root[data-theme="dark"] .btn-accent,
+:root[data-theme="dark"] .btn-accent-light,
+:root[data-theme="dark"] #save-view-btn,
+:root[data-theme="dark"] #delete-view-btn {
+  background: rgba(122,175,192,0.12);
+  border-color: rgba(122,175,192,0.2);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] .btn-accent:hover,
+:root[data-theme="dark"] .btn-accent-light:hover,
+:root[data-theme="dark"] #save-view-btn:hover,
+:root[data-theme="dark"] #delete-view-btn:hover {
+  background: rgba(122,175,192,0.2);
+}
+
+/* =================================================================
+   4. ICON BUTTON
+   Moon toggle, help icons, small action buttons
+   ================================================================ */
+
+.icon-btn,
+.icon-button,
+.ca-icon-btn,
+.cb-icon-btn,
+.cc-icon-btn,
+.help-badge,
+.theme-toggle-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--nova-surface-alt);
+  border: 1px solid var(--nova-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nova-text-3);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  text-decoration: none;
+}
+
+.icon-btn:hover,
+.icon-button:hover,
+.ca-icon-btn:hover,
+.cb-icon-btn:hover,
+.cc-icon-btn:hover,
+.help-badge:hover,
+.theme-toggle-button:hover {
+  background: var(--nova-accent-bg);
+  border-color: var(--nova-accent-light);
+  color: var(--nova-accent);
+}
+
+/* Dark mode icon button */
+:root[data-theme="dark"] .icon-btn,
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .ca-icon-btn,
+:root[data-theme="dark"] .cb-icon-btn,
+:root[data-theme="dark"] .cc-icon-btn,
+:root[data-theme="dark"] .help-badge,
+:root[data-theme="dark"] .theme-toggle-button {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--nova-border);
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] .icon-btn:hover,
+:root[data-theme="dark"] .icon-button:hover,
+:root[data-theme="dark"] .ca-icon-btn:hover,
+:root[data-theme="dark"] .cb-icon-btn:hover,
+:root[data-theme="dark"] .cc-icon-btn:hover,
+:root[data-theme="dark"] .help-badge:hover,
+:root[data-theme="dark"] .theme-toggle-button:hover {
+  background: var(--nova-accent-bg);
+  border-color: var(--nova-accent-light);
+  color: var(--nova-accent);
+}
+
+/* Smaller variant for inline icons */
+.icon-btn.sm,
+.icon-button.sm {
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* =================================================================
+   5. TEXT INPUTS and SELECTS
+   General forms — Config page, filter rows, journal session editor,
+   date inputs
+   ================================================================ */
+
+/* Base input styling - applies to all text inputs and selects */
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group input[type="time"],
+.form-group select,
+.form-group textarea,
+.input,
+input[type="text"].wide,
+input[type="number"].wide,
+input[type="text"].short,
+input[type="text"].object_field,
+input[type="text"].name_field,
+input[type="text"].project_field,
+input[type="number"].field-small-numeric,
+textarea.wide,
+textarea.project_field,
+select.styled-select,
+select[name^="timezone_"],
+select[name="new_timezone"],
+.inspiration-input {
+  border: 1px solid var(--nova-border);
+  border-radius: var(--nova-radius-sm);
+  background: var(--nova-surface);
+  font-family: var(--nova-font-sans);
+  font-size: 13px;
+  color: var(--nova-text);
+  padding: 5px 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Focus state */
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus,
+.form-group input[type="date"]:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="time"]:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.input:focus,
+input[type="text"].wide:focus,
+input[type="number"].wide:focus,
+input[type="text"].short:focus,
+input[type="text"].object_field:focus,
+input[type="text"].name_field:focus,
+input[type="text"].project_field:focus,
+input[type="number"].field-small-numeric:focus,
+textarea.wide:focus,
+textarea.project_field:focus,
+select.styled-select:focus,
+select[name^="timezone_"]:focus,
+select[name="new_timezone"]:focus,
+.inspiration-input:focus {
+  border-color: var(--nova-accent-mid);
+  box-shadow: 0 0 0 3px var(--nova-accent-bg);
+}
+
+/* Dark mode focus glow */
+:root[data-theme="dark"] .form-group input[type="text"]:focus,
+:root[data-theme="dark"] .form-group input[type="number"]:focus,
+:root[data-theme="dark"] .form-group input[type="date"]:focus,
+:root[data-theme="dark"] .form-group input[type="password"]:focus,
+:root[data-theme="dark"] .form-group input[type="email"]:focus,
+:root[data-theme="dark"] .form-group input[type="time"]:focus,
+:root[data-theme="dark"] .form-group select:focus,
+:root[data-theme="dark"] .form-group textarea:focus,
+:root[data-theme="dark"] .input:focus,
+:root[data-theme="dark"] select.styled-select:focus,
+:root[data-theme="dark"] select[name^="timezone_"]:focus,
+:root[data-theme="dark"] select[name="new_timezone"]:focus,
+:root[data-theme="dark"] .inspiration-input:focus {
+  box-shadow: 0 0 0 3px rgba(122,175,192,0.1);
+}
+
+/* Placeholder styling */
+.form-group input::placeholder,
+.form-group textarea::placeholder,
+.input::placeholder,
+.inspiration-input::placeholder {
+  color: var(--nova-text-4);
+}
+
+/* Dark mode inputs */
+:root[data-theme="dark"] .form-group input[type="text"],
+:root[data-theme="dark"] .form-group input[type="number"],
+:root[data-theme="dark"] .form-group input[type="date"],
+:root[data-theme="dark"] .form-group input[type="password"],
+:root[data-theme="dark"] .form-group input[type="email"],
+:root[data-theme="dark"] .form-group input[type="time"],
+:root[data-theme="dark"] .form-group select,
+:root[data-theme="dark"] .form-group textarea,
+:root[data-theme="dark"] .input,
+:root[data-theme="dark"] select.styled-select,
+:root[data-theme="dark"] select[name^="timezone_"],
+:root[data-theme="dark"] select[name="new_timezone"],
+:root[data-theme="dark"] .inspiration-input {
+  background: var(--nova-surface);
+  border-color: var(--nova-border);
+  color: var(--nova-text);
+}
+
+/* =================================================================
+   6. CHECKBOXES
+   ================================================================ */
+
+/* Base checkbox styling */
+input[type="checkbox"],
+.form-group input[type="checkbox"],
+.inline-fields input[type="checkbox"] {
+  accent-color: var(--nova-accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* Checkbox labels */
+.form-group input[type="checkbox"] + label,
+.inline-fields input[type="checkbox"] + label,
+label input[type="checkbox"],
+.checkbox-label,
+#saved-views-container label {
+  font-size: 13px;
+  color: var(--nova-text-2);
+  cursor: pointer;
+}
+
+/* Share control checkboxes */
+.share-control input[type="checkbox"] {
+  accent-color: var(--nova-accent);
+}
+
+/* Dark mode checkboxes */
+:root[data-theme="dark"] input[type="checkbox"] {
+  accent-color: var(--nova-accent);
+}
+
+/* =================================================================
+   7. DROPDOWNS / <select>
+   Custom appearance with arrow
+   ================================================================ */
+
+/* Custom select dropdown styling */
+.form-group select,
+select.styled-select,
+select[name^="timezone_"],
+select[name="new_timezone"],
+.styled-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+/* Dark mode dropdown arrow */
+:root[data-theme="dark"] .form-group select,
+:root[data-theme="dark"] select.styled-select,
+:root[data-theme="dark"] select[name^="timezone_"],
+:root[data-theme="dark"] select[name="new_timezone"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+}
+
+/* Dropdown option styling */
+.form-group select option,
+select.styled-select option {
+  background: var(--nova-surface);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .form-group select option,
+:root[data-theme="dark"] select.styled-select option {
+  background: var(--nova-surface);
+}
+
+/* =================================================================
+   8. RANGE SLIDERS
+   Framing tool — Brightness, Contrast, etc.
+   ================================================================ */
+
+input[type="range"] {
+  accent-color: var(--nova-accent);
+  height: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* Range slider track */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--nova-border);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--nova-border);
+}
+
+/* Range slider thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nova-accent);
+  box-shadow: var(--nova-shadow-sm);
+  cursor: pointer;
+  margin-top: -6px; /* Center vertically on track */
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--nova-accent);
+  box-shadow: var(--nova-shadow-sm);
+  cursor: pointer;
+  border: none;
+}
+
+/* Range slider hover state */
+input[type="range"]:hover::-webkit-slider-thumb {
+  filter: brightness(1.1);
+}
+
+input[type="range"]:hover::-moz-range-thumb {
+  filter: brightness(1.1);
+}
+
+/* Dark mode range slider */
+:root[data-theme="dark"] input[type="range"]::-webkit-slider-runnable-track {
+  background: rgba(255,255,255,0.1);
+}
+
+:root[data-theme="dark"] input[type="range"]::-moz-range-track {
+  background: rgba(255,255,255,0.1);
+}
+
+/* =================================================================
+   9. RICH TEXT TOOLBAR (Trix Editor)
+   Notes & Framing toolbars
+   ================================================================ */
+
+/* Trix toolbar container */
+trix-toolbar {
+  background: var(--nova-surface-alt);
+  border: 1px solid var(--nova-border);
+  border-radius: 6px;
+  padding: 4px;
+  margin-bottom: 8px;
+}
+
+/* Trix button groups */
+trix-toolbar .trix-button-group {
+  border-color: var(--nova-border);
+  margin: 0 2px;
+}
+
+/* Individual toolbar buttons */
+trix-toolbar .trix-button {
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--nova-text-3);
+  border-color: transparent;
+  margin: 0 1px;
+  transition: all 0.15s ease;
+}
+
+/* Toolbar button hover */
+trix-toolbar .trix-button:hover {
+  background: var(--nova-accent-bg);
+  color: var(--nova-accent);
+}
+
+/* Toolbar button active/pressed state */
+trix-toolbar .trix-button.trix-active {
+  background: var(--nova-accent-light);
+  color: var(--nova-accent);
+}
+
+/* Trix disabled buttons */
+trix-toolbar .trix-button:disabled {
+  color: var(--nova-text-4);
+  opacity: 0.5;
+}
+
+/* Trix editor content area */
+trix-editor {
+  background: var(--nova-surface);
+  border: 1px solid var(--nova-border);
+  border-radius: var(--nova-radius-sm);
+  padding: 10px;
+  min-height: 100px;
+}
+
+trix-editor:focus {
+  border-color: var(--nova-accent-mid);
+  box-shadow: 0 0 0 3px var(--nova-accent-bg);
+}
+
+/* Trix labels */
+.form-group.trix-group label,
+.notes-section label,
+.project-notes-section label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nova-text-2);
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* Dark mode Trix toolbar */
+:root[data-theme="dark"] trix-toolbar {
+  background: var(--nova-surface-alt);
+  border-color: var(--nova-border);
+}
+
+:root[data-theme="dark"] trix-toolbar .trix-button-group {
+  border-color: var(--nova-border);
+}
+
+:root[data-theme="dark"] trix-toolbar .trix-button {
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] trix-toolbar .trix-button:hover {
+  background: var(--nova-accent-bg);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] trix-toolbar .trix-button.trix-active {
+  background: var(--nova-accent-light);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] trix-editor {
+  background: var(--nova-surface);
+  border-color: var(--nova-border);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] trix-editor:focus {
+  border-color: var(--nova-accent-mid);
+  box-shadow: 0 0 0 3px rgba(122,175,192,0.1);
+}
+
+/* =================================================================
+   10. BUTTON SIZE VARIANTS
+   ================================================================ */
+
+/* Compact buttons - used in tight spaces */
+.btn-primary.compact,
+.btn-secondary.compact,
+.btn-ghost.compact,
+.action-button.compact {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Large buttons - used for primary page actions */
+.btn-primary.large,
+.btn-secondary.large,
+.action-button.large {
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+/* Full-width buttons */
+.btn-primary.block,
+.btn-secondary.block,
+.action-button.block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* =================================================================
+   11. DANGER BUTTONS
+   Delete, remove, destructive actions
+   ================================================================ */
+
+.btn-danger,
+.btn-delete,
+.delete-btn {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--nova-font-sans);
+  box-shadow: var(--nova-shadow-sm);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-danger:hover,
+.btn-delete:hover,
+.delete-btn:hover {
+  filter: brightness(0.9);
+}
+
+.btn-danger:active,
+.btn-delete:active,
+.delete-btn:active {
+  filter: brightness(0.8);
+}
+
+/* =================================================================
+   12. DISABLED STATE
+   Universal disabled styling for all buttons and inputs
+   ================================================================ */
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-ghost:disabled,
+.btn-accent:disabled,
+.btn-danger:disabled,
+.action-button:disabled,
+input[type="submit"]:disabled,
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: none !important;
+}
+
+/* Disabled inputs */
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled,
+.input:disabled {
+  background: var(--nova-surface-alt);
+  color: var(--nova-text-4);
+  cursor: not-allowed;
+}
