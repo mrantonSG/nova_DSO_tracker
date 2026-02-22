@@ -54,6 +54,79 @@
     const AF_DRIFT_COLOR = '#f59e0b';  // Amber/Gold for drift line
     const AF_TEMP_DRIFT_COLOR = '#f59e0b';  // Amber/Gold for temp drift card
 
+    // --- Parabola Fitting Helpers (for V-curves) ---
+
+    /**
+     * Solve 3x3 linear system using Gaussian elimination with partial pivoting
+     * @param {number[][]} A - 3x3 coefficient matrix
+     * @param {number[]} b - Right-hand side vector
+     * @returns {number[]|null} Solution vector or null if singular
+     */
+    function solveLinear3x3(A, b) {
+        const M = A.map((row, i) => [...row, b[i]]);
+        for (let col = 0; col < 3; col++) {
+            let maxRow = col;
+            for (let row = col + 1; row < 3; row++) {
+                if (Math.abs(M[row][col]) > Math.abs(M[maxRow][col])) maxRow = row;
+            }
+            [M[col], M[maxRow]] = [M[maxRow], M[col]];
+            if (Math.abs(M[col][col]) < 1e-10) return null;
+            for (let row = col + 1; row < 3; row++) {
+                const f = M[row][col] / M[col][col];
+                for (let j = col; j <= 3; j++) M[row][j] -= f * M[col][j];
+            }
+        }
+        const x = [0, 0, 0];
+        for (let i = 2; i >= 0; i--) {
+            x[i] = M[i][3] / M[i][i];
+            for (let k = i - 1; k >= 0; k--) M[k][3] -= M[k][i] * x[i];
+        }
+        return x;
+    }
+
+    /**
+     * Fit parabola to points using least-squares quadratic regression
+     * @param {Array<{x: number, y: number}>} points - Data points
+     * @returns {Object|null} {fn, vertex, a, b, c} or null if fit fails
+     */
+    function fitParabola(points) {
+        const n = points.length;
+        if (n < 3) return null;
+
+        let s0 = n, s1 = 0, s2 = 0, s3 = 0, s4 = 0, t0 = 0, t1 = 0, t2 = 0;
+        for (const p of points) {
+            const x = p.x, y = p.y;
+            s1 += x; s2 += x * x; s3 += x * x * x; s4 += x * x * x * x;
+            t0 += y; t1 += x * y; t2 += x * x * y;
+        }
+
+        const A = [[s0, s1, s2], [s1, s2, s3], [s2, s3, s4]];
+        const B = [t0, t1, t2];
+        const coeffs = solveLinear3x3(A, B);
+        if (!coeffs) return null;
+
+        const [c, b, a] = coeffs;
+
+        // Check for valid parabola (a > 0 for convex/V-shape)
+        if (a <= 0) return null;
+
+        const vertex = -b / (2 * a);
+
+        return { fn: x => a * x * x + b * x + c, vertex, a, b, c };
+    }
+
+    /**
+     * Generate evenly spaced values between min and max
+     */
+    function linspace(min, max, n) {
+        const result = [];
+        const step = (max - min) / (n - 1);
+        for (let i = 0; i < n; i++) {
+            result.push(min + i * step);
+        }
+        return result;
+    }
+
     // --- Cached data ---
     let logData = null;
 
@@ -1625,7 +1698,7 @@
         // --- Task 5: Auto-generated Narrative ---
         renderAFNarrative(afRuns, getSettledPosition);
 
-        // --- Individual V-Curve Cards (existing functionality) ---
+        // --- Individual V-Curve Cards (existing functionality, now with parabola fitting) ---
         const container = document.getElementById('log-af-runs');
         if (!container) return;
         container.innerHTML = '';
@@ -1637,7 +1710,68 @@
             const title = document.createElement('h5');
             const timeStr = afRun.ts ? new Date(afRun.ts).toLocaleTimeString() : `Run ${afRun.run}`;
             title.textContent = `AF Run ${afRun.run} - ${timeStr}`;
-            const focusPos = getSettledPosition(afRun);
+
+            // Try parabola fit for better focus position
+            let focusPos = getSettledPosition(afRun);
+            let datasets = [];
+            let chartMin = Infinity, chartMax = -Infinity;
+
+            if (afRun.points && afRun.points.length > 0) {
+                const points = afRun.points.map(p => ({ x: p.pos, y: p.sz }));
+                points.forEach(p => {
+                    if (p.x < chartMin) chartMin = p.x;
+                    if (p.x > chartMax) chartMax = p.x;
+                });
+
+                const fit = fitParabola(points);
+                if (fit) {
+                    const posRange = chartMax - chartMin;
+                    const maxDrift = posRange * 0.2;
+                    if (fit.vertex >= chartMin - maxDrift && fit.vertex <= chartMax + maxDrift) {
+                        focusPos = Math.round(fit.vertex);
+                    }
+
+                    // Smooth parabola curve
+                    const curvePoints = linspace(chartMin, chartMax, 100).map(x => ({ x, y: fit.fn(x) }));
+                    datasets.push({
+                        label: 'Fitted Curve',
+                        data: curvePoints,
+                        borderColor: COLORS.ra,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        showLine: true,
+                        tension: 0,
+                        fill: false
+                    });
+
+                    // Raw measurements as points
+                    datasets.push({
+                        label: 'Measured',
+                        data: points,
+                        borderColor: COLORS.ra,
+                        backgroundColor: COLORS.ra,
+                        borderWidth: 0,
+                        pointRadius: 4,
+                        showLine: false,
+                        fill: false
+                    });
+                } else {
+                    // Fallback: line connecting points
+                    const sorted = [...points].sort((a, b) => a.x - b.x);
+                    datasets.push({
+                        label: 'Star Size (HFR)',
+                        data: sorted,
+                        borderColor: COLORS.ra,
+                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.3,
+                        fill: true
+                    });
+                }
+            }
+
             if (focusPos !== null) {
                 title.textContent += ` (Focus: ${focusPos})`;
             }
@@ -1648,36 +1782,34 @@
             title.style.paddingLeft = '8px';
             card.appendChild(title);
 
-            if (afRun.points && afRun.points.length > 0) {
+            if (datasets.length > 0) {
                 const canvas = document.createElement('canvas');
                 canvas.id = `af-curve-${index}`;
                 card.appendChild(canvas);
 
                 const chart = new Chart(canvas, {
-                    type: 'line',
-                    data: {
-                        labels: afRun.points.map(p => p.pos),
-                        datasets: [{
-                            label: 'Star Size (HFR)',
-                            data: afRun.points.map(p => p.sz),
-                            borderColor: COLORS.ra,
-                            backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                            borderWidth: 2,
-                            pointRadius: 4,
-                            tension: 0.3,
-                            fill: true
-                        }]
-                    },
+                    type: 'scatter',
+                    data: { datasets: datasets },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: false,
                         plugins: {
-                            legend: { display: false }
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(ctx) {
+                                        return `pos ${ctx.parsed.x.toFixed(0)}, size ${ctx.parsed.y.toFixed(2)}`;
+                                    }
+                                }
+                            }
                         },
                         scales: {
                             x: {
+                                type: 'linear',
                                 title: { display: true, text: 'Focus Position', color: dark ? COLORS.text : '#333' },
+                                min: chartMin - 20,
+                                max: chartMax + 20,
                                 ticks: { color: dark ? COLORS.text : '#666', maxTicksLimit: 8 },
                                 grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
                             },
@@ -1699,14 +1831,45 @@
     }
 
     /**
-     * Task 2: Render AF Summary Cards Row
+     * Task 2: Render AF Summary Cards
+     * Row 1: [Temp Drift] [Focus Shift] (centered, styled like Overview tiles)
+     * Row 2: [Run 1] [Run 2] ... [Run N]
      */
     function renderAFSummaryCards(afRuns, getRunColor, getSettledPosition) {
-        const container = document.getElementById('log-af-summary-cards');
-        if (!container) return;
-        container.innerHTML = '';
+        const primaryContainer = document.getElementById('log-af-summary-primary');
+        const runsContainer = document.getElementById('log-af-summary-cards');
+        if (!primaryContainer || !runsContainer) return;
+        primaryContainer.innerHTML = '';
+        runsContainer.innerHTML = '';
 
-        // One card per AF run
+        // === ROW 1: Temp Drift and Focus Shift (exact Overview tile style) ===
+        // Temperature Drift Card
+        const temps = afRuns.filter(r => r.temp !== null && r.temp !== undefined).map(r => r.temp);
+        if (temps.length >= 2) {
+            const tempDrift = temps[temps.length - 1] - temps[0];
+            const tempCard = document.createElement('div');
+            tempCard.className = 'log-stat-card';
+            tempCard.innerHTML = `
+                <span class="log-stat-value">${tempDrift >= 0 ? '+' : ''}${tempDrift.toFixed(1)}°C</span>
+                <span class="log-stat-label">Temp Drift</span>
+            `;
+            primaryContainer.appendChild(tempCard);
+        }
+
+        // Focus Shift Card
+        const positions = afRuns.map(r => getSettledPosition(r)).filter(p => p !== null);
+        if (positions.length >= 2) {
+            const focusShift = positions[positions.length - 1] - positions[0];
+            const shiftCard = document.createElement('div');
+            shiftCard.className = 'log-stat-card';
+            shiftCard.innerHTML = `
+                <span class="log-stat-value">${focusShift >= 0 ? '+' : ''}${focusShift}</span>
+                <span class="log-stat-label">Focus Shift</span>
+            `;
+            primaryContainer.appendChild(shiftCard);
+        }
+
+        // === ROW 2: AF Run Cards (keep existing style) ===
         afRuns.forEach((afRun, idx) => {
             const color = getRunColor(idx);
             const focusPos = getSettledPosition(afRun);
@@ -1727,40 +1890,12 @@
                 <div class="stat-label">AF Run ${afRun.run}</div>
                 ${subtitle ? `<div class="stat-subtitle">${subtitle}</div>` : ''}
             `;
-            container.appendChild(card);
+            runsContainer.appendChild(card);
         });
-
-        // Temperature Drift Card
-        const temps = afRuns.filter(r => r.temp !== null && r.temp !== undefined).map(r => r.temp);
-        if (temps.length >= 2) {
-            const tempDrift = temps[temps.length - 1] - temps[0];
-            const tempCard = document.createElement('div');
-            tempCard.className = 'log-af-stat-card';
-            tempCard.innerHTML = `
-                <div class="stat-value" style="color: ${AF_TEMP_DRIFT_COLOR};">${tempDrift >= 0 ? '+' : ''}${tempDrift.toFixed(1)}°C</div>
-                <div class="stat-label">Temp Drift</div>
-                <div class="stat-subtitle">${temps[0]}°C → ${temps[temps.length - 1]}°C</div>
-            `;
-            container.appendChild(tempCard);
-        }
-
-        // Focus Shift Card
-        const positions = afRuns.map(r => getSettledPosition(r)).filter(p => p !== null);
-        if (positions.length >= 2) {
-            const focusShift = positions[positions.length - 1] - positions[0];
-            const shiftCard = document.createElement('div');
-            shiftCard.className = 'log-af-stat-card';
-            shiftCard.innerHTML = `
-                <div class="stat-value" style="color: ${AF_DRIFT_COLOR};">${focusShift >= 0 ? '+' : ''}${focusShift}</div>
-                <div class="stat-label">Focus Shift</div>
-                <div class="stat-subtitle">EAF steps Run 1→${afRuns.length}</div>
-            `;
-            container.appendChild(shiftCard);
-        }
     }
 
     /**
-     * Task 3: Render Overlay V-Curve Chart with vertical focus lines
+     * Task 3: Render Overlay V-Curve Chart with parabola fitting and vertical focus lines
      */
     function renderAFOverlayChart(afRuns, dark, getRunColor, getSettledPosition) {
         const section = document.getElementById('log-af-overlay-section');
@@ -1786,32 +1921,88 @@
             }
         });
 
-        // Build datasets
+        // Store fitted focus positions for summary cards and focus lines
+        const fittedPositions = new Map();
+
+        // Build datasets with parabola fitting
         const datasets = [];
         const focusLines = [];
+
         afRuns.forEach((afRun, idx) => {
             const color = getRunColor(idx);
             const tempStr = (afRun.temp !== null && afRun.temp !== undefined) ? `${afRun.temp}°C` : '';
             const label = tempStr ? `AF Run ${afRun.run} (${tempStr})` : `AF Run ${afRun.run}`;
 
             if (afRun.points && afRun.points.length > 0) {
-                // Sort points by position for proper line rendering
-                const sortedPoints = [...afRun.points].sort((a, b) => a.pos - b.pos);
-                datasets.push({
-                    label: label,
-                    data: sortedPoints.map(p => ({ x: p.pos, y: p.sz })),
-                    borderColor: color,
-                    backgroundColor: color + '33',
-                    borderWidth: 2,
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    showLine: true,
-                    tension: 0.3,
-                    fill: false
-                });
+                const points = afRun.points.map(p => ({ x: p.pos, y: p.sz }));
+                const fit = fitParabola(points);
+
+                // Determine focus position: use fitted vertex if valid, else raw minimum
+                let focusPos = null;
+                if (fit) {
+                    const posRange = globalMaxPos - globalMinPos;
+                    const maxDrift = posRange * 0.2;
+                    // Only use fitted vertex if it's within 20% of measured range
+                    if (fit.vertex >= globalMinPos - maxDrift && fit.vertex <= globalMaxPos + maxDrift) {
+                        focusPos = Math.round(fit.vertex);
+                    }
+                }
+                if (focusPos === null) {
+                    focusPos = getSettledPosition(afRun);
+                }
+                fittedPositions.set(idx, focusPos);
+
+                if (fit && focusPos !== null) {
+                    // Use parabola fit: smooth curve + scatter overlay
+                    const minP = Math.min(...points.map(p => p.x));
+                    const maxP = Math.max(...points.map(p => p.x));
+                    const curvePoints = linspace(minP, maxP, 150).map(x => ({ x, y: fit.fn(x) }));
+
+                    // Smooth curve (no points)
+                    datasets.push({
+                        label: label,
+                        data: curvePoints,
+                        borderColor: color,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        showLine: true,
+                        tension: 0,
+                        fill: false,
+                        _isCurve: true
+                    });
+
+                    // Raw measurements overlay (points only, no line)
+                    datasets.push({
+                        label: label + ' (measured)',
+                        data: points,
+                        borderColor: color,
+                        backgroundColor: color,
+                        borderWidth: 0,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        showLine: false,
+                        fill: false,
+                        _isPoints: true
+                    });
+                } else {
+                    // Fallback: connect dots (no fit possible)
+                    const sortedPoints = [...points].sort((a, b) => a.x - b.x);
+                    datasets.push({
+                        label: label,
+                        data: sortedPoints,
+                        borderColor: color,
+                        backgroundColor: color + '33',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        showLine: true,
+                        tension: 0.3,
+                        fill: false
+                    });
+                }
 
                 // Collect focus line data
-                const focusPos = getSettledPosition(afRun);
                 if (focusPos !== null) {
                     focusLines.push({ pos: focusPos, color: color, run: afRun.run });
                 }
@@ -1826,16 +2017,28 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
+                layout: {
+                    padding: { top: 20 }
+                },
                 plugins: {
                     legend: {
                         display: true,
                         position: 'top',
-                        labels: { color: dark ? COLORS.text : '#333', usePointStyle: true, pointStyle: 'circle' }
+                        labels: {
+                            color: dark ? COLORS.text : '#333',
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            filter: function(item) {
+                                // Hide "(measured)" labels, only show main curve labels
+                                return !item.text.includes('(measured)');
+                            }
+                        }
                     },
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
-                                return `${ctx.dataset.label}: pos ${ctx.parsed.x}, size ${ctx.parsed.y.toFixed(2)}`;
+                                const label = ctx.dataset.label.replace(' (measured)', '');
+                                return `${label}: pos ${ctx.parsed.x.toFixed(0)}, size ${ctx.parsed.y.toFixed(2)}`;
                             }
                         }
                     }
@@ -1861,11 +2064,16 @@
                 beforeDraw: function(chart) {
                     const ctx = chart.ctx;
                     const xAxis = chart.scales.x;
-                    const yAxis = chart.scales.y;
+                    const labelY = chart.chartArea.bottom - 12;  // Inside chart, above X axis
+                    ctx.font = '10px system-ui, -apple-system, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+
                     focusLines.forEach(fl => {
                         const x = xAxis.getPixelForValue(fl.pos);
                         if (x >= chart.chartArea.left && x <= chart.chartArea.right) {
                             ctx.save();
+                            // Draw vertical dashed line
                             ctx.strokeStyle = fl.color;
                             ctx.lineWidth = 2;
                             ctx.setLineDash([6, 4]);
@@ -1873,17 +2081,25 @@
                             ctx.moveTo(x, chart.chartArea.top);
                             ctx.lineTo(x, chart.chartArea.bottom);
                             ctx.stroke();
-                            // Label above the line
+
+                            // Draw label background (white with opacity)
+                            const labelText = `R${fl.run}`;
+                            const labelWidth = ctx.measureText(labelText).width;
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                            ctx.fillRect(x - labelWidth / 2 - 2, labelY - 12, labelWidth + 4, 12);
+
+                            // Draw label text
                             ctx.fillStyle = fl.color;
-                            ctx.font = '11px system-ui, -apple-system, sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.fillText(`R${fl.run} focus`, x, chart.chartArea.top - 5);
+                            ctx.fillText(labelText, x, labelY);
                             ctx.restore();
                         }
                     });
                 }
             }]
         });
+
+        // Return fitted positions for use by summary cards
+        return fittedPositions;
     }
 
     /**
