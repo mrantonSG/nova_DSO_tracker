@@ -32,10 +32,26 @@
         guiding: null,
         dither: null,
         afCurves: [],
+        afOverlay: null,
+        afDrift: null,
         guidePulseScatter: null,
         guidePulseDuration: null,
         autocenter: null
     };
+
+    // --- AF Run Colors (per run number) ---
+    const AF_RUN_COLORS = [
+        '#3b82f6',  // Run 1: Blue
+        '#22c55e',  // Run 2: Green
+        '#ec4899',  // Run 3: Pink
+        '#f97316',  // Run 4: Orange
+        '#a855f7',  // Run 5: Purple
+        '#06b6d4',  // Run 6: Cyan
+        '#eab308',  // Run 7: Yellow
+        '#ef4444',  // Run 8: Red
+    ];
+    const AF_DRIFT_COLOR = '#f59e0b';  // Amber/Gold for drift line
+    const AF_TEMP_DRIFT_COLOR = '#f59e0b';  // Amber/Gold for temp drift card
 
     // --- Cached data ---
     let logData = null;
@@ -1351,7 +1367,7 @@
     }
 
     /**
-     * Render AutoFocus Tab - V-curves for each AF run
+     * Render AutoFocus Tab - Summary cards, overlay chart, drift chart, narrative, and V-curves
      */
     function renderAutoFocusTab() {
         const asiair = logData.asiair;
@@ -1363,32 +1379,72 @@
             return;
         }
 
-        document.getElementById('log-af-total').textContent = asiair.af_runs.length;
-
-        const container = document.getElementById('log-af-runs');
-        if (!container) return;
-
-        container.innerHTML = '';
+        const afRuns = asiair.af_runs;
+        document.getElementById('log-af-total').textContent = afRuns.length;
 
         // Clean up old charts
         charts.afCurves.forEach(c => c.destroy());
         charts.afCurves = [];
+        if (charts.afOverlay) { charts.afOverlay.destroy(); charts.afOverlay = null; }
+        if (charts.afDrift) { charts.afDrift.destroy(); charts.afDrift = null; }
 
         const dark = isDarkTheme();
 
-        asiair.af_runs.forEach((afRun, index) => {
+        // --- Helper: Get color for run index ---
+        function getRunColor(idx) {
+            return AF_RUN_COLORS[idx % AF_RUN_COLORS.length];
+        }
+
+        // --- Helper: Find minimum star size position in points ---
+        function findMinPosition(points) {
+            if (!points || points.length === 0) return null;
+            let minPt = points[0];
+            points.forEach(p => { if (p.sz < minPt.sz) minPt = p; });
+            return minPt;
+        }
+
+        // --- Helper: Get settled focus position (use focus_pos if available, else derive from points) ---
+        function getSettledPosition(afRun) {
+            if (afRun.focus_pos !== null && afRun.focus_pos !== undefined) {
+                return afRun.focus_pos;
+            }
+            const minPt = findMinPosition(afRun.points);
+            return minPt ? minPt.pos : null;
+        }
+
+        // --- Task 2: Summary Cards Row ---
+        renderAFSummaryCards(afRuns, getRunColor, getSettledPosition);
+
+        // --- Task 3: Overlay V-Curve Chart ---
+        renderAFOverlayChart(afRuns, dark, getRunColor, getSettledPosition);
+
+        // --- Task 4: Focus Position Drift Chart ---
+        renderAFDriftChart(afRuns, dark, getSettledPosition);
+
+        // --- Task 5: Auto-generated Narrative ---
+        renderAFNarrative(afRuns, getSettledPosition);
+
+        // --- Individual V-Curve Cards (existing functionality) ---
+        const container = document.getElementById('log-af-runs');
+        if (!container) return;
+        container.innerHTML = '';
+
+        afRuns.forEach((afRun, index) => {
             const card = document.createElement('div');
             card.className = 'log-af-vcurve-card';
 
             const title = document.createElement('h5');
             const timeStr = afRun.ts ? new Date(afRun.ts).toLocaleTimeString() : `Run ${afRun.run}`;
             title.textContent = `AF Run ${afRun.run} - ${timeStr}`;
-            if (afRun.focus_pos) {
-                title.textContent += ` (Focus: ${afRun.focus_pos})`;
+            const focusPos = getSettledPosition(afRun);
+            if (focusPos !== null) {
+                title.textContent += ` (Focus: ${focusPos})`;
             }
             if (afRun.temp !== null && afRun.temp !== undefined) {
                 title.textContent += ` @ ${afRun.temp}°C`;
             }
+            title.style.borderLeft = `4px solid ${getRunColor(index)}`;
+            title.style.paddingLeft = '8px';
             card.appendChild(title);
 
             if (afRun.points && afRun.points.length > 0) {
@@ -1442,6 +1498,348 @@
     }
 
     /**
+     * Task 2: Render AF Summary Cards Row
+     */
+    function renderAFSummaryCards(afRuns, getRunColor, getSettledPosition) {
+        const container = document.getElementById('log-af-summary-cards');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // One card per AF run
+        afRuns.forEach((afRun, idx) => {
+            const color = getRunColor(idx);
+            const focusPos = getSettledPosition(afRun);
+            const card = document.createElement('div');
+            card.className = 'log-af-stat-card';
+
+            let subtitle = '';
+            if (afRun.temp !== null && afRun.temp !== undefined && focusPos !== null) {
+                subtitle = `${afRun.temp}°C → pos ${focusPos}`;
+            } else if (focusPos !== null) {
+                subtitle = `pos ${focusPos}`;
+            } else if (afRun.temp !== null && afRun.temp !== undefined) {
+                subtitle = `${afRun.temp}°C`;
+            }
+
+            card.innerHTML = `
+                <div class="stat-value" style="color: ${color};">${focusPos !== null ? focusPos : '—'}</div>
+                <div class="stat-label">AF Run ${afRun.run}</div>
+                ${subtitle ? `<div class="stat-subtitle">${subtitle}</div>` : ''}
+            `;
+            container.appendChild(card);
+        });
+
+        // Temperature Drift Card
+        const temps = afRuns.filter(r => r.temp !== null && r.temp !== undefined).map(r => r.temp);
+        if (temps.length >= 2) {
+            const tempDrift = temps[temps.length - 1] - temps[0];
+            const tempCard = document.createElement('div');
+            tempCard.className = 'log-af-stat-card';
+            tempCard.innerHTML = `
+                <div class="stat-value" style="color: ${AF_TEMP_DRIFT_COLOR};">${tempDrift >= 0 ? '+' : ''}${tempDrift.toFixed(1)}°C</div>
+                <div class="stat-label">Temp Drift</div>
+                <div class="stat-subtitle">${temps[0]}°C → ${temps[temps.length - 1]}°C</div>
+            `;
+            container.appendChild(tempCard);
+        }
+
+        // Focus Shift Card
+        const positions = afRuns.map(r => getSettledPosition(r)).filter(p => p !== null);
+        if (positions.length >= 2) {
+            const focusShift = positions[positions.length - 1] - positions[0];
+            const shiftCard = document.createElement('div');
+            shiftCard.className = 'log-af-stat-card';
+            shiftCard.innerHTML = `
+                <div class="stat-value" style="color: ${AF_DRIFT_COLOR};">${focusShift >= 0 ? '+' : ''}${focusShift}</div>
+                <div class="stat-label">Focus Shift</div>
+                <div class="stat-subtitle">EAF steps Run 1→${afRuns.length}</div>
+            `;
+            container.appendChild(shiftCard);
+        }
+    }
+
+    /**
+     * Task 3: Render Overlay V-Curve Chart with vertical focus lines
+     */
+    function renderAFOverlayChart(afRuns, dark, getRunColor, getSettledPosition) {
+        const section = document.getElementById('log-af-overlay-section');
+        const canvas = document.getElementById('logAfOverlayChart');
+        if (!section || !canvas || afRuns.length === 0) return;
+
+        // Check if any run has points
+        const hasPoints = afRuns.some(r => r.points && r.points.length > 0);
+        if (!hasPoints) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+
+        // Calculate global min/max position across all runs
+        let globalMinPos = Infinity, globalMaxPos = -Infinity;
+        afRuns.forEach(afRun => {
+            if (afRun.points && afRun.points.length > 0) {
+                afRun.points.forEach(p => {
+                    if (p.pos < globalMinPos) globalMinPos = p.pos;
+                    if (p.pos > globalMaxPos) globalMaxPos = p.pos;
+                });
+            }
+        });
+
+        // Build datasets
+        const datasets = [];
+        const focusLines = [];
+        afRuns.forEach((afRun, idx) => {
+            const color = getRunColor(idx);
+            const tempStr = (afRun.temp !== null && afRun.temp !== undefined) ? `${afRun.temp}°C` : '';
+            const label = tempStr ? `AF Run ${afRun.run} (${tempStr})` : `AF Run ${afRun.run}`;
+
+            if (afRun.points && afRun.points.length > 0) {
+                // Sort points by position for proper line rendering
+                const sortedPoints = [...afRun.points].sort((a, b) => a.pos - b.pos);
+                datasets.push({
+                    label: label,
+                    data: sortedPoints.map(p => ({ x: p.pos, y: p.sz })),
+                    borderColor: color,
+                    backgroundColor: color + '33',
+                    borderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    showLine: true,
+                    tension: 0.3,
+                    fill: false
+                });
+
+                // Collect focus line data
+                const focusPos = getSettledPosition(afRun);
+                if (focusPos !== null) {
+                    focusLines.push({ pos: focusPos, color: color, run: afRun.run });
+                }
+            }
+        });
+
+        // Create chart with beforeDraw plugin for vertical focus lines
+        charts.afOverlay = new Chart(canvas, {
+            type: 'scatter',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { color: dark ? COLORS.text : '#333', usePointStyle: true, pointStyle: 'circle' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return `${ctx.dataset.label}: pos ${ctx.parsed.x}, size ${ctx.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: 'EAF Position (steps)', color: dark ? COLORS.text : '#333' },
+                        min: globalMinPos - 50,
+                        max: globalMaxPos + 50,
+                        ticks: { color: dark ? COLORS.text : '#666' },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Star Size (HFR px)', color: dark ? COLORS.text : '#333' },
+                        ticks: { color: dark ? COLORS.text : '#666' },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    }
+                }
+            },
+            plugins: [{
+                id: 'focusLinePlugin',
+                beforeDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    const xAxis = chart.scales.x;
+                    const yAxis = chart.scales.y;
+                    focusLines.forEach(fl => {
+                        const x = xAxis.getPixelForValue(fl.pos);
+                        if (x >= chart.chartArea.left && x <= chart.chartArea.right) {
+                            ctx.save();
+                            ctx.strokeStyle = fl.color;
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([6, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(x, chart.chartArea.top);
+                            ctx.lineTo(x, chart.chartArea.bottom);
+                            ctx.stroke();
+                            // Label above the line
+                            ctx.fillStyle = fl.color;
+                            ctx.font = '11px system-ui, -apple-system, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(`R${fl.run} focus`, x, chart.chartArea.top - 5);
+                            ctx.restore();
+                        }
+                    });
+                }
+            }]
+        });
+    }
+
+    /**
+     * Task 4: Render Focus Position Drift Chart
+     */
+    function renderAFDriftChart(afRuns, dark, getSettledPosition) {
+        const section = document.getElementById('log-af-drift-section');
+        const canvas = document.getElementById('logAfDriftChart');
+        if (!section || !canvas || afRuns.length < 2) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        const positions = afRuns.map(r => getSettledPosition(r)).filter(p => p !== null);
+        if (positions.length < 2) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+
+        const labels = afRuns.map(r => `Run ${r.run}`);
+        const data = afRuns.map(r => getSettledPosition(r));
+        const minPos = Math.min(...positions);
+        const maxPos = Math.max(...positions);
+        const padding = 50;
+
+        charts.afDrift = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Focus Position',
+                    data: data,
+                    borderColor: AF_DRIFT_COLOR,
+                    backgroundColor: AF_DRIFT_COLOR + '33',
+                    borderWidth: 3,
+                    pointRadius: 8,
+                    pointHoverRadius: 10,
+                    pointBackgroundColor: AF_DRIFT_COLOR,
+                    tension: 0.2,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const val = ctx.parsed.y;
+                                return val !== null ? `EAF: ${val}` : 'No position data';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: false },
+                        ticks: { color: dark ? COLORS.text : '#666' },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'EAF Position (steps)', color: dark ? COLORS.text : '#333' },
+                        min: minPos - padding,
+                        max: maxPos + padding,
+                        ticks: { color: dark ? COLORS.text : '#666' },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Task 5: Generate and render AF narrative text
+     */
+    function renderAFNarrative(afRuns, getSettledPosition) {
+        const container = document.getElementById('log-af-narrative');
+        if (!container || afRuns.length < 2) {
+            if (container) container.style.display = 'none';
+            return;
+        }
+
+        const positions = afRuns.map(r => getSettledPosition(r));
+        const temps = afRuns.filter(r => r.temp !== null && r.temp !== undefined).map(r => r.temp);
+
+        // Check for linearity (monotonically increasing or decreasing)
+        let isLinear = true;
+        let direction = 0;
+        for (let i = 1; i < positions.length; i++) {
+            if (positions[i] === null || positions[i - 1] === null) continue;
+            const diff = positions[i] - positions[i - 1];
+            if (diff !== 0) {
+                if (direction === 0) direction = Math.sign(diff);
+                else if (Math.sign(diff) !== direction) { isLinear = false; break; }
+            }
+        }
+        const linearStr = isLinear ? 'linear' : 'non-linear';
+        const causeStr = isLinear ? 'likely thermal drift' : 'atmospheric or equipment changes';
+
+        // Build position chain string
+        const posStr = positions.map(p => p !== null ? `~${p}` : '?').join(' → ');
+
+        // Time span
+        const hours = afRuns.length > 1 && afRuns[afRuns.length - 1].h && afRuns[0].h
+            ? (afRuns[afRuns.length - 1].h - afRuns[0].h).toFixed(1)
+            : '?';
+
+        // Temp drift and steps/°C
+        let tempDriftStr = '';
+        let stepsPerDegreeStr = '';
+        if (temps.length >= 2) {
+            const tempDrift = temps[temps.length - 1] - temps[0];
+            tempDriftStr = `${tempDrift.toFixed(1)}°C temp drop over ${hours}h.`;
+
+            const focusShift = positions[positions.length - 1] - positions[0];
+            if (tempDrift !== 0 && focusShift !== null) {
+                const stepsPerDeg = Math.abs(focusShift / tempDrift).toFixed(0);
+                stepsPerDegreeStr = `~${stepsPerDeg} steps/°C compensation factor visible in the data.`;
+            }
+        }
+
+        // Anomaly detection: any run's min star size > 20% worse than run 1
+        let anomalyStr = '';
+        const minPt0 = afRuns[0].points && afRuns[0].points.length > 0
+            ? findMinStarSize(afRuns[0].points)
+            : null;
+        if (minPt0 !== null) {
+            for (let i = 1; i < afRuns.length; i++) {
+                const minPti = afRuns[i].points && afRuns[i].points.length > 0
+                    ? findMinStarSize(afRuns[i].points)
+                    : null;
+                if (minPti !== null && minPti > minPt0 * 1.2) {
+                    anomalyStr = `AF run ${afRuns[i].run} shows degraded seeing (min star size ${minPti.toFixed(2)}). `;
+                    break;
+                }
+            }
+        }
+
+        // Build narrative
+        const narrative = `Focus shifted from ${posStr} (${linearStr}, ${causeStr}). ${tempDriftStr} ${stepsPerDegreeStr} ${anomalyStr}`.replace(/\s+/g, ' ').trim();
+        container.textContent = narrative;
+        container.style.display = 'block';
+    }
+
+    /**
+     * Helper: Find minimum star size from points array
+     */
+    function findMinStarSize(points) {
+        if (!points || points.length === 0) return null;
+        return Math.min(...points.map(p => p.sz));
+    }
+
+    /**
      * Handle sub-tab switching
      */
     document.addEventListener('click', function(e) {
@@ -1471,6 +1869,8 @@
         if (charts.guidePulseScatter) { charts.guidePulseScatter.destroy(); charts.guidePulseScatter = null; }
         if (charts.guidePulseDuration) { charts.guidePulseDuration.destroy(); charts.guidePulseDuration = null; }
         if (charts.autocenter) { charts.autocenter.destroy(); charts.autocenter = null; }
+        if (charts.afOverlay) { charts.afOverlay.destroy(); charts.afOverlay = null; }
+        if (charts.afDrift) { charts.afDrift.destroy(); charts.afDrift = null; }
         charts.afCurves.forEach(c => c.destroy());
         charts.afCurves = [];
         logData = null;
