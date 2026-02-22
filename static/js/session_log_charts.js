@@ -36,6 +36,7 @@
         afDrift: null,
         guidePulseScatter: null,
         guidePulseDuration: null,
+        guidingSnr: null,
         autocenter: null
     };
 
@@ -801,12 +802,13 @@
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         };
 
+        // Dark theme flag (used by all charts in this tab)
+        const dark = isDarkTheme();
+
         // RMS Chart
         const rmsCanvas = document.getElementById('log-guiding-chart');
         if (rmsCanvas && phd2.rms && phd2.rms.length > 0) {
             if (charts.guiding) charts.guiding.destroy();
-
-            const dark = isDarkTheme();
             // Use actual last data point for max (no padding beyond data)
             const maxHours = phd2.rms[phd2.rms.length - 1][0];
 
@@ -1286,6 +1288,205 @@
                 });
             }
         }
+
+        // === GUIDE STAR SNR CHART ===
+        renderGuidingSnrChart(phd2, sessionStart, hoursToTime, dark);
+    }
+
+    /**
+     * Render Guide Star SNR Chart
+     */
+    function renderGuidingSnrChart(phd2, sessionStart, hoursToTime, dark) {
+        const statsContainer = document.getElementById('log-snr-stats');
+        const chartContainer = document.getElementById('log-snr-chart-container');
+        const narrativeContainer = document.getElementById('log-snr-narrative');
+        const canvas = document.getElementById('logGuidingSnrChart');
+
+        if (!phd2 || !phd2.frames || phd2.frames.length === 0) {
+            if (statsContainer) statsContainer.style.display = 'none';
+            if (chartContainer) chartContainer.style.display = 'none';
+            if (narrativeContainer) narrativeContainer.style.display = 'none';
+            return;
+        }
+
+        // Extract SNR data (index 3), filtering out null/0 values
+        const frames = phd2.frames;
+        const snrData = [];
+        const validSnrs = [];
+
+        for (let i = 0; i < frames.length; i++) {
+            const h = frames[i][0];
+            const snr = frames[i][3];
+            if (snr !== null && snr !== undefined && snr > 0) {
+                snrData.push({ h, snr });
+                validSnrs.push(snr);
+            }
+        }
+
+        if (validSnrs.length === 0) {
+            if (statsContainer) statsContainer.style.display = 'none';
+            if (chartContainer) chartContainer.style.display = 'none';
+            if (narrativeContainer) narrativeContainer.style.display = 'none';
+            return;
+        }
+
+        // Calculate stats
+        const avgSnr = validSnrs.reduce((a, b) => a + b, 0) / validSnrs.length;
+        const minSnr = Math.min(...validSnrs);
+        const belowThreshold = validSnrs.filter(s => s < 10).length;
+        const belowThresholdPct = ((belowThreshold / validSnrs.length) * 100).toFixed(1);
+
+        // Update stats panel
+        if (statsContainer) {
+            const isWarning = belowThresholdPct > 5;
+            statsContainer.innerHTML = `
+                <span>Avg SNR: <strong>${avgSnr.toFixed(1)}</strong></span>
+                <span>Min: <strong>${minSnr.toFixed(1)}</strong></span>
+                <span ${isWarning ? 'style="color: var(--danger-color);"' : ''}>Frames below 10: <strong>${belowThreshold} (${belowThresholdPct}%)</strong></span>
+            `;
+            statsContainer.style.display = 'flex';
+        }
+
+        // Generate narrative
+        if (narrativeContainer) {
+            let narrative = '';
+            if (avgSnr > 20) {
+                narrative = 'Strong guide star signal. Good guiding conditions.';
+            } else if (avgSnr >= 10) {
+                narrative = 'Adequate guide star signal. Consider a brighter guide star if RMS is elevated.';
+            } else {
+                narrative = 'Weak guide star signal — likely contributing to elevated RMS.';
+            }
+            narrativeContainer.textContent = narrative;
+            narrativeContainer.style.display = 'block';
+        }
+
+        // Show chart container
+        if (chartContainer) chartContainer.style.display = 'block';
+
+        // Destroy previous chart
+        if (charts.guidingSnr) charts.guidingSnr.destroy();
+
+        // Calculate gap threshold using same logic as RMS chart
+        const intervals = [];
+        for (let i = 0; i < Math.min(snrData.length - 1, 50); i++) {
+            intervals.push(snrData[i + 1].h - snrData[i].h);
+        }
+        const typicalInterval = intervals.length > 0
+            ? intervals.sort((a, b) => a - b)[Math.floor(intervals.length / 2)]
+            : 0.1;
+        const gapThreshold = typicalInterval * 5;
+
+        // Build dataset with gap breaks
+        const chartData = [];
+        for (let i = 0; i < snrData.length; i++) {
+            chartData.push({ x: snrData[i].h, y: snrData[i].snr });
+            // Insert null for gaps
+            if (i < snrData.length - 1 && (snrData[i + 1].h - snrData[i].h) > gapThreshold) {
+                chartData.push({ x: snrData[i].h + 0.001, y: null });
+            }
+        }
+
+        const maxHours = snrData[snrData.length - 1].h;
+        const maxSnr = Math.max(...validSnrs);
+
+        charts.guidingSnr = new Chart(canvas, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'SNR',
+                    data: chartData,
+                    borderColor: 'rgba(251, 191, 36, 0.9)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    pointRadius: 0,
+                    tension: 0,
+                    fill: false,
+                    spanGaps: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Guide Star SNR Over Time',
+                        color: dark ? COLORS.text : '#333'
+                    },
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: function(items) {
+                                if (items.length > 0) {
+                                    return hoursToTime(items[0].parsed.x);
+                                }
+                                return '';
+                            },
+                            label: function(ctx) {
+                                return ctx.parsed.y !== null ? `SNR: ${ctx.parsed.y.toFixed(1)}` : '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 0,
+                        max: maxHours,
+                        title: { display: true, text: 'Time (Local)', color: dark ? COLORS.text : '#333' },
+                        ticks: {
+                            color: dark ? COLORS.text : '#666',
+                            callback: function(value) {
+                                return hoursToTime(value);
+                            }
+                        },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    },
+                    y: {
+                        min: 0,
+                        title: { display: true, text: 'SNR', color: dark ? COLORS.text : '#333' },
+                        ticks: { color: dark ? COLORS.text : '#666' },
+                        grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                    }
+                }
+            },
+            plugins: [{
+                id: 'snrMinOkLine',
+                beforeDraw: function(chart) {
+                    // Only draw if Y max > 10
+                    if (chart.scales.y.max <= 10) return;
+
+                    const ctx = chart.ctx;
+                    const yAxis = chart.scales.y;
+                    const xAxis = chart.scales.x;
+
+                    // Y position for SNR = 10
+                    const y = yAxis.getPixelForValue(10);
+                    if (y < chart.chartArea.top || y > chart.chartArea.bottom) return;
+
+                    ctx.save();
+                    ctx.strokeStyle = '#f97316';  // Orange/red
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([6, 4]);
+                    ctx.beginPath();
+                    ctx.moveTo(chart.chartArea.left, y);
+                    ctx.lineTo(chart.chartArea.right, y);
+                    ctx.stroke();
+
+                    // Label at right end
+                    ctx.fillStyle = '#f97316';
+                    ctx.font = '10px system-ui, -apple-system, sans-serif';
+                    ctx.textAlign = 'right';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('Min OK', chart.chartArea.right - 4, y - 2);
+                    ctx.restore();
+                }
+            }]
+        });
     }
 
     /**
@@ -1868,6 +2069,7 @@
         if (charts.dither) { charts.dither.destroy(); charts.dither = null; }
         if (charts.guidePulseScatter) { charts.guidePulseScatter.destroy(); charts.guidePulseScatter = null; }
         if (charts.guidePulseDuration) { charts.guidePulseDuration.destroy(); charts.guidePulseDuration = null; }
+        if (charts.guidingSnr) { charts.guidingSnr.destroy(); charts.guidingSnr = null; }
         if (charts.autocenter) { charts.autocenter.destroy(); charts.autocenter = null; }
         if (charts.afOverlay) { charts.afOverlay.destroy(); charts.afOverlay = null; }
         if (charts.afDrift) { charts.afDrift.destroy(); charts.afDrift = null; }
