@@ -123,6 +123,34 @@
                 </div>
                 <input type="hidden" name="default_location" value="{{ config.get('default_location', '') }}">
               </div>
+
+              <div class="inline-fields theme-preference-field">
+                <div class="theme-preference-container">
+                  <label class="verylong-label">Theme:</label>
+                  <div class="theme-segmented-control">
+                    {% set current_theme = config.get('theme_preference', 'follow_system') %}
+                    <label class="theme-option{% if current_theme == 'follow_system' %} selected{% endif %}">
+                      <input type="radio" name="theme_preference" value="follow_system"
+                             {% if current_theme == 'follow_system' %}checked{% endif %}>
+                      <span>Follow System</span>
+                    </label>
+                    <label class="theme-option{% if current_theme == 'always_light' %} selected{% endif %}">
+                      <input type="radio" name="theme_preference" value="always_light"
+                             {% if current_theme == 'always_light' %}checked{% endif %}>
+                      <span>Light</span>
+                    </label>
+                    <label class="theme-option{% if current_theme == 'always_dark' %} selected{% endif %}">
+                      <input type="radio" name="theme_preference" value="always_dark"
+                             {% if current_theme == 'always_dark' %}checked{% endif %}>
+                      <span>Dark</span>
+                    </label>
+                  </div>
+                </div>
+                <small class="form-text text-muted">
+                  Choose how Nova appears. "Follow System" matches your OS setting and updates automatically.
+                </small>
+              </div>
+
               <hr>
               <div class="inline-fields">
                 <div>
@@ -629,6 +657,51 @@
     let rigsData = {}; // Store all rig data globally
     let rigsDataLoaded = false;
     let rigSort = localStorage.getItem('rigSort') || 'name-asc';    console.log('Inline script loaded, rigsData:', typeof rigsData, rigsData);
+
+    // --- Theme Preference Live Preview ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const themeRadios = document.querySelectorAll('input[name="theme_preference"]');
+        const themeOptions = document.querySelectorAll('.theme-option');
+
+        function updateVisualSelection() {
+            themeOptions.forEach(function(opt) {
+                const radio = opt.querySelector('input[type="radio"]');
+                if (radio.checked) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+        }
+
+        function applyThemePreview(preference) {
+            // Live preview: apply theme immediately without saving
+            if (preference === 'always_light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            } else if (preference === 'always_dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else if (preference === 'follow_system') {
+                // Use system preference
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+            }
+            // Dispatch event so other components can react
+            window.dispatchEvent(new CustomEvent('themeChanged', {
+                detail: { theme: document.documentElement.getAttribute('data-theme') }
+            }));
+        }
+
+        // Update visual selection on page load
+        updateVisualSelection();
+
+        // Handle radio button changes
+        themeRadios.forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                updateVisualSelection();
+                applyThemePreview(this.value);
+            });
+        });
+    });
 
 </script>
 

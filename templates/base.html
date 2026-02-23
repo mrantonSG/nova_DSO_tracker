@@ -8,18 +8,70 @@
     <!-- Theme Persistence Script (blocking, executes before page render) -->
     <script>
         (function() {
+            // User's saved theme preference from backend: 'follow_system', 'always_light', 'always_dark'
+            var USER_THEME_PREFERENCE = "{{ user_theme_preference | default('follow_system') }}";
+
+            function applyTheme(theme) {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+
+            function getSystemTheme() {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+
             try {
-                // Check localStorage for saved theme preference
-                var savedTheme = localStorage.getItem('theme');
-                // Apply dark theme if saved, otherwise use default (light)
-                if (savedTheme === 'dark') {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                } else if (savedTheme === 'light') {
-                    document.documentElement.setAttribute('data-theme', 'light');
+                // 1. Check for session override (manual toggle in current session)
+                var sessionOverride = null;
+                try {
+                    sessionOverride = sessionStorage.getItem('session_theme_override');
+                } catch (e) {
+                    // sessionStorage not available
+                }
+
+                // 2. Determine theme to apply
+                var themeToApply;
+
+                if (sessionOverride) {
+                    // Session override takes precedence for manual flips
+                    themeToApply = sessionOverride;
+                } else if (USER_THEME_PREFERENCE === 'always_light') {
+                    themeToApply = 'light';
+                } else if (USER_THEME_PREFERENCE === 'always_dark') {
+                    themeToApply = 'dark';
+                } else {
+                    // follow_system (default)
+                    themeToApply = getSystemTheme();
+                }
+
+                // 3. Apply theme immediately (before render)
+                applyTheme(themeToApply);
+
+                // 4. Set up system preference listener for follow_system mode
+                if (USER_THEME_PREFERENCE === 'follow_system') {
+                    var mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    var handleChange = function(e) {
+                        // OS change always wins in follow_system mode
+                        // Clear session override if it exists
+                        try {
+                            sessionStorage.removeItem('session_theme_override');
+                        } catch (err) {}
+                        var newTheme = e.matches ? 'dark' : 'light';
+                        applyTheme(newTheme);
+                        // Dispatch event so other components can react
+                        window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: newTheme } }));
+                    };
+
+                    // Use addEventListener if available, otherwise addListener (deprecated)
+                    if (mediaQuery.addEventListener) {
+                        mediaQuery.addEventListener('change', handleChange);
+                    } else if (mediaQuery.addListener) {
+                        mediaQuery.addListener(handleChange);
+                    }
                 }
             } catch (e) {
-                // Silently fail if localStorage is not available
-                console.warn('Theme persistence: Could not access localStorage', e);
+                // Fallback to light theme on any error
+                console.warn('Theme persistence: Error applying theme', e);
+                applyTheme('light');
             }
         })();
     </script>
