@@ -891,7 +891,9 @@
         // 1. Try Cache First
         const cachedData = _checkFetchCache(CACHE_KEY, CACHE_EXPIRY);
         if (cachedData) {
+            if (signal.aborted) return;
             renderRows(cachedData);
+            if (signal.aborted) return;
             finalizeFetch();
             return;
         }
