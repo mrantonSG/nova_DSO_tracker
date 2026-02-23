@@ -1193,12 +1193,10 @@
             if (activeTab === 'inspiration' && typeof renderInspirationGrid === 'function') {
                 renderInspirationGrid();
             }
-    
-            const finalSelectedLocation = sessionStorage.getItem('selectedLocation');
-            if (finalSelectedLocation !== currentSelectedLocation) {
-                console.log(`Location changed to ${finalSelectedLocation}. Re-triggering...`);
-                setLocation();
-            }
+
+            // REMOVED: Location change check was causing duplicate fetch on initial page load
+            // The fetchLocations() call in window.onload sets sessionStorage before fetchData() runs,
+            // and location-select change event handles user-triggered changes. No need to re-check here.
         }
     }
     
