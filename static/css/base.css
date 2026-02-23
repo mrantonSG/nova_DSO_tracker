@@ -37,11 +37,12 @@
 
 :root {
   /* === PRIMARY BRAND COLORS === */
-  --primary-color: #5a8fa0;
+  --primary-color: #83b4c5;
+  --primary-hover: #6a9eb0;
   --primary-dark: #4a7a8a;
-  --primary-light: #7aafc0;
+  --primary-light: #a8cdd8;
   --primary-muted: #849398;
-  --primary-bg: #eef6f9;
+  --primary-bg: #eaf4f8;
 
   /* === BACKGROUND COLORS === */
   --bg-white: #ffffff;
@@ -229,11 +230,12 @@
 
 :root[data-theme="dark"] {
   /* === PRIMARY BRAND COLORS (unchanged - good contrast) === */
-  --primary-color: #5a8fa0;
+  --primary-color: #8ec8da;
+  --primary-hover: #75b8cd;
   --primary-dark: #4a7a8a;
-  --primary-light: #7aafc0;
+  --primary-light: #a8cdd8;
   --primary-muted: #849398;
-  --primary-bg: rgba(122,175,192,0.08);
+  --primary-bg: rgba(142,200,218,0.1);
 
   /* === BACKGROUND COLORS - DARK THEME === */
   --bg-white: #0f1118;          /* Main page background */

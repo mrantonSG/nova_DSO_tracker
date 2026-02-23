@@ -38,12 +38,12 @@
 
   /* === TABLE TOKENS === */
   --nova-row-hover: #f0f7fa;
-  --nova-alt-high-bg: #daf0f5;
-  --nova-alt-high-text: #2a7a90;
-  --nova-alt-high-border: transparent;
-  --nova-alt-med-bg: #e8f5f0;
-  --nova-alt-med-text: #2a7060;
-  --nova-alt-med-border: transparent;
+  --nova-alt-high-bg: rgba(131,180,197,0.22);
+  --nova-alt-high-text: #2d7d95;
+  --nova-alt-high-border: rgba(131,180,197,0.35);
+  --nova-alt-med-bg: rgba(131,180,197,0.12);
+  --nova-alt-med-text: #3d8a8a;
+  --nova-alt-med-border: rgba(131,180,197,0.2);
   --nova-alt-low-bg: #f0f0f0;
   --nova-alt-low-text: #606060;
   --nova-alt-low-border: transparent;
@@ -58,19 +58,19 @@
   --nova-text-2: rgba(255,255,255,0.55);
   --nova-text-3: rgba(255,255,255,0.30);
   --nova-text-4: rgba(255,255,255,0.18);
-  --nova-accent: #7aafc0;
-  --nova-accent-mid: #8ec8da;
+  --nova-accent: #8ec8da;
+  --nova-accent-mid: #a8cdd8;
   --nova-bg: #0f1118;
   --nova-header-color: rgba(255,255,255,0.18);
 
   /* Table tokens - dark mode */
   --nova-row-hover: rgba(122,175,192,0.06);
-  --nova-alt-high-bg: rgba(40,180,200,0.12);
-  --nova-alt-high-text: #6dc8da;
-  --nova-alt-high-border: rgba(40,180,200,0.15);
-  --nova-alt-med-bg: rgba(80,160,130,0.12);
-  --nova-alt-med-text: #6dcab0;
-  --nova-alt-med-border: rgba(80,160,130,0.15);
+  --nova-alt-high-bg: rgba(142,200,218,0.16);
+  --nova-alt-high-text: #8ec8da;
+  --nova-alt-high-border: rgba(142,200,218,0.25);
+  --nova-alt-med-bg: rgba(142,200,218,0.08);
+  --nova-alt-med-text: #6db8cc;
+  --nova-alt-med-border: rgba(142,200,218,0.14);
   --nova-alt-low-bg: rgba(255,255,255,0.05);
   --nova-alt-low-text: var(--nova-text-3);
   --nova-alt-low-border: var(--nova-border);
@@ -430,9 +430,9 @@ dd {
   --nova-surface-alt: var(--bg-dark-primary);
   --nova-border: rgba(255,255,255,0.07);
   --nova-border-light: rgba(255,255,255,0.04);
-  --nova-accent-light: rgba(122,175,192,0.2);
-  --nova-accent-bg: rgba(122,175,192,0.1);
-  --nova-accent-mid: #8ec8da;
+  --nova-accent-light: rgba(142,200,218,0.2);
+  --nova-accent-bg: rgba(142,200,218,0.1);
+  --nova-accent-mid: #a8cdd8;
 }
 
 /* =================================================================
