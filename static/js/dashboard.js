@@ -269,6 +269,7 @@
     
             simModeToggle.addEventListener('change', function() {
                 const isChecked = this.checked;
+                const hadExistingDate = !!simDateInput.value;  // Check BEFORE we auto-fill
                 if (isChecked && !simDateInput.value) {
                     const today = new Date();
                     const yyyy = today.getFullYear();
@@ -279,7 +280,11 @@
                 localStorage.setItem('simModeActive', isChecked);
                 localStorage.setItem('simDate', simDateInput.value);
                 applySimState(isChecked, simDateInput.value);
-                updateDataForSim();
+                // Only trigger data fetch if a date was already set (e.g., from previous session).
+                // If we just auto-filled today's date, wait for the user to set their desired date.
+                if (hadExistingDate) {
+                    updateDataForSim();
+                }
             });
     
             simDateInput.addEventListener('change', function() {
