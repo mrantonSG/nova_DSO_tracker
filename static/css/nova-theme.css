@@ -2656,3 +2656,256 @@ hr,
 :root[data-theme="dark"] .label-badge {
   background: rgba(122,175,192,0.12);
 }
+
+/* =================================================================
+   ABOUT MODAL
+   Branded "About Nova DSO Tracker" modal dialog
+   ================================================================ */
+
+/* About trigger button in header */
+.about-trigger-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--nova-surface-alt);
+  border: 1px solid var(--nova-border);
+  color: var(--nova-text-3);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  margin-right: 8px;
+}
+
+.about-trigger-button:hover {
+  background: var(--nova-surface);
+  border-color: var(--nova-accent-mid);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .about-trigger-button {
+  background: rgba(255,255,255,0.04);
+  border-color: var(--nova-border);
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] .about-trigger-button:hover {
+  background: var(--nova-accent-bg);
+  border-color: var(--nova-accent-light);
+  color: var(--nova-accent);
+}
+
+/* About modal overlay */
+#about-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--overlay-dark);
+  z-index: var(--z-modal);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  align-items: center;
+  justify-content: center;
+}
+
+#about-modal.is-visible {
+  display: flex !important;
+  opacity: 1;
+}
+
+/* About modal content container */
+#about-modal .about-modal-content {
+  position: relative;
+  background: var(--bg-white);
+  padding: var(--space-7);
+  width: 90%;
+  max-width: 440px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  max-height: 85vh;
+  overflow-y: auto;
+  margin: 0;
+  text-align: center;
+}
+
+:root[data-theme="dark"] #about-modal .about-modal-content {
+  background: var(--nova-surface, var(--bg-light));
+  border: 1px solid var(--nova-border, var(--border-medium));
+}
+
+/* Close button */
+.about-modal-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--nova-border);
+  color: var(--nova-text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.about-modal-close:hover {
+  background: var(--nova-surface-alt);
+  color: var(--nova-text);
+  border-color: var(--nova-accent-mid);
+}
+
+:root[data-theme="dark"] .about-modal-close {
+  border-color: var(--nova-border);
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] .about-modal-close:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--nova-text);
+  border-color: var(--nova-accent-mid);
+}
+
+/* About modal body */
+.about-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Logo */
+.about-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: var(--space-3);
+}
+
+/* App title */
+.about-title {
+  font-family: var(--nova-font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--nova-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.about-title span {
+  color: var(--nova-accent);
+}
+
+/* Version number */
+.about-version {
+  font-family: var(--nova-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-text-3);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* Tagline */
+.about-tagline {
+  font-family: var(--nova-font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--nova-text-2);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 340px;
+}
+
+/* Description */
+.about-description {
+  font-family: var(--nova-font-sans);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--nova-text-3);
+  margin: 0;
+  line-height: 1.6;
+  max-width: 360px;
+}
+
+/* Attribution line */
+.about-attribution {
+  font-family: var(--nova-font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--nova-text-4);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 340px;
+}
+
+/* Links container */
+.about-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+/* Individual links */
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--nova-font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--nova-accent);
+  text-decoration: none;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 6px;
+  background: var(--nova-accent-bg);
+  border: 1px solid var(--nova-accent-light);
+  transition: all 0.15s ease;
+}
+
+.about-link:hover {
+  background: var(--nova-accent-light);
+  color: var(--nova-text);
+}
+
+.about-link svg {
+  flex-shrink: 0;
+}
+
+:root[data-theme="dark"] .about-link {
+  background: rgba(122,175,192,0.08);
+  border-color: rgba(122,175,192,0.15);
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] .about-link:hover {
+  background: rgba(122,175,192,0.18);
+  border-color: rgba(122,175,192,0.3);
+}
+
+/* Credits line */
+.about-credits {
+  font-family: var(--nova-font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--nova-text-3);
+  margin: var(--space-4) 0 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--nova-border-light);
+  width: 100%;
+}
+
+:root[data-theme="dark"] .about-credits {
+  border-top-color: var(--nova-border);
+}

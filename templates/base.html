@@ -127,6 +127,14 @@
       <div class="header-right">
           {% block header_actions %}{% endblock %}
 
+          <button id="about-trigger" class="about-trigger-button" type="button" aria-label="About Nova DSO Tracker" title="About">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+          </button>
+
           <button id="theme-toggle" class="theme-toggle-button" type="button" aria-label="Toggle dark/light theme" title="Toggle theme">
               <!-- Sun icon (shown in dark mode) -->
               <svg class="theme-icon theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -176,6 +184,44 @@
             <div id="help-modal-body" class="help-body"></div>
             <div style="margin-top: 20px; text-align: right;">
                 <button class="action-button" id="help-modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" aria-labelledby="about-modal-title">
+        <div class="modal-content about-modal-content">
+            <button class="about-modal-close" id="about-modal-close-btn" aria-label="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="about-modal-body">
+                <img src="{{ url_for('static', filename='nova-icon-transparent.png') }}" alt="Nova DSO Tracker Logo" class="about-logo">
+                <h1 id="about-modal-title" class="about-title">Nova DSO Tracker</h1>
+                <p class="about-version">Version {{ version }}</p>
+                <p class="about-tagline">A personal project born from a passion for astronomy and astrophotography.</p>
+                <p class="about-description">Nova DSO Tracker helps amateur astronomers plan observation sessions, calculating and visualizing altitude and azimuth of deep-sky objects, tracking Moon position and phase, and identifying optimal viewing windows.</p>
+                <p class="about-attribution">Data sourced from SIMBAD; calculations powered by Astropy and Ephem.</p>
+                <div class="about-links">
+                    <a href="https://nova-tracker.com" target="_blank" rel="noopener noreferrer" class="about-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        Visit nova-tracker.com
+                    </a>
+                    <a href="mailto:contact@nova-tracker.com" class="about-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        contact@nova-tracker.com
+                    </a>
+                </div>
+                <p class="about-credits">Built by Anton Gutscher</p>
             </div>
         </div>
     </div>
