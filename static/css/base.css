@@ -705,12 +705,13 @@
 .inline-button,
 .dlback-button,
 .view-button {
-    padding: var(--btn-padding-y) var(--btn-padding-x);
-    font-size: var(--font-size-base);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
     background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: var(--radius-lg);
+    border-radius: 6px;
     cursor: pointer;
     text-decoration: none;
     display: inline-block;
@@ -721,6 +722,43 @@
 .dlback-button:hover,
 .view-button:hover {
     background-color: var(--primary-dark);
+}
+
+/* Ghost variant - transparent with border */
+.inline-button-ghost {
+    background-color: transparent;
+    color: var(--text-secondary, #4a4a4a);
+    border: 1px solid var(--border-color, #d0cdc8);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.inline-button-ghost:hover {
+    background: var(--bg-tertiary, #f7f5f2);
+}
+[data-theme="dark"] .inline-button-ghost {
+    color: rgba(255,255,255,0.55);
+    border-color: rgba(255,255,255,0.15);
+}
+[data-theme="dark"] .inline-button-ghost:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+/* Danger variant - muted red */
+.inline-button-danger {
+    background-color: rgba(180,60,60,0.08);
+    color: #a04040;
+    border: 1px solid rgba(180,60,60,0.18);
+}
+.inline-button-danger:hover {
+    background: rgba(180,60,60,0.15);
+}
+[data-theme="dark"] .inline-button-danger {
+    background: rgba(200,80,80,0.1);
+    color: #d06060;
+    border-color: rgba(200,80,80,0.2);
 }
 
 /* Smaller variant for compact contexts */

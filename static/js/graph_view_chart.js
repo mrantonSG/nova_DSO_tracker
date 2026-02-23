@@ -3012,11 +3012,9 @@
     
                     // 1. OPEN BUTTON
                     const btn = document.createElement('button');
-                    btn.className = 'inline-button';
+                    btn.className = 'inline-button inline-button-ghost';
                     btn.textContent = 'Open Saved Framing';
-                    btn.style.fontSize = '13px';
-                    btn.style.padding = '6px 12px';
-    
+
                     btn.onclick = () => {
                         const params = new URLSearchParams();
                         if(data.rig != null) params.set('rig', data.rig);
@@ -3046,14 +3044,10 @@
     
                     // 2. DELETE BUTTON
                     const delBtn = document.createElement('button');
-                    delBtn.className = 'inline-button';
+                    delBtn.className = 'inline-button inline-button-danger';
                     delBtn.textContent = 'Delete Saved Framing';
                     delBtn.title = "Delete Saved Framing";
-                    delBtn.style.fontSize = '13px';
-                    delBtn.style.padding = '6px 10px';
-                    delBtn.style.backgroundColor = (window.stylingUtils && window.stylingUtils.getDangerDarkColor) ? window.stylingUtils.getDangerDarkColor() : '#c0392b'; // Red background
-                    delBtn.style.color = 'white'; // White text
-    
+
                     delBtn.onclick = deleteSavedFraming;
     
                     // Add both to wrapper, then wrapper to container
