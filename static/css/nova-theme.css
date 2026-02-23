@@ -1016,6 +1016,7 @@ dd {
 }
 
 :root[data-theme="dark"] .tab-button {
+  border: none;
   color: rgba(255, 255, 255, 0.3);
 }
 
@@ -1024,11 +1025,12 @@ dd {
 }
 
 :root[data-theme="dark"] .tab-button.active {
-  color: var(--nova-accent);
+  border: none;
+  color: var(--primary-color);
 }
 
 :root[data-theme="dark"] .tab-button.active::after {
-  background: var(--nova-accent);
+  background: var(--primary-color);
 }
 
 :root[data-theme="dark"] #saved-views-container .styled-select,
@@ -1040,19 +1042,19 @@ dd {
 
 :root[data-theme="dark"] #saved-views-container .styled-select:focus,
 :root[data-theme="dark"] #saved-views-dropdown:focus {
-  border-color: rgba(122, 175, 192, 0.3);
+  border-color: rgba(142, 200, 218, 0.3);
 }
 
 :root[data-theme="dark"] #save-view-btn,
 :root[data-theme="dark"] #delete-view-btn {
-  background: rgba(122, 175, 192, 0.12);
-  border-color: rgba(122, 175, 192, 0.2);
+  background: rgba(142, 200, 218, 0.12);
+  border-color: rgba(142, 200, 218, 0.2);
   color: var(--nova-accent);
 }
 
 :root[data-theme="dark"] #save-view-btn:hover,
 :root[data-theme="dark"] #delete-view-btn:hover {
-  background: rgba(122, 175, 192, 0.2);
+  background: rgba(142, 200, 218, 0.2);
 }
 
 :root[data-theme="dark"] #saved-views-container label {
