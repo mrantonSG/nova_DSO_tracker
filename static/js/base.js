@@ -1,7 +1,8 @@
-/* base.js - Global theme, version check, help modal, and centralized state */
+/* base.js - Global theme, version check, help modal, about modal, and centralized state */
 
 // State variables for help modal controller
 let helpModalInitialized = false;
+let aboutModalInitialized = false;
 
 // ============================================
 // CENTRALIZED STATE MANAGEMENT
@@ -93,7 +94,11 @@ window.novaState.fn = Object.assign(existingFn, {
 
     // Help/modal functions
     openHelp: null,
-    closeHelpModal: null
+    closeHelpModal: null,
+
+    // About modal functions
+    openAboutModal: null,
+    closeAboutModal: null
 });
 
 // ============================================
@@ -151,6 +156,43 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
     }, true); // Use capture phase to catch clicks early
+
+    // --- INITIALIZE ABOUT MODAL ---
+    if (window.novaState && window.novaState.fn && window.novaState.fn.ModalController) {
+        try {
+            window.novaState.fn.aboutModal = new window.novaState.fn.ModalController('about-modal', {
+                contentId: null,
+                visibleClass: 'is-visible',
+                closeOnBackdrop: true,
+                closeOnEscape: true,
+                ariaLabelledBy: 'about-modal-title',
+                skipFocus: true
+            });
+            aboutModalInitialized = true;
+            console.log('[base.js] About modal controller initialized successfully');
+        } catch (err) {
+            console.error('[base.js] Error initializing about modal:', err);
+        }
+    }
+
+    // --- WIRE UP ABOUT TRIGGER BUTTON ---
+    const aboutTriggerBtn = document.getElementById('about-trigger');
+    if (aboutTriggerBtn) {
+        aboutTriggerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            openAboutModal();
+        });
+    }
+
+    // --- WIRE UP ABOUT MODAL CLOSE BUTTON ---
+    const aboutCloseBtn = document.getElementById('about-modal-close-btn');
+    if (aboutCloseBtn) {
+        aboutCloseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeAboutModal();
+        });
+    }
 
     // --- EVENT DELEGATION FOR NAVIGATION BUTTONS ---
     document.addEventListener('click', function(e) {
@@ -248,6 +290,40 @@ function closeHelpModal() {
     }
 }
 
+// --- ABOUT MODAL FUNCTIONS ---
+function openAboutModal() {
+    console.log('[base.js] openAboutModal called');
+    const modalElement = document.getElementById('about-modal');
+
+    if (!modalElement) {
+        console.error('[base.js] About modal element not found');
+        return;
+    }
+
+    const controller = window.novaState.fn.aboutModal;
+    if (controller) {
+        console.log('[base.js] Using ModalController for about modal');
+        controller.open();
+    } else {
+        console.log('[base.js] Using DOM fallback for about modal');
+        modalElement.classList.add('is-visible');
+    }
+}
+
+function closeAboutModal() {
+    const controller = window.novaState.fn.aboutModal;
+
+    if (controller) {
+        controller.close();
+    } else {
+        const modalElement = document.getElementById('about-modal');
+        if (modalElement) {
+            modalElement.style.display = 'none';
+            modalElement.classList.remove('is-visible');
+        }
+    }
+}
+
 // --- Navigation Helper Function ---
 function goBack() {
     window.history.back();
@@ -256,3 +332,7 @@ function goBack() {
 // Register help functions in novaState
 window.novaState.fn.openHelp = openHelp;
 window.novaState.fn.closeHelpModal = closeHelpModal;
+
+// Register about modal functions in novaState
+window.novaState.fn.openAboutModal = openAboutModal;
+window.novaState.fn.closeAboutModal = closeAboutModal;
