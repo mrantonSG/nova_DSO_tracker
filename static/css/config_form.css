@@ -328,6 +328,94 @@
       display: block;
       margin-top: 4px;
     }
+
+    /* =================================================================
+       THEME SEGMENTED CONTROL
+       ================================================================ */
+
+    .theme-preference-field {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .theme-preference-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-1);
+    }
+
+    .theme-segmented-control {
+        display: inline-flex;
+        border: 1px solid var(--nova-border, var(--border-medium));
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--nova-surface, var(--bg-white));
+    }
+
+    .theme-option {
+        position: relative;
+        cursor: pointer;
+    }
+
+    .theme-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .theme-option span {
+        display: inline-block;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--nova-text-2, var(--text-secondary));
+        background: var(--nova-surface, var(--bg-white));
+        border-right: 1px solid var(--nova-border, var(--border-medium));
+        transition: all 0.15s ease;
+        white-space: nowrap;
+    }
+
+    .theme-option:last-child span {
+        border-right: none;
+    }
+
+    .theme-option:hover span {
+        background: var(--nova-surface-alt, var(--bg-light));
+    }
+
+    .theme-option.selected span,
+    .theme-option input[type="radio"]:checked + span {
+        background: var(--nova-accent, var(--primary-color));
+        color: white;
+    }
+
+    .theme-option input[type="radio"]:focus + span {
+        box-shadow: inset 0 0 0 2px var(--nova-accent-light, var(--primary-light));
+    }
+
+    /* Dark mode theme segmented control */
+    [data-theme="dark"] .theme-segmented-control {
+        background: var(--nova-surface-alt, var(--bg-medium-alt));
+        border-color: var(--nova-border, var(--border-medium));
+    }
+
+    [data-theme="dark"] .theme-option span {
+        background: var(--nova-surface-alt, var(--bg-medium-alt));
+        color: var(--nova-text-2, var(--text-secondary));
+        border-right-color: var(--nova-border, var(--border-medium));
+    }
+
+    [data-theme="dark"] .theme-option:hover span {
+        background: var(--nova-surface, var(--bg-medium));
+    }
+
+    [data-theme="dark"] .theme-option.selected span,
+    [data-theme="dark"] .theme-option input[type="radio"]:checked + span {
+        background: var(--nova-accent, var(--primary-color));
+        color: white;
+    }
+
     /* .dlback-button styles moved to base.css */
     /* =================================================================
        5. SAVE SETTINGS BUTTON

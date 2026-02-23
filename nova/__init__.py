@@ -6896,10 +6896,13 @@ def sanitize_html_filter(html_content):
 @app.context_processor
 def inject_user_mode():
     from flask_login import current_user
+    user_config = getattr(g, "user_config", {})
+    theme_preference = user_config.get("theme_preference", "follow_system") if user_config else "follow_system"
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
         "current_user": current_user,
-        "is_guest": getattr(g, "is_guest", False)
+        "is_guest": getattr(g, "is_guest", False),
+        "user_theme_preference": theme_preference
     }
 
 @core_bp.route('/logout', methods=['POST'])
@@ -9519,6 +9522,10 @@ def config_form():
                 # Settings available to ALL users
                 settings['calc_invisible'] = bool(request.form.get('calc_invisible'))
                 settings['hide_invisible'] = bool(request.form.get('hide_invisible'))
+                # Theme preference: 'follow_system', 'always_light', 'always_dark'
+                theme_value = request.form.get('theme_preference', 'follow_system')
+                if theme_value in ('follow_system', 'always_light', 'always_dark'):
+                    settings['theme_preference'] = theme_value
 
                 if SINGLE_USER_MODE:
                     settings['sampling_interval_minutes'] = int(request.form.get("sampling_interval", 15))

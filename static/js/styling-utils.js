@@ -641,7 +641,7 @@ window.stylingUtils_getCurrentTheme = function() {
  * Toggle between light and dark themes
  * This function:
  * 1. Switches the data-theme attribute on the html element
- * 2. Saves the preference to localStorage for persistence
+ * 2. Saves the override to sessionStorage (session-only, cleared on new window/tab)
  * 3. Dispatches a custom event for other components to react
  * @returns {string} New theme ('light' or 'dark')
  */
@@ -654,8 +654,13 @@ window.stylingUtils_toggleTheme = function() {
         // Apply the new theme
         htmlElement.setAttribute('data-theme', newTheme);
 
-        // Save to localStorage for persistence
-        localStorage.setItem('theme', newTheme);
+        // Save to sessionStorage for session-only override
+        // This is cleared when the tab/window is closed
+        try {
+            sessionStorage.setItem('session_theme_override', newTheme);
+        } catch (e) {
+            // sessionStorage not available
+        }
 
         // Dispatch event for other components to react
         var event = new CustomEvent('themeChanged', { detail: { theme: newTheme } });
@@ -682,7 +687,13 @@ window.stylingUtils_setTheme = function(theme) {
 
         var htmlElement = document.documentElement;
         htmlElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
+
+        // Save to sessionStorage for session-only override
+        try {
+            sessionStorage.setItem('session_theme_override', theme);
+        } catch (e) {
+            // sessionStorage not available
+        }
 
         // Dispatch event for other components to react
         var event = new CustomEvent('themeChanged', { detail: { theme: theme } });
