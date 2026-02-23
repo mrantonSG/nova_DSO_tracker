@@ -38,12 +38,12 @@
 
   /* === TABLE TOKENS === */
   --nova-row-hover: #f0f7fa;
-  --nova-alt-high-bg: rgba(131,180,197,0.22);
-  --nova-alt-high-text: #2d7d95;
-  --nova-alt-high-border: rgba(131,180,197,0.35);
-  --nova-alt-med-bg: rgba(131,180,197,0.12);
-  --nova-alt-med-text: #3d8a8a;
-  --nova-alt-med-border: rgba(131,180,197,0.2);
+  --nova-alt-high-bg: rgba(131,180,197,0.52);
+  --nova-alt-high-text: #1d6a80;
+  --nova-alt-high-border: rgba(131,180,197,0.65);
+  --nova-alt-med-bg: rgba(131,180,197,0.32);
+  --nova-alt-med-text: #2d7d95;
+  --nova-alt-med-border: rgba(131,180,197,0.45);
   --nova-alt-low-bg: #f0f0f0;
   --nova-alt-low-text: #606060;
   --nova-alt-low-border: transparent;
@@ -65,12 +65,12 @@
 
   /* Table tokens - dark mode */
   --nova-row-hover: rgba(122,175,192,0.06);
-  --nova-alt-high-bg: rgba(142,200,218,0.16);
+  --nova-alt-high-bg: rgba(142,200,218,0.28);
   --nova-alt-high-text: #8ec8da;
-  --nova-alt-high-border: rgba(142,200,218,0.25);
-  --nova-alt-med-bg: rgba(142,200,218,0.08);
+  --nova-alt-high-border: rgba(142,200,218,0.42);
+  --nova-alt-med-bg: rgba(142,200,218,0.16);
   --nova-alt-med-text: #6db8cc;
-  --nova-alt-med-border: rgba(142,200,218,0.14);
+  --nova-alt-med-border: rgba(142,200,218,0.28);
   --nova-alt-low-bg: rgba(255,255,255,0.05);
   --nova-alt-low-text: var(--nova-text-3);
   --nova-alt-low-border: var(--nova-border);
