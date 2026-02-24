@@ -2,259 +2,738 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Project Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Report - Nova DSO Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* Universal Print Reset */
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-        /* CSS Variables for Print Layout */
         :root {
-            --bg-light-gray: #f0f0f0;
-            --bg-white: #ffffff;
-            --bg-light: #f8f9fa;
-            --bg-offwhite: #fdfdfd;
-            --text-primary: #333;
-            --text-secondary: #555;
-            --text-tertiary: #666;
-            --text-muted: #888;
-            --border-light: #eee;
-            --primary-color: #83b4c5;
-            --warning-color-alt: #f39c12;
-        }
-
-        @font-face {
-            font-family: 'Roboto';
-            font-style: normal;
-            font-weight: 400;
-            src: url('../fonts/roboto-v49-latin-regular.woff2') format('woff2');
-        }
-
-        @font-face {
-            font-family: 'Roboto';
-            font-style: normal;
-            font-weight: 700;
-            src: url('../fonts/roboto-v49-latin-700.woff2') format('woff2');
+            --primary-color:   #83b4c5;
+            --primary-hover:   #6a9eb0;
+            --primary-light:   #a8cdd8;
+            --primary-bg:      #eaf4f8;
+            --bg-primary:      #f2f0ed;
+            --bg-secondary:    #ffffff;
+            --bg-tertiary:     #f7f5f2;
+            --border-color:    #e5e2dc;
+            --border-light:    #eeebe5;
+            --text-primary:    #141414;
+            --text-secondary:  #4a4a4a;
+            --text-muted:      #888888;
+            --text-faint:      #aaaaaa;
+            --shadow-sm:       0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md:       0 2px 8px rgba(0,0,0,0.08);
+            --font-mono:       'DM Mono', 'Courier New', monospace;
+            --font-sans:       'DM Sans', system-ui, sans-serif;
+            --radius:          8px;
+            --success-color:   #5ab08a;
+            --warning-color:   #e8a44a;
+            --danger-color:    #e06060;
         }
 
         body {
-            background-color: var(--bg-light-gray);
+            background-color: var(--bg-primary);
             display: flex;
             justify-content: center;
             padding: 20px;
-            font-family: 'Roboto', sans-serif;
+            font-family: var(--font-sans);
             color: var(--text-primary);
-            font-size: 11px;
+            font-size: 12px;
+            margin: 0;
         }
+
         .a4-page {
             width: 210mm;
-            background-color: var(--bg-white);
-            padding: 15mm;
+            background-color: var(--bg-secondary);
             box-sizing: border-box;
             margin-bottom: 20px;
         }
 
-        /* Nova Brand Header */
-        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 5px; }
-        .header-logo-text { font-size: 22px; font-weight: 800; color: var(--text-primary); line-height: 1; }
-        .header-logo-text span { font-weight: 300; color: var(--primary-color); margin-left: 4px; }
-        .header-title { text-align: right; font-size: 14px; color: var(--primary-color); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .header-line { border: 0; border-top: 2px solid var(--primary-color); margin-bottom: 15px; }
-
-        .project-title { text-align: center; font-size: 24px; font-weight: 700; color: var(--text-primary); margin-bottom: 5px; }
-        .project-meta { text-align: center; font-size: 12px; color: var(--text-tertiary); margin-bottom: 20px; }
-
-        /* Modern Master Image - Clean Canvas Style */
-        .master-image-container {
-            text-align: center;
-            margin-bottom: 25px;
-            padding: 12px;
-            box-shadow: inset 0 0 0 1000px var(--bg-offwhite);
-            border: 1px solid var(--border-light);
+        /* Report Header */
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 36px;
+            border-bottom: 2px solid var(--primary-color);
         }
-        .master-image-container img { max-width: 100%; max-height: 500px; object-fit: contain; }
 
-        /* Section Headers - Nova Teal */
-        .section-header {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-logo {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+        }
+
+        .header-wordmark {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .header-wordmark .nova {
             color: var(--primary-color);
-            border-bottom: 0.5pt solid var(--border-light);
-            padding-bottom: 4px;
-            margin-bottom: 8px;
-            margin-top: 18px;
         }
 
-        /* Notes Content - Clean Modern */
-        .notes-content {
-            font-size: 11px;
-            line-height: 1.5;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-        }
-        .notes-content img { max-width: 100% !important; max-height: 400px !important; object-fit: contain; display: block; margin: 10px auto; }
-        .notes-content figure { max-width: 100% !important; margin: 0; }
-
-        /* Session Table - Modern Clean Style */
-        .session-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-            margin-top: 8px;
-        }
-        .session-table th {
-            box-shadow: inset 0 0 0 1000px var(--bg-light);
-            text-align: left;
-            padding: 6px 8px;
-            font-weight: 700;
+        .header-wordmark .rest {
             color: var(--text-secondary);
         }
-        .session-table th, .session-table td {
-            border-bottom: 0.5pt solid var(--border-light);
-            border-right: none;
-            border-left: none;
-            border-top: none;
-        }
-        .session-table td { padding: 6px 8px; vertical-align: top; }
-        .session-table thead tr { border-bottom: 1px solid var(--border-light); }
 
-        /* Report Block - Clean Modern Card */
-        .report-block {
+        .header-right {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--primary-color);
+        }
+
+        /* Project Title Block */
+        .project-title-block {
+            text-align: center;
+            padding: 28px 36px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .project-title {
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0 0 8px 0;
+            color: var(--text-primary);
+        }
+
+        .project-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 24px 36px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .stat-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px 24px;
+            text-align: center;
+            min-width: 140px;
+        }
+
+        .stat-card-value {
+            font-family: var(--font-mono);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary-color);
             display: block;
-            background-color: var(--bg-white);
-            margin-bottom: 15px;
-            padding: 12px;
-            box-shadow: inset 0 0 0 1000px var(--bg-offwhite);
-            border: 1px solid var(--border-light);
+            margin-bottom: 4px;
+        }
+
+        .stat-card-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+        }
+
+        /* Master Image */
+        .master-image-container {
+            text-align: center;
+            padding: 24px 36px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .master-image-container img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+        }
+
+        /* Section */
+        .section {
+            padding: 20px 36px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--primary-color);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 12px;
+        }
+
+        .section-content {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        .section-content img {
+            max-width: 100% !important;
+            max-height: 300px !important;
+            object-fit: contain;
+            display: block;
+            margin: 10px auto;
+        }
+
+        /* Session Chronicles Table */
+        .chronicles-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            font-size: 11px;
+        }
+
+        .chronicles-table thead {
+            background: var(--bg-tertiary);
+        }
+
+        .chronicles-table th {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .chronicles-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        .chronicles-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .chronicles-table tbody tr:hover {
+            background: #f0f7fa;
+        }
+
+        .rating-stars {
+            color: var(--warning-color);
+            letter-spacing: 1px;
+        }
+
+        /* Log Badge */
+        .log-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 600;
+            background: rgba(131,180,197,0.15);
+            color: #1d6a80;
+            border: 1px solid rgba(131,180,197,0.35);
+            margin-right: 4px;
+        }
+
+        .log-badge.phd2 {
+            background: rgba(107,202,176,0.15);
+            color: #1d6a50;
+            border-color: rgba(107,202,176,0.35);
+        }
+
+        .guiding-rms-mini {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* Session Log Analysis */
+        .session-log-section {
+            padding: 20px 36px;
+            border-bottom: 1px solid var(--border-color);
+            page-break-inside: avoid;
             break-inside: avoid;
         }
-        .pdf-header-clone { margin-bottom: 15px; }
 
-        /* Stat Box Table - Modern Style */
-        .stat-box-table td {
-            box-shadow: inset 0 0 0 1000px var(--bg-light) !important;
-            border: none !important;
-            border-radius: 4px;
+        .session-log-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
         }
 
-        /* Appended Session Reports Container - No extra space */
-        #appended-session-reports {
-            margin: 0;
-            padding: 0;
+        .session-date {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
-        /* Print-specific fixes */
+        /* Stats Grid */
+        .log-stats-grid {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .log-stat-card {
+            flex: 1;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 10px 6px 8px;
+            text-align: center;
+        }
+
+        .log-stat-value {
+            font-family: var(--font-mono);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: block;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .log-stat-value.hero {
+            color: var(--primary-color);
+        }
+
+        .log-stat-label {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+        }
+
+        /* Guiding Cards Mini */
+        .guiding-cards-mini {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .guiding-card-mini {
+            background: var(--primary-bg);
+            border: 1px solid rgba(131,180,197,0.3);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+        }
+
+        .guiding-card-mini-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--primary-color);
+            margin-bottom: 2px;
+        }
+
+        .guiding-card-mini-value {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Log Subsection */
+        .log-subsection {
+            margin-bottom: 20px;
+        }
+
+        .log-subsection-title {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        /* Data Table Mini */
+        .data-table-mini {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            font-size: 10px;
+            margin-bottom: 12px;
+        }
+
+        .data-table-mini thead {
+            background: var(--bg-tertiary);
+        }
+
+        .data-table-mini th {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .data-table-mini td {
+            padding: 6px 10px;
+            border-bottom: 1px solid var(--border-light);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .data-table-mini tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin: 10px 0 16px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .chart-container img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Session Appendix */
+        .session-appendix {
+            page-break-before: always;
+            break-before: always;
+        }
+
+        .appendix-header {
+            padding: 20px 36px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .appendix-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .appendix-date {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Two Column Layout for Appendix */
+        .content-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 0 36px;
+        }
+
+        .left-column {
+            padding: 20px 20px 20px 0;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .right-column {
+            padding: 20px 0 20px 20px;
+        }
+
+        /* Stat Pairs */
+        .stat-pairs {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .stat-cell {
+            padding: 6px 10px;
+            border-right: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .stat-row:last-child .stat-cell {
+            border-bottom: none;
+        }
+
+        .stat-cell:nth-child(2n) {
+            background: var(--bg-tertiary);
+        }
+
+        .stat-cell-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .stat-cell-value {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+
+        /* Image Container */
+        .image-container {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--bg-tertiary);
+            text-align: center;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+        }
+
+        .image-caption {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* Notes Container */
+        .notes-container {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            min-height: 100px;
+            background: var(--bg-tertiary);
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        /* Report Footer */
+        .report-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 36px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .footer-left {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .footer-left .nova-name {
+            color: var(--primary-color);
+        }
+
+        .footer-right {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-faint);
+        }
+
+        /* Print Styles */
         @media print {
-            @page { margin: 10mm; size: A4; }
-            .a4-page { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-
-            /* Prevent empty trailing pages */
-            .session-appendix-wrapper:last-child {
-                break-after: avoid !important;
-                page-break-after: avoid !important;
+            @page {
+                size: A4 portrait;
+                margin: 10mm 10mm 10mm 10mm;
             }
-            #appended-session-reports { margin: 0 !important; padding: 0 !important; }
-            html, body { height: auto !important; }
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .a4-page {
+                width: 100%;
+                margin-bottom: 0;
+            }
+
+            .session-log-section, .content-columns, .log-subsection,
+            .chart-container, .stat-pairs, .session-appendix {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            h1, h2, h3, .section-label, .log-subsection-title, .appendix-title {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            .session-appendix {
+                page-break-before: always;
+                break-before: always;
+            }
+
+            .session-appendix:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
         }
+
+        /* Utility */
+        .text-center { text-align: center; }
+        .mt-12 { margin-top: 12px; }
+        .mb-12 { margin-bottom: 12px; }
     </style>
 </head>
 <body>
-    <div class="a4-page" id="report-content">
-        <table class="header-table">
-            <tr>
-                <td class="header-logo"><div class="header-logo-text">Nova<span>DSO Tracker</span></div></td>
-                <td class="header-title">PROJECT REPORT</td>
-            </tr>
-        </table>
-        <hr class="header-line">
+    <div class="a4-page">
+        {% macro display_value(value) -%}
+            {% if value is number or (value is string and value|lower != 'none' and value|length > 0) -%}
+                {{ value }}
+            {% else -%}
+                -
+            {% endif -}
+        {% endmacro -%}
 
-        <!-- Project Title - No page break here to fill Page 1 -->
-        <div class="report-block" style="padding-top: 10px; padding-bottom: 10px;">
-            <div class="project-title">{{ project.name }}</div>
+        <!-- Report Header -->
+        <div class="report-header">
+            <div class="header-left">
+                {% if logo_url %}
+                    <img src="{{ logo_url }}" alt="Nova Logo" class="header-logo">
+                {% endif %}
+                <div class="header-wordmark">
+                    <span class="nova">Nova</span><span class="rest"> DSO Tracker</span>
+                </div>
+            </div>
+            <div class="header-right">Project Report</div>
+        </div>
+
+        <!-- Project Title Block -->
+        <div class="project-title-block">
+            <h1 class="project-title">{{ project.name }}</h1>
             <div class="project-meta">Target: {{ project.target_object_name or 'Various' }} | Status: {{ project.status }}</div>
         </div>
 
-        <!-- Stats Row - Modern Clean Cards -->
-        <div style="width: 100%; text-align: center;">
-            <table class="stat-box-table" style="width: auto; margin: 0 auto 25px auto; border-collapse: separate; border-spacing: 15px 0;">
-                <tr>
-                    <td style="width: 200px; box-shadow: inset 0 0 0 1000px var(--bg-light); padding: 14px 8px; text-align: center; vertical-align: middle; border-radius: 6px;">
-                        <span style="display: block; font-size: 15px; font-weight: 700; color: var(--primary-color); margin-bottom: 3px; white-space: nowrap;">{{ total_integration }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px; white-space: nowrap;">Total Integration</span>
-                    </td>
-                    <td style="width: 200px; box-shadow: inset 0 0 0 1000px var(--bg-light); padding: 14px 8px; text-align: center; vertical-align: middle; border-radius: 6px;">
-                        <span style="display: block; font-size: 15px; font-weight: 700; color: var(--primary-color); margin-bottom: 3px; white-space: nowrap;">{{ session_count }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px; white-space: nowrap;">Total Sessions</span>
-                    </td>
-                    <td style="width: 200px; box-shadow: inset 0 0 0 1000px var(--bg-light); padding: 14px 8px; text-align: center; vertical-align: middle; border-radius: 6px;">
-                        <span style="display: block; font-size: 15px; font-weight: 700; color: var(--primary-color); margin-bottom: 3px; white-space: nowrap;">{{ first_date }} - {{ last_date }}</span>
-                        <span style="display: block; font-size: 9px; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: 0.5px; white-space: nowrap;">Date Range</span>
-                    </td>
-                </tr>
-            </table>
+        <!-- Stats Row -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <span class="stat-card-value">{{ total_integration }}</span>
+                <span class="stat-card-label">Total Integration</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card-value">{{ session_count }}</span>
+                <span class="stat-card-label">Total Sessions</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-card-value">{{ first_date }} - {{ last_date }}</span>
+                <span class="stat-card-label">Date Range</span>
+            </div>
         </div>
 
         {% if project_image_url %}
-        <!-- Master Image - Centered with Subtle Frame -->
-        <div style="text-align: center; margin-bottom: 25px;">
-            <div style="display: inline-block; padding: 10px; border: 1px solid var(--border-light); background: var(--bg-white);">
-                <img src="{{ project_image_url }}" alt="Final Result" style="max-width: 100%; max-height: 450px; object-fit: contain; display: block;">
-            </div>
+        <!-- Master Image -->
+        <div class="master-image-container">
+            <img src="{{ project_image_url }}" alt="Final Result">
         </div>
         {% endif %}
 
         {% if project.goals %}
-        <div class="report-block">
-            <div class="section-header">Goals</div>
-            <div class="notes-content">{{ project.goals | sanitize_html | safe }}</div>
+        <div class="section">
+            <div class="section-label">Goals</div>
+            <div class="section-content">{{ project.goals | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
-
         {% if project.description_notes %}
-        <div class="report-block">
-            <div class="section-header">Project Story</div>
-            <div class="notes-content">{{ project.description_notes | sanitize_html | safe }}</div>
+        <div class="section">
+            <div class="section-label">Project Story</div>
+            <div class="section-content">{{ project.description_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.framing_notes %}
-        <div class="report-block">
-            <div class="section-header">Framing & Composition</div>
-            <div class="notes-content">{{ project.framing_notes | sanitize_html | safe }}</div>
+        <div class="section">
+            <div class="section-label">Framing & Composition</div>
+            <div class="section-content">{{ project.framing_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.processing_notes %}
-        <div class="report-block">
-            <div class="section-header">Processing Workflow</div>
-            <div class="notes-content">{{ project.processing_notes | sanitize_html | safe }}</div>
+        <div class="section">
+            <div class="section-label">Processing Workflow</div>
+            <div class="section-content">{{ project.processing_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         <!-- Session Chronicles Table -->
-        <div class="report-block">
-            <div class="section-header">Session Chronicles</div>
-            <table class="session-table">
+        <div class="section">
+            <div class="section-label">Session Chronicles</div>
+            <table class="chronicles-table">
                 <thead>
                     <tr>
-                        <th style="width: 80px;">Date</th>
-                        <th style="width: 100px;">Location</th>
+                        <th style="width: 70px;">Date</th>
+                        <th style="width: 90px;">Location</th>
                         <th style="width: 50px;">Integ.</th>
-                        <th style="width: 40px;">Rating</th>
+                        <th style="width: 36px;">Rating</th>
+                        <th style="width: 100px;">Log Data</th>
                         <th>Configuration & Notes</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for session in sessions %}
-                    <tr class="session-data-row" data-report-url="{{ url_for('journal.show_journal_report_page', session_id=session.id) }}">
-                        <td>{{ session.date_utc | date_eu }}</td>
-                        <td>{{ session.location_name }}</td>
-                        <td>{{ (session.calculated_integration_time_minutes or 0) | round(0) }}m</td>
-                        <td style="color: var(--warning-color-alt);">{{ session.session_rating_subjective or '-' }}★</td>
+                    {% for swl in sessions_with_logs %}
+                    {% set s = swl.session %}
+                    <tr>
+                        <td>{{ s.date_utc | date_eu }}</td>
+                        <td>{{ s.location_name or '-' }}</td>
+                        <td>{{ (s.calculated_integration_time_minutes or 0) | round(0) }}m</td>
+                        <td class="rating-stars">{{ s.session_rating_subjective or '-' }}{% if s.session_rating_subjective %}★{% endif %}</td>
                         <td>
-                            <strong>Rig:</strong> {{ session.rig_name_snapshot or session.telescope_setup_notes or '-' }}<br>
-                            <strong>Notes:</strong> {{ session.notes | striptags | truncate(150) }}
+                            {% if swl.log_analysis.has_logs %}
+                                {% if swl.log_analysis.asiair %}<span class="log-badge">ASIAIR</span>{% endif %}
+                                {% if swl.log_analysis.phd2 %}<span class="log-badge phd2">PHD2</span>{% endif %}
+                                {% if swl.log_analysis.phd2 and swl.log_analysis.phd2.stats %}
+                                    <span class="guiding-rms-mini">{{ '%.2f' % swl.log_analysis.phd2.stats.total_rms_as }}"</span>
+                                {% endif %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>Rig:</strong> {{ s.rig_name_snapshot or s.telescope_setup_notes or '-' }}<br>
+                            <strong>Notes:</strong> {{ s.notes | striptags | truncate(100) }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -262,11 +741,307 @@
             </table>
         </div>
 
-        <div id="appended-session-reports"></div>
+        <!-- Session Log Analysis (one section per session with logs) -->
+        {% for swl in sessions_with_logs %}
+        {% if swl.log_analysis.has_logs %}
+        <div class="session-log-section">
+            <div class="session-log-header">
+                <span class="session-date">{{ swl.session.date_utc | date_eu }}</span>
+                {% if swl.log_analysis.asiair %}<span class="log-badge">ASIAIR</span>{% endif %}
+                {% if swl.log_analysis.phd2 %}<span class="log-badge phd2">PHD2</span>{% endif %}
+            </div>
 
-        <!-- Footer - Clean Minimal -->
-        <div class="footer" style="margin-top: 30px; padding-top: 12px; border-top: 0.5pt solid var(--border-light); text-align: center; font-size: 10px; color: var(--text-muted);">
-            Generated by Nova DSO Tracker on {{ today_date }}
+            <!-- Stats Grid -->
+            <div class="log-stats-grid">
+                {% if swl.log_analysis.phd2 and swl.log_analysis.phd2.stats %}
+                <div class="log-stat-card">
+                    <span class="log-stat-value hero">{{ '%.2f' % swl.log_analysis.phd2.stats.total_rms_as }}"</span>
+                    <span class="log-stat-label">Total RMS</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">{{ swl.log_analysis.phd2.stats.total_frames }}</span>
+                    <span class="log-stat-label">Frames</span>
+                </div>
+                {% else %}
+                <div class="log-stat-card">
+                    <span class="log-stat-value">-</span>
+                    <span class="log-stat-label">Total RMS</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">-</span>
+                    <span class="log-stat-label">Frames</span>
+                </div>
+                {% endif %}
+                {% if swl.log_analysis.asiair and swl.log_analysis.asiair.stats %}
+                <div class="log-stat-card">
+                    <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.total_exposures }}</span>
+                    <span class="log-stat-label">Exposures</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.af_count }}</span>
+                    <span class="log-stat-label">AutoFocus</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.dither_count }}</span>
+                    <span class="log-stat-label">Dithers</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.meridian_flip_count }}</span>
+                    <span class="log-stat-label">Flips</span>
+                </div>
+                {% else %}
+                <div class="log-stat-card">
+                    <span class="log-stat-value">-</span>
+                    <span class="log-stat-label">Exposures</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">-</span>
+                    <span class="log-stat-label">AutoFocus</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">-</span>
+                    <span class="log-stat-label">Dithers</span>
+                </div>
+                <div class="log-stat-card">
+                    <span class="log-stat-value">-</span>
+                    <span class="log-stat-label">Flips</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- PHD2 Guiding -->
+            {% if swl.log_analysis.phd2 and swl.log_analysis.phd2.stats %}
+            <div class="log-subsection">
+                <div class="log-subsection-title">PHD2 Guiding Performance</div>
+                <div class="guiding-cards-mini">
+                    <div class="guiding-card-mini">
+                        <div class="guiding-card-mini-label">Imaging RMS</div>
+                        <div class="guiding-card-mini-value">
+                            {% if swl.log_analysis.phd2.stats.imaging %}
+                                {{ '%.2f' % swl.log_analysis.phd2.stats.imaging.total_rms_as }}"
+                            {% else %}
+                                {{ '%.2f' % swl.log_analysis.phd2.stats.total_rms_as }}"
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="guiding-card-mini">
+                        <div class="guiding-card-mini-label">All Frames RMS</div>
+                        <div class="guiding-card-mini-value">{{ '%.2f' % swl.log_analysis.phd2.stats.total_rms_as }}"</div>
+                    </div>
+                </div>
+
+                {% if swl.chart_images.guiding_rms %}
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ swl.chart_images.guiding_rms }}" alt="Guiding RMS">
+                </div>
+                {% endif %}
+
+                {% if swl.chart_images.guiding_scatter %}
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ swl.chart_images.guiding_scatter }}" alt="Guide Pulse">
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- ASIAIR AutoFocus -->
+            {% if swl.log_analysis.asiair and swl.log_analysis.asiair.af_runs %}
+            <div class="log-subsection">
+                <div class="log-subsection-title">AutoFocus Runs</div>
+                <table class="data-table-mini">
+                    <thead>
+                        <tr>
+                            <th>Run</th>
+                            <th>Time</th>
+                            <th>Focus Pos</th>
+                            <th>Temp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for af in swl.log_analysis.asiair.af_runs %}
+                        <tr>
+                            <td>{{ af.run }}</td>
+                            <td>{{ '%.1f' % af.h }}h</td>
+                            <td>{{ af.focus_pos or '-' }}</td>
+                            <td>{{ '%.1f' % af.temp if af.temp else '-' }}&deg;C</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% if swl.chart_images.af_vcurve %}
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ swl.chart_images.af_vcurve }}" alt="V-Curves">
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Dither Events -->
+            {% if swl.log_analysis.asiair and swl.log_analysis.asiair.dithers %}
+            <div class="log-subsection">
+                <div class="log-subsection-title">Dither Events</div>
+                {% if swl.chart_images.dither_settle %}
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ swl.chart_images.dither_settle }}" alt="Dither Settle">
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Autocenter -->
+            {% if swl.log_analysis.asiair and swl.log_analysis.asiair.autocenters %}
+            <div class="log-subsection">
+                <div class="log-subsection-title">Autocenter Results</div>
+                {% if swl.chart_images.autocenter %}
+                <div class="chart-container">
+                    <img src="data:image/png;base64,{{ swl.chart_images.autocenter }}" alt="Autocenter">
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Session Appendix Pages (one per session) -->
+        {% for swl in sessions_with_logs %}
+        {% set s = swl.session %}
+        <div class="session-appendix">
+            <div class="appendix-header">
+                <div class="appendix-title">Session: {{ s.date_utc | date_eu }}</div>
+                <div class="appendix-date">{{ s.location_name or 'Location not specified' }}</div>
+            </div>
+
+            <div class="content-columns">
+                <div class="left-column">
+                    <div class="section-label" style="margin-top: 0;">Session Image</div>
+                    <div class="image-container">
+                        {% if s.session_image_file %}
+                            {% set username = "default" if SINGLE_USER_MODE else current_user.username %}
+                            <img src="{{ url_for('core.get_uploaded_image', username=username, filename=s.session_image_file, _external=True) }}" alt="Session Image">
+                        {% else %}
+                            <div style="color: var(--text-faint); padding: 30px;">[No Image]</div>
+                        {% endif %}
+                        <div class="image-caption">Integration: {{ (s.calculated_integration_time_minutes or 0) // 60 }}h {{ (s.calculated_integration_time_minutes or 0) % 60 }}m</div>
+                    </div>
+
+                    <div class="section-label">Notes</div>
+                    <div class="notes-container">
+                        {{ s.notes | sanitize_html | safe | default('-') }}
+                    </div>
+                </div>
+
+                <div class="right-column">
+                    <div class="section-label" style="margin-top: 0;">Statistics</div>
+                    <div class="stat-pairs">
+                        <div class="stat-row">
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Integration</div>
+                                <div class="stat-cell-value">{{ (s.calculated_integration_time_minutes or 0) // 60 }}h {{ (s.calculated_integration_time_minutes or 0) % 60 }}m</div>
+                            </div>
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Rating</div>
+                                <div class="stat-cell-value rating-stars">{{ s.session_rating_subjective or '-' }}{% if s.session_rating_subjective %}★{% endif %}</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Seeing</div>
+                                <div class="stat-cell-value">{{ display_value(s.seeing_observed_fwhm) }}{% if s.seeing_observed_fwhm %}"{% endif %}</div>
+                            </div>
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Guiding RMS</div>
+                                <div class="stat-cell-value">{{ display_value(s.guiding_rms_avg_arcsec) }}{% if s.guiding_rms_avg_arcsec %}"{% endif %}</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Moon</div>
+                                <div class="stat-cell-value">{{ display_value(s.moon_illumination_session) }}% / {{ display_value(s.moon_angular_separation_session) }}&deg;</div>
+                            </div>
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">SQM</div>
+                                <div class="stat-cell-value">{{ display_value(s.sky_sqm_observed) }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Equipment</div>
+                    <div class="stat-pairs">
+                        {% if s.rig_name_snapshot %}
+                        <div class="stat-row">
+                            <div class="stat-cell" style="grid-column: span 2;">
+                                <div class="stat-cell-label">Rig</div>
+                                <div class="stat-cell-value">{{ s.rig_name_snapshot }}</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="stat-row">
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Telescope</div>
+                                <div class="stat-cell-value">{{ display_value(s.telescope_name_snapshot) }}</div>
+                            </div>
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Camera</div>
+                                <div class="stat-cell-value">{{ display_value(s.camera_name_snapshot) }}</div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Gain/Offset</div>
+                                <div class="stat-cell-value">{{ display_value(s.gain_setting) }} / {{ display_value(s.offset_setting) }}</div>
+                            </div>
+                            <div class="stat-cell">
+                                <div class="stat-cell-label">Temp</div>
+                                <div class="stat-cell-value">{{ display_value(s.camera_temp_setpoint_c) }}&deg;C</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-label">Exposures</div>
+                    <table class="data-table-mini">
+                        <thead>
+                            <tr>
+                                <th>Filter</th>
+                                <th>Subs</th>
+                                <th>Exp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if s.number_of_subs_light %}
+                            <tr>
+                                <td>{{ s.filter_used_session or '-' }}</td>
+                                <td>{{ s.number_of_subs_light }}</td>
+                                <td>{{ s.exposure_time_per_sub_sec }}s</td>
+                            </tr>
+                            {% endif %}
+                            {% set mono_filters = [('L', 'L'), ('R', 'R'), ('G', 'G'), ('B', 'B'), ('Ha', 'Ha'), ('OIII', 'OIII'), ('SII', 'SII')] %}
+                            {% for key, name in mono_filters %}
+                                {% if s['filter_' ~ key ~ '_subs'] %}
+                                <tr>
+                                    <td>{{ name }}</td>
+                                    <td>{{ s['filter_' + key + '_subs'] }}</td>
+                                    <td>{{ s['filter_' + key + '_exposure_sec'] }}s</td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                            {% if not s.number_of_subs_light and not s.filter_L_subs %}
+                            <tr>
+                                <td colspan="3" class="text-center">-</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Report Footer -->
+        <div class="report-footer">
+            <div class="footer-left">Generated by <span class="nova-name">Nova DSO Tracker</span></div>
+            <div class="footer-right">{{ today_date }}</div>
         </div>
     </div>
 </body>

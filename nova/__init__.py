@@ -127,6 +127,7 @@ from nova.helpers import (
     get_imaging_criteria, _HAS_FCNTL,
     save_log_to_filesystem, read_log_content
 )
+from nova.report_graphs import generate_session_charts
 from nova.workers.weather import weather_cache_worker
 from nova.workers.updates import check_for_updates
 from nova.workers.heatmap import heatmap_background_worker
@@ -6738,6 +6739,8 @@ def show_journal_report_page(session_id):
     """
     Renders the HTML version of the report page.
     """
+    from nova.log_parser import parse_asiair_log, parse_phd2_log
+
     db = get_db()
     try:
         # --- 1. Get Session Data ---
@@ -6748,7 +6751,7 @@ def show_journal_report_page(session_id):
 
         session_dict = {c.name: getattr(session, c.name) for c in session.__table__.columns}
 
-        project = None  # <--- ADD THIS LINE
+        project = None
         project_name = "Standalone Session"
 
         if session.project_id:
@@ -6756,13 +6759,11 @@ def show_journal_report_page(session_id):
             if project:
                 project_name = project.name
 
-        # --- 2. Get Related Data (FIXED: Fetch from DB) ---
-        # Try to find the object in the user's database first
+        # --- 2. Get Related Data ---
         obj_record = db.query(AstroObject).filter_by(user_id=g.db_user.id,
                                                      object_name=session.object_name).one_or_none()
 
         if obj_record:
-            # Use the database record (contains your custom Common Name, Type, etc.)
             object_details = {
                 'Object': obj_record.object_name,
                 'Common Name': obj_record.common_name or obj_record.object_name,
@@ -6770,15 +6771,8 @@ def show_journal_report_page(session_id):
                 'Constellation': obj_record.constellation or 'N/A'
             }
         else:
-            # Fallback if object not in DB (e.g. deleted)
             object_details = get_ra_dec(session.object_name) or {'Common Name': session.object_name,
                                                                  'Object': session.object_name}
-
-        project_name = "Standalone Session"
-        if session.project_id:
-            project = db.query(Project).filter_by(id=session.project_id).one_or_none()
-            if project:
-                project_name = project.name
 
         # --- 3. Prepare Template Variables ---
         rating = session_dict.get('session_rating_subjective') or 0
@@ -6788,38 +6782,24 @@ def show_journal_report_page(session_id):
         integ_str = f"{integ_min // 60}h {integ_min % 60:.0f}m" if integ_min > 0 else "N/A"
 
         image_url = None
-        image_source_label = "Session Image"  # Default label
+        image_source_label = "Session Image"
 
         username = "default" if SINGLE_USER_MODE else current_user.username
 
-        # 1. Try Session Image
+        # Try Session Image
         if session_dict.get('session_image_file'):
             image_url = url_for('core.get_uploaded_image', username=username, filename=session_dict['session_image_file'],
                                 _external=True)
             image_source_label = "Session Result / Preview"
 
-        # 2. Fallback to Project Image (if session image is missing)
+        # Fallback to Project Image
         elif project and project.final_image_file:
             image_url = url_for('core.get_uploaded_image', username=username, filename=project.final_image_file,
                                 _external=True)
             image_source_label = "Project Context (Final Image)"
 
-        # [DELETED THE DUPLICATE LOGIC BLOCK HERE]
-
-        logo_url = None
-
-        if session_dict.get('session_image_file'):
-            username = "default" if SINGLE_USER_MODE else current_user.username
-            image_url = url_for('core.get_uploaded_image', username=username, filename=session_dict['session_image_file'],
-                                _external=True)
-
-        logo_url = None
-        try:
-            logo_path = os.path.join(app.static_folder, 'nova_logo.png')
-            if os.path.exists(logo_path):
-                logo_url = url_for('static', filename='nova_logo.png', _external=True)
-        except Exception:
-            pass
+        # Logo
+        logo_url = url_for('static', filename='nova-icon-transparent.png', _external=True)
 
         # Sanitize notes
         raw_journal_notes = session_dict.get('notes') or ""
@@ -6835,6 +6815,41 @@ def show_journal_report_page(session_id):
                                            css_sanitizer=css_sanitizer)
         session_dict['notes'] = sanitized_notes
 
+        # --- 4. Parse Log Files and Generate Charts ---
+        log_analysis = {'has_logs': False, 'asiair': None, 'phd2': None}
+        chart_images = {
+            'guiding_rms': None,
+            'guiding_scatter': None,
+            'dither_settle': None,
+            'af_vcurve': None,
+            'af_drift': None,
+            'autocenter': None
+        }
+
+        try:
+            # Read ASIAIR log
+            asiair_content = read_log_content(session_dict.get('asiair_log_content'))
+            asiair_data = parse_asiair_log(asiair_content) if asiair_content else None
+
+            # Read PHD2 log
+            phd2_content = read_log_content(session_dict.get('phd2_log_content'))
+            phd2_data = parse_phd2_log(phd2_content) if phd2_content else None
+
+            # Check if we have any log data
+            has_logs = bool(asiair_data and asiair_data.get('exposures')) or bool(phd2_data and phd2_data.get('frames'))
+
+            if has_logs:
+                log_analysis = {
+                    'has_logs': True,
+                    'asiair': asiair_data,
+                    'phd2': phd2_data
+                }
+                # Generate all charts
+                chart_images = generate_session_charts(log_analysis)
+        except Exception as log_error:
+            print(f"[report] Error parsing logs for session {session_id}: {log_error}")
+            traceback.print_exc()
+
         return render_template(
             'journal_report.html',
             session=session_dict,
@@ -6845,7 +6860,9 @@ def show_journal_report_page(session_id):
             image_url=image_url,
             image_source_label=image_source_label,
             logo_url=logo_url,
-            today_date=datetime.now().strftime('%d.%m.%Y')
+            today_date=datetime.now().strftime('%d.%m.%Y'),
+            log_analysis=log_analysis,
+            chart_images=chart_images
         )
 
     except Exception as e:
@@ -10599,6 +10616,8 @@ def get_imaging_opportunities(object_name):
 @projects_bp.route('/project/report_page/<string:project_id>')
 @login_required
 def show_project_report_page(project_id):
+    from nova.log_parser import parse_asiair_log, parse_phd2_log
+
     db = get_db()
     # 1. Fetch Project
     project = db.query(Project).filter_by(id=project_id, user_id=g.db_user.id).one_or_none()
@@ -10625,15 +10644,73 @@ def show_project_report_page(project_id):
         project_image_url = url_for('core.get_uploaded_image', username=username, filename=project.final_image_file,
                                     _external=True)
 
+    # 5. Parse Logs for Each Session and Build sessions_with_logs
+    sessions_with_logs = []
+    for s in sessions:
+        session_dict = {c.name: getattr(s, c.name) for c in s.__table__.columns}
+
+        # Parse logs for this session
+        log_analysis = {'has_logs': False, 'asiair': None, 'phd2': None}
+        chart_images = {
+            'guiding_rms': None,
+            'guiding_scatter': None,
+            'dither_settle': None,
+            'af_vcurve': None,
+            'af_drift': None,
+            'autocenter': None
+        }
+
+        try:
+            asiair_content = read_log_content(session_dict.get('asiair_log_content'))
+            asiair_data = parse_asiair_log(asiair_content) if asiair_content else None
+
+            phd2_content = read_log_content(session_dict.get('phd2_log_content'))
+            phd2_data = parse_phd2_log(phd2_content) if phd2_content else None
+
+            has_logs = bool(asiair_data and asiair_data.get('exposures')) or bool(phd2_data and phd2_data.get('frames'))
+
+            if has_logs:
+                log_analysis = {
+                    'has_logs': True,
+                    'asiair': asiair_data,
+                    'phd2': phd2_data
+                }
+                chart_images = generate_session_charts(log_analysis)
+        except Exception as log_error:
+            print(f"[project_report] Error parsing logs for session {s.id}: {log_error}")
+
+        # Sanitize notes
+        raw_notes = session_dict.get('notes') or ""
+        if not raw_notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>")):
+            escaped_text = bleach.clean(raw_notes, tags=[], strip=True)
+            session_dict['notes'] = escaped_text.replace("\n", "<br>")
+        else:
+            SAFE_TAGS = ['p', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'div', 'img', 'a', 'figure', 'figcaption', 'span']
+            SAFE_ATTRS = {'img': ['src', 'alt', 'width', 'height', 'style'], 'a': ['href'], '*': ['style', 'class']}
+            SAFE_CSS = ['text-align', 'width', 'height', 'max-width', 'float', 'margin', 'margin-left', 'margin-right']
+            css_sanitizer = CSSSanitizer(allowed_css_properties=SAFE_CSS)
+            session_dict['notes'] = bleach.clean(raw_notes, tags=SAFE_TAGS, attributes=SAFE_ATTRS, css_sanitizer=css_sanitizer)
+
+        sessions_with_logs.append({
+            'session': session_dict,
+            'log_analysis': log_analysis,
+            'chart_images': chart_images
+        })
+
+    # 6. Logo URL
+    logo_url = url_for('static', filename='nova-icon-transparent.png', _external=True)
+
     return render_template(
         'project_report.html',
         project=project,
         sessions=sessions,
+        sessions_with_logs=sessions_with_logs,
         total_integration=total_integration,
         session_count=len(sessions),
         first_date=first_date,
         last_date=last_date,
         project_image_url=project_image_url,
+        logo_url=logo_url,
         today_date=datetime.now().strftime('%d.%m.%Y')
     )
 
