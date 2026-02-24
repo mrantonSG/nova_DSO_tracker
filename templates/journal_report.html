@@ -581,21 +581,60 @@
                 width: 100%;
             }
 
+            /* === Compress spacing globally (~35% reduction) === */
+            .report-header { padding: 16px 24px; }
+            .title-block { padding: 18px 24px; }
+            .content-columns { padding: 0 24px; }
+            .left-column, .right-column { padding: 16px 16px 16px 0; }
+            .right-column { padding: 16px 0 16px 16px; }
+            .log-section { padding: 18px 24px; }
+            .section-label { margin-top: 12px; margin-bottom: 8px; padding-bottom: 6px; }
+            .stat-pairs, .info-box, .data-table { margin-bottom: 10px; }
+            .chart-container { margin: 10px 0 14px; }
+            .log-stats-grid { margin-bottom: 16px; gap: 6px; }
+            .log-stat-card { padding: 10px 6px 8px; }
+            .guiding-cards { margin-bottom: 14px; gap: 8px; }
+            .guiding-card { padding: 10px 12px; }
+            .log-subsection { margin-bottom: 18px; }
+
+            /* === Containment — never split these === */
             .log-section, .content-columns, .log-subsection,
             .chart-container, .stat-pairs, .timeline, .meta-grid,
-            .session-image-container, .notes-container {
+            .session-image-container, .notes-container,
+            .log-stats-grid, .log-stat-card, .guiding-cards, .guiding-card,
+            .data-table, .info-box, .info-row {
                 page-break-inside: avoid;
                 break-inside: avoid;
             }
 
-            h1, h2, h3, .section-label, .log-subsection-title {
+            /* === Headings stay with their content === */
+            h1, h2, h3, h4, .section-label, .log-subsection-title {
                 page-break-after: avoid;
                 break-after: avoid;
             }
 
+            /* === Intentional fresh pages (large sections only) === */
             .log-section {
                 page-break-before: always;
                 break-before: always;
+            }
+
+            /* === Cap image and chart height === */
+            .session-image-container img,
+            .notes-container img,
+            .image-placeholder,
+            .image-placeholder img {
+                max-height: 200px;
+            }
+            .chart-container img {
+                max-height: 240px;
+            }
+
+            /* === Orphan/widow control === */
+            .log-section, .content-columns, .log-subsection,
+            .stat-pairs, .timeline, .info-box {
+                orphans: 3;
+                widows: 3;
             }
 
             thead {

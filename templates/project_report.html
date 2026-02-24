@@ -581,17 +581,65 @@
                 margin-bottom: 0;
             }
 
+            /* === Compress spacing globally (~35% reduction) === */
+            .report-header { padding: 16px 24px; }
+            .project-title-block { padding: 18px 24px; }
+            .stats-row { padding: 16px 24px; gap: 10px; }
+            .stat-card { padding: 10px 16px; min-width: 100px; }
+            .master-image-container { padding: 16px 24px; }
+            .section { padding: 14px 24px; }
+            .session-log-section { padding: 14px 24px; }
+            .section-label { margin-top: 10px; margin-bottom: 8px; padding-bottom: 6px; }
+            .log-stats-grid { margin-bottom: 14px; gap: 6px; }
+            .log-stat-card { padding: 8px 4px 6px; }
+            .guiding-cards-mini { margin-bottom: 12px; gap: 8px; }
+            .guiding-card-mini { padding: 8px 10px; }
+            .log-subsection { margin-bottom: 14px; }
+            .appendix-header { padding: 14px 24px; }
+            .content-columns { padding: 0 24px; }
+            .left-column, .right-column { padding: 14px 14px 14px 0; }
+            .right-column { padding: 14px 0 14px 14px; }
+
+            /* === Issue 1: Session log blocks on new pages === */
+            .session-log-section {
+                page-break-before: always;
+                break-before: always;
+            }
+
+            /* First session log block should not break before main content */
+            .session-log-section:first-of-type {
+                page-break-before: avoid;
+                break-before: avoid;
+            }
+
+            /* === Containment — never split these === */
             .session-log-section, .content-columns, .log-subsection,
-            .chart-container, .stat-pairs, .session-appendix {
+            .chart-container, .stat-pairs, .session-appendix,
+            .log-stats-grid, .log-stat-card, .guiding-cards-mini, .guiding-card-mini,
+            .data-table-mini, .image-container, .notes-container,
+            .stat-card, .chronicles-table tbody tr {
                 page-break-inside: avoid;
                 break-inside: avoid;
             }
 
-            h1, h2, h3, .section-label, .log-subsection-title, .appendix-title {
+            /* === Issue 2: Orphaned labels stay with charts === */
+            .log-subsection-title {
                 page-break-after: avoid;
                 break-after: avoid;
             }
 
+            .log-subsection {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            /* === Headings stay with their content === */
+            h1, h2, h3, h4, .section-label, .log-subsection-title, .appendix-title {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            /* === Intentional fresh pages (large sections only) === */
             .session-appendix {
                 page-break-before: always;
                 break-before: always;
@@ -600,6 +648,50 @@
             .session-appendix:last-child {
                 page-break-after: avoid;
                 break-after: avoid;
+            }
+
+            /* === Issue 3: Cap images in notes sections === */
+            .notes-text img,
+            .session-notes img,
+            [class*="notes"] img {
+                max-height: 180px;
+                width: auto;
+                max-width: 100%;
+                object-fit: contain;
+            }
+
+            .image-placeholder:empty,
+            .image-placeholder.no-image {
+                display: none;
+            }
+
+            /* === Cap image and chart height === */
+            .image-container img,
+            .master-image-container img,
+            .notes-container img,
+            .image-placeholder,
+            .image-placeholder img {
+                max-height: 200px;
+            }
+            .chart-container img {
+                max-height: 240px;
+            }
+
+            /* === Issue 4: Session appendices two-column layout === */
+            .content-columns {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            .left-column {
+                border-right: 1px solid #e5e2dc !important;
+            }
+
+            /* === Orphan/widow control === */
+            .session-log-section, .content-columns, .log-subsection,
+            .stat-pairs, .section {
+                orphans: 3;
+                widows: 3;
             }
 
             thead {
@@ -625,8 +717,8 @@
                 {{ value }}
             {% else -%}
                 -
-            {% endif -}
-        {% endmacro -%}
+            {% endif -%}
+        {%- endmacro %}
 
         <!-- Report Header -->
         <div class="report-header">
