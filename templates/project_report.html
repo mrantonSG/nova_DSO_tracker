@@ -125,25 +125,44 @@
         }
 
         .stat-card {
-            background: var(--bg-tertiary);
+            flex: 1;
+            background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            padding: 16px 24px;
+            border-left: 3px solid var(--primary-color);
+            border-radius: 0 10px 10px 0;
+            padding: 20px 24px;
             text-align: center;
+            box-shadow: var(--shadow-md);
             min-width: 140px;
         }
 
         .stat-card-value {
             font-family: var(--font-mono);
-            font-size: 18px;
+            font-size: 28px;
             font-weight: 600;
             color: var(--primary-color);
             display: block;
             margin-bottom: 4px;
         }
 
+        .stat-card-date-range .stat-card-value {
+            font-size: 20px;
+        }
+
+        .stat-card-value-range {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-family: var(--font-mono);
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
         .stat-card-label {
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.09em;
@@ -758,8 +777,11 @@
                 <span class="stat-card-value">{{ session_count }}</span>
                 <span class="stat-card-label">Total Sessions</span>
             </div>
-            <div class="stat-card">
-                <span class="stat-card-value">{{ first_date }} - {{ last_date }}</span>
+            <div class="stat-card stat-card-date-range">
+                <div class="stat-card-value-range">
+                    <span>{{ first_date }}</span>
+                    <span>{{ last_date }}</span>
+                </div>
                 <span class="stat-card-label">Date Range</span>
             </div>
         </div>
