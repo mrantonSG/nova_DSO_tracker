@@ -19,6 +19,9 @@ def heatmap_background_worker(app):
     Background thread that gently checks for stale heatmap caches (older than 24h)
     and regenerates them chunk-by-chunk without blocking the CPU.
     """
+    # Ensure cache directory exists
+    os.makedirs(CACHE_DIR, exist_ok=True)
+
     # Initial startup delay to let the app boot
     time.sleep(30)
 
