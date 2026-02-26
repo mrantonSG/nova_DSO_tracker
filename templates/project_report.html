@@ -182,8 +182,6 @@
             height: auto;
             max-height: 400px;
             object-fit: contain;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
         }
 
         /* Section */
@@ -629,12 +627,6 @@
             .left-column, .right-column { padding: 14px 14px 14px 0; }
             .right-column { padding: 14px 0 14px 14px; }
 
-            /* === Issue 1: Session log blocks on new pages === */
-            .session-log-section {
-                page-break-before: auto;
-                break-before: auto;
-            }
-
             /* === Containment — never split these === */
             .content-columns, .log-subsection,
             .chart-container, .stat-pairs, .session-appendix,
@@ -713,6 +705,7 @@
                 max-height: 380px;
                 height: auto;
                 width: 100%;
+                border: none !important;
             }
             .chart-container img {
                 max-height: 240px;
