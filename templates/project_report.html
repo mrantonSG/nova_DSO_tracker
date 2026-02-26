@@ -177,7 +177,9 @@
         }
 
         .master-image-container img {
+            width: 100%;
             max-width: 100%;
+            height: auto;
             max-height: 400px;
             object-fit: contain;
             border: 1px solid var(--border-color);
@@ -291,8 +293,6 @@
         .session-log-section {
             padding: 20px 36px;
             border-bottom: 1px solid var(--border-color);
-            page-break-inside: avoid;
-            break-inside: avoid;
         }
 
         .session-log-header {
@@ -440,6 +440,7 @@
 
         .chart-container img {
             width: 100%;
+            height: auto;
             display: block;
         }
 
@@ -630,18 +631,12 @@
 
             /* === Issue 1: Session log blocks on new pages === */
             .session-log-section {
-                page-break-before: always;
-                break-before: always;
-            }
-
-            /* First session log block should not break before main content */
-            .session-log-section:first-of-type {
-                page-break-before: avoid;
-                break-before: avoid;
+                page-break-before: auto;
+                break-before: auto;
             }
 
             /* === Containment — never split these === */
-            .session-log-section, .content-columns, .log-subsection,
+            .content-columns, .log-subsection,
             .chart-container, .stat-pairs, .session-appendix,
             .log-stats-grid, .log-stat-card, .guiding-cards-mini, .guiding-card-mini,
             .data-table-mini, .image-container, .notes-container,
@@ -683,9 +678,22 @@
             .session-notes img,
             [class*="notes"] img {
                 max-height: 180px;
+                height: auto;
                 width: auto;
                 max-width: 100%;
                 object-fit: contain;
+            }
+
+            /* === All images scale properly (combined for WeasyPrint) === */
+            img,
+            .chart-container img {
+                width: 100%;
+                height: auto;
+            }
+
+            /* Override notes-container min-height */
+            .notes-container {
+                min-height: 0;
             }
 
             .image-placeholder:empty,
@@ -695,14 +703,29 @@
 
             /* === Cap image and chart height === */
             .image-container img,
-            .master-image-container img,
             .notes-container img,
             .image-placeholder,
             .image-placeholder img {
                 max-height: 200px;
+                height: auto;
+            }
+            .master-image-container img {
+                max-height: 380px;
+                height: auto;
+                width: 100%;
             }
             .chart-container img {
                 max-height: 240px;
+                height: auto;
+                width: 100%;
+                object-fit: contain;
+            }
+
+            /* Chart container height override for PDF renderer */
+            .chart-container {
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: none !important;
             }
 
             /* === Issue 4: Session appendices two-column layout === */
@@ -718,8 +741,24 @@
             /* === Orphan/widow control === */
             .session-log-section, .content-columns, .log-subsection,
             .stat-pairs, .section {
-                orphans: 3;
-                widows: 3;
+                orphans: 1;
+                widows: 1;
+            }
+
+            /* === Reduce bottom spacing to prevent empty pages === */
+            .section {
+                padding-bottom: 10px;
+                margin-bottom: 0;
+            }
+            .session-log-section {
+                padding-bottom: 10px;
+                margin-bottom: 0;
+            }
+            .log-subsection {
+                margin-bottom: 10px;
+            }
+            .content-columns {
+                padding-bottom: 0;
             }
 
             thead {
