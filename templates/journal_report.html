@@ -598,7 +598,10 @@
             .log-subsection { margin-bottom: 18px; }
 
             /* === Containment — never split these === */
-            .log-section, .content-columns, .log-subsection,
+            /* Note: .content-columns removed — allow it to flow naturally across pages
+               to prevent premature page breaks that leave page 1 empty. Individual
+               elements inside (image, stats, notes) still have break-inside: avoid. */
+            .log-section, .log-subsection,
             .chart-container, .stat-pairs, .timeline, .meta-grid,
             .session-image-container, .notes-container,
             .log-stats-grid, .log-stat-card, .guiding-cards, .guiding-card,

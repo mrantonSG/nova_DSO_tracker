@@ -444,8 +444,7 @@
 
         /* Session Appendix */
         .session-appendix {
-            page-break-before: always;
-            break-before: always;
+            /* page-break handled in @media print */
         }
 
         .appendix-header {
@@ -628,7 +627,10 @@
             .right-column { padding: 14px 0 14px 14px; }
 
             /* === Containment — never split these === */
-            .content-columns, .log-subsection,
+            /* Note: .content-columns removed — allow it to flow naturally across pages
+               to prevent premature page breaks that leave page 1 empty. Individual
+               elements inside (image, stats, notes) still have break-inside: avoid. */
+            .log-subsection,
             .chart-container, .stat-pairs, .session-appendix,
             .log-stats-grid, .log-stat-card, .guiding-cards-mini, .guiding-card-mini,
             .data-table-mini, .image-container, .notes-container,
