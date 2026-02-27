@@ -132,6 +132,7 @@ from nova.workers.weather import weather_cache_worker
 from nova.workers.updates import check_for_updates
 from nova.workers.heatmap import heatmap_background_worker
 from nova.workers.iers import iers_refresh_worker
+from nova.analytics import record_event, record_login
 
 from nova.blueprints.core import core_bp
 from nova.blueprints.api import api_bp
@@ -804,6 +805,35 @@ def ensure_db_initialized_unified():
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_is_default ON locations(is_default);")
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_astro_objects_object_name ON astro_objects(object_name);")
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_rig_name ON rigs(rig_name);")
+
+            # --- Analytics Tables (GDPR-compliant, no PII) ---
+            # Create analytics_event table if it doesn't exist
+            analytics_event_exists = conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_event';"
+            ).fetchone()
+            if not analytics_event_exists:
+                conn.exec_driver_sql("""
+                    CREATE TABLE analytics_event (
+                        event_name VARCHAR(64) NOT NULL,
+                        date DATE NOT NULL,
+                        count INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY (event_name, date)
+                    );
+                """)
+                print("[DB PATCH] Created analytics_event table")
+
+            # Create analytics_login table if it doesn't exist
+            analytics_login_exists = conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_login';"
+            ).fetchone()
+            if not analytics_login_exists:
+                conn.exec_driver_sql("""
+                    CREATE TABLE analytics_login (
+                        date DATE PRIMARY KEY,
+                        login_count INTEGER NOT NULL DEFAULT 0
+                    );
+                """)
+                print("[DB PATCH] Created analytics_login table")
 
 # --- Ensure DB schema and patches are applied before any migration/backfill ---
 ensure_db_initialized_unified()
@@ -3648,6 +3678,7 @@ def api_parse_asiair_log():
             # Route to ASIAIR Parser (Default)
             report_html = _parse_asiair_log_content(content)
 
+        record_event('log_file_imported')
         return jsonify({"status": "success", "html": report_html})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -6118,6 +6149,7 @@ def journal_list_view():
             s.object_name  # Fallback to the object_name itself if not found
         )
 
+    record_event('journal_open')
     return render_template('journal_list.html', journal_sessions=sessions)
 
 @journal_bp.route('/journal/add', methods=['GET', 'POST'])
@@ -6312,6 +6344,7 @@ def journal_add():
             if asiair_content or phd2_content:
                 db.commit()
             flash("New journal entry added successfully!", "success")
+            record_event('journal_session_created')
             # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
             return redirect(url_for('core.graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
                                     location=new_session.location_name))
@@ -6548,6 +6581,7 @@ def journal_edit(session_id):
 
         db.commit()
         flash("Journal entry updated successfully!", "success")
+        record_event('journal_session_edited')
         # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
         return redirect(
             url_for('core.graph_dashboard', object_name=session_to_edit.object_name, session_id=session_id,
@@ -6850,6 +6884,7 @@ def show_journal_report_page(session_id):
             print(f"[report] Error parsing logs for session {session_id}: {log_error}")
             traceback.print_exc()
 
+        record_event('pdf_report_generated')
         return render_template(
             'journal_report.html',
             session=session_dict,
@@ -6977,6 +7012,7 @@ def login():
             user = db.session.scalar(db.select(User).where(User.username == username))
             if user and user.check_password(password):
                 login_user(user)
+                record_login()
                 session.modified = True  # Force session save before redirect
                 flash("Logged in successfully!", "success")
 
@@ -7029,6 +7065,7 @@ def sso_login():
 
         if user and user.is_active:
             login_user(user)  # Log the user in using Flask-Login
+            record_login()
             session.modified = True  # Force session save before redirect
             flash(f"Welcome back, {user.username}!", "success")
             return redirect(url_for('core.index'), code=303)
@@ -7999,6 +8036,7 @@ def fetch_object_details():
     try:
         fetched = nova_data_fetcher.get_astronomical_data(object_name)
 
+        record_event('simbad_lookup')
         # --- FIX: Convert NumPy types to native Python types before sending to browser ---
         clean_data = {
             "Type": convert_to_native_python(fetched.get("object_type")),
@@ -9185,6 +9223,7 @@ def index():
     # Get hiding preference (safe default False)
     hide_invisible_pref = g.user_config.get('hide_invisible', True)
 
+    record_event('dashboard_load')
     return render_template('index.html',
                            journal_sessions=sessions_for_template,
                            selected_day=observing_date_for_calcs.day,
@@ -9266,6 +9305,7 @@ def mobile_location():
 def mobile_add_object():
     """Renders the mobile 'Add Object' page."""
     load_full_astro_context()  # <-- ADD THIS LINE
+    record_event('mobile_view_accessed')
     return render_template('mobile_add_object.html')
 
 @mobile_bp.route('/m/outlook')
@@ -10492,6 +10532,7 @@ def graph_dashboard(object_name):
                                today_date=datetime.now().strftime('%Y-%m-%d'),
                                is_guest=g.is_guest
                                )
+        record_event('graph_view_open')
 
     except Exception as e:
         db.rollback()
@@ -10707,6 +10748,7 @@ def get_imaging_opportunities(object_name):
         })
 
     # Return success response
+    record_event('opportunities_calculated')
     return jsonify({"status": "success", "object": object_name, "alt_name": alt_name, "results": final_results})
 
 
@@ -10797,6 +10839,7 @@ def show_project_report_page(project_id):
     # 6. Logo URL
     logo_url = url_for('static', filename='nova-icon-transparent.png', _external=True)
 
+    record_event('pdf_report_generated')
     return render_template(
         'project_report.html',
         project=project,
@@ -11345,6 +11388,7 @@ def get_yearly_heatmap_chunk():
         return jsonify({"error": "Unauthorized"}), 401
     load_full_astro_context()
 
+    # NOTE: heatmap_viewed analytics removed - this is a chunk API called multiple times per page
     try:
         # 1. Parse Request Parameters
         chunk_idx = int(request.args.get('chunk_index', 0))  # 0 to 11 (Month index)
@@ -11527,6 +11571,102 @@ def get_yearly_heatmap_chunk():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
+# =============================================================================
+# ANALYTICS DASHBOARD ROUTE
+# =============================================================================
+@core_bp.route('/analytics')
+def analytics_dashboard():
+    """
+    Protected analytics dashboard showing feature usage and login activity.
+    Access requires a secret token from .env: ?secret=YOUR_TOKEN
+    """
+    secret = os.getenv('ANALYTICS_SECRET', '')
+    if not secret or request.args.get('secret') != secret:
+        abort(403)
+
+    from nova.models import AnalyticsEvent, AnalyticsLogin, DbUser
+    from sqlalchemy import select, func as sql_func
+
+    # Last 90 days of event data
+    today = date.today()
+    since = today - timedelta(days=90)
+    days_count = 90
+
+    session = SessionLocal()
+    try:
+        # Aggregate events: total count and active days per event name
+        stmt = select(
+            AnalyticsEvent.event_name,
+            sql_func.sum(AnalyticsEvent.count).label('total'),
+            sql_func.count(AnalyticsEvent.date).label('active_days')
+        ).where(
+            AnalyticsEvent.date >= since
+        ).group_by(
+            AnalyticsEvent.event_name
+        ).order_by(
+            sql_func.sum(AnalyticsEvent.count).desc()
+        )
+        events = session.execute(stmt).all()
+
+        # Login data for chart (90 days) - build a map for quick lookup
+        login_stmt = select(AnalyticsLogin).where(
+            AnalyticsLogin.date >= since
+        ).order_by(AnalyticsLogin.date)
+        login_rows = session.execute(login_stmt).scalars().all()
+
+        # Recurrence signal: days with at least 1 login in last 30 days
+        last_30 = today - timedelta(days=30)
+        active_stmt = select(sql_func.count()).select_from(AnalyticsLogin).where(
+            AnalyticsLogin.date >= last_30,
+            AnalyticsLogin.login_count > 0
+        )
+        active_days_30 = session.execute(active_stmt).scalar() or 0
+
+        # User registration stats from existing DbUser model
+        user_stmt = select(sql_func.count()).select_from(DbUser)
+        total_users = session.execute(user_stmt).scalar() or 0
+    finally:
+        session.close()
+
+    # Build a complete 90-day login series with zeros for missing days
+    login_map = {row.date: row.login_count for row in login_rows}
+    max_login = max(login_map.values()) if login_map else 1
+    login_series = []
+    for i in range(days_count):
+        day = since + timedelta(days=i)
+        count = login_map.get(day, 0)
+        height_pct = (count / max_login * 100) if max_login > 0 and count > 0 else 0
+        login_series.append({
+            'date_str': day.strftime('%Y-%m-%d'),
+            'count': count,
+            'height_pct': height_pct,
+            'has_data': count > 0
+        })
+
+    # Pre-compute total logins
+    total_logins = sum(login_map.values())
+
+    # Pre-format event data for template
+    events_formatted = []
+    for event in events:
+        events_formatted.append({
+            'event_name': event.event_name,
+            'total': event.total,
+            'total_formatted': "{:,}".format(event.total),
+            'active_days': event.active_days
+        })
+
+    return render_template('analytics.html',
+        events=events_formatted,
+        login_series=login_series,
+        active_days_30=active_days_30,
+        total_users=total_users,
+        total_logins=total_logins,
+        since_str=since.strftime('%b %d'),
+        today_str=today.strftime('%b %d'),
+        days_count=days_count
+    )
 
 
 if not SINGLE_USER_MODE:
@@ -12567,6 +12707,7 @@ def get_framing(object_name):
             object_name=object_name
         ).one_or_none()
 
+        record_event('framing_opened')
         if framing:
             # Helper: format mosaic columns if present
             return jsonify({

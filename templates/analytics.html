@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ user_theme_preference if user_theme_preference != 'follow_system' else '' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #83b4c5;
+            --primary-hover: #6a9eb0;
+            --primary-bg: #eaf4f8;
+            --bg-primary: #f2f0ed;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f7f5f2;
+            --border-color: #e5e2dc;
+            --border-light: #eeebe5;
+            --text-primary: #141414;
+            --text-secondary: #4a4a4a;
+            --text-muted: #888888;
+            --text-faint: #aaaaaa;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 2px 8px rgba(0,0,0,0.08);
+            --font-mono: 'DM Mono', 'Courier New', monospace;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #8ec8da;
+            --primary-bg: rgba(142,200,218,0.1);
+            --bg-primary: #0f1118;
+            --bg-secondary: #161b24;
+            --bg-tertiary: #1c2230;
+            --border-color: rgba(255,255,255,0.07);
+            --border-light: rgba(255,255,255,0.04);
+            --text-primary: rgba(255,255,255,0.92);
+            --text-secondary: rgba(255,255,255,0.55);
+            --text-muted: rgba(255,255,255,0.30);
+            --text-faint: rgba(255,255,255,0.18);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.30);
+            --shadow-md: 0 2px 8px rgba(0,0,0,0.40);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', 'Roboto', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 32px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .page-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .page-header .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+            margin-bottom: 16px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-mono);
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+            margin-top: 4px;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            margin-top: 16px;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 120px;
+            gap: 2px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .bar {
+            flex: 1;
+            min-width: 4px;
+            background: var(--primary-color);
+            border-radius: 2px 2px 0 0;
+            transition: opacity 0.2s;
+            position: relative;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+        }
+
+        .bar.empty {
+            background: var(--border-color);
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-faint);
+            margin-top: 4px;
+            padding: 0 4px;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            color: var(--text-faint);
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .data-table th:last-child {
+            text-align: right;
+        }
+
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .data-table td:last-child {
+            text-align: right;
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+
+        .data-table tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .event-name {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .mono {
+            font-family: var(--font-mono);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* No data state */
+        .no-data {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>Analytics Dashboard</h1>
+            <div class="subtitle">Anonymous usage insights — Last {{ days_count }} days</div>
+        </div>
+
+        <!-- Section 1: User Activity -->
+        <div class="card">
+            <div class="card-title">User Activity</div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value">{{ total_users }}</div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">{{ active_days_30 }} / 30</div>
+                    <div class="stat-label">Active Login Days</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">{{ total_logins }}</div>
+                    <div class="stat-label">Total Logins</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Daily Logins (90 days)</div>
+                {% if login_series %}
+                <div class="bar-chart">
+                    {% for entry in login_series %}
+                        {% if entry.has_data %}
+                            <div class="bar" style="height: {{ entry.height_pct }}%;" title="{{ entry.date_str }}: {{ entry.count }} login(s)"></div>
+                        {% else %}
+                            <div class="bar empty" style="height: 2px;" title="{{ entry.date_str }}: 0 logins"></div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="chart-labels">
+                    <span>{{ since_str }}</span>
+                    <span>{{ today_str }}</span>
+                </div>
+                {% else %}
+                <div class="no-data">No login data available yet</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Section 2: Feature Usage -->
+        <div class="card">
+            <div class="card-title">Feature Usage</div>
+
+            {% if events %}
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th style="text-align: right;">Total Uses</th>
+                        <th style="text-align: right;">Active Days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in events %}
+                    <tr>
+                        <td><span class="event-name">{{ event.event_name }}</span></td>
+                        <td class="mono">{{ event.total_formatted }}</td>
+                        <td class="mono">{{ event.active_days }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-data">No feature usage data available yet</div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            Nova DSO Tracker Analytics — GDPR compliant, no PII stored
+        </div>
+    </div>
+</body>
+</html>

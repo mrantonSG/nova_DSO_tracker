@@ -337,3 +337,19 @@ class UiPref(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     json_blob = Column(Text, nullable=True)
     user = relationship("DbUser", back_populates="ui_prefs")
+
+
+# --- ANALYTICS MODELS (GDPR-compliant, no PII) ---
+class AnalyticsEvent(Base):
+    """Anonymous feature usage tracking. No user identifiers stored."""
+    __tablename__ = 'analytics_event'
+    event_name = Column(String(64), primary_key=True)
+    date = Column(Date, primary_key=True)
+    count = Column(Integer, nullable=False, default=0)
+
+
+class AnalyticsLogin(Base):
+    """Anonymous login activity tracking. No user identifiers stored."""
+    __tablename__ = 'analytics_login'
+    date = Column(Date, primary_key=True)
+    login_count = Column(Integer, nullable=False, default=0)
