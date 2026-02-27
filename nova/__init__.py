@@ -6977,6 +6977,7 @@ def login():
             user = db.session.scalar(db.select(User).where(User.username == username))
             if user and user.check_password(password):
                 login_user(user)
+                session.modified = True  # Force session save before redirect
                 flash("Logged in successfully!", "success")
 
                 # --- START: THIS IS THE CORRECTED LOGIC ---
@@ -6984,11 +6985,12 @@ def login():
                 next_page = request.form.get('next')
 
                 # Security check: Only redirect if 'next' is a relative path
+                # Use 303 redirect to ensure browser does a fresh GET with the new session cookie
                 if next_page and next_page.startswith('/'):
-                    return redirect(next_page)
+                    return redirect(next_page, code=303)
 
                 # Default redirect if 'next' is missing or invalid
-                return redirect(url_for('core.index'))
+                return redirect(url_for('core.index'), code=303)
                 # --- END OF CORRECTION ---
 
             else:
@@ -7027,8 +7029,9 @@ def sso_login():
 
         if user and user.is_active:
             login_user(user)  # Log the user in using Flask-Login
+            session.modified = True  # Force session save before redirect
             flash(f"Welcome back, {user.username}!", "success")
-            return redirect(url_for('core.index'))
+            return redirect(url_for('core.index'), code=303)
         else:
             flash(f"SSO Error: User '{username}' not found or is disabled in Nova.", "error")
             return redirect(url_for('core.login'))

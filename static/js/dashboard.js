@@ -1506,7 +1506,7 @@
         }
     
     function fetchLocations() {
-            fetch('/get_locations')
+            return fetch('/get_locations')
             .then(response => response.json())
             .then(data => {
                 let locationSelect = document.getElementById('location-select');
@@ -1536,21 +1536,18 @@
                     locationSelect.appendChild(option);
                 });
     
-                // --- ADD: Trigger initial data load AFTER setting the dropdown ---
-                // This ensures the first fetchData uses the correct location
-                // We call setLocation indirectly via the 'change' event if the value differs,
-                // otherwise directly trigger fetches if the value is already correct.
+                // Ensure dropdown matches the validated location
                  if (locationSelect.value !== initialLocation && initialLocation) {
-                     locationSelect.value = initialLocation; // Ensure dropdown matches
-                     // Manually trigger if needed, though initial fetches should handle it now
-                     // setLocation();
+                     locationSelect.value = initialLocation;
                  }
-                 // Initial fetches should happen in window.onload now, using the sessionStorage value implicitly
-                 // fetchData(); // No longer needed here, handled by window.onload
-                 // fetchSunEvents(); // No longer needed here, handled by window.onload
-    
+
+                 // Return validated location for chaining
+                 return initialLocation;
             })
-            .catch(error => console.error('Error fetching locations:', error));
+            .catch(error => {
+                console.error('Error fetching locations:', error);
+                return null;
+            });
         }
     
     function setLocation() {
@@ -2096,12 +2093,15 @@
             }
           }
           // --- END FIX ---
-    
+
           initializeSimulationMode();
-          fetchLocations();
-          fetchSunEvents();
-          fetchData();
-    
+          // Chain data fetches AFTER locations are loaded to ensure correct location value
+          // This prevents using stale guest-mode location from sessionStorage
+          fetchLocations().then(() => {
+              fetchSunEvents();
+              fetchData();
+          });
+
           // --- ADD THIS LINE: Fetch saved views ---
           populateSavedViewsDropdown(viewToApplyOnLoad);
           // --- END OF ADD ---
