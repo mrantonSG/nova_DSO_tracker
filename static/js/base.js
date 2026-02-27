@@ -162,6 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             window.novaState.fn.aboutModal = new window.novaState.fn.ModalController('about-modal', {
                 contentId: null,
+                displayStyle: 'flex',
                 visibleClass: 'is-visible',
                 closeOnBackdrop: true,
                 closeOnEscape: true,
@@ -306,6 +307,7 @@ function openAboutModal() {
         controller.open();
     } else {
         console.log('[base.js] Using DOM fallback for about modal');
+        modalElement.style.display = 'flex';
         modalElement.classList.add('is-visible');
     }
 }
