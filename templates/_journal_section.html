@@ -246,8 +246,26 @@
         background: var(--nova-surface, var(--bg-white));
     }
 
-    .detail-tabs-container { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border-medium-alt); }
-    .detail-tab-button { padding: 8px 16px; cursor: pointer; border: none; background-color: transparent; color: var(--text-secondary); border-bottom: 2px solid transparent; font-size: 15px; }
+    /* Detail tabs container - grows on zoom, scrolls before collision */
+    .detail-tabs-container {
+        display: flex;
+        min-height: 44px;
+        overflow-x: auto;
+        margin-bottom: 15px;
+        border-bottom: 1px solid var(--border-medium-alt);
+        align-items: stretch;
+    }
+    .detail-tab-button {
+        padding: 0 14px;
+        cursor: pointer;
+        border: none;
+        background-color: transparent;
+        color: var(--text-secondary);
+        border-bottom: 2px solid transparent;
+        font-size: 0.8125rem;  /* 13px at default zoom, scales with browser zoom */
+        white-space: nowrap;
+        flex-shrink: 0;  /* Prevent tabs from squishing */
+    }
     .detail-tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
     .detail-tab-content { display: none; }
     .detail-tab-content.active { display: block; } /* REVERT: Simple display for tab content */
