@@ -86,7 +86,7 @@ from modules import nova_data_fetcher
 # === DB: Unified SQLAlchemy setup ============================================
 from sqlalchemy import (
     create_engine, Column, Integer, Float, String, Boolean, Date,
-    ForeignKey, Text, UniqueConstraint
+    ForeignKey, Text, UniqueConstraint, and_, or_
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, scoped_session
 import bleach
@@ -8352,6 +8352,94 @@ def get_object_list():
     # Filter g.objects_list to return only enabled object names
     enabled_names = [o['Object'] for o in g.objects_list if o.get('enabled', True)]
     return jsonify({"objects": enabled_names})
+
+
+@api_bp.route('/api/journal/objects')
+@login_required
+def get_journal_objects():
+    """
+    Returns a list of all objects that have journal sessions with any imaging data,
+    sorted by most recent session date. Used by the journal object switcher.
+    Includes first_session_date and first_session_id for navigation.
+    """
+    db = get_db()
+    user_id = g.db_user.id
+
+    # Query all sessions with any imaging data (light subs > 0 OR calculated integration > 0)
+    # This captures sessions with mono filter data that don't use number_of_subs_light
+    sessions_with_data = db.query(
+        JournalSession.id,
+        JournalSession.object_name,
+        JournalSession.date_utc,
+        JournalSession.calculated_integration_time_minutes,
+        AstroObject.common_name,
+        AstroObject.id.label('astro_id')
+    ).outerjoin(
+        AstroObject,
+        and_(AstroObject.user_id == user_id, AstroObject.object_name == JournalSession.object_name)
+    ).filter(
+        JournalSession.user_id == user_id,
+        or_(
+            JournalSession.number_of_subs_light > 0,
+            JournalSession.calculated_integration_time_minutes > 0
+        )
+    ).order_by(
+        JournalSession.object_name,
+        JournalSession.date_utc.desc()
+    ).all()
+
+    # Aggregate by object_name
+    objects_map = {}
+    for session in sessions_with_data:
+        object_name = session.object_name
+        if not object_name:
+            continue
+
+        if object_name not in objects_map:
+            objects_map[object_name] = {
+                'id': session.astro_id,
+                'name': session.common_name or object_name,
+                'catalog_id': object_name,
+                'total_minutes': 0,
+                'last_session': None,
+                'first_session_date': None,
+                'first_session_id': None
+            }
+
+        # Accumulate integration time
+        if session.calculated_integration_time_minutes:
+            objects_map[object_name]['total_minutes'] += session.calculated_integration_time_minutes
+
+        # Track most recent session date (for sorting)
+        if session.date_utc:
+            if objects_map[object_name]['last_session'] is None or session.date_utc > objects_map[object_name]['last_session']:
+                objects_map[object_name]['last_session'] = session.date_utc
+
+        # Track first (oldest) session date and id (for navigation)
+        if session.date_utc:
+            if objects_map[object_name]['first_session_date'] is None or session.date_utc < objects_map[object_name]['first_session_date']:
+                objects_map[object_name]['first_session_date'] = session.date_utc
+                objects_map[object_name]['first_session_id'] = session.id
+
+    # Convert to list and sort by last_session DESC
+    result = []
+    for obj in objects_map.values():
+        total_hours = round(obj['total_minutes'] / 60.0, 1) if obj['total_minutes'] else 0.0
+        first_session_id = obj['first_session_id']
+        result.append({
+            'id': obj['id'],
+            'name': obj['name'],
+            'catalog_id': obj['catalog_id'],
+            'total_hours': total_hours,
+            'last_session': obj['last_session'].strftime('%Y-%m-%d') if obj['last_session'] else None,
+            'first_session_date': obj['first_session_date'].strftime('%Y-%m-%d') if obj['first_session_date'] else None,
+            'url': url_for('core.graph_dashboard', object_name=obj['catalog_id'], session_id=first_session_id, tab='journal', _external=False) if first_session_id else url_for('core.graph_dashboard', object_name=obj['catalog_id'], tab='journal', _external=False)
+        })
+
+    # Sort by last_session descending (most recent first)
+    result.sort(key=lambda x: x['last_session'] or '0000-00-00', reverse=True)
+
+    return jsonify(result)
 
 
 @api_bp.route('/api/bulk_update_objects', methods=['POST'])
