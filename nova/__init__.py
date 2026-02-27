@@ -106,7 +106,7 @@ import re
 from nova.models import (
     INSTANCE_PATH, DB_PATH, DB_URI, engine, SessionLocal, Base,
     DbUser, Project, SavedView, Location, SavedFraming, HorizonPoint,
-    AstroObject, Component, Rig, JournalSession, UiPref
+    AstroObject, Component, Rig, JournalSession, UiPref, UserCustomFilter
 )
 from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
@@ -805,6 +805,29 @@ def ensure_db_initialized_unified():
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_is_default ON locations(is_default);")
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_astro_objects_object_name ON astro_objects(object_name);")
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_rig_name ON rigs(rig_name);")
+
+            # --- User Custom Filters Table ---
+            user_custom_filters_exists = conn.exec_driver_sql(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='user_custom_filters';"
+            ).fetchone()
+            if not user_custom_filters_exists:
+                conn.exec_driver_sql("""
+                    CREATE TABLE user_custom_filters (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        filter_key TEXT NOT NULL,
+                        filter_label TEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, filter_key)
+                    );
+                """)
+                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_user_custom_filters_user_id ON user_custom_filters(user_id);")
+                print("[DB PATCH] Created user_custom_filters table")
+
+            # --- Custom Filter Data column on journal_sessions ---
+            if "custom_filter_data" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN custom_filter_data TEXT;")
+                print("[DB PATCH] Added missing column journal_sessions.custom_filter_data")
 
             # --- Analytics Tables (GDPR-compliant, no PII) ---
             # Create analytics_event table if it doesn't exist
@@ -1977,7 +2000,9 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "camera_name_snapshot": s.get("camera_name_snapshot"),
             "calculated_integration_time_minutes": _try_float(s.get("calculated_integration_time_minutes")),
             # Ensure external_id is stored as string if it exists
-            "external_id": str(ext_id) if ext_id else None
+            "external_id": str(ext_id) if ext_id else None,
+            # Custom filter data (JSON string for user-defined filters)
+            "custom_filter_data": s.get("custom_filter_data"),
         }
         # *** START: Simplified Upsert Logic ***
         if ext_id:
@@ -2003,6 +2028,17 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             new_session = JournalSession(**row_values)
             db.add(new_session)
         # *** END: Simplified Upsert Logic ***
+
+    # --- Import custom filter definitions ---
+    for cf_def in data.get('custom_mono_filters', []):
+        key = (cf_def.get('key') or '').strip()
+        label = (cf_def.get('label') or '').strip()
+        if not key or not label:
+            continue
+        if not db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=key).first():
+            db.add(UserCustomFilter(user_id=user.id, filter_key=key, filter_label=label))
+    db.flush()
+
 
 def _migrate_ui_prefs(db, user: DbUser, config: dict):
     """
@@ -2254,8 +2290,16 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
             "final_image_file": p.final_image_file
         })
 
+    # Custom filter definitions for this user
+    custom_filters_db = db.query(UserCustomFilter).filter_by(user_id=u.id).order_by(UserCustomFilter.created_at).all()
+    custom_filters_list = [
+        {'key': cf.filter_key, 'label': cf.filter_label}
+        for cf in custom_filters_db
+    ]
+
     jdoc = {
         "projects": projects_list,
+        "custom_mono_filters": custom_filters_list,
         "sessions": [
             {
                 "date": s.date_utc.isoformat(),
@@ -2317,6 +2361,9 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 "telescope_name_snapshot": s.telescope_name_snapshot,
                 "reducer_name_snapshot": s.reducer_name_snapshot,
                 "camera_name_snapshot": s.camera_name_snapshot,
+
+                # Custom filter data (JSON string for user-defined filters)
+                "custom_filter_data": s.custom_filter_data,
             } for s in sessions
         ]
     }
@@ -6288,15 +6335,32 @@ def journal_add():
                 camera_name_snapshot=camera_name_snap
             )
 
-            # ... (rest of session creation logic, file upload, etc.) ...
-            total_seconds = (new_session.number_of_subs_light or 0) * (new_session.exposure_time_per_sub_sec or 0) + \
-                            (new_session.filter_L_subs or 0) * (new_session.filter_L_exposure_sec or 0) + \
-                            (new_session.filter_R_subs or 0) * (new_session.filter_R_exposure_sec or 0) + \
-                            (new_session.filter_G_subs or 0) * (new_session.filter_G_exposure_sec or 0) + \
-                            (new_session.filter_B_subs or 0) * (new_session.filter_B_exposure_sec or 0) + \
-                            (new_session.filter_Ha_subs or 0) * (new_session.filter_Ha_exposure_sec or 0) + \
-                            (new_session.filter_OIII_subs or 0) * (new_session.filter_OIII_exposure_sec or 0) + \
-                            (new_session.filter_SII_subs or 0) * (new_session.filter_SII_exposure_sec or 0)
+            # --- Custom filter data (user-defined filters stored as JSON) ---
+            custom_data = {}
+            for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+                subs = request.form.get(f'filter_{cf.filter_key}_subs')
+                exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
+                if subs or exp:
+                    custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
+                    custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+            new_session.custom_filter_data = json.dumps(custom_data) if custom_data else None
+
+            # --- Total exposure calculation (fixed + custom filters) ---
+            FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+            total_seconds = 0
+
+            for fk in FIXED_FILTER_KEYS:
+                subs = getattr(new_session, f'filter_{fk}_subs', None) or 0
+                exp = getattr(new_session, f'filter_{fk}_exposure_sec', None) or 0
+                total_seconds += int(subs) * int(exp)
+
+            if new_session.custom_filter_data:
+                custom_data_parsed = json.loads(new_session.custom_filter_data)
+                for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+                    subs = custom_data_parsed.get(f'filter_{cf.filter_key}_subs') or 0
+                    exp = custom_data_parsed.get(f'filter_{cf.filter_key}_exposure_sec') or 0
+                    total_seconds += int(subs) * int(exp)
+
             new_session.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                     1) if total_seconds > 0 else None
 
@@ -6480,6 +6544,16 @@ def journal_edit(session_id):
         session_to_edit.camera_name_snapshot = camera_name_snap
         # --- END: Update Rig Snapshot Fields ---
 
+        # --- Custom filter data (user-defined filters stored as JSON) ---
+        custom_data = {}
+        for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+            subs = request.form.get(f'filter_{cf.filter_key}_subs')
+            exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
+            if subs or exp:
+                custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
+                custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+        session_to_edit.custom_filter_data = json.dumps(custom_data) if custom_data else None
+
         # Project logic
         project_id_for_session = None
         project_selection = request.form.get("project_selection")
@@ -6508,16 +6582,24 @@ def journal_edit(session_id):
 
         session_to_edit.project_id = project_id_for_session
 
-        # Integration time calculation
-        total_seconds = (session_to_edit.number_of_subs_light or 0) * (
-                session_to_edit.exposure_time_per_sub_sec or 0) + \
-                        (session_to_edit.filter_L_subs or 0) * (session_to_edit.filter_L_exposure_sec or 0) + \
-                        (session_to_edit.filter_R_subs or 0) * (session_to_edit.filter_R_exposure_sec or 0) + \
-                        (session_to_edit.filter_G_subs or 0) * (session_to_edit.filter_G_exposure_sec or 0) + \
-                        (session_to_edit.filter_B_subs or 0) * (session_to_edit.filter_B_exposure_sec or 0) + \
-                        (session_to_edit.filter_Ha_subs or 0) * (session_to_edit.filter_Ha_exposure_sec or 0) + \
-                        (session_to_edit.filter_OIII_subs or 0) * (session_to_edit.filter_OIII_exposure_sec or 0) + \
-                        (session_to_edit.filter_SII_subs or 0) * (session_to_edit.filter_SII_exposure_sec or 0)
+        # --- Total exposure calculation (fixed + custom filters) ---
+        FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+        total_seconds = 0
+
+        # Main light subs
+        total_seconds += (session_to_edit.number_of_subs_light or 0) * (session_to_edit.exposure_time_per_sub_sec or 0)
+
+        for fk in FIXED_FILTER_KEYS:
+            subs = getattr(session_to_edit, f'filter_{fk}_subs', None) or 0
+            exp = getattr(session_to_edit, f'filter_{fk}_exposure_sec', None) or 0
+            total_seconds += int(subs) * int(exp)
+
+        if session_to_edit.custom_filter_data:
+            custom_data_parsed = json.loads(session_to_edit.custom_filter_data)
+            for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+                subs = custom_data_parsed.get(f'filter_{cf.filter_key}_subs') or 0
+                exp = custom_data_parsed.get(f'filter_{cf.filter_key}_exposure_sec') or 0
+                total_seconds += int(subs) * int(exp)
 
         session_to_edit.calculated_integration_time_minutes = round(total_seconds / 60.0,
                                                                     1) if total_seconds > 0 else None
@@ -6742,6 +6824,51 @@ def journal_delete(session_id):
     else:
         flash("Journal entry not found or you do not have permission to delete it.", "error")
         return redirect(url_for('core.index'))
+
+
+# =============================================================================
+# Custom Filter API Routes
+# =============================================================================
+@core_bp.route('/api/journal/custom-filters', methods=['POST'])
+@login_required
+def add_custom_filter():
+    """Add a new custom filter definition for the current user."""
+    import re
+    data = request.get_json()
+    label = (data.get('label') or '').strip()[:64]
+    if not label:
+        return jsonify({'error': 'Label required'}), 400
+
+    slug = re.sub(r'[^a-z0-9]+', '_', label.lower()).strip('_')[:40]
+    filter_key = f'custom_{slug}'
+
+    db = get_db()
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    user = db.query(DbUser).filter_by(username=username).one()
+
+    if db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=filter_key).first():
+        return jsonify({'error': 'Filter already exists'}), 409
+
+    db.add(UserCustomFilter(user_id=user.id, filter_key=filter_key, filter_label=label))
+    db.commit()
+    return jsonify({'key': filter_key, 'label': label}), 201
+
+
+@core_bp.route('/api/journal/custom-filters/<filter_key>', methods=['DELETE'])
+@login_required
+def delete_custom_filter(filter_key):
+    """Delete a custom filter definition for the current user."""
+    db = get_db()
+    username = "default" if SINGLE_USER_MODE else current_user.username
+    user = db.query(DbUser).filter_by(username=username).one()
+
+    cf = db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=filter_key).first()
+    if not cf:
+        return jsonify({'error': 'Filter not found'}), 404
+    db.delete(cf)
+    db.commit()
+    return jsonify({'deleted': filter_key}), 200
+
 
 def _cleanup_orphan_projects(journal_data):
     """
@@ -10226,6 +10353,14 @@ def graph_dashboard(object_name):
                                                    css_sanitizer=css_sanitizer)
                 selected_session_data_dict['notes'] = sanitized_notes
 
+                # --- Parse custom_filter_data JSON for edit form and display ---
+                if selected_session_data_dict.get('custom_filter_data'):
+                    try:
+                        selected_session_data_dict['custom_filter_data_parsed'] = json.loads(
+                            selected_session_data_dict['custom_filter_data'])
+                    except (json.JSONDecodeError, TypeError):
+                        selected_session_data_dict['custom_filter_data_parsed'] = {}
+
                 if isinstance(selected_session_data_dict.get('date_utc'), (datetime, date)):
                     selected_session_data_dict['date_utc'] = selected_session_data_dict['date_utc'].isoformat()
                     if selected_session_data.date_utc:
@@ -10489,11 +10624,16 @@ def graph_dashboard(object_name):
             })
 
         # --- 9. Render Template ---
+        custom_filters_for_template = db.query(UserCustomFilter).filter_by(
+            user_id=user.id
+        ).order_by(UserCustomFilter.created_at).all()
+
         return render_template('graph_view.html',
                                object_name=object_name,
                                alt_name=object_main_details.get("Common Name", object_name),
                                object_main_details=object_main_details,
                                available_rigs=sorted_rigs,
+                               custom_mono_filters=custom_filters_for_template,
                                selected_day=effective_date_obj.day,
                                selected_month=effective_date_obj.month,
                                selected_year=effective_date_obj.year,

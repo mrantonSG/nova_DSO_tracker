@@ -341,9 +341,18 @@
         // Check Main
         addTime('number_of_subs_light', 'exposure_time_per_sub_sec', 'main');
 
-        // Check Mono Filters
+        // Check Mono Filters (fixed)
         ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'].forEach(k => {
             addTime(`filter_${k}_subs`, `filter_${k}_exposure_sec`, k);
+        });
+
+        // Check Custom Filters (dynamic)
+        const customRows = document.querySelectorAll('.custom-filter-row');
+        customRows.forEach(row => {
+            const key = row.dataset.filterKey;
+            if (key) {
+                addTime(`filter_${key}_subs`, `filter_${key}_exposure_sec`, key);
+            }
         });
 
         return usedSeconds;
@@ -388,13 +397,26 @@
         const mainExp = document.querySelector('input[name="exposure_time_per_sub_sec"]');
         if (mainExp) calculateMaxSubs(mainExp.value, 'max-subs-main', 'main');
 
-        // Mono Filters
+        // Mono Filters (fixed)
         const monoFilters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'];
         monoFilters.forEach(key => {
             const input = document.querySelector(`input[name="filter_${key}_exposure_sec"]`);
             if (input) calculateMaxSubs(input.value, `max-subs-${key}`, key);
         });
+
+        // Custom Filters (dynamic)
+        const customRows = document.querySelectorAll('.custom-filter-row');
+        customRows.forEach(row => {
+            const key = row.dataset.filterKey;
+            if (key) {
+                const input = row.querySelector(`input[name="filter_${key}_exposure_sec"]`);
+                if (input) calculateMaxSubs(input.value, `max-subs-${key}`, key);
+            }
+        });
     }
+
+    // Expose globally for inline scripts (e.g., custom filter add/remove)
+    window.triggerAllMaxSubsCalculations = triggerAllMaxSubsCalculations;
 
     function toggleNewProjectField() {
         const projectSelect = document.getElementById('project_selection');

@@ -1278,6 +1278,15 @@
                                 {% set has_mono_data.found = true %}
                             {% endif %}
                         {% endfor %}
+                        {# Also check custom filters #}
+                        {% if custom_mono_filters %}
+                          {% set custom_data_check = (entry.get('custom_filter_data_parsed') or {}) %}
+                          {% for cf in custom_mono_filters %}
+                            {% if custom_data_check.get('filter_' ~ cf.filter_key ~ '_subs') or custom_data_check.get('filter_' ~ cf.filter_key ~ '_exposure_sec') %}
+                                {% set has_mono_data.found = true %}
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
                         {% if has_mono_data.found %}
                             <div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div>
                             <dl class="detail-grid">
@@ -1288,6 +1297,17 @@
                                     {{ detail_row(filt_name ~ ' (' ~ filt_key ~ '):', display_safe_value(subs) ~ ' subs x ' ~ display_safe_value(exp) ~ 's') }}
                                 {% endif %}
                             {% endfor %}
+                            {# --- Custom User-Defined Filters --- #}
+                            {% if custom_mono_filters %}
+                              {% set custom_data = (entry.get('custom_filter_data_parsed') or {}) %}
+                              {% for cf in custom_mono_filters %}
+                                {% set subs = custom_data.get('filter_' ~ cf.filter_key ~ '_subs') %}
+                                {% set exp  = custom_data.get('filter_' ~ cf.filter_key ~ '_exposure_sec') %}
+                                {% if subs or exp %}
+                                    {{ detail_row(cf.filter_label ~ ':', display_safe_value(subs) ~ ' subs x ' ~ display_safe_value(exp) ~ 's') }}
+                                {% endif %}
+                              {% endfor %}
+                            {% endif %}
                             </dl>
                         {% endif %}
                     </div>
@@ -1729,6 +1749,49 @@
                         <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds" class="calc-trigger"></div>
                     </div>
                     {% endfor %}
+
+                    {# --- User-Defined Custom Filters --- #}
+                    <div id="custom-filter-rows">
+                    {% for cf in custom_mono_filters %}
+                    <div class="form-row custom-filter-row" data-filter-key="{{ cf.filter_key }}">
+                        <div class="form-group" style="flex:0 0 200px; align-self:center; display:flex; align-items:center; gap:8px;">
+                            <label style="margin-bottom:0;">{{ cf.filter_label }}:</label>
+                            <button type="button"
+                                    class="remove-custom-filter-btn"
+                                    data-filter-key="{{ cf.filter_key }}"
+                                    style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:13px; padding:2px 4px;"
+                                    title="Remove filter">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label># Subs <span id="max-subs-{{ cf.filter_key }}" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label>
+                            <input type="number"
+                                   name="filter_{{ cf.filter_key }}_subs"
+                                   min="0" step="1" placeholder="Count" class="calc-trigger"
+                                   value="{{ (selected_session_data_dict.get('custom_filter_data_parsed') or {}).get('filter_' ~ cf.filter_key ~ '_subs', '') if selected_session_data_dict else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Exp (sec/sub):</label>
+                            <input type="number"
+                                   name="filter_{{ cf.filter_key }}_exposure_sec"
+                                   min="0" step="1" placeholder="Seconds" class="calc-trigger"
+                                   value="{{ (selected_session_data_dict.get('custom_filter_data_parsed') or {}).get('filter_' ~ cf.filter_key ~ '_exposure_sec', '') if selected_session_data_dict else '' }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+                        <input type="text" id="custom-filter-name-input"
+                               placeholder="Filter name (e.g. NB-II)" maxlength="30"
+                               style="width:160px; padding:6px 10px; border:1px solid var(--border-medium);
+                                      border-radius:6px; font-size:12px; background:var(--bg-white); color:var(--text-primary);">
+                        <button type="button" id="add-custom-filter-btn"
+                                style="background:var(--primary-color); color:#fff; border:none;
+                                       padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                            + Add Filter
+                        </button>
+                        <span id="custom-filter-msg" style="font-size:12px; color:var(--text-secondary);"></span>
+                    </div>
                 </div>
                 <div id="form-outcome-tab">
                     <div class="form-section-title">Calibration Strategy</div>
@@ -2060,5 +2123,92 @@ document.addEventListener('click', function(e) {
             navigateToActive();
         }
     });
+})();
+
+{# --- Custom Filter Add/Remove JavaScript --- #}
+(function() {
+    const addBtn        = document.getElementById('add-custom-filter-btn');
+    const nameInput     = document.getElementById('custom-filter-name-input');
+    const rowsContainer = document.getElementById('custom-filter-rows');
+    const msg           = document.getElementById('custom-filter-msg');
+
+    function showMsg(text, isError) {
+        if (!msg) return;
+        msg.textContent  = text;
+        msg.style.color  = isError ? 'var(--danger-color)' : 'var(--success-color)';
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+
+    function buildRow(key, label) {
+        const row = document.createElement('div');
+        row.className        = 'form-row custom-filter-row';
+        row.dataset.filterKey = key;
+        row.innerHTML = `
+                <div class="form-group" style="flex:0 0 200px;align-self:center;display:flex;align-items:center;gap:8px;">
+                    <label style="margin-bottom:0;">${label}:</label>
+                    <button type="button" class="remove-custom-filter-btn"
+                            data-filter-key="${key}"
+                            style="background:none;border:none;color:var(--danger-color);cursor:pointer;font-size:13px;padding:2px 4px;"
+                            title="Remove filter">✕</button>
+                </div>
+                <div class="form-group">
+                    <label># Subs <span id="max-subs-${key}" style="font-weight:normal;color:var(--info-color);font-size:0.85em;"></span>:</label>
+                    <input type="number" name="filter_${key}_subs"
+                           min="0" step="1" placeholder="Count" class="calc-trigger">
+                </div>
+                <div class="form-group">
+                    <label>Exp (sec/sub):</label>
+                    <input type="number" name="filter_${key}_exposure_sec"
+                           min="0" step="1" placeholder="Seconds" class="calc-trigger">
+                </div>`;
+        return row;
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', async function() {
+            const label = (nameInput.value || '').trim();
+            if (!label) { showMsg('Enter a filter name.', true); return; }
+            addBtn.disabled = true;
+            try {
+                const res  = await fetch('/api/journal/custom-filters', {
+                    method:  'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body:    JSON.stringify({label})
+                });
+                const data = await res.json();
+                if (!res.ok) { showMsg(data.error || 'Error adding filter.', true); return; }
+                rowsContainer.appendChild(buildRow(data.key, data.label));
+                nameInput.value = '';
+                showMsg(`"${data.label}" added.`, false);
+                // Trigger max-subs calculation for the new row
+                if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+            } catch(e) {
+                showMsg('Network error.', true);
+            } finally {
+                addBtn.disabled = false;
+            }
+        });
+    }
+
+    if (rowsContainer) {
+        rowsContainer.addEventListener('click', async function(e) {
+            const btn = e.target.closest('.remove-custom-filter-btn');
+            if (!btn) return;
+            const key   = btn.dataset.filterKey;
+            const row   = btn.closest('.custom-filter-row');
+            const label = row.querySelector('label').textContent.replace(':', '').trim();
+            if (!confirm(`Remove "${label}"? Historical session data for this filter is kept.`)) return;
+            try {
+                const res = await fetch(`/api/journal/custom-filters/${key}`, {method: 'DELETE'});
+                if (!res.ok) { showMsg('Error removing filter.', true); return; }
+                row.remove();
+                showMsg(`"${label}" removed.`, false);
+                // Recalculate max-subs for remaining rows
+                if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+            } catch(e) {
+                showMsg('Network error.', true);
+            }
+        });
+    }
 })();
 </script>
