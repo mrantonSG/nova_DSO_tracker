@@ -7124,35 +7124,28 @@ def telemetry_startup_ping_once():
 @login_required
 def set_location_api():
     data = request.get_json()
-    location_name = data.get("location")
+    location_name = data.get("location", "").strip() if data.get("location") else ""
 
-    # Validation: Ensure location exists in the user's loaded context
-    if not hasattr(g, 'locations') or location_name not in g.locations:
-        return jsonify({"status": "error", "message": "Invalid location"}), 404
-
-    # Use the Global User (Source of Truth)
-    # This guarantees we update the SAME user that is viewing the page
     user_id = g.db_user.id
     username = g.db_user.username
-
-    print(f"[SET LOCATION] Attempting to set default for user '{username}' (ID: {user_id}) to '{location_name}'")
-
     db = get_db()
+
+    # Validation: Query DB directly (don't rely on g.locations which may not be loaded)
+    location = db.query(Location).filter_by(user_id=user_id, name=location_name).first()
+    if not location:
+        app.logger.warning(f"[SET_LOCATION] Location '{location_name}' not found for user {username}")
+        return jsonify({"status": "error", "message": "Location not found"}), 404
+
     try:
-        # 1. Database Transaction: Reset ALL defaults for this user
-        # synchronize_session=False forces the SQL execution immediately against the DB
-        reset_count = db.query(Location).filter_by(user_id=user_id).update(
+        # Step 1: Clear ALL is_default for this user
+        db.query(Location).filter_by(user_id=user_id).update(
             {"is_default": False}, synchronize_session=False
         )
 
-        # 2. Database Transaction: Set NEW default
-        update_count = db.query(Location).filter_by(user_id=user_id, name=location_name).update(
-            {"is_default": True}, synchronize_session=False
-        )
+        # Step 2: Set the new default
+        location.is_default = True
 
-        print(f"[SET LOCATION] Reset {reset_count} locations. Set new default: {update_count} rows updated.")
-
-        # 3. Update JSON Preferences (Legacy/Backup)
+        # Step 3: Update JSON Preferences
         prefs = db.query(UiPref).filter_by(user_id=user_id).first()
         if not prefs:
             prefs = UiPref(user_id=user_id, json_blob='{}')
@@ -7168,16 +7161,18 @@ def set_location_api():
 
         db.commit()
 
-        # 4. Update in-memory global state for immediate use
+        # Update in-memory global state
         if hasattr(g, 'user_config'):
             g.user_config['default_location'] = location_name
         g.selected_location = location_name
 
+        app.logger.info(f"[SET_LOCATION] User {username}: default set to {location_name}")
         return jsonify({"status": "success", "message": f"Location set to {location_name}"})
 
     except Exception as e:
         db.rollback()
-        print(f"[SET LOCATION] CRITICAL ERROR: {e}")
+        import traceback
+        app.logger.error(f"[SET_LOCATION] Error for user {username}: {e}\n{traceback.format_exc()}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -8430,6 +8425,9 @@ def get_journal_objects():
         total_hours = round(obj['total_minutes'] / 60.0, 1) if obj['total_minutes'] else 0.0
         first_session_id = obj['first_session_id']
         first_session_location = obj['first_session_location']
+
+        # Only include location if it's a non-empty string
+        first_session_location = first_session_location.strip() if first_session_location else None
 
         # Build URL with location parameter if available
         url_params = {'object_name': obj['catalog_id'], 'tab': 'journal'}
@@ -10044,18 +10042,17 @@ def graph_dashboard(object_name):
             flash(f"User '{username}' not found.", "error")
             return redirect(url_for('core.index'))
 
-        # --- 3. Determine Effective Location (No change) ---
+        # --- 3. Determine Effective Location ---
         effective_location_name = "Unknown"
         effective_lat, effective_lon, effective_tz_name = None, None, 'UTC'
-        requested_location_name_from_url = request.args.get('location')
+        requested_location_name_from_url = request.args.get('location', '').strip() or None
         selected_location_db = None
 
+        # Only use URL location if it's a non-empty string
         if requested_location_name_from_url:
             selected_location_db = db.query(Location).filter_by(user_id=user.id,
                                                                 name=requested_location_name_from_url).one_or_none()
-            if selected_location_db:
-                print(f"[Graph View] Using location from URL: {requested_location_name_from_url}")
-            else:
+            if not selected_location_db:
                 flash(f"Requested location '{requested_location_name_from_url}' not found, using default.", "warning")
 
         if not selected_location_db:

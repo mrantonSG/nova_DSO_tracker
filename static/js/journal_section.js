@@ -710,7 +710,21 @@
             // 3. Update Browser URL without reloading
             window.history.pushState({}, '', url);
 
-            // 4. Re-initialize Tabs if needed
+            // 4. Update status strip location from URL params
+            try {
+                const urlObj = new URL(url, window.location.origin);
+                const newLocation = urlObj.searchParams.get('location');
+                if (newLocation) {
+                    const locationDisplay = document.getElementById('location-display');
+                    if (locationDisplay) {
+                        locationDisplay.textContent = newLocation;
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to update location display:', err);
+            }
+
+            // 5. Re-initialize Tabs if needed
             if (typeof showDetailTab === 'function') {
                 showDetailTab('summary');
             }

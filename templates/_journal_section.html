@@ -1118,7 +1118,7 @@
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
                             data-action="load-session"
-                            data-url="{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name) }}&tab=journal">
+                            data-url="{% if session_item.location_name %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name, tab='journal') }}{% else %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, tab='journal') }}{% endif %}">
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:var(--text-secondary);">{{ session_item.location_name | default("-") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>

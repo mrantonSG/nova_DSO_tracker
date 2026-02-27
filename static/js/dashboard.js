@@ -1553,40 +1553,52 @@
     function setLocation() {
         // Get the table body to check its loading status
         const tbody = document.getElementById("data-body");
-    
+
         // Get the newly selected location
         const selectedLocation = document.getElementById('location-select').value;
-    
+
         // Always store the user's *latest* choice in sessionStorage.
         console.log(`Location select changed to: ${selectedLocation}`);
         sessionStorage.setItem('selectedLocation', selectedLocation);
         outlookDataLoaded = false; // Reset outlook flag for the new location
         if (typeof resetHeatmapState === 'function') resetHeatmapState();
-    
+
+        // Persist the location server-side so it's remembered across page navigations
+        fetch('/set_location', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({location: selectedLocation})
+        }).then(response => response.json())
+          .then(data => {
+              if (data.status !== 'success') {
+                  console.warn('Failed to persist location:', data.message);
+              }
+          }).catch(error => console.error('Error persisting location:', error));
+
         // Helper elements
         const loadingDiv = document.getElementById('table-loading');
         const loadingMessage = document.getElementById("loading-message");
         const progressBar = document.getElementById("loading-progress-bar");
-    
+
         // --- (Removed blocking check) Always process the latest user request ---
         // fetchData handles aborting previous requests automatically via AbortController.
         console.log(`Triggering fetch for new location: ${selectedLocation}`);
-    
+
         // Clear existing data immediately
         document.getElementById('data-body').innerHTML = '';
         document.getElementById('journal-data-body').innerHTML = '';
         document.getElementById('outlook-body').innerHTML = '';
-    
+
         // Show loading indicator WITHOUT destroying the progress bar structure
         if (loadingDiv) {
             loadingDiv.style.display = "block";
             if (loadingMessage) loadingMessage.textContent = "Updating location...";
             if (progressBar) progressBar.style.width = "0%";
         }
-    
+
         // Trigger the data fetches for the new location
         fetchData();
-    
+
         if (activeTab === 'journal') {
            populateJournalTable();
         } else if (activeTab === 'outlook') {
