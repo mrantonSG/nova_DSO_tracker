@@ -8360,7 +8360,7 @@ def get_journal_objects():
     """
     Returns a list of all objects that have journal sessions with any imaging data,
     sorted by most recent session date. Used by the journal object switcher.
-    Includes first_session_date and first_session_id for navigation.
+    Includes first_session_date, first_session_id, and first_session_location for navigation.
     """
     db = get_db()
     user_id = g.db_user.id
@@ -8372,6 +8372,7 @@ def get_journal_objects():
         JournalSession.object_name,
         JournalSession.date_utc,
         JournalSession.calculated_integration_time_minutes,
+        JournalSession.location_name,
         AstroObject.common_name,
         AstroObject.id.label('astro_id')
     ).outerjoin(
@@ -8403,7 +8404,8 @@ def get_journal_objects():
                 'total_minutes': 0,
                 'last_session': None,
                 'first_session_date': None,
-                'first_session_id': None
+                'first_session_id': None,
+                'first_session_location': None
             }
 
         # Accumulate integration time
@@ -8415,17 +8417,27 @@ def get_journal_objects():
             if objects_map[object_name]['last_session'] is None or session.date_utc > objects_map[object_name]['last_session']:
                 objects_map[object_name]['last_session'] = session.date_utc
 
-        # Track first (oldest) session date and id (for navigation)
+        # Track first (oldest) session date, id, and location (for navigation)
         if session.date_utc:
             if objects_map[object_name]['first_session_date'] is None or session.date_utc < objects_map[object_name]['first_session_date']:
                 objects_map[object_name]['first_session_date'] = session.date_utc
                 objects_map[object_name]['first_session_id'] = session.id
+                objects_map[object_name]['first_session_location'] = session.location_name
 
     # Convert to list and sort by last_session DESC
     result = []
     for obj in objects_map.values():
         total_hours = round(obj['total_minutes'] / 60.0, 1) if obj['total_minutes'] else 0.0
         first_session_id = obj['first_session_id']
+        first_session_location = obj['first_session_location']
+
+        # Build URL with location parameter if available
+        url_params = {'object_name': obj['catalog_id'], 'tab': 'journal'}
+        if first_session_id:
+            url_params['session_id'] = first_session_id
+        if first_session_location:
+            url_params['location'] = first_session_location
+
         result.append({
             'id': obj['id'],
             'name': obj['name'],
@@ -8433,7 +8445,8 @@ def get_journal_objects():
             'total_hours': total_hours,
             'last_session': obj['last_session'].strftime('%Y-%m-%d') if obj['last_session'] else None,
             'first_session_date': obj['first_session_date'].strftime('%Y-%m-%d') if obj['first_session_date'] else None,
-            'url': url_for('core.graph_dashboard', object_name=obj['catalog_id'], session_id=first_session_id, tab='journal', _external=False) if first_session_id else url_for('core.graph_dashboard', object_name=obj['catalog_id'], tab='journal', _external=False)
+            'first_session_location': first_session_location,
+            'url': url_for('core.graph_dashboard', **url_params, _external=False)
         })
 
     # Sort by last_session descending (most recent first)
