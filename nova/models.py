@@ -307,6 +307,9 @@ class JournalSession(Base):
     filter_SII_subs = Column(Integer, nullable=True);
     filter_SII_exposure_sec = Column(Integer, nullable=True)
 
+    # --- Custom filter data (JSON string for user-defined filters) ---
+    custom_filter_data = Column(Text, nullable=True)
+
     # --- NEW: Rig Snapshot Fields ---
     rig_id_snapshot = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True) # <-- ADDED THIS
     rig_name_snapshot = Column(String(256), nullable=True)
@@ -353,3 +356,15 @@ class AnalyticsLogin(Base):
     __tablename__ = 'analytics_login'
     date = Column(Date, primary_key=True)
     login_count = Column(Integer, nullable=False, default=0)
+
+
+class UserCustomFilter(Base):
+    """User-defined custom filters for journal sessions."""
+    __tablename__ = 'user_custom_filters'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False, index=True)
+    filter_key = Column(String(64), nullable=False)
+    filter_label = Column(String(64), nullable=False)
+    created_at = Column(Date, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('user_id', 'filter_key', name='uq_user_filter_key'),)
