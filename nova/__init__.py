@@ -7133,7 +7133,6 @@ def set_location_api():
     # Validation: Query DB directly (don't rely on g.locations which may not be loaded)
     location = db.query(Location).filter_by(user_id=user_id, name=location_name).first()
     if not location:
-        app.logger.warning(f"[SET_LOCATION] Location '{location_name}' not found for user {username}")
         return jsonify({"status": "error", "message": "Location not found"}), 404
 
     try:
@@ -7166,13 +7165,10 @@ def set_location_api():
             g.user_config['default_location'] = location_name
         g.selected_location = location_name
 
-        app.logger.info(f"[SET_LOCATION] User {username}: default set to {location_name}")
         return jsonify({"status": "success", "message": f"Location set to {location_name}"})
 
     except Exception as e:
         db.rollback()
-        import traceback
-        app.logger.error(f"[SET_LOCATION] Error for user {username}: {e}\n{traceback.format_exc()}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
