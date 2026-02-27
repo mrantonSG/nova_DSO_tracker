@@ -5,6 +5,9 @@ A Flask-based web application designed specifically for astrophotographers, prov
 
 ## Features
 
+* **New in 5.1: Visual Facelift:** A comprehensive design refresh with Nova's signature teal (#83b4c5) as the brand color. Refined altitude badges, tab styling, button system, and dark mode polish across all views.
+* **New in 5.1: Log File Analysis in Reports:** PDF reports now include charts from imported ASIAIR and PHD2 log files — guiding performance, exposure stats, and environmental data.
+* **New in 5.1: Theme Preference:** Choose Light, Dark, or Follow System in Configuration. Your preference persists across sessions and syncs with your OS setting.
 * **New in 5.0: Architecture Refactor:** Complete codebase reorganization into a modular package structure. The monolithic `nova.py` has been split into dedicated modules (`nova/models.py`, `nova/config.py`, `nova/helpers.py`) and organized blueprints for better maintainability.
 * **New in 5.0: Design System:** A comprehensive CSS token system (`tokens.css`) provides consistent typography, spacing, shadows, and color variables across the entire application.
 * **New in 5.0: Dark Mode Overhaul:** Fully refined dark theme support across all views including charts, graphs, forms, and modals. Consistent color management throughout the UI.
@@ -48,8 +51,8 @@ When opening Nova, you see a list of DSOs sorted by default by their current alt
 * **Observable Window:** The "Observable" column shows the minutes an object is visible between astronomical dusk and dawn.
 * **Quick View:** Click the 'i' icon next to an object's name to quickly see its inspiration image and altitude graph without leaving the dashboard.
 
-![Screenshot 2026-02-20 at 12.43.28.jpg](docs/Screenshot%202026-02-20%20at%2012.43.28.jpg)
-![Screenshot 2026-02-20 at 12.43.54.jpg](docs/Screenshot%202026-02-20%20at%2012.43.54.jpg)
+![Screenshot 2026-02-27 at 14.07.27.jpg](docs/Screenshot%202026-02-27%20at%2014.07.27.jpg)
+![Screenshot 2026-02-27 at 14.07.46.jpg](docs/Screenshot%202026-02-27%20at%2014.07.46.jpg)
 
 ### Mobile Companion
 
@@ -59,7 +62,7 @@ Nova includes a streamlined, mobile-first interface for essential planning on th
 *   **Outlook:** Check upcoming imaging opportunities.
 *   **Quick Add:** Add new objects to your database directly from your mobile device.
 
-![Screenshot 2026-01-12 at 22.29.30.png](docs/Screenshot%202026-01-12%20at%2022.29.30.png)
+
 ### Sorting, Filtering, and Saved Views
 
   * **Sorting:** Click column headers to sort. A second click reverses the order.
@@ -80,8 +83,8 @@ The Inspiration Tab offers a visual way to browse potential targets. Instead of 
 * **Imagery:** Tiles display survey images (DSS2) by default. If you have uploaded your own astrophoto for an object, it will be displayed here.
 * **Quick Info:** Each tile displays the object's type, current altitude, and constellation. Clicking a tile opens a detail modal with a summary and a link to the full charts.
 
-![Screenshot 2026-02-20 at 12.44.43.jpg](docs/Screenshot%202026-02-20%20at%2012.44.43.jpg)
-![Screenshot 2026-02-20 at 12.45.06.jpg](docs/Screenshot%202026-02-20%20at%2012.45.06.jpg)
+![Screenshot 2026-02-27 at 14.08.21.jpg](docs/Screenshot%202026-02-27%20at%2014.08.21.jpg)
+![Screenshot 2026-02-27 at 14.08.35.jpg](docs/Screenshot%202026-02-27%20at%2014.08.35.jpg)
 
 ### Long-Term Planning: The Yearly Heatmap
 
@@ -92,13 +95,13 @@ The Yearly Heatmap visualizes target visibility over the next 12 months.
   * **Integrated Filtering:** You can apply your "Saved Views" directly to this heatmap to narrow down targets (e.g., only show "Galaxies").
   * **Active Only:** A checkbox allows you to quickly filter the view to show only your currently active projects.
 
-![Screenshot 2026-02-20 at 12.45.38.jpg](docs/Screenshot%202026-02-20%20at%2012.45.38.jpg)
+![Screenshot 2026-02-27 at 14.09.32.jpg](docs/Screenshot%202026-02-27%20at%2014.09.32.jpg)
 
 ### Projects & Imaging Journal
 
 The Journal has been completely overhauled. It is no longer just a flat list of entries; it is a **Project Management System**.
 
-![Screenshot 2026-02-20 at 12.46.25.jpg](docs/Screenshot%202026-02-20%20at%2012.46.25.jpg)
+![Screenshot 2026-02-27 at 14.10.01.jpg](docs/Screenshot%202026-02-27%20at%2014.10.01.jpg)
 
 1.  **Projects:** A Project groups multiple imaging sessions toward a single goal (e.g., "Mosaic of M31" or "HaOIII data for Helix").
 
@@ -107,12 +110,12 @@ The Journal has been completely overhauled. It is no longer just a flat list of 
       * **Integration:** Nova automatically sums the exposure time from all linked sessions to show total integration time.
       * **Notes:** Keep project-level notes (framing plans, processing goals) separate from nightly session notes.
       
-![Screenshot 2026-02-20 at 12.46.43.jpg](docs/Screenshot%202026-02-20%20at%2012.46.43.jpg)
+![Screenshot 2026-02-27 at 14.10.16.jpg](docs/Screenshot%202026-02-27%20at%2014.10.16.jpg)
 
 2.  **Planning Mode ("New Project"):**
     You no longer need to wait until you have data to create an entry. Use the **"New Project"** button to plan targets ahead of time. This creates a container for your future data.
 
-![Screenshot 2026-02-20 at 12.47.15.jpg](docs/Screenshot%202026-02-20%20at%2012.47.15.jpg)
+![Screenshot 2026-02-27 at 14.10.39.jpg](docs/Screenshot%202026-02-27%20at%2014.10.39.jpg)
 
 3.  **Rig Snapshots:**
     When you add a session, Nova records a **Snapshot** of your rig's metrics (Focal Length, F-Ratio, Camera).
@@ -122,10 +125,21 @@ The Journal has been completely overhauled. It is no longer just a flat list of 
 4.  **Reports:**
     You can generate PDF reports for a specific night (Session Report) or a summary of an entire target (Project Report).
 
-5.  **Log File Import (Beta):**
-    Upload and analyze log files from ASIAIR and PHD2. This tool extracts key session data, such as guiding performance, exposure stats, and environmental conditions, providing a detailed report directly within your journal.
-    
-![Screenshot 2026-02-20 at 12.48.46.jpg](docs/Screenshot%202026-02-20%20at%2012.48.46.jpg)
+    * **Log File Charts:** If you've imported ASIAIR or PHD2 log files for a session, the generated PDF will automatically include guiding performance graphs, RMS deviation charts, exposure statistics, and environmental data (temperature, humidity, etc.).
+    * **Branded Styling:** Reports use Nova's design language with the teal accent color and refined typography.
+
+![Screenshot 2026-02-27 at 14.11.42.jpg](docs/Screenshot%202026-02-27%20at%2014.11.42.jpg)
+
+5.  **Log File Import:**
+    Upload and analyze log files from ASIAIR and PHD2. This tool extracts key session data, such as guiding performance, exposure stats, and environmental conditions.
+
+    * **ASIAIR Logs:** Imports capture counts, exposure times, filter usage, and dithering data.
+    * **PHD2 Logs:** Imports guiding RMS, corrections, and drift analysis.
+    * **Report Integration:** Imported data automatically appears in PDF session and project reports as visual charts.
+
+![Screenshot 2026-02-27 at 14.12.11.jpg](docs/Screenshot%202026-02-27%20at%2014.12.11.jpg)
+
+
 
 ### Detailed Object Information
 
@@ -135,8 +149,9 @@ Clicking a DSO in the main list opens the Detailed View.
   * **Moon Separation:** Displays angular separation from the moon on the main graph.
   * **Imaging Opportunities:** Click "Find Imaging Opportunities" to calculate the best dates for imaging this object based on your specific horizon and moon constraints.
 
-![Screenshot 2026-02-20 at 12.50.18.jpg](docs/Screenshot%202026-02-20%20at%2012.50.18.jpg)
-![Screenshot 2026-02-20 at 12.50.36.jpg](docs/Screenshot%202026-02-20%20at%2012.50.36.jpg)
+![Screenshot 2026-02-27 at 14.12.55.jpg](docs/Screenshot%202026-02-27%20at%2014.12.55.jpg)
+![Screenshot 2026-02-27 at 14.13.13.jpg](docs/Screenshot%202026-02-27%20at%2014.13.13.jpg)
+
 **Framing Assistant:**
 The "Show Framing" button opens the Aladin-based framing tool.
 
@@ -144,7 +159,7 @@ The "Show Framing" button opens the Aladin-based framing tool.
   * **Overlays:** You can overlay **other objects** from your database onto the image. This is incredibly useful for planning mosaics or checking if a nearby bright star is in your Field of View.
   * **Surveys:** Includes various sky surveys, including the Northern Sky Narrowband Survey (NSNS) V2.
 
-![Screenshot 2026-02-20 at 12.52.22.jpg](docs/Screenshot%202026-02-20%20at%2012.52.22.jpg)
+![Screenshot 2026-02-27 at 14.18.12.jpg](docs/Screenshot%202026-02-27%20at%2014.18.12.jpg)
 
 **Mosaic Planning:**
 Plan multi-panel mosaics directly within Nova.
@@ -159,7 +174,7 @@ Once your framing or mosaic is set, use the **"Copy Plan (CSV)"** button. This g
   * **ASIAIR:** Import via Plan -\> Import.
   * **N.I.N.A.:** Import into the Sequencer.
 
-![Screenshot 2026-02-20 at 12.56.52.jpg](docs/Screenshot%202026-02-20%20at%2012.56.52.jpg)
+![Screenshot 2026-02-27 at 14.19.04.jpg](docs/Screenshot%202026-02-27%20at%2014.19.04.jpg)
 
 ### Configuration and Object Management
 
@@ -170,10 +185,13 @@ The Configuration page manages your library of objects, locations, and equipment
       * **Smart Add:** When adding an object (e.g., "M 42"), Nova first checks your local database for duplicates (e.g., "M42"). If not found, it queries SIMBAD.
       * **Import Catalog:** Download curated lists (Messier, Caldwell, etc.) directly from the Nova server.
   * **Rigs:** Define your optical trains. Accurate data here is required for the **Framing Assistant** and **Rig Snapshots**.
+  * **Theme:** Choose your visual preference — **Light**, **Dark**, or **Follow System** (automatically matches your operating system setting). Your choice persists across sessions.
 
-![Screenshot 2026-02-20 at 12.57.43.jpg](docs/Screenshot%202026-02-20%20at%2012.57.43.jpg)
+![Screenshot 2026-02-27 at 14.40.01.jpg](docs/Screenshot%202026-02-27%20at%2014.40.01.jpg)
 
-![Screenshot 2026-01-12 at 22.43.45.jpg](docs/Screenshot%202026-01-12%20at%2022.43.45.jpg)
+![Screenshot 2026-02-27 at 14.19.39.jpg](docs/Screenshot%202026-02-27%20at%2014.19.39.jpg)
+
+
 
 **Manage Objects:**
 Advanced management tools include:
@@ -182,12 +200,12 @@ Advanced management tools include:
 * **Bulk Actions:** Select multiple objects using the checkboxes. You can then **Enable** or **Disable** them. Disabled objects remain in your database but are excluded from calculations and the main dashboard list.
 * **Inspiration Content:** In the edit view of an object, upload a custom image URL, credit, and description text.
 
-![Screenshot 2026-02-20 at 12.58.43.jpg](docs/Screenshot%202026-02-20%20at%2012.58.43.jpg)
+![Screenshot 2026-02-27 at 14.20.18.jpg](docs/Screenshot%202026-02-27%20at%2014.20.18.jpg)
 
 **Duplicate Manager:**
 Use the "Find Duplicates" button to scan your library. Nova identifies objects with coordinates within 2.5 arcminutes of each other (e.g., `M101` and `NGC5457`). You can choose which entry to keep; Nova will automatically migrate all journal entries and projects to the kept object before deleting the duplicate.
 
-![Screenshot 2026-02-20 at 12.58.57.jpg](docs/Screenshot%202026-02-20%20at%2012.58.57.jpg)
+![Screenshot 2026-02-27 at 14.20.28.jpg](docs/Screenshot%202026-02-27%20at%2014.20.28.jpg)
 
 ---
 # Nova Astronomical Tracker Setup Guide
