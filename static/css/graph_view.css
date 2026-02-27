@@ -528,6 +528,11 @@ div.form-data-value.preserve-newlines {
     font-size: var(--font-size-xl);
 }
 
+/* Light mode: "Nova" wordmark in brand teal */
+.modal-header-bar .brand-strong {
+    color: var(--primary-color);
+}
+
 .fov-chip {
     font-size: var(--font-size-2xs);
     color: var(--text-dark-alt);
