@@ -69,6 +69,7 @@ pyvo==1.6.1
 PyYAML==6.0.2
 requests==2.32.4
 scipy==1.15.2
+sentry-sdk[flask]==2.22.0
 setuptools==78.1.1
 sgp4==2.25
 six==1.17.0

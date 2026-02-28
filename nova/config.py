@@ -26,6 +26,9 @@ FIRST_RUN_ENV_CREATED = False
 # --- Mode ---
 SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
 
+# --- Sentry (error reporting, multi-user only) ---
+SENTRY_DSN = config('SENTRY_DSN', default='')
+
 # --- Keys & external config ---
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
