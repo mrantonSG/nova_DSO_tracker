@@ -12,6 +12,14 @@ If you have a large library, use the filter bar at the top to find specific targ
 * **Status:** Filter by **Enabled** or **Disabled** objects, or see which items are **Shared** or **Imported**.
 * **Source:** Find objects from specific catalogs (e.g., "messier"). If you want to select specifically only one source, use "=messier".
 
+**Selection Actions (Bulk Operations)**
+
+Use the checkboxes to select multiple objects, then use the action buttons:
+
+* **Enable / Disable:** Toggle the active status of selected objects. Disabled objects are skipped during calculations for better performance.
+* **Fetch Details:** Query external catalogs to fill in missing data for selected objects. This updates **Type**, **Magnitude**, **Size**, **Surface Brightness**, and **Constellation** fields that are empty or show "N/A".
+* **Delete:** Permanently remove selected objects. Objects with Journal entries or Projects cannot be deleted until those are removed first.
+
 **Disabling Objects (Performance)**
 
 To keep the Nova App running fast, you can **Disable** objects that you aren't currently imaging but don't want to delete.

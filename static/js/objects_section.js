@@ -360,6 +360,10 @@
                 e.preventDefault();
                 executeBulkAction('delete');
                 break;
+            case 'bulk-fetch-details':
+                e.preventDefault();
+                executeBulkFetchDetails();
+                break;
             case 'filter-objects':
                 // Triggered on input/change events
                 if (typeof filterObjectsList === 'function') {
@@ -440,6 +444,55 @@
         .catch(err => {
             console.error('Bulk action failed:', err);
             alert('Bulk action failed. See console.');
+        });
+    }
+
+    function executeBulkFetchDetails() {
+        const selectedCheckboxes = document.querySelectorAll('.bulk-select-checkbox:checked');
+        const objectIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.objectId);
+
+        if (objectIds.length === 0) {
+            alert("No objects selected.");
+            return;
+        }
+
+        if (!confirm(`Fetch missing details (type, magnitude, size, surface brightness, constellation) for ${objectIds.length} selected objects?\n\nThis may take a moment depending on the number of objects.`)) {
+            return;
+        }
+
+        // Show a simple progress indicator
+        const countDisplay = document.getElementById('object-count-display');
+        const originalText = countDisplay ? countDisplay.textContent : '';
+        if (countDisplay) {
+            countDisplay.textContent = `Fetching details for ${objectIds.length} objects...`;
+            countDisplay.style.color = 'var(--accent-color)';
+        }
+
+        fetch('/api/bulk_fetch_details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ object_ids: objectIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                if (countDisplay) {
+                    countDisplay.textContent = originalText;
+                    countDisplay.style.color = '';
+                }
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Bulk fetch details failed:', err);
+            if (countDisplay) {
+                countDisplay.textContent = originalText;
+                countDisplay.style.color = '';
+            }
+            alert('Bulk fetch details failed. See console.');
         });
     }
 
