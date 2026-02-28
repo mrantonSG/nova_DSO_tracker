@@ -7515,10 +7515,22 @@ def download_journal():
                 "rig_fov_h_snapshot": s.rig_fov_h_snapshot,
                 "telescope_name_snapshot": s.telescope_name_snapshot,
                 "reducer_name_snapshot": s.reducer_name_snapshot,
-                "camera_name_snapshot": s.camera_name_snapshot
+                "camera_name_snapshot": s.camera_name_snapshot,
+                "custom_filter_data": s.custom_filter_data,
             })
 
-            journal_doc = {"projects": projects_list, "sessions": sessions_list}
+        # --- 3. Load Custom Filter Definitions ---
+        custom_filters_db = db.query(UserCustomFilter).filter_by(user_id=u.id).order_by(UserCustomFilter.created_at).all()
+        custom_filters_list = [
+            {'key': cf.filter_key, 'label': cf.filter_label}
+            for cf in custom_filters_db
+        ]
+
+        journal_doc = {
+            "projects": projects_list,
+            "custom_mono_filters": custom_filters_list,
+            "sessions": sessions_list
+        }
 
         # --- 3. Create in-memory file ---
         yaml_string = yaml.dump(journal_doc, sort_keys=False, allow_unicode=True, indent=2, default_flow_style=False)
