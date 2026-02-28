@@ -8716,6 +8716,75 @@ def bulk_update_objects():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+@api_bp.route('/api/bulk_fetch_details', methods=['POST'])
+@login_required
+def bulk_fetch_details():
+    """Fetch missing details (type, magnitude, size, SB, constellation) for selected objects."""
+    data = request.get_json()
+    object_ids = data.get('object_ids', [])
+
+    if not object_ids:
+        return jsonify({"status": "error", "message": "No objects selected"}), 400
+
+    db = get_db()
+    try:
+        user_id = g.db_user.id
+
+        # Query only the selected objects for this user
+        objects_to_check = db.query(AstroObject).filter(
+            AstroObject.user_id == user_id,
+            AstroObject.object_name.in_(object_ids)
+        ).all()
+
+        if not objects_to_check:
+            return jsonify({"status": "error", "message": "No valid objects found"}), 400
+
+        updated_count = 0
+        error_count = 0
+        refetch_triggers = [None, "", "N/A", "Not Found", "Fetch Error"]
+
+        for obj in objects_to_check:
+            needs_update = (
+                obj.type in refetch_triggers or
+                obj.magnitude in refetch_triggers or
+                obj.size in refetch_triggers or
+                obj.sb in refetch_triggers or
+                obj.constellation in refetch_triggers
+            )
+            if needs_update:
+                try:
+                    # Auto-calculate Constellation if missing
+                    if obj.constellation in refetch_triggers and obj.ra_hours is not None and obj.dec_deg is not None:
+                        coords = SkyCoord(ra=obj.ra_hours*u.hourangle, dec=obj.dec_deg*u.deg)
+                        obj.constellation = get_constellation(coords, short_name=True)
+
+                    # Fetch other details from external API
+                    fetched_data = nova_data_fetcher.get_astronomical_data(obj.object_name)
+                    if fetched_data.get("object_type"): obj.type = fetched_data["object_type"]
+                    if fetched_data.get("magnitude"): obj.magnitude = str(fetched_data["magnitude"])
+                    if fetched_data.get("size_arcmin"): obj.size = str(fetched_data["size_arcmin"])
+                    if fetched_data.get("surface_brightness"): obj.sb = str(fetched_data["surface_brightness"])
+                    updated_count += 1
+                    time.sleep(0.5)  # Be kind to external APIs
+                except Exception as e:
+                    print(f"Failed to fetch details for {obj.object_name}: {e}")
+                    error_count += 1
+
+        db.commit()
+
+        msg = f"Updated details for {updated_count} object(s)."
+        if error_count > 0:
+            msg += f" ({error_count} failed)"
+        if updated_count == 0 and error_count == 0:
+            msg = "No missing data found - all selected objects already have complete details."
+
+        return jsonify({"status": "success", "message": msg, "updated": updated_count, "errors": error_count})
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @api_bp.route('/api/find_duplicates')
 @login_required
 def find_duplicates():
