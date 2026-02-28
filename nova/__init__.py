@@ -112,7 +112,7 @@ from nova.config import (
     APP_VERSION, TEMPLATE_DIR, CACHE_DIR, CONFIG_DIR, BACKUP_DIR,
     UPLOAD_FOLDER, ENV_FILE, FIRST_RUN_ENV_CREATED, SINGLE_USER_MODE,
     SECRET_KEY, STELLARIUM_ERROR_MESSAGE, NOVA_CATALOG_URL,
-    ALLOWED_EXTENSIONS, MAX_ACTIVE_LOCATIONS,
+    ALLOWED_EXTENSIONS, MAX_ACTIVE_LOCATIONS, SENTRY_DSN,
     static_cache, moon_separation_cache, nightly_curves_cache,
     cache_worker_status, monthly_top_targets_cache, config_cache,
     config_mtime, journal_cache, journal_mtime, LATEST_VERSION_INFO,
@@ -2960,6 +2960,24 @@ login_manager.init_app(app)
 login_manager.login_view = 'core.login'
 
 if not SINGLE_USER_MODE:
+    # --- Sentry Error Reporting (multi-user mode only) ---
+    if SENTRY_DSN:
+        import sentry_sdk
+        from sentry_sdk.integrations.flask import FlaskIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            integrations=[
+                FlaskIntegration(),
+                LoggingIntegration(
+                    level=logging.WARNING,    # Capture WARNING+ as breadcrumbs
+                    event_level=logging.ERROR  # Send events on ERROR+
+                ),
+            ],
+            release=APP_VERSION,
+        )
+
     # --- MULTI-USER MODE SETUP ---
     db_path = os.path.join(INSTANCE_PATH, 'users.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
