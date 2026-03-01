@@ -1,10 +1,1 @@
-/scratches/
-/venv/
-/cache/
-# PyCharm/IntelliJ IDE files
-.idea/
-*.iml
-/instance/
-/tests/instance/
-/.run/
-instance/logs/
+instance

@@ -1,0 +1,11 @@
+services:
+  nova:
+    image: mrantonsg/nova-dso-tracker
+    container_name: nova
+    ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - ./nova_data:/app/instance  # Relative bind mount
+    restart: unless-stopped
+
+# Volumes not needed below
