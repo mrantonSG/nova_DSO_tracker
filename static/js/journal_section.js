@@ -9,6 +9,9 @@
     // ONLY expose functions called from Jinja-generated URLs
     window.loadSessionViaAjax = loadSessionViaAjax;
 
+    // --- State ---
+    let currentRigData = null;
+
     // --- NATIVE PRINT: ROBUST & CLEAN PDF GENERATION ---
     async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         const iframe = document.getElementById(iframeId);
@@ -426,17 +429,85 @@
         }
     }
 
+    // --- Rig Info Modal Functions ---
+
+    function buildRigInfoHTML(rig) {
+        // Spec lines — equipment
+        const specLines = [
+            rig.telescope_name  ? `Telescope: ${rig.telescope_name}` : null,
+            rig.camera_name     ? `Camera: ${rig.camera_name}` : null,
+            rig.reducer_name    ? `Reducer/Extender: ${rig.reducer_name}` : null,
+        ];
+
+        // Guiding line
+        if (rig.guide_is_oag && rig.guide_camera_name) {
+            specLines.push(`Guiding: OAG + ${rig.guide_camera_name}`);
+        } else if (rig.guide_telescope_name || rig.guide_camera_name) {
+            const parts = [rig.guide_telescope_name, rig.guide_camera_name].filter(Boolean);
+            specLines.push(`Guiding: ${parts.join(' + ')}`);
+        }
+
+        const specsHTML = specLines.filter(Boolean)
+            .map(l => `<div>${l}</div>`).join('');
+
+        // Computed lines — optics
+        const computedLines = [
+            rig.effective_focal_length  ? `Effective FL: ${rig.effective_focal_length} mm` : null,
+            rig.f_ratio                 ? `F-Ratio: f/${rig.f_ratio}` : null,
+            rig.image_scale             ? `Image Scale: ${rig.image_scale} "/px` : null,
+            rig.fov_w_arcmin && rig.fov_h_arcmin ? `Field of View: ${rig.fov_w_arcmin}' × ${rig.fov_h_arcmin}'` : null,
+        ].filter(Boolean).map(l => `<div>${l}</div>`).join('');
+
+        // Dither line
+        const rec = rig.dither_recommendation;
+        const ditherHTML = (rec && rec.recommended_pixels)
+            ? `<div class="rig-dither-line" style="margin-top:8px;">
+                 Guide-cam dither: <strong>${rec.recommended_pixels} px</strong>
+               </div>`
+            : '';
+
+        return `
+            <div style="margin-bottom:10px; line-height:1.75;">${specsHTML}</div>
+            ${computedLines
+                ? `<div style="border-top:1px solid var(--border-light);
+                               padding-top:8px; margin-top:4px; line-height:1.75;">
+                     ${computedLines}
+                   </div>`
+                : ''}
+            ${ditherHTML}
+        `;
+    }
+
+    function openRigInfoModal() {
+        if (!currentRigData) return;
+        document.getElementById('rig-info-modal-title').textContent = currentRigData.rig_name || '';
+        document.getElementById('rig-info-modal-body').innerHTML = buildRigInfoHTML(currentRigData);
+        document.getElementById('rig-info-modal-overlay').style.display = 'flex';
+    }
+
+    function closeRigInfoModal() {
+        const overlay = document.getElementById('rig-info-modal-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    }
+
     // Rig selection handler - auto-populate guiding equipment and dither hint
     async function handleRigSelectionChange(e) {
         const rigId = e.target.value;
         const guidingField = document.getElementById('guiding_equipment');
         const ditherHint = document.getElementById('dither-hint');
+        const infoBtn = document.getElementById('rig-info-btn');
 
         // If no rig selected, clear the hint but leave guiding field as-is
         if (!rigId) {
+            currentRigData = null;
             if (ditherHint) {
                 ditherHint.textContent = '';
                 ditherHint.style.display = 'none';
+            }
+            if (infoBtn) {
+                infoBtn.style.display = 'none';
             }
             return;
         }
@@ -452,6 +523,9 @@
                 console.warn('[JOURNAL_SECTION] Rig not found:', rigId);
                 return;
             }
+
+            // Store for modal
+            currentRigData = rig;
 
             // Auto-populate Guiding Equipment field (always update, clear if no guide equipment)
             if (guidingField) {
@@ -480,6 +554,11 @@
                     ditherHint.textContent = '';
                     ditherHint.style.display = 'none';
                 }
+            }
+
+            // Show info button
+            if (infoBtn) {
+                infoBtn.style.display = 'flex';
             }
         } catch (err) {
             console.error('[JOURNAL_SECTION] Error fetching rig data:', err);
@@ -877,6 +956,10 @@
                     console.log('[JOURNAL_SECTION] load-session:', actionBtn.dataset.url);
                     loadSessionViaAjax(e, actionBtn.dataset.url, actionBtn);
                     break;
+                case 'show-rig-info':
+                    console.log('[JOURNAL_SECTION] show-rig-info');
+                    openRigInfoModal();
+                    break;
             }
         });
     }
@@ -908,6 +991,27 @@
                 document.getElementById('goals-hidden-add').value = document.getElementById('goals-editor-add').value;
             });
         }
+
+        // Rig info modal click handlers (close button and backdrop - not using data-action)
+        document.addEventListener('click', function(e) {
+            // ✕ close button
+            if (e.target.id === 'rig-info-modal-close') {
+                e.preventDefault();
+                closeRigInfoModal();
+                return;
+            }
+
+            // Backdrop click — close
+            if (e.target.id === 'rig-info-modal-overlay') {
+                closeRigInfoModal();
+                return;
+            }
+        });
+
+        // Escape key handler to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeRigInfoModal();
+        });
     }
 
     function attachInputListeners() {

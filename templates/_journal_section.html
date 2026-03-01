@@ -1723,7 +1723,13 @@
                     {{ form_group('weather_notes', 'Weather Notes:', type='textarea') }}
                     <div class="form-row">{{ form_group('moon_illumination_session', 'Moon Illumination (%):', type='number', step=0.1, placeholder='Auto-fills on date/loc change') }}{{ form_group('moon_angular_separation_session', 'Moon Angular Separation (°):', type='number', step=0.1, placeholder='Auto-fills on date/loc change') }}</div>
                     <div class="form-section-title">Equipment & Guiding</div>
-                    <div class="form-group"><label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label><select id="rig-selector-edit" name="rig_id_snapshot"><option value="">-- Manually Enter Below --</option>{% for rig in available_rigs %}<option value="{{ rig.rig_id }}" {% if selected_session_data_dict and selected_session_data_dict.rig_id_snapshot|int == rig.rig_id %}selected{% endif %}>{{ rig.rig_name }}</option>{% endfor %}</select></div>
+                    <div class="form-group">
+                        <label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <select id="rig-selector-edit" name="rig_id_snapshot"><option value="">-- Manually Enter Below --</option>{% for rig in available_rigs %}<option value="{{ rig.rig_id }}" {% if selected_session_data_dict and selected_session_data_dict.rig_id_snapshot|int == rig.rig_id %}selected{% endif %}>{{ rig.rig_name }}</option>{% endfor %}</select>
+                            <button type="button" id="rig-info-btn" data-action="show-rig-info" style="display:none;" title="View rig details">ⓘ</button>
+                        </div>
+                    </div>
                     {{ form_group('telescope_setup_notes', 'Telescope Setup Notes:', type='textarea', rows=3) }}
                     {{ form_group('guiding_equipment', 'Guiding Equipment:', type='text', placeholder='e.g., OAG + ASI174MM') }}
                     {{ form_group('guiding_rms_avg_arcsec', 'Guiding RMS (avg, arcsec):', type='number', step=0.01) }}
@@ -1847,6 +1853,17 @@
             </form>
         </div>
     </div>
+</div>
+
+{# --- Rig Info Modal --- #}
+<div id="rig-info-modal-overlay" style="display:none;">
+  <div id="rig-info-modal">
+    <div id="rig-info-modal-header">
+      <span id="rig-info-modal-title"></span>
+      <button type="button" id="rig-info-modal-close">✕</button>
+    </div>
+    <div id="rig-info-modal-body"></div>
+  </div>
 </div>
 
 {# --- Journal Object Switcher Modal --- #}
