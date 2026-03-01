@@ -137,8 +137,7 @@ td[data-column-key="Object"] {
 }
 
 /* Journal table numeric columns */
-td[data-journal-column-key="calculated_integration_time_minutes"],
-td[data-journal-column-key="session_rating_subjective"] {
+td[data-journal-column-key="calculated_integration_time_minutes"] {
   font-family: var(--nova-font-mono);
   font-size: 12px;
   font-weight: 500;

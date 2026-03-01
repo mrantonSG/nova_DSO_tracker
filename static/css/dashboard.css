@@ -292,8 +292,8 @@
     #journal-data-table th[data-journal-column-key="project_name"],
     #journal-data-table td[data-journal-column-key="project_name"] {
         text-align: left;
-        width: 130px;
-        min-width: 130px;
+        width: 160px;
+        min-width: 160px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -324,11 +324,11 @@
     #journal-data-table th[data-journal-column-key="location_name"],
     #journal-data-table td[data-journal-column-key="location_name"] { min-width: 100px; width: 110px; text-align: left; }
     #journal-data-table th[data-journal-column-key="telescope_setup_notes"],
-    #journal-data-table td[data-journal-column-key="telescope_setup_notes"] { min-width: 200px; }
+    #journal-data-table td[data-journal-column-key="telescope_setup_notes"] { min-width: 170px; }
     #journal-data-table th[data-journal-column-key="calculated_integration_time_minutes"],
-    #journal-data-table td[data-journal-column-key="calculated_integration_time_minutes"] { width: 100px; min-width: 100px; }
+    #journal-data-table td[data-journal-column-key="calculated_integration_time_minutes"] { width: 90px; min-width: 90px; white-space: nowrap; }
     #journal-data-table th[data-journal-column-key="session_rating_subjective"],
-    #journal-data-table td[data-journal-column-key="session_rating_subjective"] { width: 100px; min-width: 100px; }
+    #journal-data-table td[data-journal-column-key="session_rating_subjective"] { width: 70px; min-width: 70px; white-space: nowrap; }
     #journal-data-table .filter-row input { text-align: left; }
 
     #remove-filters-container {
@@ -439,8 +439,8 @@
     #journal-data-table th[data-journal-column-key="project_name"],
     #journal-data-table td[data-journal-column-key="project_name"] {
         text-align: left;
-        width: 130px;
-        min-width: 130px;
+        width: 160px;
+        min-width: 160px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
