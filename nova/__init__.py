@@ -11506,6 +11506,47 @@ if not SINGLE_USER_MODE:
         db.session.commit()
         print(f"✅ User renamed from '{old_name}' to '{new_name}'.")
 
+    @app.cli.command("change-password")
+    def change_password_command():
+        """Changes the password for an existing user."""
+        username = input("Username: ")
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            print(f"❌ User '{username}' not found.")
+            return
+
+        password = getpass.getpass("New password: ")
+        confirm = getpass.getpass("Confirm new password: ")
+        if password != confirm:
+            print("❌ Passwords do not match.")
+            return
+
+        user.set_password(password)
+        db.session.commit()
+        print(f"✅ Password changed for '{username}'.")
+
+    @app.cli.command("delete-user")
+    def delete_user_command():
+        """Deletes a user account from the credentials database."""
+        username = input("Username to delete: ")
+        if username == "admin":
+            print("❌ Cannot delete the admin account.")
+            return
+
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            print(f"❌ User '{username}' not found.")
+            return
+
+        confirm = input(f"Are you sure you want to delete '{username}'? (yes/no): ")
+        if confirm.lower() != "yes":
+            print("Cancelled.")
+            return
+
+        db.session.delete(user)
+        db.session.commit()
+        print(f"✅ User '{username}' deleted from credentials database.")
+
     @app.cli.command("migrate-yaml-to-db")
     def migrate_yaml_command():
         """
