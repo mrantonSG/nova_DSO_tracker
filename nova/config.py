@@ -40,6 +40,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
 
+# --- Dither defaults ---
+DEFAULT_DITHER_MAIN_SHIFT_PX = 10  # Default desired shift on main camera sensor (pixels)
+
 # --- Bounded cache to prevent unbounded memory growth ---
 class BoundedCache(dict):
     """Dict with max size — evicts oldest entries when full."""

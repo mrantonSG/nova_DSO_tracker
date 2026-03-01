@@ -248,10 +248,17 @@ class Rig(Base):
     f_ratio = Column(Float, nullable=True)
     image_scale = Column(Float, nullable=True)
     fov_w_arcmin = Column(Float, nullable=True)
+    # Guide optics fields (for dither pixel recommendations) - FK references to Component model
+    guide_telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    guide_camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    guide_is_oag = Column(Boolean, nullable=False, default=False, server_default='0')
+    # Relationships
     user = relationship("DbUser", back_populates="rigs")
     telescope = relationship("Component", foreign_keys=[telescope_id])
     camera = relationship("Component", foreign_keys=[camera_id])
     reducer_extender = relationship("Component", foreign_keys=[reducer_extender_id])
+    guide_telescope = relationship("Component", foreign_keys=[guide_telescope_id])
+    guide_camera = relationship("Component", foreign_keys=[guide_camera_id])
     __table_args__ = (UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),)
 
 

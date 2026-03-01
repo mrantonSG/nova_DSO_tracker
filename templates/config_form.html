@@ -380,67 +380,61 @@
                 {{ help_badge('rigs_general', 'Help with Rigs') }}
             </h2>
             <p style="font-size:14px; color: var(--text-secondary);">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
-            <details open>
-                <summary><h3>Telescopes (<span id="tele-count">0</span>)</h3></summary>
-                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
-                    <input type="hidden" name="component_type" value="telescopes">
-                    <input type="hidden" name="component_id" value="">
-                    <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
-                    <div class="form-group"><label for="aperture">Aperture (mm):</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
-                    <div class="form-group"><label for="focal_length">Focal Length (mm):</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
-                    {% if not SINGLE_USER_MODE %}
-                    <div class="share-control">
-                        <input type="checkbox" name="is_shared" id="tele_is_shared">
-                        <label for="tele_is_shared">Share this component</label>
-                    </div>
-                    {% endif %}
-                    <button type="submit">Add Telescope</button>
-                </form>
-                <hr>
-                <ul id="telescope-list"></ul>
-            </details>
+            <h3>Telescopes (<span id="tele-count">0</span>)</h3>
+            <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
+                <input type="hidden" name="component_type" value="telescopes">
+                <input type="hidden" name="component_id" value="">
+                <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
+                <div class="form-group"><label for="aperture">Aperture (mm):</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
+                <div class="form-group"><label for="focal_length">Focal Length (mm):</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
+                {% if not SINGLE_USER_MODE %}
+                <div class="share-control">
+                    <input type="checkbox" name="is_shared" id="tele_is_shared">
+                    <label for="tele_is_shared">Share this component</label>
+                </div>
+                {% endif %}
+                <button type="submit">Add Telescope</button>
+            </form>
+            <hr>
+            <ul id="telescope-list"></ul>
             <hr>
 
-            <details open>
-                <summary><h3>Cameras (<span id="cam-count">0</span>)</h3></summary>
-                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-camera">
-                    <input type="hidden" name="component_type" value="cameras">
-                    <input type="hidden" name="component_id" value="">
-                    <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
-                    <div class="form-group"><label for="sensor_w">Sensor Width (mm):</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
-                    <div class="form-group"><label for="sensor_h">Sensor Height (mm):</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
-                    <div class="form-group"><label for="pixel_s">Pixel Size (μm):</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
-                    {% if not SINGLE_USER_MODE %}
-                    <div class="share-control">
-                        <input type="checkbox" name="is_shared" id="cam_is_shared">
-                        <label for="cam_is_shared">Share this component</label>
-                    </div>
-                    {% endif %}
-                    <button type="submit">Add Camera</button>
-                </form>
-                <hr>
-                <ul id="camera-list"></ul>
-            </details>
+            <h3>Cameras (<span id="cam-count">0</span>)</h3>
+            <form action="{{ url_for('tools.add_component') }}" method="post" id="form-camera">
+                <input type="hidden" name="component_type" value="cameras">
+                <input type="hidden" name="component_id" value="">
+                <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
+                <div class="form-group"><label for="sensor_w">Sensor Width (mm):</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
+                <div class="form-group"><label for="sensor_h">Sensor Height (mm):</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
+                <div class="form-group"><label for="pixel_s">Pixel Size (μm):</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
+                {% if not SINGLE_USER_MODE %}
+                <div class="share-control">
+                    <input type="checkbox" name="is_shared" id="cam_is_shared">
+                    <label for="cam_is_shared">Share this component</label>
+                </div>
+                {% endif %}
+                <button type="submit">Add Camera</button>
+            </form>
+            <hr>
+            <ul id="camera-list"></ul>
             <hr>
 
-            <details open>
-                <summary><h3>Reducers / Extenders (<span id="red-count">0</span>)</h3></summary>
-                <form action="{{ url_for('tools.add_component') }}" method="post" id="form-reducer">
-                    <input type="hidden" name="component_type" value="reducers_extenders">
-                    <input type="hidden" name="component_id" value="">
-                    <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
-                    <div class="form-group"><label for="factor">Factor:</label><input type="number" step="any" name="factor" id="factor" required placeholder="e.g., 0.7 for reducer"></div>
-                    {% if not SINGLE_USER_MODE %}
-                    <div class="share-control">
-                        <input type="checkbox" name="is_shared" id="red_is_shared">
-                        <label for="red_is_shared">Share this component</label>
-                    </div>
-                    {% endif %}
-                    <button type="submit">Add Reducer/Extender</button>
-                </form>
-                <hr>
-                <ul id="reducer-list"></ul>
-            </details>
+            <h3>Reducers / Extenders (<span id="red-count">0</span>)</h3>
+            <form action="{{ url_for('tools.add_component') }}" method="post" id="form-reducer">
+                <input type="hidden" name="component_type" value="reducers_extenders">
+                <input type="hidden" name="component_id" value="">
+                <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
+                <div class="form-group"><label for="factor">Factor:</label><input type="number" step="any" name="factor" id="factor" required placeholder="e.g., 0.7 for reducer"></div>
+                {% if not SINGLE_USER_MODE %}
+                <div class="share-control">
+                    <input type="checkbox" name="is_shared" id="red_is_shared">
+                    <label for="red_is_shared">Share this component</label>
+                </div>
+                {% endif %}
+                <button type="submit">Add Reducer/Extender</button>
+            </form>
+            <hr>
+            <ul id="reducer-list"></ul>
         </div>
 
         <div class="column">
@@ -466,6 +460,29 @@
                     <select name="reducer_extender_id" id="red_select">
                         <option value="">-- None --</option>
                     </select>
+                </div>
+                <div class="guide-optics-section" style="border-top: 1px solid var(--border-light); padding-top: 16px; margin-top: 8px;">
+                    <div style="font-size: var(--font-size-xs, 11px); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); margin-bottom: 12px;">
+                        Guide Optics <span style="text-transform: none; font-weight: 400; color: var(--text-muted);">(Optional — for dither recommendations)</span>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="guide_is_oag" name="guide_is_oag" style="width: auto; margin: 0;">
+                        <label for="guide_is_oag" style="margin: 0; font-weight: 500; cursor: pointer;">
+                            Off-Axis Guider (OAG) — uses main scope focal length
+                        </label>
+                    </div>
+                    <div class="form-group" id="guide-scope-row">
+                        <label for="guide_telescope_id">Guide Scope:</label>
+                        <select name="guide_telescope_id" id="guide_telescope_id">
+                            <option value="">-- None --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="guide_camera_id">Guide Camera:</label>
+                        <select name="guide_camera_id" id="guide_camera_id">
+                            <option value="">-- None --</option>
+                        </select>
+                    </div>
                 </div>
                 <button type="submit">Create Rig</button>
             </form>

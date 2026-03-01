@@ -70,10 +70,36 @@
         form.querySelector('select[name="telescope_id"]').value = rig.telescope_id;
         form.querySelector('select[name="camera_id"]').value = rig.camera_id;
         form.querySelector('select[name="reducer_extender_id"]').value = rig.reducer_extender_id || '';
+        // Guide optics FK fields and OAG checkbox
+        form.querySelector('select[name="guide_telescope_id"]').value = rig.guide_telescope_id || '';
+        form.querySelector('select[name="guide_camera_id"]').value = rig.guide_camera_id || '';
+        const oagCheckbox = form.querySelector('input[name="guide_is_oag"]');
+        if (oagCheckbox) {
+            oagCheckbox.checked = rig.guide_is_oag || false;
+        }
+        // Update guide scope row visibility based on OAG
+        updateOagVisibility();
         form.querySelector('button[type="submit"]').textContent = 'Update Rig';
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         console.log('[CONFIG_FORM] Form populated successfully');
     }
+
+    // OAG toggle handler
+    function updateOagVisibility() {
+        const isOag = document.getElementById('guide_is_oag');
+        const guideScopeRow = document.getElementById('guide-scope-row');
+        if (isOag && guideScopeRow) {
+            guideScopeRow.style.display = isOag.checked ? 'none' : '';
+        }
+    }
+
+    // Attach OAG checkbox listener
+    document.addEventListener('DOMContentLoaded', function() {
+        const oagCheckbox = document.getElementById('guide_is_oag');
+        if (oagCheckbox) {
+            oagCheckbox.addEventListener('change', updateOagVisibility);
+        }
+    });
 
     function safeNum(v, fallback = null) {
         const n = Number(v);
@@ -205,9 +231,15 @@
         const teleSelect = document.getElementById('tele_select');
         const camSelect = document.getElementById('cam_select');
         const redSelect = document.getElementById('red_select');
+        const guideTeleSelect = document.getElementById('guide_telescope_id');
+        const guideCamSelect = document.getElementById('guide_camera_id');
+
         if(teleSelect) teleSelect.innerHTML = '<option value="" disabled selected>-- Select a Telescope --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         if(camSelect) camSelect.innerHTML = '<option value="" disabled selected>-- Select a Camera --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         if(redSelect) redSelect.innerHTML = '<option value="">-- None --</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
+        // Guide optics dropdowns (same telescopes/cameras lists)
+        if(guideTeleSelect) guideTeleSelect.innerHTML = '<option value="">-- None --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        if(guideCamSelect) guideCamSelect.innerHTML = '<option value="">-- None --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
         const rigList = document.getElementById('existing-rigs-list');
         rigList.innerHTML = rigsSorted.map(rig => {
@@ -216,7 +248,33 @@
             const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
             let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
             if (rig.image_scale) {
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)}"/px<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+            }
+            // Dither recommendation display
+            if (rig.dither_recommendation) {
+                const d = rig.dither_recommendation;
+                // Build guide source display string based on OAG or separate guide scope
+                let guideSourceDisplay;
+                if (rig.guide_is_oag) {
+                    guideSourceDisplay = `OAG + ${tele ? tele.name : 'main scope'}`;
+                } else {
+                    guideSourceDisplay = rig.guide_telescope_name || 'guide scope';
+                }
+                const guideCamDisplay = rig.guide_camera_name || 'guide camera';
+                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};">`;
+                detailsHtml += `<div class="dither-recommendation" style="background: var(--primary-bg, #eaf4f8); padding: 8px 10px; border-radius: 6px; margin-top: 4px;">`;
+                detailsHtml += `<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary-color, #83b4c5); font-weight: 600; margin-bottom: 4px;">Dither Recommendation</div>`;
+                detailsHtml += `<small style="color: var(--text-secondary, #666);">Based on: ${guideSourceDisplay} + ${guideCamDisplay}<br>`;
+                detailsHtml += `Main: ${d.main_scale_arcsec_px}"/px · Guide: ${d.guide_scale_arcsec_px}"/px · Ratio: ${d.ratio}×</small><br>`;
+                detailsHtml += `<span style="color: var(--text-secondary, #666); font-size: 12px;">Guide-cam based dithering (e.g. ASIAIR):</span> <span style="color: var(--text-primary, #141414); font-weight: 600; font-size: 12px;">${d.recommended_pixels} px</span>`;
+                if (d.recommended_pixels > 9) {
+                    detailsHtml += `<br><small style="color: var(--text-muted, #888); font-size: var(--font-size-xs, 11px);">Note: ASIAIR max is 9 px — check your software's limit.</small>`;
+                }
+                detailsHtml += `</div>`;
+            } else if (rig.image_scale && !rig.guide_camera_id) {
+                // Show prompt to add guide optics
+                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};">`;
+                detailsHtml += `<small style="color: var(--text-muted, #888); font-style: italic;">Add guide camera for dither recommendations</small>`;
             }
             return `<li data-rig-id="${rig.rig_id}">
                         <div class="item-info">${detailsHtml}</div>

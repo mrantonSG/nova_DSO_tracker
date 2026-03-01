@@ -125,8 +125,10 @@ from nova.helpers import (
     to_yaml_filter, safe_float, safe_int, convert_to_native_python,
     load_effective_settings,
     get_imaging_criteria, _HAS_FCNTL,
-    save_log_to_filesystem, read_log_content
+    save_log_to_filesystem, read_log_content,
+    calculate_dither_recommendation
 )
+from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
 from nova.workers.weather import weather_cache_worker
 from nova.workers.updates import check_for_updates
@@ -714,6 +716,35 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_item_id INTEGER;")
                 print("[DB PATCH] Added missing column components.original_item_id")
             # --- END OF BLOCK ---
+
+            # --- Add guide optics columns to 'rigs' table for dither recommendations ---
+            cols_rigs = conn.exec_driver_sql("PRAGMA table_info(rigs);").fetchall()
+            colnames_rigs = {row[1] for row in cols_rigs}
+
+            # Legacy guide optics columns (kept for backwards compatibility, but no longer used)
+            if "guide_scope_name" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_scope_name VARCHAR(256);")
+                print("[DB PATCH] Added missing column rigs.guide_scope_name")
+            if "guide_focal_length_mm" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_focal_length_mm FLOAT;")
+                print("[DB PATCH] Added missing column rigs.guide_focal_length_mm")
+            if "guide_camera_name" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_camera_name VARCHAR(256);")
+                print("[DB PATCH] Added missing column rigs.guide_camera_name")
+            if "guide_pixel_size_um" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_pixel_size_um FLOAT;")
+                print("[DB PATCH] Added missing column rigs.guide_pixel_size_um")
+
+            # New FK-based guide optics columns
+            if "guide_telescope_id" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_telescope_id INTEGER;")
+                print("[DB PATCH] Added missing column rigs.guide_telescope_id")
+            if "guide_camera_id" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_camera_id INTEGER;")
+                print("[DB PATCH] Added missing column rigs.guide_camera_id")
+            if "guide_is_oag" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_is_oag BOOLEAN DEFAULT 0 NOT NULL;")
+                print("[DB PATCH] Added missing column rigs.guide_is_oag")
 
             # --- Add new columns to 'astro_objects' table ---
             cols_objects = conn.exec_driver_sql("PRAGMA table_info(astro_objects);").fetchall()
@@ -6016,11 +6047,19 @@ def add_rig():
             rig = db.get(Rig, int(rig_id))
             rig.rig_name = form.get('rig_name')
             rig.telescope_id, rig.camera_id, rig.reducer_extender_id = tel_id, cam_id, red_id
+            # Guide optics FK fields and OAG flag
+            rig.guide_telescope_id = safe_int(form.get('guide_telescope_id'))
+            rig.guide_camera_id = safe_int(form.get('guide_camera_id'))
+            rig.guide_is_oag = form.get('guide_is_oag') == 'on'
             flash(f"Rig '{rig.rig_name}' updated successfully.", "success")
         else:  # Add
             new_rig = Rig(
                 user_id=user.id, rig_name=form.get('rig_name'),
-                telescope_id=tel_id, camera_id=cam_id, reducer_extender_id=red_id
+                telescope_id=tel_id, camera_id=cam_id, reducer_extender_id=red_id,
+                # Guide optics FK fields and OAG flag
+                guide_telescope_id=safe_int(form.get('guide_telescope_id')),
+                guide_camera_id=safe_int(form.get('guide_camera_id')),
+                guide_is_oag=form.get('guide_is_oag') == 'on'
             )
             db.add(new_rig)
             rig = new_rig  # Reference the new object for update below
@@ -6162,11 +6201,51 @@ def get_rig_data():
         efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
         fov_h = (degrees(2 * atan((cam_obj.sensor_height_mm / 2.0) / efl)) * 60.0) if cam_obj and cam_obj.sensor_height_mm and efl else None
 
+        # Resolve guide optics FK references
+        guide_tel_obj = next((c for c in telescopes if c.id == r.guide_telescope_id), None) if r.guide_telescope_id else None
+        guide_cam_obj = next((c for c in cameras if c.id == r.guide_camera_id), None) if r.guide_camera_id else None
+
+        # Calculate dither recommendation if guide optics are configured
+        dither_rec = None
+        guide_fl = None
+        guide_pixel_size = None
+
+        # Determine guide focal length based on OAG setting
+        if r.guide_is_oag:
+            # OAG uses main scope focal length
+            guide_fl = efl  # effective focal length already accounts for reducer/extender
+        elif guide_tel_obj and guide_tel_obj.focal_length_mm:
+            guide_fl = guide_tel_obj.focal_length_mm
+
+        # Get guide camera pixel size
+        if guide_cam_obj and guide_cam_obj.pixel_size_um:
+            guide_pixel_size = guide_cam_obj.pixel_size_um
+
+        # Calculate dither if we have all required values
+        if (cam_obj and cam_obj.pixel_size_um and efl and
+            guide_pixel_size and guide_fl):
+            dither_rec = calculate_dither_recommendation(
+                main_pixel_size_um=cam_obj.pixel_size_um,
+                main_focal_length_mm=efl,
+                guide_pixel_size_um=guide_pixel_size,
+                guide_focal_length_mm=guide_fl,
+                desired_main_shift_px=DEFAULT_DITHER_MAIN_SHIFT_PX
+            )
+
         rigs_list.append({
             "rig_id": r.id, "rig_name": r.rig_name,
             "telescope_id": r.telescope_id, "camera_id": r.camera_id, "reducer_extender_id": r.reducer_extender_id,
             "effective_focal_length": efl, "f_ratio": f_ratio,
-            "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h
+            "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h,
+            # Guide optics FK fields and OAG flag
+            "guide_telescope_id": r.guide_telescope_id,
+            "guide_camera_id": r.guide_camera_id,
+            "guide_is_oag": r.guide_is_oag,
+            # Resolved guide equipment names for display
+            "guide_telescope_name": guide_tel_obj.name if guide_tel_obj else None,
+            "guide_camera_name": guide_cam_obj.name if guide_cam_obj else None,
+            # Dither recommendation (None if guide optics not configured)
+            "dither_recommendation": dither_rec
         })
 
     # Get sorting preference from UiPref

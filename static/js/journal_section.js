@@ -426,6 +426,66 @@
         }
     }
 
+    // Rig selection handler - auto-populate guiding equipment and dither hint
+    async function handleRigSelectionChange(e) {
+        const rigId = e.target.value;
+        const guidingField = document.getElementById('guiding_equipment');
+        const ditherHint = document.getElementById('dither-hint');
+
+        // If no rig selected, clear the hint but leave guiding field as-is
+        if (!rigId) {
+            if (ditherHint) {
+                ditherHint.textContent = '';
+                ditherHint.style.display = 'none';
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch('/get_rig_data');
+            if (!response.ok) throw new Error('Failed to fetch rig data');
+            const data = await response.json();
+
+            // Find the selected rig
+            const rig = data.rigs && data.rigs.find(r => r.rig_id == rigId);
+            if (!rig) {
+                console.warn('[JOURNAL_SECTION] Rig not found:', rigId);
+                return;
+            }
+
+            // Auto-populate Guiding Equipment field (always update, clear if no guide equipment)
+            if (guidingField) {
+                let guidingStr = '';
+                if (rig.guide_is_oag && rig.guide_camera_name) {
+                    guidingStr = `OAG + ${rig.guide_camera_name}`;
+                } else if (rig.guide_telescope_name && rig.guide_camera_name) {
+                    guidingStr = `${rig.guide_telescope_name} + ${rig.guide_camera_name}`;
+                } else if (rig.guide_camera_name) {
+                    guidingStr = rig.guide_camera_name;
+                }
+                guidingField.value = guidingStr;
+            }
+
+            // Show dither recommendation hint
+            if (ditherHint) {
+                const rec = rig.dither_recommendation;
+                if (rec && rec.recommended_pixels) {
+                    // Build source string: "OAG + ASI174MM" or "FinderGuider + ASI174MM"
+                    const source = rig.guide_is_oag
+                        ? `OAG + ${rig.guide_camera_name || ''}`
+                        : `${rig.guide_telescope_name || ''} + ${rig.guide_camera_name || ''}`.trim().replace(/^\+\s*|\s*\+$/g, '');
+                    ditherHint.textContent = `Recommended: ${rec.recommended_pixels} px · ASIAIR, based on ${source}`;
+                    ditherHint.style.display = 'inline';
+                } else {
+                    ditherHint.textContent = '';
+                    ditherHint.style.display = 'none';
+                }
+            }
+        } catch (err) {
+            console.error('[JOURNAL_SECTION] Error fetching rig data:', err);
+        }
+    }
+
     // Trix helper for loading content into editors (Used for Project Edit)
     function loadTrixContentJournal(editorId, htmlContent) {
         const editorElement = document.getElementById(editorId);
@@ -859,6 +919,12 @@
         if (sessionDate) sessionDate.addEventListener('change', updateMoonData);
         if (locationName) locationName.addEventListener('change', updateMoonData);
         if (projectSelection) projectSelection.addEventListener('change', toggleNewProjectField);
+
+        // Rig selector change handler - auto-populate guiding equipment and dither hint
+        const rigSelector = document.getElementById('rig-selector-edit');
+        if (rigSelector) {
+            rigSelector.addEventListener('change', handleRigSelectionChange);
+        }
 
         // Class-based delegation for calculation triggers
         document.addEventListener('input', function(e) {
