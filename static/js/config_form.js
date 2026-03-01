@@ -246,45 +246,50 @@
             const tele = telescopes.find(t => t.id === rig.telescope_id);
             const cam = cameras.find(c => c.id === rig.camera_id);
             const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
-            let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
-            if (rig.image_scale) {
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)}"/px<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+
+            // Build spec lines: Telescope, Camera, Reducer, Guiding (if configured)
+            let specLines = [];
+            specLines.push(`Telescope: ${tele ? tele.name : 'N/A'}`);
+            specLines.push(`Camera: ${cam ? cam.name : 'N/A'}`);
+            if (red) specLines.push(`Reducer/Extender: ${red.name}`);
+            // Add guiding line if guide equipment is configured
+            if (rig.guide_camera_id) {
+                let guidingDisplay;
+                if (rig.guide_is_oag) {
+                    guidingDisplay = `OAG + ${rig.guide_camera_name || 'guide camera'}`;
+                } else {
+                    guidingDisplay = `${rig.guide_telescope_name || 'guide scope'} + ${rig.guide_camera_name || 'guide camera'}`;
+                }
+                specLines.push(`Guiding: ${guidingDisplay}`);
             }
-            // Dither recommendation display
+            const specHtml = `<small>${specLines.join('<br>')}</small>`;
+
+            // FL/scale/FOV block
+            let opticsHtml = '';
+            if (rig.image_scale) {
+                opticsHtml = `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)}"/px<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+            }
+
+            // Dither data attributes for sampling line
+            let ditherDataAttrs = '';
             if (rig.dither_recommendation) {
                 const d = rig.dither_recommendation;
-                // Build guide source display string based on OAG or separate guide scope
-                let guideSourceDisplay;
-                if (rig.guide_is_oag) {
-                    guideSourceDisplay = `OAG + ${tele ? tele.name : 'main scope'}`;
-                } else {
-                    guideSourceDisplay = rig.guide_telescope_name || 'guide scope';
-                }
-                const guideCamDisplay = rig.guide_camera_name || 'guide camera';
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};">`;
-                detailsHtml += `<div class="dither-recommendation" style="background: var(--primary-bg, #eaf4f8); padding: 8px 10px; border-radius: 6px; margin-top: 4px;">`;
-                detailsHtml += `<div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary-color, #83b4c5); font-weight: 600; margin-bottom: 4px;">Dither Recommendation</div>`;
-                detailsHtml += `<small style="color: var(--text-secondary, #666);">Based on: ${guideSourceDisplay} + ${guideCamDisplay}<br>`;
-                detailsHtml += `Main: ${d.main_scale_arcsec_px}"/px · Guide: ${d.guide_scale_arcsec_px}"/px · Ratio: ${d.ratio}×</small><br>`;
-                detailsHtml += `<span style="color: var(--text-secondary, #666); font-size: 12px;">Guide-cam based dithering (e.g. ASIAIR):</span> <span style="color: var(--text-primary, #141414); font-weight: 600; font-size: 12px;">${d.recommended_pixels} px</span>`;
-                if (d.recommended_pixels > 9) {
-                    detailsHtml += `<br><small style="color: var(--text-muted, #888); font-size: var(--font-size-xs, 11px);">Note: ASIAIR max is 9 px — check your software's limit.</small>`;
-                }
-                detailsHtml += `</div>`;
-            } else if (rig.image_scale && !rig.guide_camera_id) {
-                // Show prompt to add guide optics
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};">`;
-                detailsHtml += `<small style="color: var(--text-muted, #888); font-style: italic;">Add guide camera for dither recommendations</small>`;
+                ditherDataAttrs = `data-dither-px="${d.recommended_pixels}" data-dither-main="${d.main_scale_arcsec_px}" data-dither-guide="${d.guide_scale_arcsec_px}" data-dither-ratio="${d.ratio}"`;
             }
-            return `<li data-rig-id="${rig.rig_id}">
-                        <div class="item-info">${detailsHtml}</div>
-                        <div class="item-actions">
-                            <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
-                            <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
-                                <input type="hidden" name="rig_id" value="${rig.rig_id}">
-                                <button type="submit" class="delete-btn">Delete</button>
-                            </form>
+
+            return `<li data-rig-id="${rig.rig_id}" ${ditherDataAttrs} style="display:block;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <strong>${rig.rig_name}</strong>
+                            <div style="display:flex; gap:6px; flex-shrink:0;">
+                                <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
+                                <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');" style="display:inline;">
+                                    <input type="hidden" name="rig_id" value="${rig.rig_id}">
+                                    <button type="submit" class="delete-btn">Delete</button>
+                                </form>
+                            </div>
                         </div>
+                        <div class="rig-specs">${specHtml}</div>
+                        <div class="rig-computed">${opticsHtml}</div>
                     </li>`;
         console.log('[CONFIG_FORM] Generated Edit button for rig:', rig.rig_name, 'id:', rig.rig_id);
         }).join('') || '<li>No rigs configured yet.</li>';
@@ -301,13 +306,32 @@
         const rigListItems = document.querySelectorAll('#existing-rigs-list li');
 
         rigListItems.forEach(item => {
-            const infoContainer = item.querySelector('.item-info');
-            infoContainer.querySelectorAll('.sampling-info, .sampling-binning-tip').forEach(el => el.remove());
-            if (selectedSeeing === 'none') return;
+            const infoContainer = item.querySelector('.rig-computed');
+            infoContainer.querySelectorAll('.rig-dither-line, .rig-sampling-line, .sampling-binning-tip').forEach(el => el.remove());
 
             const rigId = item.dataset.rigId;
             const rigIdNum = parseInt(rigId, 10);
             const rig = rigsData.rigs.find(r => r.rig_id === rigIdNum);
+
+            // Dither line — shown if guide equipment configured (independent of sampling)
+            const ditherPx = item.dataset.ditherPx;
+            if (ditherPx) {
+                const ditherMain = item.dataset.ditherMain;
+                const ditherGuide = item.dataset.ditherGuide;
+                const ditherRatio = item.dataset.ditherRatio;
+                const tooltip = `Main: ${ditherMain}"/px · Guide: ${ditherGuide}"/px · Ratio: ${ditherRatio}×`;
+                const ditherEl = document.createElement('div');
+                ditherEl.className = 'rig-dither-line';
+                let ditherHtml = `Guide-cam dither: <strong title="${tooltip}">${ditherPx} px</strong>`;
+                if (parseInt(ditherPx) > 9) {
+                    ditherHtml += `<span class="rig-dither-cap-warning"> — check your software's max</span>`;
+                }
+                ditherEl.innerHTML = ditherHtml;
+                infoContainer.appendChild(ditherEl);
+            }
+
+            // Sampling line — shown only when seeing condition selected
+            if (selectedSeeing === 'none') return;
             if (rig && rig.image_scale) {
                 const imageScale = rig.image_scale;
                 const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
@@ -321,10 +345,10 @@
                 else if (samplingAvg >= 0.67) { text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-undersampled'; }
                 else { text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-undersampled'; }
 
-                const infoEl = document.createElement('span');
-                infoEl.className = `sampling-info ${colorClass}`;
-                infoEl.textContent = text;
-                infoContainer.appendChild(infoEl);
+                const samplingEl = document.createElement('div');
+                samplingEl.className = `rig-sampling-line ${colorClass}`;
+                samplingEl.innerHTML = `${text.split(':')[0]}: <strong>${text.split(':')[1]}</strong>`;
+                infoContainer.appendChild(samplingEl);
 
                 if (isOversampled) {
                     const binningEl = document.createElement('small');
