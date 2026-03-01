@@ -1,6 +1,8 @@
 services:
   nova:
-    image: mrantonsg/nova-dso-tracker
+#    image: mrantonsg/nova-dso-tracker
+    build:
+      context: .
     container_name: nova
     ports:
       - "127.0.0.1:5001:5001"
