@@ -126,7 +126,7 @@ from nova.helpers import (
     load_effective_settings,
     get_imaging_criteria, _HAS_FCNTL,
     save_log_to_filesystem, read_log_content,
-    calculate_dither_recommendation
+    calculate_dither_recommendation, dither_display
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -840,6 +840,21 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN status VARCHAR(32) DEFAULT 'In Progress';")
                 print("[DB PATCH] Added missing column projects.status")
             # --- End Project Model Patches ---
+
+            # --- Structured Dither Fields Patches ---
+            cols_journal_sessions = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
+            colnames_journal_sessions = {row[1] for row in cols_journal_sessions}
+
+            if "dither_pixels" not in colnames_journal_sessions:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_pixels INTEGER;")
+                print("[DB PATCH] Added missing column journal_sessions.dither_pixels")
+            if "dither_every_n" not in colnames_journal_sessions:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_every_n INTEGER;")
+                print("[DB PATCH] Added missing column journal_sessions.dither_every_n")
+            if "dither_notes" not in colnames_journal_sessions:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_notes VARCHAR(256);")
+                print("[DB PATCH] Added missing column journal_sessions.dither_notes")
+            # --- End Structured Dither Fields Patches ---
 
             # Indexes for frequently filtered columns
             conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_active ON locations(active);")
@@ -1794,6 +1809,13 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             cam_id = _resolve_component_id("camera", r.get("camera_id"), cam_name)
             red_id = _resolve_component_id("reducer_extender", r.get("reducer_extender_id"), red_name)
 
+            # Guide optics fields
+            guide_tel_name = r.get("guide_telescope_name")
+            guide_cam_name = r.get("guide_camera_name")
+            guide_tel_id = _resolve_component_id("telescope", r.get("guide_telescope_id"), guide_tel_name)
+            guide_cam_id = _resolve_component_id("camera", r.get("guide_camera_id"), guide_cam_name)
+            guide_is_oag = bool(r.get("guide_is_oag", False))
+
             if not (tel_id and cam_id):
                 print(
                     f"[MIGRATION][RIG SKIP] Rig '{rig_name}' for user '{username}' is missing a valid telescope or camera link. Skipping.")
@@ -1814,10 +1836,12 @@ def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: st
             if existing_rig:
                 existing_rig.telescope_id, existing_rig.camera_id, existing_rig.reducer_extender_id = tel_id, cam_id, red_id
                 existing_rig.effective_focal_length, existing_rig.f_ratio, existing_rig.image_scale, existing_rig.fov_w_arcmin = eff_fl, f_ratio, scale, fov_w
+                existing_rig.guide_telescope_id, existing_rig.guide_camera_id, existing_rig.guide_is_oag = guide_tel_id, guide_cam_id, guide_is_oag
             else:
                 db.add(Rig(user_id=user.id, rig_name=rig_name, telescope_id=tel_id, camera_id=cam_id,
                            reducer_extender_id=red_id, effective_focal_length=eff_fl, f_ratio=f_ratio,
-                           image_scale=scale, fov_w_arcmin=fov_w))
+                           image_scale=scale, fov_w_arcmin=fov_w, guide_telescope_id=guide_tel_id,
+                           guide_camera_id=guide_cam_id, guide_is_oag=guide_is_oag))
             db.flush()
 
         except Exception as e:
@@ -2002,6 +2026,9 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "guiding_rms_avg_arcsec": _try_float(s.get("guiding_rms_avg_arcsec")),
             "guiding_equipment": s.get("guiding_equipment"),
             "dither_details": s.get("dither_details"),
+            "dither_pixels": _as_int(s.get("dither_pixels")),  # None for old backups
+            "dither_every_n": _as_int(s.get("dither_every_n")),  # None for old backups
+            "dither_notes": s.get("dither_notes"),  # None for old backups
             "acquisition_software": s.get("acquisition_software"),
             "gain_setting": _as_int(s.get("gain_setting")),
             "offset_setting": _as_int(s.get("offset_setting")),
@@ -2071,6 +2098,15 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             # INSERT (No external ID provided): Always create a new session
             new_session = JournalSession(**row_values)
             db.add(new_session)
+
+        # *** START: Legacy dither migration ***
+        # If new structured fields are absent but old dither_details is present,
+        # migrate the old text into dither_notes
+        if row_values.get("dither_pixels") is None and row_values.get("dither_details"):
+            # Get the session object (either existing_session or new_session)
+            session_obj = existing_session if existing_session else new_session
+            session_obj.dither_notes = row_values.get("dither_details")
+        # *** END: Legacy dither migration ***
         # *** END: Simplified Upsert Logic ***
 
     # --- Import custom filter definitions ---
@@ -2305,7 +2341,13 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 "effective_focal_length": r.effective_focal_length,
                 "f_ratio": r.f_ratio,
                 "image_scale": r.image_scale,
-                "fov_w_arcmin": r.fov_w_arcmin
+                "fov_w_arcmin": r.fov_w_arcmin,
+                # Guide optics fields
+                "guide_telescope_id": r.guide_telescope_id,
+                "guide_telescope_name": comp_map.get(r.guide_telescope_id),
+                "guide_camera_id": r.guide_camera_id,
+                "guide_camera_name": comp_map.get(r.guide_camera_id),
+                "guide_is_oag": r.guide_is_oag or False
             } for r in rigs
         ]
     }
@@ -2377,6 +2419,10 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 "guiding_rms_avg_arcsec": s.guiding_rms_avg_arcsec,
                 "guiding_equipment": s.guiding_equipment,
                 "dither_details": s.dither_details,
+                "dither_pixels": s.dither_pixels,
+                "dither_every_n": s.dither_every_n,
+                "dither_notes": s.dither_notes,
+                "dither_display": dither_display(s),
                 "acquisition_software": s.acquisition_software,
 
                 # Calibration Strategy
@@ -6425,6 +6471,9 @@ def journal_add():
                 weather_notes=request.form.get("weather_notes", "").strip() or None,
                 guiding_equipment=request.form.get("guiding_equipment", "").strip() or None,
                 dither_details=request.form.get("dither_details", "").strip() or None,
+                dither_pixels=safe_int(request.form.get("dither_pixels")),
+                dither_every_n=safe_int(request.form.get("dither_every_n")),
+                dither_notes=request.form.get("dither_notes", "").strip() or None,
                 acquisition_software=request.form.get("acquisition_software", "").strip() or None,
                 camera_temp_setpoint_c=safe_float(request.form.get("camera_temp_setpoint_c")),
                 camera_temp_actual_avg_c=safe_float(request.form.get("camera_temp_actual_avg_c")),
@@ -6634,6 +6683,9 @@ def journal_edit(session_id):
         session_to_edit.weather_notes = form.get("weather_notes", "").strip() or None
         session_to_edit.guiding_equipment = form.get("guiding_equipment", "").strip() or None
         session_to_edit.dither_details = form.get("dither_details", "").strip() or None
+        session_to_edit.dither_pixels = safe_int(form.get("dither_pixels"))
+        session_to_edit.dither_every_n = safe_int(form.get("dither_every_n"))
+        session_to_edit.dither_notes = form.get("dither_notes", "").strip() or None
         session_to_edit.acquisition_software = form.get("acquisition_software", "").strip() or None
         session_to_edit.camera_temp_setpoint_c = safe_float(form.get("camera_temp_setpoint_c"))
         session_to_edit.camera_temp_actual_avg_c = safe_float(form.get("camera_temp_actual_avg_c"))
@@ -7089,6 +7141,9 @@ def show_journal_report_page(session_id):
             sanitized_notes = bleach.clean(raw_journal_notes, tags=SAFE_TAGS, attributes=SAFE_ATTRS,
                                            css_sanitizer=css_sanitizer)
         session_dict['notes'] = sanitized_notes
+
+        # Add dither_display for template rendering
+        session_dict['dither_display'] = dither_display(session)
 
         # --- 4. Parse Log Files and Generate Charts ---
         log_analysis = {'has_logs': False, 'asiair': None, 'phd2': None}
