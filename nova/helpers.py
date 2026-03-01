@@ -243,6 +243,72 @@ def is_log_path(db_value: str) -> bool:
 
 # === Data conversion helpers ===
 
+import math
+
+def calculate_dither_recommendation(
+    main_pixel_size_um: float,
+    main_focal_length_mm: float,
+    guide_pixel_size_um: float,
+    guide_focal_length_mm: float,
+    desired_main_shift_px: int = 10
+) -> dict:
+    """
+    Calculate dither pixel recommendation for guide-based capture systems (ASIAIR, etc.).
+
+    The dither value in these systems is based on the guide camera's pixel scale,
+    not the main camera. This function computes the recommended dither pixels
+    to achieve a desired shift on the main sensor.
+
+    Args:
+        main_pixel_size_um: Main camera pixel size in micrometers
+        main_focal_length_mm: Main telescope focal length in millimeters
+        guide_pixel_size_um: Guide camera pixel size in micrometers
+        guide_focal_length_mm: Guide scope focal length in millimeters
+        desired_main_shift_px: Desired shift on main sensor in pixels (default 10)
+
+    Returns:
+        dict with:
+            - main_scale_arcsec_px: Main camera plate scale
+            - guide_scale_arcsec_px: Guide camera plate scale
+            - ratio: Guide scale / main scale
+            - raw_pixels: Unrounded dither pixels
+            - recommended_pixels: Ceil-rounded dither pixels for ASIAIR
+            - desired_main_shift_px: Input desired shift
+        Returns None if any input is invalid (zero, negative, or None)
+    """
+    # Validate inputs - all must be positive non-zero values
+    if not all(v is not None and v > 0 for v in [
+        main_pixel_size_um, main_focal_length_mm,
+        guide_pixel_size_um, guide_focal_length_mm
+    ]):
+        return None
+
+    try:
+        # Plate scale formula: (pixel_size_um / focal_length_mm) * 206.265 = arcsec/pixel
+        main_scale = (main_pixel_size_um / main_focal_length_mm) * 206.265
+        guide_scale = (guide_pixel_size_um / guide_focal_length_mm) * 206.265
+
+        # Ratio of guide to main plate scale
+        ratio = guide_scale / main_scale
+
+        # Calculate raw pixels needed on guide camera
+        raw_pixels = desired_main_shift_px / ratio
+
+        # Round up for ASIAIR (conservative - ensures at least desired shift)
+        recommended = math.ceil(raw_pixels)
+
+        return {
+            "main_scale_arcsec_px": round(main_scale, 2),
+            "guide_scale_arcsec_px": round(guide_scale, 2),
+            "ratio": round(ratio, 2),
+            "raw_pixels": round(raw_pixels, 2),
+            "recommended_pixels": recommended,
+            "desired_main_shift_px": desired_main_shift_px,
+        }
+    except (ZeroDivisionError, ValueError, TypeError):
+        return None
+
+
 def safe_float(value_str):
     """Safely converts a string to a float, returning None if empty or invalid."""
     if value_str is None or str(value_str).strip() == "":

@@ -1731,7 +1731,10 @@
                 <div id="form-acq-tab">
                     <div class="form-section-title">Acquisition Details</div>
                     {{ form_group('acquisition_software', 'Acquisition Software:', type='text', placeholder='e.g., N.I.N.A.') }}
-                    {{ form_group('dither_details', 'Dither Settings:', type='text', placeholder='e.g., Yes, 3px every 2 subs') }}
+                    <div class="form-group">
+                        <label for="dither_details" style="white-space:nowrap;">Dither Settings:<span id="dither-hint" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px;"></span></label>
+                        <input type="text" id="dither_details" name="dither_details" placeholder="e.g., Yes, 3px every 2 subs">
+                    </div>
                     <div class="form-row">
                         {{ form_group('exposure_time_per_sub_sec', 'Sub Exposure (sec):', type='number', min=0, extra_attrs='class="calc-trigger"') }}
                         <div class="form-group"><label># Light Subs <span id="max-subs-main" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" class="calc-trigger"></div>
