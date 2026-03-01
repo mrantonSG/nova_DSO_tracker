@@ -2363,9 +2363,12 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
 
     db_projects = db.query(Project).filter_by(user_id=u.id).all()
     projects_list = []
+    # FIX: Build project lookup dict for session export (natural key resolution)
+    project_lookup = {p.id: p.name for p in db_projects}
+    
     for p in db_projects:
         projects_list.append({
-            "project_id": p.id,
+            "project_id": p.id,  # Legacy: kept for backward compatibility
             "project_name": p.name,
             "target_object_id": p.target_object_name,
             "status": p.status,
@@ -2392,7 +2395,8 @@ def export_user_to_yaml(username: str, out_dir: str = None) -> bool:
                 "object_name": s.object_name,
                 "notes": s.notes,
                 "session_id": s.external_id or s.id,
-                "project_id": s.project_id,
+                "project_id": s.project_id,  # Legacy: kept for backward compatibility
+                "project_name": project_lookup.get(s.project_id) if s.project_id else None,
 
                 # Capture Details
                 "number_of_subs_light": s.number_of_subs_light,
@@ -11436,11 +11440,14 @@ def download_rig_config():
             efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
 
             final_rigs_list.append({
-                "rig_id": r.id,
+                "rig_id": r.id,  # Legacy: kept for backward compatibility
                 "rig_name": r.rig_name,
-                "telescope_id": r.telescope_id,
-                "camera_id": r.camera_id,
-                "reducer_extender_id": r.reducer_extender_id,
+                "telescope_name": tel_obj.name if tel_obj else None,  # Natural key
+                "camera_name": cam_obj.name if cam_obj else None,  # Natural key
+                "reducer_extender_name": red_obj.name if red_obj else None,  # Natural key
+                "telescope_id": r.telescope_id,  # Legacy: kept for backward compatibility
+                "camera_id": r.camera_id,  # Legacy: kept for backward compatibility
+                "reducer_extender_id": r.reducer_extender_id,  # Legacy: kept for backward compatibility
                 "effective_focal_length": efl,
                 "f_ratio": f_ratio,
                 "image_scale": scale,

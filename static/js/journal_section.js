@@ -151,7 +151,54 @@
         form.elements['sky_sqm_observed'].value = data.sky_sqm_observed || '';
         form.elements['moon_illumination_session'].value = data.moon_illumination_session || '';
         form.elements['moon_angular_separation_session'].value = data.moon_angular_separation_session || '';
-        form.elements['rig_id_snapshot'].value = data.rig_id_snapshot || '';
+
+        // Debug: Log rig data
+        console.log('[populateEditForm] rig_id_snapshot:', data.rig_id_snapshot);
+        console.log('[populateEditForm] rig_name_snapshot:', data.rig_name_snapshot);
+        console.log('[populateEditForm] availableRigs:', window.availableRigs);
+
+        // Fix: Handle case where rig_id_snapshot is null or doesn't match any available rig
+        let rigId = data.rig_id_snapshot;
+        let shouldUseNameMatch = false;
+
+        if (rigId && window.availableRigs) {
+            // Check if rigId exists in availableRigs
+            const rigExists = window.availableRigs.some(r => r.rig_id === rigId);
+            console.log('[populateEditForm] Does rigId', rigId, 'exist in availableRigs?', rigExists);
+            if (!rigExists) {
+                // Rig ID doesn't exist in available rigs, try matching by name
+                shouldUseNameMatch = true;
+            }
+        } else if (!rigId && data.rig_name_snapshot && window.availableRigs) {
+            // rigId is null, try matching by name
+            shouldUseNameMatch = true;
+        }
+
+        if (shouldUseNameMatch && data.rig_name_snapshot && window.availableRigs) {
+            // Try to find the rig by name
+            console.log('[populateEditForm] Attempting to find rig by name:', data.rig_name_snapshot);
+            const matchingRig = window.availableRigs.find(rig => rig.rig_name === data.rig_name_snapshot);
+            console.log('[populateEditForm] Matching rig:', matchingRig);
+            if (matchingRig) {
+                rigId = matchingRig.rig_id;
+                console.log('[populateEditForm] Found rig ID:', rigId, 'by name match');
+            } else {
+                console.warn('[populateEditForm] No matching rig found for name:', data.rig_name_snapshot);
+            }
+        }
+        console.log('[populateEditForm] Final rigId to set:', rigId);
+
+        // Try to access the rig selector by ID instead of form.elements
+        const rigSelector = document.getElementById('rig-selector-edit');
+        console.log('[populateEditForm] Rig selector element:', rigSelector);
+        if (rigSelector) {
+            console.log('[populateEditForm] Rig selector options before setting:', Array.from(rigSelector.options).map(o => ({ value: o.value, text: o.text, selected: o.selected })));
+            rigSelector.value = rigId || '';
+            console.log('[populateEditForm] Rig selector value after setting:', rigSelector.value);
+            console.log('[populateEditForm] Rig selector options after setting:', Array.from(rigSelector.options).map(o => ({ value: o.value, text: o.text, selected: o.selected })));
+        } else {
+            console.error('[populateEditForm] Rig selector element not found!');
+        }
         form.elements['telescope_setup_notes'].value = data.telescope_setup_notes || '';
         form.elements['guiding_rms_avg_arcsec'].value = data.guiding_rms_avg_arcsec || '';
         form.elements['exposure_time_per_sub_sec'].value = data.exposure_time_per_sub_sec || '';
@@ -251,6 +298,8 @@
     }
 
     function setupEditMode() {
+        console.log('[setupEditMode] Called!');
+        console.log('[setupEditMode] window.selectedSessionData:', window.selectedSessionData);
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
         const formDetailTitle = document.getElementById('form-detail-title');
@@ -273,8 +322,11 @@
             form.elements.session_id.value = window.selectedSessionData.id;
             form.elements.session_date.value = window.selectedSessionData.date_utc.split('T')[0];
             form.elements.location_name.value = window.selectedSessionData.location_name;
+            console.log('[setupEditMode] Calling populateEditForm...');
             populateEditForm(window.selectedSessionData);
             updateMoonData();
+        } else {
+            console.error('[setupEditMode] No selectedSessionData found!');
         }
 
         submitButton.textContent = 'Save Changes';
