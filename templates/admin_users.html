@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Nova – User Management{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_users.css') }}">
+{% endblock %}
+
+{% block page_title %}
+    <h2>User Management <span class="subtitle">(Admin)</span></h2>
+{% endblock %}
+
+{% block header_actions %}
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; Back to Dashboard</button>
+{% endblock %}
+
+{% block body %}
+
+  <div id="flash-message-container" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; width: 90%; max-width: 500px; text-align: center;">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message" style="padding: 12px 20px; border-radius: 6px; color: white; font-weight: bold; background-color: {{ 'var(--danger-color)' if category == 'error' else 'var(--success-color-alt)' }}; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const flashMessages = document.querySelectorAll('.flash-message');
+      if (flashMessages.length > 0) {
+        setTimeout(() => {
+          flashMessages.forEach(el => {
+            el.style.transition = 'opacity 0.5s ease';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 500);
+          });
+        }, 4000);
+      }
+    });
+  </script>
+
+  <div class="admin-container">
+
+    <!-- Create User Card -->
+    <div class="admin-card">
+      <h3>Create New User</h3>
+      <form method="POST" action="{{ url_for('tools.admin_create_user') }}" class="create-user-form">
+        <div class="form-row">
+          <label for="new-username">Username</label>
+          <input type="text" id="new-username" name="username" required autocomplete="off" placeholder="e.g. alice">
+        </div>
+        <div class="form-row">
+          <label for="new-password">Password</label>
+          <input type="password" id="new-password" name="password" required autocomplete="new-password" placeholder="Min 4 characters" minlength="4">
+        </div>
+        <button type="submit" class="btn-primary">Create User</button>
+      </form>
+    </div>
+
+    <!-- Users Table Card -->
+    <div class="admin-card">
+      <h3>Existing Users <span class="user-count">({{ users | length }})</span></h3>
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr class="{{ 'inactive-row' if not user.active }}">
+            <td>{{ user.id }}</td>
+            <td>
+              {{ user.username }}
+              {% if user.username == 'admin' %}<span class="badge badge-admin">admin</span>{% endif %}
+            </td>
+            <td>
+              {% if user.active %}
+                <span class="badge badge-active">Active</span>
+              {% else %}
+                <span class="badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="actions-cell">
+              {% if user.username != 'admin' %}
+                <!-- Toggle active/inactive -->
+                <form method="POST" action="{{ url_for('tools.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
+                  <button type="submit" class="btn-small {{ 'btn-warn' if user.active else 'btn-success' }}" title="{{ 'Deactivate' if user.active else 'Activate' }}">
+                    {{ 'Deactivate' if user.active else 'Activate' }}
+                  </button>
+                </form>
+              {% endif %}
+
+              <!-- Reset password (for all users including admin) -->
+              <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">Reset Password</button>
+
+              {% if user.username != 'admin' %}
+                <!-- Delete -->
+                <form method="POST" action="{{ url_for('tools.admin_delete_user', user_id=user.id) }}" style="display:inline;"
+                      onsubmit="return confirm('Delete user \'{{ user.username }}\'? This removes their login credentials. Their observing data in app.db is NOT deleted.');">
+                  <button type="submit" class="btn-small btn-danger">Delete</button>
+                </form>
+              {% endif %}
+
+              <!-- Hidden reset-password form -->
+              <div id="reset-form-{{ user.id }}" class="reset-password-form" style="display:none;">
+                <form method="POST" action="{{ url_for('tools.admin_reset_password', user_id=user.id) }}">
+                  <input type="password" name="new_password" required placeholder="New password" minlength="4" autocomplete="new-password">
+                  <button type="submit" class="btn-small btn-primary">Save</button>
+                  <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">Cancel</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    function toggleResetForm(userId) {
+      var el = document.getElementById('reset-form-' + userId);
+      el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+    }
+  </script>
+
+{% endblock %}
