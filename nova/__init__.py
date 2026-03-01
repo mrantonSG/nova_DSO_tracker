@@ -6508,9 +6508,13 @@ def journal_add():
                     custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
             new_session.custom_filter_data = json.dumps(custom_data) if custom_data else None
 
-            # --- Total exposure calculation (fixed + custom filters) ---
+            # --- Total exposure calculation (light frames + fixed + custom filters) ---
             FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
             total_seconds = 0
+
+            # Include light frames (number_of_subs_light × exposure_time_per_sub_sec)
+            if new_session.number_of_subs_light and new_session.exposure_time_per_sub_sec:
+                total_seconds += int(new_session.number_of_subs_light) * int(new_session.exposure_time_per_sub_sec)
 
             for fk in FIXED_FILTER_KEYS:
                 subs = getattr(new_session, f'filter_{fk}_subs', None) or 0
