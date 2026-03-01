@@ -1726,8 +1726,15 @@
                     <div class="form-group">
                         <label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <select id="rig-selector-edit" name="rig_id_snapshot"><option value="">-- Manually Enter Below --</option>{% for rig in available_rigs %}<option value="{{ rig.rig_id }}" {% if selected_session_data_dict and selected_session_data_dict.rig_id_snapshot|int == rig.rig_id %}selected{% endif %}>{{ rig.rig_name }}</option>{% endfor %}</select>
+                            <select id="rig-selector-edit" name="rig_id_snapshot">
+                                <option value="">-- Manually Enter Below --</option>
+                                {% for rig in available_rigs %}
+                                    <option value="{{ rig.rig_id }}" {% if selected_session_data_dict and selected_session_data_dict.rig_id_snapshot|int == rig.rig_id %}selected{% endif %}>{{ rig.rig_name }}</option>
+                                {% endfor %}
+                            </select>
                             <button type="button" id="rig-info-btn" data-action="show-rig-info" style="display:none;" title="View rig details">ⓘ</button>
+                            <!-- DEBUG: rig_id_snapshot = {{ selected_session_data_dict.rig_id_snapshot if selected_session_data_dict else 'N/A' }} -->
+                            <!-- DEBUG: rig_name_snapshot = {{ selected_session_data_dict.rig_name_snapshot if selected_session_data_dict else 'N/A' }} -->
                         </div>
                     </div>
                     {{ form_group('telescope_setup_notes', 'Telescope Setup Notes:', type='textarea', rows=3) }}
