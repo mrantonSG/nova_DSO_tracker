@@ -209,11 +209,17 @@
                 format: val => (val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min`
             },
             'session_rating_subjective': {
-                headerText: 'Session Rating',
+                headerText: 'Rating',
                 dataKey: 'session_rating_subjective',
                 sortable: true,
                 filterable: true,
-                format: val => (val === null || val === undefined) ? 'N/A' : `${String(val)} ★`
+                format: val => {
+                    if (val === null || val === undefined) return 'N/A';
+                    const num = parseInt(val, 10);
+                    if (isNaN(num) || num < 1) return '☆☆☆☆☆';
+                    const stars = Math.min(num, 5);
+                    return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+                }
             }
         };
     
@@ -2263,7 +2269,8 @@
                 return Object.keys(allFilters).every(key => {
                     const filterValue = allFilters[key]; const config = outlookColumnConfig[key];
                     if (key === 'rating') {
-                        const numericRating = opp.rating_num; if (numericRating === undefined || numericRating === null) return false;
+                        const numericRating = parseInt(opp.rating_num, 10);
+                        if (isNaN(numericRating)) return false;
                         const match = filterValue.match(/([<>]=?)\s*(\d+)/);
                         if (match) { const op = match[1]; const num = parseInt(match[2], 10); if (op === ">") return numericRating > num; if (op === ">=") return numericRating >= num; if (op === "<") return numericRating < num; if (op === "<=") return numericRating <= num; }
                         else if (/^\d+$/.test(filterValue)) { return numericRating === parseInt(filterValue, 10); }
@@ -2304,12 +2311,12 @@
                 filteredData.forEach(target => {
                     htmlRows += `
                         <tr class="clickable-row" onclick="showGraph('${target.object_name}', '${target.date}', 'chart')">
-                            <td>${target.object_name}</td>
-                            <td>${target.common_name}</td>
-                            <td style="text-align:center;">${formatDateISOtoEuropean(target.date)}</td>
-                            <td style="text-align:center;">${target.max_alt}°</td>
-                            <td style="text-align:center;">${target.obs_dur} min</td>
-                            <td style="text-align:center;">${target.rating}</td>
+                            <td data-outlook-column-key="object_name">${target.object_name}</td>
+                            <td data-outlook-column-key="common_name">${target.common_name}</td>
+                            <td data-outlook-column-key="date" style="text-align:center;">${formatDateISOtoEuropean(target.date)}</td>
+                            <td data-outlook-column-key="max_alt" style="text-align:center;">${target.max_alt}°</td>
+                            <td data-outlook-column-key="obs_dur" style="text-align:center;">${target.obs_dur} min</td>
+                            <td data-outlook-column-key="rating" style="text-align:center;">${target.rating}</td>
                         </tr>
                     `;
                 });
