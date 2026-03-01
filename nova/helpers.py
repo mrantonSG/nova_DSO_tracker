@@ -320,6 +320,38 @@ def safe_float(value_str):
         return None
 
 
+def dither_display(session) -> str:
+    """
+    Returns a human-readable dither string.
+
+    Uses structured fields if present, falls back to legacy dither_details.
+
+    Args:
+        session: A JournalSession instance
+
+    Returns:
+        A formatted dither string like "7 px, every 3 subs (disabled for Ha)"
+        or the legacy dither_details value if structured fields are not set.
+    """
+    if session.dither_pixels is None:
+        return session.dither_details or ''
+
+    parts = [f"{session.dither_pixels} px"]
+
+    if session.dither_every_n:
+        if session.dither_every_n == 1:
+            parts.append("every sub")
+        else:
+            parts.append(f"every {session.dither_every_n} subs")
+
+    result = ', '.join(parts)
+
+    if session.dither_notes:
+        result += f" ({session.dither_notes})"
+
+    return result
+
+
 def safe_int(value_str):
     """Safely converts a string to an integer, returning None if empty or invalid."""
     if value_str is None or str(value_str).strip() == "":

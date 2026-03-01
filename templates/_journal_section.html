@@ -1262,7 +1262,7 @@
 
                             {{ detail_row('Guiding Equipment:', display_safe_value(entry.guiding_equipment)) }}
                             {{ detail_row('Acquisition Sw:', display_safe_value(entry.acquisition_software)) }}
-                            {{ detail_row('Dither Settings:', display_safe_value(entry.dither_details)) }}
+                            {{ detail_row('Dither Settings:', display_safe_value(entry.dither_display or entry.dither_details)) }}
                             {{ detail_row('Binning:', display_safe_value(entry.binning_session)) }}
                             {{ detail_row('Gain / Offset:', display_safe_value(entry.gain_setting) ~ ' / ' ~ display_safe_value(entry.offset_setting)) }}
                             {{ detail_row('Camera Temp (Set/Avg):', display_safe_value(entry.camera_temp_setpoint_c) ~ '°C / ' ~ display_safe_value(entry.camera_temp_actual_avg_c) ~ '°C') }}
@@ -1737,10 +1737,23 @@
                 <div id="form-acq-tab">
                     <div class="form-section-title">Acquisition Details</div>
                     {{ form_group('acquisition_software', 'Acquisition Software:', type='text', placeholder='e.g., N.I.N.A.') }}
-                    <div class="form-group">
-                        <label for="dither_details" style="white-space:nowrap;">Dither Settings:<span id="dither-hint" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px;"></span></label>
-                        <input type="text" id="dither_details" name="dither_details" placeholder="e.g., Yes, 3px every 2 subs">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dither-pixels" style="display:inline;">
+                                Dither Pixels:
+                                <span id="dither-hint" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px; white-space:nowrap;"></span>
+                            </label>
+                            <input type="number" id="dither-pixels" name="dither_pixels" min="1" max="50" step="1" placeholder="e.g. 7">
+                        </div>
+                        <div class="form-group">
+                            <label for="dither-every-n" style="display:inline;">
+                                Dither every ___ subs:
+                                <span id="dither-hint-spacer" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px; white-space:nowrap; visibility:hidden;"></span>
+                            </label>
+                            <input type="number" id="dither-every-n" name="dither_every_n" min="1" max="99" step="1" placeholder="e.g. 3">
+                        </div>
                     </div>
+                    {{ form_group('dither_notes', 'Dither Notes (optional):', type='text') }}
                     <div class="form-row">
                         {{ form_group('exposure_time_per_sub_sec', 'Sub Exposure (sec):', type='number', min=0, extra_attrs='class="calc-trigger"') }}
                         <div class="form-group"><label># Light Subs <span id="max-subs-main" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" class="calc-trigger"></div>
