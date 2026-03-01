@@ -291,6 +291,27 @@ Nova supports two modes, configured in `instance/.env`:
   * **Single-user mode (Default):** No login required. The app assumes one user ("default") and bypasses authentication.
   * **Multi-user mode:** Ideal for hosting on a public server. Requires user registration and login.
       * To enable, set `SINGLE_USER_MODE=False` in your `.env` file.
+      * Initialize the database and create the first admin account with `flask init-db`.
+
+### User Management (Multi-User Mode)
+
+**Web Admin Panel:**
+When logged in as `admin`, a "Users" link appears in the header. The admin panel at `/admin/users` allows you to:
+  * Create new user accounts
+  * Activate or deactivate users
+  * Reset passwords
+  * Delete users
+
+**CLI Commands:**
+All commands below are available in multi-user mode and are interactive (they prompt for input).
+
+| Command | Description |
+|---|---|
+| `flask init-db` | Initialize the database and create the first admin user |
+| `flask add-user` | Create a new user account |
+| `flask rename-user` | Rename an existing user |
+| `flask change-password` | Change a user's password |
+| `flask delete-user` | Delete a user account (with confirmation, cannot delete admin) |
 
 ### License
 
