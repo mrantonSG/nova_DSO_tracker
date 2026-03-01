@@ -592,22 +592,31 @@ def ensure_db_initialized_unified():
                 conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN log_analysis_cache TEXT;")
                 print("[DB PATCH] Added missing column journal_sessions.log_analysis_cache")
 
-            # --- Deduplicate external_id values before creating unique index ---
+            # --- Drop old global unique index on external_id ---
+            # This index made external_id globally unique, but it should be unique per user
+            try:
+                conn.exec_driver_sql("DROP INDEX IF EXISTS uq_journal_external_id;")
+                print("[DB PATCH] Dropped old global unique index uq_journal_external_id")
+            except Exception as idx_err:
+                print(f"[DB PATCH] Could not drop old index (may not exist): {idx_err}")
+
+            # --- Deduplicate external_id values per user before creating composite unique index ---
+            # Only deduplicate within each user, since external_id should be unique per user
             dup_check = conn.exec_driver_sql("""
-                SELECT external_id, COUNT(*) as cnt
+                SELECT user_id, external_id, COUNT(*) as cnt
                 FROM journal_sessions
                 WHERE external_id IS NOT NULL
-                GROUP BY external_id
+                GROUP BY user_id, external_id
                 HAVING COUNT(*) > 1
             """).fetchall()
 
             if dup_check:
-                print(f"[DB PATCH] Found {len(dup_check)} duplicate external_id value(s). Resolving...")
-                for (ext_id, count) in dup_check:
-                    # Get all rows with this duplicate external_id (keep the one with lowest id)
+                print(f"[DB PATCH] Found {len(dup_check)} duplicate external_id value(s) per user. Resolving...")
+                for (user_id, ext_id, count) in dup_check:
+                    # Get all rows with this duplicate external_id for this user (keep the one with lowest id)
                     rows = conn.exec_driver_sql(
-                        "SELECT id FROM journal_sessions WHERE external_id = ? ORDER BY id",
-                        (ext_id,)
+                        "SELECT id FROM journal_sessions WHERE user_id = ? AND external_id = ? ORDER BY id",
+                        (user_id, ext_id)
                     ).fetchall()
                     # Regenerate external_id for all but the first (oldest) row
                     for row in rows[1:]:
@@ -618,14 +627,15 @@ def ensure_db_initialized_unified():
                         )
                         print(f"[DB PATCH] Regenerated external_id for journal_sessions.id={row[0]} (was '{ext_id}' -> '{new_id}')")
 
+            # --- Create composite unique index on (user_id, external_id) ---
+            # This ensures external_id is unique per user, allowing different users to have the same external_id
             try:
                 conn.exec_driver_sql(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_external_id ON journal_sessions(external_id) WHERE external_id IS NOT NULL;"
+                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_user_external_id ON journal_sessions(user_id, external_id) WHERE external_id IS NOT NULL;"
                 )
-                print("[DB PATCH] Created unique index uq_journal_external_id on journal_sessions")
+                print("[DB PATCH] Created composite unique index uq_journal_user_external_id on journal_sessions(user_id, external_id)")
             except Exception as idx_err:
-                # Index creation may fail if it already exists
-                print(f"[DB PATCH] Could not create journal external_id index: {idx_err}")
+                print(f"[DB PATCH] Could not create journal user_external_id index: {idx_err}")
 
             # --- PERFORMANCE: Add Composite Index for Journal Sessions ---
             try:
@@ -2034,6 +2044,9 @@ def _migrate_journal(db, user: DbUser, journal_yaml: dict):
             "external_id": str(ext_id) if ext_id else None,
             # Custom filter data (JSON string for user-defined filters)
             "custom_filter_data": s.get("custom_filter_data"),
+            "asiair_log_content": s.get("asiair_log_content"),
+            "phd2_log_content": s.get("phd2_log_content"),
+            "log_analysis_cache": s.get("log_analysis_cache"),
         }
         # *** START: Simplified Upsert Logic ***
         if ext_id:
@@ -6237,6 +6250,10 @@ def get_rig_data():
             "telescope_id": r.telescope_id, "camera_id": r.camera_id, "reducer_extender_id": r.reducer_extender_id,
             "effective_focal_length": efl, "f_ratio": f_ratio,
             "image_scale": scale, "fov_w_arcmin": fov_w, "fov_h_arcmin": fov_h,
+            # Main equipment names for display
+            "telescope_name": tel_obj.name if tel_obj else None,
+            "camera_name": cam_obj.name if cam_obj else None,
+            "reducer_name": red_obj.name if red_obj else None,
             # Guide optics FK fields and OAG flag
             "guide_telescope_id": r.guide_telescope_id,
             "guide_camera_id": r.guide_camera_id,
@@ -7614,6 +7631,9 @@ def download_journal():
                 "reducer_name_snapshot": s.reducer_name_snapshot,
                 "camera_name_snapshot": s.camera_name_snapshot,
                 "custom_filter_data": s.custom_filter_data,
+                "asiair_log_content": s.asiair_log_content,
+                "phd2_log_content": s.phd2_log_content,
+                "log_analysis_cache": s.log_analysis_cache,
             })
 
         # --- 3. Load Custom Filter Definitions ---
