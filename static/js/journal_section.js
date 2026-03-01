@@ -169,7 +169,11 @@
         form.elements['transparency_observed_scale'].value = data.transparency_observed_scale || '';
         form.elements['weather_notes'].value = data.weather_notes || '';
         form.elements['guiding_equipment'].value = data.guiding_equipment || '';
-        form.elements['dither_details'].value = data.dither_details || '';
+        // Structured dither fields
+        form.elements['dither_pixels'].value = data.dither_pixels || '';
+        form.elements['dither_every_n'].value = data.dither_every_n || '';
+        // Notes field — use dither_notes if set, otherwise fall back to legacy dither_details
+        form.elements['dither_notes'].value = data.dither_notes || data.dither_details || '';
         form.elements['acquisition_software'].value = data.acquisition_software || '';
         form.elements['camera_temp_setpoint_c'].value = data.camera_temp_setpoint_c !== null ? data.camera_temp_setpoint_c : '';
         form.elements['camera_temp_actual_avg_c'].value = data.camera_temp_actual_avg_c !== null ? data.camera_temp_actual_avg_c : '';
@@ -497,6 +501,7 @@
         const rigId = e.target.value;
         const guidingField = document.getElementById('guiding_equipment');
         const ditherHint = document.getElementById('dither-hint');
+        const ditherHintSpacer = document.getElementById('dither-hint-spacer');
         const infoBtn = document.getElementById('rig-info-btn');
 
         // If no rig selected, clear the hint but leave guiding field as-is
@@ -505,6 +510,10 @@
             if (ditherHint) {
                 ditherHint.textContent = '';
                 ditherHint.style.display = 'none';
+            }
+            if (ditherHintSpacer) {
+                ditherHintSpacer.textContent = '';
+                ditherHintSpacer.style.display = 'none';
             }
             if (infoBtn) {
                 infoBtn.style.display = 'none';
@@ -544,15 +553,20 @@
             if (ditherHint) {
                 const rec = rig.dither_recommendation;
                 if (rec && rec.recommended_pixels) {
-                    // Build source string: "OAG + ASI174MM" or "FinderGuider + ASI174MM"
-                    const source = rig.guide_is_oag
-                        ? `OAG + ${rig.guide_camera_name || ''}`
-                        : `${rig.guide_telescope_name || ''} + ${rig.guide_camera_name || ''}`.trim().replace(/^\+\s*|\s*\+$/g, '');
-                    ditherHint.textContent = `Recommended: ${rec.recommended_pixels} px · ASIAIR, based on ${source}`;
+                    const hintText = `Recommendation: ${rec.recommended_pixels} px`;
+                    ditherHint.textContent = hintText;
                     ditherHint.style.display = 'inline';
+                    if (ditherHintSpacer) {
+                        ditherHintSpacer.textContent = hintText;
+                        ditherHintSpacer.style.display = 'inline';
+                    }
                 } else {
                     ditherHint.textContent = '';
                     ditherHint.style.display = 'none';
+                    if (ditherHintSpacer) {
+                        ditherHintSpacer.textContent = '';
+                        ditherHintSpacer.style.display = 'none';
+                    }
                 }
             }
 
