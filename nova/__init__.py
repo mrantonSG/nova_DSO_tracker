@@ -11460,6 +11460,52 @@ if not SINGLE_USER_MODE:
         db.session.commit()
         print(f"✅ Admin user '{username}' created successfully!")
 
+    @app.cli.command("add-user")
+    def add_user_command():
+        """Creates a new user account."""
+        print("--- Create New User ---")
+        username = input("Enter username: ")
+
+        # Check if username already exists
+        existing = db.session.scalar(db.select(User).where(User.username == username))
+        if existing:
+            print(f"❌ User '{username}' already exists.")
+            return
+
+        password = getpass.getpass("Enter password: ")
+        confirm = getpass.getpass("Confirm password: ")
+        if password != confirm:
+            print("❌ Passwords do not match.")
+            return
+
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        print(f"✅ User '{username}' created successfully!")
+
+    @app.cli.command("rename-user")
+    def rename_user_command():
+        """Renames an existing user account."""
+        old_name = input("Current username: ")
+        user = db.session.scalar(db.select(User).where(User.username == old_name))
+        if not user:
+            print(f"❌ User '{old_name}' not found.")
+            return
+
+        new_name = input("New username: ").strip()
+        if not new_name:
+            print("❌ Username cannot be empty.")
+            return
+
+        if db.session.scalar(db.select(User).where(User.username == new_name)):
+            print(f"❌ Username '{new_name}' is already taken.")
+            return
+
+        user.username = new_name
+        db.session.commit()
+        print(f"✅ User renamed from '{old_name}' to '{new_name}'.")
+
     @app.cli.command("migrate-yaml-to-db")
     def migrate_yaml_command():
         """
