@@ -421,18 +421,18 @@
     #rig-info-modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.35);
+        background: rgba(0, 0, 0, 0.6);
         z-index: 500;
         display: flex;
         align-items: center;
         justify-content: center;
     }
     [data-theme="dark"] #rig-info-modal-overlay {
-        background: rgba(0, 0, 0, 0.55);
+        background: rgba(0, 0, 0, 0.75);
     }
 
     #rig-info-modal {
-        background: var(--bg-secondary);
+        background: var(--bg-secondary, #ffffff);
         border: 1px solid var(--border-color, #d0cdc8);
         border-radius: 10px;
         box-shadow: var(--shadow-md);
@@ -440,8 +440,10 @@
         max-width: 90vw;
         padding: 20px 22px;
         position: relative;
+        opacity: 1;
     }
     [data-theme="dark"] #rig-info-modal {
+        background: #161b24;
         border-color: rgba(255,255,255,0.07);
     }
 
