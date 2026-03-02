@@ -61,6 +61,7 @@ import astropy.units as u
 iers.conf.auto_download = False
 iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 
+from flask_wtf.csrf import CSRFProtect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
 from sqlalchemy.orm import selectinload
@@ -3026,6 +3027,9 @@ app = Flask(
 )
 app.jinja_env.filters['toyaml'] = to_yaml_filter
 app.secret_key = SECRET_KEY
+csrf = CSRFProtect()
+csrf.init_app(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't enforce globally; protect routes explicitly
 
 # --- Performance: gzip response compression ---
 from flask_compress import Compress
@@ -12893,6 +12897,12 @@ def repair_db_now():
 # Admin User Management Panel
 # =============================================================================
 if not SINGLE_USER_MODE:
+
+    @tools_bp.before_request
+    def csrf_protect_admin():
+        """Enforce CSRF on admin POST routes."""
+        if request.method == "POST" and request.path.startswith("/admin/"):
+            csrf.protect()
 
     @tools_bp.route("/admin/users")
     @login_required

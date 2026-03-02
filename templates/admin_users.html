@@ -48,6 +48,7 @@
     <div class="admin-card">
       <h3>Create New User</h3>
       <form method="POST" action="{{ url_for('tools.admin_create_user') }}" class="create-user-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
           <label for="new-username">Username</label>
           <input type="text" id="new-username" name="username" required autocomplete="off" placeholder="e.g. alice">
@@ -91,6 +92,7 @@
               {% if user.username != 'admin' %}
                 <!-- Toggle active/inactive -->
                 <form method="POST" action="{{ url_for('tools.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small {{ 'btn-warn' if user.active else 'btn-success' }}" title="{{ 'Deactivate' if user.active else 'Activate' }}">
                     {{ 'Deactivate' if user.active else 'Activate' }}
                   </button>
@@ -104,6 +106,7 @@
                 <!-- Delete -->
                 <form method="POST" action="{{ url_for('tools.admin_delete_user', user_id=user.id) }}" style="display:inline;"
                       onsubmit="return confirm('Delete user \'{{ user.username }}\'? This removes their login credentials. Their observing data in app.db is NOT deleted.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small btn-danger">Delete</button>
                 </form>
               {% endif %}
@@ -111,6 +114,7 @@
               <!-- Hidden reset-password form -->
               <div id="reset-form-{{ user.id }}" class="reset-password-form" style="display:none;">
                 <form method="POST" action="{{ url_for('tools.admin_reset_password', user_id=user.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <input type="password" name="new_password" required placeholder="New password" minlength="4" autocomplete="new-password">
                   <button type="submit" class="btn-small btn-primary">Save</button>
                   <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">Cancel</button>
