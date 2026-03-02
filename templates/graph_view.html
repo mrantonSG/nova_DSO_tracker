@@ -11,6 +11,13 @@
 <script>
     // Safely convert the Python object to a JavaScript object
     window.selectedSessionData = {{ selected_session_data_dict | tojson }};
+    window.availableRigs = {{ available_rigs | tojson }};
+    // Debug: Log data
+    console.log('[graph_view] selectedSessionData:', window.selectedSessionData);
+    console.log('[graph_view] availableRigs:', window.availableRigs);
+    console.log('[graph_view] availableRigs rig IDs:', window.availableRigs?.map(r => r.rig_id));
+    console.log('[graph_view] rig_id_snapshot:', window.selectedSessionData?.rig_id_snapshot);
+    console.log('[graph_view] rig_name_snapshot:', window.selectedSessionData?.rig_name_snapshot);
 
     // Helper function required by the Inspiration Modal to navigate to charts
     window.showGraph = function(objectName) {
@@ -21,6 +28,7 @@
     };
 </script>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/graph_view.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/journal_form.css') }}">
 {% endblock %}
 
 {% block page_title %}

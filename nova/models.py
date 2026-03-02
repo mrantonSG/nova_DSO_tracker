@@ -79,6 +79,7 @@ class SavedView(Base):
 class Location(Base):
     __tablename__ = 'locations'
     id = Column(Integer, primary_key=True)
+    stable_uid = Column(String(36), unique=True, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     name = Column(String(128), nullable=False)
     lat = Column(Float, nullable=False)
@@ -101,6 +102,7 @@ class SavedFraming(Base):
 
     # Framing Data
     rig_id = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True)
+    rig_stable_uid = Column(String(36), nullable=True)  # Stable UID for cross-boundary resolution
     rig_name = Column(String(256), nullable=True)
     ra = Column(Float, nullable=True)
     dec = Column(Float, nullable=True)
@@ -220,6 +222,7 @@ class AstroObject(Base):
 class Component(Base):
     __tablename__ = 'components'
     id = Column(Integer, primary_key=True)
+    stable_uid = Column(String(36), unique=True, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     kind = Column(String(32), nullable=False)  # 'telescope' | 'camera' | 'reducer_extender'
     name = Column(String(256), nullable=False)
@@ -239,6 +242,7 @@ class Component(Base):
 class Rig(Base):
     __tablename__ = 'rigs'
     id = Column(Integer, primary_key=True)
+    stable_uid = Column(String(36), unique=True, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     rig_name = Column(String(256), nullable=False, index=True)
     telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
@@ -248,10 +252,17 @@ class Rig(Base):
     f_ratio = Column(Float, nullable=True)
     image_scale = Column(Float, nullable=True)
     fov_w_arcmin = Column(Float, nullable=True)
+    # Guide optics fields (for dither pixel recommendations) - FK references to Component model
+    guide_telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    guide_camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
+    guide_is_oag = Column(Boolean, nullable=False, default=False, server_default='0')
+    # Relationships
     user = relationship("DbUser", back_populates="rigs")
     telescope = relationship("Component", foreign_keys=[telescope_id])
     camera = relationship("Component", foreign_keys=[camera_id])
     reducer_extender = relationship("Component", foreign_keys=[reducer_extender_id])
+    guide_telescope = relationship("Component", foreign_keys=[guide_telescope_id])
+    guide_camera = relationship("Component", foreign_keys=[guide_camera_id])
     __table_args__ = (UniqueConstraint('user_id', 'rig_name', name='uq_user_rig_name'),)
 
 
@@ -277,6 +288,10 @@ class JournalSession(Base):
     guiding_rms_avg_arcsec = Column(Float, nullable=True)
     guiding_equipment = Column(String(256), nullable=True)
     dither_details = Column(String(256), nullable=True)
+    # Structured dither fields (added post-v1; dither_details kept for legacy data)
+    dither_pixels = Column(Integer, nullable=True)
+    dither_every_n = Column(Integer, nullable=True)
+    dither_notes = Column(String(256), nullable=True)
     acquisition_software = Column(String(128), nullable=True)
     gain_setting = Column(Integer, nullable=True)
     offset_setting = Column(Integer, nullable=True)
@@ -307,8 +322,12 @@ class JournalSession(Base):
     filter_SII_subs = Column(Integer, nullable=True);
     filter_SII_exposure_sec = Column(Integer, nullable=True)
 
+    # --- Custom filter data (JSON string for user-defined filters) ---
+    custom_filter_data = Column(Text, nullable=True)
+
     # --- NEW: Rig Snapshot Fields ---
     rig_id_snapshot = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True) # <-- ADDED THIS
+    rig_stable_uid_snapshot = Column(String(36), nullable=True)  # Stable UID for cross-boundary resolution
     rig_name_snapshot = Column(String(256), nullable=True)
     rig_efl_snapshot = Column(Float, nullable=True)
     rig_fr_snapshot = Column(Float, nullable=True)
@@ -337,3 +356,31 @@ class UiPref(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     json_blob = Column(Text, nullable=True)
     user = relationship("DbUser", back_populates="ui_prefs")
+
+
+# --- ANALYTICS MODELS (GDPR-compliant, no PII) ---
+class AnalyticsEvent(Base):
+    """Anonymous feature usage tracking. No user identifiers stored."""
+    __tablename__ = 'analytics_event'
+    event_name = Column(String(64), primary_key=True)
+    date = Column(Date, primary_key=True)
+    count = Column(Integer, nullable=False, default=0)
+
+
+class AnalyticsLogin(Base):
+    """Anonymous login activity tracking. No user identifiers stored."""
+    __tablename__ = 'analytics_login'
+    date = Column(Date, primary_key=True)
+    login_count = Column(Integer, nullable=False, default=0)
+
+
+class UserCustomFilter(Base):
+    """User-defined custom filters for journal sessions."""
+    __tablename__ = 'user_custom_filters'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), nullable=False, index=True)
+    filter_key = Column(String(64), nullable=False)
+    filter_label = Column(String(64), nullable=False)
+    created_at = Column(Date, default=datetime.utcnow)
+
+    __table_args__ = (UniqueConstraint('user_id', 'filter_key', name='uq_user_filter_key'),)

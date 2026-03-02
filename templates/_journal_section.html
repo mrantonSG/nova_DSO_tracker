@@ -835,6 +835,247 @@
     [data-theme="dark"] .log-data-table th { border-color: var(--border-dark); }
     [data-theme="dark"] .log-data-table td { border-color: var(--border-dark); }
     [data-theme="dark"] .log-data-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+    /* ===================================================================
+       JOURNAL OBJECT SWITCHER - SIDEBAR BUTTON
+       ================================================================ */
+
+    .journal-switcher-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      background: transparent;
+      color: var(--text-secondary, #4a4a4a);
+      border: 1px solid var(--border-color, #d0cdc8);
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.15s ease;
+    }
+    .journal-switcher-btn:hover {
+      background: var(--bg-tertiary);
+    }
+    [data-theme="dark"] .journal-switcher-btn {
+      color: rgba(255,255,255,0.55);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    /* ===================================================================
+       JOURNAL OBJECT SWITCHER MODAL
+       ================================================================ */
+
+    .journal-switcher-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 12vh;
+    }
+
+    .journal-switcher-palette {
+      width: 540px;
+      max-width: 92vw;
+      height: 70vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #e0ddd8;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.22), 0 2px 10px rgba(0,0,0,0.10);
+    }
+
+    [data-theme="dark"] .journal-switcher-palette {
+      background: #1c2230;
+      border-color: rgba(255,255,255,0.10);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.60), 0 2px 10px rgba(0,0,0,0.40);
+    }
+
+    /* Search zone — fixed top */
+    .jss-search-zone {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border-color, #e0ddd8);
+      background: inherit;
+    }
+
+    .jss-search-zone input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text-primary, #141414);
+    }
+
+    .jss-search-zone input::placeholder {
+      color: var(--text-faint, #aaaaaa);
+    }
+
+    /* Sort select */
+    #jss-sort {
+      flex-shrink: 0;
+      border: 1px solid var(--border-color, #d0cdc8);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-muted, #888888);
+      font-size: 11px;
+      font-family: 'DM Sans', sans-serif;
+      padding: 4px 24px 4px 8px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 10px 6px;
+    }
+
+    [data-theme="dark"] #jss-sort {
+      color: rgba(255,255,255,0.35);
+      border-color: rgba(255,255,255,0.12);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+      background-size: 10px 6px;
+    }
+
+    /* Scrollable list — middle */
+    .jss-list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-color, #e0ddd8) transparent;
+    }
+
+    /* List rows */
+    .jss-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border-light, #eeebe5);
+      transition: background 0.1s ease;
+    }
+
+    .jss-row:last-child {
+      border-bottom: none;
+    }
+
+    .jss-row:hover {
+      background: var(--hover-bg, #f0f7fa);
+    }
+
+    [data-theme="dark"] .jss-row:hover {
+      background: rgba(122,175,192,0.08);
+    }
+
+    .jss-row.jss-active {
+      background: var(--primary-bg, #eaf4f8);
+    }
+
+    [data-theme="dark"] .jss-row.jss-active {
+      background: rgba(142,200,218,0.10);
+    }
+
+    .jss-name {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary, #141414);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .jss-catalog {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted, #888888);
+    }
+
+    .jss-badge {
+      background: var(--primary-bg, #eaf4f8);
+      color: var(--primary-color, #83b4c5);
+      border: 1px solid rgba(131,180,197,0.4);
+      border-radius: 5px;
+      padding: 2px 8px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    [data-theme="dark"] .jss-badge {
+      background: rgba(142,200,218,0.12);
+      color: #8ec8da;
+      border-color: rgba(142,200,218,0.30);
+    }
+
+    .jss-date {
+      font-size: 11px;
+      color: var(--text-faint, #aaaaaa);
+      font-family: 'DM Mono', monospace;
+      white-space: nowrap;
+    }
+
+    /* Footer — fixed bottom */
+    .jss-footer {
+      flex-shrink: 0;
+      border-top: 1px solid var(--border-color, #e0ddd8);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: center;
+      background: inherit;
+    }
+
+    .jss-close-btn {
+      background: transparent;
+      color: var(--text-secondary, #4a4a4a);
+      border: 1px solid var(--border-color, #d0cdc8);
+      padding: 6px 32px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .jss-close-btn:hover {
+      background: var(--bg-tertiary);
+    }
+
+    [data-theme="dark"] .jss-close-btn {
+      color: rgba(255,255,255,0.55);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    /* Empty state */
+    .jss-empty {
+      padding: 30px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
 </style>
 
 {% from "macros.html" import form_group, stat_box, tab_button, detail_row %}
@@ -844,6 +1085,10 @@
         <div class="history-header">
             <h4>Session History</h4>
             <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button id="journal-switcher-trigger" class="journal-switcher-btn">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Switch Object
+                </button>
                 <button type="button" class="btn-primary block" data-action="add-project">Add New Project</button>
                 <button type="button" class="btn-secondary block" data-action="add-session">Add New Session</button>
             </div>
@@ -873,7 +1118,7 @@
                     {% for session_item in group.sessions %}
                         <tr class="clickable-session-row {{ 'current-session-item' if session_item.id|string == current_session_id|string else '' }}"
                             data-action="load-session"
-                            data-url="{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name) }}&tab=journal">
+                            data-url="{% if session_item.location_name %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, location=session_item.location_name, tab='journal') }}{% else %}{{ url_for('core.graph_dashboard', object_name=object_name, session_id=session_item.id, tab='journal') }}{% endif %}">
                             <td class="col-date">{{ session_item.date_utc | date_eu | default("-") }}<br><small style="color:var(--text-secondary);">{{ session_item.location_name | default("-") }}</small></td>
                             <td class="col-integ">{% set integ_min = session_item.calculated_integration_time_minutes %}{{ integ_min | round(0) if integ_min is number else '-' }} min</td>
                             <td class="col-rating">{{ session_item.session_rating_subjective | default("-") }}{% if session_item.session_rating_subjective %} ★{% endif %}</td>
@@ -1017,7 +1262,7 @@
 
                             {{ detail_row('Guiding Equipment:', display_safe_value(entry.guiding_equipment)) }}
                             {{ detail_row('Acquisition Sw:', display_safe_value(entry.acquisition_software)) }}
-                            {{ detail_row('Dither Settings:', display_safe_value(entry.dither_details)) }}
+                            {{ detail_row('Dither Settings:', display_safe_value(entry.dither_display or entry.dither_details)) }}
                             {{ detail_row('Binning:', display_safe_value(entry.binning_session)) }}
                             {{ detail_row('Gain / Offset:', display_safe_value(entry.gain_setting) ~ ' / ' ~ display_safe_value(entry.offset_setting)) }}
                             {{ detail_row('Camera Temp (Set/Avg):', display_safe_value(entry.camera_temp_setpoint_c) ~ '°C / ' ~ display_safe_value(entry.camera_temp_actual_avg_c) ~ '°C') }}
@@ -1033,6 +1278,15 @@
                                 {% set has_mono_data.found = true %}
                             {% endif %}
                         {% endfor %}
+                        {# Also check custom filters #}
+                        {% if custom_mono_filters %}
+                          {% set custom_data_check = (entry.get('custom_filter_data_parsed') or {}) %}
+                          {% for cf in custom_mono_filters %}
+                            {% if custom_data_check.get('filter_' ~ cf.filter_key ~ '_subs') or custom_data_check.get('filter_' ~ cf.filter_key ~ '_exposure_sec') %}
+                                {% set has_mono_data.found = true %}
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
                         {% if has_mono_data.found %}
                             <div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div>
                             <dl class="detail-grid">
@@ -1043,6 +1297,17 @@
                                     {{ detail_row(filt_name ~ ' (' ~ filt_key ~ '):', display_safe_value(subs) ~ ' subs x ' ~ display_safe_value(exp) ~ 's') }}
                                 {% endif %}
                             {% endfor %}
+                            {# --- Custom User-Defined Filters --- #}
+                            {% if custom_mono_filters %}
+                              {% set custom_data = (entry.get('custom_filter_data_parsed') or {}) %}
+                              {% for cf in custom_mono_filters %}
+                                {% set subs = custom_data.get('filter_' ~ cf.filter_key ~ '_subs') %}
+                                {% set exp  = custom_data.get('filter_' ~ cf.filter_key ~ '_exposure_sec') %}
+                                {% if subs or exp %}
+                                    {{ detail_row(cf.filter_label ~ ':', display_safe_value(subs) ~ ' subs x ' ~ display_safe_value(exp) ~ 's') }}
+                                {% endif %}
+                              {% endfor %}
+                            {% endif %}
                             </dl>
                         {% endif %}
                     </div>
@@ -1458,7 +1723,20 @@
                     {{ form_group('weather_notes', 'Weather Notes:', type='textarea') }}
                     <div class="form-row">{{ form_group('moon_illumination_session', 'Moon Illumination (%):', type='number', step=0.1, placeholder='Auto-fills on date/loc change') }}{{ form_group('moon_angular_separation_session', 'Moon Angular Separation (°):', type='number', step=0.1, placeholder='Auto-fills on date/loc change') }}</div>
                     <div class="form-section-title">Equipment & Guiding</div>
-                    <div class="form-group"><label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label><select id="rig-selector-edit" name="rig_id_snapshot"><option value="">-- Manually Enter Below --</option>{% for rig in available_rigs %}<option value="{{ rig.rig_id }}" {% if selected_session_data_dict and selected_session_data_dict.rig_id_snapshot|int == rig.rig_id %}selected{% endif %}>{{ rig.rig_name }}</option>{% endfor %}</select></div>
+                    <div class="form-group">
+                        <label for="rig-selector-edit">Select a Rig (Optional - Overwrites notes below)</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <select id="rig-selector-edit" name="rig_id_snapshot">
+                                <option value="">-- Manually Enter Below --</option>
+                                {% for rig in available_rigs %}
+                                    <option value="{{ rig.rig_id }}" {% if selected_session_data_dict and selected_session_data_dict.rig_id_snapshot|int == rig.rig_id %}selected{% endif %}>{{ rig.rig_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" id="rig-info-btn" data-action="show-rig-info" style="display:none;" title="View rig details">ⓘ</button>
+                            <!-- DEBUG: rig_id_snapshot = {{ selected_session_data_dict.rig_id_snapshot if selected_session_data_dict else 'N/A' }} -->
+                            <!-- DEBUG: rig_name_snapshot = {{ selected_session_data_dict.rig_name_snapshot if selected_session_data_dict else 'N/A' }} -->
+                        </div>
+                    </div>
                     {{ form_group('telescope_setup_notes', 'Telescope Setup Notes:', type='textarea', rows=3) }}
                     {{ form_group('guiding_equipment', 'Guiding Equipment:', type='text', placeholder='e.g., OAG + ASI174MM') }}
                     {{ form_group('guiding_rms_avg_arcsec', 'Guiding RMS (avg, arcsec):', type='number', step=0.01) }}
@@ -1466,7 +1744,23 @@
                 <div id="form-acq-tab">
                     <div class="form-section-title">Acquisition Details</div>
                     {{ form_group('acquisition_software', 'Acquisition Software:', type='text', placeholder='e.g., N.I.N.A.') }}
-                    {{ form_group('dither_details', 'Dither Settings:', type='text', placeholder='e.g., Yes, 3px every 2 subs') }}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dither-pixels" style="display:inline;">
+                                Dither Pixels:
+                                <span id="dither-hint" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px; white-space:nowrap;"></span>
+                            </label>
+                            <input type="number" id="dither-pixels" name="dither_pixels" min="1" max="50" step="1" placeholder="e.g. 7">
+                        </div>
+                        <div class="form-group">
+                            <label for="dither-every-n" style="display:inline;">
+                                Dither every ___ subs:
+                                <span id="dither-hint-spacer" style="display:none; font-size:var(--font-size-xs, 11px); color:var(--primary-color); font-weight:500; margin-left:6px; white-space:nowrap; visibility:hidden;"></span>
+                            </label>
+                            <input type="number" id="dither-every-n" name="dither_every_n" min="1" max="99" step="1" placeholder="e.g. 3">
+                        </div>
+                    </div>
+                    {{ form_group('dither_notes', 'Dither Notes (optional):', type='text') }}
                     <div class="form-row">
                         {{ form_group('exposure_time_per_sub_sec', 'Sub Exposure (sec):', type='number', min=0, extra_attrs='class="calc-trigger"') }}
                         <div class="form-group"><label># Light Subs <span id="max-subs-main" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label><input type="number" name="number_of_subs_light" min="0" class="calc-trigger"></div>
@@ -1484,6 +1778,49 @@
                         <div class="form-group"><label>Exp (sec/sub):</label><input type="number" name="filter_{{ filt_key }}_exposure_sec" min="0" step="1" placeholder="Seconds" class="calc-trigger"></div>
                     </div>
                     {% endfor %}
+
+                    {# --- User-Defined Custom Filters --- #}
+                    <div id="custom-filter-rows">
+                    {% for cf in custom_mono_filters %}
+                    <div class="form-row custom-filter-row" data-filter-key="{{ cf.filter_key }}">
+                        <div class="form-group" style="flex:0 0 200px; align-self:center; display:flex; align-items:center; gap:8px;">
+                            <label style="margin-bottom:0;">{{ cf.filter_label }}:</label>
+                            <button type="button"
+                                    class="remove-custom-filter-btn"
+                                    data-filter-key="{{ cf.filter_key }}"
+                                    style="background:none; border:none; color:var(--danger-color); cursor:pointer; font-size:13px; padding:2px 4px;"
+                                    title="Remove filter">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label># Subs <span id="max-subs-{{ cf.filter_key }}" style="font-weight:normal; color:var(--info-color); font-size:0.85em;"></span>:</label>
+                            <input type="number"
+                                   name="filter_{{ cf.filter_key }}_subs"
+                                   min="0" step="1" placeholder="Count" class="calc-trigger"
+                                   value="{{ (selected_session_data_dict.get('custom_filter_data_parsed') or {}).get('filter_' ~ cf.filter_key ~ '_subs', '') if selected_session_data_dict else '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Exp (sec/sub):</label>
+                            <input type="number"
+                                   name="filter_{{ cf.filter_key }}_exposure_sec"
+                                   min="0" step="1" placeholder="Seconds" class="calc-trigger"
+                                   value="{{ (selected_session_data_dict.get('custom_filter_data_parsed') or {}).get('filter_' ~ cf.filter_key ~ '_exposure_sec', '') if selected_session_data_dict else '' }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                    </div>
+
+                    <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+                        <input type="text" id="custom-filter-name-input"
+                               placeholder="Filter name (e.g. NB-II)" maxlength="30"
+                               style="width:160px; padding:6px 10px; border:1px solid var(--border-medium);
+                                      border-radius:6px; font-size:12px; background:var(--bg-white); color:var(--text-primary);">
+                        <button type="button" id="add-custom-filter-btn"
+                                style="background:var(--primary-color); color:#fff; border:none;
+                                       padding:6px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                            + Add Filter
+                        </button>
+                        <span id="custom-filter-msg" style="font-size:12px; color:var(--text-secondary);"></span>
+                    </div>
                 </div>
                 <div id="form-outcome-tab">
                     <div class="form-section-title">Calibration Strategy</div>
@@ -1538,6 +1875,42 @@
     </div>
 </div>
 
+{# --- Rig Info Modal --- #}
+<div id="rig-info-modal-overlay" style="display:none;">
+  <div id="rig-info-modal">
+    <div id="rig-info-modal-header">
+      <span id="rig-info-modal-title"></span>
+      <button type="button" id="rig-info-modal-close">✕</button>
+    </div>
+    <div id="rig-info-modal-body"></div>
+  </div>
+</div>
+
+{# --- Journal Object Switcher Modal --- #}
+<div id="journal-switcher-modal" class="journal-switcher-overlay" style="display:none;">
+  <div class="journal-switcher-palette">
+
+    <!-- FIXED TOP: search -->
+    <div class="jss-search-zone">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="jss-search" type="text" placeholder="Search objects…" autocomplete="off" spellcheck="false" />
+      <select id="jss-sort" title="Sort order">
+        <option value="recent">Recent</option>
+        <option value="hours">Most Hours</option>
+      </select>
+    </div>
+
+    <!-- SCROLLABLE MIDDLE: list -->
+    <div class="jss-list" id="jss-list"></div>
+
+    <!-- FIXED BOTTOM: close -->
+    <div class="jss-footer">
+      <button class="jss-close-btn" id="jss-close-btn">Close</button>
+    </div>
+
+  </div>
+</div>
+
 {# --- Log Analysis Charts Initialization --- #}
 <script src="{{ url_for('static', filename='js/session_log_charts.js') }}"></script>
 <script>
@@ -1562,4 +1935,320 @@ document.addEventListener('click', function(e) {
         window.cleanupSessionLogCharts && window.cleanupSessionLogCharts();
     }
 });
+</script>
+
+{# --- Journal Object Switcher Functionality --- #}
+<script>
+(function() {
+    // State
+    let objectsCache = null;
+    let activeIndex = -1;
+    let filteredObjects = [];
+    let currentSearchTerm = '';
+
+    // Elements
+    const modal = document.getElementById('journal-switcher-modal');
+    const searchInput = document.getElementById('jss-search');
+    const listContainer = document.getElementById('jss-list');
+    const closeButton = document.getElementById('jss-close-btn');
+    const triggerBtn = document.getElementById('journal-switcher-trigger');
+    const sortSelect = document.getElementById('jss-sort');
+
+    // Fetch objects from API (cached)
+    async function fetchObjects() {
+        if (objectsCache) return objectsCache;
+
+        try {
+            const response = await fetch('/api/journal/objects');
+            if (!response.ok) throw new Error('Failed to fetch objects');
+            objectsCache = await response.json();
+            return objectsCache;
+        } catch (err) {
+            console.error('Journal switcher error:', err);
+            return [];
+        }
+    }
+
+    // Escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // Sort objects based on current sort mode
+    function getSorted(items) {
+        const mode = sortSelect ? sortSelect.value : 'recent';
+        return [...items].sort((a, b) => {
+            if (mode === 'hours') {
+                return b.total_hours - a.total_hours;
+            }
+            // 'recent' - sort by last_session DESC
+            const dateA = a.last_session ? new Date(a.last_session) : new Date(0);
+            const dateB = b.last_session ? new Date(b.last_session) : new Date(0);
+            return dateB - dateA;
+        });
+    }
+
+    // Filter objects by search term
+    function filterObjects(objects, term) {
+        if (!term) return objects;
+        const lowerTerm = term.toLowerCase();
+        return objects.filter(obj =>
+            obj.name.toLowerCase().includes(lowerTerm) ||
+            (obj.catalog_id || '').toLowerCase().includes(lowerTerm)
+        );
+    }
+
+    // Render a single row
+    function renderRow(item, idx) {
+        const div = document.createElement('div');
+        div.className = 'jss-row' + (idx === activeIndex ? ' jss-active' : '');
+        div.innerHTML = `
+            <span class="jss-name">${escapeHtml(item.name)}</span>
+            <span class="jss-catalog">${escapeHtml(item.catalog_id || '')}</span>
+            <span class="jss-badge">${item.total_hours}h</span>
+            <span class="jss-date">${item.last_session || '-'}</span>
+        `;
+        div.addEventListener('click', () => {
+            window.location.href = item.url;
+        });
+        return div;
+    }
+
+    // Render list with sorting and filtering
+    function renderList(allObjects, searchTerm) {
+        if (!listContainer) return;
+
+        // Sort first
+        const sorted = getSorted(allObjects);
+        // Then filter
+        const filtered = searchTerm ? filterObjects(sorted, searchTerm) : sorted;
+
+        filteredObjects = filtered;
+        listContainer.innerHTML = '';
+
+        if (filtered.length === 0) {
+            listContainer.innerHTML = '<div class="jss-empty">No objects found</div>';
+            activeIndex = -1;
+            return;
+        }
+
+        filtered.forEach((obj, idx) => {
+            listContainer.appendChild(renderRow(obj, idx));
+        });
+    }
+
+    // Update active row visual
+    function updateActiveState() {
+        if (!listContainer) return;
+
+        const rows = listContainer.querySelectorAll('.jss-row');
+        rows.forEach((row, idx) => {
+            if (idx === activeIndex) {
+                row.classList.add('jss-active');
+                row.scrollIntoView({ block: 'nearest' });
+            } else {
+                row.classList.remove('jss-active');
+            }
+        });
+    }
+
+    // Navigate to active object
+    function navigateToActive() {
+        if (activeIndex >= 0 && activeIndex < filteredObjects.length) {
+            const obj = filteredObjects[activeIndex];
+            if (obj && obj.url) {
+                window.location.href = obj.url;
+            }
+        }
+    }
+
+    // Open modal
+    async function openModal() {
+        if (!modal) return;
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Fetch and render objects
+        const objects = await fetchObjects();
+        activeIndex = -1;
+        currentSearchTerm = '';
+        renderList(objects, '');
+
+        // Focus search input
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+        }
+    }
+
+    // Close modal
+    function closeModal() {
+        if (!modal) return;
+
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        activeIndex = -1;
+    }
+
+    // Event: Trigger button click
+    if (triggerBtn) {
+        triggerBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openModal();
+        });
+    }
+
+    // Event: Close button click
+    if (closeButton) {
+        closeButton.addEventListener('click', closeModal);
+    }
+
+    // Event: Backdrop click (click on overlay directly, not palette)
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    // Event: Search input
+    if (searchInput) {
+        searchInput.addEventListener('input', async function(e) {
+            currentSearchTerm = e.target.value;
+            const objects = await fetchObjects();
+            activeIndex = -1;
+            renderList(objects, currentSearchTerm);
+        });
+    }
+
+    // Event: Sort select change
+    if (sortSelect) {
+        sortSelect.addEventListener('change', async function() {
+            const objects = await fetchObjects();
+            activeIndex = -1;
+            renderList(objects, currentSearchTerm);
+        });
+    }
+
+    // Event: Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (!modal || modal.style.display === 'none') return;
+
+        // Escape to close
+        if (e.key === 'Escape') {
+            closeModal();
+            return;
+        }
+
+        // Only handle these keys when modal is open
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (activeIndex < filteredObjects.length - 1) {
+                activeIndex++;
+                updateActiveState();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (activeIndex > 0) {
+                activeIndex--;
+                updateActiveState();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            navigateToActive();
+        }
+    });
+})();
+
+{# --- Custom Filter Add/Remove JavaScript --- #}
+(function() {
+    const addBtn        = document.getElementById('add-custom-filter-btn');
+    const nameInput     = document.getElementById('custom-filter-name-input');
+    const rowsContainer = document.getElementById('custom-filter-rows');
+    const msg           = document.getElementById('custom-filter-msg');
+
+    function showMsg(text, isError) {
+        if (!msg) return;
+        msg.textContent  = text;
+        msg.style.color  = isError ? 'var(--danger-color)' : 'var(--success-color)';
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+    }
+
+    function buildRow(key, label) {
+        const row = document.createElement('div');
+        row.className        = 'form-row custom-filter-row';
+        row.dataset.filterKey = key;
+        row.innerHTML = `
+                <div class="form-group" style="flex:0 0 200px;align-self:center;display:flex;align-items:center;gap:8px;">
+                    <label style="margin-bottom:0;">${label}:</label>
+                    <button type="button" class="remove-custom-filter-btn"
+                            data-filter-key="${key}"
+                            style="background:none;border:none;color:var(--danger-color);cursor:pointer;font-size:13px;padding:2px 4px;"
+                            title="Remove filter">✕</button>
+                </div>
+                <div class="form-group">
+                    <label># Subs <span id="max-subs-${key}" style="font-weight:normal;color:var(--info-color);font-size:0.85em;"></span>:</label>
+                    <input type="number" name="filter_${key}_subs"
+                           min="0" step="1" placeholder="Count" class="calc-trigger">
+                </div>
+                <div class="form-group">
+                    <label>Exp (sec/sub):</label>
+                    <input type="number" name="filter_${key}_exposure_sec"
+                           min="0" step="1" placeholder="Seconds" class="calc-trigger">
+                </div>`;
+        return row;
+    }
+
+    if (addBtn) {
+        addBtn.addEventListener('click', async function() {
+            const label = (nameInput.value || '').trim();
+            if (!label) { showMsg('Enter a filter name.', true); return; }
+            addBtn.disabled = true;
+            try {
+                const res  = await fetch('/api/journal/custom-filters', {
+                    method:  'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body:    JSON.stringify({label})
+                });
+                const data = await res.json();
+                if (!res.ok) { showMsg(data.error || 'Error adding filter.', true); return; }
+                rowsContainer.appendChild(buildRow(data.key, data.label));
+                nameInput.value = '';
+                showMsg(`"${data.label}" added.`, false);
+                // Trigger max-subs calculation for the new row
+                if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+            } catch(e) {
+                showMsg('Network error.', true);
+            } finally {
+                addBtn.disabled = false;
+            }
+        });
+    }
+
+    if (rowsContainer) {
+        rowsContainer.addEventListener('click', async function(e) {
+            const btn = e.target.closest('.remove-custom-filter-btn');
+            if (!btn) return;
+            const key   = btn.dataset.filterKey;
+            const row   = btn.closest('.custom-filter-row');
+            const label = row.querySelector('label').textContent.replace(':', '').trim();
+            if (!confirm(`Remove "${label}"? Historical session data for this filter is kept.`)) return;
+            try {
+                const res = await fetch(`/api/journal/custom-filters/${key}`, {method: 'DELETE'});
+                if (!res.ok) { showMsg('Error removing filter.', true); return; }
+                row.remove();
+                showMsg(`"${label}" removed.`, false);
+                // Recalculate max-subs for remaining rows
+                if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
+            } catch(e) {
+                showMsg('Network error.', true);
+            }
+        });
+    }
+})();
 </script>

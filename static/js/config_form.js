@@ -70,10 +70,36 @@
         form.querySelector('select[name="telescope_id"]').value = rig.telescope_id;
         form.querySelector('select[name="camera_id"]').value = rig.camera_id;
         form.querySelector('select[name="reducer_extender_id"]').value = rig.reducer_extender_id || '';
+        // Guide optics FK fields and OAG checkbox
+        form.querySelector('select[name="guide_telescope_id"]').value = rig.guide_telescope_id || '';
+        form.querySelector('select[name="guide_camera_id"]').value = rig.guide_camera_id || '';
+        const oagCheckbox = form.querySelector('input[name="guide_is_oag"]');
+        if (oagCheckbox) {
+            oagCheckbox.checked = rig.guide_is_oag || false;
+        }
+        // Update guide scope row visibility based on OAG
+        updateOagVisibility();
         form.querySelector('button[type="submit"]').textContent = 'Update Rig';
         form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         console.log('[CONFIG_FORM] Form populated successfully');
     }
+
+    // OAG toggle handler
+    function updateOagVisibility() {
+        const isOag = document.getElementById('guide_is_oag');
+        const guideScopeRow = document.getElementById('guide-scope-row');
+        if (isOag && guideScopeRow) {
+            guideScopeRow.style.display = isOag.checked ? 'none' : '';
+        }
+    }
+
+    // Attach OAG checkbox listener
+    document.addEventListener('DOMContentLoaded', function() {
+        const oagCheckbox = document.getElementById('guide_is_oag');
+        if (oagCheckbox) {
+            oagCheckbox.addEventListener('change', updateOagVisibility);
+        }
+    });
 
     function safeNum(v, fallback = null) {
         const n = Number(v);
@@ -205,28 +231,65 @@
         const teleSelect = document.getElementById('tele_select');
         const camSelect = document.getElementById('cam_select');
         const redSelect = document.getElementById('red_select');
+        const guideTeleSelect = document.getElementById('guide_telescope_id');
+        const guideCamSelect = document.getElementById('guide_camera_id');
+
         if(teleSelect) teleSelect.innerHTML = '<option value="" disabled selected>-- Select a Telescope --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         if(camSelect) camSelect.innerHTML = '<option value="" disabled selected>-- Select a Camera --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         if(redSelect) redSelect.innerHTML = '<option value="">-- None --</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
+        // Guide optics dropdowns (same telescopes/cameras lists)
+        if(guideTeleSelect) guideTeleSelect.innerHTML = '<option value="">-- None --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        if(guideCamSelect) guideCamSelect.innerHTML = '<option value="">-- None --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
         const rigList = document.getElementById('existing-rigs-list');
         rigList.innerHTML = rigsSorted.map(rig => {
             const tele = telescopes.find(t => t.id === rig.telescope_id);
             const cam = cameras.find(c => c.id === rig.camera_id);
             const red = reducers_extenders.find(r => r.id === rig.reducer_extender_id);
-            let detailsHtml = `<strong>${rig.rig_name}</strong><br><small>Telescope: ${tele ? tele.name : 'N/A'}<br>Camera: ${cam ? cam.name : 'N/A'}<br>${red ? `Reducer/Extender: ${red.name}` : ''}</small>`;
-            if (rig.image_scale) {
-                detailsHtml += `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)} arcsec/pixel<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+
+            // Build spec lines: Telescope, Camera, Reducer, Guiding (if configured)
+            let specLines = [];
+            specLines.push(`Telescope: ${tele ? tele.name : 'N/A'}`);
+            specLines.push(`Camera: ${cam ? cam.name : 'N/A'}`);
+            if (red) specLines.push(`Reducer/Extender: ${red.name}`);
+            // Add guiding line if guide equipment is configured
+            if (rig.guide_camera_id) {
+                let guidingDisplay;
+                if (rig.guide_is_oag) {
+                    guidingDisplay = `OAG + ${rig.guide_camera_name || 'guide camera'}`;
+                } else {
+                    guidingDisplay = `${rig.guide_telescope_name || 'guide scope'} + ${rig.guide_camera_name || 'guide camera'}`;
+                }
+                specLines.push(`Guiding: ${guidingDisplay}`);
             }
-            return `<li data-rig-id="${rig.rig_id}">
-                        <div class="item-info">${detailsHtml}</div>
-                        <div class="item-actions">
-                            <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
-                            <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');">
-                                <input type="hidden" name="rig_id" value="${rig.rig_id}">
-                                <button type="submit" class="delete-btn">Delete</button>
-                            </form>
+            const specHtml = `<small>${specLines.join('<br>')}</small>`;
+
+            // FL/scale/FOV block
+            let opticsHtml = '';
+            if (rig.image_scale) {
+                opticsHtml = `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)}"/px<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+            }
+
+            // Dither data attributes for sampling line
+            let ditherDataAttrs = '';
+            if (rig.dither_recommendation) {
+                const d = rig.dither_recommendation;
+                ditherDataAttrs = `data-dither-px="${d.recommended_pixels}" data-dither-main="${d.main_scale_arcsec_px}" data-dither-guide="${d.guide_scale_arcsec_px}" data-dither-ratio="${d.ratio}"`;
+            }
+
+            return `<li data-rig-id="${rig.rig_id}" ${ditherDataAttrs} style="display:block;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <strong>${rig.rig_name}</strong>
+                            <div style="display:flex; gap:6px; flex-shrink:0;">
+                                <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
+                                <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');" style="display:inline;">
+                                    <input type="hidden" name="rig_id" value="${rig.rig_id}">
+                                    <button type="submit" class="delete-btn">Delete</button>
+                                </form>
+                            </div>
                         </div>
+                        <div class="rig-specs">${specHtml}</div>
+                        <div class="rig-computed">${opticsHtml}</div>
                     </li>`;
         console.log('[CONFIG_FORM] Generated Edit button for rig:', rig.rig_name, 'id:', rig.rig_id);
         }).join('') || '<li>No rigs configured yet.</li>';
@@ -243,13 +306,32 @@
         const rigListItems = document.querySelectorAll('#existing-rigs-list li');
 
         rigListItems.forEach(item => {
-            const infoContainer = item.querySelector('.item-info');
-            infoContainer.querySelectorAll('.sampling-info, .sampling-binning-tip').forEach(el => el.remove());
-            if (selectedSeeing === 'none') return;
+            const infoContainer = item.querySelector('.rig-computed');
+            infoContainer.querySelectorAll('.rig-dither-line, .rig-sampling-line, .sampling-binning-tip').forEach(el => el.remove());
 
             const rigId = item.dataset.rigId;
             const rigIdNum = parseInt(rigId, 10);
             const rig = rigsData.rigs.find(r => r.rig_id === rigIdNum);
+
+            // Dither line — shown if guide equipment configured (independent of sampling)
+            const ditherPx = item.dataset.ditherPx;
+            if (ditherPx) {
+                const ditherMain = item.dataset.ditherMain;
+                const ditherGuide = item.dataset.ditherGuide;
+                const ditherRatio = item.dataset.ditherRatio;
+                const tooltip = `Main: ${ditherMain}"/px · Guide: ${ditherGuide}"/px · Ratio: ${ditherRatio}×`;
+                const ditherEl = document.createElement('div');
+                ditherEl.className = 'rig-dither-line';
+                let ditherHtml = `Guide-cam dither: <strong title="${tooltip}">${ditherPx} px</strong>`;
+                if (parseInt(ditherPx) > 9) {
+                    ditherHtml += `<span class="rig-dither-cap-warning"> — check your software's max</span>`;
+                }
+                ditherEl.innerHTML = ditherHtml;
+                infoContainer.appendChild(ditherEl);
+            }
+
+            // Sampling line — shown only when seeing condition selected
+            if (selectedSeeing === 'none') return;
             if (rig && rig.image_scale) {
                 const imageScale = rig.image_scale;
                 const [seeingLow, seeingHigh] = selectedSeeing.split('-').map(parseFloat);
@@ -263,10 +345,10 @@
                 else if (samplingAvg >= 0.67) { text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-undersampled'; }
                 else { text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-undersampled'; }
 
-                const infoEl = document.createElement('span');
-                infoEl.className = `sampling-info ${colorClass}`;
-                infoEl.textContent = text;
-                infoContainer.appendChild(infoEl);
+                const samplingEl = document.createElement('div');
+                samplingEl.className = `rig-sampling-line ${colorClass}`;
+                samplingEl.innerHTML = `${text.split(':')[0]}: <strong>${text.split(':')[1]}</strong>`;
+                infoContainer.appendChild(samplingEl);
 
                 if (isOversampled) {
                     const binningEl = document.createElement('small');

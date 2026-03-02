@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from nova.models import INSTANCE_PATH
 
 # --- App version ---
-APP_VERSION = "5.1.0"
+APP_VERSION = "5.2.1"
 
 # --- Directories ---
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_templates")
@@ -26,6 +26,9 @@ FIRST_RUN_ENV_CREATED = False
 # --- Mode ---
 SINGLE_USER_MODE = config('SINGLE_USER_MODE', default='True') == 'True'
 
+# --- Sentry (error reporting, multi-user only) ---
+SENTRY_DSN = config('SENTRY_DSN', default='')
+
 # --- Keys & external config ---
 SECRET_KEY = config('SECRET_KEY', default=secrets.token_hex(32))
 STELLARIUM_ERROR_MESSAGE = os.getenv("STELLARIUM_ERROR_MESSAGE")
@@ -36,6 +39,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
+
+# --- Dither defaults ---
+DEFAULT_DITHER_MAIN_SHIFT_PX = 10  # Default desired shift on main camera sensor (pixels)
 
 # --- Bounded cache to prevent unbounded memory growth ---
 class BoundedCache(dict):

@@ -292,8 +292,8 @@
     #journal-data-table th[data-journal-column-key="project_name"],
     #journal-data-table td[data-journal-column-key="project_name"] {
         text-align: left;
-        width: 130px;
-        min-width: 130px;
+        width: 260px;
+        min-width: 260px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -324,11 +324,17 @@
     #journal-data-table th[data-journal-column-key="location_name"],
     #journal-data-table td[data-journal-column-key="location_name"] { min-width: 100px; width: 110px; text-align: left; }
     #journal-data-table th[data-journal-column-key="telescope_setup_notes"],
-    #journal-data-table td[data-journal-column-key="telescope_setup_notes"] { min-width: 200px; }
+    #journal-data-table td[data-journal-column-key="telescope_setup_notes"] {
+        min-width: 70px;
+        max-width: 200px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     #journal-data-table th[data-journal-column-key="calculated_integration_time_minutes"],
-    #journal-data-table td[data-journal-column-key="calculated_integration_time_minutes"] { width: 100px; min-width: 100px; }
+    #journal-data-table td[data-journal-column-key="calculated_integration_time_minutes"] { width: 110px; min-width: 110px; white-space: nowrap; }
     #journal-data-table th[data-journal-column-key="session_rating_subjective"],
-    #journal-data-table td[data-journal-column-key="session_rating_subjective"] { width: 100px; min-width: 100px; }
+    #journal-data-table td[data-journal-column-key="session_rating_subjective"] { width: 90px; min-width: 90px; white-space: nowrap; }
     #journal-data-table .filter-row input { text-align: left; }
 
     #remove-filters-container {
@@ -439,8 +445,8 @@
     #journal-data-table th[data-journal-column-key="project_name"],
     #journal-data-table td[data-journal-column-key="project_name"] {
         text-align: left;
-        width: 130px;
-        min-width: 130px;
+        width: 260px;
+        min-width: 260px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -553,4 +559,32 @@
 /* Slider/switch in dark mode */
 [data-theme="dark"] .slider {
     background-color: var(--bg-medium-alt);
+}
+
+/* ===================================================================
+   JOURNAL TABLE RESPONSIVE BEHAVIOR
+   ================================================================ */
+
+/* Minimum width for journal table to prevent column collision */
+#journal-table-wrapper {
+    overflow-x: auto;
+}
+#journal-data-table {
+    min-width: 1000px; /* Prevents columns from compressing below readable size */
+}
+
+/* Medium breakpoint (~1100px): Hide LOCATION column */
+@media (max-width: 1100px) {
+    #journal-data-table th[data-journal-column-key="location_name"],
+    #journal-data-table td[data-journal-column-key="location_name"] {
+        display: none;
+    }
+}
+
+/* Small breakpoint (~900px): Hide PROJECT column */
+@media (max-width: 900px) {
+    #journal-data-table th[data-journal-column-key="project_name"],
+    #journal-data-table td[data-journal-column-key="project_name"] {
+        display: none;
+    }
 }

@@ -385,3 +385,104 @@
         background-color: var(--primary-dark);
         opacity: 1;
     }
+
+    /* ===================================================================
+       RIG INFO BUTTON & MODAL
+       ================================================================ */
+
+    #rig-info-btn {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid var(--border-color, #d0cdc8);
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 14px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+    #rig-info-btn:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+    }
+    [data-theme="dark"] #rig-info-btn {
+        border-color: rgba(255,255,255,0.15);
+        color: rgba(255,255,255,0.35);
+    }
+    [data-theme="dark"] #rig-info-btn:hover {
+        background: var(--bg-tertiary);
+        color: rgba(255,255,255,0.55);
+    }
+
+    #rig-info-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    [data-theme="dark"] #rig-info-modal-overlay {
+        background: rgba(0, 0, 0, 0.75);
+    }
+
+    #rig-info-modal {
+        background: var(--bg-secondary, #ffffff);
+        border: 1px solid var(--border-color, #d0cdc8);
+        border-radius: 10px;
+        box-shadow: var(--shadow-md);
+        width: 360px;
+        max-width: 90vw;
+        padding: 20px 22px;
+        position: relative;
+        opacity: 1;
+    }
+    [data-theme="dark"] #rig-info-modal {
+        background: #161b24;
+        border-color: rgba(255,255,255,0.07);
+    }
+
+    #rig-info-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 12px;
+    }
+
+    #rig-info-modal-title {
+        font-size: var(--font-size-sm);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    #rig-info-modal-close {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0 0 0 12px;
+        line-height: 1;
+    }
+    #rig-info-modal-close:hover {
+        color: var(--text-secondary);
+    }
+
+    #rig-info-modal-body {
+        font-size: var(--font-size-2xs);
+        color: var(--text-secondary);
+        line-height: 1.75;
+    }
+    #rig-info-modal-body .rig-popover-specs {
+        line-height: 1.7;
+    }
+    #rig-info-modal-body .rig-popover-computed {
+        border-top: 1px solid var(--border-light);
+        padding-top: 8px;
+        margin-top: 4px;
+    }

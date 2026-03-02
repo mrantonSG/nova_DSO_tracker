@@ -187,6 +187,10 @@
                 } else {
                     console.error('[GRAPH_VIEW] changeView function not available!');
                 }
+                // Refresh dropdown when view changes (day/month/year view changes the date context)
+                if (typeof fetchAndPopulateSecondarySelector === 'function') {
+                    fetchAndPopulateSecondarySelector(NOVA_GRAPH_DATA.objectName);
+                }
                 break;
             case 'save-project':
                 console.log('[GRAPH_VIEW] save-project, function exists:', typeof window.saveProject);

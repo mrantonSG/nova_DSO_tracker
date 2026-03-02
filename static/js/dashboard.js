@@ -209,11 +209,17 @@
                 format: val => (val === null || val === undefined || isNaN(Number(val))) ? 'N/A' : `${Number(val).toFixed(0)} min`
             },
             'session_rating_subjective': {
-                headerText: 'Session Rating',
+                headerText: 'Rating',
                 dataKey: 'session_rating_subjective',
                 sortable: true,
                 filterable: true,
-                format: val => (val === null || val === undefined) ? 'N/A' : `${String(val)} ★`
+                format: val => {
+                    if (val === null || val === undefined) return 'N/A';
+                    const num = parseInt(val, 10);
+                    if (isNaN(num) || num < 1) return '☆☆☆☆☆';
+                    const stars = Math.min(num, 5);
+                    return '★'.repeat(stars) + '☆'.repeat(5 - stars);
+                }
             }
         };
     
@@ -1553,40 +1559,52 @@
     function setLocation() {
         // Get the table body to check its loading status
         const tbody = document.getElementById("data-body");
-    
+
         // Get the newly selected location
         const selectedLocation = document.getElementById('location-select').value;
-    
+
         // Always store the user's *latest* choice in sessionStorage.
         console.log(`Location select changed to: ${selectedLocation}`);
         sessionStorage.setItem('selectedLocation', selectedLocation);
         outlookDataLoaded = false; // Reset outlook flag for the new location
         if (typeof resetHeatmapState === 'function') resetHeatmapState();
-    
+
+        // Persist the location server-side so it's remembered across page navigations
+        fetch('/set_location', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({location: selectedLocation})
+        }).then(response => response.json())
+          .then(data => {
+              if (data.status !== 'success') {
+                  console.warn('Failed to persist location:', data.message);
+              }
+          }).catch(error => console.error('Error persisting location:', error));
+
         // Helper elements
         const loadingDiv = document.getElementById('table-loading');
         const loadingMessage = document.getElementById("loading-message");
         const progressBar = document.getElementById("loading-progress-bar");
-    
+
         // --- (Removed blocking check) Always process the latest user request ---
         // fetchData handles aborting previous requests automatically via AbortController.
         console.log(`Triggering fetch for new location: ${selectedLocation}`);
-    
+
         // Clear existing data immediately
         document.getElementById('data-body').innerHTML = '';
         document.getElementById('journal-data-body').innerHTML = '';
         document.getElementById('outlook-body').innerHTML = '';
-    
+
         // Show loading indicator WITHOUT destroying the progress bar structure
         if (loadingDiv) {
             loadingDiv.style.display = "block";
             if (loadingMessage) loadingMessage.textContent = "Updating location...";
             if (progressBar) progressBar.style.width = "0%";
         }
-    
+
         // Trigger the data fetches for the new location
         fetchData();
-    
+
         if (activeTab === 'journal') {
            populateJournalTable();
         } else if (activeTab === 'outlook') {
@@ -2251,7 +2269,8 @@
                 return Object.keys(allFilters).every(key => {
                     const filterValue = allFilters[key]; const config = outlookColumnConfig[key];
                     if (key === 'rating') {
-                        const numericRating = opp.rating_num; if (numericRating === undefined || numericRating === null) return false;
+                        const numericRating = parseInt(opp.rating_num, 10);
+                        if (isNaN(numericRating)) return false;
                         const match = filterValue.match(/([<>]=?)\s*(\d+)/);
                         if (match) { const op = match[1]; const num = parseInt(match[2], 10); if (op === ">") return numericRating > num; if (op === ">=") return numericRating >= num; if (op === "<") return numericRating < num; if (op === "<=") return numericRating <= num; }
                         else if (/^\d+$/.test(filterValue)) { return numericRating === parseInt(filterValue, 10); }
@@ -2292,12 +2311,12 @@
                 filteredData.forEach(target => {
                     htmlRows += `
                         <tr class="clickable-row" onclick="showGraph('${target.object_name}', '${target.date}', 'chart')">
-                            <td>${target.object_name}</td>
-                            <td>${target.common_name}</td>
-                            <td style="text-align:center;">${formatDateISOtoEuropean(target.date)}</td>
-                            <td style="text-align:center;">${target.max_alt}°</td>
-                            <td style="text-align:center;">${target.obs_dur} min</td>
-                            <td style="text-align:center;">${target.rating}</td>
+                            <td data-outlook-column-key="object_name">${target.object_name}</td>
+                            <td data-outlook-column-key="common_name">${target.common_name}</td>
+                            <td data-outlook-column-key="date" style="text-align:center;">${formatDateISOtoEuropean(target.date)}</td>
+                            <td data-outlook-column-key="max_alt" style="text-align:center;">${target.max_alt}°</td>
+                            <td data-outlook-column-key="obs_dur" style="text-align:center;">${target.obs_dur} min</td>
+                            <td data-outlook-column-key="rating" style="text-align:center;">${target.rating}</td>
                         </tr>
                     `;
                 });

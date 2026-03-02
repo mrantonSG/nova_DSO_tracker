@@ -27,6 +27,8 @@ def weather_cache_worker(app):
                             unique_locations.add((round(loc.lat, 5), round(loc.lon, 5)))
                 except Exception as e:
                     print(f"[WEATHER WORKER] CRITICAL: Error querying locations from DB: {e}")
+                finally:
+                    db.close()
 
             print(f"[WEATHER WORKER] Found {len(unique_locations)} unique active locations to refresh.")
             refreshed_count = 0

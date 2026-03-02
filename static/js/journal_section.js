@@ -9,6 +9,9 @@
     // ONLY expose functions called from Jinja-generated URLs
     window.loadSessionViaAjax = loadSessionViaAjax;
 
+    // --- State ---
+    let currentRigData = null;
+
     // --- NATIVE PRINT: ROBUST & CLEAN PDF GENERATION ---
     async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         const iframe = document.getElementById(iframeId);
@@ -148,7 +151,54 @@
         form.elements['sky_sqm_observed'].value = data.sky_sqm_observed || '';
         form.elements['moon_illumination_session'].value = data.moon_illumination_session || '';
         form.elements['moon_angular_separation_session'].value = data.moon_angular_separation_session || '';
-        form.elements['rig_id_snapshot'].value = data.rig_id_snapshot || '';
+
+        // Debug: Log rig data
+        console.log('[populateEditForm] rig_id_snapshot:', data.rig_id_snapshot);
+        console.log('[populateEditForm] rig_name_snapshot:', data.rig_name_snapshot);
+        console.log('[populateEditForm] availableRigs:', window.availableRigs);
+
+        // Fix: Handle case where rig_id_snapshot is null or doesn't match any available rig
+        let rigId = data.rig_id_snapshot;
+        let shouldUseNameMatch = false;
+
+        if (rigId && window.availableRigs) {
+            // Check if rigId exists in availableRigs
+            const rigExists = window.availableRigs.some(r => r.rig_id === rigId);
+            console.log('[populateEditForm] Does rigId', rigId, 'exist in availableRigs?', rigExists);
+            if (!rigExists) {
+                // Rig ID doesn't exist in available rigs, try matching by name
+                shouldUseNameMatch = true;
+            }
+        } else if (!rigId && data.rig_name_snapshot && window.availableRigs) {
+            // rigId is null, try matching by name
+            shouldUseNameMatch = true;
+        }
+
+        if (shouldUseNameMatch && data.rig_name_snapshot && window.availableRigs) {
+            // Try to find the rig by name
+            console.log('[populateEditForm] Attempting to find rig by name:', data.rig_name_snapshot);
+            const matchingRig = window.availableRigs.find(rig => rig.rig_name === data.rig_name_snapshot);
+            console.log('[populateEditForm] Matching rig:', matchingRig);
+            if (matchingRig) {
+                rigId = matchingRig.rig_id;
+                console.log('[populateEditForm] Found rig ID:', rigId, 'by name match');
+            } else {
+                console.warn('[populateEditForm] No matching rig found for name:', data.rig_name_snapshot);
+            }
+        }
+        console.log('[populateEditForm] Final rigId to set:', rigId);
+
+        // Try to access the rig selector by ID instead of form.elements
+        const rigSelector = document.getElementById('rig-selector-edit');
+        console.log('[populateEditForm] Rig selector element:', rigSelector);
+        if (rigSelector) {
+            console.log('[populateEditForm] Rig selector options before setting:', Array.from(rigSelector.options).map(o => ({ value: o.value, text: o.text, selected: o.selected })));
+            rigSelector.value = rigId || '';
+            console.log('[populateEditForm] Rig selector value after setting:', rigSelector.value);
+            console.log('[populateEditForm] Rig selector options after setting:', Array.from(rigSelector.options).map(o => ({ value: o.value, text: o.text, selected: o.selected })));
+        } else {
+            console.error('[populateEditForm] Rig selector element not found!');
+        }
         form.elements['telescope_setup_notes'].value = data.telescope_setup_notes || '';
         form.elements['guiding_rms_avg_arcsec'].value = data.guiding_rms_avg_arcsec || '';
         form.elements['exposure_time_per_sub_sec'].value = data.exposure_time_per_sub_sec || '';
@@ -166,7 +216,11 @@
         form.elements['transparency_observed_scale'].value = data.transparency_observed_scale || '';
         form.elements['weather_notes'].value = data.weather_notes || '';
         form.elements['guiding_equipment'].value = data.guiding_equipment || '';
-        form.elements['dither_details'].value = data.dither_details || '';
+        // Structured dither fields
+        form.elements['dither_pixels'].value = data.dither_pixels || '';
+        form.elements['dither_every_n'].value = data.dither_every_n || '';
+        // Notes field — use dither_notes if set, otherwise fall back to legacy dither_details
+        form.elements['dither_notes'].value = data.dither_notes || data.dither_details || '';
         form.elements['acquisition_software'].value = data.acquisition_software || '';
         form.elements['camera_temp_setpoint_c'].value = data.camera_temp_setpoint_c !== null ? data.camera_temp_setpoint_c : '';
         form.elements['camera_temp_actual_avg_c'].value = data.camera_temp_actual_avg_c !== null ? data.camera_temp_actual_avg_c : '';
@@ -244,6 +298,8 @@
     }
 
     function setupEditMode() {
+        console.log('[setupEditMode] Called!');
+        console.log('[setupEditMode] window.selectedSessionData:', window.selectedSessionData);
         const wrapper = document.getElementById('session-detail-wrapper');
         const form = document.getElementById('journal-detail-form');
         const formDetailTitle = document.getElementById('form-detail-title');
@@ -266,8 +322,11 @@
             form.elements.session_id.value = window.selectedSessionData.id;
             form.elements.session_date.value = window.selectedSessionData.date_utc.split('T')[0];
             form.elements.location_name.value = window.selectedSessionData.location_name;
+            console.log('[setupEditMode] Calling populateEditForm...');
             populateEditForm(window.selectedSessionData);
             updateMoonData();
+        } else {
+            console.error('[setupEditMode] No selectedSessionData found!');
         }
 
         submitButton.textContent = 'Save Changes';
@@ -341,9 +400,18 @@
         // Check Main
         addTime('number_of_subs_light', 'exposure_time_per_sub_sec', 'main');
 
-        // Check Mono Filters
+        // Check Mono Filters (fixed)
         ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'].forEach(k => {
             addTime(`filter_${k}_subs`, `filter_${k}_exposure_sec`, k);
+        });
+
+        // Check Custom Filters (dynamic)
+        const customRows = document.querySelectorAll('.custom-filter-row');
+        customRows.forEach(row => {
+            const key = row.dataset.filterKey;
+            if (key) {
+                addTime(`filter_${key}_subs`, `filter_${key}_exposure_sec`, key);
+            }
         });
 
         return usedSeconds;
@@ -388,19 +456,178 @@
         const mainExp = document.querySelector('input[name="exposure_time_per_sub_sec"]');
         if (mainExp) calculateMaxSubs(mainExp.value, 'max-subs-main', 'main');
 
-        // Mono Filters
+        // Mono Filters (fixed)
         const monoFilters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'];
         monoFilters.forEach(key => {
             const input = document.querySelector(`input[name="filter_${key}_exposure_sec"]`);
             if (input) calculateMaxSubs(input.value, `max-subs-${key}`, key);
         });
+
+        // Custom Filters (dynamic)
+        const customRows = document.querySelectorAll('.custom-filter-row');
+        customRows.forEach(row => {
+            const key = row.dataset.filterKey;
+            if (key) {
+                const input = row.querySelector(`input[name="filter_${key}_exposure_sec"]`);
+                if (input) calculateMaxSubs(input.value, `max-subs-${key}`, key);
+            }
+        });
     }
+
+    // Expose globally for inline scripts (e.g., custom filter add/remove)
+    window.triggerAllMaxSubsCalculations = triggerAllMaxSubsCalculations;
 
     function toggleNewProjectField() {
         const projectSelect = document.getElementById('project_selection');
         const newProjectGroup = document.getElementById('new_project_name_group');
         if (projectSelect && newProjectGroup) {
             newProjectGroup.style.display = (projectSelect.value === 'new_project') ? 'block' : 'none';
+        }
+    }
+
+    // --- Rig Info Modal Functions ---
+
+    function buildRigInfoHTML(rig) {
+        // Spec lines — equipment
+        const specLines = [
+            rig.telescope_name  ? `Telescope: ${rig.telescope_name}` : null,
+            rig.camera_name     ? `Camera: ${rig.camera_name}` : null,
+            rig.reducer_name    ? `Reducer/Extender: ${rig.reducer_name}` : null,
+        ];
+
+        // Guiding line
+        if (rig.guide_is_oag && rig.guide_camera_name) {
+            specLines.push(`Guiding: OAG + ${rig.guide_camera_name}`);
+        } else if (rig.guide_telescope_name || rig.guide_camera_name) {
+            const parts = [rig.guide_telescope_name, rig.guide_camera_name].filter(Boolean);
+            specLines.push(`Guiding: ${parts.join(' + ')}`);
+        }
+
+        const specsHTML = specLines.filter(Boolean)
+            .map(l => `<div>${l}</div>`).join('');
+
+        // Computed lines — optics
+        const computedLines = [
+            rig.effective_focal_length  ? `Effective FL: ${rig.effective_focal_length} mm` : null,
+            rig.f_ratio                 ? `F-Ratio: f/${rig.f_ratio}` : null,
+            rig.image_scale             ? `Image Scale: ${rig.image_scale} "/px` : null,
+            rig.fov_w_arcmin && rig.fov_h_arcmin ? `Field of View: ${rig.fov_w_arcmin}' × ${rig.fov_h_arcmin}'` : null,
+        ].filter(Boolean).map(l => `<div>${l}</div>`).join('');
+
+        // Dither line
+        const rec = rig.dither_recommendation;
+        const ditherHTML = (rec && rec.recommended_pixels)
+            ? `<div class="rig-dither-line" style="margin-top:8px;">
+                 Guide-cam dither: <strong>${rec.recommended_pixels} px</strong>
+               </div>`
+            : '';
+
+        return `
+            <div style="margin-bottom:10px; line-height:1.75;">${specsHTML}</div>
+            ${computedLines
+                ? `<div style="border-top:1px solid var(--border-light);
+                               padding-top:8px; margin-top:4px; line-height:1.75;">
+                     ${computedLines}
+                   </div>`
+                : ''}
+            ${ditherHTML}
+        `;
+    }
+
+    function openRigInfoModal() {
+        if (!currentRigData) return;
+        document.getElementById('rig-info-modal-title').textContent = currentRigData.rig_name || '';
+        document.getElementById('rig-info-modal-body').innerHTML = buildRigInfoHTML(currentRigData);
+        document.getElementById('rig-info-modal-overlay').style.display = 'flex';
+    }
+
+    function closeRigInfoModal() {
+        const overlay = document.getElementById('rig-info-modal-overlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    }
+
+    // Rig selection handler - auto-populate guiding equipment and dither hint
+    async function handleRigSelectionChange(e) {
+        const rigId = e.target.value;
+        const guidingField = document.getElementById('guiding_equipment');
+        const ditherHint = document.getElementById('dither-hint');
+        const ditherHintSpacer = document.getElementById('dither-hint-spacer');
+        const infoBtn = document.getElementById('rig-info-btn');
+
+        // If no rig selected, clear the hint but leave guiding field as-is
+        if (!rigId) {
+            currentRigData = null;
+            if (ditherHint) {
+                ditherHint.textContent = '';
+                ditherHint.style.display = 'none';
+            }
+            if (ditherHintSpacer) {
+                ditherHintSpacer.textContent = '';
+                ditherHintSpacer.style.display = 'none';
+            }
+            if (infoBtn) {
+                infoBtn.style.display = 'none';
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch('/get_rig_data');
+            if (!response.ok) throw new Error('Failed to fetch rig data');
+            const data = await response.json();
+
+            // Find the selected rig
+            const rig = data.rigs && data.rigs.find(r => r.rig_id == rigId);
+            if (!rig) {
+                console.warn('[JOURNAL_SECTION] Rig not found:', rigId);
+                return;
+            }
+
+            // Store for modal
+            currentRigData = rig;
+
+            // Auto-populate Guiding Equipment field (always update, clear if no guide equipment)
+            if (guidingField) {
+                let guidingStr = '';
+                if (rig.guide_is_oag && rig.guide_camera_name) {
+                    guidingStr = `OAG + ${rig.guide_camera_name}`;
+                } else if (rig.guide_telescope_name && rig.guide_camera_name) {
+                    guidingStr = `${rig.guide_telescope_name} + ${rig.guide_camera_name}`;
+                } else if (rig.guide_camera_name) {
+                    guidingStr = rig.guide_camera_name;
+                }
+                guidingField.value = guidingStr;
+            }
+
+            // Show dither recommendation hint
+            if (ditherHint) {
+                const rec = rig.dither_recommendation;
+                if (rec && rec.recommended_pixels) {
+                    const hintText = `Recommendation: ${rec.recommended_pixels} px`;
+                    ditherHint.textContent = hintText;
+                    ditherHint.style.display = 'inline';
+                    if (ditherHintSpacer) {
+                        ditherHintSpacer.textContent = hintText;
+                        ditherHintSpacer.style.display = 'inline';
+                    }
+                } else {
+                    ditherHint.textContent = '';
+                    ditherHint.style.display = 'none';
+                    if (ditherHintSpacer) {
+                        ditherHintSpacer.textContent = '';
+                        ditherHintSpacer.style.display = 'none';
+                    }
+                }
+            }
+
+            // Show info button
+            if (infoBtn) {
+                infoBtn.style.display = 'flex';
+            }
+        } catch (err) {
+            console.error('[JOURNAL_SECTION] Error fetching rig data:', err);
         }
     }
 
@@ -710,7 +937,21 @@
             // 3. Update Browser URL without reloading
             window.history.pushState({}, '', url);
 
-            // 4. Re-initialize Tabs if needed
+            // 4. Update status strip location from URL params
+            try {
+                const urlObj = new URL(url, window.location.origin);
+                const newLocation = urlObj.searchParams.get('location');
+                if (newLocation) {
+                    const locationDisplay = document.getElementById('location-display');
+                    if (locationDisplay) {
+                        locationDisplay.textContent = newLocation;
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to update location display:', err);
+            }
+
+            // 5. Re-initialize Tabs if needed
             if (typeof showDetailTab === 'function') {
                 showDetailTab('summary');
             }
@@ -781,6 +1022,10 @@
                     console.log('[JOURNAL_SECTION] load-session:', actionBtn.dataset.url);
                     loadSessionViaAjax(e, actionBtn.dataset.url, actionBtn);
                     break;
+                case 'show-rig-info':
+                    console.log('[JOURNAL_SECTION] show-rig-info');
+                    openRigInfoModal();
+                    break;
             }
         });
     }
@@ -812,6 +1057,27 @@
                 document.getElementById('goals-hidden-add').value = document.getElementById('goals-editor-add').value;
             });
         }
+
+        // Rig info modal click handlers (close button and backdrop - not using data-action)
+        document.addEventListener('click', function(e) {
+            // ✕ close button
+            if (e.target.id === 'rig-info-modal-close') {
+                e.preventDefault();
+                closeRigInfoModal();
+                return;
+            }
+
+            // Backdrop click — close
+            if (e.target.id === 'rig-info-modal-overlay') {
+                closeRigInfoModal();
+                return;
+            }
+        });
+
+        // Escape key handler to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeRigInfoModal();
+        });
     }
 
     function attachInputListeners() {
@@ -823,6 +1089,12 @@
         if (sessionDate) sessionDate.addEventListener('change', updateMoonData);
         if (locationName) locationName.addEventListener('change', updateMoonData);
         if (projectSelection) projectSelection.addEventListener('change', toggleNewProjectField);
+
+        // Rig selector change handler - auto-populate guiding equipment and dither hint
+        const rigSelector = document.getElementById('rig-selector-edit');
+        if (rigSelector) {
+            rigSelector.addEventListener('change', handleRigSelectionChange);
+        }
 
         // Class-based delegation for calculation triggers
         document.addEventListener('input', function(e) {
