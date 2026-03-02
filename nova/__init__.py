@@ -11515,6 +11515,8 @@ def download_rig_config():
             tel_obj = next((c for c in comps if c.id == r.telescope_id), None)
             cam_obj = next((c for c in comps if c.id == r.camera_id), None)
             red_obj = next((c for c in comps if c.id == r.reducer_extender_id), None)
+            guide_tel_obj = next((c for c in comps if c.id == r.guide_telescope_id), None)
+            guide_cam_obj = next((c for c in comps if c.id == r.guide_camera_id), None)
 
             efl, f_ratio, scale, fov_w = _compute_rig_metrics_from_components(tel_obj, cam_obj, red_obj)
 
@@ -11530,7 +11532,13 @@ def download_rig_config():
                 "effective_focal_length": efl,
                 "f_ratio": f_ratio,
                 "image_scale": scale,
-                "fov_w_arcmin": fov_w
+                "fov_w_arcmin": fov_w,
+                # Guiding equipment
+                "guide_telescope_name": guide_tel_obj.name if guide_tel_obj else None,
+                "guide_camera_name": guide_cam_obj.name if guide_cam_obj else None,
+                "guide_telescope_id": r.guide_telescope_id,
+                "guide_camera_id": r.guide_camera_id,
+                "guide_is_oag": r.guide_is_oag
             })
 
         rigs_doc["rigs"] = final_rigs_list  # Add the populated list to the doc
