@@ -79,6 +79,7 @@ class SavedView(Base):
 class Location(Base):
     __tablename__ = 'locations'
     id = Column(Integer, primary_key=True)
+    stable_uid = Column(String(36), unique=True, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     name = Column(String(128), nullable=False)
     lat = Column(Float, nullable=False)
@@ -101,6 +102,7 @@ class SavedFraming(Base):
 
     # Framing Data
     rig_id = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True)
+    rig_stable_uid = Column(String(36), nullable=True)  # Stable UID for cross-boundary resolution
     rig_name = Column(String(256), nullable=True)
     ra = Column(Float, nullable=True)
     dec = Column(Float, nullable=True)
@@ -220,6 +222,7 @@ class AstroObject(Base):
 class Component(Base):
     __tablename__ = 'components'
     id = Column(Integer, primary_key=True)
+    stable_uid = Column(String(36), unique=True, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     kind = Column(String(32), nullable=False)  # 'telescope' | 'camera' | 'reducer_extender'
     name = Column(String(256), nullable=False)
@@ -239,6 +242,7 @@ class Component(Base):
 class Rig(Base):
     __tablename__ = 'rigs'
     id = Column(Integer, primary_key=True)
+    stable_uid = Column(String(36), unique=True, nullable=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"), index=True)
     rig_name = Column(String(256), nullable=False, index=True)
     telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
@@ -323,6 +327,7 @@ class JournalSession(Base):
 
     # --- NEW: Rig Snapshot Fields ---
     rig_id_snapshot = Column(Integer, ForeignKey('rigs.id', ondelete="SET NULL"), nullable=True) # <-- ADDED THIS
+    rig_stable_uid_snapshot = Column(String(36), nullable=True)  # Stable UID for cross-boundary resolution
     rig_name_snapshot = Column(String(256), nullable=True)
     rig_efl_snapshot = Column(Float, nullable=True)
     rig_fr_snapshot = Column(Float, nullable=True)
