@@ -580,6 +580,9 @@ def ensure_db_initialized_unified():
             if "camera_name_snapshot" not in colnames_journal:
                 conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN camera_name_snapshot VARCHAR(256);")
                 print("[DB PATCH] Added missing column journal_sessions.camera_name_snapshot")
+            if "rig_stable_uid_snapshot" not in colnames_journal:
+                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_stable_uid_snapshot VARCHAR(36);")
+                print("[DB PATCH] Added missing column journal_sessions.rig_stable_uid_snapshot")
 
             # --- Log content columns for ASIAIR and PHD2 log analysis ---
             if "asiair_log_content" not in colnames_journal:
@@ -705,13 +708,28 @@ def ensure_db_initialized_unified():
                 if "geo_belt_enabled" not in colnames_framing:
                     conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN geo_belt_enabled BOOLEAN DEFAULT 1;")
                     print("[DB PATCH] Added missing column saved_framings.geo_belt_enabled")
+                # Stable UID for cross-boundary rig resolution
+                if "rig_stable_uid" not in colnames_framing:
+                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_stable_uid VARCHAR(36);")
+                    print("[DB PATCH] Added missing column saved_framings.rig_stable_uid")
             except Exception as e:
                 # Table might not exist yet if it's a fresh install, which is fine
                 print(f"[DB PATCH] SavedFraming table patch skipped (may not exist yet): {e}")
 
+            # --- Add stable_uid column to 'locations' table ---
+            cols_locations = conn.exec_driver_sql("PRAGMA table_info(locations);").fetchall()
+            colnames_locations = {row[1] for row in cols_locations}
+            if "stable_uid" not in colnames_locations:
+                conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN stable_uid VARCHAR(36);")
+                print("[DB PATCH] Added missing column locations.stable_uid")
+
             # --- Add new columns to 'components' table ---
             cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
             colnames_components = {row[1] for row in cols_components}
+
+            if "stable_uid" not in colnames_components:
+                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN stable_uid VARCHAR(36);")
+                print("[DB PATCH] Added missing column components.stable_uid")
 
             if "is_shared" not in colnames_components:
                 conn.exec_driver_sql("ALTER TABLE components ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
@@ -730,6 +748,10 @@ def ensure_db_initialized_unified():
             # --- Add guide optics columns to 'rigs' table for dither recommendations ---
             cols_rigs = conn.exec_driver_sql("PRAGMA table_info(rigs);").fetchall()
             colnames_rigs = {row[1] for row in cols_rigs}
+
+            if "stable_uid" not in colnames_rigs:
+                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN stable_uid VARCHAR(36);")
+                print("[DB PATCH] Added missing column rigs.stable_uid")
 
             # Legacy guide optics columns (kept for backwards compatibility, but no longer used)
             if "guide_scope_name" not in colnames_rigs:
