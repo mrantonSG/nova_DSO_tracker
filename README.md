@@ -313,16 +313,6 @@ All commands below are available in multi-user mode and are interactive (they pr
 | `flask change-password` | Change a user's password |
 | `flask delete-user` | Delete a user account (with confirmation, cannot delete admin) |
 
-### Contributing to the Code
-
-For development, use `docker-compose-dev.yml` which builds the image directly from your local source code instead of pulling the official image:
-
-```bash
-docker compose -f docker-compose-dev.yml up --build
-```
-
-This mounts `./nova_data` as the instance directory and exposes the app on port 5001.
-
 ### License
 
 Nova DSO Tracker is licensed under the Apache 2.0 License **with the Commons Clause**.

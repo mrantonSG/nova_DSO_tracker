@@ -7,7 +7,8 @@ Thank you for considering a contribution to Nova DSO Tracker!
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request with a clear description of what you changed and why
+4. Test locally by building your own image with `docker compose -f docker-compose-dev.yml up --build`
+5. Submit a pull request with a clear description of what you changed and why
 
 ## Contributor License Agreement
 
