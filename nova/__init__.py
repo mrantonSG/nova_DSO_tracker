@@ -7904,7 +7904,21 @@ def import_config():
 
             print(f"[IMPORT_CONFIG] Wiping all existing config data for user '{username}'...")
 
-            # 1. Delete existing locations
+            # Guard: Ensure import has at least one location before wiping existing ones
+            imported_locations = new_config.get("locations", {})
+            if not imported_locations or len(imported_locations) == 0:
+                flash("Cannot import: Configuration must contain at least one location.", "error")
+                return redirect(url_for('core.config_form'))
+
+            # Guard: Ensure at least one imported location is active
+            has_active_location = any(
+                loc_data.get('active', True) for loc_data in imported_locations.values()
+            )
+            if not has_active_location:
+                flash("Cannot import: Configuration must contain at least one active location.", "error")
+                return redirect(url_for('core.config_form'))
+
+            # 1. Delete existing locations (only if import has locations)
             db.query(Location).filter_by(user_id=user.id).delete()
 
             # 2. Delete existing objects
@@ -10161,6 +10175,31 @@ def config_form():
             # --- Update Existing Locations ---
             elif 'submit_locations' in request.form:
                 locs_to_update = db.query(Location).filter_by(user_id=app_db_user.id).all()
+                total_locs = len(locs_to_update)
+
+                # Guard: Count locations marked for deletion and check active status after update
+                locs_marked_for_deletion = 0
+                active_locations_after_update = 0
+                for loc in locs_to_update:
+                    if request.form.get(f"delete_loc_{loc.name}") == "on":
+                        locs_marked_for_deletion += 1
+                    else:
+                        # This location survives - check if it will be active
+                        will_be_active = request.form.get(f"active_{loc.name}") == "on"
+                        if will_be_active:
+                            active_locations_after_update += 1
+
+                # Prevent deleting the last location
+                if locs_marked_for_deletion >= total_locs:
+                    flash("Cannot delete your last location. You must have at least one location configured.", "error")
+                    return redirect(url_for('core.config_form'))
+
+                # Prevent having zero active locations
+                if active_locations_after_update == 0:
+                    flash("Cannot deactivate your only active location. You must keep at least one active location.", "error")
+                    return redirect(url_for('core.config_form'))
+
+                # Safe to proceed with deletions and updates
                 for loc in locs_to_update:
                     if request.form.get(f"delete_loc_{loc.name}") == "on":
                         db.delete(loc);

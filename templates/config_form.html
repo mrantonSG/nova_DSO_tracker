@@ -332,7 +332,9 @@
                     <input type="checkbox" name="active_{{ loc_key }}" id="active_{{ loc_key }}" class="active-location-checkbox" {% if loc_val.get('active', True) %}checked{% endif %}>
                 </div>
                 <div>
-                  <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label> <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}">
+                  <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label>
+                  <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}"
+                         {% if locations|length <= 1 %}disabled title="Cannot delete your only location"{% endif %}>
                 </div>
                 <div>
                   <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
