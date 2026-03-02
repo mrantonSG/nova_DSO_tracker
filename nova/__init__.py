@@ -4157,6 +4157,11 @@ def get_observable_objects():
     lat_override = request.args.get('lat')
     lon_override = request.args.get('lon')
     tz_override = request.args.get('tz')
+    location_name_param = request.args.get('location')
+    # Get graph date parameters (day/month/year from user selection)
+    day_param = request.args.get('day')
+    month_param = request.args.get('month')
+    year_param = request.args.get('year')
 
     try:
         if lat_override is not None:
@@ -4188,13 +4193,27 @@ def get_observable_objects():
     if lat is None or lon is None:
         return jsonify({"error": "Location not configured", "objects": []}), 400
 
-    # Determine date for calculations (noon-to-noon logic)
+    # Determine date for calculations - use passed-in graph date, not server's current time
     local_tz = pytz.timezone(tz_name)
-    now_local = datetime.now(local_tz)
-    if now_local.hour < 12:
-        calc_date = (now_local.date() - timedelta(days=1)).strftime('%Y-%m-%d')
+
+    # Priority 1: Use the graph date passed from frontend (day/month/year)
+    if day_param and month_param and year_param:
+        try:
+            # Parse the date components from strings
+            day = int(day_param)
+            month = int(month_param)
+            year = int(year_param)
+            calc_date = datetime(year, month, day).strftime('%Y-%m-%d')
+        except (ValueError, TypeError) as e:
+            print(f"[API Observable Objects] Invalid date parameters: {e}")
+            return jsonify({"error": f"Invalid date parameters: {e}", "objects": []}), 400
     else:
-        calc_date = now_local.date().strftime('%Y-%m-%d')
+        # Priority 2: Fallback to noon-to-noon logic with current server time (if no date passed)
+        now_local = datetime.now(local_tz)
+        if now_local.hour < 12:
+            calc_date = (now_local.date() - timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            calc_date = now_local.date().strftime('%Y-%m-%d')
 
     db = get_db()
     try:
@@ -4219,17 +4238,38 @@ def get_observable_objects():
             AstroObject.dec_deg != None
         ).all()
 
-        # Get horizon mask for the location if available
+        # Get horizon mask from database with proper Location lookup
         horizon_mask = None
-        location_name = getattr(g, 'selected_location', None)
-        if location_name:
+        location_key_for_cache = "default"
+
+        # Priority 1: Use location name if provided (most accurate)
+        if location_name_param:
             try:
-                user_cfg = getattr(g, 'user_config', {}) or {}
-                locations_cfg = user_cfg.get("locations", {}) or {}
-                loc_config = locations_cfg.get(location_name, {})
-                horizon_mask = loc_config.get("horizon_mask")
-            except Exception:
-                pass
+                location_obj = db.query(Location).options(
+                    selectinload(Location.horizon_points)
+                ).filter_by(user_id=user.id, name=location_name_param).one_or_none()
+                if location_obj:
+                    horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in
+                                    sorted(location_obj.horizon_points, key=lambda p: p.az_deg)]
+                    location_key_for_cache = location_obj.name.lower().replace(' ', '_')
+                    # Ensure lat/lon/tz match the location's configured values
+                    lat = location_obj.lat
+                    lon = location_obj.lon
+                    tz_name = location_obj.timezone
+                    if location_obj.altitude_threshold is not None:
+                        altitude_threshold = location_obj.altitude_threshold
+            except Exception as e:
+                print(f"[API Observable Objects] Error fetching location from DB: {e}")
+
+        # Priority 2: Fallback to finding location by lat/lon/tz (if no location name provided)
+        if horizon_mask is None and hasattr(g, 'locations') and isinstance(g.locations, dict):
+            for loc_name, loc_details in g.locations.items():
+                if (abs(loc_details.get('lat', 999) - lat) < 0.001 and
+                    abs(loc_details.get('lon', 999) - lon) < 0.001 and
+                    loc_details.get('timezone') == tz_name):
+                    horizon_mask = loc_details.get('horizon_mask')
+                    location_key_for_cache = loc_name.lower().replace(' ', '_')
+                    break
 
         # Calculate observability for each object
         observable_list = []

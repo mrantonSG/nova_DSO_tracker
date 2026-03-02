@@ -917,8 +917,13 @@
         const plotLon = NOVA_GRAPH_DATA.plotLon;
         const plotTz = NOVA_GRAPH_DATA.plotTz;
 
+        // Get currently selected graph date from the date controls
+        const selectedDay = document.getElementById('day-select')?.value;
+        const selectedMonth = document.getElementById('month-select')?.value;
+        const selectedYear = document.getElementById('year-select')?.value;
+
         try {
-            // Build API URL with location parameters
+            // Build API URL with location parameters (include location name and date for proper calculation)
             let apiUrl = `/api/get_observable_objects?exclude=${encodeURIComponent(primaryName)}`;
             if (plotLat !== undefined && plotLat !== null && plotLat !== '') {
                 apiUrl += `&lat=${encodeURIComponent(plotLat)}`;
@@ -928,6 +933,20 @@
             }
             if (plotTz) {
                 apiUrl += `&tz=${encodeURIComponent(plotTz)}`;
+            }
+            // Pass location name for proper horizon mask lookup from database
+            if (NOVA_GRAPH_DATA.plotLocName) {
+                apiUrl += `&location=${encodeURIComponent(NOVA_GRAPH_DATA.plotLocName)}`;
+            }
+            // Pass the selected graph date so calculations match the displayed chart
+            if (selectedDay !== undefined && selectedDay !== null && selectedDay !== '') {
+                apiUrl += `&day=${encodeURIComponent(selectedDay)}`;
+            }
+            if (selectedMonth !== undefined && selectedMonth !== null && selectedMonth !== '') {
+                apiUrl += `&month=${encodeURIComponent(selectedMonth)}`;
+            }
+            if (selectedYear !== undefined && selectedYear !== null && selectedYear !== '') {
+                apiUrl += `&year=${encodeURIComponent(selectedYear)}`;
             }
 
             const resp = await fetch(apiUrl);
@@ -1182,6 +1201,19 @@
 
         // Fetch and populate the dropdown
         fetchAndPopulateSecondarySelector(NOVA_GRAPH_DATA.objectName);
+
+        // Add event listeners for date controls to refresh dropdown when date changes
+        ['day-select', 'month-select', 'year-select'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', () => {
+                    console.log(`[Secondary Selector] Date control changed: ${id}, refreshing dropdown`);
+                    if (typeof fetchAndPopulateSecondarySelector === 'function') {
+                        fetchAndPopulateSecondarySelector(NOVA_GRAPH_DATA.objectName);
+                    }
+                });
+            }
+        });
 
         // Handle selection changes
         select.addEventListener('change', (e) => {
