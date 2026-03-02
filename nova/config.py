@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from nova.models import INSTANCE_PATH
 
 # --- App version ---
-APP_VERSION = "5.2.0"
+APP_VERSION = "5.2.1"
 
 # --- Directories ---
 TEMPLATE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config_templates")
