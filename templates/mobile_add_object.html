@@ -1,49 +1,49 @@
 {% extends "mobile_base.html" %}
 
-{% block title %}Add Object{% endblock %}
-{% block header_title %}Add Object{% endblock %}
+{% block title %}{{ _('Add Object') }}{% endblock %}
+{% block header_title %}{{ _('Add Object') }}{% endblock %}
 
 {% block content %}
     <div class="form-group">
-        <label for="search-name">Object Name</label>
-        <input type="text" id="search-name" placeholder="e.g., M42 or NGC1976">
+        <label for="search-name">{{ _('Object Name') }}</label>
+        <input type="text" id="search-name" placeholder="{{ _('e.g., M42 or NGC1976') }}">
     </div>
-    <button class="button" id="search-button" style="margin-top: 10px;">Search SIMBAD</button>
+    <button class="button" id="search-button" style="margin-top: 10px;">{{ _('Search SIMBAD') }}</button>
 
     <hr style="margin: 25px 0; border: 0; border-top: 1px solid var(--border-color);">
 
     <form id="add-form" style="display: none;">
         <div class="form-group">
-            <label for="object-name">Object ID</label>
+            <label for="object-name">{{ _('Object ID') }}</label>
             <input type="text" id="object-name" readonly>
         </div>
         <div class="form-group">
-            <label for="common-name">Common Name</label>
+            <label for="common-name">{{ _('Common Name') }}</label>
             <input type="text" id="common-name">
         </div>
 
         <div class="form-group">
-            <label for="ra">RA (hours)</label>
+            <label for="ra">{{ _('RA (hours)') }}</label>
             <input type="text" id="ra">
         </div>
 
         <div class="form-group">
-            <label for="dec">DEC (degrees)</label>
+            <label for="dec">{{ _('DEC (degrees)') }}</label>
             <input type="text" id="dec">
         </div>
 
         <div class="form-group">
-            <label for="trix-notes">Project Notes</label>
+            <label for="trix-notes">{{ _('Project Notes') }}</label>
             <input id="project-notes" type="hidden" name="content">
             <trix-editor input="project-notes"></trix-editor>
         </div>
 
         <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
             <input type="checkbox" id="is-active" style="width: auto;">
-            <label for="is-active" style="margin: 0; font-weight: normal;">Set as Active Project</label>
+            <label for="is-active" style="margin: 0; font-weight: normal;">{{ _('Set as Active Project') }}</label>
         </div>
 
-        <button type="submit" class="button" id="save-button" style="margin-top: 20px;">Save Object</button>
+        <button type="submit" class="button" id="save-button" style="margin-top: 20px;">{{ _('Save Object') }}</button>
     </form>
 
     <div id="message-area" class="message" style="display: none;"></div>
@@ -51,6 +51,17 @@
 
 {% block scripts %}
 <script>
+    // Translated strings for i18n
+    const i18n = {
+        searchingFor: "{{ _('Searching for %%(name)s...') }}",
+        objectNotFound: "{{ _('Object not found.') }}",
+        errorConnecting: "{{ _('Error connecting to server.') }}",
+        saving: "{{ _('Saving...') }}",
+        objectSaved: "{{ _('Object saved successfully!') }}",
+        saveObject: "{{ _('Save Object') }}",
+        error: "{{ _('Error:') }}"
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.getElementById('search-name');
         const searchButton = document.getElementById('search-button');
@@ -75,7 +86,7 @@
             const objectName = searchInput.value;
             if (!objectName) return;
 
-            messageArea.textContent = `Searching for ${objectName}...`;
+            messageArea.textContent = i18n.searchingFor.replace('%(name)s', objectName);
             messageArea.style.display = 'block';
             addForm.style.display = 'none';
 
@@ -98,16 +109,16 @@
                     messageArea.style.display = 'none';
                     addForm.style.display = 'block';
                 } else {
-                    messageArea.textContent = data.message || "Object not found.";
+                    messageArea.textContent = data.message || i18n.objectNotFound;
                 }
             } catch (e) {
-                messageArea.textContent = "Error connecting to server.";
+                messageArea.textContent = i18n.errorConnecting;
             }
         });
 
 
         // --- FIX #1: THE TRIX UPLOAD HANDLER ---
-        // This listens for when you drop an image into the editor.
+        // This listens for when you drop an image into editor.
         notesEditor.addEventListener('trix-attachment-add', (event) => {
             const file = event.attachment.file;
             if (file) {
@@ -123,7 +134,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.url) {
-                        // 3. On success, tell Trix the URL of the uploaded image
+                    // 3. On success, tell Trix the URL of the uploaded image
                         event.attachment.setAttributes({
                             url: data.url,
                             href: data.url
@@ -131,8 +142,8 @@
                     }
                 })
                 .catch(e => {
-                    console.error('Upload failed:', e);
-                    event.attachment.remove(); // Remove the failed upload
+                console.error('Upload failed:', e);
+                event.attachment.remove(); // Remove the failed upload
                 });
             }
         });
@@ -143,10 +154,10 @@
         addForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             saveButton.disabled = true;
-            saveButton.textContent = 'Saving...';
+            saveButton.textContent = i18n.saving;
 
             // --- FIX #2: SAVE THE HTML, NOT PLAIN TEXT ---
-            // We get the .value from the *hidden input field*,
+            // We get the .value from the *hidden input field*
             // which Trix keeps updated with the full HTML.
             const notesHtml = notesInput.value;
             // --- END OF FIX #2 ---
@@ -171,20 +182,20 @@
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
-                    messageArea.textContent = `Object "${payload.object}" saved successfully!`;
+                    messageArea.textContent = i18n.objectSaved.replace('%(name)s', payload.object);
                     messageArea.style.display = 'block';
                     addForm.style.display = 'none';
                     searchInput.value = '';
                 } else {
-                    messageArea.textContent = `Error: ${data.message}`;
+                    messageArea.textContent = i18n.error + ' ' + data.message;
                     messageArea.style.display = 'block';
                     saveButton.disabled = false;
-                    saveButton.textContent = 'Save Object';
+                    saveButton.textContent = i18n.saveObject;
                 }
             } catch (e) {
-                messageArea.textContent = "Error connecting to server.";
+                messageArea.textContent = i18n.errorConnecting;
                 saveButton.disabled = false;
-                saveButton.textContent = 'Save Object';
+                saveButton.textContent = i18n.saveObject;
             }
         });
     });
