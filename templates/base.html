@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ current_language | default('en') }}">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -153,6 +153,17 @@
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
               </svg>
           </button>
+
+          <div class="language-selector">
+              <select id="language-select" aria-label="Select language" onchange="window.location.href=this.value">
+                  <option value="{{ url_for('core.set_language', lang='en') }}" {% if current_language == 'en' %}selected{% endif %}>EN</option>
+                  <option value="{{ url_for('core.set_language', lang='de') }}" {% if current_language == 'de' %}selected{% endif %}>DE</option>
+                  <option value="{{ url_for('core.set_language', lang='fr') }}" {% if current_language == 'fr' %}selected{% endif %}>FR</option>
+                  <option value="{{ url_for('core.set_language', lang='es') }}" {% if current_language == 'es' %}selected{% endif %}>ES</option>
+                  <option value="{{ url_for('core.set_language', lang='ja') }}" {% if current_language == 'ja' %}selected{% endif %}>JA</option>
+                  <option value="{{ url_for('core.set_language', lang='zh') }}" {% if current_language == 'zh' %}selected{% endif %}>ZH</option>
+              </select>
+          </div>
 
           <div class="user-menu">
             {% if is_guest %}

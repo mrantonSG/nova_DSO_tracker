@@ -593,6 +593,61 @@
 }
 
 /* ===================================================================
+   LANGUAGE SELECTOR
+   ================================================================ */
+
+.language-selector {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 12px;
+}
+
+.language-selector select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: transparent;
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 6px;
+    padding: 6px 28px 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-secondary);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 10px 6px;
+    transition: all 0.2s ease;
+}
+
+.language-selector select:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+
+.language-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(131, 180, 197, 0.2);
+}
+
+/* Dark mode language selector */
+[data-theme="dark"] .language-selector select {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.55);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-size: 10px 6px;
+}
+
+[data-theme="dark"] .language-selector select:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--primary-color);
+    color: var(--text-primary);
+}
+
+/* ===================================================================
    DARK MODE - STATUS STRIP & FORM ELEMENTS
    ================================================================ */
 
