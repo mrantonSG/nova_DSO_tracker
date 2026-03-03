@@ -61,6 +61,7 @@ import astropy.units as u
 iers.conf.auto_download = False
 iers.conf.auto_max_age = None  # Allow using old IERS data without errors
 
+from flask_wtf.csrf import CSRFProtect
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
 from sqlalchemy.orm import selectinload
@@ -3026,6 +3027,9 @@ app = Flask(
 )
 app.jinja_env.filters['toyaml'] = to_yaml_filter
 app.secret_key = SECRET_KEY
+csrf = CSRFProtect()
+csrf.init_app(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't enforce globally; protect routes explicitly
 
 # --- Performance: gzip response compression ---
 from flask_compress import Compress
@@ -12207,6 +12211,93 @@ if not SINGLE_USER_MODE:
         db.session.commit()
         print(f"✅ Admin user '{username}' created successfully!")
 
+    @app.cli.command("add-user")
+    def add_user_command():
+        """Creates a new user account."""
+        print("--- Create New User ---")
+        username = input("Enter username: ")
+
+        # Check if username already exists
+        existing = db.session.scalar(db.select(User).where(User.username == username))
+        if existing:
+            print(f"❌ User '{username}' already exists.")
+            return
+
+        password = getpass.getpass("Enter password: ")
+        confirm = getpass.getpass("Confirm password: ")
+        if password != confirm:
+            print("❌ Passwords do not match.")
+            return
+
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        print(f"✅ User '{username}' created successfully!")
+
+    @app.cli.command("rename-user")
+    def rename_user_command():
+        """Renames an existing user account."""
+        old_name = input("Current username: ")
+        user = db.session.scalar(db.select(User).where(User.username == old_name))
+        if not user:
+            print(f"❌ User '{old_name}' not found.")
+            return
+
+        new_name = input("New username: ").strip()
+        if not new_name:
+            print("❌ Username cannot be empty.")
+            return
+
+        if db.session.scalar(db.select(User).where(User.username == new_name)):
+            print(f"❌ Username '{new_name}' is already taken.")
+            return
+
+        user.username = new_name
+        db.session.commit()
+        print(f"✅ User renamed from '{old_name}' to '{new_name}'.")
+
+    @app.cli.command("change-password")
+    def change_password_command():
+        """Changes the password for an existing user."""
+        username = input("Username: ")
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            print(f"❌ User '{username}' not found.")
+            return
+
+        password = getpass.getpass("New password: ")
+        confirm = getpass.getpass("Confirm new password: ")
+        if password != confirm:
+            print("❌ Passwords do not match.")
+            return
+
+        user.set_password(password)
+        db.session.commit()
+        print(f"✅ Password changed for '{username}'.")
+
+    @app.cli.command("delete-user")
+    def delete_user_command():
+        """Deletes a user account from the credentials database."""
+        username = input("Username to delete: ")
+        if username == "admin":
+            print("❌ Cannot delete the admin account.")
+            return
+
+        user = db.session.scalar(db.select(User).where(User.username == username))
+        if not user:
+            print(f"❌ User '{username}' not found.")
+            return
+
+        confirm = input(f"Are you sure you want to delete '{username}'? (yes/no): ")
+        if confirm.lower() != "yes":
+            print("Cancelled.")
+            return
+
+        db.session.delete(user)
+        db.session.commit()
+        print(f"✅ User '{username}' deleted from credentials database.")
+
     @app.cli.command("migrate-yaml-to-db")
     def migrate_yaml_command():
         """
@@ -12801,6 +12892,104 @@ def repair_db_now():
     except Exception as e:
         flash(f"Repair failed: {e}", "error")
     return redirect(url_for("core.index"))
+
+# =============================================================================
+# Admin User Management Panel
+# =============================================================================
+if not SINGLE_USER_MODE:
+
+    @tools_bp.before_request
+    def csrf_protect_admin():
+        """Enforce CSRF on admin POST routes."""
+        if request.method == "POST" and request.path.startswith("/admin/"):
+            csrf.protect()
+
+    @tools_bp.route("/admin/users")
+    @login_required
+    def admin_users():
+        if current_user.username != "admin":
+            flash("Not authorized.", "error")
+            return redirect(url_for("core.index"))
+        users = db.session.scalars(db.select(User).order_by(User.id)).all()
+        return render_template("admin_users.html", users=users)
+
+    @tools_bp.route("/admin/users/create", methods=["POST"])
+    @login_required
+    def admin_create_user():
+        if current_user.username != "admin":
+            flash("Not authorized.", "error")
+            return redirect(url_for("core.index"))
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not username or not password:
+            flash("Username and password are required.", "error")
+            return redirect(url_for("tools.admin_users"))
+        if db.session.scalar(db.select(User).where(User.username == username)):
+            flash(f"User '{username}' already exists.", "error")
+            return redirect(url_for("tools.admin_users"))
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        flash(f"User '{username}' created successfully.", "success")
+        return redirect(url_for("tools.admin_users"))
+
+    @tools_bp.route("/admin/users/<int:user_id>/toggle", methods=["POST"])
+    @login_required
+    def admin_toggle_user(user_id):
+        if current_user.username != "admin":
+            flash("Not authorized.", "error")
+            return redirect(url_for("core.index"))
+        user = db.session.get(User, user_id)
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("tools.admin_users"))
+        if user.username == "admin":
+            flash("Cannot deactivate the admin account.", "error")
+            return redirect(url_for("tools.admin_users"))
+        user.active = not user.active
+        db.session.commit()
+        status = "activated" if user.active else "deactivated"
+        flash(f"User '{user.username}' {status}.", "success")
+        return redirect(url_for("tools.admin_users"))
+
+    @tools_bp.route("/admin/users/<int:user_id>/reset-password", methods=["POST"])
+    @login_required
+    def admin_reset_password(user_id):
+        if current_user.username != "admin":
+            flash("Not authorized.", "error")
+            return redirect(url_for("core.index"))
+        user = db.session.get(User, user_id)
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("tools.admin_users"))
+        new_password = request.form.get("new_password", "")
+        if not new_password:
+            flash("Password cannot be empty.", "error")
+            return redirect(url_for("tools.admin_users"))
+        user.set_password(new_password)
+        db.session.commit()
+        flash(f"Password reset for '{user.username}'.", "success")
+        return redirect(url_for("tools.admin_users"))
+
+    @tools_bp.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+    @login_required
+    def admin_delete_user(user_id):
+        if current_user.username != "admin":
+            flash("Not authorized.", "error")
+            return redirect(url_for("core.index"))
+        user = db.session.get(User, user_id)
+        if not user:
+            flash("User not found.", "error")
+            return redirect(url_for("tools.admin_users"))
+        if user.username == "admin":
+            flash("Cannot delete the admin account.", "error")
+            return redirect(url_for("tools.admin_users"))
+        uname = user.username
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"User '{uname}' deleted.", "success")
+        return redirect(url_for("tools.admin_users"))
 
 
 @app.cli.command("repair-image-links")

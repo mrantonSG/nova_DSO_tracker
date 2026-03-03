@@ -1,0 +1,248 @@
+/* ===================================================================
+   ADMIN USER MANAGEMENT
+   Styles for the /admin/users page.
+   ================================================================ */
+
+body {
+  padding: var(--space-5);
+  margin: 0;
+  font-family: 'DM Sans', 'Roboto', sans-serif;
+  background-color: var(--gray-50);
+  color: var(--text-primary);
+}
+
+.admin-container {
+  max-width: 800px;
+  margin: var(--space-6) auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.admin-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-card h3 {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.user-count {
+  font-weight: var(--font-weight-normal);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* --- Create User Form --- */
+.create-user-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.create-user-form .form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 160px;
+}
+
+.create-user-form label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.create-user-form input[type="text"],
+.create-user-form input[type="password"] {
+  padding: var(--input-padding-y) var(--input-padding-x);
+  border: var(--input-border-width) solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  font-size: var(--font-size-sm);
+  background: var(--bg-white);
+  color: var(--text-primary);
+}
+
+/* --- Users Table --- */
+.users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.users-table th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--border-medium);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.users-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-medium);
+  vertical-align: middle;
+}
+
+.users-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.inactive-row {
+  opacity: 0.55;
+}
+
+/* --- Badges --- */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.3px;
+}
+
+.badge-admin {
+  background: var(--primary-bg, rgba(131, 180, 197, 0.15));
+  color: var(--primary-color);
+  margin-left: var(--space-1);
+}
+
+.badge-active {
+  background: rgba(40, 167, 69, 0.12);
+  color: var(--success-color);
+}
+
+.badge-inactive {
+  background: rgba(220, 53, 69, 0.12);
+  color: var(--danger-color);
+}
+
+/* --- Action Buttons --- */
+.actions-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  padding: var(--btn-padding-compact-y) var(--btn-padding-compact-x);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+
+.btn-small {
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-white);
+  color: var(--text-primary);
+}
+
+.btn-small.btn-secondary {
+  background: var(--bg-white);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+.btn-small.btn-secondary:hover {
+  background: var(--gray-50);
+}
+
+.btn-small.btn-success {
+  background: rgba(40, 167, 69, 0.1);
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+.btn-small.btn-success:hover {
+  background: rgba(40, 167, 69, 0.2);
+}
+
+.btn-small.btn-warn {
+  background: rgba(255, 152, 0, 0.1);
+  color: #e67e22;
+  border-color: #e67e22;
+}
+.btn-small.btn-warn:hover {
+  background: rgba(255, 152, 0, 0.2);
+}
+
+.btn-small.btn-danger {
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
+.btn-small.btn-danger:hover {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+.btn-small.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+/* --- Reset Password Inline Form --- */
+.reset-password-form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  width: 100%;
+}
+
+.reset-password-form form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.reset-password-form input[type="password"] {
+  padding: 3px 8px;
+  border: var(--input-border-width) solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  font-size: var(--font-size-xs);
+  width: 140px;
+  background: var(--bg-white);
+  color: var(--text-primary);
+}
+
+/* --- Responsive --- */
+@media (max-width: 600px) {
+  .admin-container {
+    margin: var(--space-3) auto;
+  }
+  .admin-card {
+    padding: var(--space-4);
+  }
+  .create-user-form {
+    flex-direction: column;
+  }
+  .actions-cell {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
