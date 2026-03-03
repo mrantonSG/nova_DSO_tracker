@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project Report - Nova DSO Tracker</title>
+    <title>{{ _('Project Report') }} - {{ _('Nova DSO Tracker') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -786,87 +786,87 @@
         <div class="report-header">
             <div class="header-left">
                 {% if logo_url %}
-                    <img src="{{ logo_url }}" alt="Nova Logo" class="header-logo">
+                    <img src="{{ logo_url }}" alt="{{ _('Nova Logo') }}" class="header-logo">
                 {% endif %}
                 <div class="header-wordmark">
                     <span class="nova">Nova</span><span class="rest"> DSO Tracker</span>
                 </div>
             </div>
-            <div class="header-right">Project Report</div>
+            <div class="header-right">{{ _('Project Report') }}</div>
         </div>
 
         <!-- Project Title Block -->
         <div class="project-title-block">
             <h1 class="project-title">{{ project.name }}</h1>
-            <div class="project-meta">Target: {{ project.target_object_name or 'Various' }} | Status: {{ project.status }}</div>
+            <div class="project-meta">{{ _('Target:') }} {{ project.target_object_name or _('Various') }} | {{ _('Status:') }} {{ project.status }}</div>
         </div>
 
         <!-- Stats Row -->
         <div class="stats-row">
             <div class="stat-card">
                 <span class="stat-card-value">{{ total_integration }}</span>
-                <span class="stat-card-label">Total Integration</span>
+                <span class="stat-card-label">{{ _('Total Integration') }}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-card-value">{{ session_count }}</span>
-                <span class="stat-card-label">Total Sessions</span>
+                <span class="stat-card-label">{{ _('Total Sessions') }}</span>
             </div>
             <div class="stat-card stat-card-date-range">
                 <div class="stat-card-value-range">
                     <span>{{ first_date }}</span>
                     <span>{{ last_date }}</span>
                 </div>
-                <span class="stat-card-label">Date Range</span>
+                <span class="stat-card-label">{{ _('Date Range') }}</span>
             </div>
         </div>
 
         {% if project_image_url %}
         <!-- Master Image -->
         <div class="master-image-container">
-            <img src="{{ project_image_url }}" alt="Final Result">
+            <img src="{{ project_image_url }}" alt="{{ _('Final Result') }}">
         </div>
         {% endif %}
 
         {% if project.goals %}
         <div class="section">
-            <div class="section-label">Goals</div>
+            <div class="section-label">{{ _('Goals') }}</div>
             <div class="section-content">{{ project.goals | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.description_notes %}
         <div class="section">
-            <div class="section-label">Project Story</div>
+            <div class="section-label">{{ _('Project Story') }}</div>
             <div class="section-content">{{ project.description_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.framing_notes %}
         <div class="section">
-            <div class="section-label">Framing & Composition</div>
+            <div class="section-label">{{ _('Framing & Composition') }}</div>
             <div class="section-content">{{ project.framing_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         {% if project.processing_notes %}
         <div class="section">
-            <div class="section-label">Processing Workflow</div>
+            <div class="section-label">{{ _('Processing Workflow') }}</div>
             <div class="section-content">{{ project.processing_notes | sanitize_html | safe }}</div>
         </div>
         {% endif %}
 
         <!-- Session Chronicles Table -->
         <div class="section">
-            <div class="section-label">Session Chronicles</div>
+            <div class="section-label">{{ _('Session Chronicles') }}</div>
             <table class="chronicles-table">
                 <thead>
                     <tr>
-                        <th style="width: 70px;">Date</th>
-                        <th style="width: 90px;">Location</th>
-                        <th style="width: 50px;">Integ.</th>
-                        <th style="width: 36px;">Rating</th>
-                        <th style="width: 100px;">Log Data</th>
-                        <th>Configuration & Notes</th>
+                        <th style="width: 70px;">{{ _('Date') }}</th>
+                        <th style="width: 90px;">{{ _('Location') }}</th>
+                        <th style="width: 50px;">{{ _('Integ.') }}</th>
+                        <th style="width: 36px;">{{ _('Rating') }}</th>
+                        <th style="width: 100px;">{{ _('Log Data') }}</th>
+                        <th>{{ _('Configuration & Notes') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -889,8 +889,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            <strong>Rig:</strong> {{ s.rig_name_snapshot or s.telescope_setup_notes or '-' }}<br>
-                            <strong>Notes:</strong> {{ s.notes | striptags | truncate(100) }}
+                            <strong>{{ _('Rig:') }}</strong> {{ s.rig_name_snapshot or s.telescope_setup_notes or '-' }}<br>
+                            <strong>{{ _('Notes:') }}</strong> {{ s.notes | striptags | truncate(100) }}
                         </td>
                     </tr>
                     {% endfor %}
@@ -913,55 +913,55 @@
                 {% if swl.log_analysis.phd2 and swl.log_analysis.phd2.stats %}
                 <div class="log-stat-card">
                     <span class="log-stat-value hero">{{ '%.2f' % swl.log_analysis.phd2.stats.total_rms_as }}"</span>
-                    <span class="log-stat-label">Total RMS</span>
+                    <span class="log-stat-label">{{ _('Total RMS') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ swl.log_analysis.phd2.stats.total_frames }}</span>
-                    <span class="log-stat-label">Frames</span>
+                    <span class="log-stat-label">{{ _('Frames') }}</span>
                 </div>
                 {% else %}
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Total RMS</span>
+                    <span class="log-stat-label">{{ _('Total RMS') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Frames</span>
+                    <span class="log-stat-label">{{ _('Frames') }}</span>
                 </div>
                 {% endif %}
                 {% if swl.log_analysis.asiair and swl.log_analysis.asiair.stats %}
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.total_exposures }}</span>
-                    <span class="log-stat-label">Exposures</span>
+                    <span class="log-stat-label">{{ _('Exposures') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.af_count }}</span>
-                    <span class="log-stat-label">AutoFocus</span>
+                    <span class="log-stat-label">{{ _('AutoFocus') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.dither_count }}</span>
-                    <span class="log-stat-label">Dithers</span>
+                    <span class="log-stat-label">{{ _('Dithers') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ swl.log_analysis.asiair.stats.meridian_flip_count }}</span>
-                    <span class="log-stat-label">Flips</span>
+                    <span class="log-stat-label">{{ _('Flips') }}</span>
                 </div>
                 {% else %}
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Exposures</span>
+                    <span class="log-stat-label">{{ _('Exposures') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">AutoFocus</span>
+                    <span class="log-stat-label">{{ _('AutoFocus') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Dithers</span>
+                    <span class="log-stat-label">{{ _('Dithers') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Flips</span>
+                    <span class="log-stat-label">{{ _('Flips') }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -969,10 +969,10 @@
             <!-- PHD2 Guiding -->
             {% if swl.log_analysis.phd2 and swl.log_analysis.phd2.stats %}
             <div class="log-subsection">
-                <div class="log-subsection-title">PHD2 Guiding Performance</div>
+                <div class="log-subsection-title">{{ _('PHD2 Guiding Performance') }}</div>
                 <div class="guiding-cards-mini">
                     <div class="guiding-card-mini">
-                        <div class="guiding-card-mini-label">Imaging RMS</div>
+                        <div class="guiding-card-mini-label">{{ _('Imaging RMS') }}</div>
                         <div class="guiding-card-mini-value">
                             {% if swl.log_analysis.phd2.stats.imaging %}
                                 {{ '%.2f' % swl.log_analysis.phd2.stats.imaging.total_rms_as }}"
@@ -982,20 +982,20 @@
                         </div>
                     </div>
                     <div class="guiding-card-mini">
-                        <div class="guiding-card-mini-label">All Frames RMS</div>
+                        <div class="guiding-card-mini-label">{{ _('All Frames RMS') }}</div>
                         <div class="guiding-card-mini-value">{{ '%.2f' % swl.log_analysis.phd2.stats.total_rms_as }}"</div>
                     </div>
                 </div>
 
                 {% if swl.chart_images.guiding_rms %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ swl.chart_images.guiding_rms }}" alt="Guiding RMS">
+                    <img src="data:image/png;base64,{{ swl.chart_images.guiding_rms }}" alt="{{ _('Guiding RMS') }}">
                 </div>
                 {% endif %}
 
                 {% if swl.chart_images.guiding_scatter %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ swl.chart_images.guiding_scatter }}" alt="Guide Pulse">
+                    <img src="data:image/png;base64,{{ swl.chart_images.guiding_scatter }}" alt="{{ _('Guide Pulse') }}">
                 </div>
                 {% endif %}
             </div>
@@ -1004,14 +1004,14 @@
             <!-- ASIAIR AutoFocus -->
             {% if swl.log_analysis.asiair and swl.log_analysis.asiair.af_runs %}
             <div class="log-subsection">
-                <div class="log-subsection-title">AutoFocus Runs</div>
+                <div class="log-subsection-title">{{ _('AutoFocus Runs') }}</div>
                 <table class="data-table-mini">
                     <thead>
                         <tr>
-                            <th>Run</th>
-                            <th>Time</th>
-                            <th>Focus Pos</th>
-                            <th>Temp</th>
+                            <th>{{ _('Run') }}</th>
+                            <th>{{ _('Time') }}</th>
+                            <th>{{ _('Focus Pos') }}</th>
+                            <th>{{ _('Temp') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1028,7 +1028,7 @@
 
                 {% if swl.chart_images.af_vcurve %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ swl.chart_images.af_vcurve }}" alt="V-Curves">
+                    <img src="data:image/png;base64,{{ swl.chart_images.af_vcurve }}" alt="{{ _('V-Curves') }}">
                 </div>
                 {% endif %}
             </div>
@@ -1037,10 +1037,10 @@
             <!-- Dither Events -->
             {% if swl.log_analysis.asiair and swl.log_analysis.asiair.dithers %}
             <div class="log-subsection">
-                <div class="log-subsection-title">Dither Events</div>
+                <div class="log-subsection-title">{{ _('Dither Events') }}</div>
                 {% if swl.chart_images.dither_settle %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ swl.chart_images.dither_settle }}" alt="Dither Settle">
+                    <img src="data:image/png;base64,{{ swl.chart_images.dither_settle }}" alt="{{ _('Dither Settle') }}">
                 </div>
                 {% endif %}
             </div>
@@ -1049,10 +1049,10 @@
             <!-- Autocenter -->
             {% if swl.log_analysis.asiair and swl.log_analysis.asiair.autocenters %}
             <div class="log-subsection">
-                <div class="log-subsection-title">Autocenter Results</div>
+                <div class="log-subsection-title">{{ _('Autocenter Results') }}</div>
                 {% if swl.chart_images.autocenter %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ swl.chart_images.autocenter }}" alt="Autocenter">
+                    <img src="data:image/png;base64,{{ swl.chart_images.autocenter }}" alt="{{ _('Autocenter') }}">
                 </div>
                 {% endif %}
             </div>
@@ -1066,103 +1066,103 @@
         {% set s = swl.session %}
         <div class="session-appendix">
             <div class="appendix-header">
-                <div class="appendix-title">Session: {{ s.date_utc | date_eu }}</div>
-                <div class="appendix-date">{{ s.location_name or 'Location not specified' }}</div>
+                <div class="appendix-title">{{ _('Session:') }} {{ s.date_utc | date_eu }}</div>
+                <div class="appendix-date">{{ s.location_name or _('Location not specified') }}</div>
             </div>
 
             <div class="content-columns">
                 <div class="left-column">
-                    <div class="section-label" style="margin-top: 0;">Session Image</div>
+                    <div class="section-label" style="margin-top: 0;">{{ _('Session Image') }}</div>
                     <div class="image-container">
                         {% if s.session_image_file %}
                             {% set username = "default" if SINGLE_USER_MODE else current_user.username %}
-                            <img src="{{ url_for('core.get_uploaded_image', username=username, filename=s.session_image_file, _external=True) }}" alt="Session Image">
+                            <img src="{{ url_for('core.get_uploaded_image', username=username, filename=s.session_image_file, _external=True) }}" alt="{{ _('Session Image') }}">
                         {% else %}
-                            <div style="color: var(--text-faint); padding: 30px;">[No Image]</div>
+                            <div style="color: var(--text-faint); padding: 30px;">[{{ _('No Image') }}]</div>
                         {% endif %}
-                        <div class="image-caption">Integration: {{ (s.calculated_integration_time_minutes or 0) // 60 }}h {{ (s.calculated_integration_time_minutes or 0) % 60 }}m</div>
+                        <div class="image-caption">{{ _('Integration:') }} {{ (s.calculated_integration_time_minutes or 0) // 60 }}h {{ (s.calculated_integration_time_minutes or 0) % 60 }}m</div>
                     </div>
 
-                    <div class="section-label">Notes</div>
+                    <div class="section-label">{{ _('Notes') }}</div>
                     <div class="notes-container">
                         {{ s.notes | sanitize_html | safe | default('-') }}
                     </div>
                 </div>
 
                 <div class="right-column">
-                    <div class="section-label" style="margin-top: 0;">Statistics</div>
+                    <div class="section-label" style="margin-top: 0;">{{ _('Statistics') }}</div>
                     <div class="stat-pairs">
                         <div class="stat-row">
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Integration</div>
+                                <div class="stat-cell-label">{{ _('Integration') }}</div>
                                 <div class="stat-cell-value">{{ (s.calculated_integration_time_minutes or 0) // 60 }}h {{ (s.calculated_integration_time_minutes or 0) % 60 }}m</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Rating</div>
+                                <div class="stat-cell-label">{{ _('Rating') }}</div>
                                 <div class="stat-cell-value rating-stars">{{ s.session_rating_subjective or '-' }}{% if s.session_rating_subjective %}★{% endif %}</div>
                             </div>
                         </div>
                         <div class="stat-row">
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Seeing</div>
+                                <div class="stat-cell-label">{{ _('Seeing') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.seeing_observed_fwhm) }}{% if s.seeing_observed_fwhm %}"{% endif %}</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Guiding RMS</div>
+                                <div class="stat-cell-label">{{ _('Guiding RMS') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.guiding_rms_avg_arcsec) }}{% if s.guiding_rms_avg_arcsec %}"{% endif %}</div>
                             </div>
                         </div>
                         <div class="stat-row">
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Moon</div>
+                                <div class="stat-cell-label">{{ _('Moon') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.moon_illumination_session) }}% / {{ display_value(s.moon_angular_separation_session) }}&deg;</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">SQM</div>
+                                <div class="stat-cell-label">{{ _('SQM') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.sky_sqm_observed) }}</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="section-label">Equipment</div>
+                    <div class="section-label">{{ _('Equipment') }}</div>
                     <div class="stat-pairs">
                         {% if s.rig_name_snapshot %}
                         <div class="stat-row">
                             <div class="stat-cell" style="grid-column: span 2;">
-                                <div class="stat-cell-label">Rig</div>
+                                <div class="stat-cell-label">{{ _('Rig') }}</div>
                                 <div class="stat-cell-value">{{ s.rig_name_snapshot }}</div>
                             </div>
                         </div>
                         {% endif %}
                         <div class="stat-row">
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Telescope</div>
+                                <div class="stat-cell-label">{{ _('Telescope') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.telescope_name_snapshot) }}</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Camera</div>
+                                <div class="stat-cell-label">{{ _('Camera') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.camera_name_snapshot) }}</div>
                             </div>
                         </div>
                         <div class="stat-row">
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Gain/Offset</div>
+                                <div class="stat-cell-label">{{ _('Gain/Offset') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.gain_setting) }} / {{ display_value(s.offset_setting) }}</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Temp</div>
+                                <div class="stat-cell-label">{{ _('Temp') }}</div>
                                 <div class="stat-cell-value">{{ display_value(s.camera_temp_setpoint_c) }}&deg;C</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="section-label">Exposures</div>
+                    <div class="section-label">{{ _('Exposures') }}</div>
                     <table class="data-table-mini">
                         <thead>
                             <tr>
-                                <th>Filter</th>
-                                <th>Subs</th>
-                                <th>Exp</th>
+                                <th>{{ _('Filter') }}</th>
+                                <th>{{ _('Subs') }}</th>
+                                <th>{{ _('Exp') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1197,7 +1197,7 @@
 
         <!-- Report Footer -->
         <div class="report-footer">
-            <div class="footer-left">Generated by <span class="nova-name">Nova DSO Tracker</span></div>
+            <div class="footer-left">{{ _('Generated by') }} <span class="nova-name">{{ _('Nova DSO Tracker') }}</span></div>
             <div class="footer-right">{{ today_date }}</div>
         </div>
     </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>{% block title %}Nova Companion{% endblock %}</title>
+    <title>{% block title %}{{ _('Nova Companion') }}{% endblock %}</title>
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='nova-touch-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="stylesheet" href="/static/css/mobile.css">
@@ -14,9 +14,9 @@
 <body>
 
 <header class="header">
-    <a href="{{ url_for('core.index') }}" class="header-link">Main Site</a>
-    <h1>Nova Pocket</h1>
-    <p class="header-subtitle">{% block header_title %}Up Now{% endblock %}</p>
+    <a href="{{ url_for('core.index') }}" class="header-link">{{ _('Main Site') }}</a>
+    <h1>{{ _('Nova Pocket') }}</h1>
+    <p class="header-subtitle">{% block header_title %}{{ _('Up Now') }}{% endblock %}</p>
 </header>
 
 <main class="container">
@@ -27,24 +27,24 @@
     {% if current_user.is_authenticated %}
         <a href="{{ url_for('mobile.mobile_up_now') }}" id="nav-up-now">
             <span>🌌</span>
-            Up Now
+            {{ _('Up Now') }}
         </a>
         <a href="{{ url_for('mobile.mobile_outlook') }}" id="nav-outlook">
             <span>🗓️</span>
-            Outlook
+            {{ _('Outlook') }}
         </a>
         <a href="{{ url_for('mobile.mobile_add_object') }}" id="nav-add-object">
             <span>✨</span>
-            Add Object
+            {{ _('Add Object') }}
         </a>
         <a href="{{ url_for('mobile.mobile_location') }}" id="nav-location">
             <span>🌍</span>
-            Location
+            {{ _('Location') }}
         </a>
     {% else %}
         <a href="{{ url_for('core.login', next=request.path) }}" id="nav-login">
             <span>🔑</span>
-            Log In
+            {{ _('Log In') }}
         </a>
     {% endif %}
 </nav>

@@ -32,7 +32,7 @@
                 var res = await fetch(url);
                 var data = await res.json();
                 if (data.separation && document.getElementById('separation-display')) {
-                    document.getElementById('separation-display').textContent = data.separation + "\u00B0 sep";
+                    document.getElementById('separation-display').textContent = data.separation + "\u00B0 " + window.t('sep');
                 }
                 if (data.phase !== undefined && document.getElementById('phase-display')) {
                     document.getElementById('phase-display').textContent = data.phase + "%";
@@ -134,13 +134,13 @@
 
           var data = await res.json();
           if (!res.ok || data.status !== 'success') {
-            alert('Failed to update Active Project: ' + (data.error || res.status));
+            alert(window.t('failed_update_active_project', { error: data.error || res.status }));
             e.target.checked = !e.target.checked;
           } else {
               console.log('Successfully updated Active Project status for ' + objectName + ' to ' + isActive);
           }
         } catch (err) {
-          alert('Failed to update Active Project: ' + err);
+          alert(window.t('failed_update_active_project', { error: err }));
           e.target.checked = !e.target.checked;
         }
       });
@@ -483,9 +483,9 @@
 
         if (!navigator.onLine) {
             if (typeof displayOfflineMessage === 'function') {
-                displayOfflineMessage('simbadContainer', 'SIMBAD requires an active internet connection to load data.');
+                displayOfflineMessage('simbadContainer', window.t('simbad_requires_internet'));
             } else {
-                document.getElementById('simbadContainer').innerHTML = '<div class="offline-message" style="min-height: 400px;">SIMBAD requires an active internet connection.</div>';
+                document.getElementById('simbadContainer').innerHTML = '<div class="offline-message" style="min-height: 400px;">' + window.t('simbad_requires_internet_short') + '</div>';
             }
             simbadLoaded = true;
             return;
@@ -501,7 +501,7 @@
 
         var tableBody = document.getElementById('opportunities-body');
 
-        tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">Loading...</td></tr>';
+        tableBody.innerHTML = '<tr class="loader-row"><td colspan="9">' + window.t('loading') + '</td></tr>';
 
         try {
             var plotLat = DATA.plotLat;
@@ -554,20 +554,20 @@
                             '<td>' + opp.moon_illumination + '</td>' +
                             '<td>' + opp.moon_separation + '</td>' +
                             '<td>' + opp.rating + '</td>' +
-                            '<td><a href="' + icsUrl.href + '" title="Add to calendar" style="font-size: 1.5em; text-decoration: none;" data-stop-propagation="true">\uD83D\uDCC5</a></td>';
+                            '<td><a href="' + icsUrl.href + '" title="' + window.t('add_to_calendar') + '" style="font-size: 1.5em; text-decoration: none;" data-stop-propagation="true">\uD83D\uDCC5</a></td>';
                         tableBody.appendChild(row);
                     });
                 } else {
-                    tableBody.innerHTML = '<tr><td colspan="9">No good imaging opportunities found within your search criteria.</td></tr>';
+                    tableBody.innerHTML = '<tr><td colspan="9">' + window.t('no_imaging_opportunities') + '</td></tr>';
                 }
                 opportunitiesLoaded = true;
             } else {
-                tableBody.innerHTML = '<tr><td colspan="9">Error loading opportunities: ' + (data.message || 'Unknown error') + '</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="9">' + window.t('error_loading_opportunities', { error: data.message || 'Unknown error' }) + '</td></tr>';
                 opportunitiesLoaded = true;
             }
         } catch (error) {
             console.error('Error fetching imaging opportunities:', error);
-            tableBody.innerHTML = '<tr><td colspan="9">Failed to load imaging opportunities. Check console for details. (' + error.message + ')</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="9">' + window.t('failed_load_opportunities', { error: error.message }) + '</td></tr>';
             opportunitiesLoaded = true;
         }
     }

@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Nova – User Management{% endblock %}
+{% block title %}{{ _('Nova – User Management') }}{% endblock %}
 
 {% block head_extra %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_users.css') }}">
 {% endblock %}
 
 {% block page_title %}
-    <h2>User Management <span class="subtitle">(Admin)</span></h2>
+    <h2>{{ _('User Management') }} <span class="subtitle">({{ _('Admin') }})</span></h2>
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; Back to Dashboard</button>
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">&#8592; {{ _('Back to Dashboard') }}</button>
 {% endblock %}
 
 {% block body %}
@@ -46,31 +46,31 @@
 
     <!-- Create User Card -->
     <div class="admin-card">
-      <h3>Create New User</h3>
+      <h3>{{ _('Create New User') }}</h3>
       <form method="POST" action="{{ url_for('tools.admin_create_user') }}" class="create-user-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-row">
-          <label for="new-username">Username</label>
-          <input type="text" id="new-username" name="username" required autocomplete="off" placeholder="e.g. alice">
+          <label for="new-username">{{ _('Username') }}</label>
+          <input type="text" id="new-username" name="username" required autocomplete="off" placeholder="{{ _('e.g. alice') }}">
         </div>
         <div class="form-row">
-          <label for="new-password">Password</label>
-          <input type="password" id="new-password" name="password" required autocomplete="new-password" placeholder="Min 4 characters" minlength="4">
+          <label for="new-password">{{ _('Password') }}</label>
+          <input type="password" id="new-password" name="password" required autocomplete="new-password" placeholder="{{ _('Min 4 characters') }}" minlength="4">
         </div>
-        <button type="submit" class="btn-primary">Create User</button>
+        <button type="submit" class="btn-primary">{{ _('Create User') }}</button>
       </form>
     </div>
 
     <!-- Users Table Card -->
     <div class="admin-card">
-      <h3>Existing Users <span class="user-count">({{ users | length }})</span></h3>
+      <h3>{{ _('Existing Users') }} <span class="user-count">({{ users | length }})</span></h3>
       <table class="users-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>{{ _('ID') }}</th>
+            <th>{{ _('Username') }}</th>
+            <th>{{ _('Status') }}</th>
+            <th>{{ _('Actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -79,13 +79,13 @@
             <td>{{ user.id }}</td>
             <td>
               {{ user.username }}
-              {% if user.username == 'admin' %}<span class="badge badge-admin">admin</span>{% endif %}
+              {% if user.username == 'admin' %}<span class="badge badge-admin">{{ _('admin') }}</span>{% endif %}
             </td>
             <td>
               {% if user.active %}
-                <span class="badge badge-active">Active</span>
+                <span class="badge badge-active">{{ _('Active') }}</span>
               {% else %}
-                <span class="badge badge-inactive">Inactive</span>
+                <span class="badge badge-inactive">{{ _('Inactive') }}</span>
               {% endif %}
             </td>
             <td class="actions-cell">
@@ -93,21 +93,21 @@
                 <!-- Toggle active/inactive -->
                 <form method="POST" action="{{ url_for('tools.admin_toggle_user', user_id=user.id) }}" style="display:inline;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn-small {{ 'btn-warn' if user.active else 'btn-success' }}" title="{{ 'Deactivate' if user.active else 'Activate' }}">
-                    {{ 'Deactivate' if user.active else 'Activate' }}
+                  <button type="submit" class="btn-small {{ 'btn-warn' if user.active else 'btn-success' }}" title="{{ _('Deactivate') if user.active else _('Activate') }}">
+                    {{ _('Deactivate') if user.active else _('Activate') }}
                   </button>
                 </form>
               {% endif %}
 
               <!-- Reset password (for all users including admin) -->
-              <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">Reset Password</button>
+              <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">{{ _('Reset Password') }}</button>
 
               {% if user.username != 'admin' %}
                 <!-- Delete -->
                 <form method="POST" action="{{ url_for('tools.admin_delete_user', user_id=user.id) }}" style="display:inline;"
-                      onsubmit="return confirm('Delete user \'{{ user.username }}\'? This removes their login credentials. Their observing data in app.db is NOT deleted.');">
+                      onsubmit="return confirm({% trans username=user.username %}Delete user '{{ username }}'? This removes their login credentials. Their observing data in app.db is NOT deleted.{% endtrans %});">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <button type="submit" class="btn-small btn-danger">Delete</button>
+                  <button type="submit" class="btn-small btn-danger">{{ _('Delete') }}</button>
                 </form>
               {% endif %}
 
@@ -115,9 +115,9 @@
               <div id="reset-form-{{ user.id }}" class="reset-password-form" style="display:none;">
                 <form method="POST" action="{{ url_for('tools.admin_reset_password', user_id=user.id) }}">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                  <input type="password" name="new_password" required placeholder="New password" minlength="4" autocomplete="new-password">
-                  <button type="submit" class="btn-small btn-primary">Save</button>
-                  <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">Cancel</button>
+                  <input type="password" name="new_password" required placeholder="{{ _('New password') }}" minlength="4" autocomplete="new-password">
+                  <button type="submit" class="btn-small btn-primary">{{ _('Save') }}</button>
+                  <button type="button" class="btn-small btn-secondary" onclick="toggleResetForm({{ user.id }})">{{ _('Cancel') }}</button>
                 </form>
               </div>
             </td>

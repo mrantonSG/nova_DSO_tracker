@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Session Report - Nova DSO Tracker</title>
+    <title>{{ _('Session Report') }} - {{ _('Nova DSO Tracker') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -670,26 +670,26 @@
         <div class="report-header">
             <div class="header-left">
                 {% if logo_url %}
-                    <img src="{{ logo_url }}" alt="Nova Logo" class="header-logo">
+                    <img src="{{ logo_url }}" alt="{{ _('Nova Logo') }}" class="header-logo">
                 {% endif %}
                 <div class="header-wordmark">
-                    <span class="nova">Nova</span><span class="rest"> DSO Tracker</span>
+                    <span class="nova">{{ _('Nova') }}</span><span class="rest"> {{ _('DSO Tracker') }}</span>
                 </div>
             </div>
-            <div class="header-right">Session Report</div>
+            <div class="header-right">{{ _('Session Report') }}</div>
         </div>
 
         <!-- Title Block -->
         <div class="title-block">
             <h1>{{ display_value(object_details['Common Name']) }}{% if object_details.get('Object') and object_details['Object'] != object_details.get('Common Name') %} {{ display_value(object_details['Object']) }}{% endif %}</h1>
             <div class="meta-grid">
-                <div class="meta-label">Date</div>
+                <div class="meta-label">{{ _('Date') }}</div>
                 <div class="meta-value">{{ session.date_utc | date_eu | default('-') }}</div>
-                <div class="meta-label">Location</div>
+                <div class="meta-label">{{ _('Location') }}</div>
                 <div class="meta-value">{{ display_value(session.location_name) }}</div>
-                <div class="meta-label">Project</div>
+                <div class="meta-label">{{ _('Project') }}</div>
                 <div class="meta-value">{{ display_value(project_name) }}</div>
-                <div class="meta-label">Rating</div>
+                <div class="meta-label">{{ _('Rating') }}</div>
                 <div class="meta-value session-rating">{{ rating_stars }}</div>
             </div>
         </div>
@@ -697,136 +697,136 @@
         <!-- Two-Column Content -->
         <div class="content-columns">
             <div class="left-column">
-                <div class="section-label">Session Image</div>
+                <div class="section-label">{{ _('Session Image') }}</div>
                 <div class="session-image-container">
                     {% if image_url %}
-                        <img src="{{ image_url }}" alt="Session Image">
+                        <img src="{{ image_url }}" alt="{{ _('Session Image') }}">
                         <div class="session-image-caption">{{ image_source_label }}</div>
                     {% else %}
-                        <div style="color: var(--text-faint); padding: 40px;">[No Image]</div>
+                        <div style="color: var(--text-faint); padding: 40px;">[{{ _('No Image') }}]</div>
                     {% endif %}
-                    <div class="session-image-caption">Total Integration: {{ display_value(integ_str) }}</div>
+                    <div class="session-image-caption">{{ _('Total Integration:') }} {{ display_value(integ_str) }}</div>
                 </div>
 
-                <div class="section-label">Notes & Reflections</div>
+                <div class="section-label">{{ _('Notes & Reflections') }}</div>
                 <div class="notes-container">
                     {{ session.notes | sanitize_html | safe | default('-') }}
                 </div>
             </div>
 
             <div class="right-column">
-                <div class="section-label">Statistics & Conditions</div>
+                <div class="section-label">{{ _('Statistics & Conditions') }}</div>
                 <div class="stat-pairs">
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Integration</div>
+                            <div class="stat-cell-label">{{ _('Integration') }}</div>
                             <div class="stat-cell-value">{{ display_value(integ_str) }}</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Seeing (FWHM)</div>
+                            <div class="stat-cell-label">{{ _('Seeing (FWHM)') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.seeing_observed_fwhm) }}{% if session.seeing_observed_fwhm %}"{% endif %}</div>
                         </div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Guiding (RMS)</div>
+                            <div class="stat-cell-label">{{ _('Guiding (RMS)') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.guiding_rms_avg_arcsec) }}{% if session.guiding_rms_avg_arcsec %}"{% endif %}</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Sky Quality (SQM)</div>
+                            <div class="stat-cell-label">{{ _('Sky Quality (SQM)') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.sky_sqm_observed) }}</div>
                         </div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Moon Illum./Sep.</div>
+                            <div class="stat-cell-label">{{ _('Moon Illum./Sep.') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.moon_illumination_session) }}% / {{ display_value(session.moon_angular_separation_session) }}&deg;</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Transparency</div>
+                            <div class="stat-cell-label">{{ _('Transparency') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.transparency_observed_scale) }}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="section-label">Equipment & Acquisition</div>
+                <div class="section-label">{{ _('Equipment & Acquisition') }}</div>
                 <div class="info-box">
                     {% if session.rig_name_snapshot %}
-                        <div class="info-box-title">Rig: {{ display_value(session.rig_name_snapshot) }}</div>
+                        <div class="info-box-title">{{ _('Rig:') }} {{ display_value(session.rig_name_snapshot) }}</div>
                         <div class="info-row">
-                            <span class="info-label">Telescope:</span>
+                            <span class="info-label">{{ _('Telescope:') }}</span>
                             <span class="info-value">{{ display_value(session.telescope_name_snapshot) }}</span>
                         </div>
                         {% if session.reducer_name_snapshot %}
                         <div class="info-row">
-                            <span class="info-label">Reducer/Ext.:</span>
+                            <span class="info-label">{{ _('Reducer/Ext.:') }}</span>
                             <span class="info-value">{{ display_value(session.reducer_name_snapshot) }}</span>
                         </div>
                         {% endif %}
                         <div class="info-row">
-                            <span class="info-label">Camera:</span>
+                            <span class="info-label">{{ _('Camera:') }}</span>
                             <span class="info-value">{{ display_value(session.camera_name_snapshot) }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Gain / Offset:</span>
+                            <span class="info-label">{{ _('Gain / Offset:') }}</span>
                             <span class="info-value">{{ display_value(session.gain_setting) }} / {{ display_value(session.offset_setting) }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Temp (Set/Avg):</span>
+                            <span class="info-label">{{ _('Temp (Set/Avg):') }}</span>
                             <span class="info-value">{{ display_value(session.camera_temp_setpoint_c) }}&deg;C / {{ display_value(session.camera_temp_actual_avg_c) }}&deg;C</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">FL / Ratio:</span>
+                            <span class="info-label">{{ _('FL / Ratio:') }}</span>
                             <span class="info-value">{{ session.rig_efl_snapshot | round(0) if session.rig_efl_snapshot is number else '-' }} mm (f/{{ session.rig_fr_snapshot | round(1) if session.rig_fr_snapshot is number else '-' }})</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Scale / FOV:</span>
+                            <span class="info-label">{{ _('Scale / FOV:') }}</span>
                             <span class="info-value">{{ session.rig_scale_snapshot | round(2) if session.rig_scale_snapshot is number else '-' }}"/px ({{ session.rig_fov_w_snapshot | round(1) if session.rig_fov_w_snapshot is number else '-' }}' x {{ session.rig_fov_h_snapshot | round(1) if session.rig_fov_h_snapshot is number else '-' }}')</span>
                         </div>
                     {% else %}
-                        <div class="info-box-title">Setup: {{ display_value(session.telescope_setup_notes) }}</div>
+                        <div class="info-box-title">{{ _('Setup:') }} {{ display_value(session.telescope_setup_notes) }}</div>
                     {% endif %}
                     <div class="info-row">
-                        <span class="info-label">Acquisition SW:</span>
+                        <span class="info-label">{{ _('Acquisition SW:') }}</span>
                         <span class="info-value">{{ display_value(session.acquisition_software) }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Guiding Equip.:</span>
+                        <span class="info-label">{{ _('Guiding Equip.:') }}</span>
                         <span class="info-value">{{ display_value(session.guiding_equipment) }}</span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">Dither Details:</span>
+                        <span class="info-label">{{ _('Dither Details:') }}</span>
                         <span class="info-value">{{ display_value(session.dither_display or session.dither_details) }}</span>
                     </div>
                 </div>
 
-                <div class="section-label">Calibration Strategy</div>
+                <div class="section-label">{{ _('Calibration Strategy') }}</div>
                 <div class="stat-pairs">
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Darks</div>
+                            <div class="stat-cell-label">{{ _('Darks') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.darks_strategy) }}</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Flats</div>
+                            <div class="stat-cell-label">{{ _('Flats') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.flats_strategy) }}</div>
                         </div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-cell" style="grid-column: span 2;">
-                            <div class="stat-cell-label">Bias / Dark Flats</div>
+                            <div class="stat-cell-label">{{ _('Bias / Dark Flats') }}</div>
                             <div class="stat-cell-value">{{ display_value(session.bias_darkflats_strategy) }}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="section-label">Exposures</div>
+                <div class="section-label">{{ _('Exposures') }}</div>
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Filter</th>
-                            <th>Subs</th>
-                            <th>Exposure</th>
+                            <th>{{ _('Filter') }}</th>
+                            <th>{{ _('Subs') }}</th>
+                            <th>{{ _('Exposure') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -861,19 +861,19 @@
         {% if log_analysis.has_logs and log_analysis.asiair %}
         <div class="log-section" style="border-top: 1px solid var(--border-color); padding-top: 24px;">
             <div class="log-header">
-                <span class="log-title">Key Events</span>
+                <span class="log-title">{{ _('Key Events') }}</span>
             </div>
             <ul class="timeline">
                 <li>
                     <span class="timeline-dot success"></span>
                     <span class="timeline-time">{{ '00:00' if not log_analysis.asiair.session_start else (log_analysis.asiair.session_start | default('00:00'))[:5] }}</span>
-                    <span class="timeline-text">Session Start</span>
+                    <span class="timeline-text">{{ _('Session Start') }}</span>
                 </li>
                 {% for mf in log_analysis.asiair.meridian_flips[:5] %}
                 <li>
                     <span class="timeline-dot success"></span>
                     <span class="timeline-time">{{ '%.2f' % (mf.h * 60) | round(0) }}m</span>
-                    <span class="timeline-text">Meridian Flip Success</span>
+                    <span class="timeline-text">{{ _('Meridian Flip Success') }}</span>
                 </li>
                 {% endfor %}
                 {% for d in log_analysis.asiair.dithers %}
@@ -881,14 +881,14 @@
                 <li>
                     <span class="timeline-dot warning"></span>
                     <span class="timeline-time">{{ '%.2f' % (d.h * 60) | round(0) }}m</span>
-                    <span class="timeline-text">Dither Settle Timeout ({{ d.dur }}s)</span>
+                    <span class="timeline-text">{{ _('Dither Settle Timeout') }} ({{ d.dur }}s)</span>
                 </li>
                 {% endif %}
                 {% endfor %}
                 <li>
                     <span class="timeline-dot"></span>
                     <span class="timeline-time">-</span>
-                    <span class="timeline-text">Session Ended</span>
+                    <span class="timeline-text">{{ _('Session Ended') }}</span>
                 </li>
             </ul>
         </div>
@@ -898,7 +898,7 @@
         {% if log_analysis.has_logs %}
         <div class="log-section">
             <div class="log-header">
-                <span class="log-title">Log Analysis</span>
+                <span class="log-title">{{ _('Log Analysis') }}</span>
                 {% if log_analysis.asiair %}<span class="log-badge">ASIAIR</span>{% endif %}
                 {% if log_analysis.phd2 %}<span class="log-badge">PHD2</span>{% endif %}
             </div>
@@ -908,55 +908,55 @@
                 {% if log_analysis.phd2 and log_analysis.phd2.stats %}
                 <div class="log-stat-card">
                     <span class="log-stat-value hero">{{ '%.2f' % log_analysis.phd2.stats.total_rms_as }}"</span>
-                    <span class="log-stat-label">Total RMS</span>
+                    <span class="log-stat-label">{{ _('Total RMS') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ log_analysis.phd2.stats.total_frames }}</span>
-                    <span class="log-stat-label">Guide Frames</span>
+                    <span class="log-stat-label">{{ _('Guide Frames') }}</span>
                 </div>
                 {% else %}
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Total RMS</span>
+                    <span class="log-stat-label">{{ _('Total RMS') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Guide Frames</span>
+                    <span class="log-stat-label">{{ _('Guide Frames') }}</span>
                 </div>
                 {% endif %}
                 {% if log_analysis.asiair and log_analysis.asiair.stats %}
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ log_analysis.asiair.stats.total_exposures }}</span>
-                    <span class="log-stat-label">Exposures</span>
+                    <span class="log-stat-label">{{ _('Exposures') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ log_analysis.asiair.stats.af_count }}</span>
-                    <span class="log-stat-label">AutoFocus</span>
+                    <span class="log-stat-label">{{ _('AutoFocus') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ log_analysis.asiair.stats.dither_count }}</span>
-                    <span class="log-stat-label">Dithers</span>
+                    <span class="log-stat-label">{{ _('Dithers') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">{{ log_analysis.asiair.stats.meridian_flip_count }}</span>
-                    <span class="log-stat-label">Meridian Flips</span>
+                    <span class="log-stat-label">{{ _('Meridian Flips') }}</span>
                 </div>
                 {% else %}
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Exposures</span>
+                    <span class="log-stat-label">{{ _('Exposures') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">AutoFocus</span>
+                    <span class="log-stat-label">{{ _('AutoFocus') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Dithers</span>
+                    <span class="log-stat-label">{{ _('Dithers') }}</span>
                 </div>
                 <div class="log-stat-card">
                     <span class="log-stat-value">-</span>
-                    <span class="log-stat-label">Meridian Flips</span>
+                    <span class="log-stat-label">{{ _('Meridian Flips') }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -964,11 +964,11 @@
             <!-- PHD2 Guiding Performance -->
             {% if log_analysis.phd2 and log_analysis.phd2.stats %}
             <div class="log-subsection">
-                <div class="log-subsection-title">PHD2 Guiding Performance</div>
+                <div class="log-subsection-title">{{ _('PHD2 Guiding Performance') }}</div>
 
                 <div class="guiding-cards">
                     <div class="guiding-card">
-                        <div class="guiding-card-label">Imaging RMS</div>
+                        <div class="guiding-card-label">{{ _('Imaging RMS') }}</div>
                         <div class="guiding-card-value">
                             {% if log_analysis.phd2.stats.imaging %}
                                 {{ '%.2f' % log_analysis.phd2.stats.imaging.total_rms_as }}"
@@ -978,17 +978,17 @@
                         </div>
                         <div class="guiding-card-sub">
                             {% if log_analysis.phd2.stats.imaging %}
-                                {{ log_analysis.phd2.stats.imaging.frame_count }} frames
+                                {{ log_analysis.phd2.stats.imaging.frame_count }} {{ _('frames') }}
                             {% else %}
-                                {{ log_analysis.phd2.stats.total_frames }} frames
+                                {{ log_analysis.phd2.stats.total_frames }} {{ _('frames') }}
                             {% endif %}
                         </div>
                     </div>
                     <div class="guiding-card">
-                        <div class="guiding-card-label">All Frames RMS</div>
+                        <div class="guiding-card-label">{{ _('All Frames RMS') }}</div>
                         <div class="guiding-card-value">{{ '%.2f' % log_analysis.phd2.stats.total_rms_as }}"</div>
                         <div class="guiding-card-sub">
-                            RA: {{ '%.2f' % log_analysis.phd2.stats.ra_rms_as }}" / Dec: {{ '%.2f' % log_analysis.phd2.stats.dec_rms_as }}"
+                            {{ _('RA:') }} {{ '%.2f' % log_analysis.phd2.stats.ra_rms_as }}" / {{ _('Dec:') }} {{ '%.2f' % log_analysis.phd2.stats.dec_rms_as }}"
                         </div>
                     </div>
                 </div>
@@ -996,11 +996,11 @@
                 <div class="stat-pairs">
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Pixel Scale</div>
+                            <div class="stat-cell-label">{{ _('Pixel Scale') }}</div>
                             <div class="stat-cell-value">{{ '%.2f' % log_analysis.phd2.pixel_scale }}"/px</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Dither Events</div>
+                            <div class="stat-cell-label">{{ _('Dither Events') }}</div>
                             <div class="stat-cell-value">{{ log_analysis.phd2.stats.dither_count }}</div>
                         </div>
                     </div>
@@ -1008,13 +1008,13 @@
 
                 {% if chart_images.guiding_rms %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ chart_images.guiding_rms }}" alt="Guiding RMS Chart">
+                    <img src="data:image/png;base64,{{ chart_images.guiding_rms }}" alt="{{ _('Guiding RMS Chart') }}">
                 </div>
                 {% endif %}
 
                 {% if chart_images.guiding_scatter %}
                 <div class="chart-container">
-                    <img src="data:image/png;base64,{{ chart_images.guiding_scatter }}" alt="Guide Pulse Distribution">
+                    <img src="data:image/png;base64,{{ chart_images.guiding_scatter }}" alt="{{ _('Guide Pulse Distribution') }}">
                 </div>
                 {% endif %}
             </div>
@@ -1023,36 +1023,36 @@
             <!-- ASIAIR Session Summary -->
             {% if log_analysis.asiair and log_analysis.asiair.stats %}
             <div class="log-subsection">
-                <div class="log-subsection-title">ASIAIR Session Summary</div>
+                <div class="log-subsection-title">{{ _('ASIAIR Session Summary') }}</div>
 
                 <div class="stat-pairs">
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Exposures</div>
+                            <div class="stat-cell-label">{{ _('Exposures') }}</div>
                             <div class="stat-cell-value">{{ log_analysis.asiair.stats.total_exposures }}</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Total Time</div>
+                            <div class="stat-cell-label">{{ _('Total Time') }}</div>
                             <div class="stat-cell-value">{{ '%.0f' % log_analysis.asiair.stats.total_time_min }}m</div>
                         </div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Meridian Flips</div>
+                            <div class="stat-cell-label">{{ _('Meridian Flips') }}</div>
                             <div class="stat-cell-value">{{ log_analysis.asiair.stats.meridian_flip_count }}</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Plate Solves</div>
+                            <div class="stat-cell-label">{{ _('Plate Solves') }}</div>
                             <div class="stat-cell-value">{{ log_analysis.asiair.stats.plate_solve_count }}</div>
                         </div>
                     </div>
                     <div class="stat-row">
                         <div class="stat-cell">
-                            <div class="stat-cell-label">AutoFocus Runs</div>
+                            <div class="stat-cell-label">{{ _('AutoFocus Runs') }}</div>
                             <div class="stat-cell-value">{{ log_analysis.asiair.stats.af_count }}</div>
                         </div>
                         <div class="stat-cell">
-                            <div class="stat-cell-label">Dither Events</div>
+                            <div class="stat-cell-label">{{ _('Dither Events') }}</div>
                             <div class="stat-cell-value">{{ log_analysis.asiair.stats.dither_count }}</div>
                         </div>
                     </div>
@@ -1061,15 +1061,15 @@
                 <!-- Plate Solve Results -->
                 {% if log_analysis.asiair.plate_solves %}
                 <div class="mt-16">
-                    <div class="section-label" style="margin-top: 0;">Plate Solve Results</div>
+                    <div class="section-label" style="margin-top: 0;">{{ _('Plate Solve Results') }}</div>
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Time</th>
-                                <th>RA</th>
-                                <th>Dec</th>
-                                <th>Angle</th>
-                                <th>Stars</th>
+                                <th>{{ _('Time') }}</th>
+                                <th>{{ _('RA') }}</th>
+                                <th>{{ _('Dec') }}</th>
+                                <th>{{ _('Angle') }}</th>
+                                <th>{{ _('Stars') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1090,15 +1090,15 @@
                 <!-- AutoFocus Runs -->
                 {% if log_analysis.asiair.af_runs %}
                 <div class="mt-16">
-                    <div class="section-label" style="margin-top: 0;">AutoFocus Runs</div>
+                    <div class="section-label" style="margin-top: 0;">{{ _('AutoFocus Runs') }}</div>
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Run</th>
-                                <th>Time</th>
-                                <th>Focus Position</th>
-                                <th>Temperature</th>
-                                <th>Points</th>
+                                <th>{{ _('Run') }}</th>
+                                <th>{{ _('Time') }}</th>
+                                <th>{{ _('Focus Position') }}</th>
+                                <th>{{ _('Temperature') }}</th>
+                                <th>{{ _('Points') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1116,13 +1116,13 @@
 
                     {% if chart_images.af_vcurve %}
                     <div class="chart-container">
-                        <img src="data:image/png;base64,{{ chart_images.af_vcurve }}" alt="AutoFocus V-Curves">
+                        <img src="data:image/png;base64,{{ chart_images.af_vcurve }}" alt="{{ _('AutoFocus V-Curves') }}">
                     </div>
                     {% endif %}
 
                     {% if chart_images.af_drift %}
                     <div class="chart-container">
-                        <img src="data:image/png;base64,{{ chart_images.af_drift }}" alt="Focus Position Drift">
+                        <img src="data:image/png;base64,{{ chart_images.af_drift }}" alt="{{ _('Focus Position Drift') }}">
                     </div>
                     {% endif %}
                 </div>
@@ -1131,15 +1131,15 @@
                 <!-- Dither Events -->
                 {% if log_analysis.asiair.dithers %}
                 <div class="mt-16">
-                    <div class="section-label" style="margin-top: 0;">Dither Events</div>
+                    <div class="section-label" style="margin-top: 0;">{{ _('Dither Events') }}</div>
                     <div class="stat-pairs">
                         <div class="stat-row">
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Total Dithers</div>
+                                <div class="stat-cell-label">{{ _('Total Dithers') }}</div>
                                 <div class="stat-cell-value">{{ log_analysis.asiair.dithers | length }}</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Timeouts</div>
+                                <div class="stat-cell-label">{{ _('Timeouts') }}</div>
                                 <div class="stat-cell-value" style="color: {% if log_analysis.asiair.stats.dither_timeout_count > 0 %}var(--danger-color){% else %}var(--text-primary){% endif %};">
                                     {{ log_analysis.asiair.stats.dither_timeout_count }}
                                 </div>
@@ -1148,11 +1148,11 @@
                         <div class="stat-row">
                             {% set avg_settle = (log_analysis.asiair.dithers | sum(attribute='dur')) / (log_analysis.asiair.dithers | length) %}
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Avg Settle Time</div>
+                                <div class="stat-cell-label">{{ _('Avg Settle Time') }}</div>
                                 <div class="stat-cell-value">{{ '%.1f' % avg_settle }}s</div>
                             </div>
                             <div class="stat-cell">
-                                <div class="stat-cell-label">Success Rate</div>
+                                <div class="stat-cell-label">{{ _('Success Rate') }}</div>
                                 <div class="stat-cell-value">{{ '%.0f' % ((log_analysis.asiair.dithers | length - log_analysis.asiair.stats.dither_timeout_count) / log_analysis.asiair.dithers | length * 100) }}%</div>
                             </div>
                         </div>
@@ -1160,7 +1160,7 @@
 
                     {% if chart_images.dither_settle %}
                     <div class="chart-container">
-                        <img src="data:image/png;base64,{{ chart_images.dither_settle }}" alt="Dither Settle Times">
+                        <img src="data:image/png;base64,{{ chart_images.dither_settle }}" alt="{{ _('Dither Settle Times') }}">
                     </div>
                     {% endif %}
                 </div>
@@ -1169,14 +1169,14 @@
                 <!-- Autocenter Results -->
                 {% if log_analysis.asiair.autocenters %}
                 <div class="mt-16">
-                    <div class="section-label" style="margin-top: 0;">Autocenter Results</div>
+                    <div class="section-label" style="margin-top: 0;">{{ _('Autocenter Results') }}</div>
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Attempt</th>
-                                <th>Time</th>
-                                <th>Distance</th>
-                                <th>Status</th>
+                                <th>{{ _('Attempt') }}</th>
+                                <th>{{ _('Time') }}</th>
+                                <th>{{ _('Distance') }}</th>
+                                <th>{{ _('Status') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1186,7 +1186,7 @@
                                 <td>{{ '%.1f' % ac.h }}h</td>
                                 <td>{{ '%.1f' % ac.distance_pct }}%</td>
                                 <td style="color: {% if ac.centered %}var(--success-color){% else %}var(--warning-color){% endif %};">
-                                    {% if ac.centered %}Centered{% else %}Offset{% endif %}
+                                    {% if ac.centered %}{{ _('Centered') }}{% else %}{{ _('Offset') }}{% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -1195,7 +1195,7 @@
 
                     {% if chart_images.autocenter %}
                     <div class="chart-container">
-                        <img src="data:image/png;base64,{{ chart_images.autocenter }}" alt="Autocenter Accuracy">
+                        <img src="data:image/png;base64,{{ chart_images.autocenter }}" alt="{{ _('Autocenter Accuracy') }}">
                     </div>
                     {% endif %}
                 </div>
@@ -1207,7 +1207,7 @@
 
         <!-- Report Footer -->
         <div class="report-footer">
-            <div class="footer-left">Generated by <span class="nova-name">Nova DSO Tracker</span></div>
+            <div class="footer-left">{{ _('Generated by') }} <span class="nova-name">{{ _('Nova DSO Tracker') }}</span></div>
             <div class="footer-right">{{ today_date }}</div>
         </div>
     </div>

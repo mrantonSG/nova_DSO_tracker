@@ -2,20 +2,20 @@
 
 <div id="heatmap-tab-content" style="display:none;">
     <div id="heatmap-loading">
-        <div style="margin-bottom: 10px; font-size: 1.1em;">Generating Heatmap...</div>
+        <div style="margin-bottom: 10px; font-size: 1.1em;">{{ _('Generating Heatmap...') }}</div>
 
         <div style="width: 100%; height: 10px; background: var(--bg-medium-alt); border-radius: 5px; overflow: hidden; margin: 0 auto;">
             <div id="heatmap-progress-bar" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.3s ease;"></div>
         </div>
 
         <small id="heatmap-loading-text" style="color:var(--text-tertiary); font-weight:normal; display:block; margin-top: 8px;">
-            Initializing...
+            {{ _('Initializing...') }}
         </small>
     </div>
 
     <div id="heatmap-wrapper">
         <div id="heatmap-controls">
-            <span id="heatmap-legend-text">* Vertical light bands = Full Moon (Washed out). Darker Green = Best Quality. Click object names to view details.</span>
+            <span id="heatmap-legend-text">{{ _('* Vertical light bands = Full Moon (Washed out). Darker Green = Best Quality. Click object names to view details.') }}</span>
         </div>
         <div id="yearly-heatmap-plot"></div>
     </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nova Analytics</title>
+    <title>{{ _('Nova Analytics') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -247,38 +247,38 @@
 <body>
     <div class="container">
         <div class="page-header">
-            <h1>Analytics Dashboard</h1>
-            <div class="subtitle">Anonymous usage insights — Last {{ days_count }} days</div>
+            <h1>{{ _('Analytics Dashboard') }}</h1>
+            <div class="subtitle">{{ _('Anonymous usage insights — Last %(days_count)s days', days_count=days_count) }}</div>
         </div>
 
         <!-- Section 1: User Activity -->
         <div class="card">
-            <div class="card-title">User Activity</div>
+            <div class="card-title">{{ _('User Activity') }}</div>
 
             <div class="stats-grid">
                 <div class="stat-box">
                     <div class="stat-value">{{ total_users }}</div>
-                    <div class="stat-label">Total Users</div>
+                    <div class="stat-label">{{ _('Total Users') }}</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-value">{{ active_days_30 }} / 30</div>
-                    <div class="stat-label">Active Login Days</div>
+                    <div class="stat-label">{{ _('Active Login Days') }}</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-value">{{ total_logins }}</div>
-                    <div class="stat-label">Total Logins</div>
+                    <div class="stat-label">{{ _('Total Logins') }}</div>
                 </div>
             </div>
 
             <div class="chart-container">
-                <div class="chart-title">Daily Logins (90 days)</div>
+                <div class="chart-title">{{ _('Daily Logins (90 days)') }}</div>
                 {% if login_series %}
                 <div class="bar-chart">
                     {% for entry in login_series %}
                         {% if entry.has_data %}
-                            <div class="bar" style="height: {{ entry.height_pct }}%;" title="{{ entry.date_str }}: {{ entry.count }} login(s)"></div>
+                            <div class="bar" style="height: {{ entry.height_pct }}%;" title="{{ entry.date_str }}: {{ entry.count }} {{ _('login(s)') }}"></div>
                         {% else %}
-                            <div class="bar empty" style="height: 2px;" title="{{ entry.date_str }}: 0 logins"></div>
+                            <div class="bar empty" style="height: 2px;" title="{{ entry.date_str }}: 0 {{ _('logins') }}"></div>
                         {% endif %}
                     {% endfor %}
                 </div>
@@ -287,22 +287,22 @@
                     <span>{{ today_str }}</span>
                 </div>
                 {% else %}
-                <div class="no-data">No login data available yet</div>
+                <div class="no-data">{{ _('No login data available yet') }}</div>
                 {% endif %}
             </div>
         </div>
 
         <!-- Section 2: Feature Usage -->
         <div class="card">
-            <div class="card-title">Feature Usage</div>
+            <div class="card-title">{{ _('Feature Usage') }}</div>
 
             {% if events %}
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Feature</th>
-                        <th style="text-align: right;">Total Uses</th>
-                        <th style="text-align: right;">Active Days</th>
+                        <th>{{ _('Feature') }}</th>
+                        <th style="text-align: right;">{{ _('Total Uses') }}</th>
+                        <th style="text-align: right;">{{ _('Active Days') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -316,12 +316,12 @@
                 </tbody>
             </table>
             {% else %}
-            <div class="no-data">No feature usage data available yet</div>
+            <div class="no-data">{{ _('No feature usage data available yet') }}</div>
             {% endif %}
         </div>
 
         <div class="footer">
-            Nova DSO Tracker Analytics — GDPR compliant, no PII stored
+            {{ _('Nova DSO Tracker Analytics — GDPR compliant, no PII stored') }}
         </div>
     </div>
 </body>

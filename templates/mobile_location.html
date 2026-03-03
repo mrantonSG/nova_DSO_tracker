@@ -1,11 +1,11 @@
 {% extends "mobile_base.html" %}
 
-{% block title %}Set Location{% endblock %}
-{% block header_title %}Set Location{% endblock %}
+{% block title %}{{ _('Set Location') }}{% endblock %}
+{% block header_title %}{{ _('Set Location') }}{% endblock %}
 
 {% block content %}
     <p style="text-align: center; color: var(--text-secondary); margin-top: -10px;">
-        Current: <strong id="current-loc-name">{{ selected_location_name or 'Default' }}</strong>
+        {{ _('Current:') }} <strong id="current-loc-name">{{ selected_location_name or _('Default') }}</strong>
     </p>
 
     <ul class="location-list" id="location-list">
