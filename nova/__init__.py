@@ -3040,13 +3040,17 @@ babel = Babel(app)
 def get_locale():
     """
     Locale selector for Flask-Babel.
-    Reads language preference from user config, falls back to browser preference or 'en'.
+    Reads language preference from user config or session, falls back to browser preference or 'en'.
     """
     # Try user preference first (set by load_global_request_context)
     if hasattr(g, 'user_config') and g.user_config:
         user_lang = g.user_config.get('language')
         if user_lang and user_lang in app.config['BABEL_SUPPORTED_LOCALES']:
             return user_lang
+    # Try session (for guest users)
+    session_lang = session.get('language')
+    if session_lang and session_lang in app.config['BABEL_SUPPORTED_LOCALES']:
+        return session_lang
     # Fall back to browser preference
     browser_locale = request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
     if browser_locale:
@@ -7345,11 +7349,17 @@ def inject_user_mode():
     from flask_login import current_user
     user_config = getattr(g, "user_config", {})
     theme_preference = user_config.get("theme_preference", "follow_system") if user_config else "follow_system"
+    # Get current language from user config or session
+    current_language = user_config.get("language") if user_config else None
+    if not current_language:
+        current_language = session.get("language", "en")
     return {
         "SINGLE_USER_MODE": SINGLE_USER_MODE,
         "current_user": current_user,
         "is_guest": getattr(g, "is_guest", False),
-        "user_theme_preference": theme_preference
+        "user_theme_preference": theme_preference,
+        "current_language": current_language,
+        "supported_languages": app.config.get("BABEL_SUPPORTED_LOCALES", ["en"])
     }
 
 @core_bp.route('/logout', methods=['POST'])
@@ -7358,6 +7368,51 @@ def logout():
     session.clear()  # Optional: reset session if needed
     flash("Logged out successfully!", "success")
     return redirect(url_for('core.login'))
+
+
+@core_bp.route('/set_language/<lang>')
+def set_language(lang):
+    """Set the user's preferred language and redirect back."""
+    # Validate the language is supported
+    supported_locales = app.config.get('BABEL_SUPPORTED_LOCALES', ['en'])
+    if lang not in supported_locales:
+        flash(f"Language '{lang}' is not supported.", "error")
+        return redirect(request.referrer or url_for('core.index'))
+
+    # Get the current user
+    if not hasattr(g, 'db_user') or not g.db_user:
+        # For guest users, just set session and redirect
+        session['language'] = lang
+        return redirect(request.referrer or url_for('core.index'))
+
+    # Save to UiPref.json_blob for authenticated users
+    db = get_db()
+    try:
+        prefs = db.query(UiPref).filter_by(user_id=g.db_user.id).first()
+        if not prefs:
+            prefs = UiPref(user_id=g.db_user.id, json_blob='{}')
+            db.add(prefs)
+
+        # Load existing settings, add language, save back
+        try:
+            settings = json.loads(prefs.json_blob or '{}')
+        except json.JSONDecodeError:
+            settings = {}
+
+        settings['language'] = lang
+        prefs.json_blob = json.dumps(settings, ensure_ascii=False)
+        db.commit()
+
+        # Update g.user_config for current request
+        if hasattr(g, 'user_config'):
+            g.user_config['language'] = lang
+
+    except Exception as e:
+        db.rollback()
+        print(f"[SET_LANGUAGE] Error saving language preference: {e}")
+
+    # Redirect back to the previous page
+    return redirect(request.referrer or url_for('core.index'))
 
 def get_static_cache_key(obj_name, date_str, location):
     return f"{obj_name.lower()}_{date_str}_{location.lower()}"
