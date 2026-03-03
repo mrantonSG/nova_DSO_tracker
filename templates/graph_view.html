@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "macros.html" import status_item, form_group, help_badge, action_button, tab_button %}
 
-{% block title %}{{ alt_name | default(object_name, True) }} ({{ object_name }}) – Nova DSO Tracker{% endblock %}
+{% block title %}{{ alt_name | default(object_name, True) }} ({{ object_name }}) – {{ _('Nova DSO Tracker') }}{% endblock %}
 
 {% block head_extra %}
 <script>
@@ -44,17 +44,17 @@
 {% endblock %}
 
 {% block header_actions %}
-    {{ action_button('← Back to Dashboard', data_attrs='style="background-color: var(--primary-color);" data-action="navigate" data-url="' ~ url_for('core.index') ~ '"') }}
+    {{ action_button(_('← Back to Dashboard'), data_attrs='style="background-color: var(--primary-color);" data-action="navigate" data-url="' ~ url_for('core.index') ~ '"') }}
 {% endblock %}
 
 {% block header_content %}
 <div class="status-strip">
-    {{ status_item('Location', header_location_name, value_id='location-display') }}
-    {{ status_item('Graph Date', header_date_display, value_id='date-display') }}
-    {{ status_item('Moon', header_moon_phase ~ '%', value_id='phase-display') }}
-    {{ status_item('Moon Sep.', header_moon_separation ~ '°', value_id='separation-display') }}
+    {{ status_item(_('Location'), header_location_name, value_id='location-display') }}
+    {{ status_item(_('Graph Date'), header_date_display, value_id='date-display') }}
+    {{ status_item(_('Moon'), header_moon_phase ~ '%', value_id='phase-display') }}
+    {{ status_item(_('Moon Sep.'), header_moon_separation ~ '°', value_id='separation-display') }}
     <div class="status-item">
-        <span class="status-label">ASTR. DUSK / DAWN</span>
+        <span class="status-label">{{ _('ASTR. DUSK / DAWN') }}</span>
         <span class="status-value"><span id="dusk-display">{{ header_astro_dusk }}</span> - <span id="dawn-display">{{ header_astro_dawn }}</span></span>
     </div>
 </div>
@@ -89,11 +89,11 @@
     });
 </script>
 <div class="tab-container">
-    <button class="tab-button" data-tab="chart" data-action="show-tab">Chart</button>
-    <button class="tab-button" data-tab="framing" data-action="show-tab">Notes & Framing</button>
-    <button class="tab-button" data-tab="opportunities" data-action="show-tab">Opportunities</button>
-    <button class="tab-button" data-tab="journal" data-action="show-tab">Journal</button>
-    <button class="tab-button" data-tab="simbad" data-action="show-tab">SIMBAD</button>
+    <button class="tab-button" data-tab="chart" data-action="show-tab">{{ _('Chart') }}</button>
+    <button class="tab-button" data-tab="framing" data-action="show-tab">{{ _('Notes & Framing') }}</button>
+    <button class="tab-button" data-tab="opportunities" data-action="show-tab">{{ _('Opportunities') }}</button>
+    <button class="tab-button" data-tab="journal" data-action="show-tab">{{ _('Journal') }}</button>
+    <button class="tab-button" data-tab="simbad" data-action="show-tab">{{ _('SIMBAD') }}</button>
 </div>
 
 <div id="chart-tab" class="tab-content">
@@ -107,31 +107,31 @@
                              style="width: 70px; height: auto; margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
 
                         <div style="color: var(--primary-color); font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; font-size: 13px;">
-                            Loading Chart
+                            {{ _('Loading Chart') }}
                         </div>
                     </div>
                 </div>
             </div>
             <div class="date-controls" style="margin-top: 20px; padding-left: 20px; box-sizing: border-box;">
-                <label for="day-select">Day:</label>
+                <label for="day-select">{{ _('Day') }}:</label>
                 <input type="number" id="day-select" value="{{ selected_day }}" min="1" max="31" style="width:60px;"/>
-                <label for="month-select">Month:</label>
+                <label for="month-select">{{ _('Month') }}:</label>
                 <select id="month-select">
                     {% for m in range(1, 13) %}
                     <option value="{{ m }}" {% if m== selected_month|int %}selected{% endif %}>{{ '%02d' % m }}</option>
                     {% endfor %}
                 </select>
-                <label for="year-select">Year:</label>
+                <label for="year-select">{{ _('Year') }}:</label>
                 <input type="number" id="year-select" value="{{ selected_year }}" style="width:70px;"/>
-                <button class="view-button" data-view="day" data-action="change-view">Day View</button>
-                <button class="view-button" data-view="month" data-action="change-view">Month View</button>
-                <button class="view-button" data-view="year" data-action="change-view">Year View</button>
+                <button class="view-button" data-view="day" data-action="change-view">{{ _('Day View') }}</button>
+                <button class="view-button" data-view="month" data-action="change-view">{{ _('Month View') }}</button>
+                <button class="view-button" data-view="year" data-action="change-view">{{ _('Year View') }}</button>
                 <span id="secondary-object-controls" style="margin-left: 24px; padding-left: 24px; border-left: 1px solid var(--border-medium-alt, var(--border-medium-alt, #ccc)); display: inline-flex; align-items: center; gap: 8px;">
-                    <label for="secondary-object-select">Add Object:</label>
+                    <label for="secondary-object-select">{{ _('Add Object') }}:</label>
                     <select id="secondary-object-select" disabled style="min-width: 180px; max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        <option value="">Loading...</option>
+                        <option value="">{{ _('Loading...') }}</option>
                     </select>
-                    <span class="help-badge" data-help-topic="secondary_object_comparison" title="How objects are ranked">?</span>
+                    <span class="help-badge" data-help-topic="secondary_object_comparison" title="{{ _('How objects are ranked') }}">?</span>
                 </span>
             </div>
         </div>
@@ -145,14 +145,14 @@
 <div id="framing-tab" class="tab-content">
 
     <div class="detail-tabs-container">
-        {{ tab_button('Notes & Framing', 'notes', active=True, data_action='show-project-subtab') }}
-        {{ tab_button('Inspiration', 'inspiration', data_action='show-project-subtab') }}
-        {{ tab_button('Rig Data', 'framing-scout', data_action='show-project-subtab') }}
+        {{ tab_button(_('Notes & Framing'), 'notes', active=True, data_action='show-project-subtab') }}
+        {{ tab_button(_('Inspiration'), 'inspiration', data_action='show-project-subtab') }}
+        {{ tab_button(_('Rig Data'), 'framing-scout', data_action='show-project-subtab') }}
     </div>
 
     <div id="notes-sub-tab" class="detail-tab-content active">
         <div class="content-section project-notes-section">
-            <h3>{{ alt_name | default(object_name, True) }} - Notes</h3>
+            <h3>{{ alt_name | default(object_name, True) }} - {{ _('Notes') }}</h3>
 
             <input type="hidden" id="project-field-hidden" name="project_notes_from_config" value="{{ project_notes_from_config | default('', True) | e }}">
             <trix-editor input="project-field-hidden" id="project-field-editor"
@@ -164,13 +164,13 @@
                 <label style="font-weight: bold; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: var(--text-primary);">
                     <input type="checkbox" id="active-project-checkbox" style="transform: scale(1.3);"
                            {% if object_main_details.ActiveProject %}checked{% endif %}>
-                    Active Project
+                    {{ _('Active Project') }}
                 </label>
             </div>
             <div class="button-group" style="margin-top: 15px;">
-                <button class="inline-button" data-action="save-project">Save Notes</button>
-                <button class="inline-button inline-button-ghost" data-action="open-framing-assistant">Show Framing</button>
-                <button id="open-in-stellarium" class="inline-button" data-action="open-stellarium" style="display: none;">Open in Stellarium</button>
+                <button class="inline-button" data-action="save-project">{{ _('Save Notes') }}</button>
+                <button class="inline-button inline-button-ghost" data-action="open-framing-assistant">{{ _('Show Framing') }}</button>
+                <button id="open-in-stellarium" class="inline-button" data-action="open-stellarium" style="display: none;">{{ _('Open in Stellarium') }}</button>
             </div>
             <div id="stellarium-status" style="margin-top: 10px; color: var(--text-tertiary);"></div>
         </div>
@@ -179,9 +179,9 @@
     <div id="inspiration-sub-tab" class="detail-tab-content">
         <div class="content-section">
             <h3 style="display:flex; justify-content:space-between; align-items:center;">
-                Inspiration Content
+                {{ _('Inspiration Content') }}
                 {% if not object_main_details.image_url and not object_main_details.description_text %}
-                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">Edit Object to Add Content</a>
+                <a href="{{ url_for('core.config_form') }}?active_tab=objects" style="font-size:13px; font-weight:normal;">{{ _('Edit Object to Add Content') }}</a>
                 {% endif %}
             </h3>
 
@@ -189,7 +189,7 @@
             <div class="insp-detail-container">
                 {% if object_main_details.image_url %}
                 <div class="insp-detail-image-wrapper">
-                    <img src="{{ object_main_details.image_url }}" alt="Inspiration Image for {{ object_name }}">
+                    <img src="{{ object_main_details.image_url }}" alt="{{ _('Inspiration Image for') }} {{ object_name }}">
                     {% if object_main_details.image_credit %}
                         <div class="insp-detail-badge">{{ object_main_details.image_credit }}</div>
                     {% endif %}
@@ -198,11 +198,11 @@
 
                 {% if object_main_details.description_text %}
                 <div class="insp-detail-text">
-                    <h4 style="margin-top:0; color:var(--text-primary);">Description</h4>
+                    <h4 style="margin-top:0; color:var(--text-primary);">{{ _('Description') }}</h4>
                     <p style="white-space: pre-wrap;">{{ object_main_details.description_text }}</p>
                     {% if object_main_details.image_source_link %}
                         <p style="margin-top:15px; font-size:0.9em; color:var(--text-tertiary);">
-                            Source: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or 'External Source' }}</a>
+                            {{ _('Source') }}: <a href="{{ object_main_details.image_source_link }}" target="_blank">{{ object_main_details.image_credit or _('External Source') }}</a>
                         </p>
                     {% endif %}
                 </div>
@@ -210,8 +210,8 @@
             </div>
             {% else %}
             <div style="text-align:center; padding:40px; color:var(--text-tertiary); border: 2px dashed var(--text-lighter); border-radius: 6px;">
-                <p>No inspiration content (custom image or description) has been added for this object yet.</p>
-                <p style="font-size: 0.9em;">Go to <strong>Configuration > Manage Objects</strong> to add one.</p>
+                <p>{{ _('No inspiration content (custom image or description) has been added for this object yet.') }}</p>
+                <p style="font-size: 0.9em;">{{ _('Go to <strong>Configuration > Manage Objects</strong> to add one.') }}</p>
             </div>
             {% endif %}
         </div>
@@ -220,15 +220,15 @@
     <div id="framing-scout-sub-tab" class="detail-tab-content">
         {% if available_rigs and object_main_details.Size and object_main_details.Size != "N/A" %}
         <div class="content-section">
-            <h3>Framing With Your Rigs</h3>
-            <p style="font-size:13px; color: var(--text-tertiary); margin-top: -8px;"><em>Assessment is based on the object's largest dimension and may not reflect framing of specific features.</em></p>
+            <h3>{{ _('Framing With Your Rigs') }}</h3>
+            <p style="font-size:13px; color: var(--text-tertiary); margin-top: -8px;"><em>{{ _('Assessment is based on the object\'s largest dimension and may not reflect framing of specific features.') }}</em></p>
             <table class="framing-table">
                 <thead>
                 <tr>
-                    <th>Rig Name</th>
-                    <th>Rig FOV</th>
-                    <th>Object Size</th>
-                    <th>Fit Assessment</th>
+                    <th>{{ _('Rig Name') }}</th>
+                    <th>{{ _('Rig FOV') }}</th>
+                    <th>{{ _('Object Size') }}</th>
+                    <th>{{ _('Fit Assessment') }}</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -237,12 +237,12 @@
                 {% if rig.fov_w_arcmin and rig.fov_h_arcmin %}
                 {% set fov_max = [rig.fov_w_arcmin, rig.fov_h_arcmin] | max %}
                 {% set fov_min = [rig.fov_w_arcmin, rig.fov_h_arcmin] | min %}
-                {% if object_size > fov_max %}{% set fit_text = "Mosaic Required" %}{% set fit_color = "var(--danger-color)" %}
-                {% elif object_size > fov_min %}{% set fit_text = "Fits with Rotation" %}{% set fit_color = "var(--warning-color-alt)" %}
+                {% if object_size > fov_max %}{% set fit_text = _("Mosaic Required") %}{% set fit_color = "var(--danger-color)" %}
+                {% elif object_size > fov_min %}{% set fit_text = _("Fits with Rotation") %}{% set fit_color = "var(--warning-color-alt)" %}
                 {% else %}{% set fit_ratio = (object_size / fov_min) * 100 %}
-                {% if fit_ratio < 5 %}{% set fit_text = "Small Target" %}{% set fit_color = "var(--text-muted)" %}
-                {% elif fit_ratio < 20 %}{% set fit_text = "Wide Field" %}{% set fit_color = "var(--info-color-alt)" %}
-                {% else %}{% set fit_text = "Good Fit" %}{% set fit_color = "var(--success-color-alt)" %}{% endif %}{% endif %}
+                {% if fit_ratio < 5 %}{% set fit_text = _("Small Target") %}{% set fit_color = "var(--text-muted)" %}
+                {% elif fit_ratio < 20 %}{% set fit_text = _("Wide Field") %}{% set fit_color = "var(--info-color-alt)" %}
+                {% else %}{% set fit_text = _("Good Fit") %}{% set fit_color = "var(--success-color-alt)" %}{% endif %}{% endif %}
                 <tr>
                     <td><strong>{{ rig.rig_name }}</strong></td>
                     <td>{{ rig.fov_w_arcmin | round(1) }}' x {{ rig.fov_h_arcmin | round(1) }}'</td>
@@ -273,34 +273,34 @@
 <div id="framing-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="framing-modal-title">
     <div id="framing-modal-content">
         <div class="modal-controls">
-            <button type="button" class="close-btn" aria-label="Close" title="Close" data-action="close-framing-assistant">×</button>
-            <h2 id="framing-modal-title" class="sr-only">Framing Assistant</h2>
+            <button type="button" class="close-btn" aria-label="{{ _('Close') }}" title="{{ _('Close') }}" data-action="close-framing-assistant">×</button>
+            <h2 id="framing-modal-title" class="sr-only">{{ _('Framing Assistant') }}</h2>
         </div>
         <div class="modal-header-bar">
             <div class="brand">
                 <span class="brand-strong">Nova</span><span class="brand-light">DSO Tracker</span>
-                {{ help_badge('framing_assistant', 'Help with Framing') }}
+                {{ help_badge('framing_assistant', _('Help with Framing')) }}
             </div>
             <span id="fov-vs-object" class="fov-chip"></span>
         </div>
         <div class="framing-controls" style="align-items:center; gap:10px; padding-top:4px;">
-            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" data-action="toggle-lock-fov" checked> Lock FOV</label>
-            <label style="display:flex;align-items:center;gap:6px;margin-left:8px;" title="Displays the approximate location of geostationary satellites (corrected for your latitude)"><input type="checkbox" id="show-geo-belt" data-action="toggle-geo-belt" checked> Geo Belt</label>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="flip-framing">Flip 90°</button>
-            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="copy-framing-url">Copy framing URL</button>
-            <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="save-framing-db">Save Framing</button>
+            <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="lock-to-object" data-action="toggle-lock-fov" checked> {{ _('Lock FOV') }}</label>
+            <label style="display:flex;align-items:center;gap:6px;margin-left:8px;" title="{{ _('Displays the approximate location of geostationary satellites (corrected for your latitude)') }}"><input type="checkbox" id="show-geo-belt" data-action="toggle-geo-belt" checked> {{ _('Geo Belt') }}</label>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="flip-framing">{{ _('Flip 90°') }}</button>
+            <button class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="copy-framing-url">{{ _('Copy framing URL') }}</button>
+            <button id="save-framing-db" type="button" class="inline-button" style="padding:6px 10px;font-size:13px;" data-action="save-framing-db">{{ _('Save Framing') }}</button>
 
             <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
-                <label for="framing-rig-select" style="font-weight:bold;">Rig:</label>
+                <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
                 <select id="framing-rig-select" data-action="update-framing-rig" style="max-width:240px; font-size:14px;">
                     {% if available_rigs %}{% for rig in available_rigs %}
                     <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
-                    {% endfor %}{% else %}<option value="">No rigs configured</option>{% endif %}
+                    {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
                 </select>
             </div>
 
             <div style="display:flex; align-items:center; gap:8px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt); flex-grow: 1;">
-              <label for="framing-rotation" style="font-weight:bold;" title="Position Angle (0°=North, 90°=East)">Rotation (PA):</label>
+              <label for="framing-rotation" style="font-weight:bold;" title="{{ _('Position Angle (0°=North, 90°=East)') }}">{{ _('Rotation (PA)') }}:</label>
               <input type="range" id="framing-rotation" min="0" max="360" value="0" step="0.5" data-action="rotation-input" style="flex-grow: 1; height: 6px; cursor: pointer;"/>
               <span id="rotation-value" style="min-width: 45px; font-weight: bold; color: var(--text-primary); text-align: right;">0°</span>
             </div>
@@ -308,21 +308,21 @@
         <div class="framing-controls">
             <div style="display:flex; align-items:center; gap:10px;">
                 <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">Mosaic (Col x Row)</label>
+                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">{{ _('Mosaic (Col x Row)') }}</label>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="Columns">
+                        <input type="number" id="mosaic-cols" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="{{ _('Columns') }}">
                         <span style="font-size:14px; font-weight:bold;">x</span>
-                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="Rows">
+                        <input type="number" id="mosaic-rows" min="1" max="6" value="1" style="width:45px; padding:4px; font-size:14px; font-weight:bold;" data-action="update-mosaic" title="{{ _('Rows') }}">
                     </div>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:3px;">
-                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">Overlap %</label>
+                    <label style="font-size:13px; color:var(--text-dark-alt); font-weight:bold; line-height:1;">{{ _('Overlap %%') }}</label>
                     <input type="number" id="mosaic-overlap" min="0" max="80" value="10" step="5" style="width:60px; padding:4px; font-size:14px;" data-action="update-mosaic">
                 </div>
-                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" data-action="copy-mosaic-csv" title="Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.">Copy Plan (CSV)</button>
+                <button class="inline-button" style="padding:8px 12px; font-size:13px; margin-left:8px;" data-action="copy-mosaic-csv" title="{{ _('Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and Telescopius.') }}">{{ _('Copy Plan (CSV)') }}</button>
             </div>
             <div>
-                <label for="survey-select">Survey:</label>
+                <label for="survey-select">{{ _('Survey') }}:</label>
                 <select id="survey-select" data-action="change-survey">
                     <option value="P/DSS2/color">DSS2 (color)</option>
                     <option value="P/DESI-Legacy-Surveys/DR10/color">Legacy Survey DR10 (Deep/Sharp)</option>
@@ -342,7 +342,7 @@
                     <option value="CDS/P/SHASSA">SHASSA Hα</option>
                     <option value="P/SDSS9/color">SDSS9 (color)</option>
                 </select>
-                <span style="margin-left:18px;">Blend with:</span>
+                <span style="margin-left:18px;">{{ _('Blend with') }}:</span>
                 <select id="blend-survey-select" style="margin-left:6px;">
                     <option value="P/DSS2/color" selected>DSS2 (color)</option>
                     <option value="P/DSS2/red">DSS2 (red)</option>
@@ -364,29 +364,29 @@
             </div>
         </div>
         <div class="framing-controls" style="flex-wrap: wrap;">
-            <div><label>Brightness</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
-            <div><label>Contrast</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
-            <div><label>Gamma</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" data-action="update-image-adjustments"></div>
-            <div><label>Saturation</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+            <div><label>{{ _('Brightness') }}</label><input type="range" id="img-bright" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+            <div><label>{{ _('Contrast') }}</label><input type="range" id="img-contrast" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
+            <div><label>{{ _('Gamma') }}</label><input type="range" id="img-gamma" min="0.1" max="10" step="0.1" value="1" data-action="update-image-adjustments"></div>
+            <div><label>{{ _('Saturation') }}</label><input type="range" id="img-sat" min="-1" max="1" step="0.01" value="0" data-action="update-image-adjustments"></div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:11px; font-weight:bold; color:var(--text-secondary); background:var(--bg-light-gray); padding:2px 6px; border-radius:4px; border:1px solid var(--border-light-alt2); cursor:help;" title="Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.">JNow</span>
+                <span style="font-size:11px; font-weight:bold; color:var(--text-secondary); background:var(--bg-light-gray); padding:2px 6px; border-radius:4px; border:1px solid var(--border-light-alt2); cursor:help;" title="{{ _('Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount.') }}">JNow</span>
                 <label style="font-size:14px; font-weight:bold;">RA</label>
                 <input id="ra-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
                 <label style="font-size:14px; font-weight:bold;">Dec</label>
                 <input id="dec-readout" type="text" style="width:160px; font-size:14px; font-family:monospace; font-weight:bold;" readonly>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="copy-ra-dec">Copy</button>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="copy-ra-dec">{{ _('Copy') }}</button>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:12px;color:var(--text-secondary);">Tip: Click on the sky to move the FOV center.</span>
-                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="recenter-fov">Recenter to object</button>
+                <span style="font-size:12px;color:var(--text-secondary);">{{ _('Tip: Click on the sky to move the FOV center.') }}</span>
+                <button class="inline-button" style="padding:6px 10px; font-size:13px;" data-action="recenter-fov">{{ _('Recenter to object') }}</button>
                 <div style="display:flex; align-items:center; gap:4px;">
-                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Up" data-action="nudge-fov" data-dx="0" data-dy="1">↑</button>
+                    <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Up') }}" data-action="nudge-fov" data-dx="0" data-dy="1">↑</button>
                     <div>
-                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Left" data-action="nudge-fov" data-dx="-1" data-dy="0">←</button>
-                        <button class="inline-button" style="padding:4px 8px;" title="Nudge Right" data-action="nudge-fov" data-dx="1" data-dy="0">→</button>
+                        <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Left') }}" data-action="nudge-fov" data-dx="-1" data-dy="0">←</button>
+                        <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Right') }}" data-action="nudge-fov" data-dx="1" data-dy="0">→</button>
                     </div>
-                    <button class="inline-button" style="padding:4px 8px;" title="Nudge Down" data-action="nudge-fov" data-dx="0" data-dy="-1">↓</button>
-                    <span style="font-size:12px;color:var(--text-secondary);">(1′ steps)</span>
+                    <button class="inline-button" style="padding:4px 8px;" title="{{ _('Nudge Down') }}" data-action="nudge-fov" data-dx="0" data-dy="-1">↓</button>
+                    <span style="font-size:12px;color:var(--text-secondary);">(1′ {{ _('steps') }})</span>
                 </div>
             </div>
         </div>

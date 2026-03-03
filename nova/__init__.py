@@ -49,7 +49,7 @@ from flask import render_template, jsonify, request, send_file, redirect, url_fo
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
-from flask_babel import Babel
+from flask_babel import Babel, gettext as _
 import math
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5, search_around_sky
@@ -5890,8 +5890,7 @@ def project_detail(project_id):
     try:
         project = db.query(Project).filter_by(id=project_id, user_id=g.db_user.id).one_or_none()
         if not project:
-            flash("Project not found or you do not have permission to view it.", "error")
-            return redirect(url_for('core.index'))
+            flash(_("Error deleting old image."), "warning")
 
         # --- Aggregated Statistics ---
         total_integration_minutes = db.query(
@@ -5918,7 +5917,7 @@ def project_detail(project_id):
                     project.final_image_file = None
                 except Exception as e:
                     print(f"Error deleting final image: {e}")
-                    flash("Error deleting old image.", "warning")
+                    flash(_("Error deleting old image."), "warning")
 
             # 2. Handle image upload (returns new/existing filename)
             new_filename = _handle_project_image_upload(
@@ -5954,7 +5953,7 @@ def project_detail(project_id):
                     target_obj_in_config.active_project = (project.status == "In Progress")
 
             db.commit()
-            flash("Project updated successfully.", "success")
+            flash(_("Project updated successfully."), "success")
 
             # --- Redirect Logic (Updated) ---
             # Check if we should return to a specific page (like the Journal tab)
@@ -5975,7 +5974,7 @@ def project_detail(project_id):
         return redirect(url_for('core.index'))
     except Exception as e:
         db.rollback()
-        flash(f"An error occurred: {e}", "error")
+        flash(_("An error occurred: %(error)s", error=e), "error")
         print(f"Error in project_detail route: {e}")
         traceback.print_exc()
         return redirect(url_for('core.index'))
@@ -6102,7 +6101,7 @@ def add_component():
 
         if not kind:
             db.rollback()
-            flash(f"Error: Unknown component type '{form_kind}'", "error")
+            flash(_("Error: Unknown component type '%(component_type)s'.", component_type=form_kind), "error")
             return redirect(url_for('core.config_form'))
 
         new_comp = Component(user_id=user.id, kind=kind, name=form.get('name'))
@@ -6123,10 +6122,10 @@ def add_component():
 
         db.add(new_comp)
         db.commit()
-        flash(f"Component '{new_comp.name}' added successfully.", "success")
+        flash(_("Component '%(component_name)s' added successfully.", component_name=new_comp.name), "success")
     except Exception as e:
         db.rollback()
-        flash(f"Error adding component: {e}", "error")
+        flash(_("Error adding component: %(error)s", error=e), "error")
     return redirect(url_for('core.config_form'))
 
 
@@ -6141,7 +6140,7 @@ def update_component():
 
         # Security check: ensure component belongs to the current user
         if comp.user.username != ("default" if SINGLE_USER_MODE else current_user.username):
-            flash("Authorization error.", "error")
+            flash(_("Authorization error."), "error")
             return redirect(url_for('core.config_form'))
 
         comp.name = form.get('name')
@@ -6163,10 +6162,10 @@ def update_component():
             comp.factor = float(form.get('factor'))
 
         db.commit()
-        flash(f"Component '{comp.name}' updated successfully.", "success")
+        flash(_("Component '%(component_name)s' updated successfully.", component_name=comp.name), "success")
     except Exception as e:
         db.rollback()
-        flash(f"Error updating component: {e}", "error")
+        flash(_("Error updating component: %(error)s", error=e), "error")
     return redirect(url_for('core.config_form'))
 
 
@@ -6209,7 +6208,7 @@ def add_rig():
             rig.guide_telescope_id = safe_int(form.get('guide_telescope_id'))
             rig.guide_camera_id = safe_int(form.get('guide_camera_id'))
             rig.guide_is_oag = form.get('guide_is_oag') == 'on'
-            flash(f"Rig '{rig.rig_name}' updated successfully.", "success")
+            flash(_("Rig '%(rig_name)s' updated successfully.", rig_name=rig.rig_name), "success")
         else:  # Add
             new_rig = Rig(
                 user_id=user.id, rig_name=form.get('rig_name'),
@@ -6221,7 +6220,7 @@ def add_rig():
             )
             db.add(new_rig)
             rig = new_rig  # Reference the new object for update below
-            flash(f"Rig '{new_rig.rig_name}' created successfully.", "success")
+            flash(_("Rig '%(rig_name)s' created successfully.", rig_name=new_rig.rig_name), "success")
 
         # 3. Persist calculated values to the Rig object (for both ADD and UPDATE)
         rig.effective_focal_length = efl
@@ -6240,7 +6239,7 @@ def add_rig():
         db.commit()
     except Exception as e:
         db.rollback()
-        flash(f"Error saving rig: {e}", "error")
+        flash(_("Error saving rig: %(error)s", error=e), "error")
     return redirect(url_for('core.config_form'))
 
 @tools_bp.route('/delete_component', methods=['POST'])
@@ -6257,15 +6256,15 @@ def delete_component():
         ).first()
 
         if in_use:
-            flash("Cannot delete component: It is used in at least one rig.", "error")
+            flash(_("Cannot delete component: It is used in at least one rig."), "error")
         else:
             comp_to_delete = db.get(Component, comp_id)
             db.delete(comp_to_delete)
             db.commit()
-            flash("Component deleted successfully.", "success")
+            flash(_("Component deleted successfully."), "success")
     except Exception as e:
         db.rollback()
-        flash(f"Error deleting component: {e}", "error")
+        flash(_("Error deleting component: %(error)s", error=e), "error")
     return redirect(url_for('core.config_form'))
 
 @tools_bp.route('/delete_rig', methods=['POST'])
@@ -6277,10 +6276,10 @@ def delete_rig():
         rig_to_delete = db.get(Rig, rig_id)
         db.delete(rig_to_delete)
         db.commit()
-        flash("Rig deleted successfully.", "success")
+        flash(_("Rig deleted successfully."), "success")
     except Exception as e:
         db.rollback()
-        flash(f"Error deleting rig: {e}", "error")
+        flash(_("Error deleting rig: %(error)s", error=e), "error")
     return redirect(url_for('core.config_form'))
 
 
@@ -6434,7 +6433,7 @@ def journal_list_view():
     db = get_db()
         # 1. Use the pre-loaded g.db_user (from the consolidated before_request)
     if not g.db_user:
-        flash("User session error, please log in again.", "error")
+        flash(_("User session error, please log in again."), "error")
         return redirect(url_for('core.login'))
 
     user_id = g.db_user.id
@@ -6474,7 +6473,7 @@ def journal_add():
                 parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
             except (ValueError, TypeError):
                 # This is the new error handling: flash and redirect
-                flash("Invalid date format.", "error")
+                flash(_("Invalid date format."), "error")
                 target_object_id = request.form.get("target_object_id")
 
                 # Redirect back to the object's page where the form was
@@ -6673,7 +6672,7 @@ def journal_add():
                 new_session.phd2_log_content = path
             if asiair_content or phd2_content:
                 db.commit()
-            flash("New journal entry added successfully!", "success")
+            flash(_("New journal entry added successfully!"), "success")
             record_event('journal_session_created')
             # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
             return redirect(url_for('core.graph_dashboard', object_name=new_session.object_name, session_id=new_session.id,
@@ -6689,7 +6688,7 @@ def journal_add():
         return redirect(url_for('core.graph_dashboard', object_name=target_object))
     else:
         # If no target, go to the main journal list
-        flash("To add a new session, please select an object first.", "info")
+        flash(_("To add a new session, please select an object first."), "info")
         return redirect(url_for('journal.journal_list_view'))
 
 
@@ -6703,7 +6702,7 @@ def journal_edit(session_id):
     session_to_edit = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
     if not session_to_edit:
-        flash("Journal entry not found or you do not have permission to edit it.", "error")
+        flash(_("Journal entry not found or you do not have permission to edit it."), "error")
         return redirect(url_for('core.index'))
 
     if request.method == 'POST':
@@ -6712,7 +6711,7 @@ def journal_edit(session_id):
         try:
             parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
         except (ValueError, TypeError):
-            flash("Invalid date format.", "error")
+            flash(_("Invalid date format."), "error")
 
             # Redirect back to the graph view for this session
             return redirect(url_for('core.graph_dashboard',
@@ -6931,7 +6930,7 @@ def journal_edit(session_id):
             session_to_edit.log_analysis_cache = None
 
         db.commit()
-        flash("Journal entry updated successfully!", "success")
+        flash(_("Journal entry updated successfully!"), "success")
         record_event('journal_session_edited')
         # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
         return redirect(
@@ -6940,7 +6939,7 @@ def journal_edit(session_id):
 
     # --- GET Request Logic ---
     if not session_to_edit.object_name:
-        flash("Cannot edit session: associated object name is missing.", "error")
+        flash(_("Cannot edit session: associated object name is missing."), "error")
         return redirect(url_for('journal.journal_list_view'))
 
     return redirect(url_for('core.graph_dashboard',
@@ -6965,13 +6964,13 @@ def add_project_from_journal():
         goals = request.form.get('goals')
 
         if not name:
-            flash("Project name is required.", "error")
+            flash(_("Project name is required."), "error")
             return redirect(
                 url_for('core.graph_dashboard', object_name=target_object_id, tab='journal', location=current_location))
 
         existing = db.query(Project).filter_by(user_id=user.id, name=name).first()
         if existing:
-            flash(f"A project named '{name}' already exists.", "error")
+            flash(_("A project named '%(project_name)s' already exists.", project_name=name), "error")
             return redirect(
                 url_for('core.graph_dashboard', object_name=target_object_id, tab='journal', location=current_location))
 
@@ -6998,7 +6997,7 @@ def add_project_from_journal():
         if should_trigger_outlook:
             trigger_outlook_update_for_user(username)
 
-        flash(f"Project '{name}' created successfully.", "success")
+        flash(_("Project '%(project_name)s' created successfully.", project_name=name), "success")
 
         # Build redirect args explicitly to ensure clean URL construction
         redirect_args = {
@@ -7014,7 +7013,7 @@ def add_project_from_journal():
     except Exception as e:
         db.rollback()
         print(f"Error creating project in journal: {e}")  # Log error for debugging
-        flash(f"Error creating project: {e}", "error")
+        flash(_("Error creating project: %(error)s", error=e), "error")
         return redirect(url_for('core.graph_dashboard', object_name=request.form.get('target_object_id'), tab='journal',
                                 location=current_location))
 
@@ -7028,7 +7027,7 @@ def journal_duplicate(session_id):
         source_session = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
 
         if not source_session:
-            flash("Session to duplicate not found.", "error")
+            flash(_("Session to duplicate not found."), "error")
             return redirect(url_for('core.index'))
 
         # Create new instance
@@ -7053,7 +7052,7 @@ def journal_duplicate(session_id):
         db.add(new_session)
         db.commit()
 
-        flash("Session duplicated successfully.", "success")
+        flash(_("Session duplicated successfully."), "success")
 
         # Redirect to Graph Dashboard with 'edit=true' to open the form immediately
         return redirect(url_for('core.graph_dashboard',
@@ -7064,7 +7063,7 @@ def journal_duplicate(session_id):
 
     except Exception as e:
         db.rollback()
-        flash(f"Error duplicating session: {e}", "error")
+        flash(_("Error duplicating session: %(error)s", error=e), "error")
         return redirect(url_for('core.index'))
 
 @journal_bp.route('/journal/delete/<int:session_id>', methods=['POST'])
@@ -7085,13 +7084,13 @@ def journal_delete(session_id):
 
         db.delete(session_to_delete)
         db.commit()
-        flash("Journal entry deleted successfully.", "success")
+        flash(_("Journal entry deleted successfully."), "success")
         if object_name_redirect:
             return redirect(url_for('core.graph_dashboard', object_name=object_name_redirect))
         else:
             return redirect(url_for('core.index'))
     else:
-        flash("Journal entry not found or you do not have permission to delete it.", "error")
+        flash(_("Journal entry not found or you do not have permission to delete it."), "error")
         return redirect(url_for('core.index'))
 
 
@@ -7176,7 +7175,7 @@ def show_journal_report_page(session_id):
         # --- 1. Get Session Data ---
         session = db.query(JournalSession).filter_by(id=session_id, user_id=g.db_user.id).one_or_none()
         if not session:
-            flash("Session not found.", "error")
+            flash(_("Session not found."), "error")
             return redirect(url_for('core.index'))
 
         session_dict = {c.name: getattr(session, c.name) for c in session.__table__.columns}
@@ -7366,7 +7365,7 @@ def inject_user_mode():
 def logout():
     logout_user()
     session.clear()  # Optional: reset session if needed
-    flash("Logged out successfully!", "success")
+    flash(_("Logged out successfully!"), "success")
     return redirect(url_for('core.login'))
 
 
@@ -7376,7 +7375,7 @@ def set_language(lang):
     # Validate the language is supported
     supported_locales = app.config.get('BABEL_SUPPORTED_LOCALES', ['en'])
     if lang not in supported_locales:
-        flash(f"Language '{lang}' is not supported.", "error")
+        flash(_("Language '%(lang)s' is not supported.", lang=lang), "error")
         return redirect(request.referrer or url_for('core.index'))
 
     # Get the current user
@@ -7464,7 +7463,7 @@ def login():
                 login_user(user)
                 record_login()
                 session.modified = True  # Force session save before redirect
-                flash("Logged in successfully!", "success")
+                flash(_("Logged in successfully!"), "success")
 
                 # --- START: THIS IS THE CORRECTED LOGIC ---
                 # Read 'next' from the form's hidden input, not the URL
@@ -7480,26 +7479,26 @@ def login():
                 # --- END OF CORRECTION ---
 
             else:
-                flash("Invalid username or password.", "error")
+                flash(_("Invalid username or password."), "error")
         return render_template('login.html')
 
 @core_bp.route('/sso/login')
 def sso_login():
     # First, check if the app is in single-user mode. SSO is not applicable here.
     if SINGLE_USER_MODE:
-        flash("Single Sign-On is not applicable in single-user mode.", "error")
+        flash(_("Single Sign-On is not applicable in single-user mode."), "error")
         return redirect(url_for('core.index'))
 
     # Get the token from the URL (e.g., ?token=...)
     token = request.args.get('token')
     if not token:
-        flash("SSO Error: No token provided.", "error")
+        flash(_("SSO Error: No token provided."), "error")
         return redirect(url_for('core.login'))
 
     # Get the shared secret key from the .env file
     secret_key = os.environ.get('JWT_SECRET_KEY')
     if not secret_key:
-        flash("SSO Error: SSO is not configured on the server.", "error")
+        flash(_("SSO Error: SSO is not configured on the server."), "error")
         return redirect(url_for('core.login'))
 
     try:
@@ -7517,17 +7516,17 @@ def sso_login():
             login_user(user)  # Log the user in using Flask-Login
             record_login()
             session.modified = True  # Force session save before redirect
-            flash(f"Welcome back, {user.username}!", "success")
+            flash(_("Welcome back, %(username)s!", username=user.username), "success")
             return redirect(url_for('core.index'), code=303)
         else:
-            flash(f"SSO Error: User '{username}' not found or is disabled in Nova.", "error")
+            flash(_("SSO Error: User '%(username)s' not found or is disabled in Nova.", username=username), "error")
             return redirect(url_for('core.login'))
 
     except jwt.ExpiredSignatureError:
-        flash("SSO Error: The login link has expired. Please try again from WordPress.", "error")
+        flash(_("SSO Error: The login link has expired. Please try again from WordPress."), "error")
         return redirect(url_for('core.login'))
     except jwt.InvalidTokenError:
-        flash("SSO Error: Invalid login token.", "error")
+        flash(_("SSO Error: Invalid login token."), "error")
         return redirect(url_for('core.login'))
 
 
@@ -7676,7 +7675,7 @@ def download_config():
     try:
         u = db.query(DbUser).filter_by(username=username).one_or_none()
         if not u:
-            flash("User not found.", "error")
+            flash(_("User not found."), "error")
             return redirect(url_for('core.config_form'))
 
         # --- 1. Load base settings from UiPref ---
@@ -7753,7 +7752,7 @@ def download_config():
 
     except Exception as e:
         db.rollback()
-        flash(f"Error generating config file: {e}", "error")
+        flash(_("Error generating config file: %(error)s", error=e), "error")
         traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('core.config_form'))
 
@@ -7766,7 +7765,7 @@ def download_journal():
     try:
         u = db.query(DbUser).filter_by(username=username).one_or_none()
         if not u:
-            flash("User not found.", "error")
+            flash(_("User not found."), "error")
             return redirect(url_for('core.config_form'))
 
         # --- 1. Load Projects (Including new fields) ---
@@ -7872,7 +7871,7 @@ def download_journal():
 
     except Exception as e:
         db.rollback()
-        flash(f"Error generating journal file: {e}", "error")
+        flash(_("Error generating journal file: %(error)s", error=e), "error")
         traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('core.config_form'))
 
@@ -7903,12 +7902,12 @@ def validate_journal_data(journal_data):
 @login_required
 def import_journal():
     if 'file' not in request.files:
-        flash("No file selected for journal import.", "error")
+        flash(_("No file selected for journal import."), "error")
         return redirect(url_for('core.config_form'))
 
     file = request.files['file']
     if file.filename == '':
-        flash("No file selected for journal import.", "error")
+        flash(_("No file selected for journal import."), "error")
         return redirect(url_for('core.config_form'))
 
     if file and file.filename.endswith('.yaml'):
@@ -7922,7 +7921,7 @@ def import_journal():
             # Basic validation
             is_valid, message = validate_journal_data(new_journal_data)
             if not is_valid:
-                flash(f"Invalid journal file structure: {message}", "error")
+                flash(_("Invalid journal file structure: %(message)s", message=message), "error")
                 return redirect(url_for('core.config_form'))
 
             username = "default" if SINGLE_USER_MODE else current_user.username
@@ -7946,7 +7945,7 @@ def import_journal():
                 _migrate_journal(db, user, new_journal_data)
 
                 db.commit()
-                flash("Journal imported successfully! (Previous journal data was replaced)", "success")
+                flash(_("Journal imported successfully! (Previous journal data was replaced)"), "success")
             except Exception as e:
                 db.rollback()
                 print(f"[IMPORT_JOURNAL] DB Error: {e}")
@@ -7958,7 +7957,7 @@ def import_journal():
 
         except yaml.YAMLError as ye:
             print(f"[IMPORT JOURNAL ERROR] Invalid YAML format: {ye}")
-            flash(f"Import failed: Invalid YAML format in the journal file. {ye}", "error")
+            flash(_("Import failed: Invalid YAML format in the journal file. %(error)s", error=ye), "error")
             return redirect(url_for('core.config_form'))
         except Exception as e:
             print(f"[IMPORT JOURNAL ERROR] {e}")
@@ -7966,10 +7965,10 @@ def import_journal():
             err_msg = str(e)
             if "UNIQUE constraint failed" in err_msg:
                 err_msg = "Data conflict detected. Please try again (the wipe logic should prevent this)."
-            flash(f"Import failed: {err_msg}", "error")
+            flash(_("Import failed: %(error)s", error=err_msg), "error")
             return redirect(url_for('core.config_form'))
     else:
-        flash("Invalid file type. Please upload a .yaml journal file.", "error")
+        flash(_("Invalid file type. Please upload a .yaml journal file."), "error")
         return redirect(url_for('core.config_form'))
 
 
@@ -7981,17 +7980,17 @@ def import_config():
     elif current_user.is_authenticated:
         username = current_user.username
     else:
-        flash("Authentication error during import.", "error")
+        flash(_("Authentication error during import."), "error")
         return redirect(url_for('core.login'))
 
     try:
         if 'file' not in request.files:
-            flash("No file selected for import.", "error")
+            flash(_("No file selected for import."), "error")
             return redirect(url_for('core.config_form'))
 
         file = request.files['file']
         if file.filename == '':
-            flash("No file selected for import.", "error")
+            flash(_("No file selected for import."), "error")
             return redirect(url_for('core.config_form'))
 
         contents = file.read().decode('utf-8')
@@ -8013,7 +8012,7 @@ def import_config():
             # Guard: Ensure import has at least one location before wiping existing ones
             imported_locations = new_config.get("locations", {})
             if not imported_locations or len(imported_locations) == 0:
-                flash("Cannot import: Configuration must contain at least one location.", "error")
+                flash(_("Cannot import: Configuration must contain at least one location."), "error")
                 return redirect(url_for('core.config_form'))
 
             # Guard: Ensure at least one imported location is active
@@ -8021,7 +8020,7 @@ def import_config():
                 loc_data.get('active', True) for loc_data in imported_locations.values()
             )
             if not has_active_location:
-                flash("Cannot import: Configuration must contain at least one active location.", "error")
+                flash(_("Cannot import: Configuration must contain at least one active location."), "error")
                 return redirect(url_for('core.config_form'))
 
             # 1. Delete existing locations (only if import has locations)
@@ -8052,7 +8051,7 @@ def import_config():
             user_id_for_thread = user.id
 
             db.commit()
-            flash("Config imported successfully! (Previous config was replaced)", "success")
+            flash(_("Config imported successfully! (Previous config was replaced)"), "success")
         except Exception as e:
             db.rollback()
             print(f"[IMPORT_CONFIG] DB Error: {e}")
@@ -8094,10 +8093,10 @@ def import_config():
         return redirect(url_for('core.config_form'))
 
     except yaml.YAMLError as ye:
-        flash(f"Import failed: Invalid YAML. ({ye})", "error")
+        flash(_("Import failed: Invalid YAML. (%(error)s)", error=ye), "error")
         return redirect(url_for('core.config_form'))
     except Exception as e:
-        flash(f"Import failed: {str(e)}", "error")
+        flash(_("Import failed: %(error)s", error=str(e)), "error")
         return redirect(url_for('core.config_form'))
 
 @tools_bp.route('/import_catalog/<pack_id>', methods=['POST'])
@@ -8119,7 +8118,7 @@ def import_catalog(pack_id):
         username = "default"
     else:
         if not current_user.is_authenticated:
-            flash("Authentication error during catalog import.", "error")
+            flash(_("Authentication error during catalog import."), "error")
             return redirect(url_for('core.login'))
         username = current_user.username
 
@@ -8129,7 +8128,7 @@ def import_catalog(pack_id):
 
         catalog_data, meta = load_catalog_pack(pack_id)
         if not catalog_data or not isinstance(catalog_data, dict):
-            flash("Catalog pack not found or invalid.", "error")
+            flash(_("Catalog pack not found or invalid."), "error")
             return redirect(url_for('core.config_form'))
 
         created, enriched, skipped = import_catalog_pack_for_user(db, user, catalog_data, pack_id)
@@ -8141,7 +8140,7 @@ def import_catalog(pack_id):
     except Exception as e:
         db.rollback()
         print(f"[CATALOG IMPORT] Error importing catalog pack '{pack_id}': {e}")
-        flash("Catalog import failed due to an internal error.", "error")
+        flash(_("Catalog import failed due to an internal error."), "error")
 
     return redirect(url_for('core.config_form'))
 
@@ -8840,13 +8839,13 @@ def fetch_all_details():
 
         if modified:
             db.commit()
-            flash("Fetched and saved missing object details.", "success")
+            flash(_("Fetched and saved missing object details."), "success")
         else:
-            flash("No missing data found or no updates needed.", "info")
+            flash(_("No missing data found or no updates needed."), "info")
 
     except Exception as e:
         db.rollback()
-        flash(f"An error occurred during data fetching: {e}", "error")
+        flash(_("An error occurred during data fetching: %(error)s", error=e), "error")
 
     return redirect(url_for('core.config_form'))
 
@@ -9879,14 +9878,14 @@ def mobile_edit_notes(object_name):
     db = get_db()
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     if not user:
-        flash("User not found.", "error")
+        flash(_("User not found."), "error")
         return redirect(url_for('mobile.mobile_up_now'))
 
     # Get the specific object
     obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
     if not obj_record:
-        flash(f"Object '{object_name}' not found.", "error")
+        flash(_("Object '%(object_name)s' not found.", object_name=object_name), "error")
         return redirect(url_for('mobile.mobile_up_now'))
 
     # Handle Trix/HTML conversion for old plain text notes
@@ -10206,7 +10205,7 @@ def config_form():
     try:
         app_db_user = db.query(DbUser).filter_by(username=username).one_or_none()
         if not app_db_user:
-            flash(f"Could not find user '{username}' in the database.", "error")
+            flash(_("Could not find user '%(username)s' in the database.", username=username), "error")
             return redirect(url_for('core.index'))
 
         if request.method == 'POST':
@@ -10275,7 +10274,7 @@ def config_form():
                                     db.add(HorizonPoint(location_id=new_loc.id, az_deg=float(point[0]),
                                                         alt_min_deg=float(point[1])))
                         except (yaml.YAMLError, ValueError, TypeError):
-                            flash("Warning: Horizon Mask was invalid and was ignored.", "warning")
+                            flash(_("Warning: Horizon Mask was invalid and was ignored."), "warning")
                     message = "New location added."
 
             # --- Update Existing Locations ---
@@ -10297,12 +10296,12 @@ def config_form():
 
                 # Prevent deleting the last location
                 if locs_marked_for_deletion >= total_locs:
-                    flash("Cannot delete your last location. You must have at least one location configured.", "error")
+                    flash(_("Cannot delete your last location. You must have at least one location configured."), "error")
                     return redirect(url_for('core.config_form'))
 
                 # Prevent having zero active locations
                 if active_locations_after_update == 0:
-                    flash("Cannot deactivate your only active location. You must keep at least one active location.", "error")
+                    flash(_("Cannot deactivate your only active location. You must keep at least one active location."), "error")
                     return redirect(url_for('core.config_form'))
 
                 # Safe to proceed with deletions and updates
@@ -10338,7 +10337,7 @@ def config_form():
                                                      alt_min_deg=float(point[1]))
                                     )
                         except Exception:
-                            flash(f"Warning: Horizon Mask for '{loc.name}' was invalid and ignored.", "warning")
+                            flash(_("Warning: Horizon Mask for '%(location_name)s' was invalid and ignored.", location_name=loc.name), "warning")
 
                     # 3. Assign the new list directly to the relationship.
                     # SQLAlchemy will now compare the old list with the new one.
@@ -10385,7 +10384,7 @@ def config_form():
 
             if not error:
                 db.commit()
-                flash(f"{message or 'Configuration'} updated successfully.", "success")
+                flash(_("%(message)s updated successfully.", message=message or 'Configuration'), "success")
                 return redirect(url_for('core.config_form'))
             else:
                 db.rollback()
@@ -10458,7 +10457,7 @@ def config_form():
 
     except Exception as e:
         db.rollback()
-        flash(f"A database error occurred: {e}", "error")
+        flash(_("A database error occurred: %(error)s", error=e), "error")
         traceback.print_exc()
         return redirect(url_for('core.index'))
 
@@ -10633,7 +10632,7 @@ def get_moon_data_for_session():
 def graph_dashboard(object_name):
     # --- 1. Determine User (No change) ---
     if not (SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
-        flash("Please log in to view object details.", "info")
+        flash(_("Please log in to view object details."), "info")
         return redirect(url_for('core.login'))
 
     if SINGLE_USER_MODE:
@@ -10648,7 +10647,7 @@ def graph_dashboard(object_name):
         # --- 2. Get User Record (No change) ---
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if not user:
-            flash(f"User '{username}' not found.", "error")
+            flash(_("User '%(username)s' not found.", username=username), "error")
             return redirect(url_for('core.index'))
 
         # --- 3. Determine Effective Location ---
@@ -10662,7 +10661,7 @@ def graph_dashboard(object_name):
             selected_location_db = db.query(Location).filter_by(user_id=user.id,
                                                                 name=requested_location_name_from_url).one_or_none()
             if not selected_location_db:
-                flash(f"Requested location '{requested_location_name_from_url}' not found, using default.", "warning")
+                flash(_("Requested location '%(location_name)s' not found, using default.", location_name=requested_location_name_from_url), "warning")
 
         if not selected_location_db:
             selected_location_db = db.query(Location).filter_by(user_id=user.id, is_default=True).one_or_none()
@@ -10676,7 +10675,7 @@ def graph_dashboard(object_name):
             effective_lon = selected_location_db.lon
             effective_tz_name = selected_location_db.timezone
         else:
-            flash("Error: No valid location configured or selected for this user.", "error")
+            flash(_("Error: No valid location configured or selected for this user."), "error")
             return redirect(url_for('core.index'))
 
         try:
@@ -10694,7 +10693,7 @@ def graph_dashboard(object_name):
         obj_record = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
         if not obj_record:
-            flash(f"Object '{object_name}' not found in your configuration.", "error")
+            flash(_("Object '%(object_name)s' not found in your configuration.", object_name=object_name), "error")
             return redirect(url_for('core.index'))
 
         # --- Framing Tab Data Preparation ---
@@ -10921,7 +10920,7 @@ def graph_dashboard(object_name):
         except ValueError:
             effective_date_obj = now_at_effective_location.date()
             effective_date_str = effective_date_obj.strftime('%Y-%m-%d')
-            flash("Invalid date components provided, defaulting to current date.", "warning")
+            flash(_("Invalid date components provided, defaulting to current date."), "warning")
 
         next_day_obj = effective_date_obj + timedelta(days=1)
 
@@ -11124,7 +11123,7 @@ def graph_dashboard(object_name):
         db.rollback()
         print(f"ERROR rendering graph dashboard for '{object_name}': {e}")
         traceback.print_exc()
-        flash(f"An error occurred while loading the details for {object_name}.", "error")
+        flash(_("An error occurred while loading the details for %(object_name)s.", object_name=object_name), "error")
         return redirect(url_for('core.index'))
 
 @core_bp.route('/get_date_info/<path:object_name>')
@@ -11451,7 +11450,7 @@ def delete_project(project_id):
         project = db.query(Project).filter_by(id=project_id, user_id=user.id).one_or_none()
 
         if not project:
-            flash("Project not found.", "error")
+            flash(_("Project not found."), "error")
             return redirect(url_for('core.index'))
 
         # Optional: Unset 'active_project' flag on the associated object if it exists
@@ -11466,7 +11465,7 @@ def delete_project(project_id):
         db.delete(project)
         db.commit()
 
-        flash(f"Project '{project.name}' deleted. Sessions are now standalone.", "success")
+        flash(_("Project '%(project_name)s' deleted. Sessions are now standalone.", project_name=project.name), "success")
 
         # Redirect back to the object's journal tab
         return redirect(
@@ -11474,7 +11473,7 @@ def delete_project(project_id):
 
     except Exception as e:
         db.rollback()
-        flash(f"Error deleting project: {e}", "error")
+        flash(_("Error deleting project: %(error)s", error=e), "error")
         return redirect(url_for('core.index'))
 
 
@@ -11574,7 +11573,7 @@ def download_rig_config():
     try:
         u = db.query(DbUser).filter_by(username=username).one_or_none()
         if not u:
-            flash("User not found.", "error")
+            flash(_("User not found."), "error")
             return redirect(url_for('core.config_form'))
 
         # --- Generate rigs doc from DB ---
@@ -11663,7 +11662,7 @@ def download_rig_config():
 
     except Exception as e:
         db.rollback()
-        flash(f"Error generating rig config: {e}", "error")
+        flash(_("Error generating rig config: %(error)s", error=e), "error")
         traceback.print_exc()  # Log the full error to the console
         return redirect(url_for('core.config_form'))
 
@@ -11683,7 +11682,7 @@ def download_journal_photos():
 
     # Check if the user's upload directory exists and has files
     if not os.path.isdir(user_upload_dir):
-        flash("No journal photos found to download.", "info")
+        flash(_("No journal photos found to download."), "info")
         return redirect(url_for('core.config_form'))
 
     # Use an in-memory buffer to build the ZIP file without writing to disk
@@ -11728,12 +11727,12 @@ def import_journal_photos():
     to a single-user (/uploads/default/) instance.
     """
     if 'file' not in request.files:
-        flash("No file selected for photo import.", "error")
+        flash(_("No file selected for photo import."), "error")
         return redirect(url_for('core.config_form'))
 
     file = request.files['file']
     if file.filename == '' or not file.filename.lower().endswith('.zip'):
-        flash("Please select a valid .zip file to import.", "error")
+        flash(_("Please select a valid .zip file to import."), "error")
         return redirect(url_for('core.config_form'))
 
     if SINGLE_USER_MODE:
@@ -11746,7 +11745,7 @@ def import_journal_photos():
 
     try:
         if not zipfile.is_zipfile(file):
-            flash("Import failed: The uploaded file is not a valid ZIP archive.", "error")
+            flash(_("Import failed: The uploaded file is not a valid ZIP archive."), "error")
             return redirect(url_for('core.config_form'))
 
         file.seek(0)
@@ -11780,12 +11779,12 @@ def import_journal_photos():
 
                 extracted_count += 1
 
-        flash(f"Journal photos imported successfully! Extracted {extracted_count} files.", "success")
+        flash(_("Journal photos imported successfully! Extracted %(count)d files.", count=extracted_count), "success")
 
     except zipfile.BadZipFile:
-        flash("Import failed: The ZIP file appears to be corrupted.", "error")
+        flash(_("Import failed: The ZIP file appears to be corrupted."), "error")
     except Exception as e:
-        flash(f"An unexpected error occurred during import: {e}", "error")
+        flash(_("An unexpected error occurred during import: %(error)s", error=e), "error")
 
     return redirect(url_for('core.config_form'))
 
@@ -11888,12 +11887,12 @@ def delete_saved_view():
 @login_required
 def import_rig_config():
     if 'file' not in request.files:
-        flash("No file selected for rigs import.", "error")
+        flash(_("No file selected for rigs import."), "error")
         return redirect(url_for('core.config_form'))
 
     file = request.files['file']
     if not file or file.filename == '':
-        flash("No file selected for rigs import.", "error")
+        flash(_("No file selected for rigs import."), "error")
         return redirect(url_for('core.config_form'))
 
     if file and file.filename.lower().endswith(('.yaml', '.yml')):
@@ -11923,7 +11922,7 @@ def import_rig_config():
                 _migrate_components_and_rigs(db, user, new_rigs_data, username)
 
                 db.commit()
-                flash("Rigs configuration imported and synced to database successfully!", "success")
+                flash(_("Rigs configuration imported and synced to database successfully!"), "success")
             except Exception as e:
                 db.rollback()
                 print(f"[IMPORT_RIGS] DB Error: {e}")
@@ -11931,10 +11930,10 @@ def import_rig_config():
             # === END REFACTOR ===
 
         except (yaml.YAMLError, Exception) as e:
-            flash(f"Error importing rigs file: {e}", "error")
+            flash(_("Error importing rigs file: %(error)s", error=e), "error")
 
     else:
-        flash("Invalid file type. Please upload a .yaml or .yml file.", "error")
+        flash(_("Invalid file type. Please upload a .yaml or .yml file."), "error")
 
     return redirect(url_for('core.config_form'))
 
@@ -12886,11 +12885,11 @@ def upload_editor_image():
 def export_yaml_for_user(username):
     # Only allow exporting self in multi-user; admin can export anyone (basic guard, adjust as needed)
     if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
-        flash("Not authorized to export another user's data.", "error")
+        flash(_("Not authorized to export another user's data."), "error")
         return redirect(url_for("core.index"))
     ok = export_user_to_yaml(username, out_dir=CONFIG_DIR)
     if not ok:
-        flash("Export failed (no such user or empty data).", "error")
+        flash(_("Export failed (no such user or empty data)."), "error")
         return redirect(url_for("core.index"))
     # Package into a ZIP so users get all three files at once
     ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
@@ -12919,12 +12918,12 @@ def import_yaml_for_user():
     """
     username = request.form.get("username") or ("default" if SINGLE_USER_MODE else None)
     if not username:
-        flash("Username is required in multi-user mode.", "error")
+        flash(_("Username is required in multi-user mode."), "error")
         return redirect(url_for("core.index"))
 
     # Basic guard: only allow importing for self unless admin
     if not SINGLE_USER_MODE and current_user.username != username and current_user.username != "admin":
-        flash("Not authorized to import for another user.", "error")
+        flash(_("Not authorized to import for another user."), "error")
         return redirect(url_for("core.index"))
 
     try:
@@ -12932,7 +12931,7 @@ def import_yaml_for_user():
         rigs = request.files.get("rigs_file")
         jrn = request.files.get("journal_file")
         if not (cfg and rigs and jrn):
-            flash("Please provide config, rigs, and journal YAML files.", "error")
+            flash(_("Please provide config, rigs, and journal YAML files."), "error")
             return redirect(url_for("core.index"))
 
         # Persist to temp paths
@@ -12952,25 +12951,25 @@ def import_yaml_for_user():
             except Exception: pass
 
         if ok:
-            flash("Import completed successfully!", "success")
+            flash(_("Import completed successfully!"), "success")
         else:
-            flash("Import failed. See server logs for details.", "error")
+            flash(_("Import failed. See server logs for details."), "error")
     except Exception as e:
         print(f"[IMPORT] ERROR: {e}")
-        flash("Import crashed. Check logs.", "error")
+        flash(_("Import crashed. Check logs."), "error")
     return redirect(url_for("core.index"))
 # Admin-only repair route for deduplication and backfill
 @tools_bp.route("/tools/repair_db", methods=["POST"])
 @login_required
 def repair_db_now():
     if not SINGLE_USER_MODE and current_user.username != "admin":
-        flash("Not authorized.", "error")
+        flash(_("Not authorized."), "error")
         return redirect(url_for("core.index"))
     try:
         repair_journals(dry_run=False)
-        flash("Database repair completed.", "success")
+        flash(_("Database repair completed."), "success")
     except Exception as e:
-        flash(f"Repair failed: {e}", "error")
+        flash(_("Repair failed: %(error)s", error=e), "error")
     return redirect(url_for("core.index"))
 
 # =============================================================================
@@ -12988,7 +12987,7 @@ if not SINGLE_USER_MODE:
     @login_required
     def admin_users():
         if current_user.username != "admin":
-            flash("Not authorized.", "error")
+            flash(_("Not authorized."), "error")
             return redirect(url_for("core.index"))
         users = db.session.scalars(db.select(User).order_by(User.id)).all()
         return render_template("admin_users.html", users=users)
@@ -12997,78 +12996,78 @@ if not SINGLE_USER_MODE:
     @login_required
     def admin_create_user():
         if current_user.username != "admin":
-            flash("Not authorized.", "error")
+            flash(_("Not authorized."), "error")
             return redirect(url_for("core.index"))
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         if not username or not password:
-            flash("Username and password are required.", "error")
+            flash(_("Username and password are required."), "error")
             return redirect(url_for("tools.admin_users"))
         if db.session.scalar(db.select(User).where(User.username == username)):
-            flash(f"User '{username}' already exists.", "error")
+            flash(_("User '%(username)s' already exists.", username=username), "error")
             return redirect(url_for("tools.admin_users"))
         user = User(username=username)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
-        flash(f"User '{username}' created successfully.", "success")
+        flash(_("User '%(username)s' created successfully.", username=username), "success")
         return redirect(url_for("tools.admin_users"))
 
     @tools_bp.route("/admin/users/<int:user_id>/toggle", methods=["POST"])
     @login_required
     def admin_toggle_user(user_id):
         if current_user.username != "admin":
-            flash("Not authorized.", "error")
+            flash(_("Not authorized."), "error")
             return redirect(url_for("core.index"))
         user = db.session.get(User, user_id)
         if not user:
-            flash("User not found.", "error")
+            flash(_("User not found."), "error")
             return redirect(url_for("tools.admin_users"))
         if user.username == "admin":
-            flash("Cannot deactivate the admin account.", "error")
+            flash(_("Cannot deactivate the admin account."), "error")
             return redirect(url_for("tools.admin_users"))
         user.active = not user.active
         db.session.commit()
         status = "activated" if user.active else "deactivated"
-        flash(f"User '{user.username}' {status}.", "success")
+        flash(_("User '%(username)s' %(status)s.", username=user.username, status=status), "success")
         return redirect(url_for("tools.admin_users"))
 
     @tools_bp.route("/admin/users/<int:user_id>/reset-password", methods=["POST"])
     @login_required
     def admin_reset_password(user_id):
         if current_user.username != "admin":
-            flash("Not authorized.", "error")
+            flash(_("Not authorized."), "error")
             return redirect(url_for("core.index"))
         user = db.session.get(User, user_id)
         if not user:
-            flash("User not found.", "error")
+            flash(_("User not found."), "error")
             return redirect(url_for("tools.admin_users"))
         new_password = request.form.get("new_password", "")
         if not new_password:
-            flash("Password cannot be empty.", "error")
+            flash(_("Password cannot be empty."), "error")
             return redirect(url_for("tools.admin_users"))
         user.set_password(new_password)
         db.session.commit()
-        flash(f"Password reset for '{user.username}'.", "success")
+        flash(_("Password reset for '%(username)s'.", username=user.username), "success")
         return redirect(url_for("tools.admin_users"))
 
     @tools_bp.route("/admin/users/<int:user_id>/delete", methods=["POST"])
     @login_required
     def admin_delete_user(user_id):
         if current_user.username != "admin":
-            flash("Not authorized.", "error")
+            flash(_("Not authorized."), "error")
             return redirect(url_for("core.index"))
         user = db.session.get(User, user_id)
         if not user:
-            flash("User not found.", "error")
+            flash(_("User not found."), "error")
             return redirect(url_for("tools.admin_users"))
         if user.username == "admin":
-            flash("Cannot delete the admin account.", "error")
+            flash(_("Cannot delete the admin account."), "error")
             return redirect(url_for("tools.admin_users"))
         uname = user.username
         db.session.delete(user)
         db.session.commit()
-        flash(f"User '{uname}' deleted.", "success")
+        flash(_("User '%(username)s' deleted.", username=uname), "success")
         return redirect(url_for("tools.admin_users"))
 
 
@@ -13884,7 +13883,7 @@ def download_csv(item_type, item_id):
         if item_type == 'session':
             session = db.query(JournalSession).filter_by(id=item_id, user_id=user_id).one_or_none()
             if not session:
-                flash("Session not found.", "error")
+                flash(_("Session not found."), "error")
                 return redirect(url_for('core.index'))
             sessions_to_export = [session]
             filename = f"Session_{session.date_utc}_{session.object_name.replace(' ', '_')}.csv"
@@ -13892,7 +13891,7 @@ def download_csv(item_type, item_id):
         elif item_type == 'project':
             project = db.query(Project).filter_by(id=item_id, user_id=user_id).one_or_none()
             if not project:
-                flash("Project not found.", "error")
+                flash(_("Project not found."), "error")
                 return redirect(url_for('core.index'))
 
             project_framing_clean = bleach.clean(project.framing_notes or "", tags=[], strip=True).replace("\n", " | ")

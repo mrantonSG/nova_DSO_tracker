@@ -1,7 +1,7 @@
 {% extends "mobile_base.html" %}
 
-{% block title %}Up Now{% endblock %}
-{% block header_title %}Up Now{% endblock %}
+{% block title %}{{ _('Up Now') }}{% endblock %}
+{% block header_title %}{{ _('Up Now') }}{% endblock %}
 
 {% block head %}
 <style>
@@ -84,33 +84,50 @@
 
 {% block content %}
     <div id="mobile-loading" style="padding: 20px; text-align: center;">
-        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;">Scanning Sky...</div>
+        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;">{{ _('Scanning Sky...') }}</div>
         <div style="width: 100%; height: 8px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden;">
             <div id="progress-fill" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.3s ease;"></div>
         </div>
-        <small id="loading-text" style="display: block; margin-top: 8px; color: var(--text-muted);">Initializing...</small>
+        <small id="loading-text" style="display: block; margin-top: 8px; color: var(--text-muted);">{{ _('Initializing...') }}</small>
     </div>
 
     <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Search by name (e.g., M42 or Orion)...">
+        <input type="text" id="search-input" placeholder="{{ _('Search by name (e.g., M42 or Orion)...') }}">
     </div>
 
     <div class="sort-bar">
-        <button class="sort-button active" id="sort-alt">Altitude</button>
-        <button class="sort-button" id="sort-dur">Duration</button>
-        <button class="sort-button" id="filter-active">Active</button>
-        <button class="sort-button" id="filter-framing">Framing</button>
+        <button class="sort-button active" id="sort-alt">{{ _('Altitude') }}</button>
+        <button class="sort-button" id="sort-dur">{{ _('Duration') }}</button>
+        <button class="sort-button" id="filter-active">{{ _('Active') }}</button>
+        <button class="sort-button" id="filter-framing">{{ _('Framing') }}</button>
     </div>
 
     <ul class="item-list" id="object-list" style="margin-top: 15px; display: none;">
         <li class="message" id="loading-indicator" style="display: none;">
-            No objects found.
+            {{ _('No objects found.') }}
         </li>
     </ul>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Translated strings for JS
+    const i18n = {
+        noObjectsTryAdding: "{{ _('No objects found. Try adding one!') }}",
+        noSearchMatch: "{{ _('No objects match your search.') }}",
+        noFilterMatch: "{{ _('No objects match your filter.') }}",
+        calculatedOf: "{{ _('Calculated %%(count)d of %%(total)d objects...') }}",
+        errorLoading: "{{ _('Error loading data.') }}",
+        duration: "{{ _('Duration:') }}",
+        notVisible: "{{ _('Not visible') }}",
+        edit: "{{ _('Edit') }}",
+        framing: "{{ _('Framing') }}",
+        altitude: "{{ _('Altitude:') }}",
+        azimuth: "{{ _('Azimuth:') }}",
+        maxAlt: "{{ _('Max Alt:') }}",
+        min: "{{ _('min') }}"
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('object-list');
         const loadingContainer = document.getElementById('mobile-loading');
@@ -182,13 +199,13 @@
             if (noObjectsMessage) {
                 if (allItems.length === 0) {
                     // If fetch is done but no items at all
-                    noObjectsMessage.textContent = "No objects found. Try adding one!";
+                    noObjectsMessage.textContent = i18n.noObjectsTryAdding;
                     noObjectsMessage.style.display = 'block';
                 } else if (itemsToShow.length === 0) {
                     if (searchedItems.length === 0) {
-                        noObjectsMessage.textContent = "No objects match your search.";
+                        noObjectsMessage.textContent = i18n.noSearchMatch;
                     } else {
-                        noObjectsMessage.textContent = "No objects match your filter.";
+                        noObjectsMessage.textContent = i18n.noFilterMatch;
                     }
                     noObjectsMessage.style.display = 'block';
                 } else {
@@ -283,7 +300,7 @@
                     offset += CHUNK_SIZE;
                     const percentage = Math.min(100, Math.round((offset / total) * 100));
                     progressFill.style.width = `${percentage}%`;
-                    loadingText.textContent = `Calculated ${Math.min(offset, total)} of ${total} objects...`;
+                    loadingText.textContent = i18n.calculatedOf.replace('%(count)d', Math.min(offset, total)).replace('%(total)d', total);
                 }
 
                 // Save to Session Storage
@@ -301,7 +318,7 @@
                 }, 500);
 
             } catch (e) {
-                loadingText.textContent = "Error loading data.";
+                loadingText.textContent = i18n.errorLoading;
                 console.error(e);
             }
         }
@@ -326,16 +343,16 @@
             // Append source param
             const mosaicUrl = baseMosaicUrl.replace('__OBJ__', safeObj) + "?from=up_now";
 
-            let durHtml = `<div><strong>Duration:</strong> ${obj['Observable Duration (min)']} min</div>`;
+            let durHtml = `<div><strong>${i18n.duration}</strong> ${obj['Observable Duration (min)']} ${i18n.min}</div>`;
             if (obj['Observable Duration (min)'] == 0) {
-                durHtml = `<div><strong>Duration:</strong> Not visible</div>`;
+                durHtml = `<div><strong>${i18n.duration}</strong> ${i18n.notVisible}</div>`;
             }
 
-            let actionsHtml = `<a href="${editUrl}" class="edit-button">Edit</a>`;
+            let actionsHtml = `<a href="${editUrl}" class="edit-button">${i18n.edit}</a>`;
 
             // Only show ASIAIR button if framing exists
             if (obj.has_framing) {
-                actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">Framing</a>` + actionsHtml;
+                actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">${i18n.framing}</a>` + actionsHtml;
             }
 
             li.innerHTML = `
@@ -344,9 +361,9 @@
                 </div>
                 <h3 style="margin-right: 130px;">${obj['Common Name']} (${obj['Object']})</h3>
                 <div class="item-card-grid">
-                    <div><strong>Altitude:</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
-                    <div><strong>Azimuth:</strong> ${obj['Azimuth Current']}°</div>
-                    <div><strong>Max Alt:</strong> ${obj['Max Altitude (°)']}°</div>
+                    <div><strong>${i18n.altitude}</strong> ${obj['Altitude Current']}° ${obj['Trend']}</div>
+                    <div><strong>${i18n.azimuth}</strong> ${obj['Azimuth Current']}°</div>
+                    <div><strong>${i18n.maxAlt}</strong> ${obj['Max Altitude (°)']}°</div>
                     ${durHtml}
                 </div>
             `;
