@@ -49,6 +49,7 @@ from flask import render_template, jsonify, request, send_file, redirect, url_fo
 from flask_login import LoginManager, UserMixin, login_user, login_required, current_user, logout_user
 from flask import session
 from flask import Flask, send_from_directory, has_request_context
+from flask_babel import Babel
 import math
 from astroquery.simbad import Simbad
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord, get_body, get_constellation, FK5, search_around_sky
@@ -3030,6 +3031,30 @@ app.secret_key = SECRET_KEY
 csrf = CSRFProtect()
 csrf.init_app(app)
 app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't enforce globally; protect routes explicitly
+
+# --- Internationalization (i18n) with Flask-Babel ---
+app.config['BABEL_DEFAULT_LOCALE'] = 'en'
+app.config['BABEL_SUPPORTED_LOCALES'] = ['en', 'de', 'fr', 'es', 'ja', 'zh']
+babel = Babel(app)
+
+def get_locale():
+    """
+    Locale selector for Flask-Babel.
+    Reads language preference from user config, falls back to browser preference or 'en'.
+    """
+    # Try user preference first (set by load_global_request_context)
+    if hasattr(g, 'user_config') and g.user_config:
+        user_lang = g.user_config.get('language')
+        if user_lang and user_lang in app.config['BABEL_SUPPORTED_LOCALES']:
+            return user_lang
+    # Fall back to browser preference
+    browser_locale = request.accept_languages.best_match(app.config['BABEL_SUPPORTED_LOCALES'])
+    if browser_locale:
+        return browser_locale
+    # Default
+    return 'en'
+
+babel.init_app(app, locale_selector=get_locale)
 
 # --- Performance: gzip response compression ---
 from flask_compress import Compress
