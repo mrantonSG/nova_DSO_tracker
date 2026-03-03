@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% from "macros.html" import form_group, help_badge %}
 
-{% block title %}Nova – Configuration{% endblock %}
+{% block title %}{{ _('Nova – Configuration') }}{% endblock %}
 
 {% block head_extra %}
   <link rel="icon" href="{{ url_for('static', filename='favicon_v2.ico') }}" type="image/x-icon">
 
   <meta charset="UTF-8">
-  <title>Configuration Form</title>
+  <title>{{ _('Configuration Form') }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/config_form.css') }}">
 {% endblock %}
 </head>
@@ -19,11 +19,11 @@
 </datalist>
 
 {% block page_title %}
-    <h2>Configuration <span class="subtitle">(System Settings)</span></h2>
+    <h2>{{ _('Configuration') }} <span class="subtitle">({{ _('System Settings') }})</span></h2>
 {% endblock %}
 
 {% block header_actions %}
-    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">← Back to Dashboard</button>
+    <button class="action-button" data-nav-url="{{ url_for('core.index') }}">← {{ _('Back to Dashboard') }}</button>
 {% endblock %}
 
 {% block body %}
@@ -58,62 +58,62 @@
 
   <div class="tab-container">
         <div class="tabs-left">
-            <button class="tab-button" data-tab="general">General</button>
-            <button class="tab-button" data-tab="locations">Locations</button>
-            <button class="tab-button" data-tab="objects">Objects</button>
-            <button class="tab-button" data-tab="rigs">Rigs</button>
+            <button class="tab-button" data-tab="general">{{ _('General') }}</button>
+            <button class="tab-button" data-tab="locations">{{ _('Locations') }}</button>
+            <button class="tab-button" data-tab="objects">{{ _('Objects') }}</button>
+            <button class="tab-button" data-tab="rigs">{{ _('Rigs') }}</button>
             {% if not SINGLE_USER_MODE %}
-            <button class="tab-button" data-tab="shared">Shared Items</button>
+            <button class="tab-button" data-tab="shared">{{ _('Shared Items') }}</button>
             {% endif %}
         </div>
 
     <div class="tabs-right actions-group">
         <div class="dropdown">
-            <button class="file-button dropdown-btn">Download ▼</button>
+            <button class="file-button dropdown-btn">{{ _('Download') }} ▼</button>
             <div class="dropdown-content">
-                <a href="{{ url_for('tools.download_config') }}">Configuration</a>
-                <a href="{{ url_for('tools.download_journal') }}">Journal</a>
-                <a href="{{ url_for('tools.download_rig_config') }}">Rigs</a>
-                <a href="{{ url_for('tools.download_journal_photos') }}">Journal Photos</a>
+                <a href="{{ url_for('tools.download_config') }}">{{ _('Configuration') }}</a>
+                <a href="{{ url_for('tools.download_journal') }}">{{ _('Journal') }}</a>
+                <a href="{{ url_for('tools.download_rig_config') }}">{{ _('Rigs') }}</a>
+                <a href="{{ url_for('tools.download_journal_photos') }}">{{ _('Journal Photos') }}</a>
             </div>
         </div>
 
         <div class="dropdown">
-            <button class="file-button dropdown-btn">Import ▼</button>
+            <button class="file-button dropdown-btn">{{ _('Import') }} ▼</button>
             <div class="dropdown-content">
                 <form id="form-import-config" action="{{ url_for('tools.import_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-config">Configuration</a>
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-config">{{ _('Configuration') }}</a>
                     <input type="file" name="file" id="file-import-config" accept=".yaml" style="display:none;" onchange="handleImportSubmit(this, 'configuration')">
                 </form>
                 <form id="form-import-journal" action="{{ url_for('tools.import_journal') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-journal">Journal</a>
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-journal">{{ _('Journal') }}</a>
                     <input type="file" name="file" id="file-import-journal" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'journal')">
                 </form>
                 <form id="form-import-rigs" action="{{ url_for('tools.import_rig_config') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-rigs">Rigs</a>
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-rigs">{{ _('Rigs') }}</a>
                     <input type="file" name="file" id="file-import-rigs" accept=".yaml,.yml" style="display:none;" onchange="handleImportSubmit(this, 'rigs file')">
                 </form>
                 <form id="form-import-photos" action="{{ url_for('tools.import_journal_photos') }}" method="post" enctype="multipart/form-data" style="margin: 0;">
-                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-photos">Journal Photos</a>
+                    <a href="#" data-action="trigger-file-input" data-target-id="file-import-photos">{{ _('Journal Photos') }}</a>
                     <input type="file" name="file" id="file-import-photos" accept=".zip" style="display:none;" onchange="handleImportSubmit(this, 'journal photos archive')">
                 </form>
             </div>
         </div>
 
-        {{ help_badge('data_management', 'Help with Data Tools') }}
+        {{ help_badge('data_management', _('Help with Data Tools')) }}
     </div>
     </div>
 
     <div id="general-tab-content" class="tab-content">
         <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
-              General Settings
-              {{ help_badge('general_settings', 'Click for help') }}
+              {{ _('General Settings') }}
+              {{ help_badge('general_settings', _('Click for help')) }}
           </h2>
           <form method="post">
               <div class="inline-fields">
                 <div>
-                  <label class="verylong-label" for="altitude_threshold">Altitude Threshold (°):</label>
+                  <label class="verylong-label" for="altitude_threshold">{{ _('Altitude Threshold (°):') }}</label>
                   <input type="number" name="altitude_threshold" id="altitude_threshold"
                          value="{{ config.get('altitude_threshold', 20) }}" min="0" max="90" required>
                 </div>
@@ -122,28 +122,28 @@
 
               <div class="inline-fields theme-preference-field">
                 <div class="theme-preference-container">
-                  <label class="verylong-label">Theme:</label>
+                  <label class="verylong-label">{{ _('Theme:') }}</label>
                   <div class="theme-segmented-control">
                     {% set current_theme = config.get('theme_preference', 'follow_system') %}
                     <label class="theme-option{% if current_theme == 'follow_system' %} selected{% endif %}">
                       <input type="radio" name="theme_preference" value="follow_system"
                              {% if current_theme == 'follow_system' %}checked{% endif %}>
-                      <span>Follow System</span>
+                      <span>{{ _('Follow System') }}</span>
                     </label>
                     <label class="theme-option{% if current_theme == 'always_light' %} selected{% endif %}">
                       <input type="radio" name="theme_preference" value="always_light"
                              {% if current_theme == 'always_light' %}checked{% endif %}>
-                      <span>Light</span>
+                      <span>{{ _('Light') }}</span>
                     </label>
                     <label class="theme-option{% if current_theme == 'always_dark' %} selected{% endif %}">
                       <input type="radio" name="theme_preference" value="always_dark"
                              {% if current_theme == 'always_dark' %}checked{% endif %}>
-                      <span>Dark</span>
+                      <span>{{ _('Dark') }}</span>
                     </label>
                   </div>
                 </div>
                 <small class="form-text text-muted">
-                  Choose how Nova appears. "Follow System" matches your OS setting and updates automatically.
+                  {{ _('Choose how Nova appears. "Follow System" matches your OS setting and updates automatically.') }}
                 </small>
               </div>
 

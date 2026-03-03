@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}DSO Altitude Tracker{% endblock %}
+{% block title %}{{ _('DSO Altitude Tracker') }}{% endblock %}
 
 {% block head_extra %}
   <script src="{{ url_for('static', filename='js/plotly-2.27.0.min.js') }}" defer></script>
@@ -20,31 +20,31 @@
 {% endblock %}
 
 {% block page_title %}
-    <h2>Dashboard <span id="simulated-title-text" style="display: none; color: var(--color-simulation-active); font-weight: normal;">- Simulated</span></h2>
+    <h2>{{ _('Dashboard') }} <span id="simulated-title-text" style="display: none; color: var(--color-simulation-active); font-weight: normal;">- {{ _('Simulated') }}</span></h2>
 {% endblock %}
 
 {% block header_actions %}
     {% if SINGLE_USER_MODE or not is_guest %}
-       <button class="action-button" data-nav-url="{{ url_for('core.config_form') }}">Configuration</button>
+       <button class="action-button" data-nav-url="{{ url_for('core.config_form') }}">{{ _('Configuration') }}</button>
     {% endif %}
 {% endblock %}
 
 {% block header_content %}
 <div class="status-strip">
     <div class="status-item" style="min-width: 150px;">
-        <span class="status-label">Location</span>
+        <span class="status-label">{{ _('Location') }}</span>
         <select id="location-select"></select>
     </div>
     <div class="status-item">
-        <span class="status-label">Local Time</span>
+        <span class="status-label">{{ _('Local Time') }}</span>
         <span class="status-value"><span id="date"></span> <span id="time" style="margin-left:5px;"></span></span>
     </div>
     <div class="status-item">
-        <span class="status-label">Moon</span>
+        <span class="status-label">{{ _('Moon') }}</span>
         <span class="status-value" id="phase">--%</span>
     </div>
     <div class="status-item">
-        <span class="status-label">Astr. Dusk / Dawn</span>
+        <span class="status-label">{{ _('Astr. Dusk / Dawn') }}</span>
         <span class="status-value"><span id="dusk">--:--</span> <span style="color:var(--text-light); margin:0 5px;">|</span> <span id="dawn">--:--</span></span>
     </div>
     <div class="status-item" id="simulation-controls">
@@ -56,12 +56,12 @@
             </label>
         </div>
         <div style="display: flex; align-items: center;">
-            <label for="sim-mode-toggle" class="status-label" style="cursor:pointer; margin-left: 8px;">Simulation</label>
-            <span class="help-badge" data-help-topic="simulation_mode" title="About Simulation Mode" style="margin-left: 5px; cursor: pointer;">?</span>
+            <label for="sim-mode-toggle" class="status-label" style="cursor:pointer; margin-left: 8px;">{{ _('Simulation') }}</label>
+            <span class="help-badge" data-help-topic="simulation_mode" title="{{ _('About Simulation Mode') }}" style="margin-left: 5px; cursor: pointer;">?</span>
         </div>
     </div>
     <div class="status-item" style="margin-left: auto;">
-        <span class="status-label">Update</span>
+        <span class="status-label">{{ _('Update') }}</span>
         <span class="status-value" id="next-update-timer" style="color:var(--primary-color);">60s</span>
     </div>
 </div>
@@ -82,28 +82,28 @@
 
 
 <div class="tab-container">
-    <button class="tab-button active" data-tab="position">Position</button>
-    <button class="tab-button" data-tab="properties">Properties</button>
-    <button class="tab-button" data-tab="outlook">Outlook</button>
-    <button class="tab-button" data-tab="heatmap">Heatmap</button>
-    <button class="tab-button" data-tab="inspiration">Inspiration</button> <button class="tab-button" data-tab="journal">Journal</button>
+    <button class="tab-button active" data-tab="position">{{ _('Position') }}</button>
+    <button class="tab-button" data-tab="properties">{{ _('Properties') }}</button>
+    <button class="tab-button" data-tab="outlook">{{ _('Outlook') }}</button>
+    <button class="tab-button" data-tab="heatmap">{{ _('Heatmap') }}</button>
+    <button class="tab-button" data-tab="inspiration">{{ _('Inspiration') }}</button> <button class="tab-button" data-tab="journal">{{ _('Journal') }}</button>
 
-    <span class="help-badge" data-help-topic="search_syntax" title="Search Syntax Guide" style="margin-left: 10px;">?</span>
+    <span class="help-badge" data-help-topic="search_syntax" title="{{ _('Search Syntax Guide') }}" style="margin-left: 10px;">?</span>
 
     <div id="saved-views-container">
         <select id="saved-views-dropdown" class="styled-select">
-            <option value="">-- Saved Views --</option>
+            <option value="">-- {{ _('Saved Views') }} --</option>
         </select>
-        <button id="save-view-btn" title="Save current filters and sorting">Save</button>
-        <button id="delete-view-btn" title="Delete selected view">Delete</button>
+        <button id="save-view-btn" title="{{ _('Save current filters and sorting') }}">{{ _('Save') }}</button>
+        <button id="delete-view-btn" title="{{ _('Delete selected view') }}">{{ _('Delete') }}</button>
 
         <label style="display:flex; align-items:center; margin-left:10px; cursor:pointer; font-size: 14px; user-select: none; color: var(--text-dark-alt);">
             <input type="checkbox" id="global-active-toggle" style="margin-right:5px;">
-            Active Only
+            {{ _('Active Only') }}
         </label>
     </div>
     <div id="remove-filters-container" style="display: none; margin-left: auto;"> <button type="button" id="remove-filters-btn">
-       Remove Filter
+       {{ _('Remove Filter') }}
      </button>
     </div>
 </div>
@@ -112,44 +112,44 @@
         <table id="data-table" data-sort-order="asc">
           <thead>
             <tr> {# Main Headers for DSO Table #}
-              <th data-column-key="Object" class="col-always-visible sortable"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Common Name" class="col-always-visible sortable"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Altitude Current" class="col-position sortable"><span>Altitude<br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Azimuth Current" class="col-position sortable"><span>Azimuth <br><span class="subtext">(Current)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Trend" class="col-position sortable"><span>Trend</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Altitude 11PM" class="col-position sortable"><span>Altitude <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Azimuth 11PM" class="col-position sortable"><span>Azimuth <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Transit Time" class="col-position sortable"><span>Transit <br><span class="subtext">(Local Time)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Observable Duration (min)" class="col-position sortable"><span>Observable <br><span class="subtext">(minutes)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Max Altitude (°)" class="col-position sortable"><span>Max Altitude<br><span class="subtext">observable (°)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Angular Separation (°)" class="col-position sortable"><span>Ang. Sep. <br><span class="subtext">to moon (°)</span></span><span class="sort-indicator"></span></th>
-              <th data-column-key="Constellation" class="col-properties sortable"><span>Constellation</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Type" class="col-properties sortable"><span>Type</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Magnitude" class="col-properties sortable"><span>Magnitude</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Size" class="col-properties sortable"><span>Size (')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="SB" class="col-properties sortable"><span>SB</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Best Month" class="col-properties sortable"><span>Best Month</span><span class="subtext">(Opp.)</span><span class="sort-indicator"></span></th>
-              <th data-column-key="Max Altitude" class="col-properties sortable"><span>Max Alt</span><span class="subtext">(Culm.)</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Object" class="col-always-visible sortable"><span>{{ _('Object') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Common Name" class="col-always-visible sortable"><span>{{ _('Common Name') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Altitude Current" class="col-position sortable"><span>{{ _('Altitude') }}<br><span class="subtext">({{ _('Current') }})</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Azimuth Current" class="col-position sortable"><span>{{ _('Azimuth') }} <br><span class="subtext">({{ _('Current') }})</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Trend" class="col-position sortable"><span>{{ _('Trend') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Altitude 11PM" class="col-position sortable"><span>{{ _('Altitude') }} <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Azimuth 11PM" class="col-position sortable"><span>{{ _('Azimuth') }} <br><span class="subtext">(11 PM)</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Transit Time" class="col-position sortable"><span>{{ _('Transit') }} <br><span class="subtext">({{ _('Local Time') }})</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Observable Duration (min)" class="col-position sortable"><span>{{ _('Observable') }} <br><span class="subtext">({{ _('minutes') }})</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Max Altitude (°)" class="col-position sortable"><span>{{ _('Max Altitude') }}<br><span class="subtext">{{ _('observable (°)') }}</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Angular Separation (°)" class="col-position sortable"><span>{{ _('Ang. Sep.') }} <br><span class="subtext">{{ _('to moon (°)') }}</span></span><span class="sort-indicator"></span></th>
+              <th data-column-key="Constellation" class="col-properties sortable"><span>{{ _('Constellation') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Type" class="col-properties sortable"><span>{{ _('Type') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Magnitude" class="col-properties sortable"><span>{{ _('Magnitude') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Size" class="col-properties sortable"><span>{{ _('Size (') }}')</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="SB" class="col-properties sortable"><span>{{ _('SB') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Best Month" class="col-properties sortable"><span>{{ _('Best Month') }}</span><span class="subtext">({{ _('Opp.') }})</span><span class="sort-indicator"></span></th>
+              <th data-column-key="Max Altitude" class="col-properties sortable"><span>{{ _('Max Alt') }}</span><span class="subtext">({{ _('Culm.') }})</span><span class="sort-indicator"></span></th>
             </tr>
             <tr class="filter-row"> {# Filter Row for DSO Table #}
-              <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="Search Object" /></th>
-              <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="Search Common Name" /></th>
-              <th data-column-key="Altitude Current" class="col-position"><input type="text" placeholder="Altitude °" /></th>
-              <th data-column-key="Azimuth Current" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
-              <th data-column-key="Trend" class="col-position"><input type="text" placeholder="Trend" disabled style="visibility:hidden;" /></th>
-              <th data-column-key="Altitude 11PM" class="col-position"><input type="text" placeholder="Altitude °" /></th>
-              <th data-column-key="Azimuth 11PM" class="col-position"><input type="text" placeholder="Azimuth °" /></th>
-              <th data-column-key="Transit Time" class="col-position"><input type="text" placeholder="Transit" disabled style="visibility:hidden;" /></th>
-              <th data-column-key="Observable Duration (min)" class="col-position"><input type="text" placeholder="minutes" /></th>
-              <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="Max Alt. °" /></th>
-              <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="Ang. Sep. °" /></th>
-              <th data-column-key="Constellation" class="col-properties"><input type="text" placeholder="e.g. Cyg" /></th>
-              <th data-column-key="Type" class="col-properties"><input type="text" placeholder="Type (e.g. PN,SNR)" /></th>
-              <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="Mag e.g. <8" /></th>
-              <th data-column-key="Size" class="col-properties"><input type="text" placeholder="Size e.g. >10" /></th>
-              <th data-column-key="SB" class="col-properties"><input type="text" placeholder="SB e.g. <22" /></th>
-              <th data-column-key="Best Month" class="col-properties"><input type="text" placeholder="e.g. Dec" /></th>
-              <th data-column-key="Max Altitude" class="col-properties"><input type="text" placeholder="e.g. >80" /></th>
+              <th data-column-key="Object" class="col-always-visible"><input type="text" placeholder="{{ _('Search Object') }}" /></th>
+              <th data-column-key="Common Name" class="col-always-visible"><input type="text" placeholder="{{ _('Search Common Name') }}" /></th>
+              <th data-column-key="Altitude Current" class="col-position"><input type="text" placeholder="{{ _('Altitude °') }}" /></th>
+              <th data-column-key="Azimuth Current" class="col-position"><input type="text" placeholder="{{ _('Azimuth °') }}" /></th>
+              <th data-column-key="Trend" class="col-position"><input type="text" placeholder="{{ _('Trend') }}" disabled style="visibility:hidden;" /></th>
+              <th data-column-key="Altitude 11PM" class="col-position"><input type="text" placeholder="{{ _('Altitude °') }}" /></th>
+              <th data-column-key="Azimuth 11PM" class="col-position"><input type="text" placeholder="{{ _('Azimuth °') }}" /></th>
+              <th data-column-key="Transit Time" class="col-position"><input type="text" placeholder="{{ _('Transit') }}" disabled style="visibility:hidden;" /></th>
+              <th data-column-key="Observable Duration (min)" class="col-position"><input type="text" placeholder="{{ _('minutes') }}" /></th>
+              <th data-column-key="Max Altitude (°)" class="col-position"><input type="text" placeholder="{{ _('Max Alt. °') }}" /></th>
+              <th data-column-key="Angular Separation (°)" class="col-position"><input type="text" placeholder="{{ _('Ang. Sep. °') }}" /></th>
+              <th data-column-key="Constellation" class="col-properties"><input type="text" placeholder="{{ _('e.g. Cyg') }}" /></th>
+              <th data-column-key="Type" class="col-properties"><input type="text" placeholder="{{ _('Type (e.g. PN,SNR)') }}" /></th>
+              <th data-column-key="Magnitude" class="col-properties"><input type="text" placeholder="{{ _('Mag e.g. <8') }}" /></th>
+              <th data-column-key="Size" class="col-properties"><input type="text" placeholder="{{ _('Size e.g. >10') }}" /></th>
+              <th data-column-key="SB" class="col-properties"><input type="text" placeholder="{{ _('SB e.g. <22') }}" /></th>
+              <th data-column-key="Best Month" class="col-properties"><input type="text" placeholder="{{ _('e.g. Dec') }}" /></th>
+              <th data-column-key="Max Altitude" class="col-properties"><input type="text" placeholder="{{ _('e.g. >80') }}" /></th>
             </tr>
           </thead>
           <tbody id="data-body"></tbody>
@@ -160,24 +160,24 @@
         <table id="journal-data-table" data-sort-order="desc">
             <thead>
                 <tr>
-                    <th data-journal-column-key="object_name"><span>Object</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="target_common_name"><span>Common Name</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="project_name"><span>Project</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="date_utc"><span>Date</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="location_name"><span>Location</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="telescope_setup_notes"><span>Telescope Setup</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="calculated_integration_time_minutes"><span>Integration</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
-                    <th data-journal-column-key="session_rating_subjective"><span>Rating</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="object_name"><span>{{ _('Object') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="target_common_name"><span>{{ _('Common Name') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="project_name"><span>{{ _('Project') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="date_utc"><span>{{ _('Date') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="location_name"><span>{{ _('Location') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="telescope_setup_notes"><span>{{ _('Telescope Setup') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="calculated_integration_time_minutes"><span>{{ _('Integration') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
+                    <th data-journal-column-key="session_rating_subjective"><span>{{ _('Rating') }}</span><span class="subtext">&nbsp;</span><span class="sort-indicator"></span></th>
                 </tr>
                 <tr class="filter-row" id="journal-filter-row">
-                    <th data-journal-column-key="object_name"><input type="text" placeholder="Object ID"/></th>
-                    <th data-journal-column-key="target_common_name"><input type="text" placeholder="Search Common Name"/></th>
-                    <th data-journal-column-key="project_name"><input type="text" placeholder="Project Name"/></th>
-                    <th data-journal-column-key="date_utc"><input type="text" placeholder="Date" style="min-width: 0;"/></th>
-                    <th data-journal-column-key="location_name"><input type="text" placeholder="Location"/></th>
-                    <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="Setup notes"/></th>
-                    <th data-journal-column-key="calculated_integration_time_minutes"><input type="text" placeholder="e.g. >120"/></th>
-                    <th data-journal-column-key="session_rating_subjective"><input type="text" placeholder="e.g. ★★★★"/></th>
+                    <th data-journal-column-key="object_name"><input type="text" placeholder="{{ _('Object ID') }}"/></th>
+                    <th data-journal-column-key="target_common_name"><input type="text" placeholder="{{ _('Search Common Name') }}"/></th>
+                    <th data-journal-column-key="project_name"><input type="text" placeholder="{{ _('Project Name') }}"/></th>
+                    <th data-journal-column-key="date_utc"><input type="text" placeholder="{{ _('Date') }}" style="min-width: 0;"/></th>
+                    <th data-journal-column-key="location_name"><input type="text" placeholder="{{ _('Location') }}"/></th>
+                    <th data-journal-column-key="telescope_setup_notes"><input type="text" placeholder="{{ _('Setup notes') }}"/></th>
+                    <th data-journal-column-key="calculated_integration_time_minutes"><input type="text" placeholder="{{ _('e.g. >120') }}"/></th>
+                    <th data-journal-column-key="session_rating_subjective"><input type="text" placeholder="{{ _('e.g. ★★★★') }}"/></th>
                 </tr>
             </thead>
             <tbody id="journal-data-body">
@@ -189,20 +189,20 @@
         <table id="outlook-table">
             <thead>
                 <tr>
-                    <th data-outlook-column-key="object_name"><span>Object</span><span class="sort-indicator"></span></th>
-                    <th data-outlook-column-key="common_name"><span>Common Name</span><span class="sort-indicator"></span></th>
-                    <th data-outlook-column-key="date"><span>Date</span><span class="sort-indicator"></span></th>
-                    <th data-outlook-column-key="max_alt"><span>Max Alt</span><span class="sort-indicator"></span></th>
-                    <th data-outlook-column-key="obs_dur"><span>Obs. Time</span><span class="sort-indicator"></span></th>
-                    <th data-outlook-column-key="rating"><span>Rating</span><span class="sort-indicator"></span></th>
+                    <th data-outlook-column-key="object_name"><span>{{ _('Object') }}</span><span class="sort-indicator"></span></th>
+                    <th data-outlook-column-key="common_name"><span>{{ _('Common Name') }}</span><span class="sort-indicator"></span></th>
+                    <th data-outlook-column-key="date"><span>{{ _('Date') }}</span><span class="sort-indicator"></span></th>
+                    <th data-outlook-column-key="max_alt"><span>{{ _('Max Alt') }}</span><span class="sort-indicator"></span></th>
+                    <th data-outlook-column-key="obs_dur"><span>{{ _('Obs. Time') }}</span><span class="sort-indicator"></span></th>
+                    <th data-outlook-column-key="rating"><span>{{ _('Rating') }}</span><span class="sort-indicator"></span></th>
                 </tr>
                 <tr class="filter-row" id="outlook-filter-row">
-                    <th data-outlook-column-key="object_name"><input type="text" placeholder="Search Object"/></th>
-                    <th data-outlook-column-key="common_name"><input type="text" placeholder="Search Common Name"/></th>
-                    <th data-outlook-column-key="date"><input type="text" placeholder="Search Date"/></th>
-                    <th data-outlook-column-key="max_alt"><input type="text" placeholder="e.g. >60"/></th>
-                    <th data-outlook-column-key="obs_dur"><input type="text" placeholder="e.g. >300"/></th>
-                    <th data-outlook-column-key="rating"><input type="text" placeholder="e.g. ★★★★★"/></th>
+                    <th data-outlook-column-key="object_name"><input type="text" placeholder="{{ _('Search Object') }}"/></th>
+                    <th data-outlook-column-key="common_name"><input type="text" placeholder="{{ _('Search Common Name') }}"/></th>
+                    <th data-outlook-column-key="date"><input type="text" placeholder="{{ _('Search Date') }}"/></th>
+                    <th data-outlook-column-key="max_alt"><input type="text" placeholder="{{ _('e.g. >60') }}"/></th>
+                    <th data-outlook-column-key="obs_dur"><input type="text" placeholder="{{ _('e.g. >300') }}"/></th>
+                    <th data-outlook-column-key="rating"><input type="text" placeholder="{{ _('e.g. ★★★★★') }}"/></th>
                 </tr>
             </thead>
             <tbody id="outlook-body">
@@ -213,7 +213,7 @@
     {% include '_inspiration_section.html' %}
 
     <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--overlay-light); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-light); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">
-        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;" id="loading-message">Updating data...</div>
+        <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;" id="loading-message">{{ _('Updating data...') }}</div>
 
         <div style="width: 100%; height: 10px; background: var(--bg-medium-alt); border-radius: 5px; overflow: hidden;">
             <div id="loading-progress-bar" style="width: 0%; height: 100%; background: var(--primary-dark); transition: width 0.1s ease;"></div>
@@ -228,24 +228,24 @@
 <div id="graph-section" style="display: none;">
   <iframe id="graph-iframe"
           style="width: 100%; max-width:1500px; height: 1000px; border: none;"
-          title="Graph">
+          title="{{ _('Graph') }}">
   </iframe>
 </div>
 
 <div id="save-view-modal" class="modal-backdrop" data-action="close-save-view-modal" style="display:none; position:fixed; inset:0; background:var(--overlay-dark); z-index:3000;">
     <div class="modal-content" data-stop-propagation="true" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--bg-white); padding:20px; border-radius:8px; width:400px;">
-        <h3 style="margin-top:0;">Save Current View</h3>
+        <h3 style="margin-top:0;">{{ _('Save Current View') }}</h3>
         <div style="display:flex; flex-direction:column; gap:10px;">
-            <label>Name: <input type="text" id="modal-view-name" style="width:100%; padding:5px;"></label>
-            <label>Description: <textarea id="modal-view-desc" rows="3" style="width:100%; padding:5px;" placeholder="Describe what this filter does..."></textarea></label>
+            <label>{{ _('Name:') }} <input type="text" id="modal-view-name" style="width:100%; padding:5px;"></label>
+            <label>{{ _('Description:') }} <textarea id="modal-view-desc" rows="3" style="width:100%; padding:5px;" placeholder="{{ _('Describe what this filter does...') }}"></textarea></label>
             {% if not SINGLE_USER_MODE %}
             <label style="display:flex; align-items:center; gap:8px;">
-                <input type="checkbox" id="modal-view-shared"> Share this view with others
+                <input type="checkbox" id="modal-view-shared"> {{ _('Share this view with others') }}
             </label>
             {% endif %}
             <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px;">
-                <button data-action="confirm-save-view" style="background:var(--success-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Save</button>
-                <button data-action="close-save-view-modal" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Cancel</button>
+                <button data-action="confirm-save-view" style="background:var(--success-color); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">{{ _('Save') }}</button>
+                <button data-action="close-save-view-modal" style="background:var(--accent-gray-medium); color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">{{ _('Cancel') }}</button>
             </div>
         </div>
     </div>
