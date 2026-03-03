@@ -1,0 +1,13 @@
+services:
+  nova:
+# in dev mode, build image from local code 
+# instead of using the official image
+#    image: mrantonsg/nova-dso-tracker
+    build:
+      context: .
+    container_name: nova
+    ports:
+      - "127.0.0.1:5001:5001"
+    volumes:
+      - ./nova_data:/app/instance  # Relative bind mount
+    restart: unless-stopped
