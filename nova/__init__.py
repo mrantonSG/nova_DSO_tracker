@@ -3035,7 +3035,9 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Don't enforce globally; protect 
 # --- Internationalization (i18n) with Flask-Babel ---
 app.config['BABEL_DEFAULT_LOCALE'] = 'en'
 app.config['BABEL_SUPPORTED_LOCALES'] = ['en', 'de', 'fr', 'es', 'ja', 'zh']
-babel = Babel(app)
+# Translations are at project root (../translations relative to nova/ package)
+app.config['BABEL_TRANSLATION_DIRECTORIES'] = os.path.join(os.path.dirname(__file__), '..', 'translations')
+babel = Babel()  # Create without app - will init with locale_selector below
 
 def get_locale():
     """
@@ -3058,6 +3060,7 @@ def get_locale():
     # Default
     return 'en'
 
+# Initialize Babel with the app and locale_selector in one call
 babel.init_app(app, locale_selector=get_locale)
 
 # --- Performance: gzip response compression ---
