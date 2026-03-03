@@ -1,7 +1,7 @@
 {% extends "mobile_base.html" %}
 
-{% block title %}Edit Notes{% endblock %}
-{% block header_title %}Edit: {{ common_name or object_name }}{% endblock %}
+{% block title %}{{ _('Edit Notes') }}{% endblock %}
+{% block header_title %}{{ _('Edit:') }} {{ common_name or object_name }}{% endblock %}
 
 {% block content %}
     <form id="edit-notes-form">
@@ -11,10 +11,10 @@
         </div>
         <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 20px;">
             <input type="checkbox" id="is-active" style="width: auto;" {% if is_project_active %}checked{% endif %}>
-            <label for="is-active" style="margin: 0; font-weight: normal;">Set as Active Project</label>
+            <label for="is-active" style="margin: 0; font-weight: normal;">{{ _('Set as Active Project') }}</label>
         </div>
         <button type="submit" class="button" id="save-button" style="margin-top: 20px;">
-            Save Notes
+            {{ _('Save Notes') }}
         </button>
     </form>
 
@@ -35,9 +35,8 @@
 
         const objectName = "{{ object_name | e }}";
 
-
         // --- FIX #1: THE TRIX UPLOAD HANDLER ---
-        // This listens for when you drop an image into the editor.
+        // This listens for when you drop an image into editor.
         editor.addEventListener('trix-attachment-add', (event) => {
             const file = event.attachment.file;
             if (file) {
@@ -71,9 +70,8 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             saveButton.disabled = true;
-            saveButton.textContent = 'Saving...';
+            saveButton.textContent = "{{ _('Saving...') }}";
             messageArea.style.display = 'none';
 
             // --- FIX #2: SAVE THE HTML, NOT PLAIN TEXT ---
@@ -98,12 +96,12 @@
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success') {
-                    messageArea.textContent = 'Notes saved successfully!';
+                    messageArea.textContent = "{{ _('Notes saved successfully!') }}";
                     messageArea.style.color = 'var(--accent-rise)';
                     messageArea.style.display = 'block';
 
                     saveButton.disabled = false;
-                    saveButton.textContent = 'Save Notes';
+                    saveButton.textContent = "{{ _('Save Notes') }}";
 
                     setTimeout(() => {
                         window.location.href = "{{ url_for('mobile.mobile_up_now') }}";
@@ -113,11 +111,11 @@
                     throw new Error(data.message || 'Unknown error');
                 }
             } catch (err) {
-                messageArea.textContent = `Error: ${err.message}`;
+                messageArea.textContent = `{{ _('Error:') }} ${err.message}`;
                 messageArea.style.color = 'var(--accent-set)';
                 messageArea.style.display = 'block';
                 saveButton.disabled = false;
-                saveButton.textContent = 'Save Notes';
+                saveButton.textContent = "{{ _('Save Notes') }}";
             }
         });
     });

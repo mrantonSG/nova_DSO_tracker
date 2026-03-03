@@ -1083,14 +1083,14 @@
 <div class="journal-container">
     <div class="session-list-column">
         <div class="history-header">
-            <h4>Session History</h4>
+            <h4>{{ _('Session History') }}</h4>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <button id="journal-switcher-trigger" class="journal-switcher-btn">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  Switch Object
+                  {{ _('Switch Object') }}
                 </button>
-                <button type="button" class="btn-primary block" data-action="add-project">Add New Project</button>
-                <button type="button" class="btn-secondary block" data-action="add-session">Add New Session</button>
+                <button type="button" class="btn-primary block" data-action="add-project">{{ _('Add New Project') }}</button>
+                <button type="button" class="btn-secondary block" data-action="add-session">{{ _('Add New Session') }}</button>
             </div>
         </div>
         <div class="table-wrapper" style="border: none; border-radius: 0; box-shadow: none; background: transparent;">
@@ -1110,8 +1110,8 @@
                             {% endif %}
                         >
                             {% if group.is_project %}{% set project_total_h = (group.total_integration_time / 60) | round(1) %}
-                                Project: {{ group.project_name }}
-                                {% if project_total_h > 0 %}<span style="font-weight: normal; color: var(--text-quaternary); font-size: 0.9em; margin-left: 8px;">(Total: {{ project_total_h }}h)</span>{% endif %}
+                                {{ _('Project:') }} {{ group.project_name }}
+                                {% if project_total_h > 0 %}<span style="font-weight: normal; color: var(--text-quaternary); font-size: 0.9em; margin-left: 8px;">({{ _('Total:') }} {{ project_total_h }}h)</span>{% endif %}
                             {% else %}{{ group.project_name }}{% endif %}
                         </th>
                     </tr>
@@ -1128,7 +1128,7 @@
                 </tbody>
             </table>
         </div>
-        <p id="journal-loading-indicator" style="display: none; text-align: center; color: var(--text-tertiary); margin-top: 15px;">Loading history...</p>
+        <p id="journal-loading-indicator" style="display: none; text-align: center; color: var(--text-tertiary); margin-top: 15px;">{{ _('Loading history...') }}</p>
     </div>
 
     <div class="session-detail-column">
@@ -1148,35 +1148,35 @@
                 {% endmacro -%}
 
                 <div class="detail-header view-mode">
-                    <h4 id="detail-title">Details for Session: {{ entry.date_utc | date_eu }}</h4>
+                    <h4 id="detail-title">{{ _('Details for Session:') }} {{ entry.date_utc | date_eu }}</h4>
                     <div class="action-button-group">
-                        <button type="button" class="inline-button" style="background-color:var(--warning-color); color:black;" data-action="edit-session">Edit This Session</button>
+                        <button type="button" class="inline-button" style="background-color:var(--warning-color); color:black;" data-action="edit-session">{{ _('Edit This Session') }}</button>
                         <form action="{{ url_for('journal.journal_duplicate', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;">
-                            <button type="submit" class="inline-button" style="background-color:var(--info-color);" title="Create a copy of this session">Duplicate</button>
+                            <button type="submit" class="inline-button" style="background-color:var(--info-color);" title="{{ _('Create a copy of this session') }}">{{ _('Duplicate') }}</button>
                         </form>
-                        <form action="{{ url_for('journal.journal_delete', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;" data-confirm="Are you sure you want to delete this session permanently?">
-                            <button type="submit" class="inline-button" style="background-color:var(--danger-color);">Delete This Session</button>
+                        <form action="{{ url_for('journal.journal_delete', session_id=entry.id) }}" method="POST" style="display:inline; margin: 0;" data-confirm="{{ _('Are you sure you want to delete this session permanently?') }}">
+                            <button type="submit" class="inline-button" style="background-color:var(--danger-color);">{{ _('Delete This Session') }}</button>
                         </form>
                     </div>
                 </div>
 
                 {# --- View Tabs (Updated to match PDF structure) --- #}
                 <div class="detail-tabs-container view-mode">
-                    <button class="detail-tab-button active" data-tab="summary" data-action="show-detail-tab">Summary</button>
-                    <button class="detail-tab-button" data-tab="acq" data-action="show-detail-tab">Equipment & Acquisition</button>
-                    <button class="detail-tab-button" data-tab="outcome" data-action="show-detail-tab">Calibration & Outcome</button>
+                    <button class="detail-tab-button active" data-tab="summary" data-action="show-detail-tab">{{ _('Summary') }}</button>
+                    <button class="detail-tab-button" data-tab="acq" data-action="show-detail-tab">{{ _('Equipment & Acquisition') }}</button>
+                    <button class="detail-tab-button" data-tab="outcome" data-action="show-detail-tab">{{ _('Calibration & Outcome') }}</button>
                     {% if entry.asiair_log_content or entry.phd2_log_content %}
-                    <button class="detail-tab-button" data-tab="logs" data-action="show-detail-tab">Logs</button>
+                    <button class="detail-tab-button" data-tab="logs" data-action="show-detail-tab">{{ _('Logs') }}</button>
                     {% endif %}
-                    <button class="detail-tab-button" data-tab="report" data-action="show-detail-tab">Session Report</button>
+                    <button class="detail-tab-button" data-tab="report" data-action="show-detail-tab">{{ _('Session Report') }}</button>
                 </div>
 
                 <div class="view-mode">
                     <div id="summary-tab" class="detail-tab-content active">
                          <div class="summary-box">
-                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.seeing_observed_fwhm) }}{% if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</span><span class="stat-label">SEEING (FWHM)</span></div>
-                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</span><span class="stat-label">GUIDING (RMS)</span></div>
-                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.sky_sqm_observed) }}</span><span class="stat-label">SKY QUALITY (SQM)</span></div>
+                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.seeing_observed_fwhm) }}{% if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' %}"{% endif %}</span><span class="stat-label">{{ _('SEEING (FWHM)') }}</span></div>
+                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.guiding_rms_avg_arcsec) }}{% if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' %}"{% endif %}</span><span class="stat-label">{{ _('GUIDING (RMS)') }}</span></div>
+                            <div class="stat"><span class="stat-value">{{ display_safe_value(entry.sky_sqm_observed) }}</span><span class="stat-label">{{ _('SKY QUALITY (SQM)') }}</span></div>
                             <div class="stat">
                                 <span class="stat-value">
                                     {% set mono_filters = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII'] %}
@@ -1187,11 +1187,11 @@
                                         {% endif %}
                                     {% endfor %}
                                     {% if has_mono_data.found %}
-                                        Multiple
+                                        {{ _('Multiple') }}
                                     {% else %}
                                         {{ display_safe_value(entry.number_of_subs_light) }}x{{ display_safe_value(entry.exposure_time_per_sub_sec) }}s
                                     {% endif %}
-                                </span><span class="stat-label">EXPOSURES</span>
+                                </span><span class="stat-label">{{ _('EXPOSURES') }}</span>
                             </div>
                         </div>
                         <dl class="detail-grid">
@@ -1228,19 +1228,19 @@
 
                     {# --- UPDATED: EQUIPMENT & ACQUISITION Tab (Contains Sky, Rig, Guiding, and ACQ details) --- #}
                     <div id="acq-tab" class="detail-tab-content">
-                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Statistics & Conditions</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">{{ _('Statistics & Conditions') }}</h5>
                         <dl class="detail-grid">
-                            {{ detail_row('Seeing (FWHM):', display_safe_value(entry.seeing_observed_fwhm) ~ ('"' if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' else '')) }}
-                            {{ detail_row('Guiding RMS:', display_safe_value(entry.guiding_rms_avg_arcsec) ~ ('"' if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' else '')) }}
-                            {{ detail_row('SQM:', display_safe_value(entry.sky_sqm_observed)) }}
-                            {{ detail_row('Transparency Scale:', display_safe_value(entry.transparency_observed_scale)) }}
-                            {{ detail_row('Moon Illum/Sep:', display_safe_value(entry.moon_illumination_session) ~ '% / ' ~ display_safe_value(entry.moon_angular_separation_session) ~ '°') }}
-                            <dt>Weather Notes:</dt><dd><div class="notes-block" style="min-height: auto;">{{ display_safe_value(entry.weather_notes) }}</div></dd>
+                            {{ detail_row(_('Seeing (FWHM):'), display_safe_value(entry.seeing_observed_fwhm) ~ ('"' if entry.seeing_observed_fwhm and entry.seeing_observed_fwhm|lower != 'none' else '')) }}
+                            {{ detail_row(_('Guiding RMS:'), display_safe_value(entry.guiding_rms_avg_arcsec) ~ ('"' if entry.guiding_rms_avg_arcsec and entry.guiding_rms_avg_arcsec|lower != 'none' else '')) }}
+                            {{ detail_row(_('SQM:'), display_safe_value(entry.sky_sqm_observed)) }}
+                            {{ detail_row(_('Transparency Scale:'), display_safe_value(entry.transparency_observed_scale)) }}
+                            {{ detail_row(_('Moon Illum/Sep:'), display_safe_value(entry.moon_illumination_session) ~ '% / ' ~ display_safe_value(entry.moon_angular_separation_session) ~ '°') }}
+                            <dt>{{ _('Weather Notes:') }}</dt><dd><div class="notes-block" style="min-height: auto;">{{ display_safe_value(entry.weather_notes) }}</div></dd>
                         </dl>
 
                         <div style="grid-column: 1 / -1; border-top: 1px solid var(--bg-medium-alt); margin-top: 15px; padding-top: 15px;"></div>
 
-                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Equipment & Acquisition Details</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">{{ _('Equipment & Acquisition Details') }}</h5>
                         <dl class="detail-grid">
                             {% if entry.rig_name_snapshot %}
                                 {{ detail_row('Rig Used:', display_safe_value(entry.rig_name_snapshot)) }}
@@ -1288,7 +1288,7 @@
                           {% endfor %}
                         {% endif %}
                         {% if has_mono_data.found %}
-                            <div class="form-section-title" style="margin-top:25px;">Monochrome Exposures</div>
+                            <div class="form-section-title" style="margin-top:25px;">{{ _('Monochrome Exposures') }}</div>
                             <dl class="detail-grid">
                             {% for filt_key, filt_name in mono_filters %}
                                 {% set subs = entry['filter_' ~ filt_key ~ '_subs'] %}
@@ -1314,19 +1314,19 @@
 
                     {# --- UPDATED: CALIBRATION & OUTCOME Tab (Contains Calibration and Notes/Rating) --- #}
                     <div id="outcome-tab" class="detail-tab-content">
-                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Calibration Strategy</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">{{ _('Calibration Strategy') }}</h5>
                         <dl class="detail-grid">
-                            {{ detail_row('Darks:', display_safe_value(entry.darks_strategy)) }}
-                            {{ detail_row('Flats:', display_safe_value(entry.flats_strategy)) }}
-                            {{ detail_row('Bias/DarkFlats:', display_safe_value(entry.bias_darkflats_strategy)) }}
+                            {{ detail_row(_('Darks:'), display_safe_value(entry.darks_strategy)) }}
+                            {{ detail_row(_('Flats:'), display_safe_value(entry.flats_strategy)) }}
+                            {{ detail_row(_('Bias/DarkFlats:'), display_safe_value(entry.bias_darkflats_strategy)) }}
                         </dl>
 
                         <div style="grid-column: 1 / -1; border-top: 1px solid var(--bg-medium-alt); margin-top: 15px; padding-top: 15px;"></div>
 
-                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">Outcome & Reflections</h5>
+                        <h5 style="font-size: 1em; font-weight: 700; color: var(--accent-gray-text); margin-bottom: 10px;">{{ _('Outcome & Reflections') }}</h5>
                         <dl class="detail-grid">
-                            {{ detail_row('Session Rating:', (entry.session_rating_subjective | default('-')) ~ (' ★' if entry.session_rating_subjective else '')) }}
-                            <dt>Notes:</dt><dd style="grid-column: 2 / 2;"><div class="notes-block">{{ entry.notes | default('-') | sanitize_html | safe }}</div></dd>
+                            {{ detail_row(_('Session Rating:'), (entry.session_rating_subjective | default('-')) ~ (' ★' if entry.session_rating_subjective else '')) }}
+                            <dt>{{ _('Notes:') }}</dt><dd style="grid-column: 2 / 2;"><div class="notes-block">{{ entry.notes | default('-') | sanitize_html | safe }}</div></dd>
                         </dl>
                     </div>
 
@@ -1334,13 +1334,13 @@
                         <div class="report-preview-container">
                             <div class="report-toolbar">
                                 <a href="{{ url_for('journal.download_csv', item_type='session', item_id=entry.id) }}" class="inline-button" style="background-color:var(--info-color); text-decoration:none; color:white; margin-right: 10px; display:inline-flex; align-items:center;">
-                                    Download CSV
+                                    {{ _('Download CSV') }}
                                 </a>
                                 <button type="button" class="inline-button" style="background-color:var(--info-color-alt2);"
                                         data-action="download-report"
                                         data-filename="Nova_Report_{{ object_name | replace(' ', '_') }}_{{ entry.date_utc }}.pdf"
                                         data-iframe-id="report-preview-frame">
-                                    Download PDF
+                                    {{ _('Download PDF') }}
                                 </button>
                             </div>
                             <iframe id="report-preview-frame" data-src="{{ url_for('journal.show_journal_report_page', session_id=entry.id) }}" class="report-iframe"></iframe>
@@ -1351,10 +1351,10 @@
                     <div id="logs-tab" class="detail-tab-content">
                         <div class="log-analysis-container" data-session-id="{{ entry.id }}">
                             <div class="log-analysis-tabs">
-                                <button class="log-analysis-tab-btn active" data-log-tab="overview">Overview</button>
-                                <button class="log-analysis-tab-btn" data-log-tab="guiding">Guiding</button>
-                                <button class="log-analysis-tab-btn" data-log-tab="dithering">Dithering</button>
-                                <button class="log-analysis-tab-btn" data-log-tab="autofocus">AutoFocus</button>
+                                <button class="log-analysis-tab-btn active" data-log-tab="overview">{{ _('Overview') }}</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="guiding">{{ _('Guiding') }}</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="dithering">{{ _('Dithering') }}</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="autofocus">{{ _('AutoFocus') }}</button>
                             </div>
 
                             {# Overview Tab #}
@@ -1362,27 +1362,27 @@
                                 <div class="log-stats-grid">
                                     <div class="log-stat-card">
                                         <span class="log-stat-value" id="log-total-exposures">-</span>
-                                        <span class="log-stat-label">Exposures</span>
+                                        <span class="log-stat-label">{{ _('Exposures') }}</span>
                                     </div>
                                     <div class="log-stat-card">
                                         <span class="log-stat-value" id="log-total-time">-</span>
-                                        <span class="log-stat-label">Total Time</span>
+                                        <span class="log-stat-label">{{ _('Total Time') }}</span>
                                     </div>
                                     <div class="log-stat-card">
                                         <span class="log-stat-value" id="log-guiding-rms">-</span>
-                                        <span class="log-stat-label">Guiding RMS</span>
+                                        <span class="log-stat-label">{{ _('Guiding RMS') }}</span>
                                     </div>
                                     <div class="log-stat-card">
                                         <span class="log-stat-value" id="log-dither-count">-</span>
-                                        <span class="log-stat-label">Dithers</span>
+                                        <span class="log-stat-label">{{ _('Dithers') }}</span>
                                     </div>
                                     <div class="log-stat-card">
                                         <span class="log-stat-value" id="log-af-count">-</span>
-                                        <span class="log-stat-label">AF Runs</span>
+                                        <span class="log-stat-label">{{ _('AF Runs') }}</span>
                                     </div>
                                     <div class="log-stat-card">
                                         <span class="log-stat-value" id="log-pixel-scale">-</span>
-                                        <span class="log-stat-label">Pixel Scale</span>
+                                        <span class="log-stat-label">{{ _('Pixel Scale') }}</span>
                                     </div>
                                 </div>
                                 <div class="log-swimlane-container" id="log-overview-container">
@@ -1391,7 +1391,7 @@
                                 </div>
                                 {# Plate Solve Results Table #}
                                 <div class="log-chart-container" id="log-plate-solve-panel" style="display:none;">
-                                    <h5 style="margin: 0 0 12px 0; color: var(--text-secondary);">Plate Solve Results</h5>
+                                    <h5 style="margin: 0 0 12px 0; color: var(--text-secondary);">{{ _('Plate Solve Results') }}</h5>
                                     <table class="log-data-table" id="log-plate-solve-table">
                                         <thead>
                                             <tr>
@@ -1410,8 +1410,8 @@
                                 </div>
                                 {# Autocenter Accuracy Chart #}
                                 <div class="log-chart-container" id="log-autocenter-panel" style="display:none; min-height: auto;">
-                                    <h5 style="margin: 0 0 8px 0; color: var(--text-secondary);">Autocenter Accuracy Over Time</h5>
-                                    <p style="margin: 0 0 12px 0; font-size: 0.85em; color: var(--text-muted);">Distance from target center per centering attempt</p>
+                                    <h5 style="margin: 0 0 8px 0; color: var(--text-secondary);">{{ _('Autocenter Accuracy Over Time') }}</h5>
+                                    <p style="margin: 0 0 12px 0; font-size: 0.85em; color: var(--text-muted);">{{ _('Distance from target center per centering attempt') }}</p>
                                     <div class="log-stats-inline" id="log-autocenter-stats"></div>
                                     <div style="height: 300px;">
                                         <canvas id="log-autocenter-chart"></canvas>

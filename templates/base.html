@@ -96,6 +96,21 @@
     <script src="{{ url_for('static', filename='js/utils.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/modal-manager.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/styling-utils.js') }}" defer></script>
+
+    <!-- i18n Configuration -->
+    <script>
+        window.NOVA_CONFIG = {
+            language: "{{ current_language | default('en') }}"
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/en.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/de.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/fr.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/es.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/ja.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/zh.js') }}" defer></script>
+
     {% block head_extra %}{% endblock %}
   </head>
   <body>

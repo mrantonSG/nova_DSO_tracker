@@ -1,7 +1,7 @@
 {% extends "mobile_base.html" %}
 
-{% block title %}Outlook{% endblock %}
-{% block header_title %}Imaging Outlook{% endblock %}
+{% block title %}{{ _('Outlook') }}{% endblock %}
+{% block header_title %}{{ _('Imaging Outlook') }}{% endblock %}
 
 {% block head %}
 <style>
@@ -34,13 +34,26 @@
 {% block content %}
     <ul class="item-list" id="outlook-list">
         <li class="loading" id="loading-indicator">
-            Calculating imaging opportunities...
+            {{ _('Calculating imaging opportunities...') }}
         </li>
     </ul>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Translated strings
+    const i18n = {
+        errorLoadingOutlook: "{{ _('Error loading outlook.') }}",
+        outlookCacheGenerating: "{{ _('Outlook cache is generating. Please check back in a minute.') }}",
+        errorConnectingToServer: "{{ _('Error connecting to server.') }}",
+        noImagingOpportunities: "{{ _('No imaging opportunities found for your active projects.') }}",
+        framing: "{{ _('Framing') }}",
+        rating: "{{ _('Rating:') }}",
+        maxAlt: "{{ _('Max Alt:') }}",
+        duration: "{{ _('Duration:') }}",
+        moon: "{{ _('Moon:') }}"
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('outlook-list');
         const loading = document.getElementById('loading-indicator');
@@ -55,15 +68,15 @@
                 const data = await response.json();
 
                 if (data.status === 'error') {
-                    loading.textContent = data.message || 'Error loading outlook.';
+                    loading.textContent = data.message || i18n.errorLoadingOutlook;
                 } else if (data.status === 'starting' || data.status === 'running') {
-                    loading.textContent = 'Outlook cache is generating. Please check back in a minute.';
+                    loading.textContent = i18n.outlookCacheGenerating;
                 } else if (data.status === 'complete') {
                     renderList(data.results);
                 }
 
             } catch (e) {
-                loading.textContent = 'Error connecting to server.';
+                loading.textContent = i18n.errorConnectingToServer;
             }
         }
 
@@ -78,7 +91,7 @@
 
             function renderList(results) {
                 if (results.length === 0) {
-                    loading.textContent = 'No imaging opportunities found for your active projects.';
+                    loading.textContent = i18n.noImagingOpportunities;
                     return;
                 }
                 loading.style.display = 'none';
@@ -94,7 +107,7 @@
 
                     let actionsHtml = '';
                     if (item.has_framing) {
-                        actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">Framing</a>`;
+                        actionsHtml = `<a href="${mosaicUrl}" class="asiair-btn">${i18n.framing}</a>`;
                     }
 
                     li.className = 'item-card';
@@ -104,10 +117,10 @@
                         </div>
                         <h3 style="margin-right: 80px;">${item.common_name} (${formatDate(item.date)})</h3>
                         <div class="item-card-grid">
-                            <div><strong>Rating:</strong> ${item.rating}</div>
-                            <div><strong>Max Alt:</strong> ${item.max_alt}°</div>
-                            <div><strong>Duration:</strong> ${item.obs_dur} min</div>
-                            <div><strong>Moon:</strong> ${item.moon_illumination}%</div>
+                            <div><strong>${i18n.rating}</strong> ${item.rating}</div>
+                            <div><strong>${i18n.maxAlt}</strong> ${item.max_alt}°</div>
+                            <div><strong>${i18n.duration}</strong> ${item.obs_dur} min</div>
+                            <div><strong>${i18n.moon}</strong> ${item.moon_illumination}%</div>
                         </div>
                     `;
                     list.appendChild(li);

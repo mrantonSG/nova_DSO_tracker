@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block demo_banner %}{% endblock %} {% block title %}Login – DSO Altitude Tracker{% endblock %}
+{% block demo_banner %}{% endblock %} {% block title %}{{ _('Login') }} – {{ _('DSO Altitude Tracker') }}{% endblock %}
 
 {% block head_extra %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
@@ -17,15 +17,15 @@
 
 <form method="POST" action="{{ url_for('core.login') }}">
     <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
-    <label for="username">Username</label>
+    <label for="username">{{ _('Username') }}</label>
     <input type="text" id="username" name="username" required autofocus>
 
-    <label for="password">Password</label>
+    <label for="password">{{ _('Password') }}</label>
     <input type="password" id="password" name="password" required>
 
     <div class="button-row">
-      <input type="submit" value="Log In">
-      <a href="{{ url_for('core.index') }}" class="btn-secondary">Continue as Guest</a>
+      <input type="submit" value="{{ _('Log In') }}">
+      <a href="{{ url_for('core.index') }}" class="btn-secondary">{{ _('Continue as Guest') }}</a>
     </div>
   </form>
 

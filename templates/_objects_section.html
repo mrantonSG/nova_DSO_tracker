@@ -6,19 +6,19 @@
     <div class="config-section" style="padding-top: 1em;">
         <div class="detail-tabs-container">
             <button class="detail-tab-button active" data-tab="manage">
-                Manage My Objects
+                {{ _('Manage My Objects') }}
                 {{ help_badge('objects_manage', extra_attrs='onclick="openHelp(\'objects_manage\'); event.stopPropagation();"') }}
             </button>
             <button class="detail-tab-button" data-tab="add">
-                Add New Object
+                {{ _('Add New Object') }}
                 {{ help_badge('objects_add', extra_attrs='onclick="openHelp(\'objects_add\'); event.stopPropagation();"') }}
             </button>
             <button class="detail-tab-button" data-tab="import">
-                Import from Catalog
+                {{ _('Import from Catalog') }}
                 {{ help_badge('objects_import', extra_attrs='onclick="openHelp(\'objects_import\'); event.stopPropagation();"') }}
             </button>
             <button class="detail-tab-button" data-action="open-duplicates">
-                Find Duplicates
+                {{ _('Find Duplicates') }}
                 {{ help_badge('objects_duplicates', extra_attrs='onclick="openHelp(\'objects_duplicates\'); event.stopPropagation();"') }}
             </button>
         </div>
@@ -27,65 +27,65 @@
             <div class="block" id="object-filter-bar">
         <div class="inline-fields">
           <div>
-            <label class="short-label" for="object-filter-id">Filter ID:</label>
-            <input type="text" id="object-filter-id" data-action="filter-objects" placeholder="e.g., M42">
+            <label class="short-label" for="object-filter-id">{{ _('Filter ID') }}:</label>
+            <input type="text" id="object-filter-id" data-action="filter-objects" placeholder="{{ _('e.g., M42') }}">
           </div>
           <div>
-            <label class="short-label" for="object-filter-name">Name:</label>
-            <input type="text" id="object-filter-name" data-action="filter-objects" placeholder="e.g., Orion">
+            <label class="short-label" for="object-filter-name">{{ _('Name') }}:</label>
+            <input type="text" id="object-filter-name" data-action="filter-objects" placeholder="{{ _('e.g., Orion') }}">
           </div>
           <div>
-            <label class="short-label" for="object-filter-con">Con:</label>
-            <input type="text" id="object-filter-con" data-action="filter-objects" placeholder="e.g., Cyg">
+            <label class="short-label" for="object-filter-con">{{ _('Con') }}:</label>
+            <input type="text" id="object-filter-con" data-action="filter-objects" placeholder="{{ _('e.g., Cyg') }}">
           </div>
           <div>
-            <label class="short-label" for="object-filter-type">Type:</label>
-            <input type="text" id="object-filter-type" data-action="filter-objects" placeholder="e.g., PN">
+            <label class="short-label" for="object-filter-type">{{ _('Type') }}:</label>
+            <input type="text" id="object-filter-type" data-action="filter-objects" placeholder="{{ _('e.g., PN') }}">
           </div>
           <div>
-            <label class="short-label" for="object-filter-shared">Status:</label>
+            <label class="short-label" for="object-filter-shared">{{ _('Status') }}:</label>
             <select id="object-filter-shared" data-action="filter-objects">
-              <option value="all">All Statuses</option>
-              <option value="enabled">Enabled Only</option>
-              <option value="disabled">Disabled Only</option>
+              <option value="all">{{ _('All Statuses') }}</option>
+              <option value="enabled">{{ _('Enabled Only') }}</option>
+              <option value="disabled">{{ _('Disabled Only') }}</option>
               <option disabled>──────────</option>
-              <option value="private">Private</option>
-              <option value="shared">Shared by Me</option>
-              <option value="imported">Imported</option>
+              <option value="private">{{ _('Private') }}</option>
+              <option value="shared">{{ _('Shared by Me') }}</option>
+              <option value="imported">{{ _('Imported') }}</option>
             </select>
           </div>
           <div>
-            <label class="short-label" for="object-filter-source">Source:</label>
-            <input type="text" id="object-filter-source" data-action="filter-objects" placeholder="e.g., messier (use = for exact)">
+            <label class="short-label" for="object-filter-source">{{ _('Source') }}:</label>
+            <input type="text" id="object-filter-source" data-action="filter-objects" placeholder="{{ _('e.g., messier (use = for exact)') }}">
           </div>
 
           <div style="flex: 0 0 485px;">
-            <label class="short-label" for="object-filter-notes">Notes:</label>
-            <input type="text" id="object-filter-notes" data-action="filter-objects" placeholder="Search notes (use * for all)..." style="width: 100%;">
+            <label class="short-label" for="object-filter-notes">{{ _('Notes') }}:</label>
+            <input type="text" id="object-filter-notes" data-action="filter-objects" placeholder="{{ _('Search notes (use * for all)...') }}" style="width: 100%;">
           </div>
 
           <div>
-            <label class="short-label" for="object-filter-mag">Mag &lt;:</label>
+            <label class="short-label" for="object-filter-mag">{{ _('Mag') }} &lt;:</label>
             <input type="number" id="object-filter-mag" data-action="filter-objects" placeholder="15" style="width: 60px;">
           </div>
           <div>
-            <label class="short-label" for="object-filter-size">Size &gt;:</label>
+            <label class="short-label" for="object-filter-size">{{ _('Size') }} &gt;:</label>
             <input type="number" id="object-filter-size" data-action="filter-objects" placeholder="5" style="width: 60px;">
           </div>
         </div>
 
         <div style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between; background: var(--border-light-alt3); padding: 8px; border-radius: 4px;">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <button type="button" class="file-button" data-action="select-all-visible">Select Visible</button>
-                <button type="button" class="file-button" data-action="deselect-all">Deselect All</button>
-                <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: var(--text-secondary);">0 Selected</span>
+                <button type="button" class="file-button" data-action="select-all-visible">{{ _('Select Visible') }}</button>
+                <button type="button" class="file-button" data-action="deselect-all">{{ _('Deselect All') }}</button>
+                <span id="selection-count" style="margin-left: 10px; font-weight: bold; color: var(--text-secondary);">{{ _('0 Selected') }}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 14px; color: var(--text-secondary);">Selection Actions:</span>
-                <button type="button" class="action-button compact" style="background-color: var(--success-color-alt);" data-action="bulk-enable">Enable</button>
-                <button type="button" class="action-button compact" style="background-color: var(--warning-color-alt);" data-action="bulk-disable">Disable</button>
-                <button type="button" class="action-button compact" style="background-color: var(--primary-color); color: #ffffff;" data-action="bulk-fetch-details">Fetch Details</button>
-                <button type="button" class="delete-btn" data-action="bulk-delete">Delete</button>
+                <span style="font-size: 14px; color: var(--text-secondary);">{{ _('Selection Actions') }}:</span>
+                <button type="button" class="action-button compact" style="background-color: var(--success-color-alt);" data-action="bulk-enable">{{ _('Enable') }}</button>
+                <button type="button" class="action-button compact" style="background-color: var(--warning-color-alt);" data-action="bulk-disable">{{ _('Disable') }}</button>
+                <button type="button" class="action-button compact" style="background-color: var(--primary-color); color: #ffffff;" data-action="bulk-fetch-details">{{ _('Fetch Details') }}</button>
+                <button type="button" class="delete-btn" data-action="bulk-delete">{{ _('Delete') }}</button>
             </div>
         </div>
 
@@ -105,16 +105,16 @@
                       <div class="object-id">
                         <strong>{{ obj.Object }}</strong>
                         {% if not obj.enabled %}
-                            <span class="badge" style="background-color: var(--text-muted); color: white; font-size: 10px; margin-left: 5px;">Disabled</span>
+                            <span class="badge" style="background-color: var(--text-muted); color: white; font-size: 10px; margin-left: 5px;">{{ _('Disabled') }}</span>
                         {% endif %}
                         {% if obj.original_user_id %}
-                          <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="Imported from another user">Imported</span>
+                          <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="{{ _('Imported from another user') }}">{{ _('Imported') }}</span>
                         {% elif obj.is_shared %}
-                          <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="You are sharing this item">Shared</span>
+                          <span class="shared-indicator" style="margin-left: 5px; font-size: 10px;" title="{{ _('You are sharing this item') }}">{{ _('Shared') }}</span>
                         {% endif %}
                       </div>
                       <div>
-                        <label class="short-label" for="name_{{ obj.Object }}">Name:</label>
+                        <label class="short-label" for="name_{{ obj.Object }}">{{ _('Name') }}:</label>
                         <input type="text" name="name_{{ obj.Object }}" id="name_{{ obj.Object }}" class="name_field" value="{{ obj.Name }}">
                       </div>
                     </div>
@@ -131,20 +131,20 @@
 
                     <div class="inline-fields second-row-fields">
                       <div>
-                        <label class="short-label" for="constellation_{{ obj.Object }}">Con:</label>
+                        <label class="short-label" for="constellation_{{ obj.Object }}">{{ _('Con') }}:</label>
                         <input type="text" name="constellation_{{ obj.Object }}" id="constellation_{{ obj.Object }}" class="object_field" value="{{ obj.Constellation|default('') }}">
                       </div>
                       <div>
-                        <label class="short-label" for="type_{{ obj.Object }}">Type:</label>
+                        <label class="short-label" for="type_{{ obj.Object }}">{{ _('Type') }}:</label>
                         <input type="text" name="type_{{ obj.Object }}" id="type_{{ obj.Object }}" class="object_field" value="{{ obj.Type|default('') }}">
                       </div>
                       <div>
-                        <label class="short-label" for="magnitude_{{ obj.Object }}">Mag:</label>
+                        <label class="short-label" for="magnitude_{{ obj.Object }}">{{ _('Mag') }}:</label>
                         <input type="number" name="magnitude_{{ obj.Object }}" id="magnitude_{{ obj.Object }}" class="field-small-numeric" step="0.01"
                                value="{{ obj.Magnitude if obj.Magnitude not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
                       </div>
                       <div>
-                        <label class="short-label" for="size_{{ obj.Object }}">Size (′):</label>
+                        <label class="short-label" for="size_{{ obj.Object }}">{{ _('Size') }} (′):</label>
                         <input type="number" name="size_{{ obj.Object }}" id="size_{{ obj.Object }}" class="field-small-numeric" step="0.01"
                                value="{{ obj.Size if obj.Size not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
                       </div>
@@ -155,7 +155,7 @@
                       </div>
                       {% if obj.catalog_sources %}
                       <div style="align-self: center;">
-                        <label class="short-label">Source:</label>
+                        <label class="short-label">{{ _('Source') }}:</label>
                         <span class="catalog-source-badge">{{ obj.catalog_sources }}</span>
                       </div>
                       {% endif %}
@@ -163,56 +163,56 @@
                       <div class="inline-fields second-row-fields">
                         <div style="display: flex; align-items: center;">
                             <label class="short-label" for="enabled_{{ obj.Object }}" style="color: {{ 'var(--success-color-alt)' if obj.enabled else 'var(--accent-gray)' }}; font-weight: bold;">
-                                {{ 'Enabled' if obj.enabled else 'Disabled' }}
+                                {{ _('Enabled') if obj.enabled else _('Disabled') }}
                             </label>
                             <input type="hidden" name="enabled_{{ obj.Object }}" value="{{ 'on' if obj.enabled else 'off' }}">
                         </div>
 
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
-                            <label class="short-label" for="active_project_{{ obj.Object }}">Active Project:</label>
+                            <label class="short-label" for="active_project_{{ obj.Object }}">{{ _('Active Project') }}:</label>
                             <input type="checkbox" name="active_project_{{ obj.Object }}" id="active_project_{{ obj.Object }}"
                                    {% if obj.ActiveProject %}checked{% endif %}>
                         </div>
                         <div style="margin-left: 15px; display: flex; align-items: center; gap: 10px;">
-                            <button type="button" class="action-button" data-action="save-object" data-object-id="{{ obj.Object }}">Update</button>
+                            <button type="button" class="action-button" data-action="save-object" data-object-id="{{ obj.Object }}">{{ _('Update') }}</button>
                         </div>
                     </div>
                   </div>
                   <div>
                     <div class="inspiration-container" style="background: var(--bg-white); border: 1px solid var(--text-lightest); border-radius: 4px; padding: 12px; margin-bottom: 15px;">
                         <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
-                            <label style="font-weight:bold; color:var(--text-secondary); font-size:0.85em; margin:0;">Inspiration Content</label>
+                            <label style="font-weight:bold; color:var(--text-secondary); font-size:0.85em; margin:0;">{{ _('Inspiration Content') }}</label>
                             {{ help_badge('objects_inspiration', extra_attrs='onclick="openHelp(\'objects_inspiration\'); event.stopPropagation();"') }}
                         </div>
                         <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                             <div style="flex: 2; display: flex; gap: 5px;">
-                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
-                                <button type="button" class="file-button" data-action="trigger-file-input" data-target-id="upload_file_{{ obj.Object }}" title="Upload a personal image (Protects against catalog updates)">Upload</button>
+                                <input type="text" id="image_url_{{ obj.Object }}" value="{{ obj.image_url or '' }}" placeholder="{{ _('Image URL (https://...)') }}" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                                <button type="button" class="file-button" data-action="trigger-file-input" data-target-id="upload_file_{{ obj.Object }}" title="{{ _('Upload a personal image (Protects against catalog updates)') }}">{{ _('Upload') }}</button>
                                 <input type="file" id="upload_file_{{ obj.Object }}" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'image_url_{{ obj.Object }}')">
                             </div>
                             <div style="flex: 1;">
-                                <input type="text" id="image_credit_{{ obj.Object }}" value="{{ obj.image_credit or '' }}" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="image_credit_{{ obj.Object }}" value="{{ obj.image_credit or '' }}" placeholder="{{ _('Img Credit') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                             </div>
                         </div>
                         <div style="margin-bottom: 8px;">
-                             <input type="text" id="image_source_link_{{ obj.Object }}" value="{{ obj.image_source_link or '' }}" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                             <input type="text" id="image_source_link_{{ obj.Object }}" value="{{ obj.image_source_link or '' }}" placeholder="{{ _('Image Source Link (e.g. APOD URL)') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                         </div>
                         <div style="margin-bottom: 8px;">
-                            <textarea id="description_text_{{ obj.Object }}" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
+                            <textarea id="description_text_{{ obj.Object }}" rows="2" placeholder="{{ _('Short description for the tile...') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;">{{ obj.description_text or '' }}</textarea>
                         </div>
                         <div style="display: flex; gap: 10px;">
                             <div style="flex: 1;">
-                                <input type="text" id="description_credit_{{ obj.Object }}" value="{{ obj.description_credit or '' }}" placeholder="Text Credit (e.g. Wikipedia)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="description_credit_{{ obj.Object }}" value="{{ obj.description_credit or '' }}" placeholder="{{ _('Text Credit (e.g. Wikipedia)') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                             </div>
                             <div style="flex: 2;">
-                                <input type="text" id="description_source_link_{{ obj.Object }}" value="{{ obj.description_source_link or '' }}" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                                <input type="text" id="description_source_link_{{ obj.Object }}" value="{{ obj.description_source_link or '' }}" placeholder="{{ _('Text Source Link') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                             </div>
                         </div>
                     </div>
 
                     {% if obj.catalog_info %}
                     <div class="form-group trix-group">
-                        <label>Catalog Info:</label>
+                        <label>{{ _('Catalog Info') }}:</label>
                         <div class="readonly-notes">
                             {{ obj.catalog_info | sanitize_html | safe }}
                         </div>
@@ -220,82 +220,82 @@
                     {% endif %}
 
                     <div class="form-group trix-group">
-                        <label>Private Notes:</label>
+                        <label>{{ _('Private Notes') }}:</label>
                         <input type="hidden" id="project_{{ obj.Object }}_hidden" name="project_{{ obj.Object }}" value="{{ obj.Project | default('', True) | e }}">
-                        <div class="trix-lazy-box" data-action="activate-lazy-trix" data-input-id="project_{{ obj.Object }}_hidden" data-placeholder="Personal notes... (not shared)">
+                        <div class="trix-lazy-box" data-action="activate-lazy-trix" data-input-id="project_{{ obj.Object }}_hidden" data-placeholder="{{ _('Personal notes... (not shared)') }}">
                             {% if obj.Project and obj.Project.strip() != '' %}
                                 {{ obj.Project | sanitize_html | safe }}
                             {% else %}
-                                <span class="trix-placeholder-text">Personal notes... (not shared)</span>
+                                <span class="trix-placeholder-text">{{ _('Personal notes... (not shared)') }}</span>
                             {% endif %}
                         </div>
                     </div>
 
                     {% if not SINGLE_USER_MODE %}
                     <div class="form-group trix-group">
-                        <label>Shared Notes:</label>
+                        <label>{{ _('Shared Notes') }}:</label>
                         <input type="hidden" id="shared_notes_{{ obj.Object }}_hidden" name="shared_notes_{{ obj.Object }}" value="{{ obj.shared_notes | default('', True) | e }}">
-                        <div class="trix-lazy-box" data-action="activate-lazy-trix" data-input-id="shared_notes_{{ obj.Object }}_hidden" data-placeholder="Public notes... (will be shared)">
+                        <div class="trix-lazy-box" data-action="activate-lazy-trix" data-input-id="shared_notes_{{ obj.Object }}_hidden" data-placeholder="{{ _('Public notes... (will be shared)') }}">
                             {% if obj.shared_notes and obj.shared_notes.strip() != '' %}
                                 {{ obj.shared_notes | sanitize_html | safe }}
                             {% else %}
-                                <span class="trix-placeholder-text">Public notes... (will be shared)</span>
+                                <span class="trix-placeholder-text">{{ _('Public notes... (will be shared)') }}</span>
                             {% endif %}
                         </div>
                     </div>
                     <div class="share-control">
                         <input type="checkbox" name="is_shared_{{ obj.Object }}" id="is_shared_{{ obj.Object }}" {% if obj.is_shared %}checked{% endif %} {% if obj.original_user_id %}disabled{% endif %}>
-                        <label for="is_shared_{{ obj.Object }}">Share this object with other users</label>
+                        <label for="is_shared_{{ obj.Object }}">{{ _('Share this object with other users') }}</label>
                     </div>
                     {% endif %}
                   </div>
                 </div>
               {% endfor %}
-              <button type="submit" name="submit_objects" value="1" class="action-button">Update Objects</button>
+              <button type="submit" name="submit_objects" value="1" class="action-button">{{ _('Update Objects') }}</button>
             </div>
         </form>
     </div>
 
     <div id="add-object-subtab" class="detail-tab-content">
-        <h3>Add New Object</h3>
+        <h3>{{ _('Add New Object') }}</h3>
         <div class="object-add-container object-grid-container block">
             <div>
               <div class="row">
                 <div>
-                  <label class="long-label" for="new_object">Object ID:</label>
-                  <input type="text" name="new_object" id="new_object" class="long" placeholder="e.g., NGC 1234">
+                  <label class="long-label" for="new_object">{{ _('Object ID') }}:</label>
+                  <input type="text" name="new_object" id="new_object" class="long" placeholder="{{ _('e.g., NGC 1234') }}">
                 </div>
                 <div>
-                  <label class="long-label" for="new_name">Name:</label>
-                  <input type="text" name="new_name" id="new_name" class="wide" placeholder="Enter common name">
+                  <label class="long-label" for="new_name">{{ _('Name') }}:</label>
+                  <input type="text" name="new_name" id="new_name" class="wide" placeholder="{{ _('Enter common name') }}">
                 </div>
               </div>
               <div class="row">
                 <div>
-                  <label class="long-label" for="new_ra">RA (Hours):</label>
-                  <input type="text" name="new_ra" id="new_ra" class="long" placeholder="e.g. 12.34 or 12:30:00">
+                  <label class="long-label" for="new_ra">{{ _('RA (Hours)') }}:</label>
+                  <input type="text" name="new_ra" id="new_ra" class="long" placeholder="{{ _('e.g. 12.34 or 12:30:00') }}">
                 </div>
                 <div>
-                  <label class="long-label" for="new_dec">DEC (Deg):</label>
-                  <input type="text" name="new_dec" id="new_dec" class="long" placeholder="e.g. +40.85 or 40:51:00">
+                  <label class="long-label" for="new_dec">{{ _('DEC (Deg)') }}:</label>
+                  <input type="text" name="new_dec" id="new_dec" class="long" placeholder="{{ _('e.g. +40.85 or 40:51:00') }}">
                 </div>
               </div>
 
               <div class="inline-fields add-object-details-indent">
                 <div>
-                  <label class="short-label" for="new_constellation">Con:</label>
-                  <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="e.g., Cyg">
+                  <label class="short-label" for="new_constellation">{{ _('Con') }}:</label>
+                  <input type="text" name="new_constellation" id="new_constellation" class="short" placeholder="{{ _('e.g., Cyg') }}">
                 </div>
                 <div>
-                  <label class="short-label" for="new_type">Type:</label>
-                  <input type="text" name="new_type" id="new_type" class="short" placeholder="e.g., Galaxy">
+                  <label class="short-label" for="new_type">{{ _('Type') }}:</label>
+                  <input type="text" name="new_type" id="new_type" class="short" placeholder="{{ _('e.g., Galaxy') }}">
                 </div>
                 <div>
-                  <label class="short-label" for="new_magnitude">Mag:</label>
+                  <label class="short-label" for="new_magnitude">{{ _('Mag') }}:</label>
                   <input type="number" name="new_magnitude" id="new_magnitude" class="short" step="0.01" placeholder="12.34">
                 </div>
                 <div>
-                  <label class="short-label" for="new_size">Size:</label>
+                  <label class="short-label" for="new_size">{{ _('Size') }}:</label>
                   <input type="number" name="new_size" id="new_size" class="short" step="0.01" placeholder="5.67">
                 </div>
                 <div>
@@ -306,7 +306,7 @@
 
               <div class="share-control" style="margin-top: 10px; margin-left: 15px;">
                   <input type="checkbox" name="new_is_active" id="new_is_active" checked>
-                  <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">Active Project</label>
+                  <label for="new_is_active" style="font-weight: normal; margin-left: 5px;">{{ _('Active Project') }}</label>
               </div>
 
               <div class="inspiration-container" style="background: var(--bg-white); border: 1px solid var(--text-lightest); border-radius: 4px; padding: 12px; margin-bottom: 15px;">
