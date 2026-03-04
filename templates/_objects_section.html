@@ -65,12 +65,12 @@
           </div>
 
           <div>
-            <label class="short-label" for="object-filter-mag">{{ _('Mag') }} &lt;:</label>
-            <input type="number" id="object-filter-mag" data-action="filter-objects" placeholder="15" style="width: 60px;">
+            <label class="short-label" for="object-filter-mag">{{ _('Mag') }}:</label>
+            <input type="text" id="object-filter-mag" data-action="filter-objects" placeholder="<15 or >8 <12" style="width: 100px;" title="{{ _('e.g., <15, >8, >8 <12') }}">
           </div>
           <div>
-            <label class="short-label" for="object-filter-size">{{ _('Size') }} &gt;:</label>
-            <input type="number" id="object-filter-size" data-action="filter-objects" placeholder="5" style="width: 60px;">
+            <label class="short-label" for="object-filter-size">{{ _('Size') }}:</label>
+            <input type="text" id="object-filter-size" data-action="filter-objects" placeholder=">5 or >5 <30" style="width: 100px;" title="{{ _('e.g., >5, <30, >5 <30') }}">
           </div>
         </div>
 
@@ -311,59 +311,59 @@
 
               <div class="inspiration-container" style="background: var(--bg-white); border: 1px solid var(--text-lightest); border-radius: 4px; padding: 12px; margin-bottom: 15px;">
                   <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px;">
-                      <label style="font-weight:bold; color:var(--text-secondary); font-size:0.85em; margin:0;">Inspiration Content (Optional)</label>
+                      <label style="font-weight:bold; color:var(--text-secondary); font-size:0.85em; margin:0;">{{ _('Inspiration Content (Optional)') }}</label>
                       {{ help_badge('objects_inspiration', extra_attrs='onclick="openHelp(\'objects_inspiration\'); event.stopPropagation();"') }}
                   </div>
                   <div style="display: flex; gap: 10px; margin-bottom: 8px;">
                       <div style="flex: 2; display: flex; gap: 5px;">
-                          <input type="text" id="new_image_url" placeholder="Image URL (https://...)" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
-                          <button type="button" class="file-button" data-action="trigger-file-input" data-target-id="upload_file_new" title="Upload a personal image">Upload</button>
+                          <input type="text" id="new_image_url" placeholder="{{ _('Image URL (https://...)') }}" style="flex-grow: 1; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                          <button type="button" class="file-button" data-action="trigger-file-input" data-target-id="upload_file_new" title="{{ _('Upload a personal image') }}">{{ _('Upload') }}</button>
                           <input type="file" id="upload_file_new" style="display: none;" accept="image/*" onchange="uploadObjectImage(this, 'new_image_url')">
                       </div>
                       <div style="flex: 1;">
-                          <input type="text" id="new_image_credit" placeholder="Img Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_image_credit" placeholder="{{ _('Img Credit') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                       </div>
                   </div>
                   <div style="margin-bottom: 8px;">
-                       <input type="text" id="new_image_source_link" placeholder="Image Source Link (e.g. APOD URL)" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                       <input type="text" id="new_image_source_link" placeholder="{{ _('Image Source Link (e.g. APOD URL)') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                   </div>
                   <div style="margin-bottom: 8px;">
-                      <textarea id="new_description_text" rows="2" placeholder="Short description for the tile..." style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;"></textarea>
+                      <textarea id="new_description_text" rows="2" placeholder="{{ _('Short description for the tile...') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px; font-family: inherit;"></textarea>
                   </div>
                   <div style="display: flex; gap: 10px;">
                       <div style="flex: 1;">
-                          <input type="text" id="new_description_credit" placeholder="Text Credit" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_description_credit" placeholder="{{ _('Text Credit') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                       </div>
                       <div style="flex: 2;">
-                          <input type="text" id="new_description_source_link" placeholder="Text Source Link" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
+                          <input type="text" id="new_description_source_link" placeholder="{{ _('Text Source Link') }}" style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border-medium-alt); border-radius: 3px; font-size: 13px;">
                       </div>
                   </div>
               </div>
 
               <div>
-                  <button id="submit_new_object" type="button" class="action-button">Search</button>
-                  <button id="confirm_add_object" type="button" class="action-button" style="display:none;">Confirm Add</button>
-                  <button id="edit_object" type="button" class="action-button" style="display:none;">Edit</button>
-                  <button id="cancel_add_object" type="button" class="action-button" style="display:none; background-color: var(--accent-slate);">Cancel</button>
+                  <button id="submit_new_object" type="button" class="action-button">{{ _('Search') }}</button>
+                  <button id="confirm_add_object" type="button" class="action-button" style="display:none;">{{ _('Confirm Add') }}</button>
+                  <button id="edit_object" type="button" class="action-button" style="display:none;">{{ _('Edit') }}</button>
+                  <button id="cancel_add_object" type="button" class="action-button" style="display:none; background-color: var(--accent-slate);">{{ _('Cancel') }}</button>
               </div>
             </div>
 
             <div>
               <div class="form-group trix-group">
-                  <label for="new_project_editor">Private Notes:</label>
+                  <label for="new_project_editor">{{ _('Private Notes:') }}</label>
                   <input type="hidden" id="new_project_hidden" name="new_project">
-                  <trix-editor input="new_project_hidden" id="new_project_editor" placeholder="Personal notes, framing ideas... (not shared)"></trix-editor>
+                  <trix-editor input="new_project_hidden" id="new_project_editor" placeholder="{{ _('Personal notes, framing ideas... (not shared)') }}"></trix-editor>
               </div>
 
               {% if not SINGLE_USER_MODE %}
               <div class="form-group trix-group">
-                  <label for="new_shared_notes_editor">Shared Notes:</label>
+                  <label for="new_shared_notes_editor">{{ _('Shared Notes:') }}</label>
                   <input type="hidden" id="new_shared_notes_hidden" name="new_shared_notes">
-                  <trix-editor input="new_shared_notes_hidden" id="new_shared_notes_editor" placeholder="Public notes, acquisition advice... (will be shared)"></trix-editor>
+                  <trix-editor input="new_shared_notes_hidden" id="new_shared_notes_editor" placeholder="{{ _('Public notes, acquisition advice... (will be shared)') }}"></trix-editor>
               </div>
               <div class="share-control">
                   <input type="checkbox" name="new_is_shared" id="new_is_shared">
-                  <label for="new_is_shared">Share this object with other users</label>
+                  <label for="new_is_shared">{{ _('Share this object with other users') }}</label>
               </div>
               {% endif %}
             </div>
@@ -372,23 +372,21 @@
     </div>
 
     <div id="import-object-subtab" class="detail-tab-content">
-        <h3>Catalog Packs</h3>
+        <h3>{{ _('Catalog Packs') }}</h3>
         <div class="block">
             <p>
-              Catalog packs are server-provided object collections you can import into your library.
-              Importing is non-destructive: existing objects are never overwritten, and overlapping
-              objects are skipped.
+              {{ _('Catalog packs are server-provided object collections you can import into your library. Importing is non-destructive: existing objects are never overwritten, and overlapping objects are skipped.') }}
             </p>
 
             {% if catalog_packs %}
               <table class="config-table">
                 <thead>
                   <tr>
-                    <th style="min-width: 180px;">Name</th>
-                    <th>Description</th>
-                    <th style="min-width: 120px;">Tags</th>
-                    <th>Objects</th>
-                    <th>Action</th>
+                    <th style="min-width: 180px;">{{ _('Name') }}</th>
+                    <th>{{ _('Description') }}</th>
+                    <th style="min-width: 120px;">{{ _('Tags') }}</th>
+                    <th>{{ _('Objects') }}</th>
+                    <th>{{ _('Action') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -408,7 +406,7 @@
                     <td>{{ pack.object_count }}</td>
                     <td>
                       <form method="post" action="{{ url_for('tools.import_catalog', pack_id=pack.id) }}" data-pack-name="{{ pack.name or pack.id }}" onsubmit="return confirmCatalogImport(this);">
-                        <button type="submit" class="action-button">Import</button>
+                        <button type="submit" class="action-button">{{ _('Import') }}</button>
                       </form>
                     </td>
                   </tr>
@@ -416,7 +414,7 @@
                 </tbody>
               </table>
             {% else %}
-              <p class="muted-text">No catalog packs are available on this server yet.</p>
+              <p class="muted-text">{{ _('No catalog packs are available on this server yet.') }}</p>
             {% endif %}
           </div>
     </div>
@@ -424,29 +422,27 @@
 </div>
 <div id="notes-modal" class="modal-backdrop" data-action="close-notes-modal">
     <div id="notes-modal-content" class="modal-content" onclick="event.stopPropagation()">
-        <h3 id="notes-modal-title">Shared Notes</h3>
+        <h3 id="notes-modal-title">{{ _('Shared Notes') }}</h3>
         <div id="notes-modal-content" class="modal-notes-content"></div>
-        <button class="inline-button modal-close-btn" data-action="close-notes-modal">Close</button>
+        <button class="inline-button modal-close-btn" data-action="close-notes-modal">{{ _('Close') }}</button>
     </div>
 </div>
 
 <div id="duplicates-modal" class="modal-backdrop" data-action="close-duplicates-modal">
     <div id="duplicates-modal-content" class="modal-content" style="max-width: 800px;">
-        <h3>Potential Duplicates</h3>
+        <h3>{{ _('Potential Duplicates') }}</h3>
         <p style="font-size: 14px; color: var(--text-tertiary);">
-            These pairs are located within 2.5 arcminutes of each other.
-            Merging will move all journals, projects, and framings to the "Kept" object and delete the other.
-            Please note that objects from different catalogs might have slightly different RA / DEC and will therefore not be considered as duplicates.
+            {{ _('These pairs are located within 2.5 arcminutes of each other. Merging will move all journals, projects, and framings to the "Kept" object and delete the other. Please note that objects from different catalogs might have slightly different RA / DEC and will therefore not be considered as duplicates.') }}
         </p>
         <div id="duplicates-loading" style="text-align: center; padding: 20px; display: none;">
-            Scanning catalog... (this may take a few seconds)
+            {{ _('Scanning catalog... (this may take a few seconds)') }}
         </div>
         <div id="duplicates-list" style="max-height: 50vh; overflow-y: auto;"></div>
         <div style="margin-top: 15px; text-align: right;">
-            <button type="button" class="action-button" style="background-color: var(--primary-color);" data-action="close-duplicates-modal">Close</button>
+            <button type="button" class="action-button" style="background-color: var(--primary-color);" data-action="close-duplicates-modal">{{ _('Close') }}</button>
         </div>
     </div>
 </div>
-<script src="{{ url_for('static', filename='js/objects_section.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/objects_section.js') }}?v=2" defer></script>
 
 </div>
