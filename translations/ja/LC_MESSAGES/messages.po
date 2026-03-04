@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 17:47+0800\n"
+"POT-Creation-Date: 2026-03-04 21:28+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -206,7 +206,6 @@ msgid "Label required"
 msgstr "ラベルが必要です"
 
 #: nova/__init__.py:7121
-#, python-format
 msgid "Filter already exists"
 msgstr "フィルターは既に存在します"
 
@@ -214,7 +213,7 @@ msgstr "フィルターは既に存在します"
 msgid "Filter not found"
 msgstr "フィルターが見つかりません"
 
-#: nova/__init__.py:7181 nova/__init__.py:13889
+#: nova/__init__.py:7181 nova/__init__.py:13896
 msgid "Session not found."
 msgstr "セッションが見つかりません。"
 
@@ -266,9 +265,9 @@ msgstr "SSOエラー：ログインリンクの有効期限が切れています
 msgid "SSO Error: Invalid login token."
 msgstr "SSO エラー: 無効なログイン トークンです。"
 
-#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9884
-#: nova/__init__.py:11579 nova/__init__.py:13027 nova/__init__.py:13046
-#: nova/__init__.py:13065
+#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9891
+#: nova/__init__.py:11586 nova/__init__.py:13034 nova/__init__.py:13053
+#: nova/__init__.py:13072
 msgid "User not found."
 msgstr "ユーザーが見つかりません。"
 
@@ -351,7 +350,7 @@ msgstr "カタログのインポートが内部エラーにより失敗しまし
 msgid "No object specified."
 msgstr "オブジェクトが指定されていません。"
 
-#: nova/__init__.py:8343 nova/__init__.py:10506 nova/__init__.py:10530
+#: nova/__init__.py:8343 nova/__init__.py:10513 nova/__init__.py:10537
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "オブジェクトが見つかりません。"
@@ -373,233 +372,233 @@ msgstr "欠落データは見つかりませんでした、または更新の必
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:9256
+#: nova/__init__.py:9263
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>ヘルプファイルの読み込みエラー: %(error)s</p>"
 
-#: nova/__init__.py:9891
+#: nova/__init__.py:9898
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr "オブジェクト '%(object_name)s' が見つかりません。"
 
-#: nova/__init__.py:10211
+#: nova/__init__.py:10218
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "データベースにユーザー '%(username)s' が見つかりませんでした。"
 
-#: nova/__init__.py:10280
+#: nova/__init__.py:10287
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "警告: ホライゾンマスクが無効であったため無視されました。"
 
-#: nova/__init__.py:10302
+#: nova/__init__.py:10309
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr "最後の位置情報を削除できません。少なくとも1つの位置情報を設定する必要があります。"
 
-#: nova/__init__.py:10307
+#: nova/__init__.py:10314
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr "唯一の有効な位置情報を無効化できません。少なくとも1つの有効な位置情報を保持する必要があります。"
 
-#: nova/__init__.py:10343
+#: nova/__init__.py:10350
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr "警告: '%(location_name)s' のホライズンマスクが無効なため無視されました。"
 
-#: nova/__init__.py:10390
+#: nova/__init__.py:10397
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s が正常に更新されました。"
 
-#: nova/__init__.py:10463
+#: nova/__init__.py:10470
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "データベースエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:10638
+#: nova/__init__.py:10645
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"
 
-#: nova/__init__.py:10653
+#: nova/__init__.py:10660
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "ユーザー '%(username)s' は見つかりませんでした。"
 
-#: nova/__init__.py:10667
+#: nova/__init__.py:10674
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr "指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
 
-#: nova/__init__.py:10681
+#: nova/__init__.py:10688
 msgid "Error: No valid location configured or selected for this user."
 msgstr "エラー: このユーザーに対して有効な場所が設定または選択されていません。"
 
-#: nova/__init__.py:10699
+#: nova/__init__.py:10706
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "オブジェクト '%(object_name)s' が設定に見つかりません。"
 
-#: nova/__init__.py:10926
+#: nova/__init__.py:10933
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
 
-#: nova/__init__.py:11129
+#: nova/__init__.py:11136
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
 
-#: nova/__init__.py:11456 nova/__init__.py:13897
+#: nova/__init__.py:11463 nova/__init__.py:13904
 msgid "Project not found."
 msgstr "プロジェクトが見つかりません。"
 
-#: nova/__init__.py:11471
+#: nova/__init__.py:11478
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr "プロジェクト '%(project_name)s' が削除されました。セッションは現在スタンドアロンです。"
 
-#: nova/__init__.py:11479
+#: nova/__init__.py:11486
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "プロジェクト削除エラー: %(error)s"
 
-#: nova/__init__.py:11668
+#: nova/__init__.py:11675
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "リグ設定の生成中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:11688
+#: nova/__init__.py:11695
 msgid "No journal photos found to download."
 msgstr "ダウンロード可能なジャーナル写真は見つかりませんでした。"
 
-#: nova/__init__.py:11733
+#: nova/__init__.py:11740
 msgid "No file selected for photo import."
 msgstr "写真インポート用のファイルが選択されていません。"
 
-#: nova/__init__.py:11738
+#: nova/__init__.py:11745
 msgid "Please select a valid .zip file to import."
 msgstr "インポートする有効な .zip ファイルを選択してください。"
 
-#: nova/__init__.py:11751
+#: nova/__init__.py:11758
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr "インポートに失敗しました: アップロードされたファイルは有効なZIPアーカイブではありません。"
 
-#: nova/__init__.py:11785
+#: nova/__init__.py:11792
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr "ジャーナル写真が正常にインポートされました！%(count)dファイルを抽出しました。"
 
-#: nova/__init__.py:11788
+#: nova/__init__.py:11795
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "インポートに失敗しました: ZIPファイルが破損しているようです。"
 
-#: nova/__init__.py:11790
+#: nova/__init__.py:11797
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "インポート中に予期しないエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:11893 nova/__init__.py:11898
+#: nova/__init__.py:11900 nova/__init__.py:11905
 msgid "No file selected for rigs import."
 msgstr "リグのインポート用にファイルが選択されていません。"
 
-#: nova/__init__.py:11928
+#: nova/__init__.py:11935
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr "リグ構成のインポートとデータベースへの同期が正常に完了しました！"
 
-#: nova/__init__.py:11936
+#: nova/__init__.py:11943
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "リグファイルのインポート中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:11939
+#: nova/__init__.py:11946
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr "無効なファイル形式です。.yaml または .yml ファイルをアップロードしてください。"
 
-#: nova/__init__.py:12891
+#: nova/__init__.py:12898
 msgid "Not authorized to export another user's data."
 msgstr "他のユーザーのデータを出力する権限がありません。"
 
-#: nova/__init__.py:12895
+#: nova/__init__.py:12902
 msgid "Export failed (no such user or empty data)."
 msgstr "エクスポートに失敗しました（該当ユーザーが存在しないか、データが空です）。"
 
-#: nova/__init__.py:12924
+#: nova/__init__.py:12931
 msgid "Username is required in multi-user mode."
 msgstr "マルチユーザーモードではユーザー名が必要です。"
 
-#: nova/__init__.py:12929
+#: nova/__init__.py:12936
 msgid "Not authorized to import for another user."
 msgstr "他のユーザーのために輸入する権限がありません。"
 
-#: nova/__init__.py:12937
+#: nova/__init__.py:12944
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr "設定ファイル、リグ、およびジャーナルのYAMLファイルを提供してください。"
 
-#: nova/__init__.py:12957
+#: nova/__init__.py:12964
 msgid "Import completed successfully!"
 msgstr "インポートが正常に完了しました！"
 
-#: nova/__init__.py:12959
+#: nova/__init__.py:12966
 msgid "Import failed. See server logs for details."
 msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
 
-#: nova/__init__.py:12962
+#: nova/__init__.py:12969
 msgid "Import crashed. Check logs."
 msgstr "インポートがクラッシュしました。ログを確認してください。"
 
-#: nova/__init__.py:12969 nova/__init__.py:12993 nova/__init__.py:13002
-#: nova/__init__.py:13023 nova/__init__.py:13042 nova/__init__.py:13061
+#: nova/__init__.py:12976 nova/__init__.py:13000 nova/__init__.py:13009
+#: nova/__init__.py:13030 nova/__init__.py:13049 nova/__init__.py:13068
 msgid "Not authorized."
 msgstr "許可されていません。"
 
-#: nova/__init__.py:12973
+#: nova/__init__.py:12980
 msgid "Database repair completed."
 msgstr "データベースの修復が完了しました。"
 
-#: nova/__init__.py:12975
+#: nova/__init__.py:12982
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "修復に失敗しました: %(error)s"
 
-#: nova/__init__.py:13007
+#: nova/__init__.py:13014
 msgid "Username and password are required."
 msgstr "ユーザー名とパスワードが必要です。"
 
-#: nova/__init__.py:13010
+#: nova/__init__.py:13017
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr "ユーザー '%(username)s' は既に存在します。"
 
-#: nova/__init__.py:13016
+#: nova/__init__.py:13023
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr "ユーザー '%(username)s' の作成に成功しました。"
 
-#: nova/__init__.py:13030
+#: nova/__init__.py:13037
 msgid "Cannot deactivate the admin account."
 msgstr "管理者アカウントを無効化できません。"
 
-#: nova/__init__.py:13035
+#: nova/__init__.py:13042
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr "ユーザー '%(username)s' は %(status)s です。"
 
-#: nova/__init__.py:13050
+#: nova/__init__.py:13057
 msgid "Password cannot be empty."
 msgstr "パスワードは空欄にできません。"
 
-#: nova/__init__.py:13054
+#: nova/__init__.py:13061
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr "'%(username)s' のパスワードリセット"
 
-#: nova/__init__.py:13068
+#: nova/__init__.py:13075
 msgid "Cannot delete the admin account."
 msgstr "管理者アカウントを削除できません。"
 
-#: nova/__init__.py:13073
+#: nova/__init__.py:13080
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr "ユーザー '%(username)s' が削除されました。"
@@ -657,6 +656,27 @@ msgstr "閉じる"
 #: templates/_inspiration_section.html:505
 msgid "View Charts"
 msgstr "チャートを見る"
+
+#: templates/_inspiration_section.html:515
+msgid "Analyzing targets..."
+msgstr "ターゲットを分析中..."
+
+#: templates/_inspiration_section.html:516 templates/journal_report.html:706
+#: templates/project_report.html:1081
+msgid "No Image"
+msgstr "画像なし"
+
+#: templates/_inspiration_section.html:517
+msgid "unknown"
+msgstr "不明"
+
+#: templates/_inspiration_section.html:518
+msgid "Error rendering grid. Check console."
+msgstr "グリッドのレンダリングエラー。コンソールを確認してください。"
+
+#: templates/_inspiration_section.html:519
+msgid "Image unavailable"
+msgstr "画像は利用できません"
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -883,6 +903,65 @@ msgstr "オートセンター精度経時変化"
 #: templates/_journal_section.html:1414
 msgid "Distance from target center per centering attempt"
 msgstr "目標中心からの距離（センタリング試行ごと）"
+
+#: templates/_journal_section.html:1943
+msgid "Failed to fetch objects"
+msgstr "オブジェクトの取得に失敗しました"
+
+#: templates/_journal_section.html:1944
+msgid "No objects found"
+msgstr "オブジェクトが見つかりません"
+
+#: templates/_journal_section.html:1945
+msgid "Remove filter"
+msgstr "フィルターを削除"
+
+#: templates/_journal_section.html:1946
+msgid "# Subs"
+msgstr "枚数"
+
+#: templates/_journal_section.html:1947 templates/journal_form.html:173
+msgid "Count"
+msgstr "カウント"
+
+#: templates/_journal_section.html:1948 templates/journal_form.html:176
+msgid "Exp (sec/sub):"
+msgstr "Exp (秒/サブ):"
+
+#: templates/_journal_section.html:1949 templates/journal_form.html:177
+msgid "Seconds"
+msgstr "秒"
+
+#: templates/_journal_section.html:1950
+msgid "Enter a filter name."
+msgstr "フィルター名を入力してください。"
+
+#: templates/_journal_section.html:1951
+msgid "Error adding filter."
+msgstr "フィルターの追加エラー。"
+
+#: templates/_journal_section.html:1952
+#, python-brace-format
+msgid "{label} added."
+msgstr "{label} を追加しました。"
+
+#: templates/_journal_section.html:1953
+msgid "Network error."
+msgstr "ネットワークエラー。"
+
+#: templates/_journal_section.html:1954
+#, python-brace-format
+msgid "Remove \"{label}\"? Historical session data for this filter is kept."
+msgstr "「{label}」を削除しますか？このフィルターの履歴セッションデータは保持されます。"
+
+#: templates/_journal_section.html:1955
+msgid "Error removing filter."
+msgstr "フィルターの削除エラー。"
+
+#: templates/_journal_section.html:1956
+#, python-brace-format
+msgid "{label} removed."
+msgstr "{label} を削除しました。"
 
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
@@ -2416,7 +2495,7 @@ msgid "Rig Data"
 msgstr "リグデータ"
 
 #: templates/graph_view.html:171 templates/mobile_edit_notes.html:17
-#: templates/mobile_edit_notes.html:104 templates/mobile_edit_notes.html:118
+#: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "メモを保存"
 
@@ -3077,18 +3156,6 @@ msgstr "フィルター："
 msgid "# Subs:"
 msgstr "# 字幕:"
 
-#: templates/journal_form.html:173
-msgid "Count"
-msgstr "カウント"
-
-#: templates/journal_form.html:176
-msgid "Exp (sec/sub):"
-msgstr "Exp (秒/サブ):"
-
-#: templates/journal_form.html:177
-msgid "Seconds"
-msgstr "秒"
-
 #: templates/journal_form.html:184
 msgid "e.g., Library match, Taken post-session"
 msgstr "例：ライブラリ一致、セッション終了後に取得"
@@ -3133,10 +3200,6 @@ msgstr "DSOトラッカー"
 #: templates/project_report.html:1075 templates/project_report.html:1079
 msgid "Session Image"
 msgstr "セッション画像"
-
-#: templates/journal_report.html:706 templates/project_report.html:1081
-msgid "No Image"
-msgstr "画像なし"
 
 #: templates/journal_report.html:708
 msgid "Total Integration:"
@@ -3460,7 +3523,7 @@ msgstr "%%(name)sを検索中..."
 msgid "Error connecting to server."
 msgstr "サーバーへの接続に失敗しました。"
 
-#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:74
+#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:78
 msgid "Saving..."
 msgstr "保存中..."
 
@@ -3468,7 +3531,7 @@ msgstr "保存中..."
 msgid "Object saved successfully!"
 msgstr "オブジェクトが正常に保存されました！"
 
-#: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:114
+#: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:118
 msgid "Error:"
 msgstr "エラー:"
 
@@ -3497,7 +3560,11 @@ msgstr "編集メモ"
 msgid "Edit:"
 msgstr "編集:"
 
-#: templates/mobile_edit_notes.html:99
+#: templates/mobile_edit_notes.html:27
+msgid "Unknown error"
+msgstr "不明なエラー"
+
+#: templates/mobile_edit_notes.html:103
 msgid "Notes saved successfully!"
 msgstr "ノートが正常に保存されました！"
 
