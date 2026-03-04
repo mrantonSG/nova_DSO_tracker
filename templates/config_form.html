@@ -150,29 +150,29 @@
               <hr>
               <div class="inline-fields">
                 <div>
-                  <label class="verylong-label" for="min_observable_minutes">Min Observable (min):</label>
+                  <label class="verylong-label" for="min_observable_minutes">{{ _('Min Observable (min):') }}</label>
                   <input type="number" name="min_observable_minutes" id="min_observable_minutes"
                          value="{{ (config.imaging_criteria | default({}, true)).get('min_observable_minutes', 60) }}" min="0" max="600">
                 </div>
                 <div>
-                  <label class="verylong-label" for="min_max_altitude">Min Max Altitude (°):</label>
+                  <label class="verylong-label" for="min_max_altitude">{{ _('Min Max Altitude (°):') }}</label>
                   <input type="number" name="min_max_altitude" id="min_max_altitude"
                          value="{{ (config.imaging_criteria | default({}, true)).get('min_max_altitude', 30) }}" min="0" max="90">
                 </div>
               </div>
               <div class="inline-fields">
                 <div>
-                  <label class="verylong-label" for="max_moon_illumination">Max Moon Illum (%):</label>
+                  <label class="verylong-label" for="max_moon_illumination">{{ _('Max Moon Illum (%%):') }}</label>
                   <input type="number" name="max_moon_illumination" id="max_moon_illumination"
                          value="{{ (config.imaging_criteria | default({}, true)).get('max_moon_illumination', 20) }}" min="0" max="100">
                 </div>
                 <div>
-                  <label class="verylong-label" for="min_angular_separation">Min Moon Sep (°):</label>
+                  <label class="verylong-label" for="min_angular_separation">{{ _('Min Moon Sep (°):') }}</label>
                   <input type="number" name="min_angular_separation" id="min_angular_separation"
                          value="{{ (config.imaging_criteria | default({}, true)).get('min_angular_separation', 30) }}" min="0" max="180">
                 </div>
                 <div>
-                  <label class="verylong-label" for="search_horizon_months">Search months:</label>
+                  <label class="verylong-label" for="search_horizon_months">{{ _('Search months:') }}</label>
                   <input type="number" name="search_horizon_months" id="search_horizon_months"
                          value="{{ (config.imaging_criteria | default({}, true)).get('search_horizon_months', 6) }}" min="1" max="12">
                 </div>
@@ -180,40 +180,40 @@
               <hr>
               <div class="inline-fields">
                 <div>
-                  <label class="verylong-label" for="calc_invisible">Calc. Invisible Objects:</label>
+                  <label class="verylong-label" for="calc_invisible">{{ _('Calc. Invisible Objects:') }}</label>
                   <input type="checkbox" name="calc_invisible" id="calc_invisible"
                          {% if config.get('calc_invisible', False) %}checked{% endif %}>
                 </div>
                 <small class="form-text text-muted">
-                  If checked, Nova will calculate curves for ALL objects, even those geometrically impossible to see from your location (disabling the "Smart Skip" optimization).
+                  {{ _('If checked, Nova will calculate curves for ALL objects, even those geometrically impossible to see from your location (disabling the "Smart Skip" optimization).') }}
                 </small>
               </div>
 
               <div class="inline-fields">
                 <div>
-                  <label class="verylong-label" for="hide_invisible">Hide Invisible Objects:</label>
+                  <label class="verylong-label" for="hide_invisible">{{ _('Hide Invisible Objects:') }}</label>
                   <input type="checkbox" name="hide_invisible" id="hide_invisible"
                          {% if config.get('hide_invisible', True) %}checked{% endif %}>
                 </div>
                 <small class="form-text text-muted">
-                  If checked, objects that are geometrically impossible to see will be hidden from the main list by default. They will still appear if you specifically search for them.
+                  {{ _('If checked, objects that are geometrically impossible to see will be hidden from the main list by default. They will still appear if you specifically search for them.') }}
                 </small>
               </div>
 
               {% if SINGLE_USER_MODE %}
               <hr>
               <div class="form-group">
-                <label for="sampling_interval">Calculation Precision:</label>
+                <label for="sampling_interval">{{ _('Calculation Precision:') }}</label>
                 <select id="sampling_interval" name="sampling_interval" class="form-control">
                   {% set current_interval = config.get('sampling_interval_minutes', 15) %}
-                  <option value="10" {% if current_interval == 10 %}selected{% endif %}>High (10 min samples)</option>
-                  <option value="15" {% if current_interval == 15 %}selected{% endif %}>Default (15 min samples)</option>
-                  <option value="20" {% if current_interval == 20 %}selected{% endif %}>Balanced (20 min samples)</option>
-                  <option value="30" {% if current_interval == 30 %}selected{% endif %}>Fast (30 min samples)</option>
-                  <option value="60" {% if current_interval == 60 %}selected{% endif %}>Fastest (60 min samples)</option>
+                  <option value="10" {% if current_interval == 10 %}selected{% endif %}>{{ _('High (10 min samples)') }}</option>
+                  <option value="15" {% if current_interval == 15 %}selected{% endif %}>{{ _('Default (15 min samples)') }}</option>
+                  <option value="20" {% if current_interval == 20 %}selected{% endif %}>{{ _('Balanced (20 min samples)') }}</option>
+                  <option value="30" {% if current_interval == 30 %}selected{% endif %}>{{ _('Fast (30 min samples)') }}</option>
+                  <option value="60" {% if current_interval == 60 %}selected{% endif %}>{{ _('Fastest (60 min samples)') }}</option>
                 </select>
                 <small class="form-text text-muted">
-                  Note: Your 'Current Altitude' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power devices.
+                  {{ _('Note: Your \'Current Altitude\' is always calculated in real-time. This setting only refines the accuracy of the nightly overview values (Max Altitude, Observable Duration, etc.). \'Fast\' is recommended for low-power devices.') }}
                 </small>
               </div>
 
@@ -221,17 +221,17 @@
 
               <div class="inline-fields">
                 <div>
-                  <label class="verylong-label" for="telemetry_enabled">Anonymous Telemetry:</label>
+                  <label class="verylong-label" for="telemetry_enabled">{{ _('Anonymous Telemetry:') }}</label>
                   <input type="checkbox" name="telemetry_enabled" id="telemetry_enabled"
                          {% if config.get('telemetry', {}).get('enabled', True) %}checked{% endif %}>
                 </div>
                 <small class="form-text text-muted">
-                  Nova sends a small anonymous heartbeat (app version, system type, and counts of your data entries like objects, rigs, locations, and journals). No personal details are ever collected, and you can opt out anytime. Allowing it really helps me improve Nova.
+                  {{ _('Nova sends a small anonymous heartbeat (app version, system type, and counts of your data entries like objects, rigs, locations, and journals). No personal details are ever collected, and you can opt out anytime. Allowing it really helps me improve Nova.') }}
                 </small>
               </div>
               <hr>
               {% endif %}
-               <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">Save Settings</button>
+               <button type="submit" name="submit_general" class="action-button" style="margin-top:10px;">{{ _('Save Settings') }}</button>
           </form>
         </div>
       </div>
@@ -239,38 +239,38 @@
 <div id="locations-tab-content" class="tab-content">
     <div class="config-section">
       <h2 style="display: flex; align-items: center; gap: 15px;">
-        Locations Configuration
-        {{ help_badge('locations_general', 'Click for help') }}
+        {{ _('Locations Configuration') }}
+        {{ help_badge('locations_general', _('Click for help')) }}
         <span id="active-location-counter" style="font-weight: normal; font-size: 0.9em; color: var(--text-secondary);"></span>
       </h2>
 
       <form method="post">
-        <h3>Add New Location</h3>
+        <h3>{{ _('Add New Location') }}</h3>
         <div class="block">
             <div class="inline-fields">
               <div>
-                <label class="short-label" for="new_location">Name:</label>
-                <input type="text" name="new_location" id="new_location" placeholder="e.g., Home Observatory">
+                <label class="short-label" for="new_location">{{ _('Name:') }}</label>
+                <input type="text" name="new_location" id="new_location" placeholder="{{ _('e.g., Home Observatory') }}">
               </div>
               <div>
-                <label class="short-label" for="new_lat">Lat:</label>
+                <label class="short-label" for="new_lat">{{ _('Lat:') }}</label>
                 <input type="text" name="new_lat" id="new_lat" placeholder="40.7128">
               </div>
               <div>
-                <label class="short-label" for="new_lon">Lon:</label>
+                <label class="short-label" for="new_lon">{{ _('Lon:') }}</label>
                 <input type="text" name="new_lon" id="new_lon" placeholder="-74.0060">
               </div>
               <div>
-                <label class="long-label" for="new_timezone">Timezone:</label>
+                <label class="long-label" for="new_timezone">{{ _('Timezone:') }}</label>
                 <select name="new_timezone" id="new_timezone">
-                    <option value="">Type to search...</option>
+                    <option value="">{{ _('Type to search...') }}</option>
                     {% for tz in all_timezones %}
                     <option value="{{ tz }}">{{ tz }}</option>
                     {% endfor %}
                 </select>
               </div>
               <div>
-                  <label class="short-label" for="new_active">Active:</label>
+                  <label class="short-label" for="new_active">{{ _('Active:') }}</label>
                   <input type="checkbox" name="new_active" id="new_active" class="active-location-checkbox" checked>
               </div>
             </div>
@@ -279,13 +279,13 @@
                  <div class="location-id"></div>
                  <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
                     <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">
-                        Horizon Mask:
-                        {{ help_badge('horizon_mask', 'Help') }}
+                        {{ _('Horizon Mask:') }}
+                        {{ help_badge('horizon_mask', _('Help')) }}
                     </label>
                     <div>
-                        <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]"></textarea>
+                        <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="{{ _('Optional. e.g., [[0, 35], [90, 15]]') }}"></textarea>
                         <div style="margin-top: 4px;">
-                            <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_new" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
+                            <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_new" title="{{ _('Import a Stellarium .hzn horizon file') }}">{{ _('Import .hzn') }}</button>
                             <input type="file" id="hzn_import_new" class="hzn-file-input" data-textarea-id="new_horizon_mask" style="display:none;" accept=".hzn,.txt">
                         </div>
                     </div>
@@ -295,13 +295,13 @@
             <div class="inline-fields">
                  <div class="location-id"></div>
                  <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                    <label class="short-label" for="new_comments" style="padding-top: 5px;">Comments:</label>
-                    <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="new-comment-counter"></textarea>
+                    <label class="short-label" for="new_comments" style="padding-top: 5px;">{{ _('Comments:') }}</label>
+                    <textarea name="new_comments" id="new_comments" rows="2" style="width: 655px;" placeholder="{{ _('Notes on sky quality, obstructions, etc.') }}" maxlength="500" data-counter-id="new-comment-counter"></textarea>
                     <div></div>
                     <small id="new-comment-counter" style="color: var(--text-tertiary);">0 / 500</small>
                  </div>
             </div>
-            <button type="submit" name="submit_new_location" value="1" class="action-button" style="margin-top: 10px;">Add</button>
+            <button type="submit" name="submit_new_location" value="1" class="action-button" style="margin-top: 10px;">{{ _('Add') }}</button>
         </div>
         <hr>
         <div class="locations-list">
@@ -312,15 +312,15 @@
                   <strong>{{ loc_key }}</strong>
                 </div>
                 <div>
-                  <label class="short-label" for="lat_{{ loc_key }}">Lat:</label>
+                  <label class="short-label" for="lat_{{ loc_key }}">{{ _('Lat:') }}</label>
                   <input type="text" name="lat_{{ loc_key }}" id="lat_{{ loc_key }}" value="{{ loc_val.lat }}">
                 </div>
                 <div>
-                  <label class="short-label" for="lon_{{ loc_key }}">Lon:</label>
+                  <label class="short-label" for="lon_{{ loc_key }}">{{ _('Lon:') }}</label>
                   <input type="text" name="lon_{{ loc_key }}" id="lon_{{ loc_key }}" value="{{ loc_val.lon }}">
                 </div>
                 <div>
-                  <label class="long-label" for="timezone_{{ loc_key }}">Timezone:</label>
+                  <label class="long-label" for="timezone_{{ loc_key }}">{{ _('Timezone:') }}</label>
                   <select name="timezone_{{ loc_key }}" id="timezone_{{ loc_key }}">
                     {% for tz in all_timezones %}
                     <option value="{{ tz }}" {% if tz == loc_val.timezone %}selected{% endif %}>{{ tz }}</option>
@@ -328,29 +328,29 @@
                 </select>
                 </div>
                 <div>
-                    <label class="short-label" for="active_{{ loc_key }}">Active:</label>
+                    <label class="short-label" for="active_{{ loc_key }}">{{ _('Active:') }}</label>
                     <input type="checkbox" name="active_{{ loc_key }}" id="active_{{ loc_key }}" class="active-location-checkbox" {% if loc_val.get('active', True) %}checked{% endif %}>
                 </div>
                 <div>
-                  <label class="short-label" for="delete_loc_{{ loc_key }}">Del:</label>
+                  <label class="short-label" for="delete_loc_{{ loc_key }}">{{ _('Del:') }}</label>
                   <input type="checkbox" name="delete_loc_{{ loc_key }}" id="delete_loc_{{ loc_key }}"
-                         {% if locations|length <= 1 %}disabled title="Cannot delete your only location"{% endif %}>
+                         {% if locations|length <= 1 %}disabled title="{{ _('Cannot delete your only location') }}"{% endif %}>
                 </div>
                 <div>
                   <a href="https://www.google.com/maps?q={{ loc_val.lat }},{{ loc_val.lon }}"
-                     target="_blank" title="View on Google Maps" class="action-button" style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
-                     Open Map
+                     target="_blank" title="{{ _('View on Google Maps') }}" class="action-button" style="text-decoration: none; font-size: 13px; padding: 6px 12px; margin-left: 10px;">
+                     {{ _('Open Map') }}
                   </a>
                 </div>
               </div>
                 <div class="inline-fields">
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                        <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">Horizon Mask:</label>
+                        <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">{{ _('Horizon Mask:') }}</label>
                         <div>
-                            <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="Optional. e.g., [[0, 35], [90, 15]]">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
+                            <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="{{ _('Optional. e.g., [[0, 35], [90, 15]]') }}">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
                             <div style="margin-top: 4px;">
-                                <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_{{ loop.index }}" title="Import a Stellarium .hzn horizon file">Import .hzn</button>
+                                <button type="button" class="action-button" style="font-size: 11px; padding: 3px 8px;" data-action="trigger-file-input" data-target-id="hzn_import_{{ loop.index }}" title="{{ _('Import a Stellarium .hzn horizon file') }}">{{ _('Import .hzn') }}</button>
                                 <input type="file" id="hzn_import_{{ loop.index }}" class="hzn-file-input" data-textarea-id="horizon_mask_{{ loc_key }}" style="display:none;" accept=".hzn,.txt">
                             </div>
                         </div>
@@ -359,15 +359,15 @@
                 <div class="inline-fields">
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                        <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">Comments:</label>
-                        <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="Notes on sky quality, obstructions, etc." maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
+                        <label class="short-label" for="comments_{{ loc_key }}" style="padding-top: 5px;">{{ _('Comments:') }}</label>
+                        <textarea name="comments_{{ loc_key }}" id="comments_{{ loc_key }}" rows="2" style="width: 655px;" placeholder="{{ _('Notes on sky quality, obstructions, etc.') }}" maxlength="500" data-counter-id="comment-counter-{{ loop.index }}">{{ loc_val.get('comments', '') }}</textarea>
                         <div></div>
                         <small id="comment-counter-{{ loop.index }}" style="color: var(--text-tertiary);">{{ (loc_val.get('comments') or '')|length }} / 500</small>
                     </div>
                 </div>
             </div>
           {% endfor %}
-          <button type="submit" name="submit_locations" value="1" class="action-button">Update Locations</button>
+          <button type="submit" name="submit_locations" value="1" class="action-button">{{ _('Update Locations') }}</button>
         </div>
       </form>
     </div>
@@ -378,145 +378,144 @@
     <div class="container">
         <div class="column">
             <h2 style="display: flex; align-items: center; gap: 10px;">
-                1. Define Your Components
-                {{ help_badge('rigs_general', 'Help with Rigs') }}
+                {{ _('1. Define Your Components') }}
+                {{ help_badge('rigs_general', _('Help with Rigs')) }}
             </h2>
-            <p style="font-size:14px; color: var(--text-secondary);">Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.</p>
-            <h3>Telescopes (<span id="tele-count">0</span>)</h3>
+            <p style="font-size:14px; color: var(--text-secondary);">{{ _('Add or update your equipment here. To edit an item, click "Edit" to load its details into the form, make your changes, and click the "Update" button.') }}</p>
+            <h3>{{ _('Telescopes') }} (<span id="tele-count">0</span>)</h3>
             <form action="{{ url_for('tools.add_component') }}" method="post" id="form-telescope">
                 <input type="hidden" name="component_type" value="telescopes">
                 <input type="hidden" name="component_id" value="">
-                <div class="form-group"><label for="tele_name">Name:</label><input type="text" name="name" id="tele_name" required placeholder="e.g., Celestron EdgeHD 11"></div>
-                <div class="form-group"><label for="aperture">Aperture (mm):</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
-                <div class="form-group"><label for="focal_length">Focal Length (mm):</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
+                <div class="form-group"><label for="tele_name">{{ _('Name:') }}</label><input type="text" name="name" id="tele_name" required placeholder="{{ _('e.g., Celestron EdgeHD 11') }}"></div>
+                <div class="form-group"><label for="aperture">{{ _('Aperture (mm):') }}</label><input type="number" step="any" name="aperture_mm" id="aperture" required></div>
+                <div class="form-group"><label for="focal_length">{{ _('Focal Length (mm):') }}</label><input type="number" step="any" name="focal_length_mm" id="focal_length" required></div>
                 {% if not SINGLE_USER_MODE %}
                 <div class="share-control">
                     <input type="checkbox" name="is_shared" id="tele_is_shared">
-                    <label for="tele_is_shared">Share this component</label>
+                    <label for="tele_is_shared">{{ _('Share this component') }}</label>
                 </div>
                 {% endif %}
-                <button type="submit">Add Telescope</button>
+                <button type="submit">{{ _('Add Telescope') }}</button>
             </form>
             <hr>
             <ul id="telescope-list"></ul>
             <hr>
 
-            <h3>Cameras (<span id="cam-count">0</span>)</h3>
+            <h3>{{ _('Cameras') }} (<span id="cam-count">0</span>)</h3>
             <form action="{{ url_for('tools.add_component') }}" method="post" id="form-camera">
                 <input type="hidden" name="component_type" value="cameras">
                 <input type="hidden" name="component_id" value="">
-                <div class="form-group"><label for="cam_name">Name:</label><input type="text" name="name" id="cam_name" required placeholder="e.g., ZWO ASI2600MC Pro"></div>
-                <div class="form-group"><label for="sensor_w">Sensor Width (mm):</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
-                <div class="form-group"><label for="sensor_h">Sensor Height (mm):</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
-                <div class="form-group"><label for="pixel_s">Pixel Size (μm):</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
+                <div class="form-group"><label for="cam_name">{{ _('Name:') }}</label><input type="text" name="name" id="cam_name" required placeholder="{{ _('e.g., ZWO ASI2600MC Pro') }}"></div>
+                <div class="form-group"><label for="sensor_w">{{ _('Sensor Width (mm):') }}</label><input type="number" step="any" name="sensor_width_mm" id="sensor_w" required></div>
+                <div class="form-group"><label for="sensor_h">{{ _('Sensor Height (mm):') }}</label><input type="number" step="any" name="sensor_height_mm" id="sensor_h" required></div>
+                <div class="form-group"><label for="pixel_s">{{ _('Pixel Size (μm):') }}</label><input type="number" step="any" name="pixel_size_um" id="pixel_s" required></div>
                 {% if not SINGLE_USER_MODE %}
                 <div class="share-control">
                     <input type="checkbox" name="is_shared" id="cam_is_shared">
-                    <label for="cam_is_shared">Share this component</label>
+                    <label for="cam_is_shared">{{ _('Share this component') }}</label>
                 </div>
                 {% endif %}
-                <button type="submit">Add Camera</button>
+                <button type="submit">{{ _('Add Camera') }}</button>
             </form>
             <hr>
             <ul id="camera-list"></ul>
             <hr>
 
-            <h3>Reducers / Extenders (<span id="red-count">0</span>)</h3>
+            <h3>{{ _('Reducers / Extenders') }} (<span id="red-count">0</span>)</h3>
             <form action="{{ url_for('tools.add_component') }}" method="post" id="form-reducer">
                 <input type="hidden" name="component_type" value="reducers_extenders">
                 <input type="hidden" name="component_id" value="">
-                <div class="form-group"><label for="red_name">Name:</label><input type="text" name="name" id="red_name" required placeholder="e.g., Celestron 0.7x Reducer"></div>
-                <div class="form-group"><label for="factor">Factor:</label><input type="number" step="any" name="factor" id="factor" required placeholder="e.g., 0.7 for reducer"></div>
+                <div class="form-group"><label for="red_name">{{ _('Name:') }}</label><input type="text" name="name" id="red_name" required placeholder="{{ _('e.g., Celestron 0.7x Reducer') }}"></div>
+                <div class="form-group"><label for="factor">{{ _('Factor:') }}</label><input type="number" step="any" name="factor" id="factor" required placeholder="{{ _('e.g., 0.7 for reducer') }}"></div>
                 {% if not SINGLE_USER_MODE %}
                 <div class="share-control">
                     <input type="checkbox" name="is_shared" id="red_is_shared">
-                    <label for="red_is_shared">Share this component</label>
+                    <label for="red_is_shared">{{ _('Share this component') }}</label>
                 </div>
                 {% endif %}
-                <button type="submit">Add Reducer/Extender</button>
+                <button type="submit">{{ _('Add Reducer/Extender') }}</button>
             </form>
             <hr>
             <ul id="reducer-list"></ul>
         </div>
 
         <div class="column">
-            <h2>2. Configure Your Rigs</h2>
-            <p style="font-size:14px; color: var(--text-secondary);">Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.</p>
+            <h2>{{ _('2. Configure Your Rigs') }}</h2>
+            <p style="font-size:14px; color: var(--text-secondary);">{{ _('Combine your components into a complete imaging rig. To edit, click "Edit" to load the rig into the form below.') }}</p>
             <form action="{{ url_for('tools.add_rig') }}" method="post" id="form-rig">
                 <input type="hidden" name="rig_id" value="">
-                <div class="form-group"><label for="rig_name">Rig Name:</label><input type="text" name="rig_name" id="rig_name" required placeholder="e.g., C11 Deep Sky Rig"></div>
+                <div class="form-group"><label for="rig_name">{{ _('Rig Name:') }}</label><input type="text" name="rig_name" id="rig_name" required placeholder="{{ _('e.g., C11 Deep Sky Rig') }}"></div>
                 <div class="form-group">
-                    <label for="tele_select">Telescope:</label>
+                    <label for="tele_select">{{ _('Telescope:') }}</label>
                     <select name="telescope_id" id="tele_select" required>
-                        <option value="" disabled selected>-- Select a Telescope --</option>
+                        <option value="" disabled selected>{{ _('-- Select a Telescope --') }}</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="cam_select">Camera:</label>
+                    <label for="cam_select">{{ _('Camera:') }}</label>
                     <select name="camera_id" id="cam_select" required>
-                        <option value="" disabled selected>-- Select a Camera --</option>
+                        <option value="" disabled selected>{{ _('-- Select a Camera --') }}</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="red_select">Reducer / Extender (Optional):</label>
+                    <label for="red_select">{{ _('Reducer / Extender (Optional):') }}</label>
                     <select name="reducer_extender_id" id="red_select">
-                        <option value="">-- None --</option>
+                        <option value="">{{ _('-- None --') }}</option>
                     </select>
                 </div>
                 <div class="guide-optics-section" style="border-top: 1px solid var(--border-light); padding-top: 16px; margin-top: 8px;">
                     <div style="font-size: var(--font-size-xs, 11px); font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint); margin-bottom: 12px;">
-                        Guide Optics <span style="text-transform: none; font-weight: 400; color: var(--text-muted);">(Optional — for dither recommendations)</span>
+                        {{ _('Guide Optics') }} <span style="text-transform: none; font-weight: 400; color: var(--text-muted);">({{ _('Optional — for dither recommendations') }})</span>
                     </div>
                     <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="guide_is_oag" name="guide_is_oag" style="width: auto; margin: 0;">
                         <label for="guide_is_oag" style="margin: 0; font-weight: 500; cursor: pointer;">
-                            Off-Axis Guider (OAG) — uses main scope focal length
+                            {{ _('Off-Axis Guider (OAG) — uses main scope focal length') }}
                         </label>
                     </div>
                     <div class="form-group" id="guide-scope-row">
-                        <label for="guide_telescope_id">Guide Scope:</label>
+                        <label for="guide_telescope_id">{{ _('Guide Scope:') }}</label>
                         <select name="guide_telescope_id" id="guide_telescope_id">
-                            <option value="">-- None --</option>
+                            <option value="">{{ _('-- None --') }}</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="guide_camera_id">Guide Camera:</label>
+                        <label for="guide_camera_id">{{ _('Guide Camera:') }}</label>
                         <select name="guide_camera_id" id="guide_camera_id">
-                            <option value="">-- None --</option>
+                            <option value="">{{ _('-- None --') }}</option>
                         </select>
                     </div>
                 </div>
-                <button type="submit">Create Rig</button>
+                <button type="submit">{{ _('Create Rig') }}</button>
             </form>
              <hr>
             <div class="form-group">
-                <label for="seeing-select">Select Your Typical Seeing:</label>
+                <label for="seeing-select">{{ _('Select Your Typical Seeing:') }}</label>
                 <select id="seeing-select">
-                    <option value="none" >-- Select Seeing to Assess Rigs --</option>
-                    <option value="1.0-2.0">Excellent Seeing (1.0" - 2.0" FWHM)</option>
-                    <option value="2.0-4.0" selected >Good Seeing (2.0" - 4.0" FWHM)</option>
-                    <option value="4.0-6.0">Poor Seeing (> 4.0" FWHM)</option>
+                    <option value="none" >{{ _('-- Select Seeing to Assess Rigs --') }}</option>
+                    <option value="1.0-2.0">{{ _('Excellent Seeing (1.0" - 2.0" FWHM)') }}</option>
+                    <option value="2.0-4.0" selected >{{ _('Good Seeing (2.0" - 4.0" FWHM)') }}</option>
+                    <option value="4.0-6.0">{{ _('Poor Seeing (> 4.0" FWHM)') }}</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="rig-sort">Sort rigs by:</label>
+                <label for="rig-sort">{{ _('Sort rigs by:') }}</label>
                 <select id="rig-sort">
-                    <option value="name-asc" selected>Name (A→Z)</option>
-                    <option value="name-desc">Name (Z→A)</option>
-                    <option value="fl-asc">Effective Focal Length (low→high)</option>
-                    <option value="fl-desc">Effective Focal Length (high→low)</option>
-                    <option value="fr-asc">f/ratio (low→high)</option>
-                    <option value="fr-desc">f/ratio (high→low)</option>
-                    <option value="scale-asc">Image Scale (low→high)</option>
-                    <option value="scale-desc">Image Scale (high→low)</option>
-                    <option value="fovw-asc">FOV Width (low→high)</option>
-                    <option value="fovw-desc">FOV Width (high→low)</option>
-                    <option value="recent-desc">Recently Added (newest first)</option>
-                    <option value="recent-asc">Recently Added (oldest first)</GIST:
-                    </option>
+                    <option value="name-asc" selected>{{ _('Name (A→Z)') }}</option>
+                    <option value="name-desc">{{ _('Name (Z→A)') }}</option>
+                    <option value="fl-asc">{{ _('Effective Focal Length (low→high)') }}</option>
+                    <option value="fl-desc">{{ _('Effective Focal Length (high→low)') }}</option>
+                    <option value="fr-asc">{{ _('f/ratio (low→high)') }}</option>
+                    <option value="fr-desc">{{ _('f/ratio (high→low)') }}</option>
+                    <option value="scale-asc">{{ _('Image Scale (low→high)') }}</option>
+                    <option value="scale-desc">{{ _('Image Scale (high→low)') }}</option>
+                    <option value="fovw-asc">{{ _('FOV Width (low→high)') }}</option>
+                    <option value="fovw-desc">{{ _('FOV Width (high→low)') }}</option>
+                    <option value="recent-desc">{{ _('Recently Added (newest first)') }}</option>
+                    <option value="recent-asc">{{ _('Recently Added (oldest first)') }}</option>
                 </select>
             </div>
-            <h3>Existing Rigs (<span id="rig-count">0</span>)</h3>
+            <h3>{{ _('Existing Rigs') }} (<span id="rig-count">0</span>)</h3>
             <ul id="existing-rigs-list"></ul>
         </div>
     </div>
@@ -524,109 +523,109 @@
 <div id="shared-tab-content" class="tab-content">
       <div class="config-section">
           <h2 style="display: flex; align-items: center; gap: 10px;">
-              Shared Items from Other Users
-              {{ help_badge('shared_items_general', 'Help with Shared Items') }}
+              {{ _('Shared Items from Other Users') }}
+              {{ help_badge('shared_items_general', _('Help with Shared Items')) }}
           </h2>
-          <p>Here you can find Objects and Components shared by other users in the system. Click "Import" to add a copy to your own configuration.</p>
+          <p>{{ _('Here you can find Objects and Components shared by other users in the system. Click "Import" to add a copy to your own configuration.') }}</p>
 
-          <h3 style="margin-top: 30px;">Shared Objects</h3>
+          <h3 style="margin-top: 30px;">{{ _('Shared Objects') }}</h3>
           <div class="table-wrapper">
               <table class="data-table" id="shared-objects-table">
                   <thead>
                       <tr>
-                          <th style="width: 50px; text-align: center;">Img</th>
-                          <th style="width: 20%;">Object ID</th>
-                          <th style="width: 25%;">Common Name</th>
-                          <th>Type</th>
-                          <th>Constellation</th>
-                          <th style="width: 15%;">Shared By</th>
-                          <th class="notes-cell">Notes</th>
-                          <th class="action-cell">Action</th>
+                          <th style="width: 50px; text-align: center;">{{ _('Img') }}</th>
+                          <th style="width: 20%;">{{ _('Object ID') }}</th>
+                          <th style="width: 25%;">{{ _('Common Name') }}</th>
+                          <th>{{ _('Type') }}</th>
+                          <th>{{ _('Constellation') }}</th>
+                          <th style="width: 15%;">{{ _('Shared By') }}</th>
+                          <th class="notes-cell">{{ _('Notes') }}</th>
+                          <th class="action-cell">{{ _('Action') }}</th>
                       </tr>
                       <tr class="filter-row">
                           <th></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="object_name" placeholder="Filter ID..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="common_name" placeholder="Filter name..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="type" placeholder="Filter type..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="constellation" placeholder="Filter con..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="shared_by_user" placeholder="Filter user..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="object_name" placeholder="{{ _('Filter ID...') }}"></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="common_name" placeholder="{{ _('Filter name...') }}"></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="type" placeholder="{{ _('Filter type...') }}"></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="constellation" placeholder="{{ _('Filter con...') }}"></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="objects" data-col="shared_by_user" placeholder="{{ _('Filter user...') }}"></th>
                           <th></th>
                           <th style="text-align: center;">
                               <select onchange="filterSharedTables()" data-table="objects" data-col="status" style="width: 95%;">
-                                  <option value="all">All</option>
-                                  <option value="unimported">Not Imported</option>
-                                  <option value="imported">Imported</option>
+                                  <option value="all">{{ _('All') }}</option>
+                                  <option value="unimported">{{ _('Not Imported') }}</option>
+                                  <option value="imported">{{ _('Imported') }}</option>
                               </select>
                           </th>
                       </tr>
                   </thead>
                   <tbody id="shared-objects-body">
-                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
+                      <tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-secondary);">{{ _('Loading...') }}</td></tr>
                   </tbody>
               </table>
           </div>
 
-          <h3 style="margin-top: 30px;">Shared Views</h3>
+          <h3 style="margin-top: 30px;">{{ _('Shared Views') }}</h3>
           <div class="table-wrapper">
               <table class="data-table" id="shared-views-table">
                   <thead>
                       <tr>
-                          <th style="width: 25%;">View Name</th>
-                          <th style="width: 35%;">Description</th>
-                          <th style="width: 20%;">Shared By</th>
-                          <th class="action-cell">Action</th>
+                          <th style="width: 25%;">{{ _('View Name') }}</th>
+                          <th style="width: 35%;">{{ _('Description') }}</th>
+                          <th style="width: 20%;">{{ _('Shared By') }}</th>
+                          <th class="action-cell">{{ _('Action') }}</th>
                       </tr>
                       <tr class="filter-row">
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="name" placeholder="Filter name..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="description" placeholder="Filter desc..."></th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="shared_by_user" placeholder="Filter user..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="name" placeholder="{{ _('Filter name...') }}"></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="description" placeholder="{{ _('Filter desc...') }}"></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="views" data-col="shared_by_user" placeholder="{{ _('Filter user...') }}"></th>
                           <th style="text-align: center;">
                               <select onchange="filterSharedTables()" data-table="views" data-col="status" style="width: 95%;">
-                                  <option value="all">All</option>
-                                  <option value="unimported">Not Imported</option>
-                                  <option value="imported">Imported</option>
+                                  <option value="all">{{ _('All') }}</option>
+                                  <option value="unimported">{{ _('Not Imported') }}</option>
+                                  <option value="imported">{{ _('Imported') }}</option>
                               </select>
                           </th>
                       </tr>
                   </thead>
                   <tbody id="shared-views-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">{{ _('Loading...') }}</td></tr>
                   </tbody>
               </table>
           </div>
 
-          <h3 style="margin-top: 30px;">Shared Components</h3>
+          <h3 style="margin-top: 30px;">{{ _('Shared Components') }}</h3>
           <div class="table-wrapper">
               <table class="data-table" id="shared-components-table">
                   <thead>
                       <tr>
-                          <th style="width: 40%;">Component Name</th>
-                          <th style="width: 20%;">Type</th>
-                          <th style="width: 20%;">Shared By</th>
-                          <th class="action-cell">Action</th>
+                          <th style="width: 40%;">{{ _('Component Name') }}</th>
+                          <th style="width: 20%;">{{ _('Type') }}</th>
+                          <th style="width: 20%;">{{ _('Shared By') }}</th>
+                          <th class="action-cell">{{ _('Action') }}</th>
                       </tr>
                       <tr class="filter-row">
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="name" placeholder="Filter name..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="name" placeholder="{{ _('Filter name...') }}"></th>
                           <th>
                               <select onchange="filterSharedTables()" data-table="components" data-col="kind" style="width: 95%;">
-                                  <option value="all">All Types</option>
-                                  <option value="telescope">Telescope</option>
-                                  <option value="camera">Camera</option>
-                                  <option value="reducer_extender">Reducer/Extender</option>
+                                  <option value="all">{{ _('All Types') }}</option>
+                                  <option value="telescope">{{ _('Telescope') }}</option>
+                                  <option value="camera">{{ _('Camera') }}</option>
+                                  <option value="reducer_extender">{{ _('Reducer/Extender') }}</option>
                               </select>
                           </th>
-                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="shared_by_user" placeholder="Filter user..."></th>
+                          <th><input type="text" onkeyup="filterSharedTables()" data-table="components" data-col="shared_by_user" placeholder="{{ _('Filter user...') }}"></th>
                           <th style="text-align: center;">
                               <select onchange="filterSharedTables()" data-table="components" data-col="status" style="width: 95%;">
-                                  <option value="all">All</option>
-                                  <option value="unimported">Not Imported</option>
-                                  <option value="imported">Imported</option>
+                                  <option value="all">{{ _('All') }}</option>
+                                  <option value="unimported">{{ _('Not Imported') }}</option>
+                                  <option value="imported">{{ _('Imported') }}</option>
                               </select>
                           </th>
                       </tr>
                   </thead>
                   <tbody id="shared-components-body">
-                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading...</td></tr>
+                      <tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-secondary);">{{ _('Loading...') }}</td></tr>
                   </tbody>
               </table>
           </div>
@@ -635,20 +634,20 @@
 
   <div id="notes-modal" class="modal-backdrop" data-action="close-notes-modal">
       <div class="modal-content" data-stop-propagation="true">
-          <h3 id="notes-modal-title">Shared Notes</h3>
+          <h3 id="notes-modal-title">{{ _('Shared Notes') }}</h3>
           <div id="notes-modal-content" class="modal-notes-content">
               </div>
-          <button class="inline-button modal-close-btn" data-action="close-notes-modal">Close</button>
+          <button class="inline-button modal-close-btn" data-action="close-notes-modal">{{ _('Close') }}</button>
       </div>
   </div>
 
   <div id="fetch-progress-modal">
       <div id="fetch-progress-content">
-          <h3 style="margin-top:0; color:var(--text-primary);">Fetching Details...</h3>
+          <h3 style="margin-top:0; color:var(--text-primary);">{{ _('Fetching Details...') }}</h3>
           <div class="progress-track">
               <div id="fetch-progress-bar" class="progress-fill"></div>
           </div>
-          <p id="fetch-progress-text" style="color:var(--text-tertiary); font-size: 0.9em; margin-bottom:0;">Please wait, communicating with SIMBAD...</p>
+          <p id="fetch-progress-text" style="color:var(--text-tertiary); font-size: 0.9em; margin-bottom:0;">{{ _('Please wait, communicating with SIMBAD...') }}</p>
       </div>
   </div>
   <br>
