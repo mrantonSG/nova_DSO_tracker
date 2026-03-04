@@ -23,6 +23,10 @@
 
 {% block scripts %}
 <script>
+    const i18n = {
+        unknownError: '{{ _("Unknown error") }}',
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('edit-notes-form');
         const saveButton = document.getElementById('save-button');
@@ -108,7 +112,7 @@
                     }, 1500);
 
                 } else {
-                    throw new Error(data.message || 'Unknown error');
+                    throw new Error(data.message || i18n.unknownError);
                 }
             } catch (err) {
                 messageArea.textContent = `{{ _('Error:') }} ${err.message}`;

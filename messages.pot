@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 17:47+0800\n"
+"POT-Creation-Date: 2026-03-04 21:28+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -212,7 +212,7 @@ msgstr ""
 msgid "Filter not found"
 msgstr ""
 
-#: nova/__init__.py:7181 nova/__init__.py:13889
+#: nova/__init__.py:7181 nova/__init__.py:13896
 msgid "Session not found."
 msgstr ""
 
@@ -263,9 +263,9 @@ msgstr ""
 msgid "SSO Error: Invalid login token."
 msgstr ""
 
-#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9884
-#: nova/__init__.py:11579 nova/__init__.py:13027 nova/__init__.py:13046
-#: nova/__init__.py:13065
+#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9891
+#: nova/__init__.py:11586 nova/__init__.py:13034 nova/__init__.py:13053
+#: nova/__init__.py:13072
 msgid "User not found."
 msgstr ""
 
@@ -347,7 +347,7 @@ msgstr ""
 msgid "No object specified."
 msgstr ""
 
-#: nova/__init__.py:8343 nova/__init__.py:10506 nova/__init__.py:10530
+#: nova/__init__.py:8343 nova/__init__.py:10513 nova/__init__.py:10537
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr ""
@@ -369,233 +369,233 @@ msgstr ""
 msgid "An error occurred during data fetching: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:9256
+#: nova/__init__.py:9263
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr ""
 
-#: nova/__init__.py:9891
+#: nova/__init__.py:9898
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr ""
 
-#: nova/__init__.py:10211
+#: nova/__init__.py:10218
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr ""
 
-#: nova/__init__.py:10280
+#: nova/__init__.py:10287
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr ""
 
-#: nova/__init__.py:10302
+#: nova/__init__.py:10309
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
 
-#: nova/__init__.py:10307
+#: nova/__init__.py:10314
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr ""
 
-#: nova/__init__.py:10343
+#: nova/__init__.py:10350
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 
-#: nova/__init__.py:10390
+#: nova/__init__.py:10397
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr ""
 
-#: nova/__init__.py:10463
+#: nova/__init__.py:10470
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:10638
+#: nova/__init__.py:10645
 msgid "Please log in to view object details."
 msgstr ""
 
-#: nova/__init__.py:10653
+#: nova/__init__.py:10660
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr ""
 
-#: nova/__init__.py:10667
+#: nova/__init__.py:10674
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 
-#: nova/__init__.py:10681
+#: nova/__init__.py:10688
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 
-#: nova/__init__.py:10699
+#: nova/__init__.py:10706
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr ""
 
-#: nova/__init__.py:10926
+#: nova/__init__.py:10933
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 
-#: nova/__init__.py:11129
+#: nova/__init__.py:11136
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
 
-#: nova/__init__.py:11456 nova/__init__.py:13897
+#: nova/__init__.py:11463 nova/__init__.py:13904
 msgid "Project not found."
 msgstr ""
 
-#: nova/__init__.py:11471
+#: nova/__init__.py:11478
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
 
-#: nova/__init__.py:11479
+#: nova/__init__.py:11486
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11668
+#: nova/__init__.py:11675
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11688
+#: nova/__init__.py:11695
 msgid "No journal photos found to download."
 msgstr ""
 
-#: nova/__init__.py:11733
+#: nova/__init__.py:11740
 msgid "No file selected for photo import."
 msgstr ""
 
-#: nova/__init__.py:11738
+#: nova/__init__.py:11745
 msgid "Please select a valid .zip file to import."
 msgstr ""
 
-#: nova/__init__.py:11751
+#: nova/__init__.py:11758
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr ""
 
-#: nova/__init__.py:11785
+#: nova/__init__.py:11792
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr ""
 
-#: nova/__init__.py:11788
+#: nova/__init__.py:11795
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr ""
 
-#: nova/__init__.py:11790
+#: nova/__init__.py:11797
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11893 nova/__init__.py:11898
+#: nova/__init__.py:11900 nova/__init__.py:11905
 msgid "No file selected for rigs import."
 msgstr ""
 
-#: nova/__init__.py:11928
+#: nova/__init__.py:11935
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
 
-#: nova/__init__.py:11936
+#: nova/__init__.py:11943
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11939
+#: nova/__init__.py:11946
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr ""
 
-#: nova/__init__.py:12891
+#: nova/__init__.py:12898
 msgid "Not authorized to export another user's data."
 msgstr ""
 
-#: nova/__init__.py:12895
+#: nova/__init__.py:12902
 msgid "Export failed (no such user or empty data)."
 msgstr ""
 
-#: nova/__init__.py:12924
+#: nova/__init__.py:12931
 msgid "Username is required in multi-user mode."
 msgstr ""
 
-#: nova/__init__.py:12929
+#: nova/__init__.py:12936
 msgid "Not authorized to import for another user."
 msgstr ""
 
-#: nova/__init__.py:12937
+#: nova/__init__.py:12944
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
 
-#: nova/__init__.py:12957
+#: nova/__init__.py:12964
 msgid "Import completed successfully!"
 msgstr ""
 
-#: nova/__init__.py:12959
+#: nova/__init__.py:12966
 msgid "Import failed. See server logs for details."
 msgstr ""
 
-#: nova/__init__.py:12962
+#: nova/__init__.py:12969
 msgid "Import crashed. Check logs."
 msgstr ""
 
-#: nova/__init__.py:12969 nova/__init__.py:12993 nova/__init__.py:13002
-#: nova/__init__.py:13023 nova/__init__.py:13042 nova/__init__.py:13061
+#: nova/__init__.py:12976 nova/__init__.py:13000 nova/__init__.py:13009
+#: nova/__init__.py:13030 nova/__init__.py:13049 nova/__init__.py:13068
 msgid "Not authorized."
 msgstr ""
 
-#: nova/__init__.py:12973
+#: nova/__init__.py:12980
 msgid "Database repair completed."
 msgstr ""
 
-#: nova/__init__.py:12975
+#: nova/__init__.py:12982
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:13007
+#: nova/__init__.py:13014
 msgid "Username and password are required."
 msgstr ""
 
-#: nova/__init__.py:13010
+#: nova/__init__.py:13017
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr ""
 
-#: nova/__init__.py:13016
+#: nova/__init__.py:13023
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr ""
 
-#: nova/__init__.py:13030
+#: nova/__init__.py:13037
 msgid "Cannot deactivate the admin account."
 msgstr ""
 
-#: nova/__init__.py:13035
+#: nova/__init__.py:13042
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr ""
 
-#: nova/__init__.py:13050
+#: nova/__init__.py:13057
 msgid "Password cannot be empty."
 msgstr ""
 
-#: nova/__init__.py:13054
+#: nova/__init__.py:13061
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr ""
 
-#: nova/__init__.py:13068
+#: nova/__init__.py:13075
 msgid "Cannot delete the admin account."
 msgstr ""
 
-#: nova/__init__.py:13073
+#: nova/__init__.py:13080
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr ""
@@ -652,6 +652,27 @@ msgstr ""
 
 #: templates/_inspiration_section.html:505
 msgid "View Charts"
+msgstr ""
+
+#: templates/_inspiration_section.html:515
+msgid "Analyzing targets..."
+msgstr ""
+
+#: templates/_inspiration_section.html:516 templates/journal_report.html:706
+#: templates/project_report.html:1081
+msgid "No Image"
+msgstr ""
+
+#: templates/_inspiration_section.html:517
+msgid "unknown"
+msgstr ""
+
+#: templates/_inspiration_section.html:518
+msgid "Error rendering grid. Check console."
+msgstr ""
+
+#: templates/_inspiration_section.html:519
+msgid "Image unavailable"
 msgstr ""
 
 #: templates/_journal_section.html:1086
@@ -878,6 +899,65 @@ msgstr ""
 
 #: templates/_journal_section.html:1414
 msgid "Distance from target center per centering attempt"
+msgstr ""
+
+#: templates/_journal_section.html:1943
+msgid "Failed to fetch objects"
+msgstr ""
+
+#: templates/_journal_section.html:1944
+msgid "No objects found"
+msgstr ""
+
+#: templates/_journal_section.html:1945
+msgid "Remove filter"
+msgstr ""
+
+#: templates/_journal_section.html:1946
+msgid "# Subs"
+msgstr ""
+
+#: templates/_journal_section.html:1947 templates/journal_form.html:173
+msgid "Count"
+msgstr ""
+
+#: templates/_journal_section.html:1948 templates/journal_form.html:176
+msgid "Exp (sec/sub):"
+msgstr ""
+
+#: templates/_journal_section.html:1949 templates/journal_form.html:177
+msgid "Seconds"
+msgstr ""
+
+#: templates/_journal_section.html:1950
+msgid "Enter a filter name."
+msgstr ""
+
+#: templates/_journal_section.html:1951
+msgid "Error adding filter."
+msgstr ""
+
+#: templates/_journal_section.html:1952
+#, python-brace-format
+msgid "{label} added."
+msgstr ""
+
+#: templates/_journal_section.html:1953
+msgid "Network error."
+msgstr ""
+
+#: templates/_journal_section.html:1954
+#, python-brace-format
+msgid "Remove \"{label}\"? Historical session data for this filter is kept."
+msgstr ""
+
+#: templates/_journal_section.html:1955
+msgid "Error removing filter."
+msgstr ""
+
+#: templates/_journal_section.html:1956
+#, python-brace-format
+msgid "{label} removed."
 msgstr ""
 
 #: templates/_objects_section.html:9
@@ -2397,7 +2477,7 @@ msgid "Rig Data"
 msgstr ""
 
 #: templates/graph_view.html:171 templates/mobile_edit_notes.html:17
-#: templates/mobile_edit_notes.html:104 templates/mobile_edit_notes.html:118
+#: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr ""
 
@@ -3058,18 +3138,6 @@ msgstr ""
 msgid "# Subs:"
 msgstr ""
 
-#: templates/journal_form.html:173
-msgid "Count"
-msgstr ""
-
-#: templates/journal_form.html:176
-msgid "Exp (sec/sub):"
-msgstr ""
-
-#: templates/journal_form.html:177
-msgid "Seconds"
-msgstr ""
-
 #: templates/journal_form.html:184
 msgid "e.g., Library match, Taken post-session"
 msgstr ""
@@ -3113,10 +3181,6 @@ msgstr ""
 #: templates/journal_report.html:700 templates/journal_report.html:703
 #: templates/project_report.html:1075 templates/project_report.html:1079
 msgid "Session Image"
-msgstr ""
-
-#: templates/journal_report.html:706 templates/project_report.html:1081
-msgid "No Image"
 msgstr ""
 
 #: templates/journal_report.html:708
@@ -3441,7 +3505,7 @@ msgstr ""
 msgid "Error connecting to server."
 msgstr ""
 
-#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:74
+#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:78
 msgid "Saving..."
 msgstr ""
 
@@ -3449,7 +3513,7 @@ msgstr ""
 msgid "Object saved successfully!"
 msgstr ""
 
-#: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:114
+#: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:118
 msgid "Error:"
 msgstr ""
 
@@ -3478,7 +3542,11 @@ msgstr ""
 msgid "Edit:"
 msgstr ""
 
-#: templates/mobile_edit_notes.html:99
+#: templates/mobile_edit_notes.html:27
+msgid "Unknown error"
+msgstr ""
+
+#: templates/mobile_edit_notes.html:103
 msgid "Notes saved successfully!"
 msgstr ""
 

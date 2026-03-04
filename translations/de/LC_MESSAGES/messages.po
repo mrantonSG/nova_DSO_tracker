@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-04 21:28+0800\n"
-"PO-Revision-Date: 2026-03-04 22:13+0800\n"
+"PO-Revision-Date: 2026-03-04 22:39+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -798,7 +798,7 @@ msgstr "Sitzungsbericht"
 
 #: templates/_journal_section.html:1177
 msgid "SEEING (FWHM)"
-msgstr "SICHTBARKEIT (FWHM)"
+msgstr "SEEING (FWHM)"
 
 #: templates/_journal_section.html:1178
 msgid "GUIDING (RMS)"
@@ -822,7 +822,7 @@ msgstr "Statistiken & Bedingungen"
 
 #: templates/_journal_section.html:1233
 msgid "Seeing (FWHM):"
-msgstr "Sehen (FWHM):"
+msgstr "Seeing (FWHM):"
 
 #: templates/_journal_section.html:1234
 msgid "Guiding RMS:"
@@ -838,7 +838,7 @@ msgstr "Transparenzskala:"
 
 #: templates/_journal_section.html:1237
 msgid "Moon Illum/Sep:"
-msgstr "Mondbeleuchtung/Sep:"
+msgstr "Mondphase/Sep:"
 
 #: templates/_journal_section.html:1238 templates/journal_form.html:75
 msgid "Weather Notes:"
@@ -1114,7 +1114,7 @@ msgstr "Notizen suchen (verwenden Sie * für alle)..."
 #: templates/_objects_section.html:68 templates/_objects_section.html:142
 #: templates/_objects_section.html:294
 msgid "Mag"
-msgstr "Höhe"
+msgstr "Mag"
 
 #: templates/_objects_section.html:69
 msgid "e.g., <15, >8, >8 <12"
@@ -1272,7 +1272,7 @@ msgstr "Allgemeinen Namen eingeben"
 
 #: templates/_objects_section.html:275
 msgid "RA (Hours)"
-msgstr "RA (Stunden)"
+msgstr "RA (Std)"
 
 #: templates/_objects_section.html:276
 msgid "e.g. 12.34 or 12:30:00"
@@ -1280,7 +1280,7 @@ msgstr "z. B. 12:34 oder 12:30:00"
 
 #: templates/_objects_section.html:279
 msgid "DEC (Deg)"
-msgstr "Jahrzehnt"
+msgstr "DE (°)"
 
 #: templates/_objects_section.html:280
 msgid "e.g. +40.85 or 40:51:00"
@@ -1401,7 +1401,7 @@ msgstr "Katalog wird gescannt... (dies kann einige Sekunden dauern)"
 
 #: templates/_opportunities_section.html:27
 msgid "Imaging Opportunities"
-msgstr "Bildgebungsmöglichkeiten"
+msgstr "Aufnahmefenster"
 
 #: templates/_opportunities_section.html:35 templates/index.html:166
 #: templates/index.html:176 templates/index.html:194
@@ -1415,11 +1415,11 @@ msgstr "Von"
 
 #: templates/_opportunities_section.html:37
 msgid "To"
-msgstr "An"
+msgstr "Bis"
 
 #: templates/_opportunities_section.html:38
 msgid "Obs Duration (min)"
-msgstr "Anmerkung Dauer (min)"
+msgstr "Dauer (min)"
 
 #: templates/_opportunities_section.html:39
 msgid "Max Alt (°)"
@@ -1428,11 +1428,11 @@ msgstr "Max Höhe (°)"
 #: templates/_opportunities_section.html:40
 #, python-format
 msgid "Moon Illum (%%)"
-msgstr "Mondbeleuchtung (%%)"
+msgstr "Mondphase (%%)"
 
 #: templates/_opportunities_section.html:41
 msgid "Ang Sep (°)"
-msgstr "Der Sep (°)"
+msgstr "Winkelabstand(°)"
 
 #: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
 #: templates/index.html:170 templates/index.html:197
@@ -1533,7 +1533,7 @@ msgstr "SQM"
 
 #: templates/_project_subtab.html:199 templates/project_report.html:1107
 msgid "Seeing"
-msgstr "Sehen"
+msgstr "Seeing"
 
 #: templates/_project_subtab.html:200
 msgid "Rig Snapshot"
@@ -1958,7 +1958,7 @@ msgstr "Min Max-Höhe (°):"
 #: templates/config_form.html:165
 #, python-format
 msgid "Max Moon Illum (%%):"
-msgstr "Max Mondbeleuchtung (%%):"
+msgstr "Max Mondphase (%%):"
 
 #: templates/config_form.html:170
 msgid "Min Moon Sep (°):"
@@ -2258,7 +2258,7 @@ msgstr "-- Wählen Sie ein Teleskop aus --"
 
 #: templates/config_form.html:455 templates/journal_report.html:767
 msgid "Camera:"
-msgstr "Zimmer:"
+msgstr "Kamera:"
 
 #: templates/config_form.html:457
 msgid "-- Select a Camera --"
@@ -2299,15 +2299,15 @@ msgstr "Rig erstellen"
 
 #: templates/config_form.html:493
 msgid "Select Your Typical Seeing:"
-msgstr "Wählen Sie Ihre typische Sichtweise:"
+msgstr "Wählen Sie Ihr typisches Seeing:"
 
 #: templates/config_form.html:495
 msgid "-- Select Seeing to Assess Rigs --"
-msgstr "-- „Sehen“ auswählen, um Rigs zu bewerten --"
+msgstr "-- Seeing auswählen, um Rigs zu bewerten --"
 
 #: templates/config_form.html:496
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
-msgstr "Hervorragende Sicht (1,0\" – 2,0\" FWHM)"
+msgstr "Hervorragendes Seeing (1,0\" – 2,0\" FWHM)"
 
 #: templates/config_form.html:497
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
@@ -2319,7 +2319,7 @@ msgstr "Schlechtes Seeing (> 4.0\" FWHM)"
 
 #: templates/config_form.html:502
 msgid "Sort rigs by:"
-msgstr "Schwarzes Reich von:"
+msgstr "Sortieren der Rigs:"
 
 #: templates/config_form.html:504
 msgid "Name (A→Z)"
@@ -2476,7 +2476,7 @@ msgstr "Teleskop"
 
 #: templates/config_form.html:613 templates/project_report.html:1143
 msgid "Camera"
-msgstr "Zimmer"
+msgstr "Kamera"
 
 #: templates/config_form.html:614
 msgid "Reducer/Extender"
@@ -2527,11 +2527,11 @@ msgstr "Notizen & Bildausschnitt"
 
 #: templates/graph_view.html:94
 msgid "Opportunities"
-msgstr "Chancen"
+msgstr "Aufnahmefenster"
 
 #: templates/graph_view.html:96
 msgid "SIMBAD"
-msgstr "Symbol"
+msgstr "SIMBAD"
 
 #: templates/graph_view.html:110
 msgid "Loading Chart"
@@ -2576,7 +2576,7 @@ msgstr "Inspiration"
 
 #: templates/graph_view.html:150
 msgid "Rig Data"
-msgstr "Reiche Daten"
+msgstr "Rig Daten"
 
 #: templates/graph_view.html:171 templates/mobile_edit_notes.html:17
 #: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
@@ -3116,7 +3116,7 @@ msgstr "Himmelsbedingungen (beobachtet)"
 
 #: templates/journal_form.html:59
 msgid "Seeing (FWHM, arcsec):"
-msgstr "Sichtweite (FWHM, Bogensekunden):"
+msgstr "Seeing (FWHM, Bogensekunden):"
 
 #: templates/journal_form.html:64
 msgid "e.g., Good (4/5), Clear"
@@ -3129,7 +3129,7 @@ msgstr "SQM-Messwert:"
 #: templates/journal_form.html:80
 #, python-format
 msgid "Moon Illumination at Session (%%):"
-msgstr "Mondbeleuchtung bei Sitzung (%%):"
+msgstr "Mondphase bei Session (%%):"
 
 #: templates/journal_form.html:81
 msgid "e.g., 34"
@@ -3221,7 +3221,7 @@ msgstr "Versatz:"
 
 #: templates/journal_form.html:150
 msgid "Camera Temp Setpoint (°C):"
-msgstr "Kammer-Temperatur-Sollwert (°C):"
+msgstr "Kamera-Temperatur-Sollwert (°C):"
 
 #: templates/journal_form.html:154
 msgid "Camera Temp Actual Avg (°C):"
@@ -3311,7 +3311,7 @@ msgstr "Notizen & Reflexionen"
 
 #: templates/journal_report.html:726
 msgid "Seeing (FWHM)"
-msgstr "Sehen (FWHM)"
+msgstr "Seeing (FWHM)"
 
 #: templates/journal_report.html:732
 msgid "Guiding (RMS)"
@@ -3596,7 +3596,7 @@ msgstr "SIMBAD durchsuchen"
 
 #: templates/mobile_add_object.html:26
 msgid "RA (hours)"
-msgstr "RA (Stunden)"
+msgstr "RA (Std)"
 
 #: templates/mobile_add_object.html:31
 msgid "DEC (degrees)"
@@ -3714,7 +3714,7 @@ msgstr "Bildgebungsausblick"
 
 #: templates/mobile_outlook.html:37
 msgid "Calculating imaging opportunities..."
-msgstr "Berechnung der Bildgebungsmöglichkeiten..."
+msgstr "Berechnung der Aufnahmefenster..."
 
 #: templates/mobile_outlook.html:46
 msgid "Error loading outlook."
@@ -3728,8 +3728,7 @@ msgstr ""
 
 #: templates/mobile_outlook.html:49
 msgid "No imaging opportunities found for your active projects."
-msgstr ""
-"Für Ihre aktiven Projekte wurden keine Bildgebungsmöglichkeiten gefunden."
+msgstr "Für Ihre aktiven Projekte wurden keine Aufnahmefenster gefunden."
 
 #: templates/mobile_outlook.html:50 templates/mobile_up_now.html:102
 #: templates/mobile_up_now.html:124
