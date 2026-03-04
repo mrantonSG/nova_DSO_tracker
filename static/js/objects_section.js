@@ -97,6 +97,81 @@
         return nameStr.replace(/\s+/g, ' ');
     }
 
+    /**
+     * Parse a range filter expression.
+     * Supports: "15" (exact), "<15" (less than), ">5" (greater than), ">5 <30" (range)
+     * Returns: { min: null|number, max: null|number } or null if empty/invalid
+     */
+    function parseRangeFilter(str) {
+        if (!str || str.trim() === '') return null;
+
+        str = str.trim();
+        const result = { min: null, max: null };
+
+        // Match all <value and >value patterns
+        const lessThanMatches = str.match(/<\s*([\d.]+)/g);
+        const greaterThanMatches = str.match(/>\s*([\d.]+)/g);
+
+        if (lessThanMatches) {
+            lessThanMatches.forEach(match => {
+                const val = parseFloat(match.replace(/<\s*/, ''));
+                if (!isNaN(val)) {
+                    result.max = val;
+                }
+            });
+        }
+
+        if (greaterThanMatches) {
+            greaterThanMatches.forEach(match => {
+                const val = parseFloat(match.replace(/>\s*/, ''));
+                if (!isNaN(val)) {
+                    result.min = val;
+                }
+            });
+        }
+
+        // If no operators found, treat as plain number (exact match or default behavior)
+        if (!lessThanMatches && !greaterThanMatches) {
+            const plainNum = parseFloat(str);
+            if (!isNaN(plainNum)) {
+                // For plain numbers without operators, we'll use equality-ish behavior
+                // But historically Mag was "<" and Size was ">", so we keep that convention
+                // Actually, let's just treat plain numbers as "equals approximately"
+                // For better UX, let's not set any filter for plain numbers
+                // User should use explicit operators
+                // Or we can infer from context - but let's just return null for plain numbers
+                // to indicate "no filter" unless they use operators
+                // Actually, let's support plain numbers as "exact" for simplicity
+                result.exact = plainNum;
+            }
+        }
+
+        // Return null if no valid constraints were parsed
+        if (result.min === null && result.max === null && !result.exact) {
+            return null;
+        }
+
+        return result;
+    }
+
+    /**
+     * Check if a numeric value passes a range filter.
+     */
+    function matchesRangeFilter(value, filter) {
+        if (!filter) return true;
+
+        // Handle exact match (for plain numbers without operators)
+        if (filter.exact !== undefined) {
+            return Math.abs(value - filter.exact) < 0.01;
+        }
+
+        // Handle range constraints
+        if (filter.min !== null && value <= filter.min) return false;
+        if (filter.max !== null && value >= filter.max) return false;
+
+        return true;
+    }
+
     // --- Sub-tab management ---
     function showObjectSubTab(tabName) {
         // Hide all content
@@ -137,11 +212,16 @@
         // --- NEW: Get Notes Filter ---
         const filterNotes = document.getElementById('object-filter-notes').value.toLowerCase();
 
-        // Numerical Filters
-        const filterMagStr = document.getElementById('object-filter-mag').value;
-        const filterSizeStr = document.getElementById('object-filter-size').value;
-        const filterMag = filterMagStr ? parseFloat(filterMagStr) : null;
-        const filterSize = filterSizeStr ? parseFloat(filterSizeStr) : null;
+        // Numerical Filters - parse range expressions like <15, >5, >5 <30
+        const filterMagStr = document.getElementById('object-filter-mag').value.trim();
+        const filterSizeStr = document.getElementById('object-filter-size').value.trim();
+        const filterMag = parseRangeFilter(filterMagStr);
+        const filterSize = parseRangeFilter(filterSizeStr);
+
+        // Debug logging
+        if (filterMagStr || filterSizeStr) {
+            console.log('Range filters:', { filterMagStr, filterMag, filterSizeStr, filterSize });
+        }
 
         // 2. Get all object blocks
         const objectBlocks = document.querySelectorAll('.objects-list .object-grid-container');
@@ -229,8 +309,9 @@
                     if (!source.includes(filterSource)) show = false;
                 }
             }
-            if (show && filterMag !== null && magVal > filterMag) show = false;
-            if (show && filterSize !== null && sizeVal < filterSize) show = false;
+            // Apply range filters using the new range filter logic
+            if (show && filterMag !== null && !matchesRangeFilter(magVal, filterMag)) show = false;
+            if (show && filterSize !== null && !matchesRangeFilter(sizeVal, filterSize)) show = false;
 
             // 5. Show or hide
             block.style.display = show ? '' : 'none';
