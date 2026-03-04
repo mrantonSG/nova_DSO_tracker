@@ -3876,11 +3876,11 @@ def _parse_asiair_log_content(content):
 @login_required
 def api_parse_asiair_log():
     if 'file' not in request.files:
-        return jsonify({"status": "error", "message": "No file uploaded"}), 400
+        return jsonify({"status": "error", "message": _("No file uploaded")}), 400
 
     file = request.files['file']
     if file.filename == '':
-        return jsonify({"status": "error", "message": "Empty filename"}), 400
+        return jsonify({"status": "error", "message": _("Empty filename")}), 400
 
     try:
         content = file.read().decode('utf-8', errors='ignore')
@@ -3922,11 +3922,11 @@ def get_session_log_analysis(session_id):
     user = db.query(DbUser).filter_by(username=username).one_or_none()
 
     if not user:
-        return jsonify({'error': 'User not found'}), 404
+        return jsonify({'error': _('User not found')}), 404
 
     session = db.query(JournalSession).filter_by(id=session_id, user_id=user.id).one_or_none()
     if not session:
-        return jsonify({'error': 'Session not found'}), 404
+        return jsonify({'error': _('Session not found')}), 404
 
     # 1. Return cached result if available and valid (has session_start for clock time)
     if session.log_analysis_cache:
@@ -3984,16 +3984,16 @@ def get_plot_data(object_name):
     # --- 1) Resolve object RA/DEC ---
     data = get_ra_dec(object_name)  # Uses g.objects_map internally
     if not data:
-        return jsonify({"error": "Object data not found or invalid."}), 404
+        return jsonify({"error": _("Object data not found or invalid.")}), 404
     ra = data.get('RA (hours)')
     dec = data.get('DEC (deg)', data.get('DEC (degrees)'))
     if ra is None or dec is None:
-        return jsonify({"error": "RA/DEC missing for object."}), 404
+        return jsonify({"error": _("RA/DEC missing for object.")}), 404
     try:
         ra = float(ra);
         dec = float(dec)
     except (ValueError, TypeError):
-        return jsonify({"error": "Invalid RA/DEC format for object."}), 400
+        return jsonify({"error": _("Invalid RA/DEC format for object.")}), 400
 
     # --- 2) Read params with SAFE fallbacks ---
     default_lat = getattr(g, "lat", None)
@@ -4147,7 +4147,7 @@ def get_plot_data(object_name):
     # --- 8) Force exactly 24h window ---
     if not times_local:
         print("[API Plot Data] ERROR: times_local array is empty. Cannot generate plot.")
-        return jsonify({"error": "Could not generate time series for plot."}), 500
+        return jsonify({"error": _("Could not generate time series for plot.")}), 500
     start_time = times_local[0]
     end_time = start_time + timedelta(hours=24)
     final_times_iso = [start_time.isoformat()] + [t.isoformat() for t in times_local] + [end_time.isoformat()]
@@ -4249,7 +4249,7 @@ def get_observable_objects():
         pass
 
     if lat is None or lon is None:
-        return jsonify({"error": "Location not configured", "objects": []}), 400
+        return jsonify({"error": _("Location not configured"), "objects": []}), 400
 
     # Determine date for calculations - use passed-in graph date, not server's current time
     local_tz = pytz.timezone(tz_name)
@@ -4285,7 +4285,7 @@ def get_observable_objects():
 
         user = db.query(DbUser).filter_by(username=username).one_or_none()
         if not user:
-            return jsonify({"error": "User not found", "objects": []}), 401
+            return jsonify({"error": _("User not found"), "objects": []}), 401
 
         # Query active objects with valid coordinates
         active_objects = db.query(AstroObject).filter_by(
@@ -7108,7 +7108,7 @@ def add_custom_filter():
     data = request.get_json()
     label = (data.get('label') or '').strip()[:64]
     if not label:
-        return jsonify({'error': 'Label required'}), 400
+        return jsonify({'error': _('Label required')}), 400
 
     slug = re.sub(r'[^a-z0-9]+', '_', label.lower()).strip('_')[:40]
     filter_key = f'custom_{slug}'
@@ -7118,7 +7118,7 @@ def add_custom_filter():
     user = db.query(DbUser).filter_by(username=username).one()
 
     if db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=filter_key).first():
-        return jsonify({'error': 'Filter already exists'}), 409
+        return jsonify({'error': _('Filter already exists')}), 409
 
     db.add(UserCustomFilter(user_id=user.id, filter_key=filter_key, filter_label=label))
     db.commit()
@@ -7135,7 +7135,7 @@ def delete_custom_filter(filter_key):
 
     cf = db.query(UserCustomFilter).filter_by(user_id=user.id, filter_key=filter_key).first()
     if not cf:
-        return jsonify({'error': 'Filter not found'}), 404
+        return jsonify({'error': _('Filter not found')}), 404
     db.delete(cf)
     db.commit()
     return jsonify({'deleted': filter_key}), 200
@@ -8333,14 +8333,14 @@ def search_object():
     # Expect JSON input with the object identifier.
     object_name = request.json.get('object')
     if not object_name:
-        return jsonify({"status": "error", "message": "No object specified."}), 400
+        return jsonify({"status": "error", "message": _("No object specified.")}), 400
 
     data = get_ra_dec(object_name)
     if data and data.get("RA (hours)") is not None:
         return jsonify({"status": "success", "data": data})
     else:
         # Return an error message from the lookup.
-        return jsonify({"status": "error", "message": data.get("Common Name", "Object not found.")}), 404
+        return jsonify({"status": "error", "message": data.get("Common Name", _("Object not found."))}), 404
 
 
 def check_and_fill_object_data(config_data):
@@ -8512,7 +8512,7 @@ def fetch_object_details():
     req = request.get_json()
     object_name = req.get("object")
     if not object_name:
-        return jsonify({"status": "error", "message": "No object specified."}), 400
+        return jsonify({"status": "error", "message": _("No object specified.")}), 400
 
     try:
         fetched = nova_data_fetcher.get_astronomical_data(object_name)
@@ -8671,7 +8671,7 @@ def update_object():
         obj = db.query(AstroObject).filter_by(user_id=user.id, object_name=object_name).one_or_none()
 
         if not obj:
-            return jsonify({"status": "error", "message": "Object not found"}), 404
+            return jsonify({"status": "error", "message": _("Object not found")}), 404
 
         # Update all fields from the payload
         obj.common_name = data.get('name')
@@ -9230,22 +9230,29 @@ def get_help_image(filename):
 @api_bp.route('/api/help/<topic_id>')
 def get_help_content(topic_id):
     """
-    Reads a markdown file from help_docs/, converts it to HTML, and returns it.
+    Reads a markdown file from help_docs/{locale}/, converts it to HTML, and returns it.
+    Falls back to English if the localized file doesn't exist.
     """
     # 1. Sanitize input to prevent directory traversal
     safe_topic = "".join([c for c in topic_id if c.isalnum() or c in "_-"])
 
-    # 2. Build file path
-    file_path = os.path.join(_project_root, 'help_docs', f'{safe_topic}.md')
+    # 2. Determine locale and build file path with fallback
+    locale = get_locale()
+    lang = str(locale).split('_')[0] if locale else 'en'
+    file_path = os.path.join(_project_root, 'help_docs', lang, f'{safe_topic}.md')
 
-    # 3. Check if file exists
+    # 3. Fallback to English if localized file doesn't exist
+    if not os.path.exists(file_path):
+        file_path = os.path.join(_project_root, 'help_docs', 'en', f'{safe_topic}.md')
+
+    # 4. Check if file exists (even after fallback)
     if not os.path.exists(file_path):
         return jsonify({
             "error": True,
             "html": f"<h3>Topic Not Found</h3><p>No help file found for ID: <code>{safe_topic}</code></p>"
         }), 404
 
-    # 4. Read and convert
+    # 5. Read and convert
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
@@ -9253,7 +9260,7 @@ def get_help_content(topic_id):
             html_content = markdown.markdown(text, extensions=['fenced_code', 'tables'])
             return jsonify({"status": "success", "html": html_content})
     except Exception as e:
-        return jsonify({"error": True, "html": f"<p>Error reading help file: {str(e)}</p>"}), 500
+        return jsonify({"error": True, "html": _("<p>Error reading help file: %(error)s</p>", error=str(e))}), 500
 
 @api_bp.route('/api/get_object_data/<path:object_name>')
 def get_object_data(object_name):
@@ -10503,7 +10510,7 @@ def update_project():
 
             return jsonify({"status": "success"})
         else:
-            return jsonify({"status": "error", "error": "Object not found."}), 404
+            return jsonify({"status": "error", "error": _("Object not found.")}), 404
 
     except Exception as e:
         db.rollback()
@@ -10527,7 +10534,7 @@ def update_project_active():
             trigger_outlook_update_for_user(username)
             return jsonify({"status": "success", "active": obj_to_update.active_project})
         else:
-            return jsonify({"status": "error", "error": "Object not found."}), 404
+            return jsonify({"status": "error", "error": _("Object not found.")}), 404
     except Exception as e:
         db.rollback()
         return jsonify({"status": "error", "error": str(e)}), 500
