@@ -44,7 +44,7 @@ ALLOWED_IDENTICAL = {
     'Img', 'Saturation', 'Altitude', 'Observable', 'minutes',
     'observable (°)', 'Magnitude', 'SB', 'Altitude °', 'Angle',
     'Points', 'Distance', 'Options', '%(prog)s, version %(version)s',
-    'Nova – Configuration', 'Nova Pocket',
+    'Nova – Configuration', 'Nova Pocket', 'Dithering', 'Darks', 'Flats',
 }
 
 # Strings that look like format strings or code — skip identical check

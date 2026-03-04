@@ -511,6 +511,14 @@
 </div>
 
 <script>
+    const i18n = {
+        analyzingTargets:  '{{ _("Analyzing targets...") }}',
+        noImage:           '{{ _("No Image") }}',
+        unknown:           '{{ _("unknown") }}',
+        errorRenderGrid:   '{{ _("Error rendering grid. Check console.") }}',
+        imageUnavailable:  '{{ _("Image unavailable") }}',
+    };
+
     function getAladinFallbackUrl(ra, dec, sizeArcmin) {
         if (ra == null || dec == null) return null;
         let size = parseFloat(sizeArcmin) || 15;
@@ -556,7 +564,7 @@
         try {
             grid.innerHTML = '';
             loading.style.display = 'block';
-            loading.textContent = "Analyzing targets...";
+            loading.textContent = i18n.analyzingTargets;
 
             // 1. Get Data (Safety Check)
             let dataSource = window.currentFilteredData;
@@ -770,14 +778,14 @@
                         badgeEl.style.display = 'block';
                     } else {
                         // No image URL found
-                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">No Image</div>';
+                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">' + i18n.noImage + '</div>';
                         tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
                     }
 
                     if (finalText) {
                         sumEl.textContent = finalText;
                     } else {
-                        sumEl.textContent = `Type: ${obj.Type || 'DSO'}. Located in ${obj.Constellation || 'unknown'}.`;
+                        sumEl.textContent = `Type: ${obj.Type || 'DSO'}. Located in ${obj.Constellation || i18n.unknown}.`;
                     }
                     sumEl.classList.remove('skeleton-text');
 
@@ -787,7 +795,7 @@
             }
         } catch (err) {
             console.error("Critical Grid Error:", err);
-            grid.innerHTML = '<div class="empty-state"><p>Error rendering grid. Check console.</p></div>';
+            grid.innerHTML = '<div class="empty-state"><p>' + i18n.errorRenderGrid + '</p></div>';
             loading.style.display = 'none';
         }
     }
@@ -822,7 +830,7 @@
                 const offlineDiv = document.createElement('div');
                 offlineDiv.className = 'offline-message';
                 offlineDiv.style.cssText = "height:100%; min-height:0; border:none; background:var(--code-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; width: 100%;";
-                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">Image unavailable</div>';
+                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">' + i18n.imageUnavailable + '</div>';
                 imgContainer.appendChild(offlineDiv);
             }
         };
