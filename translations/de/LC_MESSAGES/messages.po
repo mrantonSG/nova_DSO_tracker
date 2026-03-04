@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 17:47+0800\n"
-"PO-Revision-Date: 2026-03-04 19:21+0800\n"
+"POT-Creation-Date: 2026-03-04 21:28+0800\n"
+"PO-Revision-Date: 2026-03-04 22:13+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -214,7 +214,6 @@ msgid "Label required"
 msgstr "Bezeichnung erforderlich"
 
 #: nova/__init__.py:7121
-#, python-format
 msgid "Filter already exists"
 msgstr "Filter existiert bereits"
 
@@ -222,7 +221,7 @@ msgstr "Filter existiert bereits"
 msgid "Filter not found"
 msgstr "Filter nicht gefunden"
 
-#: nova/__init__.py:7181 nova/__init__.py:13889
+#: nova/__init__.py:7181 nova/__init__.py:13896
 msgid "Session not found."
 msgstr "Sitzung nicht gefunden."
 
@@ -278,9 +277,9 @@ msgstr ""
 msgid "SSO Error: Invalid login token."
 msgstr "SSO-Fehler: Ungültiges Anmeldetoken."
 
-#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9884
-#: nova/__init__.py:11579 nova/__init__.py:13027 nova/__init__.py:13046
-#: nova/__init__.py:13065
+#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9891
+#: nova/__init__.py:11586 nova/__init__.py:13034 nova/__init__.py:13053
+#: nova/__init__.py:13072
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
@@ -372,7 +371,7 @@ msgstr "Der Katalogimport ist aufgrund eines internen Fehlers fehlgeschlagen."
 msgid "No object specified."
 msgstr "Kein Objekt angegeben."
 
-#: nova/__init__.py:8343 nova/__init__.py:10506 nova/__init__.py:10530
+#: nova/__init__.py:8343 nova/__init__.py:10513 nova/__init__.py:10537
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objekt nicht gefunden."
@@ -396,26 +395,26 @@ msgstr ""
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Beim Abrufen der Daten ist ein Fehler aufgetreten: %(error)s"
 
-#: nova/__init__.py:9256
+#: nova/__init__.py:9263
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>Fehler beim Lesen der Hilfedatei: %(error)s</p>"
 
-#: nova/__init__.py:9891
+#: nova/__init__.py:9898
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr "Objekt '%(object_name)s' nicht gefunden."
 
-#: nova/__init__.py:10211
+#: nova/__init__.py:10218
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "Der Benutzer „%(username)s“ wurde in der Datenbank nicht gefunden."
 
-#: nova/__init__.py:10280
+#: nova/__init__.py:10287
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "Warnung: Die Horizontmaske war ungültig und wurde ignoriert."
 
-#: nova/__init__.py:10302
+#: nova/__init__.py:10309
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
@@ -423,7 +422,7 @@ msgstr ""
 "Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens "
 "einen Standort konfiguriert haben."
 
-#: nova/__init__.py:10307
+#: nova/__init__.py:10314
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
@@ -431,218 +430,218 @@ msgstr ""
 "Sie können Ihren einzigen aktiven Standort nicht deaktivieren. Sie müssen "
 "mindestens einen aktiven Standort beibehalten."
 
-#: nova/__init__.py:10343
+#: nova/__init__.py:10350
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 "Warnung: Die Horizontmaske für „%(location_name)s“ war ungültig und wurde "
 "ignoriert."
 
-#: nova/__init__.py:10390
+#: nova/__init__.py:10397
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s erfolgreich aktualisiert."
 
-#: nova/__init__.py:10463
+#: nova/__init__.py:10470
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Ein Datenbankfehler ist aufgetreten: %(error)s"
 
-#: nova/__init__.py:10638
+#: nova/__init__.py:10645
 msgid "Please log in to view object details."
 msgstr "Bitte melden Sie sich an, um die Objektdetails anzuzeigen."
 
-#: nova/__init__.py:10653
+#: nova/__init__.py:10660
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Benutzer '%(username)s' nicht gefunden."
 
-#: nova/__init__.py:10667
+#: nova/__init__.py:10674
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, "
 "Standard wird verwendet."
 
-#: nova/__init__.py:10681
+#: nova/__init__.py:10688
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Fehler: Für diesen Benutzer ist kein gültiger Standort konfiguriert oder "
 "ausgewählt."
 
-#: nova/__init__.py:10699
+#: nova/__init__.py:10706
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objekt '%(object_name)s' wurde in Ihrer Konfiguration nicht gefunden."
 
-#: nova/__init__.py:10926
+#: nova/__init__.py:10933
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 "Ungültige Datumskomponenten angegeben, Standardwert ist das aktuelle Datum."
 
-#: nova/__init__.py:11129
+#: nova/__init__.py:11136
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
 "Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
 
-#: nova/__init__.py:11456 nova/__init__.py:13897
+#: nova/__init__.py:11463 nova/__init__.py:13904
 msgid "Project not found."
 msgstr "Projekt nicht gefunden."
 
-#: nova/__init__.py:11471
+#: nova/__init__.py:11478
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
 "Projekt „%(project_name)s“ gelöscht. Die Sitzungen sind nun eigenständig."
 
-#: nova/__init__.py:11479
+#: nova/__init__.py:11486
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "Fehler beim Löschen des Projekts: %(error)s"
 
-#: nova/__init__.py:11668
+#: nova/__init__.py:11675
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "Fehler beim Erstellen der Rig-Konfiguration: %(error)s"
 
-#: nova/__init__.py:11688
+#: nova/__init__.py:11695
 msgid "No journal photos found to download."
 msgstr "Es wurden keine Fotos zum Herunterladen gefunden."
 
-#: nova/__init__.py:11733
+#: nova/__init__.py:11740
 msgid "No file selected for photo import."
 msgstr "Keine Datei für den Fotoimport ausgewählt."
 
-#: nova/__init__.py:11738
+#: nova/__init__.py:11745
 msgid "Please select a valid .zip file to import."
 msgstr "Bitte wählen Sie eine gültige ZIP-Datei zum Importieren aus."
 
-#: nova/__init__.py:11751
+#: nova/__init__.py:11758
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr ""
 "Import fehlgeschlagen: Die hochgeladene Datei ist kein gültiges ZIP-Archiv."
 
-#: nova/__init__.py:11785
+#: nova/__init__.py:11792
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr ""
 "Fotos aus dem Journal erfolgreich importiert! %(count)d Dateien extrahiert."
 
-#: nova/__init__.py:11788
+#: nova/__init__.py:11795
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "Import fehlgeschlagen: Die ZIP-Datei scheint beschädigt zu sein."
 
-#: nova/__init__.py:11790
+#: nova/__init__.py:11797
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "Beim Import ist ein unerwarteter Fehler aufgetreten: %(error)s"
 
-#: nova/__init__.py:11893 nova/__init__.py:11898
+#: nova/__init__.py:11900 nova/__init__.py:11905
 msgid "No file selected for rigs import."
 msgstr "Keine Datei für den Import von Rigs ausgewählt."
 
-#: nova/__init__.py:11928
+#: nova/__init__.py:11935
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
 "Die Konfiguration der Bohrinseln wurde erfolgreich importiert und mit der "
 "Datenbank synchronisiert!"
 
-#: nova/__init__.py:11936
+#: nova/__init__.py:11943
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "Fehler beim Importieren der Rigs-Datei: %(error)s"
 
-#: nova/__init__.py:11939
+#: nova/__init__.py:11946
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr ""
 "Ungültiger Dateityp. Bitte laden Sie eine .yaml- oder .yml-Datei hoch."
 
-#: nova/__init__.py:12891
+#: nova/__init__.py:12898
 msgid "Not authorized to export another user's data."
 msgstr "Nicht berechtigt, die Daten eines anderen Benutzers zu exportieren."
 
-#: nova/__init__.py:12895
+#: nova/__init__.py:12902
 msgid "Export failed (no such user or empty data)."
 msgstr "Export fehlgeschlagen (kein solcher Benutzer oder leere Daten)."
 
-#: nova/__init__.py:12924
+#: nova/__init__.py:12931
 msgid "Username is required in multi-user mode."
 msgstr "Im Mehrbenutzermodus ist ein Benutzername erforderlich."
 
-#: nova/__init__.py:12929
+#: nova/__init__.py:12936
 msgid "Not authorized to import for another user."
 msgstr "Nicht berechtigt, für einen anderen Benutzer zu importieren."
 
-#: nova/__init__.py:12937
+#: nova/__init__.py:12944
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
 "Bitte stellen Sie die Konfigurations-, Rig- und Journal-YAML-Dateien zur "
 "Verfügung."
 
-#: nova/__init__.py:12957
+#: nova/__init__.py:12964
 msgid "Import completed successfully!"
 msgstr "Import erfolgreich abgeschlossen!"
 
-#: nova/__init__.py:12959
+#: nova/__init__.py:12966
 msgid "Import failed. See server logs for details."
 msgstr "Import fehlgeschlagen. Details finden Sie in den Serverprotokollen."
 
-#: nova/__init__.py:12962
+#: nova/__init__.py:12969
 msgid "Import crashed. Check logs."
 msgstr "Import ist abgestürzt. Überprüfen Sie die Protokolle."
 
-#: nova/__init__.py:12969 nova/__init__.py:12993 nova/__init__.py:13002
-#: nova/__init__.py:13023 nova/__init__.py:13042 nova/__init__.py:13061
+#: nova/__init__.py:12976 nova/__init__.py:13000 nova/__init__.py:13009
+#: nova/__init__.py:13030 nova/__init__.py:13049 nova/__init__.py:13068
 msgid "Not authorized."
 msgstr "Nicht autorisiert."
 
-#: nova/__init__.py:12973
+#: nova/__init__.py:12980
 msgid "Database repair completed."
 msgstr "Datenbankreparatur abgeschlossen."
 
-#: nova/__init__.py:12975
+#: nova/__init__.py:12982
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "Reparatur fehlgeschlagen: %(error)s"
 
-#: nova/__init__.py:13007
+#: nova/__init__.py:13014
 msgid "Username and password are required."
 msgstr "Benutzername und Passwort sind erforderlich."
 
-#: nova/__init__.py:13010
+#: nova/__init__.py:13017
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr "Der Benutzer „%(username)s“ existiert bereits."
 
-#: nova/__init__.py:13016
+#: nova/__init__.py:13023
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr "Benutzer „%(username)s“ erfolgreich erstellt."
 
-#: nova/__init__.py:13030
+#: nova/__init__.py:13037
 msgid "Cannot deactivate the admin account."
 msgstr "Das Administratorkonto kann nicht deaktiviert werden."
 
-#: nova/__init__.py:13035
+#: nova/__init__.py:13042
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr "Benutzer „%(username)s“ %(status)s."
 
-#: nova/__init__.py:13050
+#: nova/__init__.py:13057
 msgid "Password cannot be empty."
 msgstr "Das Passwort darf nicht leer sein."
 
-#: nova/__init__.py:13054
+#: nova/__init__.py:13061
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr "Passwort zurücksetzen für '%(username)s'."
 
-#: nova/__init__.py:13068
+#: nova/__init__.py:13075
 msgid "Cannot delete the admin account."
 msgstr "Das Administratorkonto kann nicht gelöscht werden."
 
-#: nova/__init__.py:13073
+#: nova/__init__.py:13080
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr "Benutzer „%(username)s“ gelöscht."
@@ -702,6 +701,27 @@ msgstr "Schließen"
 #: templates/_inspiration_section.html:505
 msgid "View Charts"
 msgstr "Diagramme anzeigen"
+
+#: templates/_inspiration_section.html:515
+msgid "Analyzing targets..."
+msgstr "Ziele werden analysiert..."
+
+#: templates/_inspiration_section.html:516 templates/journal_report.html:706
+#: templates/project_report.html:1081
+msgid "No Image"
+msgstr "Kein Bild"
+
+#: templates/_inspiration_section.html:517
+msgid "unknown"
+msgstr "unbekannt"
+
+#: templates/_inspiration_section.html:518
+msgid "Error rendering grid. Check console."
+msgstr "Fehler beim Rendern des Rasters. Konsole prüfen."
+
+#: templates/_inspiration_section.html:519
+msgid "Image unavailable"
+msgstr "Bild nicht verfügbar"
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -929,6 +949,67 @@ msgstr "Autocenter-Genauigkeit im Zeitverlauf"
 msgid "Distance from target center per centering attempt"
 msgstr "Entfernung vom Zielzentrum pro Zentrierungsversuch"
 
+#: templates/_journal_section.html:1943
+msgid "Failed to fetch objects"
+msgstr "Objekte konnten nicht abgerufen werden"
+
+#: templates/_journal_section.html:1944
+msgid "No objects found"
+msgstr "Keine Objekte gefunden"
+
+#: templates/_journal_section.html:1945
+msgid "Remove filter"
+msgstr "Filter entfernen"
+
+#: templates/_journal_section.html:1946
+msgid "# Subs"
+msgstr "# Belichtungen"
+
+#: templates/_journal_section.html:1947 templates/journal_form.html:173
+msgid "Count"
+msgstr "Graf"
+
+#: templates/_journal_section.html:1948 templates/journal_form.html:176
+msgid "Exp (sec/sub):"
+msgstr "Exp (Sek./Sub):"
+
+#: templates/_journal_section.html:1949 templates/journal_form.html:177
+msgid "Seconds"
+msgstr "Sekunden"
+
+#: templates/_journal_section.html:1950
+msgid "Enter a filter name."
+msgstr "Geben Sie einen Filternamen ein."
+
+#: templates/_journal_section.html:1951
+msgid "Error adding filter."
+msgstr "Fehler beim Hinzufügen des Filters."
+
+#: templates/_journal_section.html:1952
+#, python-brace-format
+msgid "{label} added."
+msgstr "{label} hinzugefügt."
+
+#: templates/_journal_section.html:1953
+msgid "Network error."
+msgstr "Netzwerkfehler."
+
+#: templates/_journal_section.html:1954
+#, python-brace-format
+msgid "Remove \"{label}\"? Historical session data for this filter is kept."
+msgstr ""
+"„{label}“ entfernen? Historische Sitzungsdaten für diesen Filter werden "
+"beibehalten."
+
+#: templates/_journal_section.html:1955
+msgid "Error removing filter."
+msgstr "Fehler beim Entfernen des Filters."
+
+#: templates/_journal_section.html:1956
+#, python-brace-format
+msgid "{label} removed."
+msgstr "{label} entfernt."
+
 #: templates/_objects_section.html:9
 msgid "Manage My Objects"
 msgstr "Meine Objekte verwalten"
@@ -965,7 +1046,7 @@ msgstr "z. B. Orion"
 #: templates/_objects_section.html:38 templates/_objects_section.html:134
 #: templates/_objects_section.html:286
 msgid "Con"
-msgstr "Mit"
+msgstr "Sternb"
 
 #: templates/_objects_section.html:39 templates/_objects_section.html:287
 msgid "e.g., Cyg"
@@ -1033,7 +1114,7 @@ msgstr "Notizen suchen (verwenden Sie * für alle)..."
 #: templates/_objects_section.html:68 templates/_objects_section.html:142
 #: templates/_objects_section.html:294
 msgid "Mag"
-msgstr "Mai"
+msgstr "Höhe"
 
 #: templates/_objects_section.html:69
 msgid "e.g., <15, >8, >8 <12"
@@ -1840,7 +1921,7 @@ msgstr "Klicken Sie hier, um Hilfe zu erhalten"
 
 #: templates/config_form.html:116
 msgid "Altitude Threshold (°):"
-msgstr "Höhen-Schwellenwert (°):"
+msgstr "Horizontlimit (°):"
 
 #: templates/config_form.html:125
 msgid "Theme:"
@@ -1889,7 +1970,7 @@ msgstr "Monate suchen:"
 
 #: templates/config_form.html:183
 msgid "Calc. Invisible Objects:"
-msgstr "Berechnung unsichtbarer Objekte:"
+msgstr "Verborgene berechnen:"
 
 #: templates/config_form.html:188
 msgid ""
@@ -1903,7 +1984,7 @@ msgstr ""
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
-msgstr "Unsichtbare Objekte ausblenden:"
+msgstr "Verborgene verbergen:"
 
 #: templates/config_form.html:199
 msgid ""
@@ -2343,7 +2424,7 @@ msgstr "Typ filtern..."
 
 #: templates/config_form.html:550
 msgid "Filter con..."
-msgstr "Kon filtern..."
+msgstr "Sternbild filtern..."
 
 #: templates/config_form.html:551 templates/config_form.html:581
 #: templates/config_form.html:617
@@ -2434,7 +2515,7 @@ msgstr "Mond Abstand"
 
 #: templates/graph_view.html:57
 msgid "ASTR. DUSK / DAWN"
-msgstr "ASTR. Dämmerung / Morgendämmerung"
+msgstr "ASTR. Abend / Morgen"
 
 #: templates/graph_view.html:92
 msgid "Chart"
@@ -2442,7 +2523,7 @@ msgstr "Diagramm"
 
 #: templates/graph_view.html:93 templates/graph_view.html:148
 msgid "Notes & Framing"
-msgstr "Notizen & Rahmung"
+msgstr "Notizen & Bildausschnitt"
 
 #: templates/graph_view.html:94
 msgid "Opportunities"
@@ -2498,13 +2579,13 @@ msgid "Rig Data"
 msgstr "Reiche Daten"
 
 #: templates/graph_view.html:171 templates/mobile_edit_notes.html:17
-#: templates/mobile_edit_notes.html:104 templates/mobile_edit_notes.html:118
+#: templates/mobile_edit_notes.html:108 templates/mobile_edit_notes.html:122
 msgid "Save Notes"
 msgstr "Notizen speichern"
 
 #: templates/graph_view.html:172
 msgid "Show Framing"
-msgstr "Rahmung anzeigen"
+msgstr "Bildausschnitt anzeigen"
 
 #: templates/graph_view.html:173
 msgid "Open in Stellarium"
@@ -2618,7 +2699,7 @@ msgstr "URL kopieren"
 
 #: templates/graph_view.html:291
 msgid "Save Framing"
-msgstr "Rahmung speichern"
+msgstr "Bildausschnitt speichern"
 
 #: templates/graph_view.html:294 templates/project_report.html:1132
 msgid "Rig"
@@ -2748,7 +2829,7 @@ msgstr "Ortszeit"
 
 #: templates/index.html:47
 msgid "Astr. Dusk / Dawn"
-msgstr "Astr. Dämmerung / Morgendämmerung"
+msgstr "Astr. Abend / Morgen"
 
 #: templates/index.html:59
 msgid "Simulation"
@@ -3175,18 +3256,6 @@ msgstr "Filter:"
 msgid "# Subs:"
 msgstr "# Untertitel:"
 
-#: templates/journal_form.html:173
-msgid "Count"
-msgstr "Graf"
-
-#: templates/journal_form.html:176
-msgid "Exp (sec/sub):"
-msgstr "Exp (Sek./Sub):"
-
-#: templates/journal_form.html:177
-msgid "Seconds"
-msgstr "Sekunden"
-
 #: templates/journal_form.html:184
 msgid "e.g., Library match, Taken post-session"
 msgstr "z. B. Bibliotheksabgleich, nach der Sitzung aufgenommen"
@@ -3231,10 +3300,6 @@ msgstr "DSO-Tracker"
 #: templates/project_report.html:1075 templates/project_report.html:1079
 msgid "Session Image"
 msgstr "Sitzungsbild"
-
-#: templates/journal_report.html:706 templates/project_report.html:1081
-msgid "No Image"
-msgstr "Kein Bild"
 
 #: templates/journal_report.html:708
 msgid "Total Integration:"
@@ -3558,7 +3623,7 @@ msgstr "Suche nach %%(name)s..."
 msgid "Error connecting to server."
 msgstr "Fehler beim Herstellen der Verbindung zum Server."
 
-#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:74
+#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:78
 msgid "Saving..."
 msgstr "Speichern..."
 
@@ -3566,7 +3631,7 @@ msgstr "Speichern..."
 msgid "Object saved successfully!"
 msgstr "Objekt erfolgreich gespeichert!"
 
-#: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:114
+#: templates/mobile_add_object.html:62 templates/mobile_edit_notes.html:118
 msgid "Error:"
 msgstr "Fehler:"
 
@@ -3595,7 +3660,11 @@ msgstr "Notizen bearbeiten"
 msgid "Edit:"
 msgstr "Bearbeiten:"
 
-#: templates/mobile_edit_notes.html:99
+#: templates/mobile_edit_notes.html:27
+msgid "Unknown error"
+msgstr "Unbekannter Fehler"
+
+#: templates/mobile_edit_notes.html:103
 msgid "Notes saved successfully!"
 msgstr "Notizen erfolgreich gespeichert!"
 
@@ -3665,7 +3734,7 @@ msgstr ""
 #: templates/mobile_outlook.html:50 templates/mobile_up_now.html:102
 #: templates/mobile_up_now.html:124
 msgid "Framing"
-msgstr "Rahmung"
+msgstr "Bildausschnitt"
 
 #: templates/mobile_outlook.html:51
 msgid "Rating:"
@@ -3766,7 +3835,7 @@ msgstr "Projektgeschichte"
 
 #: templates/project_report.html:846
 msgid "Framing & Composition"
-msgstr "Rahmung & Komposition"
+msgstr "Bildausschnitt & Komposition"
 
 #: templates/project_report.html:853
 msgid "Processing Workflow"
