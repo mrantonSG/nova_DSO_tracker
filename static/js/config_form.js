@@ -249,9 +249,9 @@
 
             // Build spec lines: Telescope, Camera, Reducer, Guiding (if configured)
             let specLines = [];
-            specLines.push(`Telescope: ${tele ? tele.name : 'N/A'}`);
-            specLines.push(`Camera: ${cam ? cam.name : 'N/A'}`);
-            if (red) specLines.push(`Reducer/Extender: ${red.name}`);
+            specLines.push(`${window.t('telescope')}: ${tele ? tele.name : 'N/A'}`);
+            specLines.push(`${window.t('camera')}: ${cam ? cam.name : 'N/A'}`);
+            if (red) specLines.push(`${window.t('reducer_extender')}: ${red.name}`);
             // Add guiding line if guide equipment is configured
             if (rig.guide_camera_id) {
                 let guidingDisplay;
@@ -260,14 +260,14 @@
                 } else {
                     guidingDisplay = `${rig.guide_telescope_name || 'guide scope'} + ${rig.guide_camera_name || 'guide camera'}`;
                 }
-                specLines.push(`Guiding: ${guidingDisplay}`);
+                specLines.push(`${window.t('guiding')}: ${guidingDisplay}`);
             }
             const specHtml = `<small>${specLines.join('<br>')}</small>`;
 
             // FL/scale/FOV block
             let opticsHtml = '';
             if (rig.image_scale) {
-                opticsHtml = `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">Effective FL: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>Image Scale: ${rig.image_scale.toFixed(2)}"/px<br>Field of View: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
+                opticsHtml = `<hr style="margin: 0.5em 0; border-color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--border-light', '#f5f5f5') : '#f5f5f5'};"><small style="color: ${(window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666'};">${window.t('effective_fl')}: ${rig.effective_focal_length.toFixed(0)} mm (f/${rig.f_ratio.toFixed(1)})<br>${window.t('image_scale')}: ${rig.image_scale.toFixed(2)}"/px<br>${window.t('field_of_view')}: ${rig.fov_w_arcmin.toFixed(1)}' x ${rig.fov_h_arcmin.toFixed(1)}'</small>`;
             }
 
             // Dither data attributes for sampling line
@@ -339,11 +339,11 @@
                 const samplingAvg = seeingAvg / imageScale;
 
                 let text = '', colorClass = '', isOversampled = false;
-                if (samplingAvg > 4.0) { text = `Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-oversampled'; isOversampled = true; }
-                else if (samplingAvg > 3.0) { text = `Slightly Oversampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-oversampled'; isOversampled = true; }
-                else if (samplingAvg >= 1.0) { text = `Good Sampling: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-good'; }
-                else if (samplingAvg >= 0.67) { text = `Slightly Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-undersampled'; }
-                else { text = `Undersampled: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-undersampled'; }
+                if (samplingAvg > 4.0) { text = `${window.t('oversampled')}: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-oversampled'; isOversampled = true; }
+                else if (samplingAvg > 3.0) { text = `${window.t('slightly_oversampled')}: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-oversampled'; isOversampled = true; }
+                else if (samplingAvg >= 1.0) { text = `${window.t('good_sampling')}: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-good'; }
+                else if (samplingAvg >= 0.67) { text = `${window.t('slightly_undersampled')}: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-slightly-undersampled'; }
+                else { text = `${window.t('undersampled')}: ${samplingAvg.toFixed(1)} px/FWHM`; colorClass = 'sampling-undersampled'; }
 
                 const samplingEl = document.createElement('div');
                 samplingEl.className = `rig-sampling-line ${colorClass}`;
