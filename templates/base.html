@@ -274,5 +274,48 @@
             </div>
         </div>
     </div>
+
+    <!-- Translation Feedback Modal -->
+    <div id="translation-feedback-modal" aria-labelledby="translation-feedback-modal-title">
+        <div class="modal-content translation-feedback-modal-content">
+            <button class="translation-feedback-modal-close" id="translation-feedback-modal-close-btn" aria-label="{{ _('Close') }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="translation-feedback-modal-body">
+                <h2 id="translation-feedback-modal-title" class="translation-feedback-title">{{ _('Translation Feedback') }}</h2>
+                <p class="translation-feedback-subtitle">{{ _('Help us improve the translations for this language.') }}</p>
+
+                <form id="translation-feedback-form">
+                    <div class="form-group">
+                        <label for="feedback-locale">{{ _('Locale') }}</label>
+                        <input type="text" id="feedback-locale" name="locale" readonly value="{{ current_language | default('en') }}" class="feedback-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedback-term">{{ _('Term / Phrase') }}</label>
+                        <input type="text" id="feedback-term" name="term" class="feedback-input" placeholder="{{ _('The translated term that seems wrong...') }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedback-suggestion">{{ _('Suggested Correction') }}</label>
+                        <input type="text" id="feedback-suggestion" name="suggestion" class="feedback-input" placeholder="{{ _('Your suggested translation...') }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedback-notes">{{ _('Context / Notes') }} <span class="optional-label">({{ _('optional') }})</span></label>
+                        <textarea id="feedback-notes" name="notes" class="feedback-textarea" rows="3" placeholder="{{ _('Additional context about where this appears or why the correction is needed...') }}"></textarea>
+                    </div>
+
+                    <div class="feedback-buttons">
+                        <button type="submit" class="action-button" id="feedback-submit-btn">{{ _('Submit') }}</button>
+                        <button type="button" class="btn-ghost" id="feedback-cancel-btn">{{ _('Cancel') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
   </body>
 </html>

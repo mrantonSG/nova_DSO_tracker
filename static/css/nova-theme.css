@@ -3014,3 +3014,220 @@ hr,
   background: rgba(255,255,255,0.1);
   color: rgba(255,255,255,0.9);
 }
+
+/* ===================================================================
+   TRANSLATION FEEDBACK MODAL
+   ================================================================ */
+
+#translation-feedback-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: var(--overlay-dark);
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#translation-feedback-modal.is-visible {
+  display: flex !important;
+  opacity: 1;
+}
+
+.translation-feedback-modal-content {
+  position: relative;
+  background: var(--bg-white);
+  padding: var(--space-6);
+  width: 90%;
+  max-width: 500px;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-modal);
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.translation-feedback-modal-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.translation-feedback-modal-close:hover {
+  background: var(--bg-light-gray);
+  color: var(--text-primary);
+}
+
+.translation-feedback-modal-body {
+  padding-top: var(--space-2);
+}
+
+.translation-feedback-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.translation-feedback-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.5;
+}
+
+.translation-feedback-form .form-group {
+  margin-bottom: var(--space-4);
+}
+
+.translation-feedback-form label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1-5);
+}
+
+.feedback-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: var(--nova-font-sans);
+  color: var(--text-primary);
+  background-color: var(--bg-white);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(131, 180, 197, 0.25);
+}
+
+.feedback-input[readonly] {
+  background-color: var(--bg-light-gray-alt);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+}
+
+.feedback-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: var(--nova-font-sans);
+  color: var(--text-primary);
+  background-color: var(--bg-white);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.feedback-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(131, 180, 197, 0.25);
+}
+
+.optional-label {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.feedback-buttons {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  justify-content: flex-end;
+}
+
+.feedback-buttons .action-button {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.feedback-buttons .action-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.feedback-buttons .action-button:disabled {
+  background-color: var(--gray-400);
+  color: var(--gray-600);
+  cursor: not-allowed;
+}
+
+/* Dark mode styles */
+:root[data-theme="dark"] #translation-feedback-modal {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="dark"] .translation-feedback-modal-content {
+  background: var(--bg-dark-secondary);
+  border: 1px solid var(--bg-dark-border-light);
+}
+
+:root[data-theme="dark"] .translation-feedback-modal-close {
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] .translation-feedback-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .translation-feedback-title {
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .translation-feedback-subtitle {
+  color: var(--nova-text-2);
+}
+
+:root[data-theme="dark"] .translation-feedback-form label {
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .feedback-input {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--bg-dark-border-light);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .feedback-input:focus {
+  border-color: var(--nova-accent);
+  box-shadow: 0 0 0 2px rgba(142, 200, 218, 0.25);
+}
+
+:root[data-theme="dark"] .feedback-input[readonly] {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--nova-text-3);
+}
+
+:root[data-theme="dark"] .feedback-textarea {
+  background-color: var(--bg-dark-tertiary);
+  border-color: var(--bg-dark-border-light);
+  color: var(--nova-text);
+}
+
+:root[data-theme="dark"] .feedback-textarea:focus {
+  border-color: var(--nova-accent);
+  box-shadow: 0 0 0 2px rgba(142, 200, 218, 0.25);
+}

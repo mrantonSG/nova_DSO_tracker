@@ -7417,6 +7417,7 @@ def set_language(lang):
     # Redirect back to the previous page
     return redirect(request.referrer or url_for('core.index'))
 
+
 def get_static_cache_key(obj_name, date_str, location):
     return f"{obj_name.lower()}_{date_str}_{location.lower()}"
 
