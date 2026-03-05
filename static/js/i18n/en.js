@@ -11,6 +11,7 @@ window.NOVA_I18N.en = {
     // ========================================================================
     "loading": "Loading...",
     "calculating": "Calculating...",
+    "calculating_month": "Calculating month {0} of {1}...",
     "error": "Error",
     "success": "Success",
     "cancel": "Cancel",

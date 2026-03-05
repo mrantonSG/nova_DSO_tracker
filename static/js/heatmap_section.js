@@ -76,7 +76,7 @@
         let completedChunks = 0;
 
         function fetchChunk(index) {
-            if (loadingText) loadingText.textContent = `Calculating month ${index + 1} of ${totalChunks}...`;
+            if (loadingText) loadingText.textContent = window.t('calculating_month').replace('{0}', index + 1).replace('{1}', totalChunks);
 
             fetch(`/api/get_yearly_heatmap_chunk?chunk_index=${index}&location_name=${encodeURIComponent(currentLoc)}`)
                 .then(res => res.json())

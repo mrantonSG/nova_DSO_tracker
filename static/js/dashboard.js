@@ -783,7 +783,7 @@
      */
     function _showFetchLoader(loadingDiv, progressBar, loadingMessage) {
         if (loadingDiv) loadingDiv.style.display = 'block';
-        if (loadingMessage) loadingMessage.textContent = "Calculating...";
+        if (loadingMessage) loadingMessage.textContent = window.t('calculating');
         if (progressBar) progressBar.style.width = "5%";
     }
 

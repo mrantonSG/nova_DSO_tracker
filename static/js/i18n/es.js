@@ -8,6 +8,7 @@ window.NOVA_I18N.es = {
     // ========================================================================
     "loading": "Cargando...",
     "calculating": "Calculando...",
+    "calculating_month": "Calculando mes {0} de {1}...",
     "error": "Error",
     "success": "Éxito",
     "cancel": "Cancelar",
