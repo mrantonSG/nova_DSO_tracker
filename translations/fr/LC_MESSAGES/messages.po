@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 23:36+0800\n"
+"POT-Creation-Date: 2026-03-05 13:03+0800\n"
 "PO-Revision-Date: 2026-03-04 16:54+0800\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -18,402 +18,402 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: nova/__init__.py:3879
+#: nova/__init__.py:3880
 msgid "No file uploaded"
 msgstr "Aucun fichier téléchargé"
 
-#: nova/__init__.py:3883
+#: nova/__init__.py:3884
 msgid "Empty filename"
 msgstr "Nom de fichier vide"
 
-#: nova/__init__.py:3925 nova/__init__.py:4288
+#: nova/__init__.py:3926 nova/__init__.py:4289
 msgid "User not found"
 msgstr "Utilisateur non trouvé"
 
-#: nova/__init__.py:3929
+#: nova/__init__.py:3930
 msgid "Session not found"
 msgstr "Session non trouvée"
 
-#: nova/__init__.py:3987
+#: nova/__init__.py:3988
 msgid "Object data not found or invalid."
 msgstr "Données d'objet non trouvées ou invalides."
 
-#: nova/__init__.py:3991
+#: nova/__init__.py:3992
 msgid "RA/DEC missing for object."
 msgstr "RA/DEC manquant pour l'objet."
 
-#: nova/__init__.py:3996
+#: nova/__init__.py:3997
 msgid "Invalid RA/DEC format for object."
 msgstr "Format RA/DEC invalide pour l'objet."
 
-#: nova/__init__.py:4150
+#: nova/__init__.py:4151
 msgid "Could not generate time series for plot."
 msgstr "Impossible de générer la série temporelle pour le graphique."
 
-#: nova/__init__.py:4252
+#: nova/__init__.py:4253
 msgid "Location not configured"
 msgstr "Emplacement non configuré"
 
-#: nova/__init__.py:5896 nova/__init__.py:5923
+#: nova/__init__.py:5897 nova/__init__.py:5924
 msgid "Error deleting old image."
 msgstr "Erreur lors de la suppression d'une ancienne image."
 
-#: nova/__init__.py:5959
+#: nova/__init__.py:5960
 msgid "Project updated successfully."
 msgstr "Projet mis à jour avec succès."
 
-#: nova/__init__.py:5980
+#: nova/__init__.py:5981
 #, python-format
 msgid "An error occurred: %(error)s"
 msgstr "Une erreur s'est produite : %(error)s"
 
-#: nova/__init__.py:6107
+#: nova/__init__.py:6108
 #, python-format
 msgid "Error: Unknown component type '%(component_type)s'."
 msgstr "Erreur : type de composant inconnu « %(component_type)s »."
 
-#: nova/__init__.py:6128
+#: nova/__init__.py:6129
 #, python-format
 msgid "Component '%(component_name)s' added successfully."
 msgstr "Composant « %(component_name)s » ajouté avec succès."
 
-#: nova/__init__.py:6131
+#: nova/__init__.py:6132
 #, python-format
 msgid "Error adding component: %(error)s"
 msgstr "Erreur lors de l'ajout du composant : %(error)s"
 
-#: nova/__init__.py:6146
+#: nova/__init__.py:6147
 msgid "Authorization error."
 msgstr "Erreur d'autorisation."
 
-#: nova/__init__.py:6168
+#: nova/__init__.py:6169
 #, python-format
 msgid "Component '%(component_name)s' updated successfully."
 msgstr "Composant « %(component_name)s » mis à jour avec succès."
 
-#: nova/__init__.py:6171
+#: nova/__init__.py:6172
 #, python-format
 msgid "Error updating component: %(error)s"
 msgstr "Erreur lors de la mise à jour du composant : %(error)s"
 
-#: nova/__init__.py:6214
+#: nova/__init__.py:6215
 #, python-format
 msgid "Rig '%(rig_name)s' updated successfully."
 msgstr "Plateforme « %(rig_name)s » mise à jour avec succès."
 
-#: nova/__init__.py:6226
+#: nova/__init__.py:6227
 #, python-format
 msgid "Rig '%(rig_name)s' created successfully."
 msgstr "Plateforme « %(rig_name)s » créée avec succès."
 
-#: nova/__init__.py:6245
+#: nova/__init__.py:6246
 #, python-format
 msgid "Error saving rig: %(error)s"
 msgstr "Erreur lors de l'enregistrement du rig : %(error)s"
 
-#: nova/__init__.py:6262
+#: nova/__init__.py:6263
 msgid "Cannot delete component: It is used in at least one rig."
 msgstr ""
 "Impossible de supprimer le composant : il est utilisé dans au moins un "
 "rig."
 
-#: nova/__init__.py:6267
+#: nova/__init__.py:6268
 msgid "Component deleted successfully."
 msgstr "Composant supprimé avec succès."
 
-#: nova/__init__.py:6270
+#: nova/__init__.py:6271
 #, python-format
 msgid "Error deleting component: %(error)s"
 msgstr "Erreur lors de la suppression du composant : %(error)s"
 
-#: nova/__init__.py:6282
+#: nova/__init__.py:6283
 msgid "Rig deleted successfully."
 msgstr "Plateforme supprimée avec succès."
 
-#: nova/__init__.py:6285
+#: nova/__init__.py:6286
 #, python-format
 msgid "Error deleting rig: %(error)s"
 msgstr "Erreur lors de la suppression de la plate-forme : %(error)s"
 
-#: nova/__init__.py:6439
+#: nova/__init__.py:6440
 msgid "User session error, please log in again."
 msgstr "Erreur de session utilisateur, veuillez vous reconnecter."
 
-#: nova/__init__.py:6479 nova/__init__.py:6717
+#: nova/__init__.py:6480 nova/__init__.py:6718
 msgid "Invalid date format."
 msgstr "Format de date invalide."
 
-#: nova/__init__.py:6678
+#: nova/__init__.py:6679
 msgid "New journal entry added successfully!"
 msgstr "Nouvelle entrée de journal ajoutée avec succès !"
 
-#: nova/__init__.py:6694
+#: nova/__init__.py:6695
 msgid "To add a new session, please select an object first."
 msgstr "Pour ajouter une nouvelle session, veuillez d'abord sélectionner un objet."
 
-#: nova/__init__.py:6708
+#: nova/__init__.py:6709
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr ""
 "Entrée de journal introuvable ou vous n'avez pas l'autorisation de la "
 "modifier."
 
-#: nova/__init__.py:6936
+#: nova/__init__.py:6937
 msgid "Journal entry updated successfully!"
 msgstr "Entrée du journal mise à jour avec succès !"
 
-#: nova/__init__.py:6945
+#: nova/__init__.py:6946
 msgid "Cannot edit session: associated object name is missing."
 msgstr ""
 "Impossible de modifier la session : le nom de l'objet associé est "
 "manquant."
 
-#: nova/__init__.py:6970
+#: nova/__init__.py:6971
 msgid "Project name is required."
 msgstr "Le nom du projet est obligatoire."
 
-#: nova/__init__.py:6976
+#: nova/__init__.py:6977
 #, python-format
 msgid "A project named '%(project_name)s' already exists."
 msgstr "Un projet nommé « %(project_name)s » existe déjà."
 
-#: nova/__init__.py:7003
+#: nova/__init__.py:7004
 #, python-format
 msgid "Project '%(project_name)s' created successfully."
 msgstr "Projet « %(project_name)s » créé avec succès."
 
-#: nova/__init__.py:7019
+#: nova/__init__.py:7020
 #, python-format
 msgid "Error creating project: %(error)s"
 msgstr "Erreur lors de la création du projet : %(error)s"
 
-#: nova/__init__.py:7033
+#: nova/__init__.py:7034
 msgid "Session to duplicate not found."
 msgstr "Session à dupliquer introuvable."
 
-#: nova/__init__.py:7058
+#: nova/__init__.py:7059
 msgid "Session duplicated successfully."
 msgstr "Session dupliquée avec succès."
 
-#: nova/__init__.py:7069
+#: nova/__init__.py:7070
 #, python-format
 msgid "Error duplicating session: %(error)s"
 msgstr "Erreur lors de la duplication de la session : %(error)s"
 
-#: nova/__init__.py:7090
+#: nova/__init__.py:7091
 msgid "Journal entry deleted successfully."
 msgstr "Entrée du journal supprimée avec succès."
 
-#: nova/__init__.py:7096
+#: nova/__init__.py:7097
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr ""
 "Entrée de journal introuvable ou vous n'avez pas l'autorisation de la "
 "supprimer."
 
-#: nova/__init__.py:7111
+#: nova/__init__.py:7112
 msgid "Label required"
 msgstr "Libellé requis"
 
-#: nova/__init__.py:7121
+#: nova/__init__.py:7122
 msgid "Filter already exists"
 msgstr "Le filtre existe déjà"
 
-#: nova/__init__.py:7138
+#: nova/__init__.py:7139
 msgid "Filter not found"
 msgstr "Filtre non trouvé"
 
-#: nova/__init__.py:7181 nova/__init__.py:13896
+#: nova/__init__.py:7182 nova/__init__.py:13897
 msgid "Session not found."
 msgstr "Session introuvable."
 
-#: nova/__init__.py:7371
+#: nova/__init__.py:7372
 msgid "Logged out successfully!"
 msgstr "Déconnexion réussie !"
 
-#: nova/__init__.py:7381
+#: nova/__init__.py:7382
 #, python-format
 msgid "Language '%(lang)s' is not supported."
 msgstr "La langue « %(lang)s » n'est pas prise en charge."
 
-#: nova/__init__.py:7469
+#: nova/__init__.py:7470
 msgid "Logged in successfully!"
 msgstr "Connexion réussie !"
 
-#: nova/__init__.py:7485
+#: nova/__init__.py:7486
 msgid "Invalid username or password."
 msgstr "Nom d'utilisateur ou mot de passe invalide."
 
-#: nova/__init__.py:7492
+#: nova/__init__.py:7493
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr "L'authentification unique n'est pas applicable en mode mono-utilisateur."
 
-#: nova/__init__.py:7498
+#: nova/__init__.py:7499
 msgid "SSO Error: No token provided."
 msgstr "Erreur SSO : aucun jeton fourni."
 
-#: nova/__init__.py:7504
+#: nova/__init__.py:7505
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "Erreur SSO : SSO n'est pas configuré sur le serveur."
 
-#: nova/__init__.py:7522
+#: nova/__init__.py:7523
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "Bon retour, %(username)s !"
 
-#: nova/__init__.py:7525
+#: nova/__init__.py:7526
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
 "Erreur SSO : l'utilisateur « %(username)s » est introuvable ou désactivé "
 "dans Nova."
 
-#: nova/__init__.py:7529
+#: nova/__init__.py:7530
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "Erreur SSO : le lien de connexion a expiré. Veuillez réessayer depuis "
 "WordPress."
 
-#: nova/__init__.py:7532
+#: nova/__init__.py:7533
 msgid "SSO Error: Invalid login token."
 msgstr "Erreur SSO : jeton de connexion non valide."
 
-#: nova/__init__.py:7681 nova/__init__.py:7771 nova/__init__.py:9891
-#: nova/__init__.py:11586 nova/__init__.py:13034 nova/__init__.py:13053
-#: nova/__init__.py:13072
+#: nova/__init__.py:7682 nova/__init__.py:7772 nova/__init__.py:9892
+#: nova/__init__.py:11587 nova/__init__.py:13035 nova/__init__.py:13054
+#: nova/__init__.py:13073
 msgid "User not found."
 msgstr "Utilisateur introuvable."
 
-#: nova/__init__.py:7758
+#: nova/__init__.py:7759
 #, python-format
 msgid "Error generating config file: %(error)s"
 msgstr "Erreur lors de la génération du fichier de configuration : %(error)s"
 
-#: nova/__init__.py:7877
+#: nova/__init__.py:7878
 #, python-format
 msgid "Error generating journal file: %(error)s"
 msgstr "Erreur lors de la génération du fichier journal : %(error)s"
 
-#: nova/__init__.py:7908 nova/__init__.py:7913
+#: nova/__init__.py:7909 nova/__init__.py:7914
 msgid "No file selected for journal import."
 msgstr "Aucun fichier sélectionné pour l'importation du journal."
 
-#: nova/__init__.py:7927
+#: nova/__init__.py:7928
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
 msgstr "Structure du fichier journal invalide : %(message)s"
 
-#: nova/__init__.py:7951
+#: nova/__init__.py:7952
 msgid "Journal imported successfully! (Previous journal data was replaced)"
 msgstr ""
 "Journal importé avec succès ! (Les données précédentes du journal ont été"
 " remplacées)"
 
-#: nova/__init__.py:7963
+#: nova/__init__.py:7964
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
 "Échec de l'importation : format YAML non valide dans le fichier journal. "
 "%(error)s"
 
-#: nova/__init__.py:7971 nova/__init__.py:8102
+#: nova/__init__.py:7972 nova/__init__.py:8103
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr "Échec de l'importation : %(error)s"
 
-#: nova/__init__.py:7974
+#: nova/__init__.py:7975
 msgid "Invalid file type. Please upload a .yaml journal file."
 msgstr "Type de fichier non valide. Veuillez télécharger un fichier journal .yaml."
 
-#: nova/__init__.py:7986
+#: nova/__init__.py:7987
 msgid "Authentication error during import."
 msgstr "Erreur d'authentification lors de l'importation."
 
-#: nova/__init__.py:7991 nova/__init__.py:7996
+#: nova/__init__.py:7992 nova/__init__.py:7997
 msgid "No file selected for import."
 msgstr "Aucun fichier sélectionné pour l'importation."
 
-#: nova/__init__.py:8018
+#: nova/__init__.py:8019
 msgid "Cannot import: Configuration must contain at least one location."
 msgstr ""
 "Impossible d'importer : la configuration doit contenir au moins un "
 "emplacement."
 
-#: nova/__init__.py:8026
+#: nova/__init__.py:8027
 msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "Impossible d'importer : la configuration doit contenir au moins un "
 "emplacement actif."
 
-#: nova/__init__.py:8057
+#: nova/__init__.py:8058
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
 "Configuration importée avec succès ! (La configuration précédente a été "
 "remplacée)"
 
-#: nova/__init__.py:8099
+#: nova/__init__.py:8100
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr "Échec de l'importation : YAML non valide. (%(error)s)"
 
-#: nova/__init__.py:8124
+#: nova/__init__.py:8125
 msgid "Authentication error during catalog import."
 msgstr "Erreur d'authentification lors de l'importation du catalogue."
 
-#: nova/__init__.py:8134
+#: nova/__init__.py:8135
 msgid "Catalog pack not found or invalid."
 msgstr "Pack catalogue introuvable ou invalide."
 
-#: nova/__init__.py:8146
+#: nova/__init__.py:8147
 msgid "Catalog import failed due to an internal error."
 msgstr "L'importation du catalogue a échoué en raison d'une erreur interne."
 
-#: nova/__init__.py:8336 nova/__init__.py:8515
+#: nova/__init__.py:8337 nova/__init__.py:8516
 msgid "No object specified."
 msgstr "Aucun objet spécifié."
 
-#: nova/__init__.py:8343 nova/__init__.py:10513 nova/__init__.py:10537
+#: nova/__init__.py:8344 nova/__init__.py:10514 nova/__init__.py:10538
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objet non trouvé."
 
-#: nova/__init__.py:8674
+#: nova/__init__.py:8675
 msgid "Object not found"
 msgstr "Objet non trouvé"
 
-#: nova/__init__.py:8845
+#: nova/__init__.py:8846
 msgid "Fetched and saved missing object details."
 msgstr "Récupération et enregistrement des détails des objets manquants."
 
-#: nova/__init__.py:8847
+#: nova/__init__.py:8848
 msgid "No missing data found or no updates needed."
 msgstr "Aucune donnée manquante trouvée ou aucune mise à jour nécessaire."
 
-#: nova/__init__.py:8851
+#: nova/__init__.py:8852
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Une erreur s'est produite lors de la récupération des données : %(error)s"
 
-#: nova/__init__.py:9263
+#: nova/__init__.py:9264
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>Erreur lors de la lecture du fichier d'aide : %(error)s</p>"
 
-#: nova/__init__.py:9898
+#: nova/__init__.py:9899
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr "Objet « %(object_name)s » introuvable."
 
-#: nova/__init__.py:10218
+#: nova/__init__.py:10219
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr ""
 "Impossible de trouver l'utilisateur « %(username)s » dans la base de "
 "données."
 
-#: nova/__init__.py:10287
+#: nova/__init__.py:10288
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "Avertissement : le masque Horizon était invalide et a été ignoré."
 
-#: nova/__init__.py:10309
+#: nova/__init__.py:10310
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
@@ -421,7 +421,7 @@ msgstr ""
 "Impossible de supprimer votre dernier emplacement. Vous devez avoir au "
 "moins un emplacement configuré."
 
-#: nova/__init__.py:10314
+#: nova/__init__.py:10315
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
@@ -429,222 +429,222 @@ msgstr ""
 "Vous ne pouvez pas désactiver votre seul emplacement actif. Vous devez "
 "conserver au moins un emplacement actif."
 
-#: nova/__init__.py:10350
+#: nova/__init__.py:10351
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 "Avertissement : le masque Horizon pour « %(location_name)s » n'était pas "
 "valide et a été ignoré."
 
-#: nova/__init__.py:10397
+#: nova/__init__.py:10398
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s mis à jour avec succès."
 
-#: nova/__init__.py:10470
+#: nova/__init__.py:10471
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Une erreur de base de données s'est produite : %(error)s"
 
-#: nova/__init__.py:10645
+#: nova/__init__.py:10646
 msgid "Please log in to view object details."
 msgstr "Veuillez vous connecter pour afficher les détails de l'objet."
 
-#: nova/__init__.py:10660
+#: nova/__init__.py:10661
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Utilisateur « %(username)s » introuvable."
 
-#: nova/__init__.py:10674
+#: nova/__init__.py:10675
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 "Emplacement demandé « %(location_name)s » introuvable, utilisation de "
 "l'emplacement par défaut."
 
-#: nova/__init__.py:10688
+#: nova/__init__.py:10689
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Erreur : aucun emplacement valide n'est configuré ou sélectionné pour cet"
 " utilisateur."
 
-#: nova/__init__.py:10706
+#: nova/__init__.py:10707
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objet « %(object_name)s » introuvable dans votre configuration."
 
-#: nova/__init__.py:10933
+#: nova/__init__.py:10934
 msgid "Invalid date components provided, defaulting to current date."
 msgstr "Composants de date invalides fournis, valeur par défaut : date actuelle."
 
-#: nova/__init__.py:11136
+#: nova/__init__.py:11137
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
 "Une erreur s'est produite lors du chargement des détails pour "
 "%(object_name)s."
 
-#: nova/__init__.py:11463 nova/__init__.py:13904
+#: nova/__init__.py:11464 nova/__init__.py:13905
 msgid "Project not found."
 msgstr "Projet introuvable."
 
-#: nova/__init__.py:11478
+#: nova/__init__.py:11479
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
 "Projet « %(project_name)s » supprimé. Les sessions sont désormais "
 "autonomes."
 
-#: nova/__init__.py:11486
+#: nova/__init__.py:11487
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "Erreur lors de la suppression du projet : %(error)s"
 
-#: nova/__init__.py:11675
+#: nova/__init__.py:11676
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "Erreur lors de la génération de la configuration du rig : %(error)s"
 
-#: nova/__init__.py:11695
+#: nova/__init__.py:11696
 msgid "No journal photos found to download."
 msgstr "Aucune photo du journal n'a été trouvée à télécharger."
 
-#: nova/__init__.py:11740
+#: nova/__init__.py:11741
 msgid "No file selected for photo import."
 msgstr "Aucun fichier sélectionné pour l'importation de photos."
 
-#: nova/__init__.py:11745
+#: nova/__init__.py:11746
 msgid "Please select a valid .zip file to import."
 msgstr "Veuillez sélectionner un fichier .zip valide à importer."
 
-#: nova/__init__.py:11758
+#: nova/__init__.py:11759
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr ""
 "Échec de l'importation : le fichier téléchargé n'est pas une archive ZIP "
 "valide."
 
-#: nova/__init__.py:11792
+#: nova/__init__.py:11793
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr ""
 "Les photos du journal ont été importées avec succès ! %(count)d fichiers "
 "extraits."
 
-#: nova/__init__.py:11795
+#: nova/__init__.py:11796
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "Échec de l'importation : le fichier ZIP semble être corrompu."
 
-#: nova/__init__.py:11797
+#: nova/__init__.py:11798
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "Une erreur inattendue s'est produite pendant l'importation : %(error)s"
 
-#: nova/__init__.py:11900 nova/__init__.py:11905
+#: nova/__init__.py:11901 nova/__init__.py:11906
 msgid "No file selected for rigs import."
 msgstr "Aucun fichier sélectionné pour l'importation des plates-formes."
 
-#: nova/__init__.py:11935
+#: nova/__init__.py:11936
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
 "Configuration des plates-formes importée et synchronisée avec succès dans"
 " la base de données !"
 
-#: nova/__init__.py:11943
+#: nova/__init__.py:11944
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "Erreur lors de l'importation du fichier de plates-formes : %(error)s"
 
-#: nova/__init__.py:11946
+#: nova/__init__.py:11947
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr "Type de fichier non valide. Veuillez télécharger un fichier .yaml ou .yml."
 
-#: nova/__init__.py:12898
+#: nova/__init__.py:12899
 msgid "Not authorized to export another user's data."
 msgstr "Non autorisé à exporter les données d'un autre utilisateur."
 
-#: nova/__init__.py:12902
+#: nova/__init__.py:12903
 msgid "Export failed (no such user or empty data)."
 msgstr "Échec de l'exportation (utilisateur inexistant ou données vides)."
 
-#: nova/__init__.py:12931
+#: nova/__init__.py:12932
 msgid "Username is required in multi-user mode."
 msgstr "Le nom d'utilisateur est obligatoire en mode multi-utilisateurs."
 
-#: nova/__init__.py:12936
+#: nova/__init__.py:12937
 msgid "Not authorized to import for another user."
 msgstr "Non autorisé à importer pour un autre utilisateur."
 
-#: nova/__init__.py:12944
+#: nova/__init__.py:12945
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
 "Veuillez fournir les fichiers YAML de configuration, de rigs et de "
 "journal."
 
-#: nova/__init__.py:12964
+#: nova/__init__.py:12965
 msgid "Import completed successfully!"
 msgstr "Importation terminée avec succès !"
 
-#: nova/__init__.py:12966
+#: nova/__init__.py:12967
 msgid "Import failed. See server logs for details."
 msgstr ""
 "Importation échouée. Consultez les journaux du serveur pour plus de "
 "détails."
 
-#: nova/__init__.py:12969
+#: nova/__init__.py:12970
 msgid "Import crashed. Check logs."
 msgstr "Importation échouée. Vérifiez les journaux."
 
-#: nova/__init__.py:12976 nova/__init__.py:13000 nova/__init__.py:13009
-#: nova/__init__.py:13030 nova/__init__.py:13049 nova/__init__.py:13068
+#: nova/__init__.py:12977 nova/__init__.py:13001 nova/__init__.py:13010
+#: nova/__init__.py:13031 nova/__init__.py:13050 nova/__init__.py:13069
 msgid "Not authorized."
 msgstr "Non autorisé."
 
-#: nova/__init__.py:12980
+#: nova/__init__.py:12981
 msgid "Database repair completed."
 msgstr "Réparation de la base de données terminée."
 
-#: nova/__init__.py:12982
+#: nova/__init__.py:12983
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "Échec de la réparation : %(error)s"
 
-#: nova/__init__.py:13014
+#: nova/__init__.py:13015
 msgid "Username and password are required."
 msgstr "Un nom d'utilisateur et un mot de passe sont requis."
 
-#: nova/__init__.py:13017
+#: nova/__init__.py:13018
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr "L'utilisateur « %(username)s » existe déjà."
 
-#: nova/__init__.py:13023
+#: nova/__init__.py:13024
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr "Utilisateur « %(username)s » créé avec succès."
 
-#: nova/__init__.py:13037
+#: nova/__init__.py:13038
 msgid "Cannot deactivate the admin account."
 msgstr "Impossible de désactiver le compte administrateur."
 
-#: nova/__init__.py:13042
+#: nova/__init__.py:13043
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr "Utilisateur « %(username)s » %(status)s."
 
-#: nova/__init__.py:13057
+#: nova/__init__.py:13058
 msgid "Password cannot be empty."
 msgstr "Le mot de passe ne peut pas être vide."
 
-#: nova/__init__.py:13061
+#: nova/__init__.py:13062
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr "Réinitialisation du mot de passe pour « %(username)s »."
 
-#: nova/__init__.py:13075
+#: nova/__init__.py:13076
 msgid "Cannot delete the admin account."
 msgstr "Impossible de supprimer le compte administrateur."
 
-#: nova/__init__.py:13080
+#: nova/__init__.py:13081
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr "Utilisateur « %(username)s » supprimé."
@@ -697,7 +697,7 @@ msgstr "Source : Wiki"
 
 #: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
-#: templates/base.html:215 templates/base.html:223
+#: templates/base.html:215 templates/base.html:235 templates/base.html:243
 #: templates/config_form.html:640 templates/graph_view.html:276
 msgid "Close"
 msgstr "Fermer"
@@ -1424,8 +1424,8 @@ msgid "SQM Reading:"
 msgstr "Lecture SQM :"
 
 #: templates/_journal_section.html:1724
-#, python-format
-msgid "Moon Illumination (%):"
+#, fuzzy, python-format
+msgid "Moon Illumination (%%):"
 msgstr "Illumination lunaire à la session (%%) :"
 
 #: templates/_journal_section.html:1724
@@ -2405,26 +2405,36 @@ msgstr "Utilisateurs"
 msgid "Logout"
 msgstr "Déconnexion"
 
-#: templates/base.html:212 templates/config_form.html:283
+#: templates/base.html:212
+msgid ""
+"The translations for this language are machine-generated and may not be "
+"accurate. Help improve them!"
+msgstr "The translations for this language are machine-generated and may not be accurate. Help improve them!"
+
+#: templates/base.html:213
+msgid "Submit feedback"
+msgstr "Submit feedback"
+
+#: templates/base.html:232 templates/config_form.html:283
 #: templates/macros.html:79
 msgid "Help"
 msgstr "Aide"
 
-#: templates/base.html:230
+#: templates/base.html:250
 msgid "Nova DSO Tracker Logo"
 msgstr "Nouveau logo DSO Tracker"
 
-#: templates/base.html:232
+#: templates/base.html:252
 msgid "Version"
 msgstr "Version"
 
-#: templates/base.html:233
+#: templates/base.html:253
 msgid "A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 "Un projet personnel né d'une passion pour l'astronomie et "
 "l'astrophotographie."
 
-#: templates/base.html:234
+#: templates/base.html:254
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
@@ -2436,15 +2446,15 @@ msgstr ""
 "objets du ciel profond, en suivant la position et la phase de la Lune, et"
 " en identifiant les fenêtres d'observation optimales."
 
-#: templates/base.html:235
+#: templates/base.html:255
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "Données provenant de SIMBAD ; calculs effectués par Astropy et Ephem."
 
-#: templates/base.html:243
+#: templates/base.html:263
 msgid "Visit nova-tracker.com"
 msgstr "Visitez nova-tracker.com"
 
-#: templates/base.html:253
+#: templates/base.html:273
 msgid "Built by Anton Gutscher"
 msgstr "Conçu par Anton Gutscher"
 

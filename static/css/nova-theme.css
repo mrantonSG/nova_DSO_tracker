@@ -2908,3 +2908,109 @@ hr,
 :root[data-theme="dark"] .about-credits {
   border-top-color: var(--nova-border);
 }
+
+/* =================================================================
+   TRANSLATION STATUS BANNER
+   Banner shown when a locale has 'auto' translation status
+   ================================================================ */
+
+/* Banner container - teal-tinted background */
+.translation-banner {
+  background: var(--nova-accent-bg);
+  border-bottom: 1px solid var(--nova-accent-light);
+  color: var(--nova-text-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 28px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Banner content wrapper */
+.translation-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+/* Globe icon */
+.translation-banner-icon {
+  color: var(--nova-accent);
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Banner text */
+.translation-banner-text {
+  color: var(--nova-text-2);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Feedback link */
+.translation-banner-link {
+  color: var(--nova-accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.translation-banner-link:hover {
+  color: var(--nova-text);
+  text-decoration: underline;
+}
+
+/* Dismiss button */
+.translation-banner-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  color: var(--nova-text-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  margin-left: 12px;
+}
+
+.translation-banner-close:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--nova-text);
+}
+
+/* Dark mode banner */
+:root[data-theme="dark"] .translation-banner {
+  background: rgba(122,175,192,0.1);
+  border-bottom-color: rgba(122,175,192,0.2);
+  color: rgba(255,255,255,0.7);
+}
+
+:root[data-theme="dark"] .translation-banner-text {
+  color: rgba(255,255,255,0.7);
+}
+
+:root[data-theme="dark"] .translation-banner-link {
+  color: var(--nova-accent);
+}
+
+:root[data-theme="dark"] .translation-banner-link:hover {
+  color: rgba(255,255,255,0.9);
+}
+
+:root[data-theme="dark"] .translation-banner-close {
+  color: rgba(255,255,255,0.5);
+}
+
+:root[data-theme="dark"] .translation-banner-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.9);
+}
