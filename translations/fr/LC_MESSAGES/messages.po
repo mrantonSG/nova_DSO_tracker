@@ -2409,11 +2409,11 @@ msgstr "Déconnexion"
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
-msgstr "The translations for this language are machine-generated and may not be accurate. Help improve them!"
+msgstr "Les traductions de cette langue sont générées automatiquement et peuvent ne pas être précises. Aidez-nous à les améliorer !"
 
 #: templates/base.html:213
 msgid "Submit feedback"
-msgstr "Submit feedback"
+msgstr "Envoyer des commentaires"
 
 #: templates/base.html:232 templates/config_form.html:283
 #: templates/macros.html:79
