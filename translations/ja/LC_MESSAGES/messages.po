@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 21:28+0800\n"
+"POT-Creation-Date: 2026-03-04 23:36+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: ja <LL@li.org>\n"
 "Language: ja\n"
+"Language-Team: ja <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/__init__.py:3879
@@ -257,8 +257,7 @@ msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO エラー: Nova でユーザー '%(username)s' が見つかりません、または無効になっています。"
 
 #: nova/__init__.py:7529
-msgid ""
-"SSO Error: The login link has expired. Please try again from WordPress."
+msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSOエラー：ログインリンクの有効期限が切れています。WordPressから再度お試しください。"
 
 #: nova/__init__.py:7532
@@ -321,8 +320,7 @@ msgid "Cannot import: Configuration must contain at least one location."
 msgstr "インポートできません: 構成には少なくとも1つの場所が含まれている必要があります。"
 
 #: nova/__init__.py:8026
-msgid ""
-"Cannot import: Configuration must contain at least one active location."
+msgid "Cannot import: Configuration must contain at least one active location."
 msgstr "インポートできません: 構成には少なくとも1つのアクティブな場所が含まれている必要があります。"
 
 #: nova/__init__.py:8057
@@ -646,10 +644,10 @@ msgstr "星座"
 msgid "Source: Wiki"
 msgstr "出典: Wiki"
 
-#: templates/_inspiration_section.html:504 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:215
-#: templates/base.html:223 templates/config_form.html:640
-#: templates/graph_view.html:276
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
+#: templates/_objects_section.html:427 templates/_objects_section.html:442
+#: templates/base.html:215 templates/base.html:223
+#: templates/config_form.html:640 templates/graph_view.html:276
 msgid "Close"
 msgstr "閉じる"
 
@@ -686,7 +684,7 @@ msgstr "セッション履歴"
 msgid "Switch Object"
 msgstr "オブジェクトを切り替える"
 
-#: templates/_journal_section.html:1092
+#: templates/_journal_section.html:1092 templates/_journal_section.html:1673
 msgid "Add New Project"
 msgstr "新規プロジェクトを追加"
 
@@ -694,13 +692,39 @@ msgstr "新規プロジェクトを追加"
 msgid "Add New Session"
 msgstr "新しいセッションを追加"
 
-#: templates/_journal_section.html:1113 templates/_project_subtab.html:150
+#: templates/_journal_section.html:1098
+msgid "Date & Location"
+msgstr "場所を更新"
+
+#: templates/_journal_section.html:1098 templates/project_report.html:866
+msgid "Integ."
+msgstr "誠実さ。"
+
+#: templates/_journal_section.html:1098
+#: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
+#: templates/index.html:170 templates/index.html:197
+#: templates/journal_report.html:692 templates/project_report.html:867
+#: templates/project_report.html:1101
+msgid "Rating"
+msgstr "評価"
+
+#: templates/_journal_section.html:1109
+msgid "Click to view project details"
+msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+
+#: templates/_journal_section.html:1113 templates/_journal_section.html:1512
+#: templates/_project_subtab.html:150
 msgid "Project:"
 msgstr "プロジェクト："
 
-#: templates/_journal_section.html:1114
+#: templates/_journal_section.html:1114 templates/_journal_section.html:1433
 msgid "Total:"
 msgstr "合計："
+
+#: templates/_journal_section.html:1123 templates/_project_subtab.html:209
+#: templates/mobile_up_now.html:128
+msgid "min"
+msgstr "私は持っている"
 
 #: templates/_journal_section.html:1131
 msgid "Loading history..."
@@ -767,9 +791,70 @@ msgstr "空の質 (SQM)"
 msgid "Multiple"
 msgstr "複数"
 
+#: templates/_journal_section.html:1192
+msgid "x"
+msgstr ""
+
+#: templates/_journal_section.html:1192
+msgid "s"
+msgstr "表面輝度"
+
 #: templates/_journal_section.html:1194
 msgid "EXPOSURES"
 msgstr "露出"
+
+#: templates/_journal_section.html:1198 templates/_journal_section.html:1269
+#: templates/journal_form.html:169
+msgid "Filter:"
+msgstr "フィルター："
+
+#: templates/_journal_section.html:1202 templates/_journal_section.html:1246
+msgid "Rig Used:"
+msgstr "リグ名:"
+
+#: templates/_journal_section.html:1203 templates/_journal_section.html:1252
+msgid "Rig Specs:"
+msgstr "リグ・スナップショット"
+
+#: templates/_journal_section.html:1205 templates/_journal_section.html:1247
+#: templates/config_form.html:449 templates/journal_report.html:757
+msgid "Telescope:"
+msgstr "望遠鏡："
+
+#: templates/_journal_section.html:1206 templates/_journal_section.html:1251
+#: templates/config_form.html:455 templates/journal_report.html:767
+msgid "Camera:"
+msgstr "部屋："
+
+#: templates/_journal_section.html:1207
+msgid "FL:"
+msgstr "アパート："
+
+#: templates/_journal_section.html:1208 templates/_journal_section.html:1255
+msgid "Scale:"
+msgstr "スケール／視野角："
+
+#: templates/_journal_section.html:1211 templates/_journal_section.html:1258
+msgid "Setup Notes:"
+msgstr "セットアップに関する注意事項"
+
+#: templates/_journal_section.html:1214 templates/_journal_section.html:1260
+msgid "Telescope Setup:"
+msgstr "望遠鏡の設置"
+
+#: templates/_journal_section.html:1218
+msgid "Session Image:"
+msgstr "セッション画像"
+
+#: templates/_journal_section.html:1221
+msgid "Click to view full size"
+msgstr ""
+
+#: templates/_journal_section.html:1222 templates/journal_report.html:700
+#: templates/journal_report.html:703 templates/project_report.html:1075
+#: templates/project_report.html:1079
+msgid "Session Image"
+msgstr "セッション画像"
 
 #: templates/_journal_section.html:1231 templates/journal_report.html:718
 msgid "Statistics & Conditions"
@@ -787,7 +872,8 @@ msgstr "ガイディングRMS:"
 msgid "SQM:"
 msgstr "SQM:"
 
-#: templates/_journal_section.html:1236 templates/journal_form.html:63
+#: templates/_journal_section.html:1236 templates/_journal_section.html:1721
+#: templates/journal_form.html:63
 msgid "Transparency Scale:"
 msgstr "透明度尺度："
 
@@ -795,7 +881,8 @@ msgstr "透明度尺度："
 msgid "Moon Illum/Sep:"
 msgstr "月光/分離："
 
-#: templates/_journal_section.html:1238 templates/journal_form.html:75
+#: templates/_journal_section.html:1238 templates/_journal_section.html:1723
+#: templates/journal_form.html:75
 msgid "Weather Notes:"
 msgstr "天気メモ："
 
@@ -803,20 +890,71 @@ msgstr "天気メモ："
 msgid "Equipment & Acquisition Details"
 msgstr "装備品及び取得の詳細"
 
+#: templates/_journal_section.html:1249 templates/journal_report.html:762
+msgid "Reducer/Ext.:"
+msgstr "縮小/拡張："
+
+#: templates/_journal_section.html:1254
+msgid "FL/Ratio:"
+msgstr "FL / 比率:"
+
+#: templates/_journal_section.html:1256
+msgid "FOV:"
+msgstr ""
+
+#: templates/_journal_section.html:1263 templates/_journal_section.html:1741
+msgid "Guiding Equipment:"
+msgstr "ガイディング装備："
+
+#: templates/_journal_section.html:1264
+msgid "Acquisition Sw:"
+msgstr "買収ソフトウェア："
+
+#: templates/_journal_section.html:1265 templates/journal_form.html:119
+msgid "Dither Settings:"
+msgstr "ディザ設定："
+
+#: templates/_journal_section.html:1266 templates/_journal_section.html:1770
+#: templates/journal_form.html:159
+msgid "Binning:"
+msgstr "ビンニング:"
+
+#: templates/_journal_section.html:1267 templates/journal_report.html:771
+msgid "Gain / Offset:"
+msgstr "ゲイン／オフセット："
+
+#: templates/_journal_section.html:1268
+msgid "Camera Temp (Set/Avg):"
+msgstr "温度（設定/平均）："
+
+#: templates/_journal_section.html:1270
+msgid "Sub Exposure:"
+msgstr "露出"
+
+#: templates/_journal_section.html:1271
+msgid "# Light Subs:"
+msgstr "ライトサブの数："
+
 #: templates/_journal_section.html:1291
 msgid "Monochrome Exposures"
 msgstr "モノクローム・エクスポージャー"
 
-#: templates/_journal_section.html:1317 templates/journal_form.html:181
-#: templates/journal_report.html:803
+#: templates/_journal_section.html:1297 templates/_journal_section.html:1307
+msgid "subs x "
+msgstr "サブ"
+
+#: templates/_journal_section.html:1317 templates/_journal_section.html:1826
+#: templates/journal_form.html:181 templates/journal_report.html:803
 msgid "Calibration Strategy"
 msgstr "校正戦略"
 
-#: templates/_journal_section.html:1319 templates/journal_form.html:183
+#: templates/_journal_section.html:1319 templates/_journal_section.html:1827
+#: templates/journal_form.html:183
 msgid "Darks:"
 msgstr "ダークス："
 
-#: templates/_journal_section.html:1320 templates/journal_form.html:187
+#: templates/_journal_section.html:1320 templates/_journal_section.html:1828
+#: templates/journal_form.html:187
 msgid "Flats:"
 msgstr "アパート："
 
@@ -824,7 +962,8 @@ msgstr "アパート："
 msgid "Bias/DarkFlats:"
 msgstr "バイアス/ダークフラット："
 
-#: templates/_journal_section.html:1326 templates/journal_form.html:195
+#: templates/_journal_section.html:1326 templates/_journal_section.html:1830
+#: templates/journal_form.html:195
 msgid "Outcome & Reflections"
 msgstr "成果と考察"
 
@@ -836,15 +975,15 @@ msgstr "セッション評価："
 msgid "Notes:"
 msgstr "注記："
 
-#: templates/_journal_section.html:1337
+#: templates/_journal_section.html:1337 templates/_journal_section.html:1583
 msgid "Download CSV"
 msgstr "CSVをダウンロード"
 
-#: templates/_journal_section.html:1343
+#: templates/_journal_section.html:1343 templates/_journal_section.html:1589
 msgid "Download PDF"
 msgstr "PDFをダウンロード"
 
-#: templates/_journal_section.html:1354
+#: templates/_journal_section.html:1354 templates/_journal_section.html:1524
 msgid "Overview"
 msgstr "概要"
 
@@ -896,6 +1035,38 @@ msgstr "ピクセルスケール"
 msgid "Plate Solve Results"
 msgstr "プレートソルブ結果"
 
+#: templates/_journal_section.html:1398
+msgid "#"
+msgstr ""
+
+#: templates/_journal_section.html:1399 templates/journal_report.html:1068
+#: templates/journal_report.html:1098 templates/journal_report.html:1177
+#: templates/project_report.html:1012
+msgid "Time"
+msgstr "時間"
+
+#: templates/_journal_section.html:1400 templates/journal_report.html:1069
+msgid "RA"
+msgstr "RA"
+
+#: templates/_journal_section.html:1401 templates/journal_report.html:1070
+msgid "Dec"
+msgstr "12月"
+
+#: templates/_journal_section.html:1402 templates/journal_report.html:1071
+msgid "Angle"
+msgstr "角度"
+
+#: templates/_journal_section.html:1403 templates/journal_report.html:1072
+msgid "Stars"
+msgstr "星"
+
+#: templates/_journal_section.html:1404 templates/_journal_section.html:1540
+#: templates/_objects_section.html:46 templates/_project_subtab.html:154
+#: templates/admin_users.html:72 templates/journal_report.html:1179
+msgid "Status"
+msgstr "ステータス"
+
 #: templates/_journal_section.html:1413
 msgid "Autocenter Accuracy Over Time"
 msgstr "オートセンター精度経時変化"
@@ -904,6 +1075,530 @@ msgstr "オートセンター精度経時変化"
 msgid "Distance from target center per centering attempt"
 msgstr "目標中心からの距離（センタリング試行ごと）"
 
+#: templates/_journal_section.html:1425
+msgid "RA RMS:"
+msgstr "総RMS"
+
+#: templates/_journal_section.html:1426
+msgid "Dec RMS:"
+msgstr "12月:"
+
+#: templates/_journal_section.html:1427
+msgid "Total RMS:"
+msgstr "総RMS"
+
+#: templates/_journal_section.html:1428
+msgid "Imaging Frames:"
+msgstr "イメージングRMS"
+
+#: templates/_journal_section.html:1431
+msgid "Including dithers — RA:"
+msgstr ""
+
+#: templates/_journal_section.html:1432 templates/journal_report.html:991
+msgid "Dec:"
+msgstr "12月:"
+
+#: templates/_journal_section.html:1436
+msgid "Zoom"
+msgstr ""
+
+#: templates/_journal_section.html:1441
+msgid "Avg RA Pulse:"
+msgstr ""
+
+#: templates/_journal_section.html:1442
+msgid "Avg Dec Pulse:"
+msgstr "ガイドパルス"
+
+#: templates/_journal_section.html:1443
+msgid "Avg RA Dur:"
+msgstr ""
+
+#: templates/_journal_section.html:1444
+msgid "Avg Dec Dur:"
+msgstr ""
+
+#: templates/_journal_section.html:1445
+msgid "RA Dir:"
+msgstr "RA："
+
+#: templates/_journal_section.html:1446
+msgid "Dec Dir:"
+msgstr "12月:"
+
+#: templates/_journal_section.html:1465
+msgid "Total Dithers:"
+msgstr "総ディザ数"
+
+#: templates/_journal_section.html:1466
+msgid "Settle Success:"
+msgstr ""
+
+#: templates/_journal_section.html:1467
+msgid "Settle Timeout:"
+msgstr "ディザ・セトル・タイムアウト"
+
+#: templates/_journal_section.html:1477
+msgid "AF Runs:"
+msgstr "AFランズ"
+
+#: templates/_journal_section.html:1487
+msgid "Autofocus V-Curves – EAF Position vs Star Size"
+msgstr ""
+
+#: templates/_journal_section.html:1493
+msgid "Focus Position Drift Over Night"
+msgstr "焦点位置のずれ"
+
+#: templates/_journal_section.html:1501
+msgid "Individual V-Curves"
+msgstr ""
+
+#: templates/_journal_section.html:1514 templates/_project_subtab.html:147
+msgid "Edit Project"
+msgstr "プロジェクトを編集"
+
+#: templates/_journal_section.html:1516
+msgid ""
+"Are you sure you want to delete this project? Linked sessions will become"
+" standalone."
+msgstr "このセッションを完全に削除してもよろしいですか？"
+
+#: templates/_journal_section.html:1518
+msgid "Delete Project"
+msgstr "プロジェクトを編集"
+
+#: templates/_journal_section.html:1525 templates/project_report.html:6
+#: templates/project_report.html:795
+msgid "Project Report"
+msgstr "プロジェクト報告書"
+
+#: templates/_journal_section.html:1534 templates/project_report.html:808
+msgid "Total Integration"
+msgstr "完全統合"
+
+#: templates/_journal_section.html:1546 templates/_project_subtab.html:158
+msgid "Goals & Status"
+msgstr "目標と現状"
+
+#: templates/_journal_section.html:1547
+msgid "No goals defined."
+msgstr "目標は設定されていません。"
+
+#: templates/_journal_section.html:1555 templates/_project_subtab.html:166
+msgid "Final Project Image"
+msgstr "最終プロジェクト画像"
+
+#: templates/_journal_section.html:1558 templates/_journal_section.html:1626
+#: templates/_project_subtab.html:168 templates/_project_subtab.html:262
+msgid "Final Image"
+msgstr "最終画像"
+
+#: templates/_journal_section.html:1563 templates/_project_subtab.html:175
+msgid "Project Story & Learnings"
+msgstr "プロジェクトの経緯と学び"
+
+#: templates/_journal_section.html:1564
+msgid "No description added."
+msgstr "プロジェクトの説明は追加されていません。"
+
+#: templates/_journal_section.html:1568 templates/_project_subtab.html:180
+msgid "Framing Notes"
+msgstr "フレーミングに関する注記"
+
+#: templates/_journal_section.html:1569 templates/_project_subtab.html:181
+msgid "No framing notes added."
+msgstr "フレームに関する注記は追加されていません。"
+
+#: templates/_journal_section.html:1573 templates/_project_subtab.html:185
+msgid "Processing Notes"
+msgstr "処理に関する注意事項"
+
+#: templates/_journal_section.html:1574 templates/_project_subtab.html:186
+msgid "No processing workflow recorded."
+msgstr "処理ワークフローは記録されていません。"
+
+#: templates/_journal_section.html:1603
+msgid "Editing Project"
+msgstr "編集プロジェクト："
+
+#: templates/_journal_section.html:1605 templates/_project_subtab.html:231
+msgid "Save Project"
+msgstr "プロジェクトを保存"
+
+#: templates/_journal_section.html:1606 templates/_journal_section.html:1676
+#: templates/_journal_section.html:1708 templates/_objects_section.html:347
+#: templates/_project_subtab.html:232 templates/admin_users.html:120
+#: templates/index.html:248 templates/journal_form.html:210
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: templates/_journal_section.html:1611 templates/_journal_section.html:1682
+#: templates/_project_subtab.html:239
+msgid "Metadata"
+msgstr "メタデータ"
+
+#: templates/_journal_section.html:1612 templates/_journal_section.html:1683
+#: templates/_project_subtab.html:240
+msgid "Project Name:"
+msgstr "プロジェクト名："
+
+#: templates/_journal_section.html:1614 templates/_journal_section.html:1684
+#: templates/_project_subtab.html:249 templates/project_report.html:801
+msgid "Status:"
+msgstr "ステータス:"
+
+#: templates/_journal_section.html:1618 templates/_journal_section.html:1688
+#: templates/_project_subtab.html:256
+msgid "Goals & Status:"
+msgstr "目標と状況："
+
+#: templates/_journal_section.html:1628 templates/_project_subtab.html:264
+msgid "Current file:"
+msgstr "現在のファイル:"
+
+#: templates/_journal_section.html:1629 templates/_project_subtab.html:265
+msgid "Delete Current Image"
+msgstr "現在の画像を削除"
+
+#: templates/_journal_section.html:1632 templates/_project_subtab.html:268
+msgid "Upload New Final Image (optional, max 5MB)"
+msgstr "新しい最終画像をアップロード（任意、最大5MB）"
+
+#: templates/_journal_section.html:1638 templates/_project_subtab.html:275
+msgid "Project Story & Learnings:"
+msgstr "プロジェクトの経緯と学び："
+
+#: templates/_journal_section.html:1645
+msgid "Framing Notes:"
+msgstr "フレーミングに関する注記"
+
+#: templates/_journal_section.html:1652
+msgid "Processing Notes:"
+msgstr "処理に関する注意事項"
+
+#: templates/_journal_section.html:1663
+msgid "No session selected"
+msgstr "セッション終了"
+
+#: templates/_journal_section.html:1665
+msgid ""
+"Select a session or project from the list on the left to view details, or"
+" click 'Add New Session'."
+msgstr ""
+
+#: templates/_journal_section.html:1675
+msgid "Create Project"
+msgstr "進行中のプロジェクト"
+
+#: templates/_journal_section.html:1683
+msgid "e.g., M31 Broadband"
+msgstr ""
+
+#: templates/_journal_section.html:1684
+msgid "In Progress"
+msgstr ""
+
+#: templates/_journal_section.html:1684
+msgid "On Hold"
+msgstr ""
+
+#: templates/_journal_section.html:1684
+msgid "Completed"
+msgstr "コピーしました！"
+
+#: templates/_journal_section.html:1684
+msgid "Abandoned"
+msgstr ""
+
+#: templates/_journal_section.html:1701
+msgid "Add New Session for"
+msgstr "新しいセッションを追加"
+
+#: templates/_journal_section.html:1705
+msgid "Edit Session"
+msgstr "このセッションを編集"
+
+#: templates/_journal_section.html:1707
+msgid "Save Changes"
+msgstr "メモを保存"
+
+#: templates/_journal_section.html:1714 templates/journal_form.html:27
+msgid "Session Date:"
+msgstr "セッション日付："
+
+#: templates/_journal_section.html:1715 templates/journal_form.html:45
+msgid "Location:"
+msgstr "場所:"
+
+#: templates/_journal_section.html:1715
+msgid " (Inactive)"
+msgstr "非アクティブ"
+
+#: templates/_journal_section.html:1717
+msgid "Link to Project (Optional)"
+msgstr "インスピレーションコンテンツ（任意）"
+
+#: templates/_journal_section.html:1717
+msgid "-- Standalone Session --"
+msgstr "新しいセッションを追加"
+
+#: templates/_journal_section.html:1717
+msgid "-- Create New Project --"
+msgstr "新規プロジェクトを追加"
+
+#: templates/_journal_section.html:1718
+msgid "New Project Name:"
+msgstr "プロジェクト名："
+
+#: templates/_journal_section.html:1718
+msgid "e.g., M31 Galaxy - 2025"
+msgstr "例：ギャラクシー"
+
+#: templates/_journal_section.html:1720 templates/journal_form.html:56
+msgid "Sky Conditions (Observed)"
+msgstr "空の状態（観測値）"
+
+#: templates/_journal_section.html:1721 templates/journal_form.html:59
+msgid "Seeing (FWHM, arcsec):"
+msgstr "視覚的解像度（FWHM、秒角）："
+
+#: templates/_journal_section.html:1721 templates/journal_form.html:64
+msgid "e.g., Good (4/5), Clear"
+msgstr "例：良い（4/5）、明確"
+
+#: templates/_journal_section.html:1722 templates/journal_form.html:69
+msgid "SQM Reading:"
+msgstr "SQM 測定値："
+
+#: templates/_journal_section.html:1724
+#, python-format
+msgid "Moon Illumination (%):"
+msgstr "セッション時の月光照度 (%%):"
+
+#: templates/_journal_section.html:1724
+msgid "Auto-fills on date/loc change"
+msgstr ""
+
+#: templates/_journal_section.html:1724
+msgid "Moon Angular Separation (°):"
+msgstr "対象物からの月の角距離（°）："
+
+#: templates/_journal_section.html:1725 templates/journal_form.html:89
+msgid "Equipment & Guiding"
+msgstr "装備とガイド"
+
+#: templates/_journal_section.html:1727
+msgid "Select a Rig (Optional - Overwrites notes below)"
+msgstr "リグを選択（任意）"
+
+#: templates/_journal_section.html:1730
+msgid "-- Manually Enter Below --"
+msgstr "以下の設定を手動で入力してください"
+
+#: templates/_journal_section.html:1735
+msgid "View rig details"
+msgstr "ディザの詳細："
+
+#: templates/_journal_section.html:1740 templates/journal_form.html:101
+msgid "Telescope Setup Notes:"
+msgstr "望遠鏡のセットアップに関する注意事項："
+
+#: templates/_journal_section.html:1741
+msgid "e.g., OAG + ASI174MM"
+msgstr ""
+
+#: templates/_journal_section.html:1742 templates/journal_form.html:110
+msgid "Guiding RMS (avg, arcsec):"
+msgstr "ガイドRMS（平均、角秒）："
+
+#: templates/_journal_section.html:1745 templates/journal_form.html:127
+msgid "Acquisition Details"
+msgstr "取得の詳細"
+
+#: templates/_journal_section.html:1746 templates/journal_form.html:123
+msgid "Acquisition Software:"
+msgstr "取得ソフトウェア："
+
+#: templates/_journal_section.html:1746
+msgid "e.g., N.I.N.A."
+msgstr "例：オリオン"
+
+#: templates/_journal_section.html:1750
+msgid "Dither Pixels:"
+msgstr "ディザの詳細："
+
+#: templates/_journal_section.html:1753
+msgid "e.g. 7"
+msgstr "例：PN"
+
+#: templates/_journal_section.html:1757
+msgid "Dither every ___ subs:"
+msgstr "ディザイベント"
+
+#: templates/_journal_section.html:1760
+msgid "e.g. 3"
+msgstr "例：34"
+
+#: templates/_journal_section.html:1763
+msgid "Dither Notes (optional):"
+msgstr "リデューサー／エクステンダー（オプション）："
+
+#: templates/_journal_section.html:1765
+msgid "Sub Exposure (sec):"
+msgstr "露出時間（秒）："
+
+#: templates/_journal_section.html:1766
+msgid "# Light Subs"
+msgstr "ライトサブの数："
+
+#: templates/_journal_section.html:1768 templates/journal_form.html:140
+msgid "Gain:"
+msgstr "さらに："
+
+#: templates/_journal_section.html:1768 templates/journal_form.html:144
+msgid "Offset:"
+msgstr "オフセット:"
+
+#: templates/_journal_section.html:1769 templates/journal_form.html:150
+msgid "Camera Temp Setpoint (°C):"
+msgstr "室温設定値（°C）："
+
+#: templates/_journal_section.html:1769 templates/journal_form.html:154
+msgid "Camera Temp Actual Avg (°C):"
+msgstr "カメラ温度 実測 平均 (°C):"
+
+#: templates/_journal_section.html:1770
+msgid "e.g., 1x1"
+msgstr "例：1×1、2×2"
+
+#: templates/_journal_section.html:1771
+msgid "Filter Used (if broadband/single):"
+msgstr ""
+
+#: templates/_journal_section.html:1771
+msgid "e.g., L-Pro, None"
+msgstr "例：L-Pro、Ha 7nm"
+
+#: templates/_journal_section.html:1772 templates/journal_form.html:162
+msgid "Monochrome Filter Exposures"
+msgstr "モノクロームフィルターによる露出"
+
+#: templates/_journal_section.html:1777 templates/_journal_section.html:1795
+#: templates/_journal_section.html:1946
+msgid "# Subs"
+msgstr "枚数"
+
+#: templates/_journal_section.html:1777 templates/_journal_section.html:1798
+#: templates/_journal_section.html:1947 templates/journal_form.html:173
+msgid "Count"
+msgstr "カウント"
+
+#: templates/_journal_section.html:1778 templates/_journal_section.html:1802
+#: templates/_journal_section.html:1948 templates/journal_form.html:176
+msgid "Exp (sec/sub):"
+msgstr "Exp (秒/サブ):"
+
+#: templates/_journal_section.html:1778 templates/_journal_section.html:1805
+#: templates/_journal_section.html:1949 templates/journal_form.html:177
+msgid "Seconds"
+msgstr "秒"
+
+#: templates/_journal_section.html:1792 templates/_journal_section.html:1945
+msgid "Remove filter"
+msgstr "フィルターを削除"
+
+#: templates/_journal_section.html:1814
+msgid "Filter name (e.g. NB-II)"
+msgstr "名前でフィルター..."
+
+#: templates/_journal_section.html:1820
+msgid "+ Add Filter"
+msgstr "フィルターの追加エラー。"
+
+#: templates/_journal_section.html:1827 templates/journal_form.html:184
+msgid "e.g., Library match, Taken post-session"
+msgstr "例：ライブラリ一致、セッション終了後に取得"
+
+#: templates/_journal_section.html:1828 templates/journal_form.html:188
+msgid "e.g., Morning sky, Panel"
+msgstr "例：朝の空、パネル"
+
+#: templates/_journal_section.html:1829 templates/journal_form.html:191
+msgid "Bias / Dark Flats:"
+msgstr "バイアス／ダークフラット："
+
+#: templates/_journal_section.html:1829 templates/journal_form.html:192
+msgid "e.g., Library match"
+msgstr "例：ライブラリ一致"
+
+#: templates/_journal_section.html:1831 templates/journal_form.html:198
+msgid "Session Rating (1-5 ★):"
+msgstr "セッション評価（1～5★）："
+
+#: templates/_journal_section.html:1833 templates/journal_form.html:205
+msgid "General Notes, Problems, Learnings:"
+msgstr "一般的な注意事項、問題点、学び："
+
+#: templates/_journal_section.html:1837
+msgid "Current Image:"
+msgstr "現在のファイル:"
+
+#: templates/_journal_section.html:1837
+msgid "Delete Image"
+msgstr "現在の画像を削除"
+
+#: templates/_journal_section.html:1838
+msgid "Upload New or Replace Image (optional, max 5MB)"
+msgstr "新しい最終画像をアップロード（任意、最大5MB）"
+
+#: templates/_journal_section.html:1841
+msgid "Session Logs (Optional)"
+msgstr "場所を選択（任意）"
+
+#: templates/_journal_section.html:1845
+msgid "ASIAIR Log:"
+msgstr ""
+
+#: templates/_journal_section.html:1847 templates/_journal_section.html:1861
+msgid "Uploaded"
+msgstr "アップロード"
+
+#: templates/_journal_section.html:1849 templates/_journal_section.html:1863
+#: templates/_objects_section.html:88 templates/admin_users.html:110
+#: templates/index.html:98
+msgid "Delete"
+msgstr "削除"
+
+#: templates/_journal_section.html:1853
+msgid "ASIAIR Autorun Log (.txt/.log)"
+msgstr ""
+
+#: templates/_journal_section.html:1859
+msgid "PHD2 Guide Log:"
+msgstr ""
+
+#: templates/_journal_section.html:1867
+msgid "PHD2 Guide Log (.txt/.log)"
+msgstr ""
+
+#: templates/_journal_section.html:1896
+msgid "Search objects…"
+msgstr "検索対象"
+
+#: templates/_journal_section.html:1897
+msgid "Sort order"
+msgstr "ゲストモード"
+
+#: templates/_journal_section.html:1898
+msgid "Recent"
+msgstr "プロジェクト"
+
+#: templates/_journal_section.html:1899
+msgid "Most Hours"
+msgstr "RA（時間）"
+
 #: templates/_journal_section.html:1943
 msgid "Failed to fetch objects"
 msgstr "オブジェクトの取得に失敗しました"
@@ -911,26 +1606,6 @@ msgstr "オブジェクトの取得に失敗しました"
 #: templates/_journal_section.html:1944
 msgid "No objects found"
 msgstr "オブジェクトが見つかりません"
-
-#: templates/_journal_section.html:1945
-msgid "Remove filter"
-msgstr "フィルターを削除"
-
-#: templates/_journal_section.html:1946
-msgid "# Subs"
-msgstr "枚数"
-
-#: templates/_journal_section.html:1947 templates/journal_form.html:173
-msgid "Count"
-msgstr "カウント"
-
-#: templates/_journal_section.html:1948 templates/journal_form.html:176
-msgid "Exp (sec/sub):"
-msgstr "Exp (秒/サブ):"
-
-#: templates/_journal_section.html:1949 templates/journal_form.html:177
-msgid "Seconds"
-msgstr "秒"
 
 #: templates/_journal_section.html:1950
 msgid "Enter a filter name."
@@ -1015,11 +1690,6 @@ msgstr "タイプ"
 msgid "e.g., PN"
 msgstr "例：PN"
 
-#: templates/_objects_section.html:46 templates/_project_subtab.html:154
-#: templates/admin_users.html:72 templates/journal_report.html:1179
-msgid "Status"
-msgstr "ステータス"
-
 #: templates/_objects_section.html:48
 msgid "All Statuses"
 msgstr "すべてのステータス"
@@ -1079,7 +1749,6 @@ msgid "Size"
 msgstr "あなたに"
 
 #: templates/_objects_section.html:73
-#, fuzzy
 msgid "e.g., >5, <30, >5 <30"
 msgstr "例：300以上"
 
@@ -1110,11 +1779,6 @@ msgstr "無効化"
 #: templates/_objects_section.html:87
 msgid "Fetch Details"
 msgstr "詳細を取得"
-
-#: templates/_objects_section.html:88 templates/admin_users.html:110
-#: templates/index.html:98
-msgid "Delete"
-msgstr "削除"
 
 #: templates/_objects_section.html:108 templates/_objects_section.html:166
 msgid "Disabled"
@@ -1267,12 +1931,6 @@ msgstr "追加を確認"
 msgid "Edit"
 msgstr "編集"
 
-#: templates/_objects_section.html:347 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/index.html:248
-#: templates/journal_form.html:210
-msgid "Cancel"
-msgstr "キャンセル"
-
 #: templates/_objects_section.html:353
 msgid "Private Notes:"
 msgstr "プライベートメモ:"
@@ -1298,8 +1956,7 @@ msgid ""
 "Catalog packs are server-provided object collections you can import into "
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
-msgstr ""
-"カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレクションです。インポートは非破壊的であり、既存のオブジェクトは上書きされることはなく、重複するオブジェクトはスキップされます。"
+msgstr "カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレクションです。インポートは非破壊的であり、既存のオブジェクトは上書きされることはなく、重複するオブジェクトはスキップされます。"
 
 #: templates/_objects_section.html:386 templates/config_form.html:574
 #: templates/graph_view.html:201
@@ -1333,13 +1990,12 @@ msgstr "重複の可能性"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will "
-"move all journals, projects, and framings to the \"Kept\" object and delete "
-"the other. Please note that objects from different catalogs might have "
-"slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will"
+" move all journals, projects, and framings to the \"Kept\" object and "
+"delete the other. Please note that objects from different catalogs might "
+"have slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
-msgstr ""
-"これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャーナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合があるため、重複とは見なされない点にご注意ください。"
+msgstr "これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャーナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合があるため、重複とは見なされない点にご注意ください。"
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -1380,28 +2036,16 @@ msgstr "月光照度 (%%)"
 msgid "Ang Sep (°)"
 msgstr "セプ（°）"
 
-#: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
-#: templates/index.html:170 templates/index.html:197
-#: templates/journal_report.html:692 templates/project_report.html:867
-#: templates/project_report.html:1101
-msgid "Rating"
-msgstr "評価"
-
 #: templates/_opportunities_section.html:43
 msgid "Add to Cal"
 msgstr "カレンダーに追加"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details** "
-"sub-tab will only appear if the object is the primary target of an existing "
-"project."
-msgstr ""
-"このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合にのみ表示されます。"
-
-#: templates/_project_subtab.html:147
-msgid "Edit Project"
-msgstr "プロジェクトを編集"
+"This object is not currently linked to a Project. The **Project Details**"
+" sub-tab will only appear if the object is the primary target of an "
+"existing project."
+msgstr "このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合にのみ表示されます。"
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -1411,45 +2055,13 @@ msgstr "総積分時間"
 msgid "Primary Target"
 msgstr "主要ターゲット"
 
-#: templates/_project_subtab.html:158
-msgid "Goals & Status"
-msgstr "目標と現状"
-
 #: templates/_project_subtab.html:159
 msgid "No goals set."
 msgstr "目標は設定されていません。"
 
-#: templates/_project_subtab.html:166
-msgid "Final Project Image"
-msgstr "最終プロジェクト画像"
-
-#: templates/_project_subtab.html:168 templates/_project_subtab.html:262
-msgid "Final Image"
-msgstr "最終画像"
-
-#: templates/_project_subtab.html:175
-msgid "Project Story & Learnings"
-msgstr "プロジェクトの経緯と学び"
-
 #: templates/_project_subtab.html:176
 msgid "No project description added."
 msgstr "プロジェクトの説明は追加されていません。"
-
-#: templates/_project_subtab.html:180
-msgid "Framing Notes"
-msgstr "フレーミングに関する注記"
-
-#: templates/_project_subtab.html:181
-msgid "No framing notes added."
-msgstr "フレームに関する注記は追加されていません。"
-
-#: templates/_project_subtab.html:185
-msgid "Processing Notes"
-msgstr "処理に関する注意事項"
-
-#: templates/_project_subtab.html:186
-msgid "No processing workflow recorded."
-msgstr "処理ワークフローは記録されていません。"
 
 #: templates/_project_subtab.html:190
 #, python-format
@@ -1483,10 +2095,6 @@ msgstr "見る"
 msgid "Rig Snapshot"
 msgstr "リグ・スナップショット"
 
-#: templates/_project_subtab.html:209 templates/mobile_up_now.html:128
-msgid "min"
-msgstr "私は持っている"
-
 #: templates/_project_subtab.html:218
 msgid "No sessions have been linked to this project yet."
 msgstr "このプロジェクトにはまだセッションがリンクされていません。"
@@ -1495,18 +2103,6 @@ msgstr "このプロジェクトにはまだセッションがリンクされて
 msgid "Editing Project:"
 msgstr "編集プロジェクト："
 
-#: templates/_project_subtab.html:231
-msgid "Save Project"
-msgstr "プロジェクトを保存"
-
-#: templates/_project_subtab.html:239
-msgid "Metadata"
-msgstr "メタデータ"
-
-#: templates/_project_subtab.html:240
-msgid "Project Name:"
-msgstr "プロジェクト名："
-
 #: templates/_project_subtab.html:241
 msgid "Primary Target:"
 msgstr "主要ターゲット："
@@ -1514,30 +2110,6 @@ msgstr "主要ターゲット："
 #: templates/_project_subtab.html:243
 msgid "Select Primary Target"
 msgstr "プライマリターゲットを選択"
-
-#: templates/_project_subtab.html:249 templates/project_report.html:801
-msgid "Status:"
-msgstr "ステータス:"
-
-#: templates/_project_subtab.html:256
-msgid "Goals & Status:"
-msgstr "目標と状況："
-
-#: templates/_project_subtab.html:264
-msgid "Current file:"
-msgstr "現在のファイル:"
-
-#: templates/_project_subtab.html:265
-msgid "Delete Current Image"
-msgstr "現在の画像を削除"
-
-#: templates/_project_subtab.html:268
-msgid "Upload New Final Image (optional, max 5MB)"
-msgstr "新しい最終画像をアップロード（任意、最大5MB）"
-
-#: templates/_project_subtab.html:275
-msgid "Project Story & Learnings:"
-msgstr "プロジェクトの経緯と学び："
 
 #: templates/_project_subtab.html:280
 msgid "Framing Notes (Composition/FoV):"
@@ -1771,15 +2343,15 @@ msgid "Version"
 msgstr "バージョン"
 
 #: templates/base.html:233
-msgid ""
-"A personal project born from a passion for astronomy and astrophotography."
+msgid "A personal project born from a passion for astronomy and astrophotography."
 msgstr "天文学と天体写真への情熱から生まれた個人的なプロジェクト。"
 
 #: templates/base.html:234
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing windows."
+"tracking Moon position and phase, and identifying optimal viewing "
+"windows."
 msgstr ""
 "Nova DSO "
 "Trackerは、アマチュア天文学者が観測セッションを計画するのを支援します。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最適な観測時間帯を特定します。"
@@ -1909,10 +2481,9 @@ msgstr "計算。見えない物体："
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart "
-"Skip\" optimization)."
-msgstr ""
-"チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無効化）。"
+"geometrically impossible to see from your location (disabling the \"Smart"
+" Skip\" optimization)."
+msgstr "チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無効化）。"
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -1920,11 +2491,10 @@ msgstr "見えないオブジェクトを隠す:"
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be hidden "
-"from the main list by default. They will still appear if you specifically "
-"search for them."
-msgstr ""
-"チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストから非表示になります。ただし、それらを直接検索した場合は表示されます。"
+"If checked, objects that are geometrically impossible to see will be "
+"hidden from the main list by default. They will still appear if you "
+"specifically search for them."
+msgstr "チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストから非表示になります。ただし、それらを直接検索した場合は表示されます。"
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -1954,10 +2524,9 @@ msgstr "最速（60分サンプル）"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
-"devices."
-msgstr ""
-"注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに推奨されます。"
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
+" devices."
+msgstr "注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに推奨されます。"
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -1965,12 +2534,11 @@ msgstr "匿名テレメトリ："
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts"
-" of your data entries like objects, rigs, locations, and journals). No "
-"personal details are ever collected, and you can opt out anytime. Allowing "
-"it really helps me improve Nova."
-msgstr ""
-"Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェクト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの改善に大変役立ちます。"
+"Nova sends a small anonymous heartbeat (app version, system type, and "
+"counts of your data entries like objects, rigs, locations, and journals)."
+" No personal details are ever collected, and you can opt out anytime. "
+"Allowing it really helps me improve Nova."
+msgstr "Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェクト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの改善に大変役立ちます。"
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -2072,11 +2640,10 @@ msgstr "リグのヘルプ"
 
 #: templates/config_form.html:384
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to load "
-"its details into the form, make your changes, and click the \"Update\" "
-"button."
-msgstr ""
-"ここで装備を追加または更新してください。アイテムを編集するには、「編集」をクリックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリックしてください。"
+"Add or update your equipment here. To edit an item, click \"Edit\" to "
+"load its details into the form, make your changes, and click the "
+"\"Update\" button."
+msgstr "ここで装備を追加または更新してください。アイテムを編集するには、「編集」をクリックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリックしてください。"
 
 #: templates/config_form.html:385
 msgid "Telescopes"
@@ -2153,10 +2720,9 @@ msgstr "2. リグの設定"
 
 #: templates/config_form.html:444
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\""
-" to load the rig into the form below."
-msgstr ""
-"コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集するには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
+"Combine your components into a complete imaging rig. To edit, click "
+"\"Edit\" to load the rig into the form below."
+msgstr "コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集するには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
 
 #: templates/config_form.html:447
 msgid "Rig Name:"
@@ -2166,17 +2732,9 @@ msgstr "リグ名:"
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "例：C11 ディープスカイリグ"
 
-#: templates/config_form.html:449 templates/journal_report.html:757
-msgid "Telescope:"
-msgstr "望遠鏡："
-
 #: templates/config_form.html:451
 msgid "-- Select a Telescope --"
 msgstr "-- 望遠鏡を選択 --"
-
-#: templates/config_form.html:455 templates/journal_report.html:767
-msgid "Camera:"
-msgstr "部屋："
 
 #: templates/config_form.html:457
 msgid "-- Select a Camera --"
@@ -2303,8 +2861,7 @@ msgstr "共有アイテムのヘルプ"
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
-msgstr ""
-"ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネントを確認できます。「インポート」をクリックすると、自身の構成にコピーを追加できます。"
+msgstr "ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネントを確認できます。「インポート」をクリックすると、自身の構成にコピーを追加できます。"
 
 #: templates/config_form.html:531
 msgid "Shared Objects"
@@ -2521,8 +3078,8 @@ msgstr "外部ソース"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for this"
-" object yet."
+"No inspiration content (custom image or description) has been added for "
+"this object yet."
 msgstr "このオブジェクトには、まだインスピレーションコンテンツ（カスタム画像または説明文）が追加されていません。"
 
 #: templates/graph_view.html:214
@@ -2535,8 +3092,8 @@ msgstr "リグを用いたフレーミング"
 
 #: templates/graph_view.html:224
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect "
-"framing of specific features."
+"Assessment is based on the object's largest dimension and may not reflect"
+" framing of specific features."
 msgstr "評価は対象物の最大寸法に基づいており、特定の特徴の枠組みを反映していない場合があります。"
 
 #: templates/graph_view.html:228
@@ -2589,8 +3146,8 @@ msgstr "ロックFOV"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected for"
-" your latitude)"
+"Displays the approximate location of geostationary satellites (corrected "
+"for your latitude)"
 msgstr "静止衛星のおおよその位置を表示します（緯度に応じて補正済み）"
 
 #: templates/graph_view.html:288
@@ -2644,8 +3201,8 @@ msgstr "オーバーラップ %%"
 
 #: templates/graph_view.html:322
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
-"Telescopius."
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
+"and Telescopius."
 msgstr "ASIAIR（天体計画インポート）、N.I.N.A.、およびTelescopiusと互換性のあるCSV形式を生成します。"
 
 #: templates/graph_view.html:322
@@ -2678,7 +3235,8 @@ msgstr "飽和"
 
 #: templates/graph_view.html:372
 msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
+"mount."
 msgstr "座標はJNow（リアルタイム／日付の平均春分点）で、お使いの架台に合わせます。"
 
 #: templates/graph_view.html:377
@@ -2992,10 +3550,6 @@ msgstr "日記の記録"
 msgid "Core Info"
 msgstr "コア情報"
 
-#: templates/journal_form.html:27
-msgid "Session Date:"
-msgstr "セッション日付："
-
 #: templates/journal_form.html:33
 msgid "Target Object:"
 msgstr "対象物："
@@ -3004,29 +3558,9 @@ msgstr "対象物："
 msgid "Select Target (Optional)"
 msgstr "対象を選択（任意）"
 
-#: templates/journal_form.html:45
-msgid "Location:"
-msgstr "場所:"
-
 #: templates/journal_form.html:47
 msgid "Select Location (Optional)"
 msgstr "場所を選択（任意）"
-
-#: templates/journal_form.html:56
-msgid "Sky Conditions (Observed)"
-msgstr "空の状態（観測値）"
-
-#: templates/journal_form.html:59
-msgid "Seeing (FWHM, arcsec):"
-msgstr "視覚的解像度（FWHM、秒角）："
-
-#: templates/journal_form.html:64
-msgid "e.g., Good (4/5), Clear"
-msgstr "例：良い（4/5）、明確"
-
-#: templates/journal_form.html:69
-msgid "SQM Reading:"
-msgstr "SQM 測定値："
 
 #: templates/journal_form.html:80
 #, python-format
@@ -3045,10 +3579,6 @@ msgstr "対象物からの月の角距離（°）："
 msgid "e.g., 45.5"
 msgstr "例：45.5"
 
-#: templates/journal_form.html:89
-msgid "Equipment & Guiding"
-msgstr "装備とガイド"
-
 #: templates/journal_form.html:92
 msgid "Select a Rig (Optional)"
 msgstr "リグを選択（任意）"
@@ -3056,10 +3586,6 @@ msgstr "リグを選択（任意）"
 #: templates/journal_form.html:94
 msgid "Manually Enter Setup Below"
 msgstr "以下の設定を手動で入力してください"
-
-#: templates/journal_form.html:101
-msgid "Telescope Setup Notes:"
-msgstr "望遠鏡のセットアップに関する注意事項："
 
 #: templates/journal_form.html:102
 msgid "e.g., C11+Reducer+ASI2600"
@@ -3073,10 +3599,6 @@ msgstr "使用フィルター："
 msgid "e.g., L-Pro, Ha 7nm"
 msgstr "例：L-Pro、Ha 7nm"
 
-#: templates/journal_form.html:110
-msgid "Guiding RMS (avg, arcsec):"
-msgstr "ガイドRMS（平均、角秒）："
-
 #: templates/journal_form.html:115
 msgid "Guiding Equipment (Scope, Camera, Software):"
 msgstr "ガイド装置（スコープ、カメラ、ソフトウェア）："
@@ -3085,25 +3607,13 @@ msgstr "ガイド装置（スコープ、カメラ、ソフトウェア）："
 msgid "e.g., 50mm guidescope + ASI120MM Mini, PHD2"
 msgstr "例：50mmガイドスコープ + ASI120MM Mini、PHD2"
 
-#: templates/journal_form.html:119
-msgid "Dither Settings:"
-msgstr "ディザ設定："
-
 #: templates/journal_form.html:120
 msgid "e.g., Yes, 3px every 2 subs"
 msgstr "例：はい、2サブごとに3ピクセル"
 
-#: templates/journal_form.html:123
-msgid "Acquisition Software:"
-msgstr "取得ソフトウェア："
-
 #: templates/journal_form.html:124
 msgid "e.g., N.I.N.A., Sequence Generator Pro, Astroberry"
 msgstr "例：N.I.N.A.、Sequence Generator Pro、Astroberry"
-
-#: templates/journal_form.html:127
-msgid "Acquisition Details"
-msgstr "取得の詳細"
 
 #: templates/journal_form.html:130
 msgid "Sub Exposure (seconds):"
@@ -3113,72 +3623,19 @@ msgstr "露出時間（秒）："
 msgid "Number of Light Subs:"
 msgstr "ライトサブの数："
 
-#: templates/journal_form.html:140
-msgid "Gain:"
-msgstr "さらに："
-
-#: templates/journal_form.html:144
-msgid "Offset:"
-msgstr "オフセット:"
-
-#: templates/journal_form.html:150
-msgid "Camera Temp Setpoint (°C):"
-msgstr "室温設定値（°C）："
-
-#: templates/journal_form.html:154
-msgid "Camera Temp Actual Avg (°C):"
-msgstr "カメラ温度 実測 平均 (°C):"
-
-#: templates/journal_form.html:159
-msgid "Binning:"
-msgstr "ビンニング:"
-
 #: templates/journal_form.html:160
 msgid "e.g., 1x1, 2x2"
 msgstr "例：1×1、2×2"
 
-#: templates/journal_form.html:162
-msgid "Monochrome Filter Exposures"
-msgstr "モノクロームフィルターによる露出"
-
 #: templates/journal_form.html:163
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for "
-"each filter used. Leave blank if not used."
-msgstr ""
-"使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒単位）を入力してください。使用しない場合は空白のままにしてください。"
-
-#: templates/journal_form.html:169
-msgid "Filter:"
-msgstr "フィルター："
+"Enter number of subframes and exposure time (in seconds) per subframe for"
+" each filter used. Leave blank if not used."
+msgstr "使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒単位）を入力してください。使用しない場合は空白のままにしてください。"
 
 #: templates/journal_form.html:172
 msgid "# Subs:"
 msgstr "# 字幕:"
-
-#: templates/journal_form.html:184
-msgid "e.g., Library match, Taken post-session"
-msgstr "例：ライブラリ一致、セッション終了後に取得"
-
-#: templates/journal_form.html:188
-msgid "e.g., Morning sky, Panel"
-msgstr "例：朝の空、パネル"
-
-#: templates/journal_form.html:191
-msgid "Bias / Dark Flats:"
-msgstr "バイアス／ダークフラット："
-
-#: templates/journal_form.html:192
-msgid "e.g., Library match"
-msgstr "例：ライブラリ一致"
-
-#: templates/journal_form.html:198
-msgid "Session Rating (1-5 ★):"
-msgstr "セッション評価（1～5★）："
-
-#: templates/journal_form.html:205
-msgid "General Notes, Problems, Learnings:"
-msgstr "一般的な注意事項、問題点、学び："
 
 #: templates/journal_form.html:211
 msgid "Save Entry"
@@ -3195,11 +3652,6 @@ msgstr "新着"
 #: templates/journal_report.html:676
 msgid "DSO Tracker"
 msgstr "DSOトラッカー"
-
-#: templates/journal_report.html:700 templates/journal_report.html:703
-#: templates/project_report.html:1075 templates/project_report.html:1079
-msgid "Session Image"
-msgstr "セッション画像"
 
 #: templates/journal_report.html:708
 msgid "Total Integration:"
@@ -3232,14 +3684,6 @@ msgstr "透明性"
 #: templates/journal_report.html:755 templates/project_report.html:892
 msgid "Rig:"
 msgstr "リグ："
-
-#: templates/journal_report.html:762
-msgid "Reducer/Ext.:"
-msgstr "縮小/拡張："
-
-#: templates/journal_report.html:771
-msgid "Gain / Offset:"
-msgstr "ゲイン／オフセット："
 
 #: templates/journal_report.html:775
 msgid "Temp (Set/Avg):"
@@ -3351,10 +3795,6 @@ msgstr "全フレーム RMS"
 msgid "RA:"
 msgstr "RA："
 
-#: templates/journal_report.html:991
-msgid "Dec:"
-msgstr "12月:"
-
 #: templates/journal_report.html:1003 templates/journal_report.html:1055
 #: templates/journal_report.html:1134 templates/project_report.html:1040
 msgid "Dither Events"
@@ -3380,27 +3820,6 @@ msgstr "プレートが解決する"
 #: templates/project_report.html:1007
 msgid "AutoFocus Runs"
 msgstr "オートフォーカス実行中"
-
-#: templates/journal_report.html:1068 templates/journal_report.html:1098
-#: templates/journal_report.html:1177 templates/project_report.html:1012
-msgid "Time"
-msgstr "時間"
-
-#: templates/journal_report.html:1069
-msgid "RA"
-msgstr "RA"
-
-#: templates/journal_report.html:1070
-msgid "Dec"
-msgstr "12月"
-
-#: templates/journal_report.html:1071
-msgid "Angle"
-msgstr "角度"
-
-#: templates/journal_report.html:1072
-msgid "Stars"
-msgstr "星"
 
 #: templates/journal_report.html:1097 templates/project_report.html:1011
 msgid "Run"
@@ -3694,10 +4113,6 @@ msgstr "高度:"
 msgid "Azimuth:"
 msgstr "方位角："
 
-#: templates/project_report.html:6 templates/project_report.html:795
-msgid "Project Report"
-msgstr "プロジェクト報告書"
-
 #: templates/project_report.html:801
 msgid "Target:"
 msgstr "ターゲット:"
@@ -3705,10 +4120,6 @@ msgstr "ターゲット:"
 #: templates/project_report.html:801
 msgid "Various"
 msgstr "様々な"
-
-#: templates/project_report.html:808
-msgid "Total Integration"
-msgstr "完全統合"
 
 #: templates/project_report.html:812
 msgid "Total Sessions"
@@ -3741,10 +4152,6 @@ msgstr "処理ワークフロー"
 #: templates/project_report.html:860
 msgid "Session Chronicles"
 msgstr "セッション・クロニクルズ"
-
-#: templates/project_report.html:866
-msgid "Integ."
-msgstr "誠実さ。"
 
 #: templates/project_report.html:868
 msgid "Log Data"
@@ -3814,466 +4221,313 @@ msgstr "ゲイン/オフセット"
 msgid "Exp"
 msgstr "実験"
 
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr "{editor}: 編集に失敗しました"
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr "{editor}: 編集に失敗しました: {e}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1124
-msgid "Aborted!"
-msgstr "中止！"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1349
-#: venv/lib/python3.13/site-packages/click/core.py:1379
-#, python-brace-format
-msgid "(Deprecated) {text}"
-msgstr "(非推奨) {text}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1396
-msgid "Options"
-msgstr "オプション"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1422
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1438
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr "非推奨警告: コマンド {name!r} は非推奨です。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1645
-msgid "Commands"
-msgstr "コマンド"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1677
-msgid "Missing command."
-msgstr "コマンドが見つかりません。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1755
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "そのようなコマンド {name!r} は存在しません。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2313
-msgid "Value must be an iterable."
-msgstr "値は反復可能でなければなりません。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2334
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2783
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "環境変数: {var}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2813
-msgid "(dynamic)"
-msgstr "(動的)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2828
-#, python-brace-format
-msgid "default: {default}"
-msgstr "デフォルト: {default}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2841
-msgid "required"
-msgstr "必須"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:457
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s、バージョン %(version)s"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:520
-msgid "Show the version and exit."
-msgstr "バージョンを表示して終了する。"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:541
-msgid "Show this message and exit."
-msgstr "このメッセージを表示して終了します。"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:49
-#: venv/lib/python3.13/site-packages/click/exceptions.py:88
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "エラー: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:80
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "ヘルプについては '{command} {option}' を試してください。"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "無効な値: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:131
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "{param_hint} の値が無効です: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:187
-msgid "Missing argument"
-msgstr "引数が不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:189
-msgid "Missing option"
-msgstr "オプションが不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:191
-msgid "Missing parameter"
-msgstr "パラメータが不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:193
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "{param_type} が不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:200
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "パラメータ {param_name} が不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "そのようなオプションはありません：{name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:232
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:270
-msgid "unknown error"
-msgstr "不明なエラー"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:277
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "ファイル {filename!r} を開けません: {message}"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:233
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "引数 {name!r} は {nargs} 個の値を取ります。"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:415
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "オプション {name!r} は値を受け付けません。"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:476
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr "シェル補完は、バージョン4.4より古いBashではサポートされていません。"
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr "Bashのバージョンを検出できませんでした。シェル補完はサポートされていません。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:158
-msgid "Repeat for confirmation"
-msgstr "確認のため繰り返してください"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:174
-msgid "Error: The value you entered was invalid."
-msgstr "エラー：入力した値が無効です。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:176
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "エラー: {e.message}"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:187
-msgid "Error: The two entered values do not match."
-msgstr "エラー：入力された2つの値が一致しません。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:243
-msgid "Error: invalid input"
-msgstr "エラー: 無効な入力"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:773
-msgid "Press any key to continue..."
-msgstr "任意のキーを押して続行してください..."
-
-#: venv/lib/python3.13/site-packages/click/types.py:267
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr "以下の選択肢から選択してください：{choices}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:299
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:393
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:415
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr "{value!r} は有効な {number_type} ではありません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:471
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr "{value} は {range} の範囲外です。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:612
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr "{value!r} は有効なブール値ではありません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:636
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr "{value!r} は有効な UUID ではありません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:826
-msgid "file"
-msgstr "ファイル"
-
-#: venv/lib/python3.13/site-packages/click/types.py:828
-msgid "directory"
-msgstr "ディレクトリ"
-
-#: venv/lib/python3.13/site-packages/click/types.py:830
-msgid "path"
-msgstr "経路"
-
-#: venv/lib/python3.13/site-packages/click/types.py:881
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr "{name} {filename!r} は存在しません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:890
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr "{name} {filename!r} はファイルです。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:898
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr "{name} {filename!r} はディレクトリです。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:907
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr "{name} {filename!r} は読み取れません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:916
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr "{name} {filename!r} は書き込み不可です。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:925
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr "{name} {filename!r} は実行ファイルではありません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:992
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr "この項目は必須です。"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr "ファイルの拡張子が承認されていません: {extensions}"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr "ファイルは承認された拡張子を持っていません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr "無効なフィールド名 '%s'。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr "フィールドは %(other_name)s と等しくなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr "フィールドの長さは %(min)d 文字以上 %(max)d 文字以下でなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr "数値は少なくとも %(min)s でなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr "数値は最大%(max)sでなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr "数値は %(min)s と %(max)s の間でなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr "無効な入力です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr "無効なメールアドレスです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr "無効なIPアドレスです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr "無効なMACアドレスです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr "無効なURLです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr "無効なUUIDです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr "無効な値です。次のいずれかでなければなりません: %(values)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr "無効な値です。以下のいずれかである必要があります: %(values)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr "このフィールドは編集できません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr "このフィールドは無効化されており、値を設定できません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr "無効なCSRFトークン。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr "CSRFトークンが欠落しています。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr "CSRFが失敗しました。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr "CSRFトークンが期限切れです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr "無効な選択: 型変換できませんでした。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr "選択肢は「なし」にできません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr "無効な選択です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr "無効な選択: 1つ以上のデータ入力が強制変換できませんでした。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr "有効な日付時刻値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr "有効な日付値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr "無効な時刻値です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr "有効な週の値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr "有効な整数値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr "有効な10進数値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
-msgstr "有効な浮動小数点値ではありません。"
-
 #~ msgid "Usage:"
 #~ msgstr "使用法:"
+
+#~ msgid "{editor}: Editing failed"
+#~ msgstr "{editor}: 編集に失敗しました"
+
+#~ msgid "{editor}: Editing failed: {e}"
+#~ msgstr "{editor}: 編集に失敗しました: {e}"
+
+#~ msgid "Aborted!"
+#~ msgstr "中止！"
+
+#~ msgid "(Deprecated) {text}"
+#~ msgstr "(非推奨) {text}"
+
+#~ msgid "Options"
+#~ msgstr "オプション"
+
+#~ msgid "Got unexpected extra argument ({args})"
+#~ msgid_plural "Got unexpected extra arguments ({args})"
+#~ msgstr[0] ""
+
+#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
+#~ msgstr "非推奨警告: コマンド {name!r} は非推奨です。"
+
+#~ msgid "Commands"
+#~ msgstr "コマンド"
+
+#~ msgid "Missing command."
+#~ msgstr "コマンドが見つかりません。"
+
+#~ msgid "No such command {name!r}."
+#~ msgstr "そのようなコマンド {name!r} は存在しません。"
+
+#~ msgid "Value must be an iterable."
+#~ msgstr "値は反復可能でなければなりません。"
+
+#~ msgid "Takes {nargs} values but 1 was given."
+#~ msgid_plural "Takes {nargs} values but {len} were given."
+#~ msgstr[0] ""
+
+#~ msgid "env var: {var}"
+#~ msgstr "環境変数: {var}"
+
+#~ msgid "(dynamic)"
+#~ msgstr "(動的)"
+
+#~ msgid "default: {default}"
+#~ msgstr "デフォルト: {default}"
+
+#~ msgid "required"
+#~ msgstr "必須"
+
+#~ msgid "%(prog)s, version %(version)s"
+#~ msgstr "%(prog)s、バージョン %(version)s"
+
+#~ msgid "Show the version and exit."
+#~ msgstr "バージョンを表示して終了する。"
+
+#~ msgid "Show this message and exit."
+#~ msgstr "このメッセージを表示して終了します。"
+
+#~ msgid "Error: {message}"
+#~ msgstr "エラー: {message}"
+
+#~ msgid "Try '{command} {option}' for help."
+#~ msgstr "ヘルプについては '{command} {option}' を試してください。"
+
+#~ msgid "Invalid value: {message}"
+#~ msgstr "無効な値: {message}"
+
+#~ msgid "Invalid value for {param_hint}: {message}"
+#~ msgstr "{param_hint} の値が無効です: {message}"
+
+#~ msgid "Missing argument"
+#~ msgstr "引数が不足しています"
+
+#~ msgid "Missing option"
+#~ msgstr "オプションが不足しています"
+
+#~ msgid "Missing parameter"
+#~ msgstr "パラメータが不足しています"
+
+#~ msgid "Missing {param_type}"
+#~ msgstr "{param_type} が不足しています"
+
+#~ msgid "Missing parameter: {param_name}"
+#~ msgstr "パラメータ {param_name} が不足しています"
+
+#~ msgid "No such option: {name}"
+#~ msgstr "そのようなオプションはありません：{name}"
+
+#~ msgid "Did you mean {possibility}?"
+#~ msgid_plural "(Possible options: {possibilities})"
+#~ msgstr[0] ""
+
+#~ msgid "unknown error"
+#~ msgstr "不明なエラー"
+
+#~ msgid "Could not open file {filename!r}: {message}"
+#~ msgstr "ファイル {filename!r} を開けません: {message}"
+
+#~ msgid "Argument {name!r} takes {nargs} values."
+#~ msgstr "引数 {name!r} は {nargs} 個の値を取ります。"
+
+#~ msgid "Option {name!r} does not take a value."
+#~ msgstr "オプション {name!r} は値を受け付けません。"
+
+#~ msgid "Option {name!r} requires an argument."
+#~ msgid_plural "Option {name!r} requires {nargs} arguments."
+#~ msgstr[0] ""
+
+#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
+#~ msgstr "シェル補完は、バージョン4.4より古いBashではサポートされていません。"
+
+#~ msgid "Couldn't detect Bash version, shell completion is not supported."
+#~ msgstr "Bashのバージョンを検出できませんでした。シェル補完はサポートされていません。"
+
+#~ msgid "Repeat for confirmation"
+#~ msgstr "確認のため繰り返してください"
+
+#~ msgid "Error: The value you entered was invalid."
+#~ msgstr "エラー：入力した値が無効です。"
+
+#~ msgid "Error: {e.message}"
+#~ msgstr "エラー: {e.message}"
+
+#~ msgid "Error: The two entered values do not match."
+#~ msgstr "エラー：入力された2つの値が一致しません。"
+
+#~ msgid "Error: invalid input"
+#~ msgstr "エラー: 無効な入力"
+
+#~ msgid "Press any key to continue..."
+#~ msgstr "任意のキーを押して続行してください..."
+
+#~ msgid ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+#~ msgstr "以下の選択肢から選択してください：{choices}"
+
+#~ msgid "{value!r} is not {choice}."
+#~ msgid_plural "{value!r} is not one of {choices}."
+#~ msgstr[0] ""
+
+#~ msgid "{value!r} does not match the format {format}."
+#~ msgid_plural "{value!r} does not match the formats {formats}."
+#~ msgstr[0] ""
+
+#~ msgid "{value!r} is not a valid {number_type}."
+#~ msgstr "{value!r} は有効な {number_type} ではありません。"
+
+#~ msgid "{value} is not in the range {range}."
+#~ msgstr "{value} は {range} の範囲外です。"
+
+#~ msgid "{value!r} is not a valid boolean."
+#~ msgstr "{value!r} は有効なブール値ではありません。"
+
+#~ msgid "{value!r} is not a valid UUID."
+#~ msgstr "{value!r} は有効な UUID ではありません。"
+
+#~ msgid "file"
+#~ msgstr "ファイル"
+
+#~ msgid "directory"
+#~ msgstr "ディレクトリ"
+
+#~ msgid "path"
+#~ msgstr "経路"
+
+#~ msgid "{name} {filename!r} does not exist."
+#~ msgstr "{name} {filename!r} は存在しません。"
+
+#~ msgid "{name} {filename!r} is a file."
+#~ msgstr "{name} {filename!r} はファイルです。"
+
+#~ msgid "{name} {filename!r} is a directory."
+#~ msgstr "{name} {filename!r} はディレクトリです。"
+
+#~ msgid "{name} {filename!r} is not readable."
+#~ msgstr "{name} {filename!r} は読み取れません。"
+
+#~ msgid "{name} {filename!r} is not writable."
+#~ msgstr "{name} {filename!r} は書き込み不可です。"
+
+#~ msgid "{name} {filename!r} is not executable."
+#~ msgstr "{name} {filename!r} は実行ファイルではありません。"
+
+#~ msgid "{len_type} values are required, but {len_value} was given."
+#~ msgid_plural "{len_type} values are required, but {len_value} were given."
+#~ msgstr[0] ""
+
+#~ msgid "This field is required."
+#~ msgstr "この項目は必須です。"
+
+#~ msgid "File does not have an approved extension: {extensions}"
+#~ msgstr "ファイルの拡張子が承認されていません: {extensions}"
+
+#~ msgid "File does not have an approved extension."
+#~ msgstr "ファイルは承認された拡張子を持っていません。"
+
+#~ msgid "Invalid field name '%s'."
+#~ msgstr "無効なフィールド名 '%s'。"
+
+#~ msgid "Field must be equal to %(other_name)s."
+#~ msgstr "フィールドは %(other_name)s と等しくなければなりません。"
+
+#~ msgid "Field must be at least %(min)d character long."
+#~ msgid_plural "Field must be at least %(min)d characters long."
+#~ msgstr[0] ""
+
+#~ msgid "Field cannot be longer than %(max)d character."
+#~ msgid_plural "Field cannot be longer than %(max)d characters."
+#~ msgstr[0] ""
+
+#~ msgid "Field must be exactly %(max)d character long."
+#~ msgid_plural "Field must be exactly %(max)d characters long."
+#~ msgstr[0] ""
+
+#~ msgid "Field must be between %(min)d and %(max)d characters long."
+#~ msgstr "フィールドの長さは %(min)d 文字以上 %(max)d 文字以下でなければなりません。"
+
+#~ msgid "Number must be at least %(min)s."
+#~ msgstr "数値は少なくとも %(min)s でなければなりません。"
+
+#~ msgid "Number must be at most %(max)s."
+#~ msgstr "数値は最大%(max)sでなければなりません。"
+
+#~ msgid "Number must be between %(min)s and %(max)s."
+#~ msgstr "数値は %(min)s と %(max)s の間でなければなりません。"
+
+#~ msgid "Invalid input."
+#~ msgstr "無効な入力です。"
+
+#~ msgid "Invalid email address."
+#~ msgstr "無効なメールアドレスです。"
+
+#~ msgid "Invalid IP address."
+#~ msgstr "無効なIPアドレスです。"
+
+#~ msgid "Invalid Mac address."
+#~ msgstr "無効なMACアドレスです。"
+
+#~ msgid "Invalid URL."
+#~ msgstr "無効なURLです。"
+
+#~ msgid "Invalid UUID."
+#~ msgstr "無効なUUIDです。"
+
+#~ msgid "Invalid value, must be one of: %(values)s."
+#~ msgstr "無効な値です。次のいずれかでなければなりません: %(values)s。"
+
+#~ msgid "Invalid value, can't be any of: %(values)s."
+#~ msgstr "無効な値です。以下のいずれかである必要があります: %(values)s。"
+
+#~ msgid "This field cannot be edited."
+#~ msgstr "このフィールドは編集できません。"
+
+#~ msgid "This field is disabled and cannot have a value."
+#~ msgstr "このフィールドは無効化されており、値を設定できません。"
+
+#~ msgid "Invalid CSRF Token."
+#~ msgstr "無効なCSRFトークン。"
+
+#~ msgid "CSRF token missing."
+#~ msgstr "CSRFトークンが欠落しています。"
+
+#~ msgid "CSRF failed."
+#~ msgstr "CSRFが失敗しました。"
+
+#~ msgid "CSRF token expired."
+#~ msgstr "CSRFトークンが期限切れです。"
+
+#~ msgid "Invalid Choice: could not coerce."
+#~ msgstr "無効な選択: 型変換できませんでした。"
+
+#~ msgid "Choices cannot be None."
+#~ msgstr "選択肢は「なし」にできません。"
+
+#~ msgid "Not a valid choice."
+#~ msgstr "無効な選択です。"
+
+#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
+#~ msgstr "無効な選択: 1つ以上のデータ入力が強制変換できませんでした。"
+
+#~ msgid "'%(value)s' is not a valid choice for this field."
+#~ msgid_plural "'%(value)s' are not valid choices for this field."
+#~ msgstr[0] ""
+
+#~ msgid "Not a valid datetime value."
+#~ msgstr "有効な日付時刻値ではありません。"
+
+#~ msgid "Not a valid date value."
+#~ msgstr "有効な日付値ではありません。"
+
+#~ msgid "Not a valid time value."
+#~ msgstr "無効な時刻値です。"
+
+#~ msgid "Not a valid week value."
+#~ msgstr "有効な週の値ではありません。"
+
+#~ msgid "Not a valid integer value."
+#~ msgstr "有効な整数値ではありません。"
+
+#~ msgid "Not a valid decimal value."
+#~ msgstr "有効な10進数値ではありません。"
+
+#~ msgid "Not a valid float value."
+#~ msgstr "有効な浮動小数点値ではありません。"
+

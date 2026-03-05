@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-04 21:28+0800\n"
+"POT-Creation-Date: 2026-03-04 23:36+0800\n"
 "PO-Revision-Date: 2026-03-04 16:54+0800\n"
 "Last-Translator: \n"
-"Language-Team: fr <LL@li.org>\n"
 "Language: fr\n"
+"Language-Team: fr <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/__init__.py:3879
@@ -114,7 +114,8 @@ msgstr "Erreur lors de l'enregistrement du rig : %(error)s"
 #: nova/__init__.py:6262
 msgid "Cannot delete component: It is used in at least one rig."
 msgstr ""
-"Impossible de supprimer le composant : il est utilisé dans au moins un rig."
+"Impossible de supprimer le composant : il est utilisé dans au moins un "
+"rig."
 
 #: nova/__init__.py:6267
 msgid "Component deleted successfully."
@@ -148,8 +149,7 @@ msgstr "Nouvelle entrée de journal ajoutée avec succès !"
 
 #: nova/__init__.py:6694
 msgid "To add a new session, please select an object first."
-msgstr ""
-"Pour ajouter une nouvelle session, veuillez d'abord sélectionner un objet."
+msgstr "Pour ajouter une nouvelle session, veuillez d'abord sélectionner un objet."
 
 #: nova/__init__.py:6708
 msgid "Journal entry not found or you do not have permission to edit it."
@@ -164,7 +164,8 @@ msgstr "Entrée du journal mise à jour avec succès !"
 #: nova/__init__.py:6945
 msgid "Cannot edit session: associated object name is missing."
 msgstr ""
-"Impossible de modifier la session : le nom de l'objet associé est manquant."
+"Impossible de modifier la session : le nom de l'objet associé est "
+"manquant."
 
 #: nova/__init__.py:6970
 msgid "Project name is required."
@@ -243,8 +244,7 @@ msgstr "Nom d'utilisateur ou mot de passe invalide."
 
 #: nova/__init__.py:7492
 msgid "Single Sign-On is not applicable in single-user mode."
-msgstr ""
-"L'authentification unique n'est pas applicable en mode mono-utilisateur."
+msgstr "L'authentification unique n'est pas applicable en mode mono-utilisateur."
 
 #: nova/__init__.py:7498
 msgid "SSO Error: No token provided."
@@ -267,8 +267,7 @@ msgstr ""
 "dans Nova."
 
 #: nova/__init__.py:7529
-msgid ""
-"SSO Error: The login link has expired. Please try again from WordPress."
+msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "Erreur SSO : le lien de connexion a expiré. Veuillez réessayer depuis "
 "WordPress."
@@ -305,8 +304,8 @@ msgstr "Structure du fichier journal invalide : %(message)s"
 #: nova/__init__.py:7951
 msgid "Journal imported successfully! (Previous journal data was replaced)"
 msgstr ""
-"Journal importé avec succès ! (Les données précédentes du journal ont été "
-"remplacées)"
+"Journal importé avec succès ! (Les données précédentes du journal ont été"
+" remplacées)"
 
 #: nova/__init__.py:7963
 #, python-format
@@ -322,8 +321,7 @@ msgstr "Échec de l'importation : %(error)s"
 
 #: nova/__init__.py:7974
 msgid "Invalid file type. Please upload a .yaml journal file."
-msgstr ""
-"Type de fichier non valide. Veuillez télécharger un fichier journal .yaml."
+msgstr "Type de fichier non valide. Veuillez télécharger un fichier journal .yaml."
 
 #: nova/__init__.py:7986
 msgid "Authentication error during import."
@@ -340,8 +338,7 @@ msgstr ""
 "emplacement."
 
 #: nova/__init__.py:8026
-msgid ""
-"Cannot import: Configuration must contain at least one active location."
+msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "Impossible d'importer : la configuration doit contenir au moins un "
 "emplacement actif."
@@ -393,8 +390,7 @@ msgstr "Aucune donnée manquante trouvée ou aucune mise à jour nécessaire."
 #: nova/__init__.py:8851
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
-msgstr ""
-"Une erreur s'est produite lors de la récupération des données : %(error)s"
+msgstr "Une erreur s'est produite lors de la récupération des données : %(error)s"
 
 #: nova/__init__.py:9263
 #, python-format
@@ -422,8 +418,8 @@ msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
-"Impossible de supprimer votre dernier emplacement. Vous devez avoir au moins"
-" un emplacement configuré."
+"Impossible de supprimer votre dernier emplacement. Vous devez avoir au "
+"moins un emplacement configuré."
 
 #: nova/__init__.py:10314
 msgid ""
@@ -469,8 +465,8 @@ msgstr ""
 #: nova/__init__.py:10688
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
-"Erreur : aucun emplacement valide n'est configuré ou sélectionné pour cet "
-"utilisateur."
+"Erreur : aucun emplacement valide n'est configuré ou sélectionné pour cet"
+" utilisateur."
 
 #: nova/__init__.py:10706
 #, python-format
@@ -479,8 +475,7 @@ msgstr "Objet « %(object_name)s » introuvable dans votre configuration."
 
 #: nova/__init__.py:10933
 msgid "Invalid date components provided, defaulting to current date."
-msgstr ""
-"Composants de date invalides fournis, valeur par défaut : date actuelle."
+msgstr "Composants de date invalides fournis, valeur par défaut : date actuelle."
 
 #: nova/__init__.py:11136
 #, python-format
@@ -497,7 +492,8 @@ msgstr "Projet introuvable."
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
-"Projet « %(project_name)s » supprimé. Les sessions sont désormais autonomes."
+"Projet « %(project_name)s » supprimé. Les sessions sont désormais "
+"autonomes."
 
 #: nova/__init__.py:11486
 #, python-format
@@ -541,8 +537,7 @@ msgstr "Échec de l'importation : le fichier ZIP semble être corrompu."
 #: nova/__init__.py:11797
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
-msgstr ""
-"Une erreur inattendue s'est produite pendant l'importation : %(error)s"
+msgstr "Une erreur inattendue s'est produite pendant l'importation : %(error)s"
 
 #: nova/__init__.py:11900 nova/__init__.py:11905
 msgid "No file selected for rigs import."
@@ -551,8 +546,8 @@ msgstr "Aucun fichier sélectionné pour l'importation des plates-formes."
 #: nova/__init__.py:11935
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
-"Configuration des plates-formes importée et synchronisée avec succès dans la"
-" base de données !"
+"Configuration des plates-formes importée et synchronisée avec succès dans"
+" la base de données !"
 
 #: nova/__init__.py:11943
 #, python-format
@@ -561,8 +556,7 @@ msgstr "Erreur lors de l'importation du fichier de plates-formes : %(error)s"
 
 #: nova/__init__.py:11946
 msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr ""
-"Type de fichier non valide. Veuillez télécharger un fichier .yaml ou .yml."
+msgstr "Type de fichier non valide. Veuillez télécharger un fichier .yaml ou .yml."
 
 #: nova/__init__.py:12898
 msgid "Not authorized to export another user's data."
@@ -583,7 +577,8 @@ msgstr "Non autorisé à importer pour un autre utilisateur."
 #: nova/__init__.py:12944
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
-"Veuillez fournir les fichiers YAML de configuration, de rigs et de journal."
+"Veuillez fournir les fichiers YAML de configuration, de rigs et de "
+"journal."
 
 #: nova/__init__.py:12964
 msgid "Import completed successfully!"
@@ -592,7 +587,8 @@ msgstr "Importation terminée avec succès !"
 #: nova/__init__.py:12966
 msgid "Import failed. See server logs for details."
 msgstr ""
-"Importation échouée. Consultez les journaux du serveur pour plus de détails."
+"Importation échouée. Consultez les journaux du serveur pour plus de "
+"détails."
 
 #: nova/__init__.py:12969
 msgid "Import crashed. Check logs."
@@ -699,10 +695,10 @@ msgstr "Constellation"
 msgid "Source: Wiki"
 msgstr "Source : Wiki"
 
-#: templates/_inspiration_section.html:504 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:215
-#: templates/base.html:223 templates/config_form.html:640
-#: templates/graph_view.html:276
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
+#: templates/_objects_section.html:427 templates/_objects_section.html:442
+#: templates/base.html:215 templates/base.html:223
+#: templates/config_form.html:640 templates/graph_view.html:276
 msgid "Close"
 msgstr "Fermer"
 
@@ -739,7 +735,7 @@ msgstr "Historique des sessions"
 msgid "Switch Object"
 msgstr "Objet commutateur"
 
-#: templates/_journal_section.html:1092
+#: templates/_journal_section.html:1092 templates/_journal_section.html:1673
 msgid "Add New Project"
 msgstr "Ajouter un nouveau projet"
 
@@ -747,13 +743,39 @@ msgstr "Ajouter un nouveau projet"
 msgid "Add New Session"
 msgstr "Ajouter une nouvelle session"
 
-#: templates/_journal_section.html:1113 templates/_project_subtab.html:150
+#: templates/_journal_section.html:1098
+msgid "Date & Location"
+msgstr "Mettre à jour les lieux"
+
+#: templates/_journal_section.html:1098 templates/project_report.html:866
+msgid "Integ."
+msgstr "Intégrité."
+
+#: templates/_journal_section.html:1098
+#: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
+#: templates/index.html:170 templates/index.html:197
+#: templates/journal_report.html:692 templates/project_report.html:867
+#: templates/project_report.html:1101
+msgid "Rating"
+msgstr "Évaluation"
+
+#: templates/_journal_section.html:1109
+msgid "Click to view project details"
+msgstr "Veuillez vous connecter pour afficher les détails de l'objet."
+
+#: templates/_journal_section.html:1113 templates/_journal_section.html:1512
+#: templates/_project_subtab.html:150
 msgid "Project:"
 msgstr "Projet :"
 
-#: templates/_journal_section.html:1114
+#: templates/_journal_section.html:1114 templates/_journal_section.html:1433
 msgid "Total:"
 msgstr "Total :"
+
+#: templates/_journal_section.html:1123 templates/_project_subtab.html:209
+#: templates/mobile_up_now.html:128
+msgid "min"
+msgstr "J'ai"
 
 #: templates/_journal_section.html:1131
 msgid "Loading history..."
@@ -820,9 +842,70 @@ msgstr "QUALITÉ DU CIEL (SQM)"
 msgid "Multiple"
 msgstr "Multiple"
 
+#: templates/_journal_section.html:1192
+msgid "x"
+msgstr ""
+
+#: templates/_journal_section.html:1192
+msgid "s"
+msgstr "SB"
+
 #: templates/_journal_section.html:1194
 msgid "EXPOSURES"
 msgstr "EXPOSITIONS"
+
+#: templates/_journal_section.html:1198 templates/_journal_section.html:1269
+#: templates/journal_form.html:169
+msgid "Filter:"
+msgstr "Filtre :"
+
+#: templates/_journal_section.html:1202 templates/_journal_section.html:1246
+msgid "Rig Used:"
+msgstr "Nom du rig :"
+
+#: templates/_journal_section.html:1203 templates/_journal_section.html:1252
+msgid "Rig Specs:"
+msgstr "Aperçu du royaume"
+
+#: templates/_journal_section.html:1205 templates/_journal_section.html:1247
+#: templates/config_form.html:449 templates/journal_report.html:757
+msgid "Telescope:"
+msgstr "Télescope :"
+
+#: templates/_journal_section.html:1206 templates/_journal_section.html:1251
+#: templates/config_form.html:455 templates/journal_report.html:767
+msgid "Camera:"
+msgstr "Chambre :"
+
+#: templates/_journal_section.html:1207
+msgid "FL:"
+msgstr "Appartements :"
+
+#: templates/_journal_section.html:1208 templates/_journal_section.html:1255
+msgid "Scale:"
+msgstr "Échelle / Champ de vision :"
+
+#: templates/_journal_section.html:1211 templates/_journal_section.html:1258
+msgid "Setup Notes:"
+msgstr "Notes de configuration"
+
+#: templates/_journal_section.html:1214 templates/_journal_section.html:1260
+msgid "Telescope Setup:"
+msgstr "Installation du télescope"
+
+#: templates/_journal_section.html:1218
+msgid "Session Image:"
+msgstr "Image de session"
+
+#: templates/_journal_section.html:1221
+msgid "Click to view full size"
+msgstr ""
+
+#: templates/_journal_section.html:1222 templates/journal_report.html:700
+#: templates/journal_report.html:703 templates/project_report.html:1075
+#: templates/project_report.html:1079
+msgid "Session Image"
+msgstr "Image de session"
 
 #: templates/_journal_section.html:1231 templates/journal_report.html:718
 msgid "Statistics & Conditions"
@@ -840,7 +923,8 @@ msgstr "RMS guide :"
 msgid "SQM:"
 msgstr "SQM :"
 
-#: templates/_journal_section.html:1236 templates/journal_form.html:63
+#: templates/_journal_section.html:1236 templates/_journal_section.html:1721
+#: templates/journal_form.html:63
 msgid "Transparency Scale:"
 msgstr "Échelle de transparence :"
 
@@ -848,7 +932,8 @@ msgstr "Échelle de transparence :"
 msgid "Moon Illum/Sep:"
 msgstr "Illumination lunaire/Séparation :"
 
-#: templates/_journal_section.html:1238 templates/journal_form.html:75
+#: templates/_journal_section.html:1238 templates/_journal_section.html:1723
+#: templates/journal_form.html:75
 msgid "Weather Notes:"
 msgstr "Notes météorologiques :"
 
@@ -856,20 +941,71 @@ msgstr "Notes météorologiques :"
 msgid "Equipment & Acquisition Details"
 msgstr "Équipement et détails relatifs à l'acquisition"
 
+#: templates/_journal_section.html:1249 templates/journal_report.html:762
+msgid "Reducer/Ext.:"
+msgstr "Réduire/Ext. :"
+
+#: templates/_journal_section.html:1254
+msgid "FL/Ratio:"
+msgstr "FL / Ratio :"
+
+#: templates/_journal_section.html:1256
+msgid "FOV:"
+msgstr ""
+
+#: templates/_journal_section.html:1263 templates/_journal_section.html:1741
+msgid "Guiding Equipment:"
+msgstr "Équipement de guidage :"
+
+#: templates/_journal_section.html:1264
+msgid "Acquisition Sw:"
+msgstr "Logiciel d'acquisition :"
+
+#: templates/_journal_section.html:1265 templates/journal_form.html:119
+msgid "Dither Settings:"
+msgstr "Paramètres de tramage :"
+
+#: templates/_journal_section.html:1266 templates/_journal_section.html:1770
+#: templates/journal_form.html:159
+msgid "Binning:"
+msgstr "Binning :"
+
+#: templates/_journal_section.html:1267 templates/journal_report.html:771
+msgid "Gain / Offset:"
+msgstr "Gain / Décalage :"
+
+#: templates/_journal_section.html:1268
+msgid "Camera Temp (Set/Avg):"
+msgstr "Température (réglée/moyenne) :"
+
+#: templates/_journal_section.html:1270
+msgid "Sub Exposure:"
+msgstr "Exposition"
+
+#: templates/_journal_section.html:1271
+msgid "# Light Subs:"
+msgstr "Nombre de sous-marins légers :"
+
 #: templates/_journal_section.html:1291
 msgid "Monochrome Exposures"
 msgstr "Expositions monochromes"
 
-#: templates/_journal_section.html:1317 templates/journal_form.html:181
-#: templates/journal_report.html:803
+#: templates/_journal_section.html:1297 templates/_journal_section.html:1307
+msgid "subs x "
+msgstr "Sous-marins"
+
+#: templates/_journal_section.html:1317 templates/_journal_section.html:1826
+#: templates/journal_form.html:181 templates/journal_report.html:803
 msgid "Calibration Strategy"
 msgstr "Stratégie d'étalonnage"
 
-#: templates/_journal_section.html:1319 templates/journal_form.html:183
+#: templates/_journal_section.html:1319 templates/_journal_section.html:1827
+#: templates/journal_form.html:183
 msgid "Darks:"
 msgstr "Tons foncés :"
 
-#: templates/_journal_section.html:1320 templates/journal_form.html:187
+#: templates/_journal_section.html:1320 templates/_journal_section.html:1828
+#: templates/journal_form.html:187
 msgid "Flats:"
 msgstr "Appartements :"
 
@@ -877,7 +1013,8 @@ msgstr "Appartements :"
 msgid "Bias/DarkFlats:"
 msgstr "Biais/DarkFlats :"
 
-#: templates/_journal_section.html:1326 templates/journal_form.html:195
+#: templates/_journal_section.html:1326 templates/_journal_section.html:1830
+#: templates/journal_form.html:195
 msgid "Outcome & Reflections"
 msgstr "Résultats et réflexions"
 
@@ -889,15 +1026,15 @@ msgstr "Évaluation de la session :"
 msgid "Notes:"
 msgstr "Remarques :"
 
-#: templates/_journal_section.html:1337
+#: templates/_journal_section.html:1337 templates/_journal_section.html:1583
 msgid "Download CSV"
 msgstr "Télécharger CSV"
 
-#: templates/_journal_section.html:1343
+#: templates/_journal_section.html:1343 templates/_journal_section.html:1589
 msgid "Download PDF"
 msgstr "Télécharger le PDF"
 
-#: templates/_journal_section.html:1354
+#: templates/_journal_section.html:1354 templates/_journal_section.html:1524
 msgid "Overview"
 msgstr "Aperçu"
 
@@ -949,6 +1086,38 @@ msgstr "Échelle de pixels"
 msgid "Plate Solve Results"
 msgstr "Résultats de la résolution de plaques"
 
+#: templates/_journal_section.html:1398
+msgid "#"
+msgstr ""
+
+#: templates/_journal_section.html:1399 templates/journal_report.html:1068
+#: templates/journal_report.html:1098 templates/journal_report.html:1177
+#: templates/project_report.html:1012
+msgid "Time"
+msgstr "Temps"
+
+#: templates/_journal_section.html:1400 templates/journal_report.html:1069
+msgid "RA"
+msgstr "AD"
+
+#: templates/_journal_section.html:1401 templates/journal_report.html:1070
+msgid "Dec"
+msgstr "Décembre"
+
+#: templates/_journal_section.html:1402 templates/journal_report.html:1071
+msgid "Angle"
+msgstr "Angle"
+
+#: templates/_journal_section.html:1403 templates/journal_report.html:1072
+msgid "Stars"
+msgstr "Étoiles"
+
+#: templates/_journal_section.html:1404 templates/_journal_section.html:1540
+#: templates/_objects_section.html:46 templates/_project_subtab.html:154
+#: templates/admin_users.html:72 templates/journal_report.html:1179
+msgid "Status"
+msgstr "Statut"
+
 #: templates/_journal_section.html:1413
 msgid "Autocenter Accuracy Over Time"
 msgstr "Précision de l'Autocenter au fil du temps"
@@ -957,6 +1126,530 @@ msgstr "Précision de l'Autocenter au fil du temps"
 msgid "Distance from target center per centering attempt"
 msgstr "Distance par rapport au centre de la cible par tentative de centrage"
 
+#: templates/_journal_section.html:1425
+msgid "RA RMS:"
+msgstr "RMS total"
+
+#: templates/_journal_section.html:1426
+msgid "Dec RMS:"
+msgstr "Décembre :"
+
+#: templates/_journal_section.html:1427
+msgid "Total RMS:"
+msgstr "RMS total"
+
+#: templates/_journal_section.html:1428
+msgid "Imaging Frames:"
+msgstr "Imagerie RMS"
+
+#: templates/_journal_section.html:1431
+msgid "Including dithers — RA:"
+msgstr ""
+
+#: templates/_journal_section.html:1432 templates/journal_report.html:991
+msgid "Dec:"
+msgstr "Décembre :"
+
+#: templates/_journal_section.html:1436
+msgid "Zoom"
+msgstr ""
+
+#: templates/_journal_section.html:1441
+msgid "Avg RA Pulse:"
+msgstr ""
+
+#: templates/_journal_section.html:1442
+msgid "Avg Dec Pulse:"
+msgstr "Impulsion de guidage"
+
+#: templates/_journal_section.html:1443
+msgid "Avg RA Dur:"
+msgstr ""
+
+#: templates/_journal_section.html:1444
+msgid "Avg Dec Dur:"
+msgstr ""
+
+#: templates/_journal_section.html:1445
+msgid "RA Dir:"
+msgstr "RA :"
+
+#: templates/_journal_section.html:1446
+msgid "Dec Dir:"
+msgstr "Décembre :"
+
+#: templates/_journal_section.html:1465
+msgid "Total Dithers:"
+msgstr "Total des hésitations"
+
+#: templates/_journal_section.html:1466
+msgid "Settle Success:"
+msgstr ""
+
+#: templates/_journal_section.html:1467
+msgid "Settle Timeout:"
+msgstr "Délai de stabilisation du tramage"
+
+#: templates/_journal_section.html:1477
+msgid "AF Runs:"
+msgstr "Tirs AF"
+
+#: templates/_journal_section.html:1487
+msgid "Autofocus V-Curves – EAF Position vs Star Size"
+msgstr ""
+
+#: templates/_journal_section.html:1493
+msgid "Focus Position Drift Over Night"
+msgstr "Dérive de la position de mise au point"
+
+#: templates/_journal_section.html:1501
+msgid "Individual V-Curves"
+msgstr ""
+
+#: templates/_journal_section.html:1514 templates/_project_subtab.html:147
+msgid "Edit Project"
+msgstr "Modifier le projet"
+
+#: templates/_journal_section.html:1516
+msgid ""
+"Are you sure you want to delete this project? Linked sessions will become"
+" standalone."
+msgstr "Êtes-vous sûr de vouloir supprimer définitivement cette session ?"
+
+#: templates/_journal_section.html:1518
+msgid "Delete Project"
+msgstr "Modifier le projet"
+
+#: templates/_journal_section.html:1525 templates/project_report.html:6
+#: templates/project_report.html:795
+msgid "Project Report"
+msgstr "Rapport de projet"
+
+#: templates/_journal_section.html:1534 templates/project_report.html:808
+msgid "Total Integration"
+msgstr "Intégration totale"
+
+#: templates/_journal_section.html:1546 templates/_project_subtab.html:158
+msgid "Goals & Status"
+msgstr "Objectifs et état d'avancement"
+
+#: templates/_journal_section.html:1547
+msgid "No goals defined."
+msgstr "Aucun objectif fixé."
+
+#: templates/_journal_section.html:1555 templates/_project_subtab.html:166
+msgid "Final Project Image"
+msgstr "Image finale du projet"
+
+#: templates/_journal_section.html:1558 templates/_journal_section.html:1626
+#: templates/_project_subtab.html:168 templates/_project_subtab.html:262
+msgid "Final Image"
+msgstr "Image finale"
+
+#: templates/_journal_section.html:1563 templates/_project_subtab.html:175
+msgid "Project Story & Learnings"
+msgstr "Histoire du projet et enseignements tirés"
+
+#: templates/_journal_section.html:1564
+msgid "No description added."
+msgstr "Aucune description du projet n'a été ajoutée."
+
+#: templates/_journal_section.html:1568 templates/_project_subtab.html:180
+msgid "Framing Notes"
+msgstr "Notes de cadrage"
+
+#: templates/_journal_section.html:1569 templates/_project_subtab.html:181
+msgid "No framing notes added."
+msgstr "Aucune note de cadrage ajoutée."
+
+#: templates/_journal_section.html:1573 templates/_project_subtab.html:185
+msgid "Processing Notes"
+msgstr "Notes de traitement"
+
+#: templates/_journal_section.html:1574 templates/_project_subtab.html:186
+msgid "No processing workflow recorded."
+msgstr "Aucun flux de travail de traitement enregistré."
+
+#: templates/_journal_section.html:1603
+msgid "Editing Project"
+msgstr "Projet d'édition :"
+
+#: templates/_journal_section.html:1605 templates/_project_subtab.html:231
+msgid "Save Project"
+msgstr "Enregistrer le projet"
+
+#: templates/_journal_section.html:1606 templates/_journal_section.html:1676
+#: templates/_journal_section.html:1708 templates/_objects_section.html:347
+#: templates/_project_subtab.html:232 templates/admin_users.html:120
+#: templates/index.html:248 templates/journal_form.html:210
+msgid "Cancel"
+msgstr "Annuler"
+
+#: templates/_journal_section.html:1611 templates/_journal_section.html:1682
+#: templates/_project_subtab.html:239
+msgid "Metadata"
+msgstr "Métadonnées"
+
+#: templates/_journal_section.html:1612 templates/_journal_section.html:1683
+#: templates/_project_subtab.html:240
+msgid "Project Name:"
+msgstr "Nom du projet :"
+
+#: templates/_journal_section.html:1614 templates/_journal_section.html:1684
+#: templates/_project_subtab.html:249 templates/project_report.html:801
+msgid "Status:"
+msgstr "Statut :"
+
+#: templates/_journal_section.html:1618 templates/_journal_section.html:1688
+#: templates/_project_subtab.html:256
+msgid "Goals & Status:"
+msgstr "Objectifs et état d'avancement :"
+
+#: templates/_journal_section.html:1628 templates/_project_subtab.html:264
+msgid "Current file:"
+msgstr "Fichier actuel :"
+
+#: templates/_journal_section.html:1629 templates/_project_subtab.html:265
+msgid "Delete Current Image"
+msgstr "Supprimer l'image actuelle"
+
+#: templates/_journal_section.html:1632 templates/_project_subtab.html:268
+msgid "Upload New Final Image (optional, max 5MB)"
+msgstr "Télécharger une nouvelle image finale (facultatif, max. 5 Mo)"
+
+#: templates/_journal_section.html:1638 templates/_project_subtab.html:275
+msgid "Project Story & Learnings:"
+msgstr "Histoire du projet et enseignements tirés :"
+
+#: templates/_journal_section.html:1645
+msgid "Framing Notes:"
+msgstr "Notes de cadrage"
+
+#: templates/_journal_section.html:1652
+msgid "Processing Notes:"
+msgstr "Notes de traitement"
+
+#: templates/_journal_section.html:1663
+msgid "No session selected"
+msgstr "Session terminée"
+
+#: templates/_journal_section.html:1665
+msgid ""
+"Select a session or project from the list on the left to view details, or"
+" click 'Add New Session'."
+msgstr ""
+
+#: templates/_journal_section.html:1675
+msgid "Create Project"
+msgstr "Projet actif"
+
+#: templates/_journal_section.html:1683
+msgid "e.g., M31 Broadband"
+msgstr ""
+
+#: templates/_journal_section.html:1684
+msgid "In Progress"
+msgstr ""
+
+#: templates/_journal_section.html:1684
+msgid "On Hold"
+msgstr ""
+
+#: templates/_journal_section.html:1684
+msgid "Completed"
+msgstr "Copié !"
+
+#: templates/_journal_section.html:1684
+msgid "Abandoned"
+msgstr ""
+
+#: templates/_journal_section.html:1701
+msgid "Add New Session for"
+msgstr "Ajouter une nouvelle session"
+
+#: templates/_journal_section.html:1705
+msgid "Edit Session"
+msgstr "Modifier cette session"
+
+#: templates/_journal_section.html:1707
+msgid "Save Changes"
+msgstr "Enregistrer les notes"
+
+#: templates/_journal_section.html:1714 templates/journal_form.html:27
+msgid "Session Date:"
+msgstr "Date de la session :"
+
+#: templates/_journal_section.html:1715 templates/journal_form.html:45
+msgid "Location:"
+msgstr "Emplacement :"
+
+#: templates/_journal_section.html:1715
+msgid " (Inactive)"
+msgstr "Inactif"
+
+#: templates/_journal_section.html:1717
+msgid "Link to Project (Optional)"
+msgstr "Contenu d'inspiration (optionnel)"
+
+#: templates/_journal_section.html:1717
+msgid "-- Standalone Session --"
+msgstr "Ajouter une nouvelle session"
+
+#: templates/_journal_section.html:1717
+msgid "-- Create New Project --"
+msgstr "Ajouter un nouveau projet"
+
+#: templates/_journal_section.html:1718
+msgid "New Project Name:"
+msgstr "Nom du projet :"
+
+#: templates/_journal_section.html:1718
+msgid "e.g., M31 Galaxy - 2025"
+msgstr "par exemple, Galaxy"
+
+#: templates/_journal_section.html:1720 templates/journal_form.html:56
+msgid "Sky Conditions (Observed)"
+msgstr "Conditions atmosphériques (observées)"
+
+#: templates/_journal_section.html:1721 templates/journal_form.html:59
+msgid "Seeing (FWHM, arcsec):"
+msgstr "Vision (FWHM, arcsec) :"
+
+#: templates/_journal_section.html:1721 templates/journal_form.html:64
+msgid "e.g., Good (4/5), Clear"
+msgstr "Par exemple, Bon (4/5), Clair"
+
+#: templates/_journal_section.html:1722 templates/journal_form.html:69
+msgid "SQM Reading:"
+msgstr "Lecture SQM :"
+
+#: templates/_journal_section.html:1724
+#, python-format
+msgid "Moon Illumination (%):"
+msgstr "Illumination lunaire à la session (%%) :"
+
+#: templates/_journal_section.html:1724
+msgid "Auto-fills on date/loc change"
+msgstr ""
+
+#: templates/_journal_section.html:1724
+msgid "Moon Angular Separation (°):"
+msgstr "Séparation angulaire de la Lune par rapport à la cible (°):"
+
+#: templates/_journal_section.html:1725 templates/journal_form.html:89
+msgid "Equipment & Guiding"
+msgstr "Équipement et accompagnement"
+
+#: templates/_journal_section.html:1727
+msgid "Select a Rig (Optional - Overwrites notes below)"
+msgstr "Sélectionnez un équipement (facultatif)"
+
+#: templates/_journal_section.html:1730
+msgid "-- Manually Enter Below --"
+msgstr "Entrez manuellement la configuration ci-dessous"
+
+#: templates/_journal_section.html:1735
+msgid "View rig details"
+msgstr "Détails du tramage :"
+
+#: templates/_journal_section.html:1740 templates/journal_form.html:101
+msgid "Telescope Setup Notes:"
+msgstr "Remarques concernant l'installation du télescope :"
+
+#: templates/_journal_section.html:1741
+msgid "e.g., OAG + ASI174MM"
+msgstr ""
+
+#: templates/_journal_section.html:1742 templates/journal_form.html:110
+msgid "Guiding RMS (avg, arcsec):"
+msgstr "RMS de guidage (moyenne, arcsec) :"
+
+#: templates/_journal_section.html:1745 templates/journal_form.html:127
+msgid "Acquisition Details"
+msgstr "Détails de l'acquisition"
+
+#: templates/_journal_section.html:1746 templates/journal_form.html:123
+msgid "Acquisition Software:"
+msgstr "Logiciel d'acquisition :"
+
+#: templates/_journal_section.html:1746
+msgid "e.g., N.I.N.A."
+msgstr "par exemple, Orion"
+
+#: templates/_journal_section.html:1750
+msgid "Dither Pixels:"
+msgstr "Détails du tramage :"
+
+#: templates/_journal_section.html:1753
+msgid "e.g. 7"
+msgstr "par exemple, PN"
+
+#: templates/_journal_section.html:1757
+msgid "Dither every ___ subs:"
+msgstr "Événements Dither"
+
+#: templates/_journal_section.html:1760
+msgid "e.g. 3"
+msgstr "par exemple, 34"
+
+#: templates/_journal_section.html:1763
+msgid "Dither Notes (optional):"
+msgstr "Réducteur / Prolongateur (en option) :"
+
+#: templates/_journal_section.html:1765
+msgid "Sub Exposure (sec):"
+msgstr "Sous-exposition (secondes) :"
+
+#: templates/_journal_section.html:1766
+msgid "# Light Subs"
+msgstr "Nombre de sous-marins légers :"
+
+#: templates/_journal_section.html:1768 templates/journal_form.html:140
+msgid "Gain:"
+msgstr "Plus :"
+
+#: templates/_journal_section.html:1768 templates/journal_form.html:144
+msgid "Offset:"
+msgstr "Décalage :"
+
+#: templates/_journal_section.html:1769 templates/journal_form.html:150
+msgid "Camera Temp Setpoint (°C):"
+msgstr "Consigne de température ambiante (°C) :"
+
+#: templates/_journal_section.html:1769 templates/journal_form.html:154
+msgid "Camera Temp Actual Avg (°C):"
+msgstr "Température réelle moyenne de la caméra (°C) :"
+
+#: templates/_journal_section.html:1770
+msgid "e.g., 1x1"
+msgstr "par exemple, 1x1, 2x2"
+
+#: templates/_journal_section.html:1771
+msgid "Filter Used (if broadband/single):"
+msgstr ""
+
+#: templates/_journal_section.html:1771
+msgid "e.g., L-Pro, None"
+msgstr "par exemple, L-Pro, Ha 7 nm"
+
+#: templates/_journal_section.html:1772 templates/journal_form.html:162
+msgid "Monochrome Filter Exposures"
+msgstr "Expositions avec filtre monochrome"
+
+#: templates/_journal_section.html:1777 templates/_journal_section.html:1795
+#: templates/_journal_section.html:1946
+msgid "# Subs"
+msgstr "# Expositions"
+
+#: templates/_journal_section.html:1777 templates/_journal_section.html:1798
+#: templates/_journal_section.html:1947 templates/journal_form.html:173
+msgid "Count"
+msgstr "Comte"
+
+#: templates/_journal_section.html:1778 templates/_journal_section.html:1802
+#: templates/_journal_section.html:1948 templates/journal_form.html:176
+msgid "Exp (sec/sub):"
+msgstr "Exp (sec/sous) :"
+
+#: templates/_journal_section.html:1778 templates/_journal_section.html:1805
+#: templates/_journal_section.html:1949 templates/journal_form.html:177
+msgid "Seconds"
+msgstr "Secondes"
+
+#: templates/_journal_section.html:1792 templates/_journal_section.html:1945
+msgid "Remove filter"
+msgstr "Supprimer le filtre"
+
+#: templates/_journal_section.html:1814
+msgid "Filter name (e.g. NB-II)"
+msgstr "Filtrer nom..."
+
+#: templates/_journal_section.html:1820
+msgid "+ Add Filter"
+msgstr "Erreur lors de l'ajout du filtre."
+
+#: templates/_journal_section.html:1827 templates/journal_form.html:184
+msgid "e.g., Library match, Taken post-session"
+msgstr "Par exemple, correspondance de bibliothèque, prise après la session."
+
+#: templates/_journal_section.html:1828 templates/journal_form.html:188
+msgid "e.g., Morning sky, Panel"
+msgstr "Par exemple, Ciel matinal, Panneau"
+
+#: templates/_journal_section.html:1829 templates/journal_form.html:191
+msgid "Bias / Dark Flats:"
+msgstr "Biais / Appartements sombres :"
+
+#: templates/_journal_section.html:1829 templates/journal_form.html:192
+msgid "e.g., Library match"
+msgstr "Par exemple, correspondance de bibliothèque"
+
+#: templates/_journal_section.html:1831 templates/journal_form.html:198
+msgid "Session Rating (1-5 ★):"
+msgstr "Évaluation de la session (1-5 ★) :"
+
+#: templates/_journal_section.html:1833 templates/journal_form.html:205
+msgid "General Notes, Problems, Learnings:"
+msgstr "Remarques générales, problèmes, enseignements tirés :"
+
+#: templates/_journal_section.html:1837
+msgid "Current Image:"
+msgstr "Fichier actuel :"
+
+#: templates/_journal_section.html:1837
+msgid "Delete Image"
+msgstr "Supprimer l'image actuelle"
+
+#: templates/_journal_section.html:1838
+msgid "Upload New or Replace Image (optional, max 5MB)"
+msgstr "Télécharger une nouvelle image finale (facultatif, max. 5 Mo)"
+
+#: templates/_journal_section.html:1841
+msgid "Session Logs (Optional)"
+msgstr "Sélectionner un emplacement (facultatif)"
+
+#: templates/_journal_section.html:1845
+msgid "ASIAIR Log:"
+msgstr ""
+
+#: templates/_journal_section.html:1847 templates/_journal_section.html:1861
+msgid "Uploaded"
+msgstr "Télécharger"
+
+#: templates/_journal_section.html:1849 templates/_journal_section.html:1863
+#: templates/_objects_section.html:88 templates/admin_users.html:110
+#: templates/index.html:98
+msgid "Delete"
+msgstr "Supprimer"
+
+#: templates/_journal_section.html:1853
+msgid "ASIAIR Autorun Log (.txt/.log)"
+msgstr ""
+
+#: templates/_journal_section.html:1859
+msgid "PHD2 Guide Log:"
+msgstr ""
+
+#: templates/_journal_section.html:1867
+msgid "PHD2 Guide Log (.txt/.log)"
+msgstr ""
+
+#: templates/_journal_section.html:1896
+msgid "Search objects…"
+msgstr "Rechercher un objet"
+
+#: templates/_journal_section.html:1897
+msgid "Sort order"
+msgstr "Mode invité"
+
+#: templates/_journal_section.html:1898
+msgid "Recent"
+msgstr "Projet"
+
+#: templates/_journal_section.html:1899
+msgid "Most Hours"
+msgstr "RA (heures)"
+
 #: templates/_journal_section.html:1943
 msgid "Failed to fetch objects"
 msgstr "Échec de la récupération des objets"
@@ -964,26 +1657,6 @@ msgstr "Échec de la récupération des objets"
 #: templates/_journal_section.html:1944
 msgid "No objects found"
 msgstr "Aucun objet trouvé"
-
-#: templates/_journal_section.html:1945
-msgid "Remove filter"
-msgstr "Supprimer le filtre"
-
-#: templates/_journal_section.html:1946
-msgid "# Subs"
-msgstr "# Expositions"
-
-#: templates/_journal_section.html:1947 templates/journal_form.html:173
-msgid "Count"
-msgstr "Comte"
-
-#: templates/_journal_section.html:1948 templates/journal_form.html:176
-msgid "Exp (sec/sub):"
-msgstr "Exp (sec/sous) :"
-
-#: templates/_journal_section.html:1949 templates/journal_form.html:177
-msgid "Seconds"
-msgstr "Secondes"
 
 #: templates/_journal_section.html:1950
 msgid "Enter a filter name."
@@ -1006,8 +1679,8 @@ msgstr "Erreur réseau."
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
 msgstr ""
-"Supprimer « {label} » ? Les données historiques de session pour ce filtre "
-"sont conservées."
+"Supprimer « {label} » ? Les données historiques de session pour ce filtre"
+" sont conservées."
 
 #: templates/_journal_section.html:1955
 msgid "Error removing filter."
@@ -1070,11 +1743,6 @@ msgstr "Type"
 msgid "e.g., PN"
 msgstr "par exemple, PN"
 
-#: templates/_objects_section.html:46 templates/_project_subtab.html:154
-#: templates/admin_users.html:72 templates/journal_report.html:1179
-msgid "Status"
-msgstr "Statut"
-
 #: templates/_objects_section.html:48
 msgid "All Statuses"
 msgstr "Tous les statuts"
@@ -1134,7 +1802,6 @@ msgid "Size"
 msgstr "À vous"
 
 #: templates/_objects_section.html:73
-#, fuzzy
 msgid "e.g., >5, <30, >5 <30"
 msgstr "par exemple >300"
 
@@ -1165,11 +1832,6 @@ msgstr "Désactiver"
 #: templates/_objects_section.html:87
 msgid "Fetch Details"
 msgstr "Récupérer les détails"
-
-#: templates/_objects_section.html:88 templates/admin_users.html:110
-#: templates/index.html:98
-msgid "Delete"
-msgstr "Supprimer"
 
 #: templates/_objects_section.html:108 templates/_objects_section.html:166
 msgid "Disabled"
@@ -1324,12 +1986,6 @@ msgstr "Confirmer l'ajout"
 msgid "Edit"
 msgstr "Modifier"
 
-#: templates/_objects_section.html:347 templates/_project_subtab.html:232
-#: templates/admin_users.html:120 templates/index.html:248
-#: templates/journal_form.html:210
-msgid "Cancel"
-msgstr "Annuler"
-
 #: templates/_objects_section.html:353
 msgid "Private Notes:"
 msgstr "Notes privées :"
@@ -1356,10 +2012,10 @@ msgid ""
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
 msgstr ""
-"Les packs de catalogue sont des collections d'objets fournies par le serveur"
-" que vous pouvez importer dans votre bibliothèque. L'importation est non "
-"destructive : les objets existants ne sont jamais écrasés et les objets qui "
-"se chevauchent sont ignorés."
+"Les packs de catalogue sont des collections d'objets fournies par le "
+"serveur que vous pouvez importer dans votre bibliothèque. L'importation "
+"est non destructive : les objets existants ne sont jamais écrasés et les "
+"objets qui se chevauchent sont ignorés."
 
 #: templates/_objects_section.html:386 templates/config_form.html:574
 #: templates/graph_view.html:201
@@ -1393,17 +2049,18 @@ msgstr "Doublons potentiels"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will "
-"move all journals, projects, and framings to the \"Kept\" object and delete "
-"the other. Please note that objects from different catalogs might have "
-"slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will"
+" move all journals, projects, and framings to the \"Kept\" object and "
+"delete the other. Please note that objects from different catalogs might "
+"have slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
 msgstr ""
-"Ces paires sont situées à moins de 2,5 minutes d'arc l'une de l'autre. La "
-"fusion déplacera tous les journaux, projets et cadrages vers l'objet « "
-"Conservé » et supprimera l'autre. Veuillez noter que les objets provenant de"
-" catalogues différents peuvent avoir des coordonnées RA / DEC légèrement "
-"différentes et ne seront donc pas considérés comme des doublons."
+"Ces paires sont situées à moins de 2,5 minutes d'arc l'une de l'autre. La"
+" fusion déplacera tous les journaux, projets et cadrages vers l'objet « "
+"Conservé » et supprimera l'autre. Veuillez noter que les objets provenant"
+" de catalogues différents peuvent avoir des coordonnées RA / DEC "
+"légèrement différentes et ne seront donc pas considérés comme des "
+"doublons."
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -1444,30 +2101,19 @@ msgstr "Illumination lunaire (%%)"
 msgid "Ang Sep (°)"
 msgstr "Le Sep (°)"
 
-#: templates/_opportunities_section.html:42 templates/_project_subtab.html:196
-#: templates/index.html:170 templates/index.html:197
-#: templates/journal_report.html:692 templates/project_report.html:867
-#: templates/project_report.html:1101
-msgid "Rating"
-msgstr "Évaluation"
-
 #: templates/_opportunities_section.html:43
 msgid "Add to Cal"
 msgstr "Ajouter au calendrier"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details** "
-"sub-tab will only appear if the object is the primary target of an existing "
-"project."
+"This object is not currently linked to a Project. The **Project Details**"
+" sub-tab will only appear if the object is the primary target of an "
+"existing project."
 msgstr ""
-"Cet objet n'est actuellement lié à aucun projet. Le sous-onglet **Détails du"
-" projet** n'apparaîtra que si l'objet est la cible principale d'un projet "
-"existant."
-
-#: templates/_project_subtab.html:147
-msgid "Edit Project"
-msgstr "Modifier le projet"
+"Cet objet n'est actuellement lié à aucun projet. Le sous-onglet **Détails"
+" du projet** n'apparaîtra que si l'objet est la cible principale d'un "
+"projet existant."
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -1477,45 +2123,13 @@ msgstr "Temps d'intégration total"
 msgid "Primary Target"
 msgstr "Cible principale"
 
-#: templates/_project_subtab.html:158
-msgid "Goals & Status"
-msgstr "Objectifs et état d'avancement"
-
 #: templates/_project_subtab.html:159
 msgid "No goals set."
 msgstr "Aucun objectif fixé."
 
-#: templates/_project_subtab.html:166
-msgid "Final Project Image"
-msgstr "Image finale du projet"
-
-#: templates/_project_subtab.html:168 templates/_project_subtab.html:262
-msgid "Final Image"
-msgstr "Image finale"
-
-#: templates/_project_subtab.html:175
-msgid "Project Story & Learnings"
-msgstr "Histoire du projet et enseignements tirés"
-
 #: templates/_project_subtab.html:176
 msgid "No project description added."
 msgstr "Aucune description du projet n'a été ajoutée."
-
-#: templates/_project_subtab.html:180
-msgid "Framing Notes"
-msgstr "Notes de cadrage"
-
-#: templates/_project_subtab.html:181
-msgid "No framing notes added."
-msgstr "Aucune note de cadrage ajoutée."
-
-#: templates/_project_subtab.html:185
-msgid "Processing Notes"
-msgstr "Notes de traitement"
-
-#: templates/_project_subtab.html:186
-msgid "No processing workflow recorded."
-msgstr "Aucun flux de travail de traitement enregistré."
 
 #: templates/_project_subtab.html:190
 #, python-format
@@ -1549,10 +2163,6 @@ msgstr "Voir"
 msgid "Rig Snapshot"
 msgstr "Aperçu du royaume"
 
-#: templates/_project_subtab.html:209 templates/mobile_up_now.html:128
-msgid "min"
-msgstr "J'ai"
-
 #: templates/_project_subtab.html:218
 msgid "No sessions have been linked to this project yet."
 msgstr "Aucune session n'a encore été associée à ce projet."
@@ -1561,18 +2171,6 @@ msgstr "Aucune session n'a encore été associée à ce projet."
 msgid "Editing Project:"
 msgstr "Projet d'édition :"
 
-#: templates/_project_subtab.html:231
-msgid "Save Project"
-msgstr "Enregistrer le projet"
-
-#: templates/_project_subtab.html:239
-msgid "Metadata"
-msgstr "Métadonnées"
-
-#: templates/_project_subtab.html:240
-msgid "Project Name:"
-msgstr "Nom du projet :"
-
 #: templates/_project_subtab.html:241
 msgid "Primary Target:"
 msgstr "Cible principale :"
@@ -1580,30 +2178,6 @@ msgstr "Cible principale :"
 #: templates/_project_subtab.html:243
 msgid "Select Primary Target"
 msgstr "Sélectionner la cible principale"
-
-#: templates/_project_subtab.html:249 templates/project_report.html:801
-msgid "Status:"
-msgstr "Statut :"
-
-#: templates/_project_subtab.html:256
-msgid "Goals & Status:"
-msgstr "Objectifs et état d'avancement :"
-
-#: templates/_project_subtab.html:264
-msgid "Current file:"
-msgstr "Fichier actuel :"
-
-#: templates/_project_subtab.html:265
-msgid "Delete Current Image"
-msgstr "Supprimer l'image actuelle"
-
-#: templates/_project_subtab.html:268
-msgid "Upload New Final Image (optional, max 5MB)"
-msgstr "Télécharger une nouvelle image finale (facultatif, max. 5 Mo)"
-
-#: templates/_project_subtab.html:275
-msgid "Project Story & Learnings:"
-msgstr "Histoire du projet et enseignements tirés :"
 
 #: templates/_project_subtab.html:280
 msgid "Framing Notes (Composition/FoV):"
@@ -1696,8 +2270,9 @@ msgid ""
 "Delete user '%(username)s'? This removes their login credentials. Their "
 "observing data in app.db is NOT deleted."
 msgstr ""
-"Supprimer l'utilisateur « %(username)s » ? Cela supprime ses identifiants de"
-" connexion. Ses données d'observation dans app.db ne sont PAS supprimées."
+"Supprimer l'utilisateur « %(username)s » ? Cela supprime ses identifiants"
+" de connexion. Ses données d'observation dans app.db ne sont PAS "
+"supprimées."
 
 #: templates/admin_users.html:118
 msgid "New password"
@@ -1720,8 +2295,8 @@ msgstr "Tableau de bord analytique"
 #, python-format
 msgid "Anonymous usage insights — Last %(days_count)s days"
 msgstr ""
-"Statistiques d'utilisation anonymes — Au cours des derniers %(days_count)s "
-"jours"
+"Statistiques d'utilisation anonymes — Au cours des derniers "
+"%(days_count)s jours"
 
 #: templates/analytics.html:256
 msgid "User Activity"
@@ -1773,8 +2348,7 @@ msgstr "Jours actifs"
 
 #: templates/analytics.html:319
 msgid "No feature usage data available yet"
-msgstr ""
-"Aucune donnée d'utilisation des fonctionnalités n'est encore disponible."
+msgstr "Aucune donnée d'utilisation des fonctionnalités n'est encore disponible."
 
 #: templates/analytics.html:324
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
@@ -1791,8 +2365,9 @@ msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr ""
-"Vous consultez une démo en lecture seule. Toutes les fonctionnalités (comme "
-"l'enregistrement) sont disponibles pour les utilisateurs enregistrés."
+"Vous consultez une démo en lecture seule. Toutes les fonctionnalités "
+"(comme l'enregistrement) sont disponibles pour les utilisateurs "
+"enregistrés."
 
 #: templates/base.html:145
 msgid "About Nova DSO Tracker"
@@ -1844,8 +2419,7 @@ msgid "Version"
 msgstr "Version"
 
 #: templates/base.html:233
-msgid ""
-"A personal project born from a passion for astronomy and astrophotography."
+msgid "A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 "Un projet personnel né d'une passion pour l'astronomie et "
 "l'astrophotographie."
@@ -1854,12 +2428,13 @@ msgstr ""
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing windows."
+"tracking Moon position and phase, and identifying optimal viewing "
+"windows."
 msgstr ""
 "Nova DSO Tracker aide les astronomes amateurs à planifier leurs séances "
 "d'observation, en calculant et en visualisant l'altitude et l'azimut des "
-"objets du ciel profond, en suivant la position et la phase de la Lune, et en"
-" identifiant les fenêtres d'observation optimales."
+"objets du ciel profond, en suivant la position et la phase de la Lune, et"
+" en identifiant les fenêtres d'observation optimales."
 
 #: templates/base.html:235
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
@@ -1958,7 +2533,8 @@ msgid ""
 "updates automatically."
 msgstr ""
 "Choisissez l'apparence de Nova. « Suivre le système » correspond aux "
-"paramètres de votre système d'exploitation et se met à jour automatiquement."
+"paramètres de votre système d'exploitation et se met à jour "
+"automatiquement."
 
 #: templates/config_form.html:153
 msgid "Min Observable (min):"
@@ -1988,12 +2564,12 @@ msgstr "Calc. Objets invisibles :"
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart "
-"Skip\" optimization)."
+"geometrically impossible to see from your location (disabling the \"Smart"
+" Skip\" optimization)."
 msgstr ""
-"Si cette option est cochée, Nova calculera les courbes pour TOUS les objets,"
-" même ceux qui sont géométriquement impossibles à voir depuis votre "
-"emplacement (désactivant ainsi l'optimisation « Smart Skip »)."
+"Si cette option est cochée, Nova calculera les courbes pour TOUS les "
+"objets, même ceux qui sont géométriquement impossibles à voir depuis "
+"votre emplacement (désactivant ainsi l'optimisation « Smart Skip »)."
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -2001,13 +2577,13 @@ msgstr "Masquer les objets invisibles :"
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be hidden "
-"from the main list by default. They will still appear if you specifically "
-"search for them."
+"If checked, objects that are geometrically impossible to see will be "
+"hidden from the main list by default. They will still appear if you "
+"specifically search for them."
 msgstr ""
-"Si cette option est cochée, les objets qui sont géométriquement impossibles "
-"à voir seront masqués par défaut dans la liste principale. Ils apparaîtront "
-"toujours si vous les recherchez spécifiquement."
+"Si cette option est cochée, les objets qui sont géométriquement "
+"impossibles à voir seront masqués par défaut dans la liste principale. "
+"Ils apparaîtront toujours si vous les recherchez spécifiquement."
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -2037,13 +2613,14 @@ msgstr "Le plus rapide (échantillons de 60 min)"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
-"devices."
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
+" devices."
 msgstr ""
-"Remarque : votre « altitude actuelle » est toujours calculée en temps réel. "
-"Ce paramètre permet uniquement d'affiner la précision des valeurs globales "
-"nocturnes (altitude maximale, durée d'observabilité, etc.). Le mode « Rapide"
-" » est recommandé pour les appareils à faible consommation d'énergie."
+"Remarque : votre « altitude actuelle » est toujours calculée en temps "
+"réel. Ce paramètre permet uniquement d'affiner la précision des valeurs "
+"globales nocturnes (altitude maximale, durée d'observabilité, etc.). Le "
+"mode « Rapide » est recommandé pour les appareils à faible consommation "
+"d'énergie."
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -2051,16 +2628,16 @@ msgstr "Télémétrie anonyme :"
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts"
-" of your data entries like objects, rigs, locations, and journals). No "
-"personal details are ever collected, and you can opt out anytime. Allowing "
-"it really helps me improve Nova."
+"Nova sends a small anonymous heartbeat (app version, system type, and "
+"counts of your data entries like objects, rigs, locations, and journals)."
+" No personal details are ever collected, and you can opt out anytime. "
+"Allowing it really helps me improve Nova."
 msgstr ""
 "Nova envoie un petit signal anonyme (version de l'application, type de "
 "système et nombre d'entrées de données telles que les objets, les "
-"plateformes, les emplacements et les journaux). Aucune donnée personnelle "
-"n'est collectée et vous pouvez vous désinscrire à tout moment. Autoriser "
-"cette fonctionnalité m'aide vraiment à améliorer Nova."
+"plateformes, les emplacements et les journaux). Aucune donnée personnelle"
+" n'est collectée et vous pouvez vous désinscrire à tout moment. Autoriser"
+" cette fonctionnalité m'aide vraiment à améliorer Nova."
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -2162,9 +2739,9 @@ msgstr "Aide pour les rigs"
 
 #: templates/config_form.html:384
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to load "
-"its details into the form, make your changes, and click the \"Update\" "
-"button."
+"Add or update your equipment here. To edit an item, click \"Edit\" to "
+"load its details into the form, make your changes, and click the "
+"\"Update\" button."
 msgstr ""
 "Ajoutez ou mettez à jour votre équipement ici. Pour modifier un élément, "
 "cliquez sur « Modifier » afin d'afficher ses détails dans le formulaire, "
@@ -2245,12 +2822,12 @@ msgstr "2. Configurez vos plateformes"
 
 #: templates/config_form.html:444
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\""
-" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click "
+"\"Edit\" to load the rig into the form below."
 msgstr ""
-"Combinez vos composants pour créer un dispositif d'imagerie complet. Pour "
-"modifier, cliquez sur « Modifier » afin de charger le dispositif dans le "
-"formulaire ci-dessous."
+"Combinez vos composants pour créer un dispositif d'imagerie complet. Pour"
+" modifier, cliquez sur « Modifier » afin de charger le dispositif dans le"
+" formulaire ci-dessous."
 
 #: templates/config_form.html:447
 msgid "Rig Name:"
@@ -2260,17 +2837,9 @@ msgstr "Nom du rig :"
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "Par exemple, C11 Deep Sky Rig"
 
-#: templates/config_form.html:449 templates/journal_report.html:757
-msgid "Telescope:"
-msgstr "Télescope :"
-
 #: templates/config_form.html:451
 msgid "-- Select a Telescope --"
 msgstr "-- Sélectionnez un télescope --"
-
-#: templates/config_form.html:455 templates/journal_report.html:767
-msgid "Camera:"
-msgstr "Chambre :"
 
 #: templates/config_form.html:457
 msgid "-- Select a Camera --"
@@ -2295,8 +2864,7 @@ msgstr "Facultatif — pour les recommandations relatives au tramage"
 
 #: templates/config_form.html:473
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
-msgstr ""
-"Guider hors axe (OAG) — utilise la distance focale du télescope principal"
+msgstr "Guider hors axe (OAG) — utilise la distance focale du télescope principal"
 
 #: templates/config_form.html:477
 msgid "Guide Scope:"
@@ -2400,8 +2968,8 @@ msgid ""
 "system. Click \"Import\" to add a copy to your own configuration."
 msgstr ""
 "Vous trouverez ici les objets et composants partagés par d'autres "
-"utilisateurs du système. Cliquez sur « Importer » pour ajouter une copie à "
-"votre propre configuration."
+"utilisateurs du système. Cliquez sur « Importer » pour ajouter une copie "
+"à votre propre configuration."
 
 #: templates/config_form.html:531
 msgid "Shared Objects"
@@ -2618,17 +3186,17 @@ msgstr "Source externe"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for this"
-" object yet."
+"No inspiration content (custom image or description) has been added for "
+"this object yet."
 msgstr ""
-"Aucun contenu d'inspiration (image ou description personnalisée) n'a encore "
-"été ajouté pour cet objet."
+"Aucun contenu d'inspiration (image ou description personnalisée) n'a "
+"encore été ajouté pour cet objet."
 
 #: templates/graph_view.html:214
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"Allez dans <strong>Configuration > Gérer les objets</strong> pour en ajouter"
-" un."
+"Allez dans <strong>Configuration > Gérer les objets</strong> pour en "
+"ajouter un."
 
 #: templates/graph_view.html:223
 msgid "Framing With Your Rigs"
@@ -2636,11 +3204,11 @@ msgstr "Cadrage avec vos appareils"
 
 #: templates/graph_view.html:224
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect "
-"framing of specific features."
+"Assessment is based on the object's largest dimension and may not reflect"
+" framing of specific features."
 msgstr ""
-"L'évaluation est basée sur la plus grande dimension de l'objet et peut ne "
-"pas refléter la structure de certaines caractéristiques spécifiques."
+"L'évaluation est basée sur la plus grande dimension de l'objet et peut ne"
+" pas refléter la structure de certaines caractéristiques spécifiques."
 
 #: templates/graph_view.html:228
 msgid "Rig Name"
@@ -2692,11 +3260,11 @@ msgstr "Verrouiller le champ de vision"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected for"
-" your latitude)"
+"Displays the approximate location of geostationary satellites (corrected "
+"for your latitude)"
 msgstr ""
-"Affiche l'emplacement approximatif des satellites géostationnaires (corrigé "
-"en fonction de votre latitude)."
+"Affiche l'emplacement approximatif des satellites géostationnaires "
+"(corrigé en fonction de votre latitude)."
 
 #: templates/graph_view.html:288
 msgid "Geo Belt"
@@ -2749,8 +3317,8 @@ msgstr "Chevauchement %%"
 
 #: templates/graph_view.html:322
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
-"Telescopius."
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
+"and Telescopius."
 msgstr ""
 "Génère un format CSV compatible avec ASIAIR (Plan Import), N.I.N.A. et "
 "Telescopius."
@@ -2785,7 +3353,8 @@ msgstr "Saturation"
 
 #: templates/graph_view.html:372
 msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
+"mount."
 msgstr ""
 "Les coordonnées sont JNow (temps réel / équinoxe moyen de la date) pour "
 "correspondre à votre monture."
@@ -2796,8 +3365,7 @@ msgstr "Copier"
 
 #: templates/graph_view.html:380
 msgid "Tip: Click on the sky to move the FOV center."
-msgstr ""
-"Astuce : cliquez sur le ciel pour déplacer le centre du champ de vision."
+msgstr "Astuce : cliquez sur le ciel pour déplacer le centre du champ de vision."
 
 #: templates/graph_view.html:381
 msgid "Recenter to object"
@@ -3102,10 +3670,6 @@ msgstr "Entrée de journal"
 msgid "Core Info"
 msgstr "Informations essentielles"
 
-#: templates/journal_form.html:27
-msgid "Session Date:"
-msgstr "Date de la session :"
-
 #: templates/journal_form.html:33
 msgid "Target Object:"
 msgstr "Objet cible :"
@@ -3114,29 +3678,9 @@ msgstr "Objet cible :"
 msgid "Select Target (Optional)"
 msgstr "Sélectionner la cible (facultatif)"
 
-#: templates/journal_form.html:45
-msgid "Location:"
-msgstr "Emplacement :"
-
 #: templates/journal_form.html:47
 msgid "Select Location (Optional)"
 msgstr "Sélectionner un emplacement (facultatif)"
-
-#: templates/journal_form.html:56
-msgid "Sky Conditions (Observed)"
-msgstr "Conditions atmosphériques (observées)"
-
-#: templates/journal_form.html:59
-msgid "Seeing (FWHM, arcsec):"
-msgstr "Vision (FWHM, arcsec) :"
-
-#: templates/journal_form.html:64
-msgid "e.g., Good (4/5), Clear"
-msgstr "Par exemple, Bon (4/5), Clair"
-
-#: templates/journal_form.html:69
-msgid "SQM Reading:"
-msgstr "Lecture SQM :"
 
 #: templates/journal_form.html:80
 #, python-format
@@ -3155,10 +3699,6 @@ msgstr "Séparation angulaire de la Lune par rapport à la cible (°):"
 msgid "e.g., 45.5"
 msgstr "par exemple, 45,5"
 
-#: templates/journal_form.html:89
-msgid "Equipment & Guiding"
-msgstr "Équipement et accompagnement"
-
 #: templates/journal_form.html:92
 msgid "Select a Rig (Optional)"
 msgstr "Sélectionnez un équipement (facultatif)"
@@ -3166,10 +3706,6 @@ msgstr "Sélectionnez un équipement (facultatif)"
 #: templates/journal_form.html:94
 msgid "Manually Enter Setup Below"
 msgstr "Entrez manuellement la configuration ci-dessous"
-
-#: templates/journal_form.html:101
-msgid "Telescope Setup Notes:"
-msgstr "Remarques concernant l'installation du télescope :"
 
 #: templates/journal_form.html:102
 msgid "e.g., C11+Reducer+ASI2600"
@@ -3183,10 +3719,6 @@ msgstr "Filtre utilisé :"
 msgid "e.g., L-Pro, Ha 7nm"
 msgstr "par exemple, L-Pro, Ha 7 nm"
 
-#: templates/journal_form.html:110
-msgid "Guiding RMS (avg, arcsec):"
-msgstr "RMS de guidage (moyenne, arcsec) :"
-
 #: templates/journal_form.html:115
 msgid "Guiding Equipment (Scope, Camera, Software):"
 msgstr "Équipement de guidage (télescope, appareil photo, logiciel) :"
@@ -3195,25 +3727,13 @@ msgstr "Équipement de guidage (télescope, appareil photo, logiciel) :"
 msgid "e.g., 50mm guidescope + ASI120MM Mini, PHD2"
 msgstr "Par exemple, guide optique 50 mm + ASI120MM Mini, PHD2"
 
-#: templates/journal_form.html:119
-msgid "Dither Settings:"
-msgstr "Paramètres de tramage :"
-
 #: templates/journal_form.html:120
 msgid "e.g., Yes, 3px every 2 subs"
 msgstr "Par exemple, oui, 3 px tous les 2 abonnés."
 
-#: templates/journal_form.html:123
-msgid "Acquisition Software:"
-msgstr "Logiciel d'acquisition :"
-
 #: templates/journal_form.html:124
 msgid "e.g., N.I.N.A., Sequence Generator Pro, Astroberry"
 msgstr "Par exemple, N.I.N.A., Sequence Generator Pro, Astroberry"
-
-#: templates/journal_form.html:127
-msgid "Acquisition Details"
-msgstr "Détails de l'acquisition"
 
 #: templates/journal_form.html:130
 msgid "Sub Exposure (seconds):"
@@ -3223,73 +3743,21 @@ msgstr "Sous-exposition (secondes) :"
 msgid "Number of Light Subs:"
 msgstr "Nombre de sous-marins légers :"
 
-#: templates/journal_form.html:140
-msgid "Gain:"
-msgstr "Plus :"
-
-#: templates/journal_form.html:144
-msgid "Offset:"
-msgstr "Décalage :"
-
-#: templates/journal_form.html:150
-msgid "Camera Temp Setpoint (°C):"
-msgstr "Consigne de température ambiante (°C) :"
-
-#: templates/journal_form.html:154
-msgid "Camera Temp Actual Avg (°C):"
-msgstr "Température réelle moyenne de la caméra (°C) :"
-
-#: templates/journal_form.html:159
-msgid "Binning:"
-msgstr "Binning :"
-
 #: templates/journal_form.html:160
 msgid "e.g., 1x1, 2x2"
 msgstr "par exemple, 1x1, 2x2"
 
-#: templates/journal_form.html:162
-msgid "Monochrome Filter Exposures"
-msgstr "Expositions avec filtre monochrome"
-
 #: templates/journal_form.html:163
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for "
-"each filter used. Leave blank if not used."
+"Enter number of subframes and exposure time (in seconds) per subframe for"
+" each filter used. Leave blank if not used."
 msgstr ""
-"Entrez le nombre de sous-images et le temps d'exposition (en secondes) par "
-"sous-image pour chaque filtre utilisé. Laissez vide si non utilisé."
-
-#: templates/journal_form.html:169
-msgid "Filter:"
-msgstr "Filtre :"
+"Entrez le nombre de sous-images et le temps d'exposition (en secondes) "
+"par sous-image pour chaque filtre utilisé. Laissez vide si non utilisé."
 
 #: templates/journal_form.html:172
 msgid "# Subs:"
 msgstr "# Sous-titres :"
-
-#: templates/journal_form.html:184
-msgid "e.g., Library match, Taken post-session"
-msgstr "Par exemple, correspondance de bibliothèque, prise après la session."
-
-#: templates/journal_form.html:188
-msgid "e.g., Morning sky, Panel"
-msgstr "Par exemple, Ciel matinal, Panneau"
-
-#: templates/journal_form.html:191
-msgid "Bias / Dark Flats:"
-msgstr "Biais / Appartements sombres :"
-
-#: templates/journal_form.html:192
-msgid "e.g., Library match"
-msgstr "Par exemple, correspondance de bibliothèque"
-
-#: templates/journal_form.html:198
-msgid "Session Rating (1-5 ★):"
-msgstr "Évaluation de la session (1-5 ★) :"
-
-#: templates/journal_form.html:205
-msgid "General Notes, Problems, Learnings:"
-msgstr "Remarques générales, problèmes, enseignements tirés :"
 
 #: templates/journal_form.html:211
 msgid "Save Entry"
@@ -3306,11 +3774,6 @@ msgstr "Nouveau"
 #: templates/journal_report.html:676
 msgid "DSO Tracker"
 msgstr "Suivi DSO"
-
-#: templates/journal_report.html:700 templates/journal_report.html:703
-#: templates/project_report.html:1075 templates/project_report.html:1079
-msgid "Session Image"
-msgstr "Image de session"
 
 #: templates/journal_report.html:708
 msgid "Total Integration:"
@@ -3343,14 +3806,6 @@ msgstr "Transparence"
 #: templates/journal_report.html:755 templates/project_report.html:892
 msgid "Rig:"
 msgstr "Riche :"
-
-#: templates/journal_report.html:762
-msgid "Reducer/Ext.:"
-msgstr "Réduire/Ext. :"
-
-#: templates/journal_report.html:771
-msgid "Gain / Offset:"
-msgstr "Gain / Décalage :"
 
 #: templates/journal_report.html:775
 msgid "Temp (Set/Avg):"
@@ -3462,10 +3917,6 @@ msgstr "Tous les cadres RMS"
 msgid "RA:"
 msgstr "RA :"
 
-#: templates/journal_report.html:991
-msgid "Dec:"
-msgstr "Décembre :"
-
 #: templates/journal_report.html:1003 templates/journal_report.html:1055
 #: templates/journal_report.html:1134 templates/project_report.html:1040
 msgid "Dither Events"
@@ -3491,27 +3942,6 @@ msgstr "La plaque résout"
 #: templates/project_report.html:1007
 msgid "AutoFocus Runs"
 msgstr "AutoFocus s'exécute"
-
-#: templates/journal_report.html:1068 templates/journal_report.html:1098
-#: templates/journal_report.html:1177 templates/project_report.html:1012
-msgid "Time"
-msgstr "Temps"
-
-#: templates/journal_report.html:1069
-msgid "RA"
-msgstr "AD"
-
-#: templates/journal_report.html:1070
-msgid "Dec"
-msgstr "Décembre"
-
-#: templates/journal_report.html:1071
-msgid "Angle"
-msgstr "Angle"
-
-#: templates/journal_report.html:1072
-msgid "Stars"
-msgstr "Étoiles"
 
 #: templates/journal_report.html:1097 templates/project_report.html:1011
 msgid "Run"
@@ -3807,10 +4237,6 @@ msgstr "Altitude :"
 msgid "Azimuth:"
 msgstr "Azimut :"
 
-#: templates/project_report.html:6 templates/project_report.html:795
-msgid "Project Report"
-msgstr "Rapport de projet"
-
 #: templates/project_report.html:801
 msgid "Target:"
 msgstr "Cible :"
@@ -3818,10 +4244,6 @@ msgstr "Cible :"
 #: templates/project_report.html:801
 msgid "Various"
 msgstr "Divers"
-
-#: templates/project_report.html:808
-msgid "Total Integration"
-msgstr "Intégration totale"
 
 #: templates/project_report.html:812
 msgid "Total Sessions"
@@ -3854,10 +4276,6 @@ msgstr "Flux de travail de traitement"
 #: templates/project_report.html:860
 msgid "Session Chronicles"
 msgstr "Chroniques de session"
-
-#: templates/project_report.html:866
-msgid "Integ."
-msgstr "Intégrité."
 
 #: templates/project_report.html:868
 msgid "Log Data"
@@ -3927,483 +4345,334 @@ msgstr "Gain/Décalage"
 msgid "Exp"
 msgstr "Expérience"
 
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr "{editor} : Échec de la modification"
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr "{editor} : Échec de l'édition : {e}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1124
-msgid "Aborted!"
-msgstr "Avorté !"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1349
-#: venv/lib/python3.13/site-packages/click/core.py:1379
-#, python-brace-format
-msgid "(Deprecated) {text}"
-msgstr "(Obsolète) {text}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1396
-msgid "Options"
-msgstr "Options"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1422
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1438
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr "Avertissement de dépréciation : la commande {name!r} est obsolète."
-
-#: venv/lib/python3.13/site-packages/click/core.py:1645
-msgid "Commands"
-msgstr "Commandes"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1677
-msgid "Missing command."
-msgstr "Commande manquante."
-
-#: venv/lib/python3.13/site-packages/click/core.py:1755
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "Aucune commande {name!r} n'existe."
-
-#: venv/lib/python3.13/site-packages/click/core.py:2313
-msgid "Value must be an iterable."
-msgstr "La valeur doit être itérable."
-
-#: venv/lib/python3.13/site-packages/click/core.py:2334
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2783
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "env était : {var}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2813
-msgid "(dynamic)"
-msgstr "(dynamique)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2828
-#, python-brace-format
-msgid "default: {default}"
-msgstr "par défaut : {default}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2841
-msgid "required"
-msgstr "requis"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:457
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s, version %(version)s"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:520
-msgid "Show the version and exit."
-msgstr "Afficher la version et quitter."
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:541
-msgid "Show this message and exit."
-msgstr "Afficher ce message et quitter."
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:49
-#: venv/lib/python3.13/site-packages/click/exceptions.py:88
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "Erreur : {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:80
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "Essayez « {command} {option} » pour obtenir de l'aide."
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "Valeur non valide : {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:131
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "Valeur non valide pour {param_hint} : {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:187
-msgid "Missing argument"
-msgstr "Argument manquant"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:189
-msgid "Missing option"
-msgstr "Option manquante"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:191
-msgid "Missing parameter"
-msgstr "Paramètre manquant"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:193
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "{param_type} manquant"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:200
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "Paramètre manquant : {param_name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "Cette option n'existe pas : {name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:232
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:270
-msgid "unknown error"
-msgstr "erreur inconnue"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:277
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "Impossible d'ouvrir le fichier {nom de fichier!r} : {message}"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:233
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "L'argument {name!r} prend {nargs} valeurs."
-
-#: venv/lib/python3.13/site-packages/click/parser.py:415
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "L'option {name!r} ne prend pas de valeur."
-
-#: venv/lib/python3.13/site-packages/click/parser.py:476
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr ""
-"La complétion de shell n'est pas prise en charge pour les versions de Bash "
-"antérieures à la version 4.4."
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr ""
-"Impossible de détecter la version de Bash, la complétion du shell n'est pas "
-"prise en charge."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:158
-msgid "Repeat for confirmation"
-msgstr "Répétez pour confirmation"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:174
-msgid "Error: The value you entered was invalid."
-msgstr "Erreur : la valeur que vous avez saisie n'est pas valide."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:176
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "Erreur : {e.message}"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:187
-msgid "Error: The two entered values do not match."
-msgstr "Erreur : les deux valeurs saisies ne correspondent pas."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:243
-msgid "Error: invalid input"
-msgstr "Erreur : entrée non valide"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:773
-msgid "Press any key to continue..."
-msgstr "Appuyez sur n'importe quelle touche pour continuer..."
-
-#: venv/lib/python3.13/site-packages/click/types.py:267
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr "Choisissez parmi : {choices}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:299
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:393
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:415
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr "{value!r} n'est pas un {number_type} valide."
-
-#: venv/lib/python3.13/site-packages/click/types.py:471
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr "{range} n'est pas comprise dans la plage {value}."
-
-#: venv/lib/python3.13/site-packages/click/types.py:612
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr "{value!r} n'est pas une valeur booléenne valide."
-
-#: venv/lib/python3.13/site-packages/click/types.py:636
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr "{value!r} n'est pas un UUID valide."
-
-#: venv/lib/python3.13/site-packages/click/types.py:826
-msgid "file"
-msgstr "fichier"
-
-#: venv/lib/python3.13/site-packages/click/types.py:828
-msgid "directory"
-msgstr "répertoire"
-
-#: venv/lib/python3.13/site-packages/click/types.py:830
-msgid "path"
-msgstr "chemin"
-
-#: venv/lib/python3.13/site-packages/click/types.py:881
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr "{name} {nom de fichier!r} n'existe pas."
-
-#: venv/lib/python3.13/site-packages/click/types.py:890
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr "{name} {nom de fichier!r} est un fichier."
-
-#: venv/lib/python3.13/site-packages/click/types.py:898
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr "{name} {nom de fichier!r} est un répertoire."
-
-#: venv/lib/python3.13/site-packages/click/types.py:907
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr "{name} {nom de fichier!r} n'est pas lisible."
-
-#: venv/lib/python3.13/site-packages/click/types.py:916
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr "{name} {nom de fichier!r} n'est pas accessible en écriture."
-
-#: venv/lib/python3.13/site-packages/click/types.py:925
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr "{name} {nom de fichier!r} n'est pas exécutable."
-
-#: venv/lib/python3.13/site-packages/click/types.py:992
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr "Ce champ est obligatoire."
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr "Le fichier n'a pas d'extension approuvée : {extensions}"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr "Le fichier n'a pas d'extension approuvée."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr "Nom de champ invalide « %s »."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr "Le champ doit être égal à %(other_name)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr "Le champ doit comporter entre %(min)d et %(max)d caractères."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr "Le nombre doit être au moins égal à %(min)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr "Le nombre doit être au maximum de %(max)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr "Le nombre doit être compris entre %(min)s et %(max)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr "Entrée non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr "Adresse e-mail invalide."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr "Adresse IP non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr "Adresse Mac non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr "URL invalide."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr "UUID invalide."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr "Valeur non valide, doit être l'une des suivantes : %(values)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr "Valeur non valide, ne peut être aucune des suivantes : %(values)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr "Ce champ ne peut pas être modifié."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr "Ce champ est désactivé et ne peut pas avoir de valeur."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr "Jeton CSRF invalide."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr "Jeton CSRF manquant."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr "CSRF a échoué."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr "Le jeton CSRF a expiré."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr "Choix invalide : impossible de contraindre."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr "Les choix ne peuvent pas être « Aucun »."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr "Ce n'est pas un choix valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr ""
-"Choix invalide(s) : une ou plusieurs entrées de données n'ont pas pu être "
-"converties."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr "Valeur de date/heure non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr "Valeur de date non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr "Valeur temporelle non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr "Valeur hebdomadaire non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr "Valeur entière non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr "Valeur décimale non valide."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
-msgstr "Valeur flottante non valide."
-
 #~ msgid "Usage:"
 #~ msgstr "Utilisation :"
+
+#~ msgid "{editor}: Editing failed"
+#~ msgstr "{editor} : Échec de la modification"
+
+#~ msgid "{editor}: Editing failed: {e}"
+#~ msgstr "{editor} : Échec de l'édition : {e}"
+
+#~ msgid "Aborted!"
+#~ msgstr "Avorté !"
+
+#~ msgid "(Deprecated) {text}"
+#~ msgstr "(Obsolète) {text}"
+
+#~ msgid "Options"
+#~ msgstr "Options"
+
+#~ msgid "Got unexpected extra argument ({args})"
+#~ msgid_plural "Got unexpected extra arguments ({args})"
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
+#~ msgstr "Avertissement de dépréciation : la commande {name!r} est obsolète."
+
+#~ msgid "Commands"
+#~ msgstr "Commandes"
+
+#~ msgid "Missing command."
+#~ msgstr "Commande manquante."
+
+#~ msgid "No such command {name!r}."
+#~ msgstr "Aucune commande {name!r} n'existe."
+
+#~ msgid "Value must be an iterable."
+#~ msgstr "La valeur doit être itérable."
+
+#~ msgid "Takes {nargs} values but 1 was given."
+#~ msgid_plural "Takes {nargs} values but {len} were given."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "env var: {var}"
+#~ msgstr "env était : {var}"
+
+#~ msgid "(dynamic)"
+#~ msgstr "(dynamique)"
+
+#~ msgid "default: {default}"
+#~ msgstr "par défaut : {default}"
+
+#~ msgid "required"
+#~ msgstr "requis"
+
+#~ msgid "%(prog)s, version %(version)s"
+#~ msgstr "%(prog)s, version %(version)s"
+
+#~ msgid "Show the version and exit."
+#~ msgstr "Afficher la version et quitter."
+
+#~ msgid "Show this message and exit."
+#~ msgstr "Afficher ce message et quitter."
+
+#~ msgid "Error: {message}"
+#~ msgstr "Erreur : {message}"
+
+#~ msgid "Try '{command} {option}' for help."
+#~ msgstr "Essayez « {command} {option} » pour obtenir de l'aide."
+
+#~ msgid "Invalid value: {message}"
+#~ msgstr "Valeur non valide : {message}"
+
+#~ msgid "Invalid value for {param_hint}: {message}"
+#~ msgstr "Valeur non valide pour {param_hint} : {message}"
+
+#~ msgid "Missing argument"
+#~ msgstr "Argument manquant"
+
+#~ msgid "Missing option"
+#~ msgstr "Option manquante"
+
+#~ msgid "Missing parameter"
+#~ msgstr "Paramètre manquant"
+
+#~ msgid "Missing {param_type}"
+#~ msgstr "{param_type} manquant"
+
+#~ msgid "Missing parameter: {param_name}"
+#~ msgstr "Paramètre manquant : {param_name}"
+
+#~ msgid "No such option: {name}"
+#~ msgstr "Cette option n'existe pas : {name}"
+
+#~ msgid "Did you mean {possibility}?"
+#~ msgid_plural "(Possible options: {possibilities})"
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "unknown error"
+#~ msgstr "erreur inconnue"
+
+#~ msgid "Could not open file {filename!r}: {message}"
+#~ msgstr "Impossible d'ouvrir le fichier {nom de fichier!r} : {message}"
+
+#~ msgid "Argument {name!r} takes {nargs} values."
+#~ msgstr "L'argument {name!r} prend {nargs} valeurs."
+
+#~ msgid "Option {name!r} does not take a value."
+#~ msgstr "L'option {name!r} ne prend pas de valeur."
+
+#~ msgid "Option {name!r} requires an argument."
+#~ msgid_plural "Option {name!r} requires {nargs} arguments."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
+#~ msgstr ""
+#~ "La complétion de shell n'est pas "
+#~ "prise en charge pour les versions "
+#~ "de Bash antérieures à la version "
+#~ "4.4."
+
+#~ msgid "Couldn't detect Bash version, shell completion is not supported."
+#~ msgstr ""
+#~ "Impossible de détecter la version de "
+#~ "Bash, la complétion du shell n'est "
+#~ "pas prise en charge."
+
+#~ msgid "Repeat for confirmation"
+#~ msgstr "Répétez pour confirmation"
+
+#~ msgid "Error: The value you entered was invalid."
+#~ msgstr "Erreur : la valeur que vous avez saisie n'est pas valide."
+
+#~ msgid "Error: {e.message}"
+#~ msgstr "Erreur : {e.message}"
+
+#~ msgid "Error: The two entered values do not match."
+#~ msgstr "Erreur : les deux valeurs saisies ne correspondent pas."
+
+#~ msgid "Error: invalid input"
+#~ msgstr "Erreur : entrée non valide"
+
+#~ msgid "Press any key to continue..."
+#~ msgstr "Appuyez sur n'importe quelle touche pour continuer..."
+
+#~ msgid ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+#~ msgstr "Choisissez parmi : {choices}"
+
+#~ msgid "{value!r} is not {choice}."
+#~ msgid_plural "{value!r} is not one of {choices}."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "{value!r} does not match the format {format}."
+#~ msgid_plural "{value!r} does not match the formats {formats}."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "{value!r} is not a valid {number_type}."
+#~ msgstr "{value!r} n'est pas un {number_type} valide."
+
+#~ msgid "{value} is not in the range {range}."
+#~ msgstr "{range} n'est pas comprise dans la plage {value}."
+
+#~ msgid "{value!r} is not a valid boolean."
+#~ msgstr "{value!r} n'est pas une valeur booléenne valide."
+
+#~ msgid "{value!r} is not a valid UUID."
+#~ msgstr "{value!r} n'est pas un UUID valide."
+
+#~ msgid "file"
+#~ msgstr "fichier"
+
+#~ msgid "directory"
+#~ msgstr "répertoire"
+
+#~ msgid "path"
+#~ msgstr "chemin"
+
+#~ msgid "{name} {filename!r} does not exist."
+#~ msgstr "{name} {nom de fichier!r} n'existe pas."
+
+#~ msgid "{name} {filename!r} is a file."
+#~ msgstr "{name} {nom de fichier!r} est un fichier."
+
+#~ msgid "{name} {filename!r} is a directory."
+#~ msgstr "{name} {nom de fichier!r} est un répertoire."
+
+#~ msgid "{name} {filename!r} is not readable."
+#~ msgstr "{name} {nom de fichier!r} n'est pas lisible."
+
+#~ msgid "{name} {filename!r} is not writable."
+#~ msgstr "{name} {nom de fichier!r} n'est pas accessible en écriture."
+
+#~ msgid "{name} {filename!r} is not executable."
+#~ msgstr "{name} {nom de fichier!r} n'est pas exécutable."
+
+#~ msgid "{len_type} values are required, but {len_value} was given."
+#~ msgid_plural "{len_type} values are required, but {len_value} were given."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "This field is required."
+#~ msgstr "Ce champ est obligatoire."
+
+#~ msgid "File does not have an approved extension: {extensions}"
+#~ msgstr "Le fichier n'a pas d'extension approuvée : {extensions}"
+
+#~ msgid "File does not have an approved extension."
+#~ msgstr "Le fichier n'a pas d'extension approuvée."
+
+#~ msgid "Invalid field name '%s'."
+#~ msgstr "Nom de champ invalide « %s »."
+
+#~ msgid "Field must be equal to %(other_name)s."
+#~ msgstr "Le champ doit être égal à %(other_name)s."
+
+#~ msgid "Field must be at least %(min)d character long."
+#~ msgid_plural "Field must be at least %(min)d characters long."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Field cannot be longer than %(max)d character."
+#~ msgid_plural "Field cannot be longer than %(max)d characters."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Field must be exactly %(max)d character long."
+#~ msgid_plural "Field must be exactly %(max)d characters long."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Field must be between %(min)d and %(max)d characters long."
+#~ msgstr "Le champ doit comporter entre %(min)d et %(max)d caractères."
+
+#~ msgid "Number must be at least %(min)s."
+#~ msgstr "Le nombre doit être au moins égal à %(min)s."
+
+#~ msgid "Number must be at most %(max)s."
+#~ msgstr "Le nombre doit être au maximum de %(max)s."
+
+#~ msgid "Number must be between %(min)s and %(max)s."
+#~ msgstr "Le nombre doit être compris entre %(min)s et %(max)s."
+
+#~ msgid "Invalid input."
+#~ msgstr "Entrée non valide."
+
+#~ msgid "Invalid email address."
+#~ msgstr "Adresse e-mail invalide."
+
+#~ msgid "Invalid IP address."
+#~ msgstr "Adresse IP non valide."
+
+#~ msgid "Invalid Mac address."
+#~ msgstr "Adresse Mac non valide."
+
+#~ msgid "Invalid URL."
+#~ msgstr "URL invalide."
+
+#~ msgid "Invalid UUID."
+#~ msgstr "UUID invalide."
+
+#~ msgid "Invalid value, must be one of: %(values)s."
+#~ msgstr "Valeur non valide, doit être l'une des suivantes : %(values)s."
+
+#~ msgid "Invalid value, can't be any of: %(values)s."
+#~ msgstr "Valeur non valide, ne peut être aucune des suivantes : %(values)s."
+
+#~ msgid "This field cannot be edited."
+#~ msgstr "Ce champ ne peut pas être modifié."
+
+#~ msgid "This field is disabled and cannot have a value."
+#~ msgstr "Ce champ est désactivé et ne peut pas avoir de valeur."
+
+#~ msgid "Invalid CSRF Token."
+#~ msgstr "Jeton CSRF invalide."
+
+#~ msgid "CSRF token missing."
+#~ msgstr "Jeton CSRF manquant."
+
+#~ msgid "CSRF failed."
+#~ msgstr "CSRF a échoué."
+
+#~ msgid "CSRF token expired."
+#~ msgstr "Le jeton CSRF a expiré."
+
+#~ msgid "Invalid Choice: could not coerce."
+#~ msgstr "Choix invalide : impossible de contraindre."
+
+#~ msgid "Choices cannot be None."
+#~ msgstr "Les choix ne peuvent pas être « Aucun »."
+
+#~ msgid "Not a valid choice."
+#~ msgstr "Ce n'est pas un choix valide."
+
+#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
+#~ msgstr ""
+#~ "Choix invalide(s) : une ou plusieurs "
+#~ "entrées de données n'ont pas pu "
+#~ "être converties."
+
+#~ msgid "'%(value)s' is not a valid choice for this field."
+#~ msgid_plural "'%(value)s' are not valid choices for this field."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Not a valid datetime value."
+#~ msgstr "Valeur de date/heure non valide."
+
+#~ msgid "Not a valid date value."
+#~ msgstr "Valeur de date non valide."
+
+#~ msgid "Not a valid time value."
+#~ msgstr "Valeur temporelle non valide."
+
+#~ msgid "Not a valid week value."
+#~ msgstr "Valeur hebdomadaire non valide."
+
+#~ msgid "Not a valid integer value."
+#~ msgstr "Valeur entière non valide."
+
+#~ msgid "Not a valid decimal value."
+#~ msgstr "Valeur décimale non valide."
+
+#~ msgid "Not a valid float value."
+#~ msgstr "Valeur flottante non valide."
+
