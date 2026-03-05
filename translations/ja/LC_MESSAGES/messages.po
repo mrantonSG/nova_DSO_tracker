@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 13:03+0800\n"
+"POT-Creation-Date: 2026-03-05 14:14+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -113,7 +113,8 @@ msgstr "リグの保存中にエラーが発生しました: %(error)s"
 
 #: nova/__init__.py:6263
 msgid "Cannot delete component: It is used in at least one rig."
-msgstr "コンポーネントを削除できません: 少なくとも1つのリグで使用されています。"
+msgstr ""
+"コンポーネントを削除できません: 少なくとも1つのリグで使用されています。"
 
 #: nova/__init__.py:6268
 msgid "Component deleted successfully."
@@ -159,7 +160,8 @@ msgstr "日記の更新に成功しました！"
 
 #: nova/__init__.py:6946
 msgid "Cannot edit session: associated object name is missing."
-msgstr "セッションを編集できません: 関連付けられたオブジェクト名が欠落しています。"
+msgstr ""
+"セッションを編集できません: 関連付けられたオブジェクト名が欠落しています。"
 
 #: nova/__init__.py:6971
 msgid "Project name is required."
@@ -213,7 +215,7 @@ msgstr "フィルターは既に存在します"
 msgid "Filter not found"
 msgstr "フィルターが見つかりません"
 
-#: nova/__init__.py:7182 nova/__init__.py:13897
+#: nova/__init__.py:7182 nova/__init__.py:13898
 msgid "Session not found."
 msgstr "セッションが見つかりません。"
 
@@ -226,377 +228,406 @@ msgstr "ログアウトに成功しました！"
 msgid "Language '%(lang)s' is not supported."
 msgstr "言語 '%(lang)s' はサポートされていません。"
 
-#: nova/__init__.py:7470
+#: nova/__init__.py:7471
 msgid "Logged in successfully!"
 msgstr "ログインに成功しました！"
 
-#: nova/__init__.py:7486
+#: nova/__init__.py:7487
 msgid "Invalid username or password."
 msgstr "ユーザー名またはパスワードが無効です。"
 
-#: nova/__init__.py:7493
+#: nova/__init__.py:7494
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr "シングルサインオンはシングルユーザーモードでは適用されません。"
 
-#: nova/__init__.py:7499
+#: nova/__init__.py:7500
 msgid "SSO Error: No token provided."
 msgstr "SSO エラー: トークンが提供されていません。"
 
-#: nova/__init__.py:7505
+#: nova/__init__.py:7506
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "SSO エラー: サーバーで SSO が設定されていません。"
 
-#: nova/__init__.py:7523
+#: nova/__init__.py:7524
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "おかえりなさい、%(username)sさん！"
 
-#: nova/__init__.py:7526
+#: nova/__init__.py:7527
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
-msgstr "SSO エラー: Nova でユーザー '%(username)s' が見つかりません、または無効になっています。"
+msgstr ""
+"SSO エラー: Nova でユーザー '%(username)s' が見つかりません、または無効になっ"
+"ています。"
 
-#: nova/__init__.py:7530
+#: nova/__init__.py:7531
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
-msgstr "SSOエラー：ログインリンクの有効期限が切れています。WordPressから再度お試しください。"
+msgstr ""
+"SSOエラー：ログインリンクの有効期限が切れています。WordPressから再度お試しく"
+"ださい。"
 
-#: nova/__init__.py:7533
+#: nova/__init__.py:7534
 msgid "SSO Error: Invalid login token."
 msgstr "SSO エラー: 無効なログイン トークンです。"
 
-#: nova/__init__.py:7682 nova/__init__.py:7772 nova/__init__.py:9892
-#: nova/__init__.py:11587 nova/__init__.py:13035 nova/__init__.py:13054
-#: nova/__init__.py:13073
+#: nova/__init__.py:7683 nova/__init__.py:7773 nova/__init__.py:9893
+#: nova/__init__.py:11588 nova/__init__.py:13036 nova/__init__.py:13055
+#: nova/__init__.py:13074
 msgid "User not found."
 msgstr "ユーザーが見つかりません。"
 
-#: nova/__init__.py:7759
+#: nova/__init__.py:7760
 #, python-format
 msgid "Error generating config file: %(error)s"
 msgstr "設定ファイルの生成中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:7878
+#: nova/__init__.py:7879
 #, python-format
 msgid "Error generating journal file: %(error)s"
 msgstr "ジャーナルファイルの生成中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:7909 nova/__init__.py:7914
+#: nova/__init__.py:7910 nova/__init__.py:7915
 msgid "No file selected for journal import."
 msgstr "ジャーナルインポート用のファイルが選択されていません。"
 
-#: nova/__init__.py:7928
+#: nova/__init__.py:7929
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
 msgstr "無効なジャーナルファイル構造: %(message)s"
 
-#: nova/__init__.py:7952
+#: nova/__init__.py:7953
 msgid "Journal imported successfully! (Previous journal data was replaced)"
-msgstr "ジャーナルのインポートに成功しました！（以前のジャーナルデータは上書きされました）"
+msgstr ""
+"ジャーナルのインポートに成功しました！（以前のジャーナルデータは上書きされま"
+"した）"
 
-#: nova/__init__.py:7964
+#: nova/__init__.py:7965
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
-msgstr "インポートに失敗しました: ジャーナルファイルのYAML形式が無効です。 %(error)s"
+msgstr ""
+"インポートに失敗しました: ジャーナルファイルのYAML形式が無効です。 %(error)s"
 
-#: nova/__init__.py:7972 nova/__init__.py:8103
+#: nova/__init__.py:7973 nova/__init__.py:8104
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr "インポートに失敗しました: %(error)s"
 
-#: nova/__init__.py:7975
+#: nova/__init__.py:7976
 msgid "Invalid file type. Please upload a .yaml journal file."
-msgstr "無効なファイル形式です。.yaml形式のジャーナルファイルをアップロードしてください。"
+msgstr ""
+"無効なファイル形式です。.yaml形式のジャーナルファイルをアップロードしてくださ"
+"い。"
 
-#: nova/__init__.py:7987
+#: nova/__init__.py:7988
 msgid "Authentication error during import."
 msgstr "インポート中に認証エラーが発生しました。"
 
-#: nova/__init__.py:7992 nova/__init__.py:7997
+#: nova/__init__.py:7993 nova/__init__.py:7998
 msgid "No file selected for import."
 msgstr "インポートするファイルが選択されていません。"
 
-#: nova/__init__.py:8019
+#: nova/__init__.py:8020
 msgid "Cannot import: Configuration must contain at least one location."
-msgstr "インポートできません: 構成には少なくとも1つの場所が含まれている必要があります。"
+msgstr ""
+"インポートできません: 構成には少なくとも1つの場所が含まれている必要がありま"
+"す。"
 
-#: nova/__init__.py:8027
+#: nova/__init__.py:8028
 msgid "Cannot import: Configuration must contain at least one active location."
-msgstr "インポートできません: 構成には少なくとも1つのアクティブな場所が含まれている必要があります。"
+msgstr ""
+"インポートできません: 構成には少なくとも1つのアクティブな場所が含まれている必"
+"要があります。"
 
-#: nova/__init__.py:8058
+#: nova/__init__.py:8059
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr "設定のインポートに成功しました！（以前の設定は上書きされました）"
 
-#: nova/__init__.py:8100
+#: nova/__init__.py:8101
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr "インポートに失敗しました: 無効なYAMLです。(%(error)s)"
 
-#: nova/__init__.py:8125
+#: nova/__init__.py:8126
 msgid "Authentication error during catalog import."
 msgstr "カタログインポート中の認証エラー。"
 
-#: nova/__init__.py:8135
+#: nova/__init__.py:8136
 msgid "Catalog pack not found or invalid."
 msgstr "カタログパックが見つかりません、または無効です。"
 
-#: nova/__init__.py:8147
+#: nova/__init__.py:8148
 msgid "Catalog import failed due to an internal error."
 msgstr "カタログのインポートが内部エラーにより失敗しました。"
 
-#: nova/__init__.py:8337 nova/__init__.py:8516
+#: nova/__init__.py:8338 nova/__init__.py:8517
 msgid "No object specified."
 msgstr "オブジェクトが指定されていません。"
 
-#: nova/__init__.py:8344 nova/__init__.py:10514 nova/__init__.py:10538
+#: nova/__init__.py:8345 nova/__init__.py:10515 nova/__init__.py:10539
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "オブジェクトが見つかりません。"
 
-#: nova/__init__.py:8675
+#: nova/__init__.py:8676
 msgid "Object not found"
 msgstr "オブジェクトが見つかりません"
 
-#: nova/__init__.py:8846
+#: nova/__init__.py:8847
 msgid "Fetched and saved missing object details."
 msgstr "不足していたオブジェクトの詳細を取得して保存しました。"
 
-#: nova/__init__.py:8848
+#: nova/__init__.py:8849
 msgid "No missing data found or no updates needed."
 msgstr "欠落データは見つかりませんでした、または更新の必要はありません。"
 
-#: nova/__init__.py:8852
+#: nova/__init__.py:8853
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "データ取得中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:9264
+#: nova/__init__.py:9265
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>ヘルプファイルの読み込みエラー: %(error)s</p>"
 
-#: nova/__init__.py:9899
+#: nova/__init__.py:9900
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr "オブジェクト '%(object_name)s' が見つかりません。"
 
-#: nova/__init__.py:10219
+#: nova/__init__.py:10220
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "データベースにユーザー '%(username)s' が見つかりませんでした。"
 
-#: nova/__init__.py:10288
+#: nova/__init__.py:10289
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "警告: ホライゾンマスクが無効であったため無視されました。"
 
-#: nova/__init__.py:10310
+#: nova/__init__.py:10311
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
-msgstr "最後の位置情報を削除できません。少なくとも1つの位置情報を設定する必要があります。"
+msgstr ""
+"最後の位置情報を削除できません。少なくとも1つの位置情報を設定する必要がありま"
+"す。"
 
-#: nova/__init__.py:10315
+#: nova/__init__.py:10316
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
-msgstr "唯一の有効な位置情報を無効化できません。少なくとも1つの有効な位置情報を保持する必要があります。"
+msgstr ""
+"唯一の有効な位置情報を無効化できません。少なくとも1つの有効な位置情報を保持す"
+"る必要があります。"
 
-#: nova/__init__.py:10351
+#: nova/__init__.py:10352
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
-msgstr "警告: '%(location_name)s' のホライズンマスクが無効なため無視されました。"
+msgstr ""
+"警告: '%(location_name)s' のホライズンマスクが無効なため無視されました。"
 
-#: nova/__init__.py:10398
+#: nova/__init__.py:10399
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s が正常に更新されました。"
 
-#: nova/__init__.py:10471
+#: nova/__init__.py:10472
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "データベースエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:10646
+#: nova/__init__.py:10647
 msgid "Please log in to view object details."
 msgstr "オブジェクトの詳細を表示するにはログインしてください。"
 
-#: nova/__init__.py:10661
+#: nova/__init__.py:10662
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "ユーザー '%(username)s' は見つかりませんでした。"
 
-#: nova/__init__.py:10675
+#: nova/__init__.py:10676
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
-msgstr "指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
+msgstr ""
+"指定された場所 '%(location_name)s' が見つかりません。デフォルトを使用します。"
 
-#: nova/__init__.py:10689
+#: nova/__init__.py:10690
 msgid "Error: No valid location configured or selected for this user."
 msgstr "エラー: このユーザーに対して有効な場所が設定または選択されていません。"
 
-#: nova/__init__.py:10707
+#: nova/__init__.py:10708
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "オブジェクト '%(object_name)s' が設定に見つかりません。"
 
-#: nova/__init__.py:10934
+#: nova/__init__.py:10935
 msgid "Invalid date components provided, defaulting to current date."
-msgstr "無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用します。"
+msgstr ""
+"無効な日付コンポーネントが指定されました。デフォルトで現在の日付を使用しま"
+"す。"
 
-#: nova/__init__.py:11137
+#: nova/__init__.py:11138
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "%(object_name)s の詳細を読み込む際にエラーが発生しました。"
 
-#: nova/__init__.py:11464 nova/__init__.py:13905
+#: nova/__init__.py:11465 nova/__init__.py:13906
 msgid "Project not found."
 msgstr "プロジェクトが見つかりません。"
 
-#: nova/__init__.py:11479
+#: nova/__init__.py:11480
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
-msgstr "プロジェクト '%(project_name)s' が削除されました。セッションは現在スタンドアロンです。"
+msgstr ""
+"プロジェクト '%(project_name)s' が削除されました。セッションは現在スタンドア"
+"ロンです。"
 
-#: nova/__init__.py:11487
+#: nova/__init__.py:11488
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "プロジェクト削除エラー: %(error)s"
 
-#: nova/__init__.py:11676
+#: nova/__init__.py:11677
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "リグ設定の生成中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:11696
+#: nova/__init__.py:11697
 msgid "No journal photos found to download."
 msgstr "ダウンロード可能なジャーナル写真は見つかりませんでした。"
 
-#: nova/__init__.py:11741
+#: nova/__init__.py:11742
 msgid "No file selected for photo import."
 msgstr "写真インポート用のファイルが選択されていません。"
 
-#: nova/__init__.py:11746
+#: nova/__init__.py:11747
 msgid "Please select a valid .zip file to import."
 msgstr "インポートする有効な .zip ファイルを選択してください。"
 
-#: nova/__init__.py:11759
+#: nova/__init__.py:11760
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
-msgstr "インポートに失敗しました: アップロードされたファイルは有効なZIPアーカイブではありません。"
+msgstr ""
+"インポートに失敗しました: アップロードされたファイルは有効なZIPアーカイブでは"
+"ありません。"
 
-#: nova/__init__.py:11793
+#: nova/__init__.py:11794
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
-msgstr "ジャーナル写真が正常にインポートされました！%(count)dファイルを抽出しました。"
+msgstr ""
+"ジャーナル写真が正常にインポートされました！%(count)dファイルを抽出しました。"
 
-#: nova/__init__.py:11796
+#: nova/__init__.py:11797
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "インポートに失敗しました: ZIPファイルが破損しているようです。"
 
-#: nova/__init__.py:11798
+#: nova/__init__.py:11799
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "インポート中に予期しないエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:11901 nova/__init__.py:11906
+#: nova/__init__.py:11902 nova/__init__.py:11907
 msgid "No file selected for rigs import."
 msgstr "リグのインポート用にファイルが選択されていません。"
 
-#: nova/__init__.py:11936
+#: nova/__init__.py:11937
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr "リグ構成のインポートとデータベースへの同期が正常に完了しました！"
 
-#: nova/__init__.py:11944
+#: nova/__init__.py:11945
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "リグファイルのインポート中にエラーが発生しました: %(error)s"
 
-#: nova/__init__.py:11947
+#: nova/__init__.py:11948
 msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr "無効なファイル形式です。.yaml または .yml ファイルをアップロードしてください。"
+msgstr ""
+"無効なファイル形式です。.yaml または .yml ファイルをアップロードしてくださ"
+"い。"
 
-#: nova/__init__.py:12899
+#: nova/__init__.py:12900
 msgid "Not authorized to export another user's data."
 msgstr "他のユーザーのデータを出力する権限がありません。"
 
-#: nova/__init__.py:12903
+#: nova/__init__.py:12904
 msgid "Export failed (no such user or empty data)."
-msgstr "エクスポートに失敗しました（該当ユーザーが存在しないか、データが空です）。"
+msgstr ""
+"エクスポートに失敗しました（該当ユーザーが存在しないか、データが空です）。"
 
-#: nova/__init__.py:12932
+#: nova/__init__.py:12933
 msgid "Username is required in multi-user mode."
 msgstr "マルチユーザーモードではユーザー名が必要です。"
 
-#: nova/__init__.py:12937
+#: nova/__init__.py:12938
 msgid "Not authorized to import for another user."
 msgstr "他のユーザーのために輸入する権限がありません。"
 
-#: nova/__init__.py:12945
+#: nova/__init__.py:12946
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr "設定ファイル、リグ、およびジャーナルのYAMLファイルを提供してください。"
 
-#: nova/__init__.py:12965
+#: nova/__init__.py:12966
 msgid "Import completed successfully!"
 msgstr "インポートが正常に完了しました！"
 
-#: nova/__init__.py:12967
+#: nova/__init__.py:12968
 msgid "Import failed. See server logs for details."
 msgstr "インポートに失敗しました。詳細はサーバーログを参照してください。"
 
-#: nova/__init__.py:12970
+#: nova/__init__.py:12971
 msgid "Import crashed. Check logs."
 msgstr "インポートがクラッシュしました。ログを確認してください。"
 
-#: nova/__init__.py:12977 nova/__init__.py:13001 nova/__init__.py:13010
-#: nova/__init__.py:13031 nova/__init__.py:13050 nova/__init__.py:13069
+#: nova/__init__.py:12978 nova/__init__.py:13002 nova/__init__.py:13011
+#: nova/__init__.py:13032 nova/__init__.py:13051 nova/__init__.py:13070
 msgid "Not authorized."
 msgstr "許可されていません。"
 
-#: nova/__init__.py:12981
+#: nova/__init__.py:12982
 msgid "Database repair completed."
 msgstr "データベースの修復が完了しました。"
 
-#: nova/__init__.py:12983
+#: nova/__init__.py:12984
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "修復に失敗しました: %(error)s"
 
-#: nova/__init__.py:13015
+#: nova/__init__.py:13016
 msgid "Username and password are required."
 msgstr "ユーザー名とパスワードが必要です。"
 
-#: nova/__init__.py:13018
+#: nova/__init__.py:13019
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr "ユーザー '%(username)s' は既に存在します。"
 
-#: nova/__init__.py:13024
+#: nova/__init__.py:13025
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr "ユーザー '%(username)s' の作成に成功しました。"
 
-#: nova/__init__.py:13038
+#: nova/__init__.py:13039
 msgid "Cannot deactivate the admin account."
 msgstr "管理者アカウントを無効化できません。"
 
-#: nova/__init__.py:13043
+#: nova/__init__.py:13044
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr "ユーザー '%(username)s' は %(status)s です。"
 
-#: nova/__init__.py:13058
+#: nova/__init__.py:13059
 msgid "Password cannot be empty."
 msgstr "パスワードは空欄にできません。"
 
-#: nova/__init__.py:13062
+#: nova/__init__.py:13063
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr "'%(username)s' のパスワードリセット"
 
-#: nova/__init__.py:13076
+#: nova/__init__.py:13077
 msgid "Cannot delete the admin account."
 msgstr "管理者アカウントを削除できません。"
 
-#: nova/__init__.py:13081
+#: nova/__init__.py:13082
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr "ユーザー '%(username)s' が削除されました。"
@@ -613,7 +644,9 @@ msgstr "初期化中..."
 msgid ""
 "* Vertical light bands = Full Moon (Washed out). Darker Green = Best "
 "Quality. Click object names to view details."
-msgstr "* 縦方向の明るい帯 = 満月（白飛び）。濃い緑色 = 最良の品質。オブジェクト名をクリックすると詳細が表示されます。"
+msgstr ""
+"* 縦方向の明るい帯 = 満月（白飛び）。濃い緑色 = 最良の品質。オブジェクト名を"
+"クリックすると詳細が表示されます。"
 
 #: templates/_inspiration_section.html:470
 msgid "Refresh Suggestions"
@@ -647,7 +680,8 @@ msgstr "出典: Wiki"
 #: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
 #: templates/base.html:215 templates/base.html:235 templates/base.html:243
-#: templates/config_form.html:640 templates/graph_view.html:276
+#: templates/base.html:281 templates/config_form.html:640
+#: templates/graph_view.html:276
 msgid "Close"
 msgstr "閉じる"
 
@@ -1161,8 +1195,8 @@ msgstr "プロジェクトを編集"
 
 #: templates/_journal_section.html:1516
 msgid ""
-"Are you sure you want to delete this project? Linked sessions will become"
-" standalone."
+"Are you sure you want to delete this project? Linked sessions will become "
+"standalone."
 msgstr "このセッションを完全に削除してもよろしいですか？"
 
 #: templates/_journal_section.html:1518
@@ -1230,7 +1264,8 @@ msgstr "プロジェクトを保存"
 #: templates/_journal_section.html:1606 templates/_journal_section.html:1676
 #: templates/_journal_section.html:1708 templates/_objects_section.html:347
 #: templates/_project_subtab.html:232 templates/admin_users.html:120
-#: templates/index.html:248 templates/journal_form.html:210
+#: templates/base.html:314 templates/index.html:248
+#: templates/journal_form.html:210
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -1284,8 +1319,8 @@ msgstr "セッション終了"
 
 #: templates/_journal_section.html:1665
 msgid ""
-"Select a session or project from the list on the left to view details, or"
-" click 'Add New Session'."
+"Select a session or project from the list on the left to view details, or "
+"click 'Add New Session'."
 msgstr ""
 
 #: templates/_journal_section.html:1675
@@ -1627,7 +1662,9 @@ msgstr "ネットワークエラー。"
 #: templates/_journal_section.html:1954
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
-msgstr "「{label}」を削除しますか？このフィルターの履歴セッションデータは保持されます。"
+msgstr ""
+"「{label}」を削除しますか？このフィルターの履歴セッションデータは保持されま"
+"す。"
 
 #: templates/_journal_section.html:1955
 msgid "Error removing filter."
@@ -1956,7 +1993,10 @@ msgid ""
 "Catalog packs are server-provided object collections you can import into "
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
-msgstr "カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレクションです。インポートは非破壊的であり、既存のオブジェクトは上書きされることはなく、重複するオブジェクトはスキップされます。"
+msgstr ""
+"カタログパックは、ライブラリにインポートできるサーバー提供のオブジェクトコレ"
+"クションです。インポートは非破壊的であり、既存のオブジェクトは上書きされるこ"
+"とはなく、重複するオブジェクトはスキップされます。"
 
 #: templates/_objects_section.html:386 templates/config_form.html:574
 #: templates/graph_view.html:201
@@ -1990,12 +2030,16 @@ msgstr "重複の可能性"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will"
-" move all journals, projects, and framings to the \"Kept\" object and "
-"delete the other. Please note that objects from different catalogs might "
-"have slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will "
+"move all journals, projects, and framings to the \"Kept\" object and delete "
+"the other. Please note that objects from different catalogs might have "
+"slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
-msgstr "これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャーナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合があるため、重複とは見なされない点にご注意ください。"
+msgstr ""
+"これらのペアは互いに2.5分角以内に位置しています。マージすると、すべてのジャー"
+"ナル、プロジェクト、フレーミングが「保持」オブジェクトに移動され、もう一方は"
+"削除されます。異なるカタログのオブジェクトはRA/DECがわずかに異なる場合がある"
+"ため、重複とは見なされない点にご注意ください。"
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2042,10 +2086,13 @@ msgstr "カレンダーに追加"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details**"
-" sub-tab will only appear if the object is the primary target of an "
-"existing project."
-msgstr "このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合にのみ表示されます。"
+"This object is not currently linked to a Project. The **Project Details** "
+"sub-tab will only appear if the object is the primary target of an existing "
+"project."
+msgstr ""
+"このオブジェクトは現在、プロジェクトに関連付けられていません。**プロジェクト"
+"詳細**サブタブは、このオブジェクトが既存プロジェクトの主要な対象である場合に"
+"のみ表示されます。"
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -2202,8 +2249,8 @@ msgid ""
 "Delete user '%(username)s'? This removes their login credentials. Their "
 "observing data in app.db is NOT deleted."
 msgstr ""
-"ユーザー '%(username)s' を削除しますか？これにより、そのユーザーのログイン認証情報が削除されます。app.db "
-"内のそのユーザーの観測データは削除されません。"
+"ユーザー '%(username)s' を削除しますか？これにより、そのユーザーのログイン認"
+"証情報が削除されます。app.db 内のそのユーザーの観測データは削除されません。"
 
 #: templates/admin_users.html:118
 msgid "New password"
@@ -2281,7 +2328,8 @@ msgstr "機能の使用状況データはまだ利用できません"
 
 #: templates/analytics.html:324
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
-msgstr "Nova DSO Tracker Analytics — GDPR準拠、個人識別情報（PII）は保存されません"
+msgstr ""
+"Nova DSO Tracker Analytics — GDPR準拠、個人識別情報（PII）は保存されません"
 
 #: templates/base.html:121
 msgid "Demo Mode:"
@@ -2291,7 +2339,9 @@ msgstr "デモモード:"
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
-msgstr "ご覧になっているのは読み取り専用デモです。保存などの全機能は登録ユーザー向けに有効化されています。"
+msgstr ""
+"ご覧になっているのは読み取り専用デモです。保存などの全機能は登録ユーザー向け"
+"に有効化されています。"
 
 #: templates/base.html:145
 msgid "About Nova DSO Tracker"
@@ -2333,7 +2383,9 @@ msgstr "ログアウト"
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
-msgstr "この言語の翻訳は機械翻訳であり、正確ではない可能性があります。改善にご協力ください！"
+msgstr ""
+"この言語の翻訳は機械翻訳であり、正確ではない可能性があります。改善にご協力く"
+"ださい！"
 
 #: templates/base.html:213
 msgid "Submit feedback"
@@ -2353,18 +2405,19 @@ msgid "Version"
 msgstr "バージョン"
 
 #: templates/base.html:253
-msgid "A personal project born from a passion for astronomy and astrophotography."
+msgid ""
+"A personal project born from a passion for astronomy and astrophotography."
 msgstr "天文学と天体写真への情熱から生まれた個人的なプロジェクト。"
 
 #: templates/base.html:254
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing "
-"windows."
+"tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr ""
-"Nova DSO "
-"Trackerは、アマチュア天文学者が観測セッションを計画するのを支援します。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最適な観測時間帯を特定します。"
+"Nova DSO Trackerは、アマチュア天文学者が観測セッションを計画するのを支援しま"
+"す。深宇宙天体の高度と方位角を計算・可視化し、月の位置と満ち欠けを追跡し、最"
+"適な観測時間帯を特定します。"
 
 #: templates/base.html:255
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
@@ -2377,6 +2430,53 @@ msgstr "nova-tracker.comをご覧ください"
 #: templates/base.html:273
 msgid "Built by Anton Gutscher"
 msgstr "アントン・グッチャーによって構築"
+
+#: templates/base.html:288
+msgid "Translation Feedback"
+msgstr "翻訳フィードバック"
+
+#: templates/base.html:289
+msgid "Help us improve the translations for this language."
+msgstr "この言語の翻訳を改善するのを手伝ってください。"
+
+#: templates/base.html:293
+msgid "Locale"
+msgstr "ロケール"
+
+#: templates/base.html:298
+msgid "Term / Phrase"
+msgstr "用語 / フレーズ"
+
+#: templates/base.html:299
+msgid "The translated term that seems wrong..."
+msgstr "間違っているように見える翻訳用語..."
+
+#: templates/base.html:303
+msgid "Suggested Correction"
+msgstr "推奨修正"
+
+#: templates/base.html:304
+msgid "Your suggested translation..."
+msgstr "ご推奨翻訳..."
+
+#: templates/base.html:308
+msgid "Context / Notes"
+msgstr "コンテキスト / メモ"
+
+#: templates/base.html:308
+msgid "optional"
+msgstr "(任意)"
+
+#: templates/base.html:309
+msgid ""
+"Additional context about where this appears or why the correction is "
+"needed..."
+msgstr ""
+"それがどこに表示されるか、なぜ修正が必要かについての付加コンテキスト..."
+
+#: templates/base.html:313
+msgid "Submit"
+msgstr "送信"
 
 #: templates/config_form.html:4
 msgid "Nova – Configuration"
@@ -2461,7 +2561,9 @@ msgstr "闇"
 msgid ""
 "Choose how Nova appears. \"Follow System\" matches your OS setting and "
 "updates automatically."
-msgstr "Novaの表示方法を選択してください。「システムに合わせる」はOSの設定に合わせ、自動的に更新されます。"
+msgstr ""
+"Novaの表示方法を選択してください。「システムに合わせる」はOSの設定に合わせ、"
+"自動的に更新されます。"
 
 #: templates/config_form.html:153
 msgid "Min Observable (min):"
@@ -2491,9 +2593,12 @@ msgstr "計算。見えない物体："
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart"
-" Skip\" optimization)."
-msgstr "チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無効化）。"
+"geometrically impossible to see from your location (disabling the \"Smart "
+"Skip\" optimization)."
+msgstr ""
+"チェックすると、Novaはすべての天体の軌道計算を行います。これは、あなたの位置"
+"から幾何学的に見えなくとも計算対象となります（「スマートスキップ」最適化を無"
+"効化）。"
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -2501,10 +2606,12 @@ msgstr "見えないオブジェクトを隠す:"
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be "
-"hidden from the main list by default. They will still appear if you "
-"specifically search for them."
-msgstr "チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストから非表示になります。ただし、それらを直接検索した場合は表示されます。"
+"If checked, objects that are geometrically impossible to see will be hidden "
+"from the main list by default. They will still appear if you specifically "
+"search for them."
+msgstr ""
+"チェックすると、視覚的に表示不可能なオブジェクトはデフォルトでメインリストか"
+"ら非表示になります。ただし、それらを直接検索した場合は表示されます。"
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -2534,9 +2641,12 @@ msgstr "最速（60分サンプル）"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
-" devices."
-msgstr "注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに推奨されます。"
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
+"devices."
+msgstr ""
+"注：現在の高度は常にリアルタイムで計算されます。この設定は夜間概要値（最高高"
+"度、観測可能時間など）の精度を向上させるだけです。「高速」は低電力デバイスに"
+"推奨されます。"
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -2544,11 +2654,15 @@ msgstr "匿名テレメトリ："
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and "
-"counts of your data entries like objects, rigs, locations, and journals)."
-" No personal details are ever collected, and you can opt out anytime. "
-"Allowing it really helps me improve Nova."
-msgstr "Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェクト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの改善に大変役立ちます。"
+"Nova sends a small anonymous heartbeat (app version, system type, and counts "
+"of your data entries like objects, rigs, locations, and journals). No "
+"personal details are ever collected, and you can opt out anytime. Allowing "
+"it really helps me improve Nova."
+msgstr ""
+"Novaは小さな匿名のハートビート（アプリバージョン、システムタイプ、オブジェク"
+"ト・リグ・ロケーション・ジャーナルなどのデータ入力件数）を送信します。個人情"
+"報は一切収集されず、いつでもオプトアウト可能です。許可いただくことで、Novaの"
+"改善に大変役立ちます。"
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -2650,10 +2764,13 @@ msgstr "リグのヘルプ"
 
 #: templates/config_form.html:384
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to "
-"load its details into the form, make your changes, and click the "
-"\"Update\" button."
-msgstr "ここで装備を追加または更新してください。アイテムを編集するには、「編集」をクリックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリックしてください。"
+"Add or update your equipment here. To edit an item, click \"Edit\" to load "
+"its details into the form, make your changes, and click the \"Update\" "
+"button."
+msgstr ""
+"ここで装備を追加または更新してください。アイテムを編集するには、「編集」をク"
+"リックして詳細をフォームに読み込み、変更を加えた後、「更新」ボタンをクリック"
+"してください。"
 
 #: templates/config_form.html:385
 msgid "Telescopes"
@@ -2730,9 +2847,11 @@ msgstr "2. リグの設定"
 
 #: templates/config_form.html:444
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click "
-"\"Edit\" to load the rig into the form below."
-msgstr "コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集するには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
+"Combine your components into a complete imaging rig. To edit, click \"Edit\" "
+"to load the rig into the form below."
+msgstr ""
+"コンポーネントを組み合わせて完全なイメージングリグを作成してください。編集す"
+"るには「編集」をクリックし、リグを以下のフォームに読み込んでください。"
 
 #: templates/config_form.html:447
 msgid "Rig Name:"
@@ -2871,7 +2990,10 @@ msgstr "共有アイテムのヘルプ"
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
-msgstr "ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネントを確認できます。「インポート」をクリックすると、自身の構成にコピーを追加できます。"
+msgstr ""
+"ここでは、システム内の他のユーザーが共有しているオブジェクトとコンポーネント"
+"を確認できます。「インポート」をクリックすると、自身の構成にコピーを追加でき"
+"ます。"
 
 #: templates/config_form.html:531
 msgid "Shared Objects"
@@ -3088,13 +3210,16 @@ msgstr "外部ソース"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for "
-"this object yet."
-msgstr "このオブジェクトには、まだインスピレーションコンテンツ（カスタム画像または説明文）が追加されていません。"
+"No inspiration content (custom image or description) has been added for this "
+"object yet."
+msgstr ""
+"このオブジェクトには、まだインスピレーションコンテンツ（カスタム画像または説"
+"明文）が追加されていません。"
 
 #: templates/graph_view.html:214
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
-msgstr "<strong>設定 > オブジェクトの管理</strong> に移動して追加してください。"
+msgstr ""
+"<strong>設定 > オブジェクトの管理</strong> に移動して追加してください。"
 
 #: templates/graph_view.html:223
 msgid "Framing With Your Rigs"
@@ -3102,9 +3227,11 @@ msgstr "リグを用いたフレーミング"
 
 #: templates/graph_view.html:224
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect"
-" framing of specific features."
-msgstr "評価は対象物の最大寸法に基づいており、特定の特徴の枠組みを反映していない場合があります。"
+"Assessment is based on the object's largest dimension and may not reflect "
+"framing of specific features."
+msgstr ""
+"評価は対象物の最大寸法に基づいており、特定の特徴の枠組みを反映していない場合"
+"があります。"
 
 #: templates/graph_view.html:228
 msgid "Rig Name"
@@ -3156,8 +3283,8 @@ msgstr "ロックFOV"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected "
-"for your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for "
+"your latitude)"
 msgstr "静止衛星のおおよその位置を表示します（緯度に応じて補正済み）"
 
 #: templates/graph_view.html:288
@@ -3211,9 +3338,11 @@ msgstr "オーバーラップ %%"
 
 #: templates/graph_view.html:322
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
-"and Telescopius."
-msgstr "ASIAIR（天体計画インポート）、N.I.N.A.、およびTelescopiusと互換性のあるCSV形式を生成します。"
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
+"Telescopius."
+msgstr ""
+"ASIAIR（天体計画インポート）、N.I.N.A.、およびTelescopiusと互換性のあるCSV形"
+"式を生成します。"
 
 #: templates/graph_view.html:322
 msgid "Copy Plan (CSV)"
@@ -3245,9 +3374,9 @@ msgstr "飽和"
 
 #: templates/graph_view.html:372
 msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
-"mount."
-msgstr "座標はJNow（リアルタイム／日付の平均春分点）で、お使いの架台に合わせます。"
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
+msgstr ""
+"座標はJNow（リアルタイム／日付の平均春分点）で、お使いの架台に合わせます。"
 
 #: templates/graph_view.html:377
 msgid "Copy"
@@ -3639,9 +3768,11 @@ msgstr "例：1×1、2×2"
 
 #: templates/journal_form.html:163
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for"
-" each filter used. Leave blank if not used."
-msgstr "使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒単位）を入力してください。使用しない場合は空白のままにしてください。"
+"Enter number of subframes and exposure time (in seconds) per subframe for "
+"each filter used. Leave blank if not used."
+msgstr ""
+"使用する各フィルターごとに、サブフレーム数とサブフレームあたりの露光時間（秒"
+"単位）を入力してください。使用しない場合は空白のままにしてください。"
 
 #: templates/journal_form.html:172
 msgid "# Subs:"
@@ -4231,313 +4362,77 @@ msgstr "ゲイン/オフセット"
 msgid "Exp"
 msgstr "実験"
 
-#~ msgid "Usage:"
-#~ msgstr "使用法:"
-
-#~ msgid "{editor}: Editing failed"
-#~ msgstr "{editor}: 編集に失敗しました"
-
-#~ msgid "{editor}: Editing failed: {e}"
-#~ msgstr "{editor}: 編集に失敗しました: {e}"
-
-#~ msgid "Aborted!"
-#~ msgstr "中止！"
-
-#~ msgid "(Deprecated) {text}"
-#~ msgstr "(非推奨) {text}"
-
-#~ msgid "Options"
-#~ msgstr "オプション"
-
-#~ msgid "Got unexpected extra argument ({args})"
-#~ msgid_plural "Got unexpected extra arguments ({args})"
-#~ msgstr[0] ""
-
-#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
-#~ msgstr "非推奨警告: コマンド {name!r} は非推奨です。"
-
-#~ msgid "Commands"
-#~ msgstr "コマンド"
-
-#~ msgid "Missing command."
-#~ msgstr "コマンドが見つかりません。"
-
-#~ msgid "No such command {name!r}."
-#~ msgstr "そのようなコマンド {name!r} は存在しません。"
-
-#~ msgid "Value must be an iterable."
-#~ msgstr "値は反復可能でなければなりません。"
-
-#~ msgid "Takes {nargs} values but 1 was given."
-#~ msgid_plural "Takes {nargs} values but {len} were given."
-#~ msgstr[0] ""
-
-#~ msgid "env var: {var}"
-#~ msgstr "環境変数: {var}"
-
-#~ msgid "(dynamic)"
-#~ msgstr "(動的)"
-
-#~ msgid "default: {default}"
-#~ msgstr "デフォルト: {default}"
-
-#~ msgid "required"
-#~ msgstr "必須"
-
-#~ msgid "%(prog)s, version %(version)s"
-#~ msgstr "%(prog)s、バージョン %(version)s"
-
-#~ msgid "Show the version and exit."
-#~ msgstr "バージョンを表示して終了する。"
-
-#~ msgid "Show this message and exit."
-#~ msgstr "このメッセージを表示して終了します。"
-
-#~ msgid "Error: {message}"
-#~ msgstr "エラー: {message}"
-
-#~ msgid "Try '{command} {option}' for help."
-#~ msgstr "ヘルプについては '{command} {option}' を試してください。"
-
-#~ msgid "Invalid value: {message}"
-#~ msgstr "無効な値: {message}"
-
-#~ msgid "Invalid value for {param_hint}: {message}"
-#~ msgstr "{param_hint} の値が無効です: {message}"
-
-#~ msgid "Missing argument"
-#~ msgstr "引数が不足しています"
-
-#~ msgid "Missing option"
-#~ msgstr "オプションが不足しています"
-
-#~ msgid "Missing parameter"
-#~ msgstr "パラメータが不足しています"
-
-#~ msgid "Missing {param_type}"
-#~ msgstr "{param_type} が不足しています"
-
-#~ msgid "Missing parameter: {param_name}"
-#~ msgstr "パラメータ {param_name} が不足しています"
-
-#~ msgid "No such option: {name}"
-#~ msgstr "そのようなオプションはありません：{name}"
-
-#~ msgid "Did you mean {possibility}?"
-#~ msgid_plural "(Possible options: {possibilities})"
-#~ msgstr[0] ""
-
-#~ msgid "unknown error"
-#~ msgstr "不明なエラー"
-
-#~ msgid "Could not open file {filename!r}: {message}"
-#~ msgstr "ファイル {filename!r} を開けません: {message}"
-
-#~ msgid "Argument {name!r} takes {nargs} values."
-#~ msgstr "引数 {name!r} は {nargs} 個の値を取ります。"
-
-#~ msgid "Option {name!r} does not take a value."
-#~ msgstr "オプション {name!r} は値を受け付けません。"
-
-#~ msgid "Option {name!r} requires an argument."
-#~ msgid_plural "Option {name!r} requires {nargs} arguments."
-#~ msgstr[0] ""
-
-#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
-#~ msgstr "シェル補完は、バージョン4.4より古いBashではサポートされていません。"
-
-#~ msgid "Couldn't detect Bash version, shell completion is not supported."
-#~ msgstr "Bashのバージョンを検出できませんでした。シェル補完はサポートされていません。"
-
-#~ msgid "Repeat for confirmation"
-#~ msgstr "確認のため繰り返してください"
-
-#~ msgid "Error: The value you entered was invalid."
-#~ msgstr "エラー：入力した値が無効です。"
-
-#~ msgid "Error: {e.message}"
-#~ msgstr "エラー: {e.message}"
-
-#~ msgid "Error: The two entered values do not match."
-#~ msgstr "エラー：入力された2つの値が一致しません。"
-
-#~ msgid "Error: invalid input"
-#~ msgstr "エラー: 無効な入力"
-
-#~ msgid "Press any key to continue..."
-#~ msgstr "任意のキーを押して続行してください..."
-
-#~ msgid ""
-#~ "Choose from:\n"
-#~ "\t{choices}"
-#~ msgstr "以下の選択肢から選択してください：{choices}"
-
-#~ msgid "{value!r} is not {choice}."
-#~ msgid_plural "{value!r} is not one of {choices}."
-#~ msgstr[0] ""
-
-#~ msgid "{value!r} does not match the format {format}."
-#~ msgid_plural "{value!r} does not match the formats {formats}."
-#~ msgstr[0] ""
-
-#~ msgid "{value!r} is not a valid {number_type}."
-#~ msgstr "{value!r} は有効な {number_type} ではありません。"
-
-#~ msgid "{value} is not in the range {range}."
-#~ msgstr "{value} は {range} の範囲外です。"
-
-#~ msgid "{value!r} is not a valid boolean."
-#~ msgstr "{value!r} は有効なブール値ではありません。"
-
-#~ msgid "{value!r} is not a valid UUID."
-#~ msgstr "{value!r} は有効な UUID ではありません。"
-
-#~ msgid "file"
-#~ msgstr "ファイル"
-
-#~ msgid "directory"
-#~ msgstr "ディレクトリ"
-
-#~ msgid "path"
-#~ msgstr "経路"
-
-#~ msgid "{name} {filename!r} does not exist."
-#~ msgstr "{name} {filename!r} は存在しません。"
-
-#~ msgid "{name} {filename!r} is a file."
-#~ msgstr "{name} {filename!r} はファイルです。"
-
-#~ msgid "{name} {filename!r} is a directory."
-#~ msgstr "{name} {filename!r} はディレクトリです。"
-
-#~ msgid "{name} {filename!r} is not readable."
-#~ msgstr "{name} {filename!r} は読み取れません。"
-
-#~ msgid "{name} {filename!r} is not writable."
-#~ msgstr "{name} {filename!r} は書き込み不可です。"
-
-#~ msgid "{name} {filename!r} is not executable."
-#~ msgstr "{name} {filename!r} は実行ファイルではありません。"
-
-#~ msgid "{len_type} values are required, but {len_value} was given."
-#~ msgid_plural "{len_type} values are required, but {len_value} were given."
-#~ msgstr[0] ""
-
-#~ msgid "This field is required."
-#~ msgstr "この項目は必須です。"
-
-#~ msgid "File does not have an approved extension: {extensions}"
-#~ msgstr "ファイルの拡張子が承認されていません: {extensions}"
-
-#~ msgid "File does not have an approved extension."
-#~ msgstr "ファイルは承認された拡張子を持っていません。"
-
-#~ msgid "Invalid field name '%s'."
-#~ msgstr "無効なフィールド名 '%s'。"
-
-#~ msgid "Field must be equal to %(other_name)s."
-#~ msgstr "フィールドは %(other_name)s と等しくなければなりません。"
-
-#~ msgid "Field must be at least %(min)d character long."
-#~ msgid_plural "Field must be at least %(min)d characters long."
-#~ msgstr[0] ""
-
-#~ msgid "Field cannot be longer than %(max)d character."
-#~ msgid_plural "Field cannot be longer than %(max)d characters."
-#~ msgstr[0] ""
-
-#~ msgid "Field must be exactly %(max)d character long."
-#~ msgid_plural "Field must be exactly %(max)d characters long."
-#~ msgstr[0] ""
-
-#~ msgid "Field must be between %(min)d and %(max)d characters long."
-#~ msgstr "フィールドの長さは %(min)d 文字以上 %(max)d 文字以下でなければなりません。"
-
-#~ msgid "Number must be at least %(min)s."
-#~ msgstr "数値は少なくとも %(min)s でなければなりません。"
-
-#~ msgid "Number must be at most %(max)s."
-#~ msgstr "数値は最大%(max)sでなければなりません。"
-
-#~ msgid "Number must be between %(min)s and %(max)s."
-#~ msgstr "数値は %(min)s と %(max)s の間でなければなりません。"
-
-#~ msgid "Invalid input."
-#~ msgstr "無効な入力です。"
-
-#~ msgid "Invalid email address."
-#~ msgstr "無効なメールアドレスです。"
-
-#~ msgid "Invalid IP address."
-#~ msgstr "無効なIPアドレスです。"
-
-#~ msgid "Invalid Mac address."
-#~ msgstr "無効なMACアドレスです。"
-
-#~ msgid "Invalid URL."
-#~ msgstr "無効なURLです。"
-
-#~ msgid "Invalid UUID."
-#~ msgstr "無効なUUIDです。"
-
-#~ msgid "Invalid value, must be one of: %(values)s."
-#~ msgstr "無効な値です。次のいずれかでなければなりません: %(values)s。"
-
-#~ msgid "Invalid value, can't be any of: %(values)s."
-#~ msgstr "無効な値です。以下のいずれかである必要があります: %(values)s。"
-
-#~ msgid "This field cannot be edited."
-#~ msgstr "このフィールドは編集できません。"
-
-#~ msgid "This field is disabled and cannot have a value."
-#~ msgstr "このフィールドは無効化されており、値を設定できません。"
-
-#~ msgid "Invalid CSRF Token."
-#~ msgstr "無効なCSRFトークン。"
-
-#~ msgid "CSRF token missing."
-#~ msgstr "CSRFトークンが欠落しています。"
-
-#~ msgid "CSRF failed."
-#~ msgstr "CSRFが失敗しました。"
-
-#~ msgid "CSRF token expired."
-#~ msgstr "CSRFトークンが期限切れです。"
-
-#~ msgid "Invalid Choice: could not coerce."
-#~ msgstr "無効な選択: 型変換できませんでした。"
-
-#~ msgid "Choices cannot be None."
-#~ msgstr "選択肢は「なし」にできません。"
-
-#~ msgid "Not a valid choice."
-#~ msgstr "無効な選択です。"
-
-#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
-#~ msgstr "無効な選択: 1つ以上のデータ入力が強制変換できませんでした。"
-
-#~ msgid "'%(value)s' is not a valid choice for this field."
-#~ msgid_plural "'%(value)s' are not valid choices for this field."
-#~ msgstr[0] ""
-
-#~ msgid "Not a valid datetime value."
-#~ msgstr "有効な日付時刻値ではありません。"
-
-#~ msgid "Not a valid date value."
-#~ msgstr "有効な日付値ではありません。"
-
-#~ msgid "Not a valid time value."
-#~ msgstr "無効な時刻値です。"
-
-#~ msgid "Not a valid week value."
-#~ msgstr "有効な週の値ではありません。"
-
-#~ msgid "Not a valid integer value."
-#~ msgstr "有効な整数値ではありません。"
-
-#~ msgid "Not a valid decimal value."
-#~ msgstr "有効な10進数値ではありません。"
-
-#~ msgid "Not a valid float value."
-#~ msgstr "有効な浮動小数点値ではありません。"
-
+#: venv/lib/python3.13/site-packages/click/core.py:1422
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2334
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:232
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/click/parser.py:476
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:299
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:393
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:992
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
+#, fuzzy
+msgid "File does not have an approved extension."
+msgstr ""
+"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+"ファイルに承認された拡張子がありません。\n"
+"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+"ファイルは承認された拡張子を持っていません。"
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
+#, python-format
+msgid "Field must be exactly %(max)d character long."
+msgid_plural "Field must be exactly %(max)d characters long."
+msgstr[0] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field."
+msgid_plural "'%(value)s' are not valid choices for this field."
+msgstr[0] ""

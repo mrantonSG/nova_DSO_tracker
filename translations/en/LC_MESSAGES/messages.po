@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 13:03+0800\n"
+"POT-Creation-Date: 2026-03-05 14:14+0800\n"
 "PO-Revision-Date: 2026-03-03 13:38+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -213,7 +213,7 @@ msgstr ""
 msgid "Filter not found"
 msgstr ""
 
-#: nova/__init__.py:7182 nova/__init__.py:13897
+#: nova/__init__.py:7182 nova/__init__.py:13898
 msgid "Session not found."
 msgstr ""
 
@@ -226,377 +226,377 @@ msgstr ""
 msgid "Language '%(lang)s' is not supported."
 msgstr ""
 
-#: nova/__init__.py:7470
+#: nova/__init__.py:7471
 msgid "Logged in successfully!"
 msgstr ""
 
-#: nova/__init__.py:7486
+#: nova/__init__.py:7487
 msgid "Invalid username or password."
 msgstr ""
 
-#: nova/__init__.py:7493
+#: nova/__init__.py:7494
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr ""
 
-#: nova/__init__.py:7499
+#: nova/__init__.py:7500
 msgid "SSO Error: No token provided."
 msgstr ""
 
-#: nova/__init__.py:7505
+#: nova/__init__.py:7506
 msgid "SSO Error: SSO is not configured on the server."
 msgstr ""
 
-#: nova/__init__.py:7523
+#: nova/__init__.py:7524
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr ""
 
-#: nova/__init__.py:7526
+#: nova/__init__.py:7527
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
 
-#: nova/__init__.py:7530
+#: nova/__init__.py:7531
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 
-#: nova/__init__.py:7533
+#: nova/__init__.py:7534
 msgid "SSO Error: Invalid login token."
 msgstr ""
 
-#: nova/__init__.py:7682 nova/__init__.py:7772 nova/__init__.py:9892
-#: nova/__init__.py:11587 nova/__init__.py:13035 nova/__init__.py:13054
-#: nova/__init__.py:13073
+#: nova/__init__.py:7683 nova/__init__.py:7773 nova/__init__.py:9893
+#: nova/__init__.py:11588 nova/__init__.py:13036 nova/__init__.py:13055
+#: nova/__init__.py:13074
 msgid "User not found."
 msgstr ""
 
-#: nova/__init__.py:7759
+#: nova/__init__.py:7760
 #, python-format
 msgid "Error generating config file: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:7878
+#: nova/__init__.py:7879
 #, python-format
 msgid "Error generating journal file: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:7909 nova/__init__.py:7914
+#: nova/__init__.py:7910 nova/__init__.py:7915
 msgid "No file selected for journal import."
 msgstr ""
 
-#: nova/__init__.py:7928
+#: nova/__init__.py:7929
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
 msgstr ""
 
-#: nova/__init__.py:7952
+#: nova/__init__.py:7953
 msgid "Journal imported successfully! (Previous journal data was replaced)"
 msgstr ""
 
-#: nova/__init__.py:7964
+#: nova/__init__.py:7965
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
 
-#: nova/__init__.py:7972 nova/__init__.py:8103
+#: nova/__init__.py:7973 nova/__init__.py:8104
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:7975
+#: nova/__init__.py:7976
 msgid "Invalid file type. Please upload a .yaml journal file."
 msgstr ""
 
-#: nova/__init__.py:7987
+#: nova/__init__.py:7988
 msgid "Authentication error during import."
 msgstr ""
 
-#: nova/__init__.py:7992 nova/__init__.py:7997
+#: nova/__init__.py:7993 nova/__init__.py:7998
 msgid "No file selected for import."
 msgstr ""
 
-#: nova/__init__.py:8019
+#: nova/__init__.py:8020
 msgid "Cannot import: Configuration must contain at least one location."
 msgstr ""
 
-#: nova/__init__.py:8027
+#: nova/__init__.py:8028
 msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 
-#: nova/__init__.py:8058
+#: nova/__init__.py:8059
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
 
-#: nova/__init__.py:8100
+#: nova/__init__.py:8101
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr ""
 
-#: nova/__init__.py:8125
+#: nova/__init__.py:8126
 msgid "Authentication error during catalog import."
 msgstr ""
 
-#: nova/__init__.py:8135
+#: nova/__init__.py:8136
 msgid "Catalog pack not found or invalid."
 msgstr ""
 
-#: nova/__init__.py:8147
+#: nova/__init__.py:8148
 msgid "Catalog import failed due to an internal error."
 msgstr ""
 
-#: nova/__init__.py:8337 nova/__init__.py:8516
+#: nova/__init__.py:8338 nova/__init__.py:8517
 msgid "No object specified."
 msgstr ""
 
-#: nova/__init__.py:8344 nova/__init__.py:10514 nova/__init__.py:10538
+#: nova/__init__.py:8345 nova/__init__.py:10515 nova/__init__.py:10539
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr ""
 
-#: nova/__init__.py:8675
+#: nova/__init__.py:8676
 msgid "Object not found"
 msgstr ""
 
-#: nova/__init__.py:8846
+#: nova/__init__.py:8847
 msgid "Fetched and saved missing object details."
 msgstr ""
 
-#: nova/__init__.py:8848
+#: nova/__init__.py:8849
 msgid "No missing data found or no updates needed."
 msgstr ""
 
-#: nova/__init__.py:8852
+#: nova/__init__.py:8853
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:9264
+#: nova/__init__.py:9265
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr ""
 
-#: nova/__init__.py:9899
+#: nova/__init__.py:9900
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr ""
 
-#: nova/__init__.py:10219
+#: nova/__init__.py:10220
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr ""
 
-#: nova/__init__.py:10288
+#: nova/__init__.py:10289
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr ""
 
-#: nova/__init__.py:10310
+#: nova/__init__.py:10311
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
 
-#: nova/__init__.py:10315
+#: nova/__init__.py:10316
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr ""
 
-#: nova/__init__.py:10351
+#: nova/__init__.py:10352
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
 
-#: nova/__init__.py:10398
+#: nova/__init__.py:10399
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr ""
 
-#: nova/__init__.py:10471
+#: nova/__init__.py:10472
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:10646
+#: nova/__init__.py:10647
 msgid "Please log in to view object details."
 msgstr ""
 
-#: nova/__init__.py:10661
+#: nova/__init__.py:10662
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr ""
 
-#: nova/__init__.py:10675
+#: nova/__init__.py:10676
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
 
-#: nova/__init__.py:10689
+#: nova/__init__.py:10690
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 
-#: nova/__init__.py:10707
+#: nova/__init__.py:10708
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr ""
 
-#: nova/__init__.py:10934
+#: nova/__init__.py:10935
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
 
-#: nova/__init__.py:11137
+#: nova/__init__.py:11138
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr ""
 
-#: nova/__init__.py:11464 nova/__init__.py:13905
+#: nova/__init__.py:11465 nova/__init__.py:13906
 msgid "Project not found."
 msgstr ""
 
-#: nova/__init__.py:11479
+#: nova/__init__.py:11480
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
 
-#: nova/__init__.py:11487
+#: nova/__init__.py:11488
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11676
+#: nova/__init__.py:11677
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11696
+#: nova/__init__.py:11697
 msgid "No journal photos found to download."
 msgstr ""
 
-#: nova/__init__.py:11741
+#: nova/__init__.py:11742
 msgid "No file selected for photo import."
 msgstr ""
 
-#: nova/__init__.py:11746
+#: nova/__init__.py:11747
 msgid "Please select a valid .zip file to import."
 msgstr ""
 
-#: nova/__init__.py:11759
+#: nova/__init__.py:11760
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr ""
 
-#: nova/__init__.py:11793
+#: nova/__init__.py:11794
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr ""
 
-#: nova/__init__.py:11796
+#: nova/__init__.py:11797
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr ""
 
-#: nova/__init__.py:11798
+#: nova/__init__.py:11799
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11901 nova/__init__.py:11906
+#: nova/__init__.py:11902 nova/__init__.py:11907
 msgid "No file selected for rigs import."
 msgstr ""
 
-#: nova/__init__.py:11936
+#: nova/__init__.py:11937
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
 
-#: nova/__init__.py:11944
+#: nova/__init__.py:11945
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:11947
+#: nova/__init__.py:11948
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr ""
 
-#: nova/__init__.py:12899
+#: nova/__init__.py:12900
 msgid "Not authorized to export another user's data."
 msgstr ""
 
-#: nova/__init__.py:12903
+#: nova/__init__.py:12904
 msgid "Export failed (no such user or empty data)."
 msgstr ""
 
-#: nova/__init__.py:12932
+#: nova/__init__.py:12933
 msgid "Username is required in multi-user mode."
 msgstr ""
 
-#: nova/__init__.py:12937
+#: nova/__init__.py:12938
 msgid "Not authorized to import for another user."
 msgstr ""
 
-#: nova/__init__.py:12945
+#: nova/__init__.py:12946
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
 
-#: nova/__init__.py:12965
+#: nova/__init__.py:12966
 msgid "Import completed successfully!"
 msgstr ""
 
-#: nova/__init__.py:12967
+#: nova/__init__.py:12968
 msgid "Import failed. See server logs for details."
 msgstr ""
 
-#: nova/__init__.py:12970
+#: nova/__init__.py:12971
 msgid "Import crashed. Check logs."
 msgstr ""
 
-#: nova/__init__.py:12977 nova/__init__.py:13001 nova/__init__.py:13010
-#: nova/__init__.py:13031 nova/__init__.py:13050 nova/__init__.py:13069
+#: nova/__init__.py:12978 nova/__init__.py:13002 nova/__init__.py:13011
+#: nova/__init__.py:13032 nova/__init__.py:13051 nova/__init__.py:13070
 msgid "Not authorized."
 msgstr ""
 
-#: nova/__init__.py:12981
+#: nova/__init__.py:12982
 msgid "Database repair completed."
 msgstr ""
 
-#: nova/__init__.py:12983
+#: nova/__init__.py:12984
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr ""
 
-#: nova/__init__.py:13015
+#: nova/__init__.py:13016
 msgid "Username and password are required."
 msgstr ""
 
-#: nova/__init__.py:13018
+#: nova/__init__.py:13019
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr ""
 
-#: nova/__init__.py:13024
+#: nova/__init__.py:13025
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr ""
 
-#: nova/__init__.py:13038
+#: nova/__init__.py:13039
 msgid "Cannot deactivate the admin account."
 msgstr ""
 
-#: nova/__init__.py:13043
+#: nova/__init__.py:13044
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr ""
 
-#: nova/__init__.py:13058
+#: nova/__init__.py:13059
 msgid "Password cannot be empty."
 msgstr ""
 
-#: nova/__init__.py:13062
+#: nova/__init__.py:13063
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr ""
 
-#: nova/__init__.py:13076
+#: nova/__init__.py:13077
 msgid "Cannot delete the admin account."
 msgstr ""
 
-#: nova/__init__.py:13081
+#: nova/__init__.py:13082
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr ""
@@ -647,7 +647,8 @@ msgstr ""
 #: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
 #: templates/base.html:215 templates/base.html:235 templates/base.html:243
-#: templates/config_form.html:640 templates/graph_view.html:276
+#: templates/base.html:281 templates/config_form.html:640
+#: templates/graph_view.html:276
 msgid "Close"
 msgstr ""
 
@@ -1230,7 +1231,8 @@ msgstr ""
 #: templates/_journal_section.html:1606 templates/_journal_section.html:1676
 #: templates/_journal_section.html:1708 templates/_objects_section.html:347
 #: templates/_project_subtab.html:232 templates/admin_users.html:120
-#: templates/index.html:248 templates/journal_form.html:210
+#: templates/base.html:314 templates/index.html:248
+#: templates/journal_form.html:210
 msgid "Cancel"
 msgstr ""
 
@@ -2331,7 +2333,9 @@ msgstr ""
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
-msgstr "The translations for this language are machine-generated and may not be accurate. Help improve them!"
+msgstr ""
+"The translations for this language are machine-generated and may not be "
+"accurate. Help improve them!"
 
 #: templates/base.html:213
 msgid "Submit feedback"
@@ -2372,6 +2376,53 @@ msgstr ""
 
 #: templates/base.html:273
 msgid "Built by Anton Gutscher"
+msgstr ""
+
+#: templates/base.html:288
+#, fuzzy
+msgid "Translation Feedback"
+msgstr "Submit feedback"
+
+#: templates/base.html:289
+msgid "Help us improve the translations for this language."
+msgstr ""
+
+#: templates/base.html:293
+msgid "Locale"
+msgstr ""
+
+#: templates/base.html:298
+msgid "Term / Phrase"
+msgstr ""
+
+#: templates/base.html:299
+msgid "The translated term that seems wrong..."
+msgstr ""
+
+#: templates/base.html:303
+msgid "Suggested Correction"
+msgstr ""
+
+#: templates/base.html:304
+msgid "Your suggested translation..."
+msgstr ""
+
+#: templates/base.html:308
+msgid "Context / Notes"
+msgstr ""
+
+#: templates/base.html:308
+msgid "optional"
+msgstr ""
+
+#: templates/base.html:309
+msgid ""
+"Additional context about where this appears or why the correction is "
+"needed..."
+msgstr ""
+
+#: templates/base.html:313
+msgid "Submit"
 msgstr ""
 
 #: templates/config_form.html:4
@@ -4225,6 +4276,482 @@ msgstr ""
 
 #: templates/project_report.html:1165
 msgid "Exp"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
+#, python-brace-format
+msgid "{editor}: Editing failed"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
+#, python-brace-format
+msgid "{editor}: Editing failed: {e}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1124
+msgid "Aborted!"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1349
+#: venv/lib/python3.13/site-packages/click/core.py:1379
+#, python-brace-format
+msgid "(Deprecated) {text}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1396
+msgid "Options"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1422
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1438
+#, python-brace-format
+msgid "DeprecationWarning: The command {name!r} is deprecated."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1645
+msgid "Commands"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1677
+msgid "Missing command."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:1755
+#, python-brace-format
+msgid "No such command {name!r}."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2313
+msgid "Value must be an iterable."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2334
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2783
+#, python-brace-format
+msgid "env var: {var}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2813
+msgid "(dynamic)"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2828
+#, python-brace-format
+msgid "default: {default}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2841
+msgid "required"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/decorators.py:457
+#, python-format
+msgid "%(prog)s, version %(version)s"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/decorators.py:520
+msgid "Show the version and exit."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/decorators.py:541
+msgid "Show this message and exit."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:49
+#: venv/lib/python3.13/site-packages/click/exceptions.py:88
+#, python-brace-format
+msgid "Error: {message}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:80
+#, python-brace-format
+msgid "Try '{command} {option}' for help."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:129
+#, python-brace-format
+msgid "Invalid value: {message}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:131
+#, python-brace-format
+msgid "Invalid value for {param_hint}: {message}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:187
+msgid "Missing argument"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:189
+msgid "Missing option"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:191
+msgid "Missing parameter"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:193
+#, python-brace-format
+msgid "Missing {param_type}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:200
+#, python-brace-format
+msgid "Missing parameter: {param_name}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:220
+#, python-brace-format
+msgid "No such option: {name}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:232
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:270
+msgid "unknown error"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:277
+#, python-brace-format
+msgid "Could not open file {filename!r}: {message}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/formatting.py:156
+msgid "Usage:"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/parser.py:233
+#, python-brace-format
+msgid "Argument {name!r} takes {nargs} values."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/parser.py:415
+#, python-brace-format
+msgid "Option {name!r} does not take a value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/parser.py:476
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
+msgid "Shell completion is not supported for Bash versions older than 4.4."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
+msgid "Couldn't detect Bash version, shell completion is not supported."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/termui.py:158
+msgid "Repeat for confirmation"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/termui.py:174
+msgid "Error: The value you entered was invalid."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/termui.py:176
+#, python-brace-format
+msgid "Error: {e.message}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/termui.py:187
+msgid "Error: The two entered values do not match."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/termui.py:243
+msgid "Error: invalid input"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/termui.py:773
+msgid "Press any key to continue..."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:267
+#, python-brace-format
+msgid ""
+"Choose from:\n"
+"\t{choices}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:299
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:393
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:415
+#, python-brace-format
+msgid "{value!r} is not a valid {number_type}."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:471
+#, python-brace-format
+msgid "{value} is not in the range {range}."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:612
+#, python-brace-format
+msgid "{value!r} is not a valid boolean."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:636
+#, python-brace-format
+msgid "{value!r} is not a valid UUID."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:826
+msgid "file"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:828
+msgid "directory"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:830
+msgid "path"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:881
+#, python-brace-format
+msgid "{name} {filename!r} does not exist."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:890
+#, python-brace-format
+msgid "{name} {filename!r} is a file."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:898
+#, python-brace-format
+msgid "{name} {filename!r} is a directory."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:907
+#, python-brace-format
+msgid "{name} {filename!r} is not readable."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:916
+#, python-brace-format
+msgid "{name} {filename!r} is not writable."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:925
+#, python-brace-format
+msgid "{name} {filename!r} is not executable."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:992
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
+msgid "This field is required."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
+#, python-brace-format
+msgid "File does not have an approved extension: {extensions}"
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
+msgid "File does not have an approved extension."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
+#, python-format
+msgid "Field must be exactly %(max)d character long."
+msgid_plural "Field must be exactly %(max)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
+msgid "Invalid input."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
+msgid "Invalid email address."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
+msgid "Invalid IP address."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
+msgid "Invalid Mac address."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
+msgid "Invalid URL."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
+msgid "Invalid UUID."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
+msgid "This field cannot be edited."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
+msgid "This field is disabled and cannot have a value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
+msgid "Invalid CSRF Token."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
+msgid "CSRF token missing."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
+msgid "CSRF failed."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
+msgid "CSRF token expired."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
+msgid "Invalid Choice: could not coerce."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
+msgid "Choices cannot be None."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
+msgid "Not a valid choice."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
+msgid "Invalid choice(s): one or more data inputs could not be coerced."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field."
+msgid_plural "'%(value)s' are not valid choices for this field."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
+msgid "Not a valid datetime value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
+msgid "Not a valid date value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
+msgid "Not a valid time value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
+msgid "Not a valid week value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
+#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
+msgid "Not a valid integer value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
+msgid "Not a valid decimal value."
+msgstr ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
+msgid "Not a valid float value."
 msgstr ""
 
 #~ msgid "Moon Illum (%)"

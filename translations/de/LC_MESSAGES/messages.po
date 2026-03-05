@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 13:03+0800\n"
-"PO-Revision-Date: 2026-03-04 23:45+0800\n"
+"POT-Creation-Date: 2026-03-05 14:14+0800\n"
+"PO-Revision-Date: 2026-03-05 14:12+0800\n"
 "Last-Translator: \n"
 "Language: de\n"
 "Language-Team: de <LL@li.org>\n"
@@ -149,13 +149,14 @@ msgstr "Neuer Journaleintrag erfolgreich hinzugefügt!"
 
 #: nova/__init__.py:6695
 msgid "To add a new session, please select an object first."
-msgstr "Um eine neue Sitzung hinzuzufügen, wählen Sie bitte zuerst ein Objekt aus."
+msgstr ""
+"Um eine neue Sitzung hinzuzufügen, wählen Sie bitte zuerst ein Objekt aus."
 
 #: nova/__init__.py:6709
 msgid "Journal entry not found or you do not have permission to edit it."
 msgstr ""
-"Der Journaleintrag wurde nicht gefunden oder Sie haben keine "
-"Berechtigung, ihn zu bearbeiten."
+"Der Journaleintrag wurde nicht gefunden oder Sie haben keine Berechtigung, "
+"ihn zu bearbeiten."
 
 #: nova/__init__.py:6937
 msgid "Journal entry updated successfully!"
@@ -204,8 +205,8 @@ msgstr "Journaleintrag erfolgreich gelöscht."
 #: nova/__init__.py:7097
 msgid "Journal entry not found or you do not have permission to delete it."
 msgstr ""
-"Der Journaleintrag wurde nicht gefunden oder Sie haben keine "
-"Berechtigung, ihn zu löschen."
+"Der Journaleintrag wurde nicht gefunden oder Sie haben keine Berechtigung, "
+"ihn zu löschen."
 
 #: nova/__init__.py:7112
 msgid "Label required"
@@ -219,7 +220,7 @@ msgstr "Filter existiert bereits"
 msgid "Filter not found"
 msgstr "Filter nicht gefunden"
 
-#: nova/__init__.py:7182 nova/__init__.py:13897
+#: nova/__init__.py:7182 nova/__init__.py:13898
 msgid "Session not found."
 msgstr "Sitzung nicht gefunden."
 
@@ -232,411 +233,408 @@ msgstr "Erfolgreich abgemeldet!"
 msgid "Language '%(lang)s' is not supported."
 msgstr "Die Sprache „%(lang)s“ wird nicht unterstützt."
 
-#: nova/__init__.py:7470
+#: nova/__init__.py:7471
 msgid "Logged in successfully!"
 msgstr "Erfolgreich angemeldet!"
 
-#: nova/__init__.py:7486
+#: nova/__init__.py:7487
 msgid "Invalid username or password."
 msgstr "Ungültiger Benutzername oder Passwort."
 
-#: nova/__init__.py:7493
+#: nova/__init__.py:7494
 msgid "Single Sign-On is not applicable in single-user mode."
 msgstr "Single Sign-On ist im Einzelbenutzermodus nicht verfügbar."
 
-#: nova/__init__.py:7499
+#: nova/__init__.py:7500
 msgid "SSO Error: No token provided."
 msgstr "SSO-Fehler: Kein Token angegeben."
 
-#: nova/__init__.py:7505
+#: nova/__init__.py:7506
 msgid "SSO Error: SSO is not configured on the server."
 msgstr "SSO-Fehler: SSO ist auf dem Server nicht konfiguriert."
 
-#: nova/__init__.py:7523
+#: nova/__init__.py:7524
 #, python-format
 msgid "Welcome back, %(username)s!"
 msgstr "Willkommen zurück, %(username)s!"
 
-#: nova/__init__.py:7526
+#: nova/__init__.py:7527
 #, python-format
 msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr ""
-"SSO-Fehler: Benutzer „%(username)s“ wurde nicht gefunden oder ist in Nova"
-" deaktiviert."
+"SSO-Fehler: Benutzer „%(username)s“ wurde nicht gefunden oder ist in Nova "
+"deaktiviert."
 
-#: nova/__init__.py:7530
+#: nova/__init__.py:7531
 msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
-"SSO-Fehler: Der Anmeldelink ist abgelaufen. Bitte versuchen Sie es erneut"
-" über WordPress."
+"SSO-Fehler: Der Anmeldelink ist abgelaufen. Bitte versuchen Sie es erneut "
+"über WordPress."
 
-#: nova/__init__.py:7533
+#: nova/__init__.py:7534
 msgid "SSO Error: Invalid login token."
 msgstr "SSO-Fehler: Ungültiges Anmeldetoken."
 
-#: nova/__init__.py:7682 nova/__init__.py:7772 nova/__init__.py:9892
-#: nova/__init__.py:11587 nova/__init__.py:13035 nova/__init__.py:13054
-#: nova/__init__.py:13073
+#: nova/__init__.py:7683 nova/__init__.py:7773 nova/__init__.py:9893
+#: nova/__init__.py:11588 nova/__init__.py:13036 nova/__init__.py:13055
+#: nova/__init__.py:13074
 msgid "User not found."
 msgstr "Benutzer nicht gefunden."
 
-#: nova/__init__.py:7759
+#: nova/__init__.py:7760
 #, python-format
 msgid "Error generating config file: %(error)s"
 msgstr "Fehler beim Erstellen der Konfigurationsdatei: %(error)s"
 
-#: nova/__init__.py:7878
+#: nova/__init__.py:7879
 #, python-format
 msgid "Error generating journal file: %(error)s"
 msgstr "Fehler beim Erstellen der Journal-Datei: %(error)s"
 
-#: nova/__init__.py:7909 nova/__init__.py:7914
+#: nova/__init__.py:7910 nova/__init__.py:7915
 msgid "No file selected for journal import."
 msgstr "Keine Datei für den Import in das Journal ausgewählt."
 
-#: nova/__init__.py:7928
+#: nova/__init__.py:7929
 #, python-format
 msgid "Invalid journal file structure: %(message)s"
 msgstr "Ungültige Journal-Dateistruktur: %(message)s"
 
-#: nova/__init__.py:7952
+#: nova/__init__.py:7953
 msgid "Journal imported successfully! (Previous journal data was replaced)"
-msgstr "Journal erfolgreich importiert! (Vorherige Journaleinträge wurden ersetzt)"
+msgstr ""
+"Journal erfolgreich importiert! (Vorherige Journaleinträge wurden ersetzt)"
 
-#: nova/__init__.py:7964
+#: nova/__init__.py:7965
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
-"Import fehlgeschlagen: Ungültiges YAML-Format in der Journal-Datei. "
-"%(error)s"
+"Import fehlgeschlagen: Ungültiges YAML-Format in der Journal-Datei. %(error)s"
 
-#: nova/__init__.py:7972 nova/__init__.py:8103
+#: nova/__init__.py:7973 nova/__init__.py:8104
 #, python-format
 msgid "Import failed: %(error)s"
 msgstr "Import fehlgeschlagen: %(error)s"
 
-#: nova/__init__.py:7975
+#: nova/__init__.py:7976
 msgid "Invalid file type. Please upload a .yaml journal file."
 msgstr "Ungültiger Dateityp. Bitte laden Sie eine .yaml-Journal-Datei hoch."
 
-#: nova/__init__.py:7987
+#: nova/__init__.py:7988
 msgid "Authentication error during import."
 msgstr "Authentifizierungsfehler beim Import."
 
-#: nova/__init__.py:7992 nova/__init__.py:7997
+#: nova/__init__.py:7993 nova/__init__.py:7998
 msgid "No file selected for import."
 msgstr "Keine Datei zum Importieren ausgewählt."
 
-#: nova/__init__.py:8019
+#: nova/__init__.py:8020
 msgid "Cannot import: Configuration must contain at least one location."
 msgstr ""
-"Importieren nicht möglich: Die Konfiguration muss mindestens einen "
-"Standort enthalten."
+"Importieren nicht möglich: Die Konfiguration muss mindestens einen Standort "
+"enthalten."
 
-#: nova/__init__.py:8027
+#: nova/__init__.py:8028
 msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
-"Importieren nicht möglich: Die Konfiguration muss mindestens einen "
-"aktiven Standort enthalten."
+"Importieren nicht möglich: Die Konfiguration muss mindestens einen aktiven "
+"Standort enthalten."
 
-#: nova/__init__.py:8058
+#: nova/__init__.py:8059
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
-"Konfiguration erfolgreich importiert! (Vorherige Konfiguration wurde "
-"ersetzt)"
+"Konfiguration erfolgreich importiert! (Vorherige Konfiguration wurde ersetzt)"
 
-#: nova/__init__.py:8100
+#: nova/__init__.py:8101
 #, python-format
 msgid "Import failed: Invalid YAML. (%(error)s)"
 msgstr "Import fehlgeschlagen: Ungültiges YAML. (%(error)s)"
 
-#: nova/__init__.py:8125
+#: nova/__init__.py:8126
 msgid "Authentication error during catalog import."
 msgstr "Authentifizierungsfehler beim Importieren des Katalogs."
 
-#: nova/__init__.py:8135
+#: nova/__init__.py:8136
 msgid "Catalog pack not found or invalid."
 msgstr "Katalogpaket nicht gefunden oder ungültig."
 
-#: nova/__init__.py:8147
+#: nova/__init__.py:8148
 msgid "Catalog import failed due to an internal error."
 msgstr "Der Katalogimport ist aufgrund eines internen Fehlers fehlgeschlagen."
 
-#: nova/__init__.py:8337 nova/__init__.py:8516
+#: nova/__init__.py:8338 nova/__init__.py:8517
 msgid "No object specified."
 msgstr "Kein Objekt angegeben."
 
-#: nova/__init__.py:8344 nova/__init__.py:10514 nova/__init__.py:10538
+#: nova/__init__.py:8345 nova/__init__.py:10515 nova/__init__.py:10539
 #: templates/mobile_add_object.html:57
 msgid "Object not found."
 msgstr "Objekt nicht gefunden."
 
-#: nova/__init__.py:8675
+#: nova/__init__.py:8676
 msgid "Object not found"
 msgstr "Objekt nicht gefunden"
 
-#: nova/__init__.py:8846
+#: nova/__init__.py:8847
 msgid "Fetched and saved missing object details."
 msgstr "Fehlende Objektdetails abgerufen und gespeichert."
 
-#: nova/__init__.py:8848
+#: nova/__init__.py:8849
 msgid "No missing data found or no updates needed."
 msgstr ""
-"Es wurden keine fehlenden Daten gefunden oder es sind keine "
-"Aktualisierungen erforderlich."
+"Es wurden keine fehlenden Daten gefunden oder es sind keine Aktualisierungen "
+"erforderlich."
 
-#: nova/__init__.py:8852
+#: nova/__init__.py:8853
 #, python-format
 msgid "An error occurred during data fetching: %(error)s"
 msgstr "Beim Abrufen der Daten ist ein Fehler aufgetreten: %(error)s"
 
-#: nova/__init__.py:9264
+#: nova/__init__.py:9265
 #, python-format
 msgid "<p>Error reading help file: %(error)s</p>"
 msgstr "<p>Fehler beim Lesen der Hilfedatei: %(error)s</p>"
 
-#: nova/__init__.py:9899
+#: nova/__init__.py:9900
 #, python-format
 msgid "Object '%(object_name)s' not found."
 msgstr "Objekt '%(object_name)s' nicht gefunden."
 
-#: nova/__init__.py:10219
+#: nova/__init__.py:10220
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr "Der Benutzer „%(username)s“ wurde in der Datenbank nicht gefunden."
 
-#: nova/__init__.py:10288
+#: nova/__init__.py:10289
 msgid "Warning: Horizon Mask was invalid and was ignored."
 msgstr "Warnung: Die Horizontmaske war ungültig und wurde ignoriert."
 
-#: nova/__init__.py:10310
+#: nova/__init__.py:10311
 msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
-"Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens "
-"einen Standort konfiguriert haben."
+"Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens einen "
+"Standort konfiguriert haben."
 
-#: nova/__init__.py:10315
+#: nova/__init__.py:10316
 msgid ""
 "Cannot deactivate your only active location. You must keep at least one "
 "active location."
 msgstr ""
-"Sie können Ihren einzigen aktiven Standort nicht deaktivieren. Sie müssen"
-" mindestens einen aktiven Standort beibehalten."
+"Sie können Ihren einzigen aktiven Standort nicht deaktivieren. Sie müssen "
+"mindestens einen aktiven Standort beibehalten."
 
-#: nova/__init__.py:10351
+#: nova/__init__.py:10352
 #, python-format
 msgid "Warning: Horizon Mask for '%(location_name)s' was invalid and ignored."
 msgstr ""
-"Warnung: Die Horizontmaske für „%(location_name)s“ war ungültig und wurde"
-" ignoriert."
+"Warnung: Die Horizontmaske für „%(location_name)s“ war ungültig und wurde "
+"ignoriert."
 
-#: nova/__init__.py:10398
+#: nova/__init__.py:10399
 #, python-format
 msgid "%(message)s updated successfully."
 msgstr "%(message)s erfolgreich aktualisiert."
 
-#: nova/__init__.py:10471
+#: nova/__init__.py:10472
 #, python-format
 msgid "A database error occurred: %(error)s"
 msgstr "Ein Datenbankfehler ist aufgetreten: %(error)s"
 
-#: nova/__init__.py:10646
+#: nova/__init__.py:10647
 msgid "Please log in to view object details."
 msgstr "Bitte melden Sie sich an, um die Objektdetails anzuzeigen."
 
-#: nova/__init__.py:10661
+#: nova/__init__.py:10662
 #, python-format
 msgid "User '%(username)s' not found."
 msgstr "Benutzer '%(username)s' nicht gefunden."
 
-#: nova/__init__.py:10675
+#: nova/__init__.py:10676
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
-"Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, "
-"Standard wird verwendet."
+"Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, Standard "
+"wird verwendet."
 
-#: nova/__init__.py:10689
+#: nova/__init__.py:10690
 msgid "Error: No valid location configured or selected for this user."
 msgstr ""
 "Fehler: Für diesen Benutzer ist kein gültiger Standort konfiguriert oder "
 "ausgewählt."
 
-#: nova/__init__.py:10707
+#: nova/__init__.py:10708
 #, python-format
 msgid "Object '%(object_name)s' not found in your configuration."
 msgstr "Objekt '%(object_name)s' wurde in Ihrer Konfiguration nicht gefunden."
 
-#: nova/__init__.py:10934
+#: nova/__init__.py:10935
 msgid "Invalid date components provided, defaulting to current date."
 msgstr ""
-"Ungültige Datumskomponenten angegeben, Standardwert ist das aktuelle "
-"Datum."
+"Ungültige Datumskomponenten angegeben, Standardwert ist das aktuelle Datum."
 
-#: nova/__init__.py:11137
+#: nova/__init__.py:11138
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
 msgstr "Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
 
-#: nova/__init__.py:11464 nova/__init__.py:13905
+#: nova/__init__.py:11465 nova/__init__.py:13906
 msgid "Project not found."
 msgstr "Projekt nicht gefunden."
 
-#: nova/__init__.py:11479
+#: nova/__init__.py:11480
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
-msgstr "Projekt „%(project_name)s“ gelöscht. Die Sitzungen sind nun eigenständig."
+msgstr ""
+"Projekt „%(project_name)s“ gelöscht. Die Sitzungen sind nun eigenständig."
 
-#: nova/__init__.py:11487
+#: nova/__init__.py:11488
 #, python-format
 msgid "Error deleting project: %(error)s"
 msgstr "Fehler beim Löschen des Projekts: %(error)s"
 
-#: nova/__init__.py:11676
+#: nova/__init__.py:11677
 #, python-format
 msgid "Error generating rig config: %(error)s"
 msgstr "Fehler beim Erstellen der Rig-Konfiguration: %(error)s"
 
-#: nova/__init__.py:11696
+#: nova/__init__.py:11697
 msgid "No journal photos found to download."
 msgstr "Es wurden keine Fotos zum Herunterladen gefunden."
 
-#: nova/__init__.py:11741
+#: nova/__init__.py:11742
 msgid "No file selected for photo import."
 msgstr "Keine Datei für den Fotoimport ausgewählt."
 
-#: nova/__init__.py:11746
+#: nova/__init__.py:11747
 msgid "Please select a valid .zip file to import."
 msgstr "Bitte wählen Sie eine gültige ZIP-Datei zum Importieren aus."
 
-#: nova/__init__.py:11759
+#: nova/__init__.py:11760
 msgid "Import failed: The uploaded file is not a valid ZIP archive."
 msgstr ""
-"Import fehlgeschlagen: Die hochgeladene Datei ist kein gültiges ZIP-"
-"Archiv."
+"Import fehlgeschlagen: Die hochgeladene Datei ist kein gültiges ZIP-Archiv."
 
-#: nova/__init__.py:11793
+#: nova/__init__.py:11794
 #, python-format
 msgid "Journal photos imported successfully! Extracted %(count)d files."
 msgstr ""
-"Fotos aus dem Journal erfolgreich importiert! %(count)d Dateien "
-"extrahiert."
+"Fotos aus dem Journal erfolgreich importiert! %(count)d Dateien extrahiert."
 
-#: nova/__init__.py:11796
+#: nova/__init__.py:11797
 msgid "Import failed: The ZIP file appears to be corrupted."
 msgstr "Import fehlgeschlagen: Die ZIP-Datei scheint beschädigt zu sein."
 
-#: nova/__init__.py:11798
+#: nova/__init__.py:11799
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
 msgstr "Beim Import ist ein unerwarteter Fehler aufgetreten: %(error)s"
 
-#: nova/__init__.py:11901 nova/__init__.py:11906
+#: nova/__init__.py:11902 nova/__init__.py:11907
 msgid "No file selected for rigs import."
 msgstr "Keine Datei für den Import von Rigs ausgewählt."
 
-#: nova/__init__.py:11936
+#: nova/__init__.py:11937
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
-"Die Konfiguration der Bohrinseln wurde erfolgreich importiert und mit der"
-" Datenbank synchronisiert!"
+"Die Konfiguration der Bohrinseln wurde erfolgreich importiert und mit der "
+"Datenbank synchronisiert!"
 
-#: nova/__init__.py:11944
+#: nova/__init__.py:11945
 #, python-format
 msgid "Error importing rigs file: %(error)s"
 msgstr "Fehler beim Importieren der Rigs-Datei: %(error)s"
 
-#: nova/__init__.py:11947
+#: nova/__init__.py:11948
 msgid "Invalid file type. Please upload a .yaml or .yml file."
 msgstr "Ungültiger Dateityp. Bitte laden Sie eine .yaml- oder .yml-Datei hoch."
 
-#: nova/__init__.py:12899
+#: nova/__init__.py:12900
 msgid "Not authorized to export another user's data."
 msgstr "Nicht berechtigt, die Daten eines anderen Benutzers zu exportieren."
 
-#: nova/__init__.py:12903
+#: nova/__init__.py:12904
 msgid "Export failed (no such user or empty data)."
 msgstr "Export fehlgeschlagen (kein solcher Benutzer oder leere Daten)."
 
-#: nova/__init__.py:12932
+#: nova/__init__.py:12933
 msgid "Username is required in multi-user mode."
 msgstr "Im Mehrbenutzermodus ist ein Benutzername erforderlich."
 
-#: nova/__init__.py:12937
+#: nova/__init__.py:12938
 msgid "Not authorized to import for another user."
 msgstr "Nicht berechtigt, für einen anderen Benutzer zu importieren."
 
-#: nova/__init__.py:12945
+#: nova/__init__.py:12946
 msgid "Please provide config, rigs, and journal YAML files."
 msgstr ""
 "Bitte stellen Sie die Konfigurations-, Rig- und Journal-YAML-Dateien zur "
 "Verfügung."
 
-#: nova/__init__.py:12965
+#: nova/__init__.py:12966
 msgid "Import completed successfully!"
 msgstr "Import erfolgreich abgeschlossen!"
 
-#: nova/__init__.py:12967
+#: nova/__init__.py:12968
 msgid "Import failed. See server logs for details."
 msgstr "Import fehlgeschlagen. Details finden Sie in den Serverprotokollen."
 
-#: nova/__init__.py:12970
+#: nova/__init__.py:12971
 msgid "Import crashed. Check logs."
 msgstr "Import ist abgestürzt. Überprüfen Sie die Protokolle."
 
-#: nova/__init__.py:12977 nova/__init__.py:13001 nova/__init__.py:13010
-#: nova/__init__.py:13031 nova/__init__.py:13050 nova/__init__.py:13069
+#: nova/__init__.py:12978 nova/__init__.py:13002 nova/__init__.py:13011
+#: nova/__init__.py:13032 nova/__init__.py:13051 nova/__init__.py:13070
 msgid "Not authorized."
 msgstr "Nicht autorisiert."
 
-#: nova/__init__.py:12981
+#: nova/__init__.py:12982
 msgid "Database repair completed."
 msgstr "Datenbankreparatur abgeschlossen."
 
-#: nova/__init__.py:12983
+#: nova/__init__.py:12984
 #, python-format
 msgid "Repair failed: %(error)s"
 msgstr "Reparatur fehlgeschlagen: %(error)s"
 
-#: nova/__init__.py:13015
+#: nova/__init__.py:13016
 msgid "Username and password are required."
 msgstr "Benutzername und Passwort sind erforderlich."
 
-#: nova/__init__.py:13018
+#: nova/__init__.py:13019
 #, python-format
 msgid "User '%(username)s' already exists."
 msgstr "Der Benutzer „%(username)s“ existiert bereits."
 
-#: nova/__init__.py:13024
+#: nova/__init__.py:13025
 #, python-format
 msgid "User '%(username)s' created successfully."
 msgstr "Benutzer „%(username)s“ erfolgreich erstellt."
 
-#: nova/__init__.py:13038
+#: nova/__init__.py:13039
 msgid "Cannot deactivate the admin account."
 msgstr "Das Administratorkonto kann nicht deaktiviert werden."
 
-#: nova/__init__.py:13043
+#: nova/__init__.py:13044
 #, python-format
 msgid "User '%(username)s' %(status)s."
 msgstr "Benutzer „%(username)s“ %(status)s."
 
-#: nova/__init__.py:13058
+#: nova/__init__.py:13059
 msgid "Password cannot be empty."
 msgstr "Das Passwort darf nicht leer sein."
 
-#: nova/__init__.py:13062
+#: nova/__init__.py:13063
 #, python-format
 msgid "Password reset for '%(username)s'."
 msgstr "Passwort zurücksetzen für '%(username)s'."
 
-#: nova/__init__.py:13076
+#: nova/__init__.py:13077
 msgid "Cannot delete the admin account."
 msgstr "Das Administratorkonto kann nicht gelöscht werden."
 
-#: nova/__init__.py:13081
+#: nova/__init__.py:13082
 #, python-format
 msgid "User '%(username)s' deleted."
 msgstr "Benutzer „%(username)s“ gelöscht."
@@ -654,8 +652,8 @@ msgid ""
 "* Vertical light bands = Full Moon (Washed out). Darker Green = Best "
 "Quality. Click object names to view details."
 msgstr ""
-"* Vertikale Lichtstreifen = Vollmond (verwaschen). Dunkleres Grün = beste"
-" Qualität. Klicken Sie auf die Objektnamen, um Details anzuzeigen."
+"* Vertikale Lichtstreifen = Vollmond (verwaschen). Dunkleres Grün = beste "
+"Qualität. Klicken Sie auf die Objektnamen, um Details anzuzeigen."
 
 #: templates/_inspiration_section.html:470
 msgid "Refresh Suggestions"
@@ -689,7 +687,8 @@ msgstr "Quelle: Wiki"
 #: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
 #: templates/_objects_section.html:427 templates/_objects_section.html:442
 #: templates/base.html:215 templates/base.html:235 templates/base.html:243
-#: templates/config_form.html:640 templates/graph_view.html:276
+#: templates/base.html:281 templates/config_form.html:640
+#: templates/graph_view.html:276
 msgid "Close"
 msgstr "Schließen"
 
@@ -1203,8 +1202,8 @@ msgstr "Projekt bearbeiten"
 
 #: templates/_journal_section.html:1516
 msgid ""
-"Are you sure you want to delete this project? Linked sessions will become"
-" standalone."
+"Are you sure you want to delete this project? Linked sessions will become "
+"standalone."
 msgstr "Möchten Sie diese Sitzung wirklich dauerhaft löschen?"
 
 #: templates/_journal_section.html:1518
@@ -1272,7 +1271,8 @@ msgstr "Projekt speichern"
 #: templates/_journal_section.html:1606 templates/_journal_section.html:1676
 #: templates/_journal_section.html:1708 templates/_objects_section.html:347
 #: templates/_project_subtab.html:232 templates/admin_users.html:120
-#: templates/index.html:248 templates/journal_form.html:210
+#: templates/base.html:314 templates/index.html:248
+#: templates/journal_form.html:210
 msgid "Cancel"
 msgstr "Abbrechen"
 
@@ -1326,8 +1326,8 @@ msgstr "Sitzung beendet"
 
 #: templates/_journal_section.html:1665
 msgid ""
-"Select a session or project from the list on the left to view details, or"
-" click 'Add New Session'."
+"Select a session or project from the list on the left to view details, or "
+"click 'Add New Session'."
 msgstr ""
 
 #: templates/_journal_section.html:1675
@@ -2001,10 +2001,10 @@ msgid ""
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
 msgstr ""
-"Katalogpakete sind vom Server bereitgestellte Objektsammlungen, die Sie "
-"in Ihre Bibliothek importieren können. Der Import ist nicht destruktiv: "
-"Vorhandene Objekte werden niemals überschrieben, und überlappende Objekte"
-" werden übersprungen."
+"Katalogpakete sind vom Server bereitgestellte Objektsammlungen, die Sie in "
+"Ihre Bibliothek importieren können. Der Import ist nicht destruktiv: "
+"Vorhandene Objekte werden niemals überschrieben, und überlappende Objekte "
+"werden übersprungen."
 
 #: templates/_objects_section.html:386 templates/config_form.html:574
 #: templates/graph_view.html:201
@@ -2038,18 +2038,17 @@ msgstr "Potentielle Duplikate"
 
 #: templates/_objects_section.html:435
 msgid ""
-"These pairs are located within 2.5 arcminutes of each other. Merging will"
-" move all journals, projects, and framings to the \"Kept\" object and "
-"delete the other. Please note that objects from different catalogs might "
-"have slightly different RA / DEC and will therefore not be considered as "
+"These pairs are located within 2.5 arcminutes of each other. Merging will "
+"move all journals, projects, and framings to the \"Kept\" object and delete "
+"the other. Please note that objects from different catalogs might have "
+"slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
 msgstr ""
-"Diese Paare befinden sich innerhalb von 2,5 Bogenminuten voneinander. "
-"Durch das Zusammenführen werden alle Journale, Projekte und Framings in "
-"das Objekt „Beibehalten” verschoben und das andere gelöscht. Bitte "
-"beachten Sie, dass Objekte aus verschiedenen Katalogen leicht "
-"unterschiedliche RA/DEC-Werte aufweisen können und daher nicht als "
-"Duplikate betrachtet werden."
+"Diese Paare befinden sich innerhalb von 2,5 Bogenminuten voneinander. Durch "
+"das Zusammenführen werden alle Journale, Projekte und Framings in das Objekt "
+"„Beibehalten” verschoben und das andere gelöscht. Bitte beachten Sie, dass "
+"Objekte aus verschiedenen Katalogen leicht unterschiedliche RA/DEC-Werte "
+"aufweisen können und daher nicht als Duplikate betrachtet werden."
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2096,13 +2095,13 @@ msgstr "Zum Kalender hinzufügen"
 
 #: templates/_project_subtab.html:145
 msgid ""
-"This object is not currently linked to a Project. The **Project Details**"
-" sub-tab will only appear if the object is the primary target of an "
-"existing project."
+"This object is not currently linked to a Project. The **Project Details** "
+"sub-tab will only appear if the object is the primary target of an existing "
+"project."
 msgstr ""
 "Dieses Objekt ist derzeit nicht mit einem Projekt verknüpft. Die "
-"Unterregisterkarte „Projektdetails“ wird nur angezeigt, wenn das Objekt "
-"das primäre Ziel eines bestehenden Projekts ist."
+"Unterregisterkarte „Projektdetails“ wird nur angezeigt, wenn das Objekt das "
+"primäre Ziel eines bestehenden Projekts ist."
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -2351,8 +2350,8 @@ msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr ""
-"Sie sehen eine schreibgeschützte Demo. Die volle Funktionalität (wie z. "
-"B. das Speichern) ist für registrierte Benutzer aktiviert."
+"Sie sehen eine schreibgeschützte Demo. Die volle Funktionalität (wie z. B. "
+"das Speichern) ist für registrierte Benutzer aktiviert."
 
 #: templates/base.html:145
 msgid "About Nova DSO Tracker"
@@ -2394,7 +2393,9 @@ msgstr "Abmelden"
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
-msgstr "The translations for this language are machine-generated and may not be accurate. Help improve them!"
+msgstr ""
+"The translations for this language are machine-generated and may not be "
+"accurate. Help improve them!"
 
 #: templates/base.html:213
 msgid "Submit feedback"
@@ -2414,7 +2415,8 @@ msgid "Version"
 msgstr "Version"
 
 #: templates/base.html:253
-msgid "A personal project born from a passion for astronomy and astrophotography."
+msgid ""
+"A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 "Ein persönliches Projekt, das aus der Leidenschaft für Astronomie und "
 "Astrofotografie entstanden ist."
@@ -2423,8 +2425,7 @@ msgstr ""
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
-"tracking Moon position and phase, and identifying optimal viewing "
-"windows."
+"tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr ""
 "Nova DSO Tracker hilft Amateurastronomen bei der Planung von "
 "Beobachtungssitzungen, indem es die Höhe und den Azimut von Deep-Sky-"
@@ -2442,6 +2443,54 @@ msgstr "Besuchen Sie nova-tracker.com"
 #: templates/base.html:273
 msgid "Built by Anton Gutscher"
 msgstr "Erstellt von Anton Gutscher"
+
+#: templates/base.html:288
+msgid "Translation Feedback"
+msgstr "Übersetzungs-Feedback"
+
+#: templates/base.html:289
+msgid "Help us improve the translations for this language."
+msgstr "Helfen Sie uns, die Übersetzungen für diese Sprache zu verbessern."
+
+#: templates/base.html:293
+msgid "Locale"
+msgstr "Sprache"
+
+#: templates/base.html:298
+msgid "Term / Phrase"
+msgstr "Begriff / Ausdruck"
+
+#: templates/base.html:299
+msgid "The translated term that seems wrong..."
+msgstr "Der übersetzte Begriff, der falsch erscheint..."
+
+#: templates/base.html:303
+msgid "Suggested Correction"
+msgstr "Vorgeschlagene Korrektur"
+
+#: templates/base.html:304
+msgid "Your suggested translation..."
+msgstr "Ihre vorgeschlagene Übersetzung..."
+
+#: templates/base.html:308
+msgid "Context / Notes"
+msgstr "Kontext / Hinweise"
+
+#: templates/base.html:308
+msgid "optional"
+msgstr "(optional)"
+
+#: templates/base.html:309
+msgid ""
+"Additional context about where this appears or why the correction is "
+"needed..."
+msgstr ""
+"Zusätzlicher Kontext darüber, wo dies erscheint oder warum die Korrektur "
+"benötigt wird..."
+
+#: templates/base.html:313
+msgid "Submit"
+msgstr "Senden"
 
 #: templates/config_form.html:4
 msgid "Nova – Configuration"
@@ -2527,8 +2576,8 @@ msgid ""
 "Choose how Nova appears. \"Follow System\" matches your OS setting and "
 "updates automatically."
 msgstr ""
-"Wählen Sie, wie Nova angezeigt werden soll. „Follow System“ passt sich "
-"Ihren Betriebssystemeinstellungen an und wird automatisch aktualisiert."
+"Wählen Sie, wie Nova angezeigt werden soll. „Follow System“ passt sich Ihren "
+"Betriebssystemeinstellungen an und wird automatisch aktualisiert."
 
 #: templates/config_form.html:153
 msgid "Min Observable (min):"
@@ -2558,12 +2607,12 @@ msgstr "Verborgene berechnen:"
 #: templates/config_form.html:188
 msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
-"geometrically impossible to see from your location (disabling the \"Smart"
-" Skip\" optimization)."
+"geometrically impossible to see from your location (disabling the \"Smart "
+"Skip\" optimization)."
 msgstr ""
 "Wenn diese Option aktiviert ist, berechnet Nova Kurven für ALLE Objekte, "
-"auch für solche, die von Ihrem Standort aus geometrisch nicht sichtbar "
-"sind (die Optimierung „Smart Skip“ wird deaktiviert)."
+"auch für solche, die von Ihrem Standort aus geometrisch nicht sichtbar sind "
+"(die Optimierung „Smart Skip“ wird deaktiviert)."
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -2571,9 +2620,9 @@ msgstr "Verborgene verbergen:"
 
 #: templates/config_form.html:199
 msgid ""
-"If checked, objects that are geometrically impossible to see will be "
-"hidden from the main list by default. They will still appear if you "
-"specifically search for them."
+"If checked, objects that are geometrically impossible to see will be hidden "
+"from the main list by default. They will still appear if you specifically "
+"search for them."
 msgstr ""
 "Wenn diese Option aktiviert ist, werden Objekte, die geometrisch nicht "
 "sichtbar sind, standardmäßig aus der Hauptliste ausgeblendet. Sie werden "
@@ -2607,8 +2656,8 @@ msgstr "Schnellste (60-Minuten-Proben)"
 msgid ""
 "Note: Your 'Current Altitude' is always calculated in real-time. This "
 "setting only refines the accuracy of the nightly overview values (Max "
-"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power"
-" devices."
+"Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
+"devices."
 msgstr ""
 "Hinweis: Ihre „aktuelle Höhe” wird immer in Echtzeit berechnet. Diese "
 "Einstellung verbessert lediglich die Genauigkeit der nächtlichen "
@@ -2621,16 +2670,15 @@ msgstr "Anonyme Telemetrie:"
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and "
-"counts of your data entries like objects, rigs, locations, and journals)."
-" No personal details are ever collected, and you can opt out anytime. "
-"Allowing it really helps me improve Nova."
+"Nova sends a small anonymous heartbeat (app version, system type, and counts "
+"of your data entries like objects, rigs, locations, and journals). No "
+"personal details are ever collected, and you can opt out anytime. Allowing "
+"it really helps me improve Nova."
 msgstr ""
 "Nova sendet einen kleinen anonymen Heartbeat (App-Version, Systemtyp und "
-"Anzahl Ihrer Dateneingaben wie Objekte, Rigs, Standorte und Journale). Es"
-" werden niemals persönliche Daten erfasst, und Sie können sich jederzeit "
-"abmelden. Wenn Sie dies zulassen, hilft mir das wirklich, Nova zu "
-"verbessern."
+"Anzahl Ihrer Dateneingaben wie Objekte, Rigs, Standorte und Journale). Es "
+"werden niemals persönliche Daten erfasst, und Sie können sich jederzeit "
+"abmelden. Wenn Sie dies zulassen, hilft mir das wirklich, Nova zu verbessern."
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -2732,14 +2780,14 @@ msgstr "Hilfe zu Rigs"
 
 #: templates/config_form.html:384
 msgid ""
-"Add or update your equipment here. To edit an item, click \"Edit\" to "
-"load its details into the form, make your changes, and click the "
-"\"Update\" button."
+"Add or update your equipment here. To edit an item, click \"Edit\" to load "
+"its details into the form, make your changes, and click the \"Update\" "
+"button."
 msgstr ""
-"Fügen Sie hier Ihre Ausrüstung hinzu oder aktualisieren Sie sie. Um einen"
-" Eintrag zu bearbeiten, klicken Sie auf „Bearbeiten“, um die Details in "
-"das Formular zu laden, nehmen Sie Ihre Änderungen vor und klicken Sie auf"
-" die Schaltfläche „Aktualisieren“."
+"Fügen Sie hier Ihre Ausrüstung hinzu oder aktualisieren Sie sie. Um einen "
+"Eintrag zu bearbeiten, klicken Sie auf „Bearbeiten“, um die Details in das "
+"Formular zu laden, nehmen Sie Ihre Änderungen vor und klicken Sie auf die "
+"Schaltfläche „Aktualisieren“."
 
 #: templates/config_form.html:385
 msgid "Telescopes"
@@ -2816,12 +2864,12 @@ msgstr "2. Konfigurieren Sie Ihre Rigs"
 
 #: templates/config_form.html:444
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click "
-"\"Edit\" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click \"Edit\" "
+"to load the rig into the form below."
 msgstr ""
-"Kombinieren Sie Ihre Komponenten zu einem kompletten Bildgebungsgerät. "
-"Zum Bearbeiten klicken Sie auf „Bearbeiten“, um das Gerät in das "
-"untenstehende Formular zu laden."
+"Kombinieren Sie Ihre Komponenten zu einem kompletten Bildgebungsgerät. Zum "
+"Bearbeiten klicken Sie auf „Bearbeiten“, um das Gerät in das untenstehende "
+"Formular zu laden."
 
 #: templates/config_form.html:447
 msgid "Rig Name:"
@@ -2961,9 +3009,9 @@ msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
 msgstr ""
-"Hier finden Sie Objekte und Komponenten, die von anderen Benutzern im "
-"System freigegeben wurden. Klicken Sie auf „Importieren“, um eine Kopie "
-"zu Ihrer eigenen Konfiguration hinzuzufügen."
+"Hier finden Sie Objekte und Komponenten, die von anderen Benutzern im System "
+"freigegeben wurden. Klicken Sie auf „Importieren“, um eine Kopie zu Ihrer "
+"eigenen Konfiguration hinzuzufügen."
 
 #: templates/config_form.html:531
 msgid "Shared Objects"
@@ -3180,8 +3228,8 @@ msgstr "Externe Quelle"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for "
-"this object yet."
+"No inspiration content (custom image or description) has been added for this "
+"object yet."
 msgstr ""
 "Für dieses Objekt wurden noch keine inspirierenden Inhalte "
 "(benutzerdefinierte Bilder oder Beschreibungen) hinzugefügt."
@@ -3189,8 +3237,8 @@ msgstr ""
 #: templates/graph_view.html:214
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um eines"
-" hinzuzufügen."
+"Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um eines "
+"hinzuzufügen."
 
 #: templates/graph_view.html:223
 msgid "Framing With Your Rigs"
@@ -3198,8 +3246,8 @@ msgstr "Rahmen mit Ihren Rigs"
 
 #: templates/graph_view.html:224
 msgid ""
-"Assessment is based on the object's largest dimension and may not reflect"
-" framing of specific features."
+"Assessment is based on the object's largest dimension and may not reflect "
+"framing of specific features."
 msgstr ""
 "Die Bewertung basiert auf der größten Abmessung des Objekts und spiegelt "
 "möglicherweise nicht die Gestaltung bestimmter Merkmale wider."
@@ -3254,11 +3302,11 @@ msgstr "FOV sperren"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected "
-"for your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for "
+"your latitude)"
 msgstr ""
-"Zeigt die ungefähre Position von geostationären Satelliten an (korrigiert"
-" um Ihren Breitengrad)."
+"Zeigt die ungefähre Position von geostationären Satelliten an (korrigiert um "
+"Ihren Breitengrad)."
 
 #: templates/graph_view.html:288
 msgid "Geo Belt"
@@ -3311,8 +3359,8 @@ msgstr "Überlappung %%"
 
 #: templates/graph_view.html:322
 msgid ""
-"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., "
-"and Telescopius."
+"Generates a CSV format compatible with ASIAIR (Plan Import), N.I.N.A., and "
+"Telescopius."
 msgstr ""
 "Erzeugt ein CSV-Format, das mit ASIAIR (Plan Import), N.I.N.A. und "
 "Telescopius kompatibel ist."
@@ -3347,8 +3395,7 @@ msgstr "Sättigung"
 
 #: templates/graph_view.html:372
 msgid ""
-"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your "
-"mount."
+"Coordinates are JNow (Real Time / Mean Equinox of Date) to match your mount."
 msgstr ""
 "Die Koordinaten sind JNow (Echtzeit / mittlerer Äquinoktium des Datums), "
 "passend zu Ihrer Montierung."
@@ -3745,12 +3792,12 @@ msgstr "z. B. 1x1, 2x2"
 
 #: templates/journal_form.html:163
 msgid ""
-"Enter number of subframes and exposure time (in seconds) per subframe for"
-" each filter used. Leave blank if not used."
+"Enter number of subframes and exposure time (in seconds) per subframe for "
+"each filter used. Leave blank if not used."
 msgstr ""
-"Geben Sie die Anzahl der Teilbilder und die Belichtungszeit (in Sekunden)"
-" pro Teilbild für jeden verwendeten Filter ein. Lassen Sie das Feld leer,"
-" wenn nicht verwendet."
+"Geben Sie die Anzahl der Teilbilder und die Belichtungszeit (in Sekunden) "
+"pro Teilbild für jeden verwendeten Filter ein. Lassen Sie das Feld leer, "
+"wenn nicht verwendet."
 
 #: templates/journal_form.html:172
 msgid "# Subs:"
@@ -4342,278 +4389,93 @@ msgstr "Verstärkung/Offset"
 msgid "Exp"
 msgstr "Experiment"
 
-#~ msgid "Usage:"
-#~ msgstr "Verwendung:"
-
-#~ msgid "{editor}: Editing failed"
-#~ msgstr "{editor}: Bearbeitung fehlgeschlagen"
-
-#~ msgid "{editor}: Editing failed: {e}"
-#~ msgstr "{editor}: Bearbeitung fehlgeschlagen: {e}"
-
-#~ msgid "Aborted!"
-#~ msgstr "Abgebrochen!"
-
-#~ msgid "(Deprecated) {text}"
-#~ msgstr "(Veraltet) {text}"
-
-#~ msgid "Options"
-#~ msgstr "Optionen"
-
-#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
-#~ msgstr "DeprecationWarning: Der Befehl {name!r} ist veraltet."
-
-#~ msgid "Commands"
-#~ msgstr "Befehle"
-
-#~ msgid "Missing command."
-#~ msgstr "Befehl fehlt."
-
-#~ msgid "No such command {name!r}."
-#~ msgstr "Kein solcher Befehl {name!r}."
-
-#~ msgid "Value must be an iterable."
-#~ msgstr "Der Wert muss iterierbar sein."
-
-#~ msgid "env var: {var}"
-#~ msgstr "env war: {var}"
-
-#~ msgid "(dynamic)"
-#~ msgstr "(dynamisch)"
-
-#~ msgid "default: {default}"
-#~ msgstr "Standard: {default}"
-
-#~ msgid "required"
-#~ msgstr "erforderlich"
-
-#~ msgid "%(prog)s, version %(version)s"
-#~ msgstr "%(prog)s, Version %(version)s"
-
-#~ msgid "Show the version and exit."
-#~ msgstr "Version anzeigen und beenden."
-
-#~ msgid "Show this message and exit."
-#~ msgstr "Diese Meldung anzeigen und beenden."
-
-#~ msgid "Error: {message}"
-#~ msgstr "Fehler: {message}"
-
-#~ msgid "Try '{command} {option}' for help."
-#~ msgstr "Versuchen Sie „{command} {option}” für Hilfe."
-
-#~ msgid "Invalid value: {message}"
-#~ msgstr "Ungültiger Wert: {message}"
-
-#~ msgid "Invalid value for {param_hint}: {message}"
-#~ msgstr "Ungültiger Wert für {param_hint}: {message}"
-
-#~ msgid "Missing argument"
-#~ msgstr "Fehlendes Argument"
-
-#~ msgid "Missing option"
-#~ msgstr "Fehlende Option"
-
-#~ msgid "Missing parameter"
-#~ msgstr "Fehlender Parameter"
-
-#~ msgid "Missing {param_type}"
-#~ msgstr "Fehlender {param_type}"
-
-#~ msgid "Missing parameter: {param_name}"
-#~ msgstr "Fehlender Parameter: {param_name}"
-
-#~ msgid "No such option: {name}"
-#~ msgstr "Keine solche Option: {name}"
-
-#~ msgid "unknown error"
-#~ msgstr "unbekannter Fehler"
-
-#~ msgid "Could not open file {filename!r}: {message}"
-#~ msgstr "Die Datei {Dateiname!r} konnte nicht geöffnet werden: {message}"
-
-#~ msgid "Argument {name!r} takes {nargs} values."
-#~ msgstr "Das Argument {name!r} nimmt {nargs} Werte an."
-
-#~ msgid "Option {name!r} does not take a value."
-#~ msgstr "Die Option {name!r} nimmt keinen Wert an."
-
-#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
-#~ msgstr ""
-#~ "Die Shell-Vervollständigung wird für "
-#~ "Bash-Versionen älter als 4.4 nicht "
-#~ "unterstützt."
-
-#~ msgid "Couldn't detect Bash version, shell completion is not supported."
-#~ msgstr ""
-#~ "Bash-Version konnte nicht erkannt "
-#~ "werden, Shell-Vervollständigung wird nicht "
-#~ "unterstützt."
-
-#~ msgid "Repeat for confirmation"
-#~ msgstr "Zur Bestätigung wiederholen"
-
-#~ msgid "Error: The value you entered was invalid."
-#~ msgstr "Fehler: Der eingegebene Wert ist ungültig."
-
-#~ msgid "Error: {e.message}"
-#~ msgstr "Fehler: {e.message}"
-
-#~ msgid "Error: The two entered values do not match."
-#~ msgstr "Fehler: Die beiden eingegebenen Werte stimmen nicht überein."
-
-#~ msgid "Error: invalid input"
-#~ msgstr "Fehler: ungültige Eingabe"
-
-#~ msgid "Press any key to continue..."
-#~ msgstr "Drücken Sie eine beliebige Taste, um fortzufahren..."
-
-#~ msgid ""
-#~ "Choose from:\n"
-#~ "\t{choices}"
-#~ msgstr "Wählen Sie aus: {choices}"
-
-#~ msgid "{value!r} is not a valid {number_type}."
-#~ msgstr "{value!r} ist kein gültiger {number_type}."
-
-#~ msgid "{value} is not in the range {range}."
-#~ msgstr "{value} liegt nicht im Bereich {range}."
-
-#~ msgid "{value!r} is not a valid boolean."
-#~ msgstr "{value!r} ist kein gültiger boolescher Wert."
-
-#~ msgid "{value!r} is not a valid UUID."
-#~ msgstr "{value!r} ist keine gültige UUID."
-
-#~ msgid "file"
-#~ msgstr "Datei"
-
-#~ msgid "directory"
-#~ msgstr "Verzeichnis"
-
-#~ msgid "path"
-#~ msgstr "Pfad"
-
-#~ msgid "{name} {filename!r} does not exist."
-#~ msgstr "{name} {filename!r} existiert nicht."
-
-#~ msgid "{name} {filename!r} is a file."
-#~ msgstr "{name} {filename!r} ist eine Datei."
-
-#~ msgid "{name} {filename!r} is a directory."
-#~ msgstr "{name} {filename!r} ist ein Verzeichnis."
-
-#~ msgid "{name} {filename!r} is not readable."
-#~ msgstr "{name} {filename!r} ist nicht lesbar."
-
-#~ msgid "{name} {filename!r} is not writable."
-#~ msgstr "{name} {filename!r} ist nicht beschreibbar."
-
-#~ msgid "{name} {filename!r} is not executable."
-#~ msgstr "{name} {filename!r} ist nicht ausführbar."
-
-#~ msgid "This field is required."
-#~ msgstr "Dieses Feld ist erforderlich."
-
-#~ msgid "File does not have an approved extension: {extensions}"
-#~ msgstr "Die Datei hat keine zugelassene Erweiterung: {extensions}"
-
-#~ msgid "File does not have an approved extension."
-#~ msgstr "Die Datei hat keine zugelassene Erweiterung."
-
-#~ msgid "Invalid field name '%s'."
-#~ msgstr "Ungültiger Feldname '%s'."
-
-#~ msgid "Field must be equal to %(other_name)s."
-#~ msgstr "Das Feld muss mit %(other_name)s übereinstimmen."
-
-#~ msgid "Field must be between %(min)d and %(max)d characters long."
-#~ msgstr "Das Feld muss zwischen %(min)d und %(max)d Zeichen lang sein."
-
-#~ msgid "Number must be at least %(min)s."
-#~ msgstr "Die Zahl muss mindestens %(min)s betragen."
-
-#~ msgid "Number must be at most %(max)s."
-#~ msgstr "Die Anzahl darf höchstens %(max)s betragen."
-
-#~ msgid "Number must be between %(min)s and %(max)s."
-#~ msgstr "Die Zahl muss zwischen %(min)s und %(max)s liegen."
-
-#~ msgid "Invalid input."
-#~ msgstr "Ungültige Eingabe."
-
-#~ msgid "Invalid email address."
-#~ msgstr "Ungültige E-Mail-Adresse."
-
-#~ msgid "Invalid IP address."
-#~ msgstr "Ungültige IP-Adresse."
-
-#~ msgid "Invalid Mac address."
-#~ msgstr "Ungültige MAC-Adresse."
-
-#~ msgid "Invalid URL."
-#~ msgstr "Ungültige URL."
-
-#~ msgid "Invalid UUID."
-#~ msgstr "Ungültige UUID."
-
-#~ msgid "Invalid value, must be one of: %(values)s."
-#~ msgstr "Ungültiger Wert, muss einer der folgenden sein: %(values)s."
-
-#~ msgid "Invalid value, can't be any of: %(values)s."
-#~ msgstr "Ungültiger Wert, darf keiner der folgenden Werte sein: %(values)s."
-
-#~ msgid "This field cannot be edited."
-#~ msgstr "Dieses Feld kann nicht bearbeitet werden."
-
-#~ msgid "This field is disabled and cannot have a value."
-#~ msgstr "Dieses Feld ist deaktiviert und kann keinen Wert enthalten."
-
-#~ msgid "Invalid CSRF Token."
-#~ msgstr "Ungültiges CSRF-Token."
-
-#~ msgid "CSRF token missing."
-#~ msgstr "CSRF-Token fehlt."
-
-#~ msgid "CSRF failed."
-#~ msgstr "CSRF fehlgeschlagen."
-
-#~ msgid "CSRF token expired."
-#~ msgstr "CSRF-Token abgelaufen."
-
-#~ msgid "Invalid Choice: could not coerce."
-#~ msgstr "Ungültige Auswahl: konnte nicht erzwungen werden."
-
-#~ msgid "Choices cannot be None."
-#~ msgstr "Die Auswahlmöglichkeiten dürfen nicht „Keine“ lauten."
-
-#~ msgid "Not a valid choice."
-#~ msgstr "Keine gültige Auswahl."
-
-#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
-#~ msgstr ""
-#~ "Ungültige Auswahl(en): Eine oder mehrere "
-#~ "Dateneingaben konnten nicht umgewandelt "
-#~ "werden."
-
-#~ msgid "Not a valid datetime value."
-#~ msgstr "Kein gültiger Datums-/Zeitwert."
-
-#~ msgid "Not a valid date value."
-#~ msgstr "Kein gültiger Datumswert."
-
-#~ msgid "Not a valid time value."
-#~ msgstr "Kein gültiger Zeitwert."
-
-#~ msgid "Not a valid week value."
-#~ msgstr "Kein gültiger Wochenwert."
-
-#~ msgid "Not a valid integer value."
-#~ msgstr "Kein gültiger ganzzahliger Wert."
-
-#~ msgid "Not a valid decimal value."
-#~ msgstr "Kein gültiger Dezimalwert."
-
-#~ msgid "Not a valid float value."
-#~ msgstr "Kein gültiger Float-Wert."
-
+#: venv/lib/python3.13/site-packages/click/core.py:1422
+#, python-brace-format
+msgid "Got unexpected extra argument ({args})"
+msgid_plural "Got unexpected extra arguments ({args})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/core.py:2334
+#, python-brace-format
+msgid "Takes {nargs} values but 1 was given."
+msgid_plural "Takes {nargs} values but {len} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/exceptions.py:232
+#, python-brace-format
+msgid "Did you mean {possibility}?"
+msgid_plural "(Possible options: {possibilities})"
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/parser.py:476
+#, python-brace-format
+msgid "Option {name!r} requires an argument."
+msgid_plural "Option {name!r} requires {nargs} arguments."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:299
+#, python-brace-format
+msgid "{value!r} is not {choice}."
+msgid_plural "{value!r} is not one of {choices}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:393
+#, python-brace-format
+msgid "{value!r} does not match the format {format}."
+msgid_plural "{value!r} does not match the formats {formats}."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/click/types.py:992
+#, python-brace-format
+msgid "{len_type} values are required, but {len_value} was given."
+msgid_plural "{len_type} values are required, but {len_value} were given."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
+#, fuzzy
+msgid "File does not have an approved extension."
+msgstr ""
+"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Datei hat keine genehmigte Erweiterung.\n"
+"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Die Datei hat keine zugelassene Erweiterung."
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "Ungültiger Feldname '%s'."
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
+#, python-format
+msgid "Field must be exactly %(max)d character long."
+msgid_plural "Field must be exactly %(max)d characters long."
+msgstr[0] ""
+msgstr[1] ""
+
+#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field."
+msgid_plural "'%(value)s' are not valid choices for this field."
+msgstr[0] ""
+msgstr[1] ""
