@@ -75,7 +75,7 @@ CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
 TRANSLATION_STATUS = {
     'en': 'validated',  # English is the source language
     'de': 'validated',  # German translations validated
-    'fr': 'validated',  # French translations validated
+    'fr': 'auto',       # French translations auto-generated
     'zh': 'auto',       # Chinese translations auto-generated
     'ja': 'auto',       # Japanese translations auto-generated
     'es': 'auto',       # Spanish translations auto-generated
