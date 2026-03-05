@@ -1,0 +1,10 @@
+
+#### Configuración de los equipos La pestaña **Equipos** es donde se define el equipo de imagen. Aunque pueda parecer una simple introducción de datos, esta configuración es **fundamental** para aprovechar todo el potencial de la aplicación Nova.
+
+**Por qué son importantes los equipos** * **Encuadre y mosaicos:** la herramienta visual de encuadre se basa completamente en las definiciones de su equipo para dibujar rectángulos precisos del sensor. **Sin un equipo guardado, la herramienta de encuadre y el planificador de mosaicos no funcionarán.** * **Informes de diario:** sus registros de observación se vinculan directamente a estos equipos. Definirlos aquí garantiza que sus futuros informes de diario incluyan automáticamente especificaciones técnicas detalladas (como la distancia focal y la escala de píxeles) sin que tenga que introducirlas cada vez. **1. Defina sus componentes** Antes de poder construir un equipo completo, debe definir las piezas individuales de su inventario. * **Telescopios:** Introduzca la apertura y la distancia focal (en mm).
+* **Cámaras:** Introduce las dimensiones del sensor (mm) y el tamaño de los píxeles (micras). Estos datos son esenciales para calcular tu campo de visión. * **Reductores/extensores:** Introduce el factor óptico (por ejemplo, «0,7» para un reductor, «2,0» para un Barlow).
+
+**2. Configure sus equipos** Una vez añadidos los componentes, combínelos para crear un sistema de imagen funcional. * **Crear equipo:** Asigne un nombre a su configuración (por ejemplo, «Redcat Widefield») y seleccione el telescopio, la cámara y el reductor opcional específicos en los menús desplegables.
+* **Estadísticas automáticas:** Nova calcula instantáneamente su **distancia focal efectiva**, **relación F** y **escala de imagen** (arcsec/píxel).
+
+**Análisis de muestreo** Utilice el menú desplegable **«Seleccione su visibilidad típica»** para comprobar su rendimiento óptico. Nova analizará su escala de imagen en función de las condiciones locales del cielo y le indicará si su configuración está **submuestreada**, **sobremuestreada** o es perfectamente adecuada. 

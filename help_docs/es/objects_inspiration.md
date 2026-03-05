@@ -1,0 +1,11 @@
+
+### Ayuda: Gestión del contenido inspirador La sección **Contenido inspirador** le permite añadir imágenes y resúmenes descriptivos a sus objetos. Estos detalles se muestran en los mosaicos de la **pestaña Inspiración** de su panel de control principal, lo que le proporciona una guía visual de sus objetivos. Puede editar estos campos al **añadir un nuevo objeto** o actualizando uno existente en **Gestionar mis objetos**.
+
+#### Configuración de la imagen Estos campos determinan la imagen de fondo que se muestra en el mosaico de inspiración. * **URL de la imagen:** Pega aquí el enlace directo al archivo de imagen. * *Consejo:* La URL suele terminar en `.jpg`, `.png` o `.webp`. Asegúrate de que sea un enlace directo a la imagen, no a la página web que contiene la imagen.
+
+
+* **Crédito de la imagen:** Introduce el nombre del fotógrafo, observatorio o agencia (por ejemplo, «NASA», «John Doe», «DSS2»). Este texto aparecerá como una insignia en la imagen.
+* **Enlace a la fuente de la imagen:** Pega la URL del sitio web donde encontraste la imagen (por ejemplo, la página APOD o la publicación Astrobin). Esto permite a los usuarios hacer clic para ver la fuente original. #### Configuración de la descripción Estos campos proporcionan el resumen de texto que se superpone al mosaico. * **Texto de la descripción:** Introduce un resumen breve y atractivo del objeto.
+* *Consejo:* Sea breve (1-3 frases) para que quepa perfectamente en la tarjeta. * **Crédito del texto:** Indique la fuente de la descripción (por ejemplo, «Wikipedia», «The Sky Live»). * **Enlace a la fuente del texto:** Pegue la URL de donde proviene el texto de la descripción.
+
+#### Consejos rápidos * **¿Dejarlo en blanco?** Si deja la URL de la imagen en blanco, la aplicación Nova intentará cargar automáticamente una imagen DSS2 (Digitized Sky Survey) si las coordenadas están disponibles. * **https:** Utilice siempre enlaces seguros (`https://`) para garantizar que las imágenes se carguen correctamente en todos los navegadores. 

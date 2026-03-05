@@ -1,0 +1,7 @@
+
+#### Elementos compartidos La pestaña **Elementos compartidos** le conecta con la comunidad más amplia de su instancia Nova. Le permite explorar e importar datos que otros usuarios han decidido compartir, lo que le ahorra tiempo en la introducción de datos y le ayuda a descubrir nuevos objetivos. **Exploración de datos compartidos** La pestaña se divide en tres secciones para ayudarle a encontrar tipos específicos de contenido compartido:
+
+* **Objetos compartidos:** Explore los objetivos que otros usuarios están capturando. Haga clic en el botón **Ver** de la columna «Notas» para leer los consejos, ideas de encuadre o descripciones que el propietario haya adjuntado. * **Vistas compartidas:** Importe las «Vistas guardadas» (filtros) creadas por otros para acceder rápidamente a objetos específicos y ajustes de filtro.
+* **Componentes compartidos:** Encuentre definiciones de telescopios, cámaras o reductores. Importarlos es mucho más rápido que buscar y escribir manualmente las especificaciones técnicas. **Filtrado** Cada tabla tiene una **Fila de filtro** en la parte superior. Puede escribir en estos cuadros para buscar instantáneamente por **Nombre**, **Tipo** o **Compartido por** nombre de usuario para encontrar exactamente lo que necesita.
+
+**Importación de elementos** * **Acción:** Haga clic en el botón **Importar** junto a cualquier elemento para copiarlo en su propia configuración. * **Indicadores de estado:** * **Importado:** Ya tiene una copia de este elemento. * **Propietario:** Usted es quien ha compartido este elemento. 

@@ -1,0 +1,10 @@
+
+### Configuración de ubicaciones La pestaña **Ubicaciones** es donde se definen los sitios de observación. Ya sea su patio trasero, un sitio con cielo oscuro o un observatorio remoto, al añadirlos aquí, la aplicación **Nova App** puede calcular con precisión las horas de salida, puesta y tránsito para su posición específica.
+
+#### Añadir una nueva ubicación Para añadir un sitio, rellene los campos de la parte superior de la página: * **Nombre:** un nombre descriptivo para el sitio (por ejemplo, «Casa», «Sitio en el desierto»). * **Lat / Lon:** su latitud y longitud en grados decimales.
+  * **Zona horaria:** Seleccione la zona horaria correcta para asegurarse de que los tiempos del gráfico coincidan con su reloj local. * **Activo:** Marque esta casilla para que la ubicación esté disponible para su selección en el panel de control principal. #### Gestión de ubicaciones Puede editar las ubicaciones existentes directamente en la lista situada debajo del bloque «Añadir».
+
+  * **Actualizar detalles:** Cambie las coordenadas o las zonas horarias en cualquier momento. Recuerde hacer clic en **Actualizar ubicaciones** en la parte inferior para guardar los cambios. * **Estado activo:** Puede activar o desactivar las ubicaciones. * *Nota: Hay un límite de **5 ubicaciones activas**.*
+    * **Importante:** Si deja de utilizar un sitio, **desmarque «Activo» en lugar de eliminarlo**. Las ubicaciones inactivas siguen estando disponibles para sus entradas históricas del **Diario**, lo que garantiza que sus registros anteriores sigan siendo precisos. * **Eliminar:** Marque la casilla **Eliminar** y haga clic en **Actualizar ubicaciones** para eliminar definitivamente un sitio. *Advertencia: Esto elimina la ubicación por completo.*
+
+#### Máscara de horizonte Este campo opcional le permite definir obstáculos (como árboles o edificios) para evitar que la aplicación sugiera objetivos ocultos detrás de ellos. * **Para obtener más información sobre cómo formatear las coordenadas de la máscara**, haga clic en el pequeño icono de ayuda **[?]** situado junto a la etiqueta «Máscara de horizonte». 

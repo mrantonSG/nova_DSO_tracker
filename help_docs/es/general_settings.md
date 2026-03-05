@@ -1,0 +1,11 @@
+
+### Configuración general La pestaña **General** le permite definir las reglas básicas que utiliza la aplicación **Nova App** para calcular la visibilidad e identificar buenas oportunidades de obtención de imágenes.
+
+#### Conceptos básicos sobre visibilidad * **Umbral de altitud (°):** Es su «límite del horizonte». Los objetos por debajo de este ángulo (en grados) se consideran obstruidos o demasiado bajos para captarlos en imagen. Lo habitual es establecer este valor en 20° o 30° para evitar las turbulencias atmosféricas cerca del horizonte.
+
+#### Criterios de previsión y obtención de imágenes Estos ajustes determinan qué objetivos aparecen en su previsión «Outlook». La aplicación utiliza estas reglas para filtrar las noches que no cumplen con sus estándares de calidad. * **Mínimo observable (min):** El tiempo mínimo que un objeto debe estar visible por encima de su umbral para que se considere una oportunidad válida.
+* **Altitud máxima mínima (°):** la altura máxima que debe alcanzar un objeto durante la noche. Si un objeto nunca se eleva por encima de esta altura, Nova lo omitirá. * **Iluminación lunar máxima (%):** utilice esta opción para filtrar las noches en las que la luna es demasiado brillante. (Por ejemplo, establezca un 20 % para ver solo las oportunidades de noches oscuras).
+* **Separación mínima de la luna (°):** La distancia mínima permitida entre su objetivo y la luna. * **Meses de búsqueda:** Hasta qué punto en el futuro debe calcular oportunidades la función Outlook (el valor predeterminado es 6 meses). #### Rendimiento del sistema *(Nota: estas opciones solo están disponibles en el modo de usuario único)*
+
+* **Precisión del cálculo:** Controla la frecuencia con la que Nova calcula la posición de un objeto para trazar curvas de altitud. * **Alta (10 min):** Curvas más suaves, pero más lentas de cargar. * **Rápida (30 min):** Tiempos de carga más rápidos, ideal para dispositivos de baja potencia (como una Raspberry Pi).
+* **Telemetría anónima:** si se habilita, la **aplicación Nova** envía un pequeño «latido» anónimo que contiene información básica del sistema (por ejemplo, la versión de la aplicación, el recuento de objetos). Nunca se recopilan datos personales. Esto ayuda al desarrollador a comprender cómo se utiliza la aplicación para mejorar futuras actualizaciones. 
