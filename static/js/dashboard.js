@@ -395,7 +395,7 @@
     
             // --- THIS BLOCK IS NEW ---
             if (IS_GUEST_USER) {
-                savedViewsDropdown.innerHTML = '<option value="">-- Saved Views --</option>';
+                savedViewsDropdown.innerHTML = `<option value="">${window.t('saved_views_placeholder')}</option>`;
                 savedViewsDropdown.disabled = true;
                 if (saveViewBtn) saveViewBtn.style.display = 'none';
                 if (deleteViewBtn) deleteViewBtn.style.display = 'none';
@@ -409,7 +409,7 @@
                 allSavedViews = await response.json(); // Store in local variable
                 window.allSavedViews = allSavedViews;  // FIX: Expose to Heatmap script
     
-                savedViewsDropdown.innerHTML = '<option value="">-- Saved Views --</option>';
+                savedViewsDropdown.innerHTML = `<option value="">${window.t('saved_views_placeholder')}</option>`;
                 const viewNames = Object.keys(allSavedViews).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     
                 viewNames.forEach(viewName => {
@@ -427,7 +427,7 @@
                 }
             } catch (error) {
                 console.error("Error populating saved views:", error);
-                savedViewsDropdown.innerHTML = '<option value="">Error loading views</option>';
+                savedViewsDropdown.innerHTML = `<option value="">${window.t('error_loading_views')}</option>`;
             }
         }
     
