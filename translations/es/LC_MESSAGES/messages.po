@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 14:14+0800\n"
+"POT-Creation-Date: 2026-03-05 15:33+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: es <LL@li.org>\n"
@@ -1414,6 +1414,7 @@ msgid "SQM Reading:"
 msgstr "Lectura SQM:"
 
 #: templates/_journal_section.html:1724
+#, python-format
 msgid "Moon Illumination (%%):"
 msgstr "Iluminación lunar (%%):"
 
@@ -4504,7 +4505,7 @@ msgstr "Error: {message}"
 #: venv/lib/python3.13/site-packages/click/exceptions.py:80
 #, python-brace-format
 msgid "Try '{command} {option}' for help."
-msgstr "Prueba «{comando} {option}» para obtener ayuda."
+msgstr "Prueba «{command} {option}» para obtener ayuda."
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:129
 #, fuzzy, python-brace-format
@@ -4576,14 +4577,6 @@ msgstr ""
 #, python-brace-format
 msgid "Could not open file {filename!r}: {message}"
 msgstr "No se pudo abrir el archivo {nombre de archivo!r}: {message}"
-
-#: venv/lib/python3.13/site-packages/click/formatting.py:156
-#, fuzzy
-msgid "Usage:"
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Escala:\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/parser.py:233
 #, python-brace-format
@@ -4676,7 +4669,7 @@ msgstr "{value!r} no es un {number_type} válido."
 #: venv/lib/python3.13/site-packages/click/types.py:471
 #, python-brace-format
 msgid "{value} is not in the range {range}."
-msgstr "{valor} no está dentro del rango {range}."
+msgstr "{value} no está dentro del rango {range}."
 
 #: venv/lib/python3.13/site-packages/click/types.py:612
 #, python-brace-format
@@ -4952,3 +4945,9 @@ msgstr "No es un valor decimal válido."
 #: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
 msgid "Not a valid float value."
 msgstr "No es un valor flotante válido."
+
+#~ msgid "Usage:"
+#~ msgstr ""
+#~ "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+#~ "Escala:\n"
+#~ "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"

@@ -99,6 +99,10 @@ window.NOVA_I18N.en = {
     "failed_load_opportunities": "Failed to load imaging opportunities. Check console for details. ({error})",
     "add_to_calendar": "Add to calendar",
     "view_inspiration": "View Inspiration",
+    "add_own_inspiration": "Add Your Own Inspiration!",
+    "seeing_automated_survey_images": "You are currently seeing automated survey images (DSS2).",
+    "display_own_astrophotos": "Did you know you can display your own astrophotos or favorite reference images here?",
+    "go_to_config_manage_objects": "Go to <strong>Configuration &gt; Manage Objects</strong> to add \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your targets.",
 
     // ========================================================================
     // OBJECTS SECTION

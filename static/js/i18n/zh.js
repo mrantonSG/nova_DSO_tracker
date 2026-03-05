@@ -96,6 +96,10 @@ window.NOVA_I18N.zh = {
     "failed_load_opportunities": "加载成像机会失败。详情请查看控制台。({error})",
     "add_to_calendar": "添加到日历",
     "view_inspiration": "查看灵感",
+    "add_own_inspiration": "添加您自己的灵感！",
+    "seeing_automated_survey_images": "您当前看到的是自动调查图像（DSS2）。",
+    "display_own_astrophotos": "您知道吗？您可以在这里展示自己的天文摄影作品或最爱的参考图片。",
+    "go_to_config_manage_objects": "前往<strong>配置 &gt; 管理对象</strong>，为您的目标添加\"灵感内容\"（图片URL、署名、描述）。",
 
     // ========================================================================
     // OBJECTS SECTION
