@@ -10,12 +10,12 @@ msgstr ""
 "POT-Creation-Date: 2026-03-05 14:14+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: zh\n"
 "Language-Team: zh <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: zh\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "Generated-By: Babel 2.18.0\n"
 
 #: nova/__init__.py:3880
@@ -257,7 +257,8 @@ msgid "SSO Error: User '%(username)s' not found or is disabled in Nova."
 msgstr "SSO错误：未找到用户'%(username)s'或已在Nova中禁用。"
 
 #: nova/__init__.py:7531
-msgid "SSO Error: The login link has expired. Please try again from WordPress."
+msgid ""
+"SSO Error: The login link has expired. Please try again from WordPress."
 msgstr "SSO错误：登录链接已过期。请从WordPress重试。"
 
 #: nova/__init__.py:7534
@@ -320,7 +321,8 @@ msgid "Cannot import: Configuration must contain at least one location."
 msgstr "无法导入：配置必须包含至少一个位置。"
 
 #: nova/__init__.py:8028
-msgid "Cannot import: Configuration must contain at least one active location."
+msgid ""
+"Cannot import: Configuration must contain at least one active location."
 msgstr "无法导入：配置必须包含至少一个活动位置。"
 
 #: nova/__init__.py:8059
@@ -644,11 +646,11 @@ msgstr "星座"
 msgid "Source: Wiki"
 msgstr "来源：Wiki"
 
-#: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
-#: templates/_objects_section.html:427 templates/_objects_section.html:442
-#: templates/base.html:215 templates/base.html:235 templates/base.html:243
-#: templates/base.html:281 templates/config_form.html:640
-#: templates/graph_view.html:276
+#: templates/_inspiration_section.html:504
+#: templates/_journal_section.html:1908 templates/_objects_section.html:427
+#: templates/_objects_section.html:442 templates/base.html:215
+#: templates/base.html:235 templates/base.html:243 templates/base.html:281
+#: templates/config_form.html:640 templates/graph_view.html:276
 msgid "Close"
 msgstr "关闭"
 
@@ -1375,9 +1377,8 @@ msgid "SQM Reading:"
 msgstr "SQM读数："
 
 #: templates/_journal_section.html:1724
-#, fuzzy, python-format
 msgid "Moon Illumination (%%):"
-msgstr "月球照度（%）："
+msgstr "月球照度（%%）："
 
 #: templates/_journal_section.html:1724
 msgid "Auto-fills on date/loc change"
@@ -1958,9 +1959,7 @@ msgid ""
 "Catalog packs are server-provided object collections you can import into "
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
-msgstr ""
-"星表包是服务器提供的天体集合，您可以将其导入到您的库中。导入不会破坏性修改："
-"现有天体永远不会被覆盖，重叠的天体将被跳过。"
+msgstr "星表包是服务器提供的天体集合，您可以将其导入到您的库中。导入不会破坏性修改：现有天体永远不会被覆盖，重叠的天体将被跳过。"
 
 #: templates/_objects_section.html:386 templates/config_form.html:574
 #: templates/graph_view.html:201
@@ -2000,9 +1999,7 @@ msgid ""
 "slightly different RA / DEC and will therefore not be considered as "
 "duplicates."
 msgstr ""
-"这些对彼此位于2.5角分之内。合并将所有日记、项目和构图移至\"保留\"天体，并删除"
-"另一个天体。请注意，来自不同星表的天体可能具有略有不同的RA/DEC，因此不会被视"
-"为重复项。"
+"这些对彼此位于2.5角分之内。合并将所有日记、项目和构图移至\"保留\"天体，并删除另一个天体。请注意，来自不同星表的天体可能具有略有不同的RA/DEC，因此不会被视为重复项。"
 
 #: templates/_objects_section.html:438
 msgid "Scanning catalog... (this may take a few seconds)"
@@ -2052,9 +2049,7 @@ msgid ""
 "This object is not currently linked to a Project. The **Project Details** "
 "sub-tab will only appear if the object is the primary target of an existing "
 "project."
-msgstr ""
-"此天体当前未关联到项目。仅当天体是现有项目的主要目标时，才会显示**项目详细信"
-"息**子选项卡。"
+msgstr "此天体当前未关联到项目。仅当天体是现有项目的主要目标时，才会显示**项目详细信息**子选项卡。"
 
 #: templates/_project_subtab.html:153
 msgid "Total Integration Time"
@@ -2210,8 +2205,7 @@ msgstr "重置密码"
 msgid ""
 "Delete user '%(username)s'? This removes their login credentials. Their "
 "observing data in app.db is NOT deleted."
-msgstr ""
-"删除用户'%(username)s'？这将删除其登录凭据。app.db 中的观测数据不会被删除。"
+msgstr "删除用户'%(username)s'？这将删除其登录凭据。app.db 中的观测数据不会被删除。"
 
 #: templates/admin_users.html:118
 msgid "New password"
@@ -2370,9 +2364,7 @@ msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
 "tracking Moon position and phase, and identifying optimal viewing windows."
-msgstr ""
-"Nova DSO Tracker 帮助业余天文学家规划观测会话，计算和可视化深空天体的高度和方"
-"位，跟踪月球位置和相位，并确定最佳观测窗口。"
+msgstr "Nova DSO Tracker 帮助业余天文学家规划观测会话，计算和可视化深空天体的高度和方位，跟踪月球位置和相位，并确定最佳观测窗口。"
 
 #: templates/base.html:255
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
@@ -2547,9 +2539,7 @@ msgid ""
 "If checked, Nova will calculate curves for ALL objects, even those "
 "geometrically impossible to see from your location (disabling the \"Smart "
 "Skip\" optimization)."
-msgstr ""
-"如果选中，Nova将计算所有天体的曲线，包括从您的位置几何上不可能看到的天体（禁"
-"用\"智能跳过\"优化）。"
+msgstr "如果选中，Nova将计算所有天体的曲线，包括从您的位置几何上不可能看到的天体（禁用\"智能跳过\"优化）。"
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -2560,9 +2550,7 @@ msgid ""
 "If checked, objects that are geometrically impossible to see will be hidden "
 "from the main list by default. They will still appear if you specifically "
 "search for them."
-msgstr ""
-"如果选中，几何上不可能看到的天体将默认从主列表中隐藏。如果您专门搜索它们，它"
-"们仍会显示。"
+msgstr "如果选中，几何上不可能看到的天体将默认从主列表中隐藏。如果您专门搜索它们，它们仍会显示。"
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -2594,9 +2582,7 @@ msgid ""
 "setting only refines the accuracy of the nightly overview values (Max "
 "Altitude, Observable Duration, etc.). 'Fast' is recommended for low-power "
 "devices."
-msgstr ""
-"注意：您的'当前高度'始终实时计算。此设置仅优化夜览概览值的准确性（最大高度、"
-"可观测持续时间等）。对于低功耗设备，建议使用'快速'。"
+msgstr "注意：您的'当前高度'始终实时计算。此设置仅优化夜览概览值的准确性（最大高度、可观测持续时间等）。对于低功耗设备，建议使用'快速'。"
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -2604,14 +2590,12 @@ msgstr "匿名遥测："
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts "
-"of your data entries like objects, rigs, locations, and journals). No "
+"Nova sends a small anonymous heartbeat (app version, system type, and counts"
+" of your data entries like objects, rigs, locations, and journals). No "
 "personal details are ever collected, and you can opt out anytime. Allowing "
 "it really helps me improve Nova."
 msgstr ""
-"Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设"
-"备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实"
-"有助于我改进Nova。"
+"Nova会发送一个小的匿名心跳（应用版本、系统类型和您的数据条目计数，如天体、设备配置、位置和日记）。绝不会收集个人详细信息，您可以随时选择退出。允许它确实有助于我改进Nova。"
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -2716,9 +2700,7 @@ msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to load "
 "its details into the form, make your changes, and click the \"Update\" "
 "button."
-msgstr ""
-"在此处添加或更新您的设备。要编辑项目，请点击\"编辑\"将其详细信息加载到表单"
-"中，进行更改，然后点击\"更新\"按钮。"
+msgstr "在此处添加或更新您的设备。要编辑项目，请点击\"编辑\"将其详细信息加载到表单中，进行更改，然后点击\"更新\"按钮。"
 
 #: templates/config_form.html:385
 msgid "Telescopes"
@@ -2795,11 +2777,9 @@ msgstr "2. 配置您的设备"
 
 #: templates/config_form.html:444
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\" "
-"to load the rig into the form below."
-msgstr ""
-"将您的组件组合成完整的成像设备。要编辑，请点击\"编辑\"将设备加载到下方的表单"
-"中。"
+"Combine your components into a complete imaging rig. To edit, click \"Edit\""
+" to load the rig into the form below."
+msgstr "将您的组件组合成完整的成像设备。要编辑，请点击\"编辑\"将设备加载到下方的表单中。"
 
 #: templates/config_form.html:447
 msgid "Rig Name:"
@@ -2938,9 +2918,7 @@ msgstr "共享项帮助"
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
-msgstr ""
-"在此处您可以找到系统中其他用户共享的天体和组件。点击\"导入\"将副本添加到您自"
-"己的配置中。"
+msgstr "在此处您可以找到系统中其他用户共享的天体和组件。点击\"导入\"将副本添加到您自己的配置中。"
 
 #: templates/config_form.html:531
 msgid "Shared Objects"
@@ -3157,8 +3135,8 @@ msgstr "外部来源"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for this "
-"object yet."
+"No inspiration content (custom image or description) has been added for this"
+" object yet."
 msgstr "尚未为此天体添加灵感内容（自定义图像或描述）。"
 
 #: templates/graph_view.html:214
@@ -3225,8 +3203,8 @@ msgstr "锁定视场"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected for "
-"your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for"
+" your latitude)"
 msgstr "显示地球静止轨道卫星的大致位置（针对您的纬度进行了校正）"
 
 #: templates/graph_view.html:288
@@ -3709,8 +3687,7 @@ msgstr "例如 1x1, 2x2"
 msgid ""
 "Enter number of subframes and exposure time (in seconds) per subframe for "
 "each filter used. Leave blank if not used."
-msgstr ""
-"输入每个使用的滤镜的子帧数量和每个子帧的曝光时间（秒）。如果未使用，请留空。"
+msgstr "输入每个使用的滤镜的子帧数量和每个子帧的曝光时间（秒）。如果未使用，请留空。"
 
 #: templates/journal_form.html:172
 msgid "# Subs:"

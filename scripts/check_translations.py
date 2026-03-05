@@ -45,6 +45,15 @@ ALLOWED_IDENTICAL = {
     'observable (°)', 'Magnitude', 'SB', 'Altitude °', 'Angle',
     'Points', 'Distance', 'Options', '%(prog)s, version %(version)s',
     'Nova – Configuration', 'Nova Pocket', 'Dithering', 'Darks', 'Flats',
+    # Abbreviations and single characters (intentionally identical)
+    'Integ.', 'Total:', 'min', 'x', 's', 'FL:', 'subs x ', 'Flats:',
+    'Bias/DarkFlats:', 'Dithers', '#', 'RA', 'Dec', 'RA RMS:', 'Dec RMS:',
+    'Dec:', 'Zoom', '# Subs', 'Bias / Dark Flats:', 'Bias / Dark Flats', 'Con', 'Mag',
+    'SQM', 'ID', 'Lat:', 'Lon:', 'Factor:', 'Rig', 'Rig:', 'Temp', 'Exp',
+    'Subs', '# Subs:', 'Error:', 'Config:',
+    # Product names (never translate)
+    'Nova Analytics', 'Nova DSO Tracker', 'Nova Companion', 'Nova',
+    'DSO Tracker', 'SIMBAD', 'Rigs', 'General',
 }
 
 # Strings that look like format strings or code — skip identical check
@@ -57,11 +66,33 @@ SKIP_PATTERNS = [
     lambda s: all(c in "0123456789.,+-→←↑↓°%()[]{}|/ " for c in s),
 ]
 
+# Paths that indicate library strings (Click, WTForms, Flask-WTF)
+LIBRARY_PATH_PATTERNS = [
+    "site-packages",
+    "venv/lib/python",
+    "/usr/lib/python",
+    "/usr/local/lib/python",
+]
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def is_skip_pattern(s: str) -> bool:
     return any(fn(s) for fn in SKIP_PATTERNS)
+
+
+def is_library_string(entry) -> bool:
+    """
+    Check if a PO entry is from a library (Click, WTForms, Flask-WTF, etc.).
+    Library strings have source locations in site-packages or venv directories.
+    """
+    if not entry.occurrences:
+        return False
+    for filename, _ in entry.occurrences:
+        for pattern in LIBRARY_PATH_PATTERNS:
+            if pattern in filename:
+                return True
+    return False
 
 
 def check_language(lang: str, warn_only: bool) -> list[str]:
@@ -74,7 +105,7 @@ def check_language(lang: str, warn_only: bool) -> list[str]:
     errors = []
 
     # ── Check 1: Empty msgstr ──────────────────────────────────────────────────
-    empty = po.untranslated_entries()
+    empty = [e for e in po.untranslated_entries() if not is_library_string(e)]
     if empty:
         errors.append(f"\n[{lang}] ✗ {len(empty)} EMPTY translations:")
         for e in empty:
@@ -86,6 +117,7 @@ def check_language(lang: str, warn_only: bool) -> list[str]:
         if e.msgstr == e.msgid
         and e.msgid not in ALLOWED_IDENTICAL
         and not is_skip_pattern(e.msgid)
+        and not is_library_string(e)
     ]
     if identical:
         errors.append(f"\n[{lang}] ✗ {len(identical)} IDENTICAL msgstr (not translated):")
@@ -93,7 +125,7 @@ def check_language(lang: str, warn_only: bool) -> list[str]:
             errors.append(f"     line {e.linenum:4d} | {repr(e.msgid[:70])}")
 
     # ── Check 3: Fuzzy entries (need review) ──────────────────────────────────
-    fuzzy = po.fuzzy_entries()
+    fuzzy = [e for e in po.fuzzy_entries() if not is_library_string(e)]
     if fuzzy:
         label = "WARN" if warn_only else "✗"
         errors.append(f"\n[{lang}] {label} {len(fuzzy)} FUZZY entries (need review):")
