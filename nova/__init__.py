@@ -119,7 +119,7 @@ from nova.config import (
     cache_worker_status, monthly_top_targets_cache, config_cache,
     config_mtime, journal_cache, journal_mtime, LATEST_VERSION_INFO,
     rig_data_cache, weather_cache, CATALOG_MANIFEST_CACHE,
-    _telemetry_startup_once, TELEMETRY_DEBUG_STATE
+    _telemetry_startup_once, TELEMETRY_DEBUG_STATE, TRANSLATION_STATUS
 )
 from nova.helpers import (
     get_db, get_user_log_string, allowed_file, _yaml_dump_pretty,
@@ -3027,6 +3027,7 @@ app = Flask(
     static_folder=os.path.join(_project_root, 'static'),
 )
 app.jinja_env.filters['toyaml'] = to_yaml_filter
+app.jinja_env.globals['translation_status'] = TRANSLATION_STATUS
 app.secret_key = SECRET_KEY
 csrf = CSRFProtect()
 csrf.init_app(app)

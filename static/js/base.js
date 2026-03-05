@@ -106,6 +106,9 @@ window.novaState.fn = Object.assign(existingFn, {
 // ============================================
 
 document.addEventListener("DOMContentLoaded", function () {
+    // --- INITIALIZE TRANSLATION BANNER ---
+    initTranslationBanner();
+
     // --- INITIALIZE THEME TOGGLE BUTTON ---
     const themeToggleBtn = document.getElementById('theme-toggle');
     if (themeToggleBtn) {
@@ -338,3 +341,64 @@ window.novaState.fn.closeHelpModal = closeHelpModal;
 // Register about modal functions in novaState
 window.novaState.fn.openAboutModal = openAboutModal;
 window.novaState.fn.closeAboutModal = closeAboutModal;
+
+// --- TRANSLATION BANNER FUNCTIONS ---
+function initTranslationBanner() {
+    const banner = document.getElementById('translation-banner');
+    if (!banner) return;
+
+    // Get current language from Nova config
+    const currentLang = window.NOVA_CONFIG && window.NOVA_CONFIG.language ? window.NOVA_CONFIG.language : 'en';
+    const sessionStorageKey = 'banner_dismissed_' + currentLang;
+
+    // Check if banner was previously dismissed for this language
+    const isDismissed = sessionStorage.getItem(sessionStorageKey);
+
+    // Show banner only if not dismissed and language has 'auto' status
+    if (!isDismissed && banner.dataset.translationStatus === 'auto') {
+        banner.style.display = 'flex';
+    }
+
+    // Wire up dismiss button
+    const dismissBtn = banner.querySelector('.translation-banner-close');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', function() {
+            // Hide banner
+            banner.style.display = 'none';
+            // Store dismissal in sessionStorage
+            try {
+                sessionStorage.setItem(sessionStorageKey, 'true');
+            } catch (e) {
+                console.warn('[base.js] sessionStorage not available:', e);
+            }
+        });
+    }
+}
+
+// Clear all translation banner dismiss flags when switching languages
+// This is called before page reload via language selector
+function clearTranslationBannerFlags() {
+    try {
+        // Get all sessionStorage keys that start with 'banner_dismissed_'
+        const keys = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && key.startsWith('banner_dismissed_')) {
+                keys.push(key);
+            }
+        }
+        // Remove all banner dismiss flags
+        keys.forEach(function(key) {
+            sessionStorage.removeItem(key);
+        });
+    } catch (e) {
+        console.warn('[base.js] sessionStorage not available:', e);
+    }
+}
+
+// Hook into language selector to clear flags on language change
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'language-select') {
+        clearTranslationBannerFlags();
+    }
+});;

@@ -201,6 +201,26 @@
 
     {% block header_content %}{% endblock %}
 
+    {% if translation_status.get(current_language, 'auto') == 'auto' %}
+    <div id="translation-banner" class="translation-banner" style="display: none;" data-translation-status="{{ translation_status.get(current_language, 'auto') }}">
+        <div class="translation-banner-content">
+            <svg class="translation-banner-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span class="translation-banner-text">{{ _('The translations for this language are machine-generated and may not be accurate. Help improve them!') }}</span>
+            <a href="#" id="translation-feedback-link" class="translation-banner-link">{{ _('Submit feedback') }} &rarr;</a>
+        </div>
+        <button class="translation-banner-close" aria-label="{{ _('Close') }}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+    {% endif %}
+
     {% block body %}{% endblock %}
 
     <script src="{{ url_for('static', filename='js/base.js') }}" defer></script>

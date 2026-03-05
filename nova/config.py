@@ -71,6 +71,16 @@ rig_data_cache = BoundedCache(500)
 weather_cache = BoundedCache(1000)
 CATALOG_MANIFEST_CACHE = {"data": None, "expires": 0}
 
+# --- Translation status ---
+TRANSLATION_STATUS = {
+    'en': 'validated',  # English is the source language
+    'de': 'validated',  # German translations validated
+    'fr': 'validated',  # French translations validated
+    'zh': 'auto',       # Chinese translations auto-generated
+    'ja': 'auto',       # Japanese translations auto-generated
+    'es': 'auto',       # Spanish translations auto-generated
+}
+
 # --- Telemetry state ---
 _telemetry_startup_once = threading.Event()
 
