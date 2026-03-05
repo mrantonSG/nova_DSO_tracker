@@ -52,6 +52,7 @@ window.NOVA_I18N.de = {
     "simulated": "Simuliert",
     "mode": "Modus",
     "update": "Aktualisieren",
+    "update_in": "in {0}s",
 
     // Data Loading
     "data_load_failed": "Datenladung fehlgeschlagen: {error}",

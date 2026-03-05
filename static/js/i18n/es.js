@@ -52,6 +52,7 @@ window.NOVA_I18N.es = {
     "simulated": "Simulado",
     "mode": "Modo",
     "update": "Actualizar",
+    "update_in": "en {0}s",
 
     // Data Loading
     "data_load_failed": "Error al cargar datos: {error}",

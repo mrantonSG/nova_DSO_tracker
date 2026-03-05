@@ -55,6 +55,7 @@ window.NOVA_I18N.en = {
     "simulated": "Simulated",
     "mode": "Mode",
     "update": "Update",
+    "update_in": "in {0}s",
 
     // Data Loading
     "data_load_failed": "Data Load Failed: {error}",
