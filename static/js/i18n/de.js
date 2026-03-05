@@ -8,6 +8,7 @@ window.NOVA_I18N.de = {
     // ========================================================================
     "loading": "Laden...",
     "calculating": "Berechnen...",
+    "calculating_month": "Berechne Monat {0} von {1}...",
     "error": "Fehler",
     "success": "Erfolg",
     "cancel": "Abbrechen",

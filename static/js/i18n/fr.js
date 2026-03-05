@@ -8,6 +8,7 @@ window.NOVA_I18N.fr = {
     // ========================================================================
     "loading": "Chargement...",
     "calculating": "Calcul...",
+    "calculating_month": "Calcul du mois {0} sur {1}...",
     "error": "Erreur",
     "success": "Succès",
     "cancel": "Annuler",
