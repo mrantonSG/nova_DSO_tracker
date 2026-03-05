@@ -196,10 +196,10 @@
             <li>
                 <div class="item-info">${t.name} (${t.aperture_mm}mm / ${t.focal_length_mm}mm)${createIndicator(t)}</div>
                 <div class="item-actions">
-                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">Edit</button>
+                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('telescope', '${t.id}')">${window.t('edit')}</button>
                     <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${t.id}"><input type="hidden" name="component_type" value="telescopes">
-                        <button type="submit" class="delete-btn">Delete</button>
+                        <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
                 </div>
             </li>`).join('') || '<li>No telescopes defined.</li>';
@@ -208,10 +208,10 @@
             <li>
                 <div class="item-info">${c.name} (${c.pixel_size_um}μm pixel)${createIndicator(c)}</div>
                 <div class="item-actions">
-                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">Edit</button>
+                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('camera', '${c.id}')">${window.t('edit')}</button>
                     <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${c.id}"><input type="hidden" name="component_type" value="cameras">
-                        <button type="submit" class="delete-btn">Delete</button>
+                        <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
                 </div>
             </li>`).join('') || '<li>No cameras defined.</li>';
@@ -220,10 +220,10 @@
             <li>
                 <div class="item-info">${r.name} (${r.factor}x)${createIndicator(r)}</div>
                 <div class="item-actions">
-                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">Edit</button>
+                    <button type="button" class="edit-btn" onclick="populateComponentFormForEdit('reducer_extender', '${r.id}')">${window.t('edit')}</button>
                     <form action="${window.NOVA_CONFIG_FORM.urls.deleteComponent}" method="post" onsubmit="return confirm('Deleting a component is permanent and cannot be undone. Are you sure?');">
                         <input type="hidden" name="component_id" value="${r.id}"><input type="hidden" name="component_type" value="reducers_extenders">
-                        <button type="submit" class="delete-btn">Delete</button>
+                        <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
                 </div>
             </li>`).join('') || '<li>No reducers defined.</li>';
@@ -281,10 +281,10 @@
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                             <strong>${rig.rig_name}</strong>
                             <div style="display:flex; gap:6px; flex-shrink:0;">
-                                <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">Edit</button>
+                                <button type="button" class="edit-btn" onclick="populateRigFormForEdit('${rig.rig_id}')">${window.t('edit')}</button>
                                 <form action="${window.NOVA_CONFIG_FORM.urls.deleteRig}" method="post" onsubmit="return confirm('Are you sure you want to delete the rig \\'${rig.rig_name}\\'?');" style="display:inline;">
                                     <input type="hidden" name="rig_id" value="${rig.rig_id}">
-                                    <button type="submit" class="delete-btn">Delete</button>
+                                    <button type="submit" class="delete-btn">${window.t('delete')}</button>
                                 </form>
                             </div>
                         </div>
