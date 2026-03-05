@@ -96,6 +96,10 @@ window.NOVA_I18N.ja = {
     "failed_load_opportunities": "imaging 機会の読み込みに失敗しました。詳細はコンソールを参照してください。({error})",
     "add_to_calendar": "カレンダーに追加",
     "view_inspiration": "インスピレーションを見る",
+    "add_own_inspiration": "自分のインスピレーションを追加しよう！",
+    "seeing_automated_survey_images": "現在、自動化されたサーベイ画像（DSS2）が表示されています。",
+    "display_own_astrophotos": "ご存知でしたか？ここで自分の天体写真やお気に入りの参考画像を表示できます。",
+    "go_to_config_manage_objects": "<strong>設定 &gt; オブジェクトの管理</strong> に移動し、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。",
 
     // ========================================================================
     // OBJECTS SECTION

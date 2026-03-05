@@ -96,6 +96,10 @@ window.NOVA_I18N.fr = {
     "failed_load_opportunities": "Échec du chargement des opportunités d'imagerie. Voir la console pour plus de détails. ({error})",
     "add_to_calendar": "Ajouter au calendrier",
     "view_inspiration": "Voir l'inspiration",
+    "add_own_inspiration": "Ajoutez votre propre inspiration !",
+    "seeing_automated_survey_images": "Vous voyez actuellement des images d'enquête automatisées (DSS2).",
+    "display_own_astrophotos": "Saviez-vous que vous pouvez afficher ici vos propres astrophotos ou vos images de référence favorites ?",
+    "go_to_config_manage_objects": "Accédez à <strong>Configuration &gt; Gérer les objets</strong> pour ajouter du « contenu d'inspiration » (URL d'images, crédits, descriptions) à vos cibles.",
 
     // ========================================================================
     // OBJECTS SECTION

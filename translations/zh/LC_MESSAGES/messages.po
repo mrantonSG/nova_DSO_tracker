@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 14:14+0800\n"
+"POT-Creation-Date: 2026-03-05 15:33+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh <LL@li.org>\n"
@@ -1377,6 +1377,7 @@ msgid "SQM Reading:"
 msgstr "SQM读数："
 
 #: templates/_journal_section.html:1724
+#, python-format
 msgid "Moon Illumination (%%):"
 msgstr "月球照度（%%）："
 
@@ -4280,12 +4281,12 @@ msgstr "曝光"
 #: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
 #, python-brace-format
 msgid "{editor}: Editing failed"
-msgstr ""
+msgstr "{editor}: 编辑失败"
 
 #: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
 #, python-brace-format
 msgid "{editor}: Editing failed: {e}"
-msgstr ""
+msgstr "{editor}: 编辑失败: {e}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1124
 #, fuzzy
@@ -4299,7 +4300,7 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/core.py:1379
 #, python-brace-format
 msgid "(Deprecated) {text}"
-msgstr ""
+msgstr "(已弃用) {text}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1396
 #, fuzzy
@@ -4318,7 +4319,7 @@ msgstr[0] ""
 #: venv/lib/python3.13/site-packages/click/core.py:1438
 #, python-brace-format
 msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr ""
+msgstr "弃用警告：命令 {name!r} 已被弃用。"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1645
 #, fuzzy
@@ -4330,7 +4331,7 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/click/core.py:1677
 msgid "Missing command."
-msgstr ""
+msgstr "缺少命令。"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1755
 #, fuzzy, python-brace-format
@@ -4342,7 +4343,7 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/click/core.py:2313
 msgid "Value must be an iterable."
-msgstr ""
+msgstr "值必须是可迭代对象。"
 
 #: venv/lib/python3.13/site-packages/click/core.py:2334
 #, python-brace-format
@@ -4353,16 +4354,16 @@ msgstr[0] ""
 #: venv/lib/python3.13/site-packages/click/core.py:2783
 #, python-brace-format
 msgid "env var: {var}"
-msgstr ""
+msgstr "env 为：{var}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:2813
 msgid "(dynamic)"
-msgstr ""
+msgstr "(动态)"
 
 #: venv/lib/python3.13/site-packages/click/core.py:2828
 #, python-brace-format
 msgid "default: {default}"
-msgstr ""
+msgstr "默认: {default}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:2841
 #, fuzzy
@@ -4375,26 +4376,26 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/decorators.py:457
 #, python-format
 msgid "%(prog)s, version %(version)s"
-msgstr ""
+msgstr "%(prog)s，版本 %(version)s"
 
 #: venv/lib/python3.13/site-packages/click/decorators.py:520
 msgid "Show the version and exit."
-msgstr ""
+msgstr "显示版本并退出。"
 
 #: venv/lib/python3.13/site-packages/click/decorators.py:541
 msgid "Show this message and exit."
-msgstr ""
+msgstr "显示此消息并退出。"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:49
 #: venv/lib/python3.13/site-packages/click/exceptions.py:88
 #, python-brace-format
 msgid "Error: {message}"
-msgstr ""
+msgstr "错误：{message}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:80
 #, python-brace-format
 msgid "Try '{command} {option}' for help."
-msgstr ""
+msgstr "请尝试输入 '{command} {option}' 获取帮助。"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:129
 #, fuzzy, python-brace-format
@@ -4407,11 +4408,11 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/exceptions.py:131
 #, python-brace-format
 msgid "Invalid value for {param_hint}: {message}"
-msgstr ""
+msgstr "{param_hint} 的值无效：{message}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:187
 msgid "Missing argument"
-msgstr ""
+msgstr "缺少参数"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:189
 #, fuzzy
@@ -4432,12 +4433,12 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/exceptions.py:193
 #, python-brace-format
 msgid "Missing {param_type}"
-msgstr ""
+msgstr "缺少 {param_type}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:200
 #, python-brace-format
 msgid "Missing parameter: {param_name}"
-msgstr ""
+msgstr "缺少参数：{param_name}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:220
 #, fuzzy, python-brace-format
@@ -4464,25 +4465,17 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/exceptions.py:277
 #, python-brace-format
 msgid "Could not open file {filename!r}: {message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/formatting.py:156
-#, fuzzy
-msgid "Usage:"
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"比例：\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+msgstr "无法打开文件 {filename!r}：{message}"
 
 #: venv/lib/python3.13/site-packages/click/parser.py:233
 #, python-brace-format
 msgid "Argument {name!r} takes {nargs} values."
-msgstr ""
+msgstr "参数 {name!r} 接受 {nargs} 个值。"
 
 #: venv/lib/python3.13/site-packages/click/parser.py:415
 #, python-brace-format
 msgid "Option {name!r} does not take a value."
-msgstr ""
+msgstr "选项 {name!r} 不接受值。"
 
 #: venv/lib/python3.13/site-packages/click/parser.py:476
 #, python-brace-format
@@ -4492,11 +4485,11 @@ msgstr[0] ""
 
 #: venv/lib/python3.13/site-packages/click/shell_completion.py:326
 msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr ""
+msgstr "对于早于 Bash 4.4 的版本，不支持 Shell 补全功能。"
 
 #: venv/lib/python3.13/site-packages/click/shell_completion.py:333
 msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr ""
+msgstr "无法检测到Bash版本，因此不支持shell补全功能。"
 
 #: venv/lib/python3.13/site-packages/click/termui.py:158
 #, fuzzy
@@ -4508,16 +4501,16 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/click/termui.py:174
 msgid "Error: The value you entered was invalid."
-msgstr ""
+msgstr "错误：您输入的值无效。"
 
 #: venv/lib/python3.13/site-packages/click/termui.py:176
 #, python-brace-format
 msgid "Error: {e.message}"
-msgstr ""
+msgstr "错误：{e.message}"
 
 #: venv/lib/python3.13/site-packages/click/termui.py:187
 msgid "Error: The two entered values do not match."
-msgstr ""
+msgstr "错误：两个输入值不匹配。"
 
 #: venv/lib/python3.13/site-packages/click/termui.py:243
 #, fuzzy
@@ -4529,14 +4522,14 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/click/termui.py:773
 msgid "Press any key to continue..."
-msgstr ""
+msgstr "按任意键继续..."
 
 #: venv/lib/python3.13/site-packages/click/types.py:267
 #, python-brace-format
 msgid ""
 "Choose from:\n"
 "\t{choices}"
-msgstr ""
+msgstr "从以下选项中选择：{choices}"
 
 #: venv/lib/python3.13/site-packages/click/types.py:299
 #, python-brace-format
@@ -4553,22 +4546,22 @@ msgstr[0] ""
 #: venv/lib/python3.13/site-packages/click/types.py:415
 #, python-brace-format
 msgid "{value!r} is not a valid {number_type}."
-msgstr ""
+msgstr "{value!r} 不是有效的 {number_type}。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:471
 #, python-brace-format
 msgid "{value} is not in the range {range}."
-msgstr ""
+msgstr "{value} 不在 {range} 范围内。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:612
 #, python-brace-format
 msgid "{value!r} is not a valid boolean."
-msgstr ""
+msgstr "{value!r} 不是有效的布尔值。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:636
 #, python-brace-format
 msgid "{value!r} is not a valid UUID."
-msgstr ""
+msgstr "{value!r} 不是有效的 UUID。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:826
 #, fuzzy
@@ -4597,32 +4590,32 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/types.py:881
 #, python-brace-format
 msgid "{name} {filename!r} does not exist."
-msgstr ""
+msgstr "{name} {filename!r} 不存在。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:890
 #, python-brace-format
 msgid "{name} {filename!r} is a file."
-msgstr ""
+msgstr "{name} {filename!r} 是一个文件。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:898
 #, python-brace-format
 msgid "{name} {filename!r} is a directory."
-msgstr ""
+msgstr "{name} {filename!r} 是一个目录。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:907
 #, python-brace-format
 msgid "{name} {filename!r} is not readable."
-msgstr ""
+msgstr "{name} {filename!r} 无法读取。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:916
 #, python-brace-format
 msgid "{name} {filename!r} is not writable."
-msgstr ""
+msgstr "{name} {filename!r} 不可写。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:925
 #, python-brace-format
 msgid "{name} {filename!r} is not executable."
-msgstr ""
+msgstr "{name} {filename!r} 不可执行。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:992
 #, python-brace-format
@@ -4634,12 +4627,12 @@ msgstr[0] ""
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:293
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:323
 msgid "This field is required."
-msgstr ""
+msgstr "此字段为必填项。"
 
 #: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
 #, python-brace-format
 msgid "File does not have an approved extension: {extensions}"
-msgstr ""
+msgstr "文件没有批准的扩展名：{extensions}"
 
 #: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
 msgid "File does not have an approved extension."
@@ -4656,7 +4649,7 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:99
 #, python-format
 msgid "Field must be equal to %(other_name)s."
-msgstr ""
+msgstr "字段必须等于 %(other_name)s。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:146
 #, python-format
@@ -4679,38 +4672,38 @@ msgstr[0] ""
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:164
 #, python-format
 msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr ""
+msgstr "字段长度必须在 %(min)d 至 %(max)d 个字符之间。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:216
 #, python-format
 msgid "Number must be at least %(min)s."
-msgstr ""
+msgstr "数字必须至少为 %(min)s。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:219
 #, python-format
 msgid "Number must be at most %(max)s."
-msgstr ""
+msgstr "数字最多为 %(max)s。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:222
 #, python-format
 msgid "Number must be between %(min)s and %(max)s."
-msgstr ""
+msgstr "数字必须介于 %(min)s 和 %(max)s 之间。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:358
 msgid "Invalid input."
-msgstr ""
+msgstr "无效输入。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:422
 msgid "Invalid email address."
-msgstr ""
+msgstr "无效的电子邮件地址。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:460
 msgid "Invalid IP address."
-msgstr ""
+msgstr "无效的IP地址。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:503
 msgid "Invalid Mac address."
-msgstr ""
+msgstr "无效的MAC地址。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:540
 #, fuzzy
@@ -4731,12 +4724,12 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:595
 #, python-format
 msgid "Invalid value, must be one of: %(values)s."
-msgstr ""
+msgstr "无效值，必须为以下之一：%(values)s。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:631
 #, python-format
 msgid "Invalid value, can't be any of: %(values)s."
-msgstr ""
+msgstr "无效值，不能是以下任何值：%(values)s。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:700
 #, fuzzy
@@ -4748,7 +4741,7 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:716
 msgid "This field is disabled and cannot have a value."
-msgstr ""
+msgstr "此字段已禁用，无法设置值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
 #, fuzzy
@@ -4760,32 +4753,32 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
 msgid "CSRF token missing."
-msgstr ""
+msgstr "CSRF令牌缺失。"
 
 #: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
 msgid "CSRF failed."
-msgstr ""
+msgstr "跨站请求伪造失败。"
 
 #: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
 msgid "CSRF token expired."
-msgstr ""
+msgstr "CSRF令牌已过期。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
 msgid "Invalid Choice: could not coerce."
-msgstr ""
+msgstr "无效选择：无法强制转换。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
 #: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
 msgid "Choices cannot be None."
-msgstr ""
+msgstr "选择不能为空。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
 msgid "Not a valid choice."
-msgstr ""
+msgstr "不是有效的选择。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
 msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr ""
+msgstr "无效选择：一个或多个数据输入无法强制转换。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
 #, python-format
@@ -4795,7 +4788,7 @@ msgstr[0] ""
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
 msgid "Not a valid datetime value."
-msgstr ""
+msgstr "不是有效的日期时间值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
 #, fuzzy
@@ -4807,21 +4800,27 @@ msgstr ""
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
 msgid "Not a valid time value."
-msgstr ""
+msgstr "不是有效的时值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
 msgid "Not a valid week value."
-msgstr ""
+msgstr "不是有效的周值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
 #: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
 msgid "Not a valid integer value."
-msgstr ""
+msgstr "不是有效的整数值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
 msgid "Not a valid decimal value."
-msgstr ""
+msgstr "不是有效的十进制值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
 msgid "Not a valid float value."
-msgstr ""
+msgstr "不是有效的浮点数值。"
+
+#~ msgid "Usage:"
+#~ msgstr ""
+#~ "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+#~ "比例：\n"
+#~ "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"

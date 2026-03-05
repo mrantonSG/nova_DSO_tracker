@@ -234,12 +234,12 @@
         const guideTeleSelect = document.getElementById('guide_telescope_id');
         const guideCamSelect = document.getElementById('guide_camera_id');
 
-        if(teleSelect) teleSelect.innerHTML = '<option value="" disabled selected>-- Select a Telescope --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        if(camSelect) camSelect.innerHTML = '<option value="" disabled selected>-- Select a Camera --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        if(redSelect) redSelect.innerHTML = '<option value="">-- None --</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
+        if(teleSelect) teleSelect.innerHTML = '<option value="" disabled selected>' + window.t('select_telescope') + '</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        if(camSelect) camSelect.innerHTML = '<option value="" disabled selected>' + window.t('select_camera') + '</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        if(redSelect) redSelect.innerHTML = '<option value="">' + window.t('none') + '</option>' + reducers_extenders.map(r => `<option value="${r.id}">${r.name} (${r.factor}x)</option>`).join('');
         // Guide optics dropdowns (same telescopes/cameras lists)
-        if(guideTeleSelect) guideTeleSelect.innerHTML = '<option value="">-- None --</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-        if(guideCamSelect) guideCamSelect.innerHTML = '<option value="">-- None --</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        if(guideTeleSelect) guideTeleSelect.innerHTML = '<option value="">' + window.t('none') + '</option>' + telescopes.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+        if(guideCamSelect) guideCamSelect.innerHTML = '<option value="">' + window.t('none') + '</option>' + cameras.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
         const rigList = document.getElementById('existing-rigs-list');
         rigList.innerHTML = rigsSorted.map(rig => {

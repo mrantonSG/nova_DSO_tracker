@@ -96,6 +96,10 @@ window.NOVA_I18N.de = {
     "failed_load_opportunities": "Fehler beim Laden der Imaging-Möglichkeiten. Siehe Konsole für Details. ({error})",
     "add_to_calendar": "Zum Kalender hinzufügen",
     "view_inspiration": "Inspiration anzeigen",
+    "add_own_inspiration": "Fügen Sie Ihre eigene Inspiration hinzu!",
+    "seeing_automated_survey_images": "Sie sehen derzeit automatisierte Umfragebilder (DSS2).",
+    "display_own_astrophotos": "Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder Lieblingsreferenzbilder anzeigen können?",
+    "go_to_config_manage_objects": "Gehen Sie zu <strong>Konfiguration &gt; Objekte verwalten</strong>, um Ihren Zielen „Inspirationsinhalte“ (Bild-URLs, Bildnachweise, Beschreibungen) hinzuzufügen.",
 
     // ========================================================================
     // OBJECTS SECTION

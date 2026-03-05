@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 14:14+0800\n"
+"POT-Creation-Date: 2026-03-05 16:05+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -4427,10 +4427,6 @@ msgstr ""
 #: venv/lib/python3.13/site-packages/click/exceptions.py:277
 #, python-brace-format
 msgid "Could not open file {filename!r}: {message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/formatting.py:156
-msgid "Usage:"
 msgstr ""
 
 #: venv/lib/python3.13/site-packages/click/parser.py:233

@@ -675,10 +675,10 @@
                 banner.innerHTML = `
                     <div style="font-size: 24px;"></div>
                     <div>
-                        <strong>Add Your Own Inspiration!</strong><br>
-                        You are currently seeing automated survey images (DSS2).<br>
-                        Did you know you can display your own astrophotos or favorite reference images here?<br>
-                        <span style="color:var(--text-secondary); font-size:0.9em; margin-top:4px; display:block;">Go to <strong>Configuration &gt; Manage Objects</strong> to add "Inspiration Content" (Image URLs, Credits, Descriptions) to your targets.</span>
+                        <strong>` + window.t('add_own_inspiration') + `</strong><br>
+                        ` + window.t('seeing_automated_survey_images') + `<br>
+                        ` + window.t('display_own_astrophotos') + `<br>
+                        <span style="color:var(--text-secondary); font-size:0.9em; margin-top:4px; display:block;">` + window.t('go_to_config_manage_objects') + `</span>
                     </div>
                     <span class="close-banner" data-action="close-banner">✕</span>
                 `;
