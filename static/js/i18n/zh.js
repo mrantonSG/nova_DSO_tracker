@@ -52,6 +52,7 @@ window.NOVA_I18N.zh = {
     "simulated": "已模拟",
     "mode": "模式",
     "update": "更新",
+    "update_in": "{0}秒后",
 
     // Data Loading
     "data_load_failed": "数据加载失败: {error}",

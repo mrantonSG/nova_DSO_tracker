@@ -278,10 +278,10 @@
             <div class="inline-fields">
                  <div class="location-id"></div>
                  <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                    <label class="short-label" for="new_horizon_mask" style="padding-top: 5px;">
-                        {{ _('Horizon Mask:') }}
+                    <div style="display: flex; align-items: center; gap: 4px; padding-top: 5px;">
+                        <label class="short-label" for="new_horizon_mask">{{ _('Horizon Mask:') }}</label>
                         {{ help_badge('horizon_mask', _('Help')) }}
-                    </label>
+                    </div>
                     <div>
                         <textarea name="new_horizon_mask" id="new_horizon_mask" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="{{ _('Optional. e.g., [[0, 35], [90, 15]]') }}"></textarea>
                         <div style="margin-top: 4px;">
@@ -346,7 +346,10 @@
                 <div class="inline-fields">
                     <div class="location-id"></div>
                     <div style="display: grid; grid-template-columns: 115px 1fr; align-items: start; gap: 5px;">
-                        <label class="short-label" for="horizon_mask_{{ loc_key }}" style="padding-top: 5px;">{{ _('Horizon Mask:') }}</label>
+                        <div style="display: flex; align-items: center; gap: 4px; padding-top: 5px;">
+                            <label class="short-label" for="horizon_mask_{{ loc_key }}">{{ _('Horizon Mask:') }}</label>
+                            {{ help_badge('horizon_mask', _('Help')) }}
+                        </div>
                         <div>
                             <textarea name="horizon_mask_{{ loc_key }}" id="horizon_mask_{{ loc_key }}" rows="3" style="width: 655px; font-family: monospace; font-size: 13px;" placeholder="{{ _('Optional. e.g., [[0, 35], [90, 15]]') }}">{% set mask = loc_val.get('horizon_mask') %}{% if mask %}{{ mask | toyaml }}{% endif %}</textarea>
                             <div style="margin-top: 4px;">

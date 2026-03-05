@@ -241,16 +241,16 @@
                     simDateInput.value = dateVal;
                     statusStrip.classList.add('simulated');
                     simulatedTitleText.style.display = 'inline';
-                    if(updateLabel) updateLabel.textContent = 'Mode';
+                    if(updateLabel) updateLabel.textContent = window.t('mode');
                     if(updateValue) {
-                        updateValue.textContent = 'Simulated';
+                        updateValue.textContent = window.t('simulated');
                         updateValue.style.color = getDangerColor(); // Red color for simulated text
                     }
                 } else {
                     simDateInput.disabled = true;
                     statusStrip.classList.remove('simulated');
                     simulatedTitleText.style.display = 'none';
-                    if(updateLabel) updateLabel.textContent = 'Update';
+                    if(updateLabel) updateLabel.textContent = window.t('update');
                     if(updateValue) {
                         updateValue.style.color = getPrimaryColor(); // Restore original color
                     }
@@ -2049,7 +2049,7 @@
             fetchData(true); // <--- TRUE enables background mode (no progress bar)
             fetchSunEvents();
             timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
-            if (timerSpan) timerSpan.textContent = `in ${timeToNextUpdate}s`; // Update text immediately
+            if (timerSpan) timerSpan.textContent = window.t('update_in').replace('{0}', timeToNextUpdate); // Update text immediately
           }, updateIntervalInSeconds * 1000); // 60000ms
 
           // This is the new 1-second interval to update the countdown display
@@ -2060,7 +2060,7 @@
                   timeToNextUpdate = 0; // Don't go below zero
               }
               if (timerSpan) {
-                  timerSpan.textContent = `in ${timeToNextUpdate}s`;
+                  timerSpan.textContent = window.t('update_in').replace('{0}', timeToNextUpdate);
               }
           }, 1000); // Run every 1 second
 

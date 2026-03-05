@@ -52,6 +52,7 @@ window.NOVA_I18N.ja = {
     "simulated": "シミュレート済み",
     "mode": "モード",
     "update": "更新",
+    "update_in": "{0}秒後",
 
     // Data Loading
     "data_load_failed": "データの読み込みに失敗しました: {error}",

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-05 15:33+0800\n"
-"PO-Revision-Date: 2026-03-05 18:34+0800\n"
+"PO-Revision-Date: 2026-03-05 19:22+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -675,7 +675,7 @@ msgstr "Dauer"
 #: templates/_inspiration_section.html:498 templates/config_form.html:540
 #: templates/index.html:126
 msgid "Constellation"
-msgstr "Konstellation"
+msgstr "Sternbild"
 
 #: templates/_inspiration_section.html:502
 msgid "Source: Wiki"
@@ -2565,8 +2565,9 @@ msgid ""
 "Choose how Nova appears. \"Follow System\" matches your OS setting and updates "
 "automatically."
 msgstr ""
-"Wählen Sie, wie Nova angezeigt werden soll. „Follow System“ passt sich Ihren "
-"Betriebssystemeinstellungen an und wird automatisch aktualisiert."
+"Wählen Sie, ob Nova im Tag oder Nacht Modus angezeigt werden soll. „System "
+"folgen“ passt sich Ihren Betriebssystemeinstellungen an und wechselt den Modus "
+"automatisch."
 
 #: templates/config_form.html:153
 msgid "Min Observable (min):"
@@ -2587,7 +2588,7 @@ msgstr "Min Mondabstand (°):"
 
 #: templates/config_form.html:175
 msgid "Search months:"
-msgstr "Monate suchen:"
+msgstr "Monate berechnen:"
 
 #: templates/config_form.html:183
 msgid "Calc. Invisible Objects:"
@@ -2599,8 +2600,8 @@ msgid ""
 "impossible to see from your location (disabling the \"Smart Skip\" optimization)."
 msgstr ""
 "Wenn diese Option aktiviert ist, berechnet Nova Kurven für ALLE Objekte, auch "
-"für solche, die von Ihrem Standort aus geometrisch nicht sichtbar sind (die "
-"Optimierung „Smart Skip“ wird deaktiviert)."
+"für solche, die von Ihrem Standort aus nicht sichtbar sind (die Optimierung "
+"„Smart Skip“ wird deaktiviert)."
 
 #: templates/config_form.html:194
 msgid "Hide Invisible Objects:"
@@ -2612,9 +2613,9 @@ msgid ""
 "the main list by default. They will still appear if you specifically search for "
 "them."
 msgstr ""
-"Wenn diese Option aktiviert ist, werden Objekte, die geometrisch nicht sichtbar "
-"sind, standardmäßig aus der Hauptliste ausgeblendet. Sie werden weiterhin "
-"angezeigt, wenn Sie gezielt danach suchen."
+"Wenn diese Option aktiviert ist, werden Objekte, die nicht sichtbar sind, "
+"standardmäßig aus der Hauptliste ausgeblendet. Sie werden weiterhin angezeigt, "
+"wenn Sie gezielt danach suchen."
 
 #: templates/config_form.html:206
 msgid "Calculation Precision:"
@@ -3056,7 +3057,7 @@ msgstr "Wird geladen..."
 
 #: templates/config_form.html:568
 msgid "Shared Views"
-msgstr "Geteilte Ansichten"
+msgstr "Freigegebene Filter"
 
 #: templates/config_form.html:573
 msgid "View Name"
@@ -3531,7 +3532,7 @@ msgstr "beobachtbar (°)"
 
 #: templates/index.html:125
 msgid "Ang. Sep."
-msgstr "Winkelabstand"
+msgstr "Winkelabst."
 
 #: templates/index.html:125
 msgid "to moon (°)"
