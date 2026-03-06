@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 14:24+0800\n"
-"PO-Revision-Date: 2026-03-06 18:16+0800\n"
+"PO-Revision-Date: 2026-03-06 21:35+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -950,7 +950,7 @@ msgstr "Seeing (FWHM)"
 
 #: templates/_journal_section.html:1178
 msgid "GUIDING (RMS)"
-msgstr "FÜHRUNG (RMS)"
+msgstr "GUIDING (RMS)"
 
 #: templates/_journal_section.html:1179
 msgid "SKY QUALITY (SQM)"
@@ -1073,7 +1073,7 @@ msgstr "Sichtfeld:"
 
 #: templates/_journal_section.html:1263 templates/_journal_section.html:1741
 msgid "Guiding Equipment:"
-msgstr "Führungsausrüstung:"
+msgstr "Guiding Ausrüstung:"
 
 #: templates/_journal_section.html:1264
 msgid "Acquisition Sw:"
@@ -1158,7 +1158,7 @@ msgstr "Überblick"
 
 #: templates/_journal_section.html:1355 templates/base.html:144
 msgid "Guiding"
-msgstr "Führung"
+msgstr "Guiding"
 
 #: templates/_journal_section.html:1356
 msgid "Dithering"
@@ -1561,7 +1561,7 @@ msgstr "Mondwinkelabstand vom Ziel (°):"
 
 #: templates/_journal_section.html:1725 templates/journal_form.html:89
 msgid "Equipment & Guiding"
-msgstr "Ausrüstung & Führung"
+msgstr "Ausrüstung & Guiding"
 
 #: templates/_journal_section.html:1727
 msgid "Select a Rig (Optional - Overwrites notes below)"
@@ -1585,7 +1585,7 @@ msgstr "z. B. OAG + ASI174MM"
 
 #: templates/_journal_section.html:1742 templates/journal_form.html:110
 msgid "Guiding RMS (avg, arcsec):"
-msgstr "Führungs-RMS (Durchschnitt, Bogensekunden):"
+msgstr "Guiding-RMS (Durchschnitt, Bogensekunden):"
 
 #: templates/_journal_section.html:1745 templates/journal_form.html:127
 msgid "Acquisition Details"
@@ -2882,7 +2882,7 @@ msgstr "Sichtfeld"
 
 #: templates/base.html:231
 msgid "Good sampling"
-msgstr "Gute Probenahme"
+msgstr "Gutes sampling"
 
 #: templates/base.html:232
 msgid "Image Scale"
@@ -3103,7 +3103,7 @@ msgstr "Standorte"
 #: templates/config_form.html:64 templates/config_form.html:76
 #: templates/config_form.html:93
 msgid "Rigs"
-msgstr "Montierungen"
+msgstr "Rigs"
 
 #: templates/config_form.html:66
 msgid "Shared Items"
@@ -4338,7 +4338,7 @@ msgstr "Leitausrüstung (Fernrohr, Kamera, Software):"
 
 #: templates/journal_form.html:116
 msgid "e.g., 50mm guidescope + ASI120MM Mini, PHD2"
-msgstr "z. B. 50-mm-Führungsfernrohr + ASI120MM Mini, PHD2"
+msgstr "z. B. 50-mm-guidescope + ASI120MM Mini, PHD2"
 
 #: templates/journal_form.html:120
 msgid "e.g., Yes, 3px every 2 subs"
@@ -4403,7 +4403,7 @@ msgstr "Seeing (FWHM)"
 
 #: templates/journal_report.html:732
 msgid "Guiding (RMS)"
-msgstr "Führung (RMS)"
+msgstr "Guiding (RMS)"
 
 #: templates/journal_report.html:736
 msgid "Sky Quality (SQM)"
@@ -4443,7 +4443,7 @@ msgstr "Aufnahme SW:"
 
 #: templates/journal_report.html:794
 msgid "Guiding Equip.:"
-msgstr "Führungsausrüstung:"
+msgstr "Guiding Ausrüstung:"
 
 #: templates/journal_report.html:798
 msgid "Dither Details:"
@@ -4504,7 +4504,7 @@ msgstr "Gesamt-RMS"
 
 #: templates/journal_report.html:915 templates/journal_report.html:924
 msgid "Guide Frames"
-msgstr "Führungsrahmen"
+msgstr "Guide Frames"
 
 #: templates/journal_report.html:942 templates/journal_report.html:959
 #: templates/journal_report.html:1041
@@ -4905,7 +4905,7 @@ msgstr "Meridianflips"
 
 #: templates/project_report.html:998
 msgid "Guide Pulse"
-msgstr "Führungsimpuls"
+msgstr "Guide Pulse"
 
 #: templates/project_report.html:1013
 msgid "Focus Pos"
