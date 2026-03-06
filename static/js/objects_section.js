@@ -325,7 +325,7 @@
             if (visibleCount === totalCount) {
                 countDisplay.textContent = window.t('showing_objects', { count: totalCount });
             } else {
-                countDisplay.textContent = window.t('showing_objects_of', { visible: visibleCount, total: totalCount });
+                countDisplay.textContent = window.t('showing_objects_of', { shown: visibleCount, total: totalCount });
             }
         }
     }
