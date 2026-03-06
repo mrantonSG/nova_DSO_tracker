@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 14:24+0800\n"
-"PO-Revision-Date: 2026-03-06 17:36+0800\n"
+"PO-Revision-Date: 2026-03-06 17:44+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -3878,7 +3878,7 @@ msgstr ""
 
 #: templates/graph_view.html:288
 msgid "Geo Belt"
-msgstr "Geo-Gürtel"
+msgstr "Geo-Ring"
 
 #: templates/graph_view.html:289
 msgid "Flip 90°"
@@ -3894,7 +3894,7 @@ msgstr "Bildausschnitt speichern"
 
 #: templates/graph_view.html:294 templates/project_report.html:1132
 msgid "Rig"
-msgstr "Reich"
+msgstr "Rig"
 
 #: templates/graph_view.html:298
 msgid "No rigs configured"
@@ -4417,7 +4417,7 @@ msgstr "Transparenz"
 
 #: templates/journal_report.html:755 templates/project_report.html:892
 msgid "Rig:"
-msgstr "Reich:"
+msgstr "Rig:"
 
 #: templates/journal_report.html:775
 msgid "Temp (Set/Avg):"
