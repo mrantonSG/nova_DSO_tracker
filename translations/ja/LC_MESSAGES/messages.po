@@ -794,19 +794,19 @@ msgstr "データベースの修復が完了しました。"
 msgid "No objects found in your configuration."
 msgstr "設定にオブジェクトが見つかりません。"
 
-#: templates/_inspiration_section.html:707
+#: templates/_inspiration_section.html:707 templates/base.html:238
 msgid "Add Your Own Inspiration!"
-msgstr "自分のインスピレーションを追加"
+msgstr "自分のインスピレーションを追加！"
 
-#: templates/_inspiration_section.html:708
+#: templates/_inspiration_section.html:708 templates/base.html:239
 msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "自動調査画像を見る"
+msgstr "現在、自動調査画像（DSS2）が表示されています。"
 
-#: templates/_inspiration_section.html:709
+#: templates/_inspiration_section.html:709 templates/base.html:240
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
-msgstr "自分の天体写真やお気に入りの参考画像をここに展示できることをご存知ですか？"
+msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
 
 #: templates/_inspiration_section.html:710
 #, python-format
@@ -815,8 +815,8 @@ msgid ""
 " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
 "targets."
 msgstr ""
-"%(strong_start)s設定 > "
-"オブジェクト管理%(strong_end)sにアクセスして、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。"
+"%(strong_start)s設定 > オブジェクト管理%(strong_end)sにアクセスして、ターゲットに"
+"「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。"
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -2853,21 +2853,11 @@ msgstr "コピーしました！"
 msgid "Slightly undersampled"
 msgstr "ユーザー名"
 
-#: templates/base.html:238
-msgid "Add Your Own Inspiration!"
-msgstr "自分のインスピレーションを追加！"
-
-#: templates/base.html:239
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "現在、自動調査画像（DSS2）が表示されています。"
-
-#: templates/base.html:240
-msgid "Did you know you can display your own astrophotos or favorite reference images here?"
-msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
-
 #: templates/base.html:241
 msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
-msgstr "<strong>設定 > オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
+msgstr ""
+"<strong>設定 > オブジェクトの管理</strong>に移動して、ターゲットに「インスピレー"
+"ションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
 #: templates/base.html:238
 msgid "Add own inspiration"
