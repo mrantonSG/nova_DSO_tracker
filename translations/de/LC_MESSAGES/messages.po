@@ -723,7 +723,6 @@ msgid "How to populate this gallery:"
 msgstr "Wie man diese Galerie befüllt:"
 
 #: templates/_inspiration_section.html:524
-#, fuzzy
 msgid "Check Filters:"
 msgstr "Filter:"
 
@@ -736,7 +735,6 @@ msgid "Check Database:"
 msgstr "Datenbank prüfen:"
 
 #: templates/_inspiration_section.html:527
-#, fuzzy
 msgid "Ensure you have objects in Configuration."
 msgstr "Keine Objekte in Ihrer Konfiguration gefunden."
 
@@ -831,33 +829,18 @@ msgid "No objects found in your configuration."
 msgstr "Keine Objekte in Ihrer Konfiguration gefunden."
 
 #: templates/_inspiration_section.html:707 templates/base.html:238
-#, fuzzy
 msgid "Add Your Own Inspiration!"
-msgstr ""
-"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Eigene Inspiration hinzufügen\n"
-"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Fügen Sie Ihre eigene Inspiration hinzu!"
+msgstr "Fügen Sie Ihre eigene Inspiration hinzu!"
 
 #: templates/_inspiration_section.html:708 templates/base.html:239
-#, fuzzy
 msgid "You are currently seeing automated survey images (DSS2)."
-msgstr ""
-"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Siehe Bilder der automatischen Umfrage\n"
-"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Sie sehen derzeit automatisierte Umfragebilder (DSS2)."
+msgstr "Sie sehen derzeit automatisierte Umfragebilder (DSS2)."
 
 #: templates/_inspiration_section.html:709 templates/base.html:240
-#, fuzzy
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr ""
-"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder Ihre "
-"Lieblingsreferenzbilder ausstellen können?\n"
-"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
 "Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder "
 "Lieblingsreferenzbilder anzeigen können?"
 
@@ -5297,12 +5280,7 @@ msgstr "Die Datei hat keine zugelassene Erweiterung: {extensions}"
 
 #: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
 msgid "File does not have an approved extension."
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Datei hat keine genehmigte Erweiterung.\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Die Datei hat keine zugelassene Erweiterung."
-
+msgstr "Die Datei hat keine zugelassene Erweiterung."
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:86
 #, python-format
 msgid "Invalid field name '%s'."
