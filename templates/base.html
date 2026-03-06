@@ -97,19 +97,171 @@
     <script src="{{ url_for('static', filename='js/modal-manager.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/styling-utils.js') }}" defer></script>
 
-    <!-- i18n Configuration -->
+    <!-- ── Nova i18n — single Babel source ───────────────────────────────────── -->
     <script>
-        window.NOVA_CONFIG = {
-            language: "{{ current_language | default('en') }}"
-        };
+    window.novaI18n = {
+
+      // Generic / shared
+      loading:                        {{ _('Loading...') | tojson }},
+      calculating:                    {{ _('Calculating...') | tojson }},
+      fetching:                       {{ _('Fetching...') | tojson }},
+      saving:                         {{ _('Saving...') | tojson }},
+      saved:                          {{ _('Saved') | tojson }},
+      error:                          {{ _('Error') | tojson }},
+      edit:                           {{ _('Edit') | tojson }},
+      delete:                         {{ _('Delete') | tojson }},
+      update:                         {{ _('Update') | tojson }},
+      none:                           {{ _('None') | tojson }},
+      mode:                           {{ _('Mode') | tojson }},
+      simulated:                      {{ _('Simulated') | tojson }},
+      sep:                            {{ _('sep') | tojson }},
+      import_btn:                     {{ _('Import') | tojson }},
+      importing:                      {{ _('Importing...') | tojson }},
+      imported:                       {{ _('Imported') | tojson }},
+
+      // dashboard.js
+      name_required:                  {{ _('Name is required') | tojson }},
+      data_load_failed:               {{ _('Data Load Failed') | tojson }},
+      no_targets_found:               {{ _('No targets found matching your filters.') | tojson }},
+      updating_location:              {{ _('Updating location...') | tojson }},
+      no_imaging_opportunities:       {{ _('No imaging opportunities found matching the criteria.') | tojson }},
+      waiting_background_task:        {{ _('Waiting for background task...') | tojson }},
+      no_data_available:              {{ _('No data available or error. Check server logs.') | tojson }},
+      error_fetching_data:            {{ _('Error fetching data. Check console for details.') | tojson }},
+      loading_altitude_data:          {{ _('Loading altitude data...') | tojson }},
+      altitude_data_unavailable:      {{ _('Altitude data unavailable.') | tojson }},
+      saved_views_placeholder:        {{ _('Select a saved view...') | tojson }},
+      error_loading_views:            {{ _('Error loading views') | tojson }},
+      update_in:                      {{ _('Update in') | tojson }},
+      latest_version:                 {{ _('Latest version') | tojson }},
+
+      // config_form.js
+      select_telescope:               {{ _('Select Telescope') | tojson }},
+      select_camera:                  {{ _('Select Camera') | tojson }},
+      telescope:                      {{ _('Telescope') | tojson }},
+      camera:                         {{ _('Camera') | tojson }},
+      reducer_extender:               {{ _('Reducer / Extender') | tojson }},
+      guiding:                        {{ _('Guiding') | tojson }},
+      oversampled:                    {{ _('Oversampled') | tojson }},
+      well_sampled:                   {{ _('Well sampled') | tojson }},
+      undersampled:                   {{ _('Undersampled') | tojson }},
+      no_telescopes_defined:          {{ _('No telescopes defined.') | tojson }},
+      no_cameras_defined:             {{ _('No cameras defined.') | tojson }},
+      error_loading_shared:           {{ _('Error loading shared items.') | tojson }},
+      import_failed:                  {{ _('Import failed. See console for details.') | tojson }},
+      upload_failed:                  {{ _('Upload failed. See console.') | tojson }},
+      network_error_saving:           {{ _('Network error saving object.') | tojson }},
+      image_upload_failed_network:    {{ _('Image upload failed: Network error.') | tojson }},
+      horizon_field_not_found:        {{ _('Error: Could not find the horizon mask field.') | tojson }},
+      error_reading_file:             {{ _('Error reading file. Please try again.') | tojson }},
+      no_valid_horizon_data:          {{ _('No valid horizon data found.') | tojson }},
+      shared_notes_for:               {{ _('Shared Notes for') | tojson }},
+
+      // objects_section.js
+      no_objects_selected:            {{ _('No objects selected.') | tojson }},
+      bulk_action_failed:             {{ _('Bulk action failed.') | tojson }},
+      bulk_fetch_details_failed:      {{ _('Bulk fetch details failed.') | tojson }},
+      no_potential_duplicates:        {{ _('No potential duplicates found.') | tojson }},
+      keep_a_merge_b:                 {{ _('Keep A, merge B into A') | tojson }},
+      keep_b_merge_a:                 {{ _('Keep B, merge A into B') | tojson }},
+      error_scanning_duplicates:      {{ _('Error scanning duplicates.') | tojson }},
+      merge_confirm:                  {{ _('Confirm merge?') | tojson }},
+      all_duplicates_resolved:        {{ _('All duplicates resolved.') | tojson }},
+      please_enter_object_id:         {{ _('Please enter an object identifier.') | tojson }},
+      checking_library:               {{ _('Checking your local library...') | tojson }},
+      object_found_in_library:        {{ _('Object found in your library.') | tojson }},
+      found_in_simbad:                {{ _('Found: %(name)s. Details loaded from SIMBAD\\.', name='{name}') | tojson }},
+      simbad_error:                   {{ _('SIMBAD lookup failed.') | tojson }},
+      selected:                       {{ _('selected') | tojson }},
+      no_imaging_opps_short:          {{ _('No imaging opportunities found.') | tojson }},
+
+      // journal_section.js
+      report_frame_not_found:         {{ _('Report frame not found.') | tojson }},
+      preparing_print_view:           {{ _('Preparing Print View...') | tojson }},
+      merging_session:                {{ _('Merging Session %(current)d/%(total)d...', current=44444, total=33333) | tojson }}.replace('44444', '{current}').replace('33333', '{total}'),
+      add_new_session:                {{ _('Add New Session') | tojson }},
+      add_session:                    {{ _('Add Session') | tojson }},
+      editing_session:                {{ _('Editing Session') | tojson }},
+      save_changes:                   {{ _('Save Changes') | tojson }},
+
+      // graph_view.js / graph_view_chart.js
+      failed_update_active_project:   {{ _('Failed to update Active Project: %(error)s', error='{error}') | tojson }},
+      simbad_requires_internet:       {{ _('SIMBAD requires an active internet connection to load data.') | tojson }},
+      simbad_requires_internet_short: {{ _('SIMBAD requires an active internet connection.') | tojson }},
+      add_to_calendar:                {{ _('Add to calendar') | tojson }},
+      error_loading_opportunities:    {{ _('Error loading opportunities: %(error)s', error='{error}') | tojson }},
+      failed_load_opportunities:      {{ _('Failed to load imaging opportunities. Check console for details. (%(error)s)', error='{error}') | tojson }},
+      no_rigs_configured:             {{ _('Please configure at least one rig on the Configuration page first.') | tojson }},
+      survey_load_error:              {{ _('Could not load external survey. See console for details.') | tojson }},
+      framing_saved:                  {{ _('Framing settings saved to database.') | tojson }},
+      error_saving:                   {{ _('Error saving') | tojson }},
+      please_select_rig:              {{ _('Please select a rig first.') | tojson }},
+      clipboard_failed:               {{ _('Failed to copy to clipboard. See console.') | tojson }},
+      open_saved_framing:             {{ _('Open Saved Framing') | tojson }},
+      delete_saved_framing:           {{ _('Delete Saved Framing') | tojson }},
+      image_upload_failed:            {{ _('Image upload failed. See console for details.') | tojson }},
+
+      // session_log_charts.js
+      no_timeline_data:               {{ _('No timeline data to display.') | tojson }},
+      no_phd2_data:                   {{ _('No PHD2 guide log data available.') | tojson }},
+      zoom_full:                      {{ _('Full') | tojson }},
+      zoom_in:                        {{ _('Zoom') | tojson }},
+      no_dither_data:                 {{ _('No dither data available.') | tojson }},
+      no_autofocus_data:              {{ _('No autofocus data available.') | tojson }},
+
+      // heatmap_section.js
+      calculating_month:              {{ _('Calculating month %(current)d of %(total)d...', current=44444, total=33333) | tojson }}.replace('44444', '{current}').replace('33333', '{total}'),
+      no_projects_found:              {{ _('No projects found. Adjust filters or add projects.') | tojson }},
+      plotly_not_loaded:              {{ _('Plotly library not loaded. Please refresh.') | tojson }},
+
+      // base.js
+      loading_help:                   {{ _('Loading help content...') | tojson }},
+      help_content_empty:             {{ _('Error: Help content returned empty.') | tojson }},
+      help_network_error:             {{ _('Network Error: Could not load help topic.') | tojson }},
+
+      // Pluralised / parametric strings
+      showing_objects:                {{ _('Showing %(count)d objects', count=11111) | tojson }}.replace('11111', '{count}'),
+      showing_objects_of:             {{ _('Showing %(shown)d of %(total)d objects', shown=22222, total=33333) | tojson }}.replace('22222', '{shown}').replace('33333', '{total}'),
+      confirm_bulk_action:            {{ _('Are you sure you want to %(action)s %(count)d objects?', action='{action}', count=11111) | tojson }}.replace('11111', '{count}'),
+      fetching_details_for:           {{ _('Fetching details for %(name)s...', name='{name}') | tojson }},
+
+      // Additional strings called via window.t() but missing from novaI18n
+      effective_fl:                  {{ _('Effective FL') | tojson }},
+      field_of_view:                 {{ _('Field of View') | tojson }},
+      good_sampling:                 {{ _('Good sampling') | tojson }},
+      image_scale:                   {{ _('Image Scale') | tojson }},
+      no_reducers_defined:             {{ _('No reducers defined.') | tojson }},
+      slightly_oversampled:            {{ _('Slightly oversampled') | tojson }},
+      slightly_undersampled:            {{ _('Slightly undersampled') | tojson }},
+
+      // Inspiration section
+      add_own_inspiration:             {{ _('Add Your Own Inspiration!') | tojson }},
+      seeing_automated_survey_images:  {{ _('You are currently seeing automated survey images (DSS2).') | tojson }},
+      display_own_astrophotos:         {{ _('Did you know you can display your own astrophotos or favorite reference images here?') | tojson }},
+      go_to_config_manage_objects:     {{ _('Go to <strong>Configuration > Manage Objects</strong> to add "Inspiration Content" (Image URLs, Credits, Descriptions) to your targets.') | tojson }},
+    };
+
+    /**
+     * Retrieve a translated string by key.
+     * @param {string} key    — must exist in window.novaI18n
+     * @param {Object} params — optional substitution map e.g. { count: 5 }
+     *                          replaces {count} placeholders in the string
+     */
+    window.t = function(key, params) {
+      let str = window.novaI18n[key];
+      if (str === undefined) {
+        console.warn('[i18n] Missing key:', key);
+        return key;
+      }
+      if (params) {
+        Object.entries(params).forEach(([k, v]) => {
+          str = str.replace(new RegExp('\\{' + k + '\\}', 'g'), v);
+        });
+      }
+      return str;
+    };
+    // ── End Nova i18n ─────────────────────────────────────────────────────────────────
     </script>
-    <script src="{{ url_for('static', filename='js/i18n.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/i18n/en.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/i18n/de.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/i18n/fr.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/i18n/es.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/i18n/ja.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/i18n/zh.js') }}" defer></script>
 
     {% block head_extra %}{% endblock %}
   </head>
