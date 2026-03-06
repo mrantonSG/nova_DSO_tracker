@@ -364,8 +364,12 @@
 
         const legendText = document.getElementById('heatmap-legend-text');
         if (legendText) {
-            const qualityText = isDark ? 'Brighter teal = Best visibility' : 'Darker teal = Best visibility';
-            legendText.textContent = `* Vertical bands = Full Moon. ${qualityText}. Click any cell to view details.`;
+            const fullMoonText = legendText.dataset.textFullMoon || 'Vertical bands = Full Moon';
+            const bestDarkText = legendText.dataset.textBestDark || 'Darker teal = Best visibility';
+            const bestBrightText = legendText.dataset.textBestBright || 'Brighter teal = Best visibility';
+            const clickDetailsText = legendText.dataset.textClickDetails || 'Click any cell to view details';
+            const qualityText = isDark ? bestBrightText : bestDarkText;
+            legendText.textContent = `* ${fullMoonText}. ${qualityText}. ${clickDetailsText}.`;
         }
     }
 

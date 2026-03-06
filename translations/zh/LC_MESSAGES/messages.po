@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-06 01:16+0800\n"
+"POT-Creation-Date: 2026-03-06 14:24+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh <LL@li.org>\n"
@@ -611,10 +611,28 @@ msgstr "生成热图中..."
 msgid "Initializing..."
 msgstr "初始化中..."
 
-#: templates/_heatmap_section.html:18
+#: templates/_heatmap_section.html:19
+msgid "Vertical bands = Full Moon"
+msgstr "垂直条纹 = 满月"
+
+#: templates/_heatmap_section.html:20
+msgid "Darker teal = Best visibility"
+msgstr "深青绿色 = 最佳可见度"
+
+#: templates/_heatmap_section.html:21
+msgid "Brighter teal = Best visibility"
+msgstr "更亮的青绿色 = 最佳可见度"
+
+#: templates/_heatmap_section.html:22
+#, fuzzy
+msgid "Click any cell to view details"
+msgstr "点击查看项目详细信息"
+
+#: templates/_heatmap_section.html:23
+#, fuzzy
 msgid ""
-"* Vertical light bands = Full Moon (Washed out). Darker Green = Best "
-"Quality. Click object names to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
+"to view details."
 msgstr "* 垂直光带 = 满月（被冲刷）。深绿色 = 最佳质量。点击天体名称查看详情。"
 
 #: templates/_inspiration_section.html:470
@@ -793,30 +811,6 @@ msgstr "数据库修复完成。"
 #: templates/_inspiration_section.html:636
 msgid "No objects found in your configuration."
 msgstr "在您的配置中未找到对象。"
-
-#: templates/_inspiration_section.html:707 templates/base.html:238
-msgid "Add Your Own Inspiration!"
-msgstr "添加您自己的灵感！"
-
-#: templates/_inspiration_section.html:708 templates/base.html:239
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "您当前看到的是自动勘测图像（DSS2）。"
-
-#: templates/_inspiration_section.html:709 templates/base.html:240
-msgid ""
-"Did you know you can display your own astrophotos or favorite reference "
-"images here?"
-msgstr "您知道可以在这里显示您自己的天体照片或喜爱的参考图像吗？"
-
-#: templates/_inspiration_section.html:710
-#, python-format
-msgid ""
-"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
-" \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-"targets."
-msgstr ""
-"前往%(strong_start)s配置 > 管理对象%(strong_end)s，为您的目标添加「灵感内容」"
-"（图片URL、来源、描述）。"
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -2520,7 +2514,7 @@ msgstr "删除选中的视图"
 msgid "Error loading views"
 msgstr "加载数据时出错。"
 
-#: templates/base.html:135
+#: templates/base.html:135 templates/index.html:64
 msgid "Update in"
 msgstr "更新倒计时"
 
@@ -2849,27 +2843,25 @@ msgstr "已完成"
 msgid "Slightly undersampled"
 msgstr "用户名"
 
-#: templates/base.html:241
-msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
-msgstr ""
-"转到<strong>配置 > 管理天体</strong>为您的目标添加「灵感内容」（图像URL、署"
-"名、描述）。"
-
 #: templates/base.html:238
-msgid "Add own inspiration"
-msgstr "添加自己的灵感"
+msgid "Add Your Own Inspiration!"
+msgstr "添加您自己的灵感！"
 
 #: templates/base.html:239
-msgid "See automated survey images"
-msgstr "查看自动勘测图像"
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "您当前看到的是自动勘测图像（DSS2）。"
 
 #: templates/base.html:240
-msgid "Display own astrophotos"
-msgstr "显示自己的天体照片"
+msgid ""
+"Did you know you can display your own astrophotos or favorite reference "
+"images here?"
+msgstr "您知道可以在这里显示您自己的天体照片或喜爱的参考图像吗？"
 
 #: templates/base.html:241
-msgid "Go to config to manage objects"
-msgstr "转到配置以管理天体"
+msgid ""
+"Go to Configuration - Manage Objects to add Inspiration Content to your "
+"targets."
+msgstr "转到<strong>配置 > 管理天体</strong>为您的目标添加「灵感内容」（图像URL、署名、描述）。"
 
 #: templates/base.html:273
 msgid "Demo Mode:"
@@ -4847,463 +4839,327 @@ msgstr "增益/偏移"
 msgid "Exp"
 msgstr "曝光"
 
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr "{editor}: 编辑失败"
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr "{editor}: 编辑失败: {e}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1124
-msgid "Aborted!"
-msgstr "已导入"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1349
-#: venv/lib/python3.13/site-packages/click/core.py:1379
-#, python-brace-format
-msgid "(Deprecated) {text}"
-msgstr "(已弃用) {text}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1396
-msgid "Options"
-msgstr "位置"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1422
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1438
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr "弃用警告：命令 {name!r} 已被弃用。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1645
-msgid "Commands"
-msgstr "备注："
-
-#: venv/lib/python3.13/site-packages/click/core.py:1677
-msgid "Missing command."
-msgstr "缺少命令。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1755
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "搜索通用名称"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2313
-msgid "Value must be an iterable."
-msgstr "值必须是可迭代对象。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2334
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2783
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "env 为：{var}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2813
-msgid "(dynamic)"
-msgstr "(动态)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2828
-#, python-brace-format
-msgid "default: {default}"
-msgstr "默认: {default}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2841
-msgid "required"
-msgstr "标签为必填项"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:457
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s，版本 %(version)s"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:520
-msgid "Show the version and exit."
-msgstr "显示版本并退出。"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:541
-msgid "Show this message and exit."
-msgstr "显示此消息并退出。"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:49
-#: venv/lib/python3.13/site-packages/click/exceptions.py:88
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "错误：{message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:80
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "请尝试输入 '{command} {option}' 获取帮助。"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "值无效：{message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:131
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "{param_hint} 的值无效：{message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:187
-msgid "Missing argument"
-msgstr "缺少参数"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:189
-msgid "Missing option"
-msgstr "构图和组合"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:191
-msgid "Missing parameter"
-msgstr "最少 4 个字符"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:193
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "缺少 {param_type}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:200
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "缺少参数：{param_name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "没有这样的选项：{name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:232
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:270
-msgid "unknown error"
-msgstr "未知错误"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:277
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "无法打开文件 {filename!r}：{message}"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:233
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "参数 {name!r} 接受 {nargs} 个值。"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:415
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "选项 {name!r} 不接受值。"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:476
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr "对于早于 Bash 4.4 的版本，不支持 Shell 补全功能。"
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr "无法检测到Bash版本，因此不支持shell补全功能。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:158
-msgid "Repeat for confirmation"
-msgstr "位置配置"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:174
-msgid "Error: The value you entered was invalid."
-msgstr "错误：您输入的值无效。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:176
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "错误：{e.message}"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:187
-msgid "Error: The two entered values do not match."
-msgstr "错误：两个输入值不匹配。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:243
-msgid "Error: invalid input"
-msgstr "SSO错误：登录令牌无效。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:773
-msgid "Press any key to continue..."
-msgstr "按任意键继续..."
-
-#: venv/lib/python3.13/site-packages/click/types.py:267
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr "从以下选项中选择：{choices}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:299
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:393
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:415
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr "{value!r} 不是有效的 {number_type}。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:471
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr "{value} 不在 {range} 范围内。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:612
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr "{value!r} 不是有效的布尔值。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:636
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr "{value!r} 不是有效的 UUID。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:826
-msgid "file"
-msgstr "滤镜"
-
-#: venv/lib/python3.13/site-packages/click/types.py:828
-msgid "directory"
-msgstr "项目故事"
-
-#: venv/lib/python3.13/site-packages/click/types.py:830
-msgid "path"
-msgstr "更新"
-
-#: venv/lib/python3.13/site-packages/click/types.py:881
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr "{name} {filename!r} 不存在。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:890
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr "{name} {filename!r} 是一个文件。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:898
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr "{name} {filename!r} 是一个目录。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:907
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr "{name} {filename!r} 无法读取。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:916
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr "{name} {filename!r} 不可写。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:925
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr "{name} {filename!r} 不可执行。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:992
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr "此字段为必填项。"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr "文件没有批准的扩展名：{extensions}"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr "文件没有批准的扩展名。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr "无效的字段名 '%s'。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr "字段必须等于 %(other_name)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr "字段长度必须在 %(min)d 至 %(max)d 个字符之间。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr "数字必须至少为 %(min)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr "数字最多为 %(max)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr "数字必须介于 %(min)s 和 %(max)s 之间。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr "无效输入。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr "无效的电子邮件地址。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr "无效的IP地址。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr "无效的MAC地址。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr "日期格式无效。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr "日期格式无效。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr "无效值，必须为以下之一：%(values)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr "无效值，不能是以下任何值：%(values)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr "密码不能为空。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr "此字段已禁用，无法设置值。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr "SSO错误：登录令牌无效。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr "CSRF令牌缺失。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr "跨站请求伪造失败。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr "CSRF令牌已过期。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr "无效选择：无法强制转换。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr "选择不能为空。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr "不是有效的选择。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr "无效选择：一个或多个数据输入无法强制转换。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr "不是有效的日期时间值。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr "日期格式无效。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr "不是有效的时值。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr "不是有效的周值。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr "不是有效的整数值。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr "不是有效的十进制值。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
-msgstr "不是有效的浮点数值。"
+#~ msgid ""
+#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+#~ "targets."
+#~ msgstr "前往%(strong_start)s配置 > 管理对象%(strong_end)s，为您的目标添加「灵感内容」（图片URL、来源、描述）。"
+
+#~ msgid "Add own inspiration"
+#~ msgstr "添加自己的灵感"
+
+#~ msgid "See automated survey images"
+#~ msgstr "查看自动勘测图像"
+
+#~ msgid "Display own astrophotos"
+#~ msgstr "显示自己的天体照片"
+
+#~ msgid "Go to config to manage objects"
+#~ msgstr "转到配置以管理天体"
+
+#~ msgid "{editor}: Editing failed"
+#~ msgstr "{editor}: 编辑失败"
+
+#~ msgid "{editor}: Editing failed: {e}"
+#~ msgstr "{editor}: 编辑失败: {e}"
+
+#~ msgid "Aborted!"
+#~ msgstr "已导入"
+
+#~ msgid "(Deprecated) {text}"
+#~ msgstr "(已弃用) {text}"
+
+#~ msgid "Options"
+#~ msgstr "位置"
+
+#~ msgid "Got unexpected extra argument ({args})"
+#~ msgid_plural "Got unexpected extra arguments ({args})"
+#~ msgstr[0] ""
+
+#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
+#~ msgstr "弃用警告：命令 {name!r} 已被弃用。"
+
+#~ msgid "Commands"
+#~ msgstr "备注："
+
+#~ msgid "Missing command."
+#~ msgstr "缺少命令。"
+
+#~ msgid "No such command {name!r}."
+#~ msgstr "搜索通用名称"
+
+#~ msgid "Value must be an iterable."
+#~ msgstr "值必须是可迭代对象。"
+
+#~ msgid "Takes {nargs} values but 1 was given."
+#~ msgid_plural "Takes {nargs} values but {len} were given."
+#~ msgstr[0] ""
+
+#~ msgid "env var: {var}"
+#~ msgstr "env 为：{var}"
+
+#~ msgid "(dynamic)"
+#~ msgstr "(动态)"
+
+#~ msgid "default: {default}"
+#~ msgstr "默认: {default}"
+
+#~ msgid "required"
+#~ msgstr "标签为必填项"
+
+#~ msgid "%(prog)s, version %(version)s"
+#~ msgstr "%(prog)s，版本 %(version)s"
+
+#~ msgid "Show the version and exit."
+#~ msgstr "显示版本并退出。"
+
+#~ msgid "Show this message and exit."
+#~ msgstr "显示此消息并退出。"
+
+#~ msgid "Error: {message}"
+#~ msgstr "错误：{message}"
+
+#~ msgid "Try '{command} {option}' for help."
+#~ msgstr "请尝试输入 '{command} {option}' 获取帮助。"
+
+#~ msgid "Invalid value: {message}"
+#~ msgstr "值无效：{message}"
+
+#~ msgid "Invalid value for {param_hint}: {message}"
+#~ msgstr "{param_hint} 的值无效：{message}"
+
+#~ msgid "Missing argument"
+#~ msgstr "缺少参数"
+
+#~ msgid "Missing option"
+#~ msgstr "构图和组合"
+
+#~ msgid "Missing parameter"
+#~ msgstr "最少 4 个字符"
+
+#~ msgid "Missing {param_type}"
+#~ msgstr "缺少 {param_type}"
+
+#~ msgid "Missing parameter: {param_name}"
+#~ msgstr "缺少参数：{param_name}"
+
+#~ msgid "No such option: {name}"
+#~ msgstr "没有这样的选项：{name}"
+
+#~ msgid "Did you mean {possibility}?"
+#~ msgid_plural "(Possible options: {possibilities})"
+#~ msgstr[0] ""
+
+#~ msgid "unknown error"
+#~ msgstr "未知错误"
+
+#~ msgid "Could not open file {filename!r}: {message}"
+#~ msgstr "无法打开文件 {filename!r}：{message}"
+
+#~ msgid "Argument {name!r} takes {nargs} values."
+#~ msgstr "参数 {name!r} 接受 {nargs} 个值。"
+
+#~ msgid "Option {name!r} does not take a value."
+#~ msgstr "选项 {name!r} 不接受值。"
+
+#~ msgid "Option {name!r} requires an argument."
+#~ msgid_plural "Option {name!r} requires {nargs} arguments."
+#~ msgstr[0] ""
+
+#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
+#~ msgstr "对于早于 Bash 4.4 的版本，不支持 Shell 补全功能。"
+
+#~ msgid "Couldn't detect Bash version, shell completion is not supported."
+#~ msgstr "无法检测到Bash版本，因此不支持shell补全功能。"
+
+#~ msgid "Repeat for confirmation"
+#~ msgstr "位置配置"
+
+#~ msgid "Error: The value you entered was invalid."
+#~ msgstr "错误：您输入的值无效。"
+
+#~ msgid "Error: {e.message}"
+#~ msgstr "错误：{e.message}"
+
+#~ msgid "Error: The two entered values do not match."
+#~ msgstr "错误：两个输入值不匹配。"
+
+#~ msgid "Error: invalid input"
+#~ msgstr "SSO错误：登录令牌无效。"
+
+#~ msgid "Press any key to continue..."
+#~ msgstr "按任意键继续..."
+
+#~ msgid ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+#~ msgstr "从以下选项中选择：{choices}"
+
+#~ msgid "{value!r} is not {choice}."
+#~ msgid_plural "{value!r} is not one of {choices}."
+#~ msgstr[0] ""
+
+#~ msgid "{value!r} does not match the format {format}."
+#~ msgid_plural "{value!r} does not match the formats {formats}."
+#~ msgstr[0] ""
+
+#~ msgid "{value!r} is not a valid {number_type}."
+#~ msgstr "{value!r} 不是有效的 {number_type}。"
+
+#~ msgid "{value} is not in the range {range}."
+#~ msgstr "{value} 不在 {range} 范围内。"
+
+#~ msgid "{value!r} is not a valid boolean."
+#~ msgstr "{value!r} 不是有效的布尔值。"
+
+#~ msgid "{value!r} is not a valid UUID."
+#~ msgstr "{value!r} 不是有效的 UUID。"
+
+#~ msgid "file"
+#~ msgstr "滤镜"
+
+#~ msgid "directory"
+#~ msgstr "项目故事"
+
+#~ msgid "path"
+#~ msgstr "更新"
+
+#~ msgid "{name} {filename!r} does not exist."
+#~ msgstr "{name} {filename!r} 不存在。"
+
+#~ msgid "{name} {filename!r} is a file."
+#~ msgstr "{name} {filename!r} 是一个文件。"
+
+#~ msgid "{name} {filename!r} is a directory."
+#~ msgstr "{name} {filename!r} 是一个目录。"
+
+#~ msgid "{name} {filename!r} is not readable."
+#~ msgstr "{name} {filename!r} 无法读取。"
+
+#~ msgid "{name} {filename!r} is not writable."
+#~ msgstr "{name} {filename!r} 不可写。"
+
+#~ msgid "{name} {filename!r} is not executable."
+#~ msgstr "{name} {filename!r} 不可执行。"
+
+#~ msgid "{len_type} values are required, but {len_value} was given."
+#~ msgid_plural "{len_type} values are required, but {len_value} were given."
+#~ msgstr[0] ""
+
+#~ msgid "This field is required."
+#~ msgstr "此字段为必填项。"
+
+#~ msgid "File does not have an approved extension: {extensions}"
+#~ msgstr "文件没有批准的扩展名：{extensions}"
+
+#~ msgid "File does not have an approved extension."
+#~ msgstr "文件没有批准的扩展名。"
+
+#~ msgid "Invalid field name '%s'."
+#~ msgstr "无效的字段名 '%s'。"
+
+#~ msgid "Field must be equal to %(other_name)s."
+#~ msgstr "字段必须等于 %(other_name)s。"
+
+#~ msgid "Field must be at least %(min)d character long."
+#~ msgid_plural "Field must be at least %(min)d characters long."
+#~ msgstr[0] ""
+
+#~ msgid "Field cannot be longer than %(max)d character."
+#~ msgid_plural "Field cannot be longer than %(max)d characters."
+#~ msgstr[0] ""
+
+#~ msgid "Field must be exactly %(max)d character long."
+#~ msgid_plural "Field must be exactly %(max)d characters long."
+#~ msgstr[0] ""
+
+#~ msgid "Field must be between %(min)d and %(max)d characters long."
+#~ msgstr "字段长度必须在 %(min)d 至 %(max)d 个字符之间。"
+
+#~ msgid "Number must be at least %(min)s."
+#~ msgstr "数字必须至少为 %(min)s。"
+
+#~ msgid "Number must be at most %(max)s."
+#~ msgstr "数字最多为 %(max)s。"
+
+#~ msgid "Number must be between %(min)s and %(max)s."
+#~ msgstr "数字必须介于 %(min)s 和 %(max)s 之间。"
+
+#~ msgid "Invalid input."
+#~ msgstr "无效输入。"
+
+#~ msgid "Invalid email address."
+#~ msgstr "无效的电子邮件地址。"
+
+#~ msgid "Invalid IP address."
+#~ msgstr "无效的IP地址。"
+
+#~ msgid "Invalid Mac address."
+#~ msgstr "无效的MAC地址。"
+
+#~ msgid "Invalid URL."
+#~ msgstr "日期格式无效。"
+
+#~ msgid "Invalid UUID."
+#~ msgstr "日期格式无效。"
+
+#~ msgid "Invalid value, must be one of: %(values)s."
+#~ msgstr "无效值，必须为以下之一：%(values)s。"
+
+#~ msgid "Invalid value, can't be any of: %(values)s."
+#~ msgstr "无效值，不能是以下任何值：%(values)s。"
+
+#~ msgid "This field cannot be edited."
+#~ msgstr "密码不能为空。"
+
+#~ msgid "This field is disabled and cannot have a value."
+#~ msgstr "此字段已禁用，无法设置值。"
+
+#~ msgid "Invalid CSRF Token."
+#~ msgstr "SSO错误：登录令牌无效。"
+
+#~ msgid "CSRF token missing."
+#~ msgstr "CSRF令牌缺失。"
+
+#~ msgid "CSRF failed."
+#~ msgstr "跨站请求伪造失败。"
+
+#~ msgid "CSRF token expired."
+#~ msgstr "CSRF令牌已过期。"
+
+#~ msgid "Invalid Choice: could not coerce."
+#~ msgstr "无效选择：无法强制转换。"
+
+#~ msgid "Choices cannot be None."
+#~ msgstr "选择不能为空。"
+
+#~ msgid "Not a valid choice."
+#~ msgstr "不是有效的选择。"
+
+#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
+#~ msgstr "无效选择：一个或多个数据输入无法强制转换。"
+
+#~ msgid "'%(value)s' is not a valid choice for this field."
+#~ msgid_plural "'%(value)s' are not valid choices for this field."
+#~ msgstr[0] ""
+
+#~ msgid "Not a valid datetime value."
+#~ msgstr "不是有效的日期时间值。"
+
+#~ msgid "Not a valid date value."
+#~ msgstr "日期格式无效。"
+
+#~ msgid "Not a valid time value."
+#~ msgstr "不是有效的时值。"
+
+#~ msgid "Not a valid week value."
+#~ msgstr "不是有效的周值。"
+
+#~ msgid "Not a valid integer value."
+#~ msgstr "不是有效的整数值。"
+
+#~ msgid "Not a valid decimal value."
+#~ msgstr "不是有效的十进制值。"
+
+#~ msgid "Not a valid float value."
+#~ msgstr "不是有效的浮点数值。"

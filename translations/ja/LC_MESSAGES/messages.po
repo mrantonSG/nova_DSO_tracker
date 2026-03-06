@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-06 01:16+0800\n"
+"POT-Creation-Date: 2026-03-06 14:24+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: ja <LL@li.org>\n"
@@ -611,10 +611,28 @@ msgstr "ヒートマップを生成中..."
 msgid "Initializing..."
 msgstr "初期化中..."
 
-#: templates/_heatmap_section.html:18
+#: templates/_heatmap_section.html:19
+msgid "Vertical bands = Full Moon"
+msgstr "縦帯 = 満月"
+
+#: templates/_heatmap_section.html:20
+msgid "Darker teal = Best visibility"
+msgstr "濃い青緑色 = 最も視認性が高い"
+
+#: templates/_heatmap_section.html:21
+msgid "Brighter teal = Best visibility"
+msgstr "明るい青緑色 = 最高の視認性"
+
+#: templates/_heatmap_section.html:22
+#, fuzzy
+msgid "Click any cell to view details"
+msgstr "オブジェクトの詳細を表示するにはログインしてください。"
+
+#: templates/_heatmap_section.html:23
+#, fuzzy
 msgid ""
-"* Vertical light bands = Full Moon (Washed out). Darker Green = Best "
-"Quality. Click object names to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
+"to view details."
 msgstr "* 縦方向の明るい帯 = 満月（白飛び）。濃い緑色 = 最良の品質。オブジェクト名をクリックすると詳細が表示されます。"
 
 #: templates/_inspiration_section.html:470
@@ -793,30 +811,6 @@ msgstr "データベースの修復が完了しました。"
 #: templates/_inspiration_section.html:636
 msgid "No objects found in your configuration."
 msgstr "設定にオブジェクトが見つかりません。"
-
-#: templates/_inspiration_section.html:707 templates/base.html:238
-msgid "Add Your Own Inspiration!"
-msgstr "自分のインスピレーションを追加！"
-
-#: templates/_inspiration_section.html:708 templates/base.html:239
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "現在、自動調査画像（DSS2）が表示されています。"
-
-#: templates/_inspiration_section.html:709 templates/base.html:240
-msgid ""
-"Did you know you can display your own astrophotos or favorite reference "
-"images here?"
-msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
-
-#: templates/_inspiration_section.html:710
-#, python-format
-msgid ""
-"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
-" \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-"targets."
-msgstr ""
-"%(strong_start)s設定 > オブジェクト管理%(strong_end)sにアクセスして、ターゲットに"
-"「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。"
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -2524,7 +2518,7 @@ msgstr "選択したビューを削除"
 msgid "Error loading views"
 msgstr "データを読み込めませんでした。"
 
-#: templates/base.html:135
+#: templates/base.html:135 templates/index.html:64
 msgid "Update in"
 msgstr "更新まで"
 
@@ -2853,27 +2847,27 @@ msgstr "コピーしました！"
 msgid "Slightly undersampled"
 msgstr "ユーザー名"
 
-#: templates/base.html:241
-msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
-msgstr ""
-"<strong>設定 > オブジェクトの管理</strong>に移動して、ターゲットに「インスピレー"
-"ションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
-
 #: templates/base.html:238
-msgid "Add own inspiration"
-msgstr "自分のインスピレーションを追加"
+msgid "Add Your Own Inspiration!"
+msgstr "自分のインスピレーションを追加！"
 
 #: templates/base.html:239
-msgid "See automated survey images"
-msgstr "自動調査画像を見る"
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "現在、自動調査画像（DSS2）が表示されています。"
 
 #: templates/base.html:240
-msgid "Display own astrophotos"
-msgstr "自分の天体写真を表示する"
+msgid ""
+"Did you know you can display your own astrophotos or favorite reference "
+"images here?"
+msgstr "ここで自分の天体写真やお気に入りの参照画像を表示できることをご存知ですか？"
 
 #: templates/base.html:241
-msgid "Go to config to manage objects"
-msgstr "設定に移動してオブジェクトを管理"
+msgid ""
+"Go to Configuration - Manage Objects to add Inspiration Content to your "
+"targets."
+msgstr ""
+"<strong>設定 > "
+"オブジェクトの管理</strong>に移動して、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明）を追加してください。"
 
 #: templates/base.html:273
 msgid "Demo Mode:"
@@ -4860,463 +4854,329 @@ msgstr "ゲイン/オフセット"
 msgid "Exp"
 msgstr "実験"
 
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr "{editor}: 編集に失敗しました"
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr "{editor}: 編集に失敗しました: {e}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1124
-msgid "Aborted!"
-msgstr "輸入品"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1349
-#: venv/lib/python3.13/site-packages/click/core.py:1379
-#, python-brace-format
-msgid "(Deprecated) {text}"
-msgstr "(非推奨) {text}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1396
-msgid "Options"
-msgstr "(任意)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1422
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1438
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr "非推奨警告: コマンド {name!r} は非推奨です。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1645
-msgid "Commands"
-msgstr "コメント:"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1677
-msgid "Missing command."
-msgstr "コマンドが見つかりません。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1755
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "No such command {name!r}."
-
-#: venv/lib/python3.13/site-packages/click/core.py:2313
-msgid "Value must be an iterable."
-msgstr "値は反復可能でなければなりません。"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2334
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2783
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "env var: {var}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2813
-msgid "(dynamic)"
-msgstr "(動的)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2828
-#, python-brace-format
-msgid "default: {default}"
-msgstr "デフォルト: {default}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2841
-msgid "required"
-msgstr "ラベルが必要です"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:457
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s、バージョン %(version)s"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:520
-msgid "Show the version and exit."
-msgstr "バージョンを表示して終了する。"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:541
-msgid "Show this message and exit."
-msgstr "このメッセージを表示して終了します。"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:49
-#: venv/lib/python3.13/site-packages/click/exceptions.py:88
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "エラー: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:80
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "ヘルプについては '{command} {option}' を試してください。"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "無効な値: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:131
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "{param_hint} の値が無効です: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:187
-msgid "Missing argument"
-msgstr "引数が不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:189
-msgid "Missing option"
-msgstr "構図と構成"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:191
-msgid "Missing parameter"
-msgstr "最低4文字"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:193
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "{param_type} が不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:200
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "パラメータ {param_name} が不足しています"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "No such option: {name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:232
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:270
-msgid "unknown error"
-msgstr "不明なエラー"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:277
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "ファイル {filename!r} を開けません: {message}"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:233
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "引数 {name!r} は {nargs} 個の値を取ります。"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:415
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "Option {name!r} does not take a value."
-
-#: venv/lib/python3.13/site-packages/click/parser.py:476
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr "シェル補完は、バージョン4.4より古いBashではサポートされていません。"
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr "Bashのバージョンを検出できませんでした。シェル補完はサポートされていません。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:158
-msgid "Repeat for confirmation"
-msgstr "場所の設定"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:174
-msgid "Error: The value you entered was invalid."
-msgstr "エラー：入力した値が無効です。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:176
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "エラー: {e.message}"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:187
-msgid "Error: The two entered values do not match."
-msgstr "エラー：入力された2つの値が一致しません。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:243
-msgid "Error: invalid input"
-msgstr "SSO エラー: 無効なログイン トークンです。"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:773
-msgid "Press any key to continue..."
-msgstr "任意のキーを押して続行してください..."
-
-#: venv/lib/python3.13/site-packages/click/types.py:267
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr "以下の選択肢から選択してください：{choices}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:299
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:393
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:415
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr "{value!r} is not a valid {number_type}."
-
-#: venv/lib/python3.13/site-packages/click/types.py:471
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr "{value} is not in the range {range}."
-
-#: venv/lib/python3.13/site-packages/click/types.py:612
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr "{value!r} is not a valid boolean."
-
-#: venv/lib/python3.13/site-packages/click/types.py:636
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr "{value!r} is not a valid UUID."
-
-#: venv/lib/python3.13/site-packages/click/types.py:826
-msgid "file"
-msgstr "フィルター"
-
-#: venv/lib/python3.13/site-packages/click/types.py:828
-msgid "directory"
-msgstr "プロジェクトストーリー"
-
-#: venv/lib/python3.13/site-packages/click/types.py:830
-msgid "path"
-msgstr "更新"
-
-#: venv/lib/python3.13/site-packages/click/types.py:881
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr "{name} {filename!r} は存在しません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:890
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr "{name} {filename!r} はファイルです。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:898
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr "{name} {filename!r} はディレクトリです。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:907
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr "{name} {filename!r} は読み取れません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:916
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr "{name} {filename!r} は書き込み不可です。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:925
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr "{name} {filename!r} は実行ファイルではありません。"
-
-#: venv/lib/python3.13/site-packages/click/types.py:992
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr "この項目は必須です。"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr "承認された拡張子を持っていません: {extensions}"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr "承認された拡張子を持っていません"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr "Invalid field name '%s'."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr "Field must be equal to %(other_name)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr "Field must be between %(min)d and %(max)d characters long."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr "Number must be at least %(min)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr "数値は最大%(max)sでなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr "数値は %(min)s と %(max)s の間でなければなりません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr "無効な入力です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr "無効なメールアドレスです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr "無効なIPアドレスです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr "無効なMACアドレスです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr "無効な日付形式です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr "無効な日付形式です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr "無効な値です。次のいずれかでなければなりません: %(values)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr "無効な値です。以下のいずれかである必要があります: %(values)s。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr "パスワードは空欄にできません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr "このフィールドは無効化されており、値を設定できません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr "SSO エラー: 無効なログイン トークンです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr "CSRFトークンが欠落しています。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr "CSRFが失敗しました。"
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr "CSRFトークンが期限切れです。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr "無効な選択: 型変換できませんでした。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr "選択肢は「なし」にできません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr "無効な選択です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr "無効な選択: 1つ以上のデータ入力が強制変換できませんでした。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
-msgstr[0] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr "有効な日付時刻値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr "無効な日付形式です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr "無効な時刻値です。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr "有効な週の値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr "有効な整数値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr "有効な10進数値ではありません。"
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
-msgstr "有効な浮動小数点値ではありません。"
+#~ msgid ""
+#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+#~ "targets."
+#~ msgstr ""
+#~ "%(strong_start)s設定 > "
+#~ "オブジェクト管理%(strong_end)sにアクセスして、ターゲットに「インスピレーションコンテンツ」（画像URL、クレジット、説明文）を追加してください。"
+
+#~ msgid "Add own inspiration"
+#~ msgstr "自分のインスピレーションを追加"
+
+#~ msgid "See automated survey images"
+#~ msgstr "自動調査画像を見る"
+
+#~ msgid "Display own astrophotos"
+#~ msgstr "自分の天体写真を表示する"
+
+#~ msgid "Go to config to manage objects"
+#~ msgstr "設定に移動してオブジェクトを管理"
+
+#~ msgid "{editor}: Editing failed"
+#~ msgstr "{editor}: 編集に失敗しました"
+
+#~ msgid "{editor}: Editing failed: {e}"
+#~ msgstr "{editor}: 編集に失敗しました: {e}"
+
+#~ msgid "Aborted!"
+#~ msgstr "輸入品"
+
+#~ msgid "(Deprecated) {text}"
+#~ msgstr "(非推奨) {text}"
+
+#~ msgid "Options"
+#~ msgstr "(任意)"
+
+#~ msgid "Got unexpected extra argument ({args})"
+#~ msgid_plural "Got unexpected extra arguments ({args})"
+#~ msgstr[0] ""
+
+#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
+#~ msgstr "非推奨警告: コマンド {name!r} は非推奨です。"
+
+#~ msgid "Commands"
+#~ msgstr "コメント:"
+
+#~ msgid "Missing command."
+#~ msgstr "コマンドが見つかりません。"
+
+#~ msgid "No such command {name!r}."
+#~ msgstr "No such command {name!r}."
+
+#~ msgid "Value must be an iterable."
+#~ msgstr "値は反復可能でなければなりません。"
+
+#~ msgid "Takes {nargs} values but 1 was given."
+#~ msgid_plural "Takes {nargs} values but {len} were given."
+#~ msgstr[0] ""
+
+#~ msgid "env var: {var}"
+#~ msgstr "env var: {var}"
+
+#~ msgid "(dynamic)"
+#~ msgstr "(動的)"
+
+#~ msgid "default: {default}"
+#~ msgstr "デフォルト: {default}"
+
+#~ msgid "required"
+#~ msgstr "ラベルが必要です"
+
+#~ msgid "%(prog)s, version %(version)s"
+#~ msgstr "%(prog)s、バージョン %(version)s"
+
+#~ msgid "Show the version and exit."
+#~ msgstr "バージョンを表示して終了する。"
+
+#~ msgid "Show this message and exit."
+#~ msgstr "このメッセージを表示して終了します。"
+
+#~ msgid "Error: {message}"
+#~ msgstr "エラー: {message}"
+
+#~ msgid "Try '{command} {option}' for help."
+#~ msgstr "ヘルプについては '{command} {option}' を試してください。"
+
+#~ msgid "Invalid value: {message}"
+#~ msgstr "無効な値: {message}"
+
+#~ msgid "Invalid value for {param_hint}: {message}"
+#~ msgstr "{param_hint} の値が無効です: {message}"
+
+#~ msgid "Missing argument"
+#~ msgstr "引数が不足しています"
+
+#~ msgid "Missing option"
+#~ msgstr "構図と構成"
+
+#~ msgid "Missing parameter"
+#~ msgstr "最低4文字"
+
+#~ msgid "Missing {param_type}"
+#~ msgstr "{param_type} が不足しています"
+
+#~ msgid "Missing parameter: {param_name}"
+#~ msgstr "パラメータ {param_name} が不足しています"
+
+#~ msgid "No such option: {name}"
+#~ msgstr "No such option: {name}"
+
+#~ msgid "Did you mean {possibility}?"
+#~ msgid_plural "(Possible options: {possibilities})"
+#~ msgstr[0] ""
+
+#~ msgid "unknown error"
+#~ msgstr "不明なエラー"
+
+#~ msgid "Could not open file {filename!r}: {message}"
+#~ msgstr "ファイル {filename!r} を開けません: {message}"
+
+#~ msgid "Argument {name!r} takes {nargs} values."
+#~ msgstr "引数 {name!r} は {nargs} 個の値を取ります。"
+
+#~ msgid "Option {name!r} does not take a value."
+#~ msgstr "Option {name!r} does not take a value."
+
+#~ msgid "Option {name!r} requires an argument."
+#~ msgid_plural "Option {name!r} requires {nargs} arguments."
+#~ msgstr[0] ""
+
+#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
+#~ msgstr "シェル補完は、バージョン4.4より古いBashではサポートされていません。"
+
+#~ msgid "Couldn't detect Bash version, shell completion is not supported."
+#~ msgstr "Bashのバージョンを検出できませんでした。シェル補完はサポートされていません。"
+
+#~ msgid "Repeat for confirmation"
+#~ msgstr "場所の設定"
+
+#~ msgid "Error: The value you entered was invalid."
+#~ msgstr "エラー：入力した値が無効です。"
+
+#~ msgid "Error: {e.message}"
+#~ msgstr "エラー: {e.message}"
+
+#~ msgid "Error: The two entered values do not match."
+#~ msgstr "エラー：入力された2つの値が一致しません。"
+
+#~ msgid "Error: invalid input"
+#~ msgstr "SSO エラー: 無効なログイン トークンです。"
+
+#~ msgid "Press any key to continue..."
+#~ msgstr "任意のキーを押して続行してください..."
+
+#~ msgid ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+#~ msgstr "以下の選択肢から選択してください：{choices}"
+
+#~ msgid "{value!r} is not {choice}."
+#~ msgid_plural "{value!r} is not one of {choices}."
+#~ msgstr[0] ""
+
+#~ msgid "{value!r} does not match the format {format}."
+#~ msgid_plural "{value!r} does not match the formats {formats}."
+#~ msgstr[0] ""
+
+#~ msgid "{value!r} is not a valid {number_type}."
+#~ msgstr "{value!r} is not a valid {number_type}."
+
+#~ msgid "{value} is not in the range {range}."
+#~ msgstr "{value} is not in the range {range}."
+
+#~ msgid "{value!r} is not a valid boolean."
+#~ msgstr "{value!r} is not a valid boolean."
+
+#~ msgid "{value!r} is not a valid UUID."
+#~ msgstr "{value!r} is not a valid UUID."
+
+#~ msgid "file"
+#~ msgstr "フィルター"
+
+#~ msgid "directory"
+#~ msgstr "プロジェクトストーリー"
+
+#~ msgid "path"
+#~ msgstr "更新"
+
+#~ msgid "{name} {filename!r} does not exist."
+#~ msgstr "{name} {filename!r} は存在しません。"
+
+#~ msgid "{name} {filename!r} is a file."
+#~ msgstr "{name} {filename!r} はファイルです。"
+
+#~ msgid "{name} {filename!r} is a directory."
+#~ msgstr "{name} {filename!r} はディレクトリです。"
+
+#~ msgid "{name} {filename!r} is not readable."
+#~ msgstr "{name} {filename!r} は読み取れません。"
+
+#~ msgid "{name} {filename!r} is not writable."
+#~ msgstr "{name} {filename!r} は書き込み不可です。"
+
+#~ msgid "{name} {filename!r} is not executable."
+#~ msgstr "{name} {filename!r} は実行ファイルではありません。"
+
+#~ msgid "{len_type} values are required, but {len_value} was given."
+#~ msgid_plural "{len_type} values are required, but {len_value} were given."
+#~ msgstr[0] ""
+
+#~ msgid "This field is required."
+#~ msgstr "この項目は必須です。"
+
+#~ msgid "File does not have an approved extension: {extensions}"
+#~ msgstr "承認された拡張子を持っていません: {extensions}"
+
+#~ msgid "File does not have an approved extension."
+#~ msgstr "承認された拡張子を持っていません"
+
+#~ msgid "Invalid field name '%s'."
+#~ msgstr "Invalid field name '%s'."
+
+#~ msgid "Field must be equal to %(other_name)s."
+#~ msgstr "Field must be equal to %(other_name)s."
+
+#~ msgid "Field must be at least %(min)d character long."
+#~ msgid_plural "Field must be at least %(min)d characters long."
+#~ msgstr[0] ""
+
+#~ msgid "Field cannot be longer than %(max)d character."
+#~ msgid_plural "Field cannot be longer than %(max)d characters."
+#~ msgstr[0] ""
+
+#~ msgid "Field must be exactly %(max)d character long."
+#~ msgid_plural "Field must be exactly %(max)d characters long."
+#~ msgstr[0] ""
+
+#~ msgid "Field must be between %(min)d and %(max)d characters long."
+#~ msgstr "Field must be between %(min)d and %(max)d characters long."
+
+#~ msgid "Number must be at least %(min)s."
+#~ msgstr "Number must be at least %(min)s."
+
+#~ msgid "Number must be at most %(max)s."
+#~ msgstr "数値は最大%(max)sでなければなりません。"
+
+#~ msgid "Number must be between %(min)s and %(max)s."
+#~ msgstr "数値は %(min)s と %(max)s の間でなければなりません。"
+
+#~ msgid "Invalid input."
+#~ msgstr "無効な入力です。"
+
+#~ msgid "Invalid email address."
+#~ msgstr "無効なメールアドレスです。"
+
+#~ msgid "Invalid IP address."
+#~ msgstr "無効なIPアドレスです。"
+
+#~ msgid "Invalid Mac address."
+#~ msgstr "無効なMACアドレスです。"
+
+#~ msgid "Invalid URL."
+#~ msgstr "無効な日付形式です。"
+
+#~ msgid "Invalid UUID."
+#~ msgstr "無効な日付形式です。"
+
+#~ msgid "Invalid value, must be one of: %(values)s."
+#~ msgstr "無効な値です。次のいずれかでなければなりません: %(values)s。"
+
+#~ msgid "Invalid value, can't be any of: %(values)s."
+#~ msgstr "無効な値です。以下のいずれかである必要があります: %(values)s。"
+
+#~ msgid "This field cannot be edited."
+#~ msgstr "パスワードは空欄にできません。"
+
+#~ msgid "This field is disabled and cannot have a value."
+#~ msgstr "このフィールドは無効化されており、値を設定できません。"
+
+#~ msgid "Invalid CSRF Token."
+#~ msgstr "SSO エラー: 無効なログイン トークンです。"
+
+#~ msgid "CSRF token missing."
+#~ msgstr "CSRFトークンが欠落しています。"
+
+#~ msgid "CSRF failed."
+#~ msgstr "CSRFが失敗しました。"
+
+#~ msgid "CSRF token expired."
+#~ msgstr "CSRFトークンが期限切れです。"
+
+#~ msgid "Invalid Choice: could not coerce."
+#~ msgstr "無効な選択: 型変換できませんでした。"
+
+#~ msgid "Choices cannot be None."
+#~ msgstr "選択肢は「なし」にできません。"
+
+#~ msgid "Not a valid choice."
+#~ msgstr "無効な選択です。"
+
+#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
+#~ msgstr "無効な選択: 1つ以上のデータ入力が強制変換できませんでした。"
+
+#~ msgid "'%(value)s' is not a valid choice for this field."
+#~ msgid_plural "'%(value)s' are not valid choices for this field."
+#~ msgstr[0] ""
+
+#~ msgid "Not a valid datetime value."
+#~ msgstr "有効な日付時刻値ではありません。"
+
+#~ msgid "Not a valid date value."
+#~ msgstr "無効な日付形式です。"
+
+#~ msgid "Not a valid time value."
+#~ msgstr "無効な時刻値です。"
+
+#~ msgid "Not a valid week value."
+#~ msgstr "有効な週の値ではありません。"
+
+#~ msgid "Not a valid integer value."
+#~ msgstr "有効な整数値ではありません。"
+
+#~ msgid "Not a valid decimal value."
+#~ msgstr "有効な10進数値ではありません。"
+
+#~ msgid "Not a valid float value."
+#~ msgstr "有効な浮動小数点値ではありません。"

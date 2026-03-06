@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-06 01:16+0800\n"
+"POT-Creation-Date: 2026-03-06 14:24+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -608,10 +608,26 @@ msgstr ""
 msgid "Initializing..."
 msgstr ""
 
-#: templates/_heatmap_section.html:18
+#: templates/_heatmap_section.html:19
+msgid "Vertical bands = Full Moon"
+msgstr ""
+
+#: templates/_heatmap_section.html:20
+msgid "Darker teal = Best visibility"
+msgstr ""
+
+#: templates/_heatmap_section.html:21
+msgid "Brighter teal = Best visibility"
+msgstr ""
+
+#: templates/_heatmap_section.html:22
+msgid "Click any cell to view details"
+msgstr ""
+
+#: templates/_heatmap_section.html:23
 msgid ""
-"* Vertical light bands = Full Moon (Washed out). Darker Green = Best "
-"Quality. Click object names to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any "
+"cell to view details."
 msgstr ""
 
 #: templates/_inspiration_section.html:470
@@ -781,28 +797,6 @@ msgstr ""
 
 #: templates/_inspiration_section.html:636
 msgid "No objects found in your configuration."
-msgstr ""
-
-#: templates/_inspiration_section.html:707
-msgid "Add Your Own Inspiration!"
-msgstr ""
-
-#: templates/_inspiration_section.html:708
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr ""
-
-#: templates/_inspiration_section.html:709
-msgid ""
-"Did you know you can display your own astrophotos or favorite reference "
-"images here?"
-msgstr ""
-
-#: templates/_inspiration_section.html:710
-#, python-format
-msgid ""
-"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to "
-"add \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-"targets."
 msgstr ""
 
 #: templates/_journal_section.html:1086
@@ -2506,7 +2500,7 @@ msgstr ""
 msgid "Error loading views"
 msgstr ""
 
-#: templates/base.html:135
+#: templates/base.html:135 templates/index.html:64
 msgid "Update in"
 msgstr ""
 
@@ -2837,19 +2831,23 @@ msgid "Slightly undersampled"
 msgstr ""
 
 #: templates/base.html:238
-msgid "Add own inspiration"
+msgid "Add Your Own Inspiration!"
 msgstr ""
 
 #: templates/base.html:239
-msgid "See automated survey images"
+msgid "You are currently seeing automated survey images (DSS2)."
 msgstr ""
 
 #: templates/base.html:240
-msgid "Display own astrophotos"
+msgid ""
+"Did you know you can display your own astrophotos or favorite reference "
+"images here?"
 msgstr ""
 
 #: templates/base.html:241
-msgid "Go to config to manage objects"
+msgid ""
+"Go to Configuration - Manage Objects to add Inspiration Content to your "
+"targets."
 msgstr ""
 
 #: templates/base.html:273
@@ -4826,477 +4824,5 @@ msgstr ""
 
 #: templates/project_report.html:1165
 msgid "Exp"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1124
-msgid "Aborted!"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1349
-#: venv/lib/python3.13/site-packages/click/core.py:1379
-#, python-brace-format
-msgid "(Deprecated) {text}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1396
-msgid "Options"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1422
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1438
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1645
-msgid "Commands"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1677
-msgid "Missing command."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1755
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2313
-msgid "Value must be an iterable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2334
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2783
-#, python-brace-format
-msgid "env var: {var}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2813
-msgid "(dynamic)"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2828
-#, python-brace-format
-msgid "default: {default}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2841
-msgid "required"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:457
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:520
-msgid "Show the version and exit."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:541
-msgid "Show this message and exit."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:49
-#: venv/lib/python3.13/site-packages/click/exceptions.py:88
-#, python-brace-format
-msgid "Error: {message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:80
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:131
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:187
-msgid "Missing argument"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:189
-msgid "Missing option"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:191
-msgid "Missing parameter"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:193
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:200
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:232
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:270
-msgid "unknown error"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:277
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/parser.py:233
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/parser.py:415
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/parser.py:476
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/termui.py:158
-msgid "Repeat for confirmation"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/termui.py:174
-msgid "Error: The value you entered was invalid."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/termui.py:176
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/termui.py:187
-msgid "Error: The two entered values do not match."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/termui.py:243
-msgid "Error: invalid input"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/termui.py:773
-msgid "Press any key to continue..."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:267
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:299
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:393
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:415
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:471
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:612
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:636
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:826
-msgid "file"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:828
-msgid "directory"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:830
-msgid "path"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:881
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:890
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:898
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:907
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:916
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:925
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:992
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
 msgstr ""
 
