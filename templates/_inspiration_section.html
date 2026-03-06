@@ -511,7 +511,7 @@
 </div>
 
 <script>
-    const i18n = {
+    const inspirationI18n = {
         // Existing strings
         analyzingTargets:  {{ _("Analyzing targets...") | tojson }},
         noImage:           {{ _("No Image") | tojson }},
@@ -593,7 +593,7 @@
         try {
             grid.innerHTML = '';
             loading.style.display = 'block';
-            loading.textContent = i18n.analyzingTargets;
+            loading.textContent = inspirationI18n.analyzingTargets;
 
             // 1. Get Data (Safety Check)
             let dataSource = window.currentFilteredData;
@@ -643,11 +643,11 @@
                         <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">${title}</h3>
                         <p style="margin: 0 0 25px 0;">${reason}</p>
                         <div class="empty-state-box">
-                            <strong style="color:var(--text-primary);">${i18n.howToPopulate}</strong>
+                            <strong style="color:var(--text-primary);">${inspirationI18n.howToPopulate}</strong>
                             <ul style="margin: 10px 0 0 0; padding-left: 20px; color: var(--text-secondary); line-height:1.6;">
-                                <li><strong>${i18n.checkFilters}</strong> ${i18n.checkFiltersDesc}</li>
-                                <li><strong>${i18n.checkDatabase}</strong> ${i18n.checkDatabaseDesc}</li>
-                                <li><strong>${i18n.visibility}</strong> ${i18n.visibilityDesc}</li>
+                                <li><strong>${inspirationI18n.checkFilters}</strong> ${inspirationI18n.checkFiltersDesc}</li>
+                                <li><strong>${inspirationI18n.checkDatabase}</strong> ${inspirationI18n.checkDatabaseDesc}</li>
+                                <li><strong>${inspirationI18n.visibility}</strong> ${inspirationI18n.visibilityDesc}</li>
                             </ul>
                         </div>
                     </div>`;
@@ -736,10 +736,10 @@
                             <span class="tile-type">${obj.Type || ''}</span>
                         </div>
                         <div class="tile-common-name">${obj['Common Name'] || ''}</div>
-                        <div class="tile-summary skeleton-text">${i18n.loading}</div>
+                        <div class="tile-summary skeleton-text">${inspirationI18n.loading}</div>
                         <div class="tile-stats">
-                            <div class="tile-stat-pill">${i18n.alt} ${obj['Max Altitude (°)']}</div>
-                            <div class="tile-stat-pill">${i18n.dur} ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}${i18n.h}</div>
+                            <div class="tile-stat-pill">${inspirationI18n.alt} ${obj['Max Altitude (°)']}</div>
+                            <div class="tile-stat-pill">${inspirationI18n.dur} ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}${inspirationI18n.h}</div>
                         </div>
                     </div>
                 `;
@@ -807,14 +807,14 @@
                         badgeEl.style.display = 'block';
                     } else {
                         // No image URL found
-                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">' + i18n.noImage + '</div>';
+                        tile.querySelector('.tile-image').innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:var(--text-muted-alt);">' + inspirationI18n.noImage + '</div>';
                         tile.querySelector('.tile-image').classList.remove('skeleton-pulse');
                     }
 
                     if (finalText) {
                         sumEl.textContent = finalText;
                     } else {
-                        sumEl.textContent = `${i18n.type} ${obj.Type || i18n.dso}. ${i18n.locatedIn} ${obj.Constellation || i18n.unknown}.`;
+                        sumEl.textContent = `${inspirationI18n.type} ${obj.Type || inspirationI18n.dso}. ${inspirationI18n.locatedIn} ${obj.Constellation || inspirationI18n.unknown}.`;
                     }
                     sumEl.classList.remove('skeleton-text');
 
@@ -824,7 +824,7 @@
             }
         } catch (err) {
             console.error("Critical Grid Error:", err);
-            grid.innerHTML = '<div class="empty-state"><p>' + i18n.errorRenderGrid + '</p></div>';
+            grid.innerHTML = '<div class="empty-state"><p>' + inspirationI18n.errorRenderGrid + '</p></div>';
             loading.style.display = 'none';
         }
     }
@@ -859,7 +859,7 @@
                 const offlineDiv = document.createElement('div');
                 offlineDiv.className = 'offline-message';
                 offlineDiv.style.cssText = "height:100%; min-height:0; border:none; background:var(--code-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; width: 100%;";
-                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">' + i18n.imageUnavailable + '</div>';
+                offlineDiv.innerHTML = '<div style="font-size:40px; opacity:0.3; margin-bottom:10px; filter: grayscale(1);">📡</div><div style="color:var(--text-quaternary);">' + inspirationI18n.imageUnavailable + '</div>';
                 imgContainer.appendChild(offlineDiv);
             }
         };
@@ -892,23 +892,23 @@
         document.getElementById('modal-subtitle').textContent = obj['Common Name'] || "";
         document.getElementById('modal-alt').textContent = obj['Max Altitude (°)'];
         document.getElementById('modal-transit').textContent = obj['Transit Time'];
-        document.getElementById('modal-dur').textContent = Math.round((parseFloat(obj['Observable Duration (min)'])||1)/60*10)/10 + " " + i18n.hrs;
-        document.getElementById('modal-const').textContent = obj.Constellation || i18n.na;
+        document.getElementById('modal-dur').textContent = Math.round((parseFloat(obj['Observable Duration (min)'])||1)/60*10)/10 + " " + inspirationI18n.hrs;
+        document.getElementById('modal-const').textContent = obj.Constellation || inspirationI18n.na;
         document.getElementById('modal-text').textContent = summary;
 
         // 4. Handle Attribution
         const attrib = document.getElementById('modal-attribution');
         if (source === "Wiki") {
-            attrib.innerHTML = i18n.source + ' <a href="${wikiUrl}" target="_blank">' + i18n.sourceWikipedia + '</a>';
+            attrib.innerHTML = inspirationI18n.source + ' <a href="${wikiUrl}" target="_blank">' + inspirationI18n.sourceWikipedia + '</a>';
         } else if (source === "NASA") {
-            attrib.innerHTML = i18n.source + ' <a href="${wikiUrl}" target="_blank">' + i18n.sourceNasa + '</a>';
+            attrib.innerHTML = inspirationI18n.source + ' <a href="${wikiUrl}" target="_blank">' + inspirationI18n.sourceNasa + '</a>';
         } else if (source === "DSS2") {
-            attrib.innerHTML = i18n.source + ' ' + i18n.sourceDss2;
+            attrib.innerHTML = inspirationI18n.source + ' ' + inspirationI18n.sourceDss2;
         } else {
             if (wikiUrl) {
-                attrib.innerHTML = i18n.source + ' <a href="${wikiUrl}" target="_blank">${source}</a>';
+                attrib.innerHTML = inspirationI18n.source + ' <a href="${wikiUrl}" target="_blank">${source}</a>';
             } else {
-                attrib.innerHTML = i18n.source + ' ' + source;
+                attrib.innerHTML = inspirationI18n.source + ' ' + source;
             }
         }
 

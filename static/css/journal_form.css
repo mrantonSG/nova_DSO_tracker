@@ -222,7 +222,7 @@
         font-family: 'DM Sans', 'Roboto', sans-serif;
         padding: var(--space-5);
         margin: 0;
-        background-color: var(--bg-white);
+        background: var(--nova-bg, var(--gray-50));
         color: var(--text-primary);
     }
 
@@ -289,7 +289,7 @@
 
     /* Body and container */
     [data-theme="dark"] body {
-        background-color: var(--bg-light);
+        background: var(--nova-bg, #0f1118);
     }
 
     [data-theme="dark"] .form-container {
