@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 15:33+0800\n"
+"POT-Creation-Date: 2026-03-06 01:16+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: es <LL@li.org>\n"
@@ -670,7 +670,7 @@ msgstr "Hora de tránsito"
 msgid "Duration"
 msgstr "Duración"
 
-#: templates/_inspiration_section.html:498 templates/config_form.html:540
+#: templates/_inspiration_section.html:498 templates/config_form.html:543
 #: templates/index.html:126
 msgid "Constellation"
 msgstr "Constelación"
@@ -681,9 +681,9 @@ msgstr "Fuente: Wiki"
 
 #: templates/_inspiration_section.html:504
 #: templates/_journal_section.html:1908 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:215
-#: templates/base.html:235 templates/base.html:243 templates/base.html:281
-#: templates/config_form.html:640 templates/graph_view.html:276
+#: templates/_objects_section.html:442 templates/base.html:367
+#: templates/base.html:387 templates/base.html:395 templates/base.html:433
+#: templates/config_form.html:643 templates/graph_view.html:276
 msgid "Close"
 msgstr "Cerrar"
 
@@ -691,26 +691,168 @@ msgstr "Cerrar"
 msgid "View Charts"
 msgstr "Ver gráficos"
 
-#: templates/_inspiration_section.html:515
+#: templates/_inspiration_section.html:516
 msgid "Analyzing targets..."
 msgstr "Analizando objetivos..."
 
-#: templates/_inspiration_section.html:516 templates/journal_report.html:706
+#: templates/_inspiration_section.html:517 templates/journal_report.html:706
 #: templates/project_report.html:1081
 msgid "No Image"
 msgstr "Sin imagen"
 
-#: templates/_inspiration_section.html:517
+#: templates/_inspiration_section.html:518
 msgid "unknown"
 msgstr "desconocido"
 
-#: templates/_inspiration_section.html:518
+#: templates/_inspiration_section.html:519
 msgid "Error rendering grid. Check console."
 msgstr "Error al renderizar la cuadrícula. Compruebe la consola."
 
-#: templates/_inspiration_section.html:519
+#: templates/_inspiration_section.html:520
 msgid "Image unavailable"
 msgstr "Imagen no disponible"
+
+#: templates/_inspiration_section.html:523
+msgid "How to populate this gallery:"
+msgstr "Cómo rellenar esta galería:"
+
+#: templates/_inspiration_section.html:524
+#, fuzzy
+msgid "Check Filters:"
+msgstr "Filtro:"
+
+#: templates/_inspiration_section.html:525
+msgid "Clear filters on the Position tab."
+msgstr "Borrar filtros en la pestaña Posición."
+
+#: templates/_inspiration_section.html:526
+msgid "Check Database:"
+msgstr "Compruebe la base de datos:"
+
+#: templates/_inspiration_section.html:527
+#, fuzzy
+msgid "Ensure you have objects in Configuration."
+msgstr "No se encontraron objetos en su configuración."
+
+#: templates/_inspiration_section.html:528
+msgid "Visibility:"
+msgstr "Visibilidad:"
+
+#: templates/_inspiration_section.html:529
+msgid "We only show objects observable during tonight's session."
+msgstr "Sólo mostramos objetos observables durante la sesión de esta noche."
+
+#: templates/_inspiration_section.html:532
+#, fuzzy
+msgid "Alt:"
+msgstr "Lat:"
+
+#: templates/_inspiration_section.html:533
+#, fuzzy
+msgid "Dur:"
+msgstr "Duración:"
+
+#: templates/_inspiration_section.html:534
+#, fuzzy
+msgid "hrs"
+msgstr "Dithers"
+
+#: templates/_inspiration_section.html:535
+msgid "h"
+msgstr "h"
+
+#: templates/_inspiration_section.html:536 templates/base.html:105
+#: templates/config_form.html:566 templates/config_form.html:595
+#: templates/config_form.html:631 templates/graph_view.html:132
+msgid "Loading..."
+msgstr "Cargando..."
+
+#: templates/_inspiration_section.html:539
+#, fuzzy
+msgid "Type:"
+msgstr "Tipo"
+
+#: templates/_inspiration_section.html:540
+msgid "DSO"
+msgstr "DSO"
+
+#: templates/_inspiration_section.html:541
+#, fuzzy
+msgid "Located in"
+msgstr "Ubicación"
+
+#: templates/_inspiration_section.html:542
+msgid "N/A"
+msgstr "N/A"
+
+#: templates/_inspiration_section.html:545
+#, fuzzy
+msgid "Source:"
+msgstr "Fuente"
+
+#: templates/_inspiration_section.html:546
+msgid "Wikipedia"
+msgstr "Wikipedia"
+
+#: templates/_inspiration_section.html:547
+msgid "NASA"
+msgstr "NASA"
+
+#: templates/_inspiration_section.html:548
+msgid "Aladin Sky Atlas / DSS2"
+msgstr "Aladin Sky Atlas / DSS2"
+
+#: templates/_inspiration_section.html:623
+#: templates/_inspiration_section.html:624
+msgid "No Matching Targets"
+msgstr "Procesando objetivos..."
+
+#: templates/_inspiration_section.html:625
+msgid "Your current filters (Position Tab) are too restrictive."
+msgstr "Sus filtros actuales (pestaña Posición) son demasiado restrictivos."
+
+#: templates/_inspiration_section.html:631
+msgid "Loading Object Database..."
+msgstr "Cargando historial..."
+
+#: templates/_inspiration_section.html:632
+msgid "Please wait while we calculate visibility and fetch data."
+msgstr "Espere mientras calculamos la visibilidad y obtenemos los datos."
+
+#: templates/_inspiration_section.html:635
+msgid "Database Empty"
+msgstr "Reparación de la base de datos completada."
+
+#: templates/_inspiration_section.html:636
+msgid "No objects found in your configuration."
+msgstr "No se encontraron objetos en su configuración."
+
+#: templates/_inspiration_section.html:707
+msgid "Add Your Own Inspiration!"
+msgstr "Añadir inspiración propia"
+
+#: templates/_inspiration_section.html:708
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "Ver imágenes de la encuesta automatizada"
+
+#: templates/_inspiration_section.html:709
+msgid ""
+"Did you know you can display your own astrophotos or favorite reference "
+"images here?"
+msgstr ""
+"¿Sabía que aquí puede mostrar sus propias astrofotografías o sus imágenes de"
+" referencia favoritas?"
+
+#: templates/_inspiration_section.html:710
+#, python-format
+msgid ""
+"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+" \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+"targets."
+msgstr ""
+"Vaya a %(strong_start)sConfiguración > Gestionar objetos%(strong_end)s para "
+"añadir \"Contenido de inspiración\" (URLs de imágenes, créditos, "
+"descripciones) a sus objetivos."
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -724,7 +866,7 @@ msgstr "Cambiar objeto"
 msgid "Add New Project"
 msgstr "Añadir nuevo proyecto"
 
-#: templates/_journal_section.html:1093
+#: templates/_journal_section.html:1093 templates/base.html:182
 msgid "Add New Session"
 msgstr "Añadir nueva sesión"
 
@@ -853,12 +995,12 @@ msgid "Rig Specs:"
 msgstr "Especificaciones del rig:"
 
 #: templates/_journal_section.html:1205 templates/_journal_section.html:1247
-#: templates/config_form.html:449 templates/journal_report.html:757
+#: templates/config_form.html:452 templates/journal_report.html:757
 msgid "Telescope:"
 msgstr "Telescopio:"
 
 #: templates/_journal_section.html:1206 templates/_journal_section.html:1251
-#: templates/config_form.html:455 templates/journal_report.html:767
+#: templates/config_form.html:458 templates/journal_report.html:767
 msgid "Camera:"
 msgstr "Cámara:"
 
@@ -1023,7 +1165,7 @@ msgstr "Descargar PDF"
 msgid "Overview"
 msgstr "Visión general"
 
-#: templates/_journal_section.html:1355
+#: templates/_journal_section.html:1355 templates/base.html:144
 msgid "Guiding"
 msgstr "Guiado"
 
@@ -1135,7 +1277,7 @@ msgstr "Incluyendo dithers — RA:"
 msgid "Dec:"
 msgstr "Dec:"
 
-#: templates/_journal_section.html:1436
+#: templates/_journal_section.html:1436 templates/base.html:208
 msgid "Zoom"
 msgstr "Zoom"
 
@@ -1268,7 +1410,7 @@ msgstr "Guardar proyecto"
 #: templates/_journal_section.html:1606 templates/_journal_section.html:1676
 #: templates/_journal_section.html:1708 templates/_objects_section.html:347
 #: templates/_project_subtab.html:232 templates/admin_users.html:120
-#: templates/base.html:314 templates/index.html:248
+#: templates/base.html:466 templates/index.html:248
 #: templates/journal_form.html:210
 msgid "Cancel"
 msgstr "Cancelar"
@@ -1361,7 +1503,7 @@ msgstr "Añadir nueva sesión para"
 msgid "Edit Session"
 msgstr "Editar sesión"
 
-#: templates/_journal_section.html:1707
+#: templates/_journal_section.html:1707 templates/base.html:185
 msgid "Save Changes"
 msgstr "Guardar cambios"
 
@@ -1608,7 +1750,7 @@ msgstr "Cargado"
 
 #: templates/_journal_section.html:1849 templates/_journal_section.html:1863
 #: templates/_objects_section.html:88 templates/admin_users.html:110
-#: templates/index.html:98
+#: templates/base.html:112 templates/index.html:98
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -1724,8 +1866,8 @@ msgid "e.g., Cyg"
 msgstr "p. ej., Cyg"
 
 #: templates/_objects_section.html:42 templates/_objects_section.html:138
-#: templates/_objects_section.html:290 templates/config_form.html:539
-#: templates/config_form.html:603 templates/index.html:127
+#: templates/_objects_section.html:290 templates/config_form.html:542
+#: templates/config_form.html:606 templates/index.html:127
 msgid "Type"
 msgstr "Tipo"
 
@@ -1754,8 +1896,8 @@ msgid "Shared by Me"
 msgstr "Compartido por mí"
 
 #: templates/_objects_section.html:54 templates/_objects_section.html:111
-#: templates/config_form.html:557 templates/config_form.html:586
-#: templates/config_form.html:622
+#: templates/base.html:120 templates/config_form.html:560
+#: templates/config_form.html:589 templates/config_form.html:625
 msgid "Imported"
 msgstr "Importado"
 
@@ -1768,7 +1910,7 @@ msgstr "Fuente"
 msgid "e.g., messier (use = for exact)"
 msgstr "p. ej., messier (use = para exacto)"
 
-#: templates/_objects_section.html:63 templates/config_form.html:542
+#: templates/_objects_section.html:63 templates/config_form.html:545
 #: templates/graph_view.html:155 templates/project_report.html:1086
 msgid "Notes"
 msgstr "Notas"
@@ -1839,6 +1981,10 @@ msgstr "Estás compartiendo este elemento"
 msgid "Shared"
 msgstr "Compartido"
 
+#: templates/_objects_section.html:152
+msgid "SB:"
+msgstr "SB"
+
 #: templates/_objects_section.html:166
 msgid "Enabled"
 msgstr "Habilitado"
@@ -1848,7 +1994,7 @@ msgstr "Habilitado"
 msgid "Active Project"
 msgstr "Proyecto activo"
 
-#: templates/_objects_section.html:177 templates/index.html:64
+#: templates/_objects_section.html:177 templates/base.html:113
 msgid "Update"
 msgstr "Actualizar"
 
@@ -1902,7 +2048,7 @@ msgid "Personal notes... (not shared)"
 msgstr "Notas personales... (no compartidas)"
 
 #: templates/_objects_section.html:236 templates/_objects_section.html:425
-#: templates/config_form.html:637
+#: templates/config_form.html:640
 msgid "Shared Notes"
 msgstr "Notas compartidas"
 
@@ -1918,7 +2064,7 @@ msgstr "Compartir este objeto con otros usuarios"
 msgid "Update Objects"
 msgstr "Actualizar objetos"
 
-#: templates/_objects_section.html:265 templates/config_form.html:537
+#: templates/_objects_section.html:265 templates/config_form.html:540
 #: templates/index.html:173 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "ID de objeto"
@@ -1971,7 +2117,8 @@ msgstr "Buscar"
 msgid "Confirm Add"
 msgstr "Confirmar añadir"
 
-#: templates/_objects_section.html:346 templates/mobile_up_now.html:123
+#: templates/_objects_section.html:346 templates/base.html:111
+#: templates/mobile_up_now.html:123
 msgid "Edit"
 msgstr "Editar"
 
@@ -2006,7 +2153,7 @@ msgstr ""
 "destructiva: los objetos existentes nunca se sobrescriben y los objetos "
 "superpuestos se omiten."
 
-#: templates/_objects_section.html:386 templates/config_form.html:574
+#: templates/_objects_section.html:386 templates/config_form.html:577
 #: templates/graph_view.html:201
 msgid "Description"
 msgstr "Descripción"
@@ -2019,12 +2166,13 @@ msgstr "Etiquetas"
 msgid "Objects"
 msgstr "Objetos"
 
-#: templates/_objects_section.html:389 templates/config_form.html:543
-#: templates/config_form.html:576 templates/config_form.html:605
+#: templates/_objects_section.html:389 templates/config_form.html:546
+#: templates/config_form.html:579 templates/config_form.html:608
 msgid "Action"
 msgstr "Acción"
 
-#: templates/_objects_section.html:409 templates/config_form.html:82
+#: templates/_objects_section.html:409 templates/base.html:118
+#: templates/config_form.html:82
 msgid "Import"
 msgstr "Importar"
 
@@ -2341,11 +2489,468 @@ msgstr ""
 "Nova DSO Tracker Analytics — Conforme al RGPD, no se almacena información "
 "personal"
 
-#: templates/base.html:121
+#: templates/base.html:106
+msgid "Calculating..."
+msgstr "Cargando..."
+
+#: templates/base.html:107
+msgid "Fetching..."
+msgstr "Obteniendo detalles..."
+
+#: templates/base.html:108 templates/mobile_add_object.html:59
+#: templates/mobile_edit_notes.html:78
+msgid "Saving..."
+msgstr "Guardando..."
+
+#: templates/base.html:109
+msgid "Saved"
+msgstr "Guardar"
+
+#: templates/base.html:110
+msgid "Error"
+msgstr "Error:"
+
+#: templates/base.html:114
+msgid "None"
+msgstr "Notas"
+
+#: templates/base.html:115
+msgid "Mode"
+msgstr "Modo"
+
+#: templates/base.html:116 templates/index.html:23
+msgid "Simulated"
+msgstr "Simulado"
+
+#: templates/base.html:117
+msgid "sep"
+msgstr "pasos"
+
+#: templates/base.html:119
+msgid "Importing..."
+msgstr "Importar"
+
+#: templates/base.html:123
+msgid "Name is required"
+msgstr "Se requiere el nombre del proyecto."
+
+#: templates/base.html:124
+msgid "Data Load Failed"
+msgstr "Error en la carga de datos"
+
+#: templates/base.html:125
+msgid "No targets found matching your filters."
+msgstr "Ningún objeto coincide con su filtro."
+
+#: templates/base.html:126
+msgid "Updating location..."
+msgstr "Actualizando datos..."
+
+#: templates/base.html:127
+msgid "No imaging opportunities found matching the criteria."
+msgstr ""
+"No se encontraron oportunidades de imágenes para sus proyectos activos."
+
+#: templates/base.html:128
+msgid "Waiting for background task..."
+msgstr "Esperando tarea en segundo plano..."
+
+#: templates/base.html:129
+msgid "No data available or error. Check server logs."
+msgstr "No hay paquetes de catálogo disponibles en este servidor todavía."
+
+#: templates/base.html:130
+msgid "Error fetching data. Check console for details."
+msgstr "Error al renderizar la cuadrícula. Compruebe la consola."
+
+#: templates/base.html:131
+msgid "Loading altitude data..."
+msgstr "Cargando historial..."
+
+#: templates/base.html:132
+msgid "Altitude data unavailable."
+msgstr "Imagen no disponible"
+
+#: templates/base.html:133
+msgid "Select a saved view..."
+msgstr "Eliminar vista seleccionada"
+
+#: templates/base.html:134
+msgid "Error loading views"
+msgstr "Error al cargar datos."
+
+#: templates/base.html:135
+msgid "Update in"
+msgstr "Actualizar en"
+
+#: templates/base.html:136
+msgid "Latest version"
+msgstr "Versión"
+
+#: templates/base.html:139
+msgid "Select Telescope"
+msgstr "-- Seleccionar un telescopio --"
+
+#: templates/base.html:140
+msgid "Select Camera"
+msgstr "-- Seleccionar una cámara --"
+
+#: templates/base.html:141 templates/config_form.html:615
+#: templates/project_report.html:1139
+msgid "Telescope"
+msgstr "Telescopio"
+
+#: templates/base.html:142 templates/config_form.html:616
+#: templates/project_report.html:1143
+msgid "Camera"
+msgstr "Cámara"
+
+#: templates/base.html:143
+msgid "Reducer / Extender"
+msgstr "Reductores / Extensores"
+
+#: templates/base.html:145
+msgid "Oversampled"
+msgstr "Completado"
+
+#: templates/base.html:146
+msgid "Well sampled"
+msgstr "Escala de píxel"
+
+#: templates/base.html:147
+msgid "Undersampled"
+msgstr "Nombre de usuario"
+
+#: templates/base.html:148
+msgid "No telescopes defined."
+msgstr "No hay objetivos definidos."
+
+#: templates/base.html:149
+msgid "No cameras defined."
+msgstr "No hay objetivos definidos."
+
+#: templates/base.html:150
+msgid "Error loading shared items."
+msgstr "Error al cargar datos."
+
+#: templates/base.html:151
+msgid "Import failed. See console for details."
+msgstr "Error al importar. Vea los registros del servidor para más detalles."
+
+#: templates/base.html:152
+msgid "Upload failed. See console."
+msgstr "Carga fallida. Ver consola."
+
+#: templates/base.html:153
+msgid "Network error saving object."
+msgstr "Error de red."
+
+#: templates/base.html:154
+msgid "Image upload failed: Network error."
+msgstr "Error al importar: error de red"
+
+#: templates/base.html:155
+msgid "Error: Could not find the horizon mask field."
+msgstr "Error: No se ha podido encontrar el campo de máscara de horizonte."
+
+#: templates/base.html:156
+msgid "Error reading file. Please try again."
+msgstr "Error al añadir filtro."
+
+#: templates/base.html:157
+msgid "No valid horizon data found."
+msgstr "No se han encontrado datos de horizonte válidos."
+
+#: templates/base.html:158
+msgid "Shared Notes for"
+msgstr "Notas compartidas"
+
+#: templates/base.html:161
+msgid "No objects selected."
+msgstr "No se especificó ningún objeto."
+
+#: templates/base.html:162
+msgid "Bulk action failed."
+msgstr "Acción masiva fallida."
+
+#: templates/base.html:163
+msgid "Bulk fetch details failed."
+msgstr "Recuperar detalles"
+
+#: templates/base.html:164
+msgid "No potential duplicates found."
+msgstr "Duplicados potenciales"
+
+#: templates/base.html:165
+msgid "Keep A, merge B into A"
+msgstr "Mantener A, fusionar B en A"
+
+#: templates/base.html:166
+msgid "Keep B, merge A into B"
+msgstr "Mantener B, fusionar A en B"
+
+#: templates/base.html:167
+msgid "Error scanning duplicates."
+msgstr "Error al cargar datos."
+
+#: templates/base.html:168
+msgid "Confirm merge?"
+msgstr "Confirmar añadir"
+
+#: templates/base.html:169
+msgid "All duplicates resolved."
+msgstr "Soluciones de placa"
+
+#: templates/base.html:170
+msgid "Please enter an object identifier."
+msgstr "Por favor, inicie sesión para ver los detalles del objeto."
+
+#: templates/base.html:171
+msgid "Checking your local library..."
+msgstr "Busca en tu biblioteca local..."
+
+#: templates/base.html:172
+msgid "Object found in your library."
+msgstr "Datos del objeto no encontrados o no válidos."
+
+#: templates/base.html:173
+#, python-format
+msgid "Found: %(name)s. Details loaded from SIMBAD\\."
+msgstr "Encontrado: %(name)s. Detalles cargados desde SIMBAD."
+
+#: templates/base.html:174
+msgid "SIMBAD lookup failed."
+msgstr "Falló la copia al portapapeles."
+
+#: templates/base.html:175
+msgid "selected"
+msgstr "0 seleccionados"
+
+#: templates/base.html:176
+msgid "No imaging opportunities found."
+msgstr "Oportunidades de imagen"
+
+#: templates/base.html:179
+msgid "Report frame not found."
+msgstr "Usuario no encontrado."
+
+#: templates/base.html:180
+msgid "Preparing Print View..."
+msgstr "Preparando la vista de impresión..."
+
+#: templates/base.html:181
+#, python-format
+msgid "Merging Session %(current)d/%(total)d..."
+msgstr "Fusionando Sesión %(current)d/%(total)d...%(current)d"
+
+#: templates/base.html:183
+msgid "Add Session"
+msgstr "Añadir nueva sesión"
+
+#: templates/base.html:184
+msgid "Editing Session"
+msgstr "Editar sesión"
+
+#: templates/base.html:188
+#, python-format
+msgid "Failed to update Active Project: %(error)s"
+msgstr "Error al crear proyecto: %(error)s"
+
+#: templates/base.html:189
+msgid "SIMBAD requires an active internet connection to load data."
+msgstr "SIMBAD requiere una conexión activa a Internet para cargar los datos."
+
+#: templates/base.html:190
+msgid "SIMBAD requires an active internet connection."
+msgstr "SIMBAD requiere una conexión activa a Internet."
+
+#: templates/base.html:191
+msgid "Add to calendar"
+msgstr "Añadir al calendario"
+
+#: templates/base.html:192
+#, python-format
+msgid "Error loading opportunities: %(error)s"
+msgstr "Error al añadir componente: %(error)s"
+
+#: templates/base.html:193
+#, python-format
+msgid ""
+"Failed to load imaging opportunities. Check console for details. (%(error)s)"
+msgstr ""
+"Error al cargar oportunidades de imagen. Compruebe los detalles en la "
+"consola. (%(error)s)"
+
+#: templates/base.html:194
+msgid "Please configure at least one rig on the Configuration page first."
+msgstr "Configure primero al menos un equipo en la página de Configuración."
+
+#: templates/base.html:195
+msgid "Could not load external survey. See console for details."
+msgstr ""
+"No se ha podido cargar la encuesta externa. Consulte la consola para más "
+"detalles."
+
+#: templates/base.html:196
+msgid "Framing settings saved to database."
+msgstr "Los ajustes de encuadre se guardan en la base de datos."
+
+#: templates/base.html:197
+msgid "Error saving"
+msgstr "Error al cargar datos."
+
+#: templates/base.html:198
+msgid "Please select a rig first."
+msgstr "Por favor, seleccione un archivo .zip válido para importar."
+
+#: templates/base.html:199
+msgid "Failed to copy to clipboard. See console."
+msgstr "Error al copiar al portapapeles. Ver consola."
+
+#: templates/base.html:200
+msgid "Open Saved Framing"
+msgstr "Guardar encuadre"
+
+#: templates/base.html:201
+msgid "Delete Saved Framing"
+msgstr "Guardar encuadre"
+
+#: templates/base.html:202
+msgid "Image upload failed. See console for details."
+msgstr "Error al importar. Vea los registros del servidor para más detalles."
+
+#: templates/base.html:205
+msgid "No timeline data to display."
+msgstr "No hay datos de la línea de tiempo para mostrar."
+
+#: templates/base.html:206
+msgid "No PHD2 guide log data available."
+msgstr "No hay datos de inicio de sesión disponibles todavía"
+
+#: templates/base.html:207
+msgid "Full"
+msgstr "Completo"
+
+#: templates/base.html:209
+msgid "No dither data available."
+msgstr "No hay datos de inicio de sesión disponibles todavía"
+
+#: templates/base.html:210
+msgid "No autofocus data available."
+msgstr "No hay datos de inicio de sesión disponibles todavía"
+
+#: templates/base.html:213
+#, python-format
+msgid "Calculating month %(current)d of %(total)d..."
+msgstr "Calculados %%(current)d de %%(total)d objetos..."
+
+#: templates/base.html:214
+msgid "No projects found. Adjust filters or add projects."
+msgstr "No se encontraron objetos. ¡Intente añadir uno!"
+
+#: templates/base.html:215
+msgid "Plotly library not loaded. Please refresh."
+msgstr "La biblioteca Plotly no se ha cargado. Por favor, actualice."
+
+#: templates/base.html:218
+msgid "Loading help content..."
+msgstr "Cargando historial..."
+
+#: templates/base.html:219
+msgid "Error: Help content returned empty."
+msgstr "Error: El contenido de la ayuda está vacío."
+
+#: templates/base.html:220
+msgid "Network Error: Could not load help topic."
+msgstr "Error de red: No se ha podido cargar el tema de ayuda."
+
+#: templates/base.html:223
+#, python-format
+msgid "Showing %(count)d objects"
+msgstr "Mostrando objetos %(count)d"
+
+#: templates/base.html:224
+#, python-format
+msgid "Showing %(shown)d of %(total)d objects"
+msgstr "Calculados %%(shown)d de %%(total)d objetos..."
+
+#: templates/base.html:225
+#, python-format
+msgid "Are you sure you want to %(action)s %(count)d objects?"
+msgstr ""
+"¿Estás seguro de que quieres %(action)s %(count)d "
+"objetos?%(action)s%(count)d"
+
+#: templates/base.html:226
+#, python-format
+msgid "Fetching details for %(name)s..."
+msgstr "Buscando %%(name)s..."
+
+#: templates/base.html:229
+msgid "Effective FL"
+msgstr "Solo activos"
+
+#: templates/base.html:230
+msgid "Field of View"
+msgstr "Campo de visión"
+
+#: templates/base.html:231
+msgid "Good sampling"
+msgstr "Buen muestreo"
+
+#: templates/base.html:232
+msgid "Image Scale"
+msgstr "Escala de píxel"
+
+#: templates/base.html:233
+msgid "No reducers defined."
+msgstr "No hay objetivos definidos."
+
+#: templates/base.html:234
+msgid "Slightly oversampled"
+msgstr "Completado"
+
+#: templates/base.html:235
+msgid "Slightly undersampled"
+msgstr "Nombre de usuario"
+
+#: templates/base.html:238
+msgid "Add Your Own Inspiration!"
+msgstr "¡Añade tu propia inspiración!"
+
+#: templates/base.html:239
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "Actualmente estás viendo imágenes de encuestas automatizadas (DSS2)."
+
+#: templates/base.html:240
+msgid "Did you know you can display your own astrophotos or favorite reference images here?"
+msgstr "¿Sabías que puedes mostrar tus propias astrofotos o imágenes de referencia favoritas aquí?"
+
+#: templates/base.html:241
+msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
+msgstr "Ve a <strong>Configuración > Gestionar objetos</strong> para añadir \"Contenido de inspiración\" (URLs de imágenes, créditos, descripciones) a tus objetivos."
+
+#: templates/base.html:238
+msgid "Add own inspiration"
+msgstr "Añadir inspiración propia"
+
+#: templates/base.html:239
+msgid "See automated survey images"
+msgstr "Ver imágenes de la encuesta automatizada"
+
+#: templates/base.html:240
+msgid "Display own astrophotos"
+msgstr "Mostrar astrofotos propias"
+
+#: templates/base.html:241
+msgid "Go to config to manage objects"
+msgstr "Ir a configuración para gestionar objetos"
+
+#: templates/base.html:273
 msgid "Demo Mode:"
 msgstr "Modo de demostración:"
 
-#: templates/base.html:121
+#: templates/base.html:273
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
@@ -2353,43 +2958,43 @@ msgstr ""
 "Estás viendo una demostración de solo lectura. La funcionalidad completa "
 "(como guardar) está habilitada para usuarios registrados."
 
-#: templates/base.html:145
+#: templates/base.html:297
 msgid "About Nova DSO Tracker"
 msgstr "Acerca de Nova DSO Tracker"
 
-#: templates/base.html:145
+#: templates/base.html:297
 msgid "About"
 msgstr "Acerca de"
 
-#: templates/base.html:153
+#: templates/base.html:305
 msgid "Toggle dark/light theme"
 msgstr "Alternar tema oscuro/claro"
 
-#: templates/base.html:153
+#: templates/base.html:305
 msgid "Toggle theme"
 msgstr "Alternar tema"
 
-#: templates/base.html:173
+#: templates/base.html:325
 msgid "Select language"
 msgstr "Seleccionar idioma"
 
-#: templates/base.html:185
+#: templates/base.html:337
 msgid "Guest Mode"
 msgstr "Modo de invitado"
 
-#: templates/base.html:186 templates/login.html:2
+#: templates/base.html:338 templates/login.html:2
 msgid "Login"
 msgstr "Iniciar sesión"
 
-#: templates/base.html:190
+#: templates/base.html:342
 msgid "Users"
 msgstr "Usuarios"
 
-#: templates/base.html:193
+#: templates/base.html:345
 msgid "Logout"
 msgstr "Cerrar sesión"
 
-#: templates/base.html:212
+#: templates/base.html:364
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
@@ -2397,31 +3002,31 @@ msgstr ""
 "Las traducciones de este idioma se generaron automáticamente y pueden no ser"
 " precisas. ¡Ayúdanos a mejorarlas!"
 
-#: templates/base.html:213
+#: templates/base.html:365
 msgid "Submit feedback"
 msgstr "Enviar comentarios"
 
-#: templates/base.html:232 templates/config_form.html:283
-#: templates/macros.html:79
+#: templates/base.html:384 templates/config_form.html:283
+#: templates/config_form.html:351
 msgid "Help"
 msgstr "Ayuda"
 
-#: templates/base.html:250
+#: templates/base.html:402
 msgid "Nova DSO Tracker Logo"
 msgstr "Logotipo de Nova DSO Tracker"
 
-#: templates/base.html:252
+#: templates/base.html:404
 msgid "Version"
 msgstr "Versión"
 
-#: templates/base.html:253
+#: templates/base.html:405
 msgid ""
 "A personal project born from a passion for astronomy and astrophotography."
 msgstr ""
 "Un proyecto personal nacido de una pasión por la astronomía y "
 "astrofotografía."
 
-#: templates/base.html:254
+#: templates/base.html:406
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
@@ -2432,55 +3037,55 @@ msgstr ""
 "cielo profundo, rastreando la posición y fase de la Luna, e identificando "
 "ventanas de observación óptimas."
 
-#: templates/base.html:255
+#: templates/base.html:407
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "Datos obtenidos de SIMBAD; cálculos impulsados por Astropy y Ephem."
 
-#: templates/base.html:263
+#: templates/base.html:415
 msgid "Visit nova-tracker.com"
 msgstr "Visite nova-tracker.com"
 
-#: templates/base.html:273
+#: templates/base.html:425
 msgid "Built by Anton Gutscher"
 msgstr "Desarrollado por Anton Gutscher"
 
-#: templates/base.html:288
+#: templates/base.html:440
 msgid "Translation Feedback"
 msgstr "Comentarios de traducción"
 
-#: templates/base.html:289
+#: templates/base.html:441
 msgid "Help us improve the translations for this language."
 msgstr "Ayúdanos a mejorar las traducciones de este idioma."
 
-#: templates/base.html:293
+#: templates/base.html:445
 msgid "Locale"
 msgstr "Idioma"
 
-#: templates/base.html:298
+#: templates/base.html:450
 msgid "Term / Phrase"
 msgstr "Término / Frase"
 
-#: templates/base.html:299
+#: templates/base.html:451
 msgid "The translated term that seems wrong..."
 msgstr "El término traducido que parece incorrecto..."
 
-#: templates/base.html:303
+#: templates/base.html:455
 msgid "Suggested Correction"
 msgstr "Corrección Sugerida"
 
-#: templates/base.html:304
+#: templates/base.html:456
 msgid "Your suggested translation..."
 msgstr "Su traducción sugerida..."
 
-#: templates/base.html:308
+#: templates/base.html:460
 msgid "Context / Notes"
 msgstr "Contexto / Notas"
 
-#: templates/base.html:308
+#: templates/base.html:460
 msgid "optional"
 msgstr "(opcional)"
 
-#: templates/base.html:309
+#: templates/base.html:461
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
@@ -2488,7 +3093,7 @@ msgstr ""
 "Contexto adicional sobre dónde aparece o por qué se necesita la "
 "corrección..."
 
-#: templates/base.html:313
+#: templates/base.html:465
 msgid "Submit"
 msgstr "Enviar"
 
@@ -2548,6 +3153,7 @@ msgid "General Settings"
 msgstr "Configuración general"
 
 #: templates/config_form.html:111 templates/config_form.html:243
+#: templates/macros.html:79
 msgid "Click for help"
 msgstr "Haga clic para obtener ayuda"
 
@@ -2693,8 +3299,8 @@ msgstr "Configuración de ubicaciones"
 msgid "Add New Location"
 msgstr "Añadir nueva ubicación"
 
-#: templates/config_form.html:252 templates/config_form.html:389
-#: templates/config_form.html:408 templates/config_form.html:428
+#: templates/config_form.html:252 templates/config_form.html:392
+#: templates/config_form.html:411 templates/config_form.html:431
 #: templates/index.html:239
 msgid "Name:"
 msgstr "Nombre:"
@@ -2723,27 +3329,27 @@ msgstr "Escriba para buscar..."
 msgid "Active:"
 msgstr "Activa:"
 
-#: templates/config_form.html:282 templates/config_form.html:349
+#: templates/config_form.html:282 templates/config_form.html:350
 msgid "Horizon Mask:"
 msgstr "Máscara de horizonte:"
 
-#: templates/config_form.html:286 templates/config_form.html:351
+#: templates/config_form.html:286 templates/config_form.html:354
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "Opcional. p. ej., [[0, 35], [90, 15]]"
 
-#: templates/config_form.html:288 templates/config_form.html:353
+#: templates/config_form.html:288 templates/config_form.html:356
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "Importar un archivo de horizonte .hzn de Stellarium"
 
-#: templates/config_form.html:288 templates/config_form.html:353
+#: templates/config_form.html:288 templates/config_form.html:356
 msgid "Import .hzn"
 msgstr "Importar .hzn"
 
-#: templates/config_form.html:298 templates/config_form.html:362
+#: templates/config_form.html:298 templates/config_form.html:365
 msgid "Comments:"
 msgstr "Comentarios:"
 
-#: templates/config_form.html:299 templates/config_form.html:363
+#: templates/config_form.html:299 templates/config_form.html:366
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "Notas sobre calidad del cielo, obstrucciones, etc."
 
@@ -2767,19 +3373,19 @@ msgstr "Ver en Google Maps"
 msgid "Open Map"
 msgstr "Abrir mapa"
 
-#: templates/config_form.html:370
+#: templates/config_form.html:373
 msgid "Update Locations"
 msgstr "Actualizar ubicaciones"
 
-#: templates/config_form.html:381
+#: templates/config_form.html:384
 msgid "1. Define Your Components"
 msgstr "1. Defina sus componentes"
 
-#: templates/config_form.html:382
+#: templates/config_form.html:385
 msgid "Help with Rigs"
 msgstr "Ayuda con Rigs"
 
-#: templates/config_form.html:384
+#: templates/config_form.html:387
 msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to load "
 "its details into the form, make your changes, and click the \"Update\" "
@@ -2789,80 +3395,80 @@ msgstr ""
 "\"Editar\" para cargar sus detalles en el formulario, realice sus cambios y "
 "haga clic en el botón \"Actualizar\"."
 
-#: templates/config_form.html:385
+#: templates/config_form.html:388
 msgid "Telescopes"
 msgstr "Telescopios"
 
-#: templates/config_form.html:389
+#: templates/config_form.html:392
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "p. ej., Celestron EdgeHD 11"
 
-#: templates/config_form.html:390
+#: templates/config_form.html:393
 msgid "Aperture (mm):"
 msgstr "Apertura (mm):"
 
-#: templates/config_form.html:391
+#: templates/config_form.html:394
 msgid "Focal Length (mm):"
 msgstr "Longitud focal (mm):"
 
-#: templates/config_form.html:395 templates/config_form.html:415
-#: templates/config_form.html:433
+#: templates/config_form.html:398 templates/config_form.html:418
+#: templates/config_form.html:436
 msgid "Share this component"
 msgstr "Compartir este componente"
 
-#: templates/config_form.html:398
+#: templates/config_form.html:401
 msgid "Add Telescope"
 msgstr "Añadir telescopio"
 
-#: templates/config_form.html:404
+#: templates/config_form.html:407
 msgid "Cameras"
 msgstr "Cámaras"
 
-#: templates/config_form.html:408
+#: templates/config_form.html:411
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "p. ej., ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:409
+#: templates/config_form.html:412
 msgid "Sensor Width (mm):"
 msgstr "Ancho del sensor (mm):"
 
-#: templates/config_form.html:410
+#: templates/config_form.html:413
 msgid "Sensor Height (mm):"
 msgstr "Altura del sensor (mm):"
 
-#: templates/config_form.html:411
+#: templates/config_form.html:414
 msgid "Pixel Size (μm):"
 msgstr "Tamaño de píxel (μm):"
 
-#: templates/config_form.html:418
+#: templates/config_form.html:421
 msgid "Add Camera"
 msgstr "Añadir cámara"
 
-#: templates/config_form.html:424
+#: templates/config_form.html:427
 msgid "Reducers / Extenders"
 msgstr "Reductores / Extensores"
 
-#: templates/config_form.html:428
+#: templates/config_form.html:431
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "p. ej., Celestron 0.7x Reductor"
 
-#: templates/config_form.html:429
+#: templates/config_form.html:432
 msgid "Factor:"
 msgstr "Factor:"
 
-#: templates/config_form.html:429
+#: templates/config_form.html:432
 msgid "e.g., 0.7 for reducer"
 msgstr "p. ej., 0.7 para reductor"
 
-#: templates/config_form.html:436
+#: templates/config_form.html:439
 msgid "Add Reducer/Extender"
 msgstr "Añadir reductor/extensor"
 
-#: templates/config_form.html:443
+#: templates/config_form.html:446
 msgid "2. Configure Your Rigs"
 msgstr "2. Configure sus Rigs"
 
-#: templates/config_form.html:444
+#: templates/config_form.html:447
 msgid ""
 "Combine your components into a complete imaging rig. To edit, click \"Edit\""
 " to load the rig into the form below."
@@ -2870,140 +3476,140 @@ msgstr ""
 "Combine sus componentes en un rig de imágenes completo. Para editar, haga "
 "clic en \"Editar\" para cargar el rig en el formulario a continuación."
 
-#: templates/config_form.html:447
+#: templates/config_form.html:450
 msgid "Rig Name:"
 msgstr "Nombre del rig:"
 
-#: templates/config_form.html:447
+#: templates/config_form.html:450
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "p. ej., Rig C11 Cielo Profundo"
 
-#: templates/config_form.html:451
+#: templates/config_form.html:454
 msgid "-- Select a Telescope --"
 msgstr "-- Seleccionar un telescopio --"
 
-#: templates/config_form.html:457
+#: templates/config_form.html:460
 msgid "-- Select a Camera --"
 msgstr "-- Seleccionar una cámara --"
 
-#: templates/config_form.html:461
+#: templates/config_form.html:464
 msgid "Reducer / Extender (Optional):"
 msgstr "Reductor / Extensor (opcional):"
 
-#: templates/config_form.html:463 templates/config_form.html:479
-#: templates/config_form.html:485
+#: templates/config_form.html:466 templates/config_form.html:482
+#: templates/config_form.html:488
 msgid "-- None --"
 msgstr "-- Ninguno --"
 
-#: templates/config_form.html:468
+#: templates/config_form.html:471
 msgid "Guide Optics"
 msgstr "Ópticas de guiado"
 
-#: templates/config_form.html:468
+#: templates/config_form.html:471
 msgid "Optional — for dither recommendations"
 msgstr "Opcional — para recomendaciones de dither"
 
-#: templates/config_form.html:473
+#: templates/config_form.html:476
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
 msgstr "Guiador fuera de eje (OAG) — usa la longitud focal del tubo principal"
 
-#: templates/config_form.html:477
+#: templates/config_form.html:480
 msgid "Guide Scope:"
 msgstr "Tubo de guiado:"
 
-#: templates/config_form.html:483
+#: templates/config_form.html:486
 msgid "Guide Camera:"
 msgstr "Cámara de guiado:"
 
-#: templates/config_form.html:489
+#: templates/config_form.html:492
 msgid "Create Rig"
 msgstr "Crear rig"
 
-#: templates/config_form.html:493
+#: templates/config_form.html:496
 msgid "Select Your Typical Seeing:"
 msgstr "Seleccione su calidad de imagen típica:"
 
-#: templates/config_form.html:495
+#: templates/config_form.html:498
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- Seleccionar calidad de imagen para evaluar rigs --"
 
-#: templates/config_form.html:496
+#: templates/config_form.html:499
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "Calidad de imagen excelente (1,0\" - 2,0\" FWHM)"
 
-#: templates/config_form.html:497
+#: templates/config_form.html:500
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "Calidad de imagen buena (2,0\" - 4,0\" FWHM)"
 
-#: templates/config_form.html:498
+#: templates/config_form.html:501
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "Calidad de imagen pobre (> 4,0\" FWHM)"
 
-#: templates/config_form.html:502
+#: templates/config_form.html:505
 msgid "Sort rigs by:"
 msgstr "Ordenar rigs por:"
 
-#: templates/config_form.html:504
+#: templates/config_form.html:507
 msgid "Name (A→Z)"
 msgstr "Nombre (A→Z)"
 
-#: templates/config_form.html:505
+#: templates/config_form.html:508
 msgid "Name (Z→A)"
 msgstr "Nombre (Z→A)"
 
-#: templates/config_form.html:506
+#: templates/config_form.html:509
 msgid "Effective Focal Length (low→high)"
 msgstr "Longitud focal efectiva (baja→alta)"
 
-#: templates/config_form.html:507
+#: templates/config_form.html:510
 msgid "Effective Focal Length (high→low)"
 msgstr "Longitud focal efectiva (alta→baja)"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:511
 msgid "f/ratio (low→high)"
 msgstr "relación f (baja→alta)"
 
-#: templates/config_form.html:509
+#: templates/config_form.html:512
 msgid "f/ratio (high→low)"
 msgstr "relación f (alta→baja)"
 
-#: templates/config_form.html:510
+#: templates/config_form.html:513
 msgid "Image Scale (low→high)"
 msgstr "Escala de imagen (baja→alta)"
 
-#: templates/config_form.html:511
+#: templates/config_form.html:514
 msgid "Image Scale (high→low)"
 msgstr "Escala de imagen (alta→baja)"
 
-#: templates/config_form.html:512
+#: templates/config_form.html:515
 msgid "FOV Width (low→high)"
 msgstr "Ancho de campo de visión (bajo→alto)"
 
-#: templates/config_form.html:513
+#: templates/config_form.html:516
 msgid "FOV Width (high→low)"
 msgstr "Ancho de campo de visión (alto→bajo)"
 
-#: templates/config_form.html:514
+#: templates/config_form.html:517
 msgid "Recently Added (newest first)"
 msgstr "Añadidos recientemente (más recientes primero)"
 
-#: templates/config_form.html:515
+#: templates/config_form.html:518
 msgid "Recently Added (oldest first)"
 msgstr "Añadidos recientemente (más antiguos primero)"
 
-#: templates/config_form.html:518
+#: templates/config_form.html:521
 msgid "Existing Rigs"
 msgstr "Rigs existentes"
 
-#: templates/config_form.html:526
+#: templates/config_form.html:529
 msgid "Shared Items from Other Users"
 msgstr "Elementos compartidos de otros usuarios"
 
-#: templates/config_form.html:527
+#: templates/config_form.html:530
 msgid "Help with Shared Items"
 msgstr "Ayuda con elementos compartidos"
 
-#: templates/config_form.html:529
+#: templates/config_form.html:532
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
@@ -3012,103 +3618,90 @@ msgstr ""
 " el sistema. Haga clic en \"Importar\" para añadir una copia a su propia "
 "configuración."
 
-#: templates/config_form.html:531
+#: templates/config_form.html:534
 msgid "Shared Objects"
 msgstr "Objetos compartidos"
 
-#: templates/config_form.html:536
+#: templates/config_form.html:539
 msgid "Img"
 msgstr "Img"
 
-#: templates/config_form.html:538 templates/index.html:116
+#: templates/config_form.html:541 templates/index.html:116
 #: templates/index.html:164 templates/index.html:193
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "Nombre común"
 
-#: templates/config_form.html:541 templates/config_form.html:575
-#: templates/config_form.html:604
+#: templates/config_form.html:544 templates/config_form.html:578
+#: templates/config_form.html:607
 msgid "Shared By"
 msgstr "Compartido por"
 
-#: templates/config_form.html:547
+#: templates/config_form.html:550
 msgid "Filter ID..."
 msgstr "Filtrar ID..."
 
-#: templates/config_form.html:548 templates/config_form.html:579
-#: templates/config_form.html:608
+#: templates/config_form.html:551 templates/config_form.html:582
+#: templates/config_form.html:611
 msgid "Filter name..."
 msgstr "Filtrar nombre..."
 
-#: templates/config_form.html:549
+#: templates/config_form.html:552
 msgid "Filter type..."
 msgstr "Filtrar tipo..."
 
-#: templates/config_form.html:550
+#: templates/config_form.html:553
 msgid "Filter con..."
 msgstr "Filtrar constelación..."
 
-#: templates/config_form.html:551 templates/config_form.html:581
-#: templates/config_form.html:617
+#: templates/config_form.html:554 templates/config_form.html:584
+#: templates/config_form.html:620
 msgid "Filter user..."
 msgstr "Filtrar usuario..."
 
-#: templates/config_form.html:555 templates/config_form.html:584
-#: templates/config_form.html:620
+#: templates/config_form.html:558 templates/config_form.html:587
+#: templates/config_form.html:623
 msgid "All"
 msgstr "Todos"
 
-#: templates/config_form.html:556 templates/config_form.html:585
-#: templates/config_form.html:621
+#: templates/config_form.html:559 templates/config_form.html:588
+#: templates/config_form.html:624
 msgid "Not Imported"
 msgstr "No importados"
 
-#: templates/config_form.html:563 templates/config_form.html:592
-#: templates/config_form.html:628 templates/graph_view.html:132
-msgid "Loading..."
-msgstr "Cargando..."
-
-#: templates/config_form.html:568
+#: templates/config_form.html:571
 msgid "Shared Views"
 msgstr "Vistas compartidas"
 
-#: templates/config_form.html:573
+#: templates/config_form.html:576
 msgid "View Name"
 msgstr "Nombre de vista"
 
-#: templates/config_form.html:580
+#: templates/config_form.html:583
 msgid "Filter desc..."
 msgstr "Filtrar descripción..."
 
-#: templates/config_form.html:597
+#: templates/config_form.html:600
 msgid "Shared Components"
 msgstr "Componentes compartidos"
 
-#: templates/config_form.html:602
+#: templates/config_form.html:605
 msgid "Component Name"
 msgstr "Nombre del componente"
 
-#: templates/config_form.html:611
+#: templates/config_form.html:614
 msgid "All Types"
 msgstr "Todos los tipos"
 
-#: templates/config_form.html:612 templates/project_report.html:1139
-msgid "Telescope"
-msgstr "Telescopio"
-
-#: templates/config_form.html:613 templates/project_report.html:1143
-msgid "Camera"
-msgstr "Cámara"
-
-#: templates/config_form.html:614
+#: templates/config_form.html:617
 msgid "Reducer/Extender"
 msgstr "Reductor/Extensor"
 
-#: templates/config_form.html:646
+#: templates/config_form.html:649
 msgid "Fetching Details..."
 msgstr "Obteniendo detalles..."
 
-#: templates/config_form.html:650
+#: templates/config_form.html:653
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "Espere por favor, comunicándose con SIMBAD..."
 
@@ -3375,6 +3968,10 @@ msgstr "Encuesta"
 msgid "Blend with"
 msgstr "Mezclar con"
 
+#: templates/graph_view.html:363
+msgid "Blend opacity"
+msgstr "Mezclar con"
+
 #: templates/graph_view.html:367
 msgid "Brightness"
 msgstr "Brillo"
@@ -3438,10 +4035,6 @@ msgstr "Rastreador de Altitud de OCP"
 #: templates/index.html:23
 msgid "Dashboard"
 msgstr "Panel de control"
-
-#: templates/index.html:23
-msgid "Simulated"
-msgstr "Simulado"
 
 #: templates/index.html:39 templates/index.html:122
 msgid "Local Time"
@@ -4104,10 +4697,6 @@ msgstr "Buscando %%(name)s..."
 msgid "Error connecting to server."
 msgstr "Error al conectar con el servidor."
 
-#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:78
-msgid "Saving..."
-msgstr "Guardando..."
-
 #: templates/mobile_add_object.html:60
 msgid "Object saved successfully!"
 msgstr "¡Objeto guardado exitosamente!"
@@ -4397,7 +4986,6 @@ msgid "{editor}: Editing failed: {e}"
 msgstr "{editor}: Error al editar: {e}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1124
-#, fuzzy
 msgid "Aborted!"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4411,7 +4999,6 @@ msgid "(Deprecated) {text}"
 msgstr "(Obsoleto) {text}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1396
-#, fuzzy
 msgid "Options"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4431,7 +5018,6 @@ msgid "DeprecationWarning: The command {name!r} is deprecated."
 msgstr "Advertencia de obsolescencia: El comando {name!r} está obsoleto."
 
 #: venv/lib/python3.13/site-packages/click/core.py:1645
-#, fuzzy
 msgid "Commands"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4443,7 +5029,7 @@ msgid "Missing command."
 msgstr "Comando faltante."
 
 #: venv/lib/python3.13/site-packages/click/core.py:1755
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "No such command {name!r}."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4476,7 +5062,6 @@ msgid "default: {default}"
 msgstr "predeterminado: {default}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:2841
-#, fuzzy
 msgid "required"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4508,12 +5093,9 @@ msgid "Try '{command} {option}' for help."
 msgstr "Prueba «{command} {option}» para obtener ayuda."
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Invalid value: {message}"
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"Estructura de archivo de diario no válida: %(message)s\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+msgstr "Valor no válido: {message}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:131
 #, python-brace-format
@@ -4525,7 +5107,6 @@ msgid "Missing argument"
 msgstr "Argumento faltante"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:189
-#, fuzzy
 msgid "Missing option"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4533,7 +5114,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:191
-#, fuzzy
 msgid "Missing parameter"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4551,12 +5131,9 @@ msgid "Missing parameter: {param_name}"
 msgstr "Parámetro faltante: {param_name}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "No such option: {name}"
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"No se ha añadido ninguna descripción.\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+msgstr "No existe tal opción: {name}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:232
 #, python-brace-format
@@ -4566,7 +5143,6 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:270
-#, fuzzy
 msgid "unknown error"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4608,7 +5184,6 @@ msgstr ""
 "shell."
 
 #: venv/lib/python3.13/site-packages/click/termui.py:158
-#, fuzzy
 msgid "Repeat for confirmation"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4629,7 +5204,6 @@ msgid "Error: The two entered values do not match."
 msgstr "Error: Los dos valores introducidos no coinciden."
 
 #: venv/lib/python3.13/site-packages/click/termui.py:243
-#, fuzzy
 msgid "Error: invalid input"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4682,7 +5256,6 @@ msgid "{value!r} is not a valid UUID."
 msgstr "{value!r} no es un UUID válido."
 
 #: venv/lib/python3.13/site-packages/click/types.py:826
-#, fuzzy
 msgid "file"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4690,7 +5263,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/types.py:828
-#, fuzzy
 msgid "directory"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4698,7 +5270,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/types.py:830
-#, fuzzy
 msgid "path"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4758,7 +5329,7 @@ msgid "File does not have an approved extension."
 msgstr "El archivo no tiene una extensión aprobada."
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid field name '%s'."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4830,7 +5401,6 @@ msgid "Invalid Mac address."
 msgstr "Dirección MAC no válida."
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-#, fuzzy
 msgid "Invalid URL."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4838,7 +5408,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-#, fuzzy
 msgid "Invalid UUID."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4856,7 +5425,6 @@ msgid "Invalid value, can't be any of: %(values)s."
 msgstr "Valor no válido, no puede ser ninguno de los siguientes: %(values)s."
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-#, fuzzy
 msgid "This field cannot be edited."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4868,7 +5436,6 @@ msgid "This field is disabled and cannot have a value."
 msgstr "Este campo está desactivado y no puede tener ningún valor."
 
 #: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-#, fuzzy
 msgid "Invalid CSRF Token."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4918,7 +5485,6 @@ msgid "Not a valid datetime value."
 msgstr "Valor de fecha y hora no válido."
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-#, fuzzy
 msgid "Not a valid date value."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
