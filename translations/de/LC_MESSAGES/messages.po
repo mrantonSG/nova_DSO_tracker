@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 01:16+0800\n"
-"PO-Revision-Date: 2026-03-05 22:48+0800\n"
+"PO-Revision-Date: 2026-03-06 11:04+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -17,6 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
+"X-Generator: Poedit 3.8\n"
 
 #: nova/__init__.py:3880
 msgid "No file uploaded"
@@ -137,7 +138,7 @@ msgstr "Fehler beim Löschen des Rigs: %(error)s"
 
 #: nova/__init__.py:6440
 msgid "User session error, please log in again."
-msgstr "Fehler bei der Benutzersitzung, bitte melden Sie sich erneut an."
+msgstr "Fehler bei der Benutzersession bitte melden Sie sich erneut an."
 
 #: nova/__init__.py:6480 nova/__init__.py:6718
 msgid "Invalid date format."
@@ -150,7 +151,7 @@ msgstr "Neuer Journaleintrag erfolgreich hinzugefügt!"
 #: nova/__init__.py:6695
 msgid "To add a new session, please select an object first."
 msgstr ""
-"Um eine neue Sitzung hinzuzufügen, wählen Sie bitte zuerst ein Objekt aus."
+"Um eine neue Sequenz hinzuzufügen, wählen Sie bitte zuerst ein Objekt aus."
 
 #: nova/__init__.py:6709
 msgid "Journal entry not found or you do not have permission to edit it."
@@ -164,7 +165,7 @@ msgstr "Journaleintrag erfolgreich aktualisiert!"
 
 #: nova/__init__.py:6946
 msgid "Cannot edit session: associated object name is missing."
-msgstr "Sitzung kann nicht bearbeitet werden: Zugehöriger Objektname fehlt."
+msgstr "Sequenz kann nicht bearbeitet werden: Zugehöriger Objektname fehlt."
 
 #: nova/__init__.py:6971
 msgid "Project name is required."
@@ -187,16 +188,16 @@ msgstr "Fehler beim Erstellen des Projekts: %(error)s"
 
 #: nova/__init__.py:7034
 msgid "Session to duplicate not found."
-msgstr "Sitzung zum Duplizieren nicht gefunden."
+msgstr "Sequenz zum Duplizieren nicht gefunden."
 
 #: nova/__init__.py:7059
 msgid "Session duplicated successfully."
-msgstr "Sitzung erfolgreich dupliziert."
+msgstr "Sequenz erfolgreich dupliziert."
 
 #: nova/__init__.py:7070
 #, python-format
 msgid "Error duplicating session: %(error)s"
-msgstr "Fehler beim Duplizieren der Sitzung: %(error)s"
+msgstr "Fehler beim Duplizieren der Sequenz: %(error)s"
 
 #: nova/__init__.py:7091
 msgid "Journal entry deleted successfully."
@@ -222,7 +223,7 @@ msgstr "Filter nicht gefunden"
 
 #: nova/__init__.py:7182 nova/__init__.py:13898
 msgid "Session not found."
-msgstr "Sitzung nicht gefunden."
+msgstr "Sequenz nicht gefunden."
 
 #: nova/__init__.py:7372
 msgid "Logged out successfully!"
@@ -266,8 +267,7 @@ msgstr ""
 "deaktiviert."
 
 #: nova/__init__.py:7531
-msgid ""
-"SSO Error: The login link has expired. Please try again from WordPress."
+msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "SSO-Fehler: Der Anmeldelink ist abgelaufen. Bitte versuchen Sie es erneut "
 "über WordPress."
@@ -310,8 +310,7 @@ msgstr ""
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
-"Import fehlgeschlagen: Ungültiges YAML-Format in der Journal-Datei. "
-"%(error)s"
+"Import fehlgeschlagen: Ungültiges YAML-Format in der Journal-Datei. %(error)s"
 
 #: nova/__init__.py:7973 nova/__init__.py:8104
 #, python-format
@@ -337,8 +336,7 @@ msgstr ""
 "enthalten."
 
 #: nova/__init__.py:8028
-msgid ""
-"Cannot import: Configuration must contain at least one active location."
+msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "Importieren nicht möglich: Die Konfiguration muss mindestens einen aktiven "
 "Standort enthalten."
@@ -346,8 +344,7 @@ msgstr ""
 #: nova/__init__.py:8059
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
-"Konfiguration erfolgreich importiert! (Vorherige Konfiguration wurde "
-"ersetzt)"
+"Konfiguration erfolgreich importiert! (Vorherige Konfiguration wurde ersetzt)"
 
 #: nova/__init__.py:8101
 #, python-format
@@ -386,8 +383,8 @@ msgstr "Fehlende Objektdetails abgerufen und gespeichert."
 #: nova/__init__.py:8849
 msgid "No missing data found or no updates needed."
 msgstr ""
-"Es wurden keine fehlenden Daten gefunden oder es sind keine Aktualisierungen"
-" erforderlich."
+"Es wurden keine fehlenden Daten gefunden oder es sind keine Aktualisierungen "
+"erforderlich."
 
 #: nova/__init__.py:8853
 #, python-format
@@ -418,8 +415,8 @@ msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
-"Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens einen"
-" Standort konfiguriert haben."
+"Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens einen "
+"Standort konfiguriert haben."
 
 #: nova/__init__.py:10316
 msgid ""
@@ -459,8 +456,8 @@ msgstr "Benutzer '%(username)s' nicht gefunden."
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
-"Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, Standard"
-" wird verwendet."
+"Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, Standard "
+"wird verwendet."
 
 #: nova/__init__.py:10690
 msgid "Error: No valid location configured or selected for this user."
@@ -481,8 +478,7 @@ msgstr ""
 #: nova/__init__.py:11138
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
-msgstr ""
-"Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
+msgstr "Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
 
 #: nova/__init__.py:11465 nova/__init__.py:13906
 msgid "Project not found."
@@ -492,7 +488,7 @@ msgstr "Projekt nicht gefunden."
 #, python-format
 msgid "Project '%(project_name)s' deleted. Sessions are now standalone."
 msgstr ""
-"Projekt „%(project_name)s“ gelöscht. Die Sitzungen sind nun eigenständig."
+"Projekt „%(project_name)s“ gelöscht. Die Sequenzen sind nun eigenständig."
 
 #: nova/__init__.py:11488
 #, python-format
@@ -553,8 +549,7 @@ msgstr "Fehler beim Importieren der Rigs-Datei: %(error)s"
 
 #: nova/__init__.py:11948
 msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr ""
-"Ungültiger Dateityp. Bitte laden Sie eine .yaml- oder .yml-Datei hoch."
+msgstr "Ungültiger Dateityp. Bitte laden Sie eine .yaml- oder .yml-Datei hoch."
 
 #: nova/__init__.py:12900
 msgid "Not authorized to export another user's data."
@@ -690,11 +685,11 @@ msgstr "Sternbild"
 msgid "Source: Wiki"
 msgstr "Quelle: Wiki"
 
-#: templates/_inspiration_section.html:504
-#: templates/_journal_section.html:1908 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:367
-#: templates/base.html:387 templates/base.html:395 templates/base.html:433
-#: templates/config_form.html:643 templates/graph_view.html:276
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
+#: templates/_objects_section.html:427 templates/_objects_section.html:442
+#: templates/base.html:367 templates/base.html:387 templates/base.html:395
+#: templates/base.html:433 templates/config_form.html:643
+#: templates/graph_view.html:276
 msgid "Close"
 msgstr "Schließen"
 
@@ -752,7 +747,7 @@ msgstr "Sichtbarkeit:"
 #: templates/_inspiration_section.html:529
 msgid "We only show objects observable during tonight's session."
 msgstr ""
-"Wir zeigen nur Objekte, die während der heutigen Sitzung beobachtet werden "
+"Wir zeigen nur Objekte, die während der heutigen Sequenz beobachtet werden "
 "können."
 
 #: templates/_inspiration_section.html:532
@@ -835,28 +830,42 @@ msgstr "Datenbank leer"
 msgid "No objects found in your configuration."
 msgstr "Keine Objekte in Ihrer Konfiguration gefunden."
 
-#: templates/_inspiration_section.html:707
+#: templates/_inspiration_section.html:707 templates/base.html:238
+#, fuzzy
 msgid "Add Your Own Inspiration!"
-msgstr "Eigene Inspiration hinzufügen"
+msgstr ""
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Eigene Inspiration hinzufügen\n"
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Fügen Sie Ihre eigene Inspiration hinzu!"
 
-#: templates/_inspiration_section.html:708
+#: templates/_inspiration_section.html:708 templates/base.html:239
+#, fuzzy
 msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "Siehe Bilder der automatischen Umfrage"
+msgstr ""
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Siehe Bilder der automatischen Umfrage\n"
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Sie sehen derzeit automatisierte Umfragebilder (DSS2)."
 
-#: templates/_inspiration_section.html:709
+#: templates/_inspiration_section.html:709 templates/base.html:240
+#, fuzzy
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr ""
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
 "Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder Ihre "
-"Lieblingsreferenzbilder ausstellen können?"
+"Lieblingsreferenzbilder ausstellen können?\n"
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder "
+"Lieblingsreferenzbilder anzeigen können?"
 
 #: templates/_inspiration_section.html:710
 #, python-format
 msgid ""
-"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
-" \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-"targets."
+"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add "
+"\"Inspiration Content\" (Image URLs, Credits, Descriptions) to your targets."
 msgstr ""
 "Gehen Sie zu %(strong_start)sKonfiguration > Objekte "
 "verwalten%(strong_end)s, um \"Inspirationsinhalt\" (Bild-URLs, Credits, "
@@ -864,7 +873,7 @@ msgstr ""
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
-msgstr "Sitzungsverlauf"
+msgstr "Sequenzverlauf"
 
 #: templates/_journal_section.html:1090
 msgid "Switch Object"
@@ -876,7 +885,7 @@ msgstr "Neues Projekt hinzufügen"
 
 #: templates/_journal_section.html:1093 templates/base.html:182
 msgid "Add New Session"
-msgstr "Neue Sitzung hinzufügen"
+msgstr "Neue Sequenz hinzufügen"
 
 #: templates/_journal_section.html:1098
 msgid "Date & Location"
@@ -910,7 +919,7 @@ msgstr "Gesamt:"
 #: templates/_journal_section.html:1123 templates/_project_subtab.html:209
 #: templates/mobile_up_now.html:128
 msgid "min"
-msgstr "Ich habe"
+msgstr "min"
 
 #: templates/_journal_section.html:1131
 msgid "Loading history..."
@@ -918,15 +927,15 @@ msgstr "Lade Verlauf..."
 
 #: templates/_journal_section.html:1151
 msgid "Details for Session:"
-msgstr "Details zur Sitzung:"
+msgstr "Details zur Sequenz:"
 
 #: templates/_journal_section.html:1153
 msgid "Edit This Session"
-msgstr "Diese Sitzung bearbeiten"
+msgstr "Diese Sequenz bearbeiten"
 
 #: templates/_journal_section.html:1155
 msgid "Create a copy of this session"
-msgstr "Erstellen Sie eine Kopie dieser Sitzung."
+msgstr "Erstellen Sie eine Kopie dieser Sequenz."
 
 #: templates/_journal_section.html:1155
 msgid "Duplicate"
@@ -934,11 +943,11 @@ msgstr "Duplikat"
 
 #: templates/_journal_section.html:1157
 msgid "Are you sure you want to delete this session permanently?"
-msgstr "Möchten Sie diese Sitzung wirklich dauerhaft löschen?"
+msgstr "Möchten Sie diese Sequenz wirklich dauerhaft löschen?"
 
 #: templates/_journal_section.html:1158
 msgid "Delete This Session"
-msgstr "Diese Sitzung löschen"
+msgstr "Diese Sequenz löschen"
 
 #: templates/_journal_section.html:1165
 msgid "Summary"
@@ -946,7 +955,7 @@ msgstr "Zusammenfassung"
 
 #: templates/_journal_section.html:1166 templates/journal_report.html:752
 msgid "Equipment & Acquisition"
-msgstr "Ausrüstung & Beschaffung"
+msgstr "Ausrüstung & Aufnahmen"
 
 #: templates/_journal_section.html:1167
 msgid "Calibration & Outcome"
@@ -959,7 +968,7 @@ msgstr "Fenster"
 #: templates/_journal_section.html:1171 templates/journal_report.html:6
 #: templates/journal_report.html:679
 msgid "Session Report"
-msgstr "Sitzungsbericht"
+msgstr "Sequenzbericht"
 
 #: templates/_journal_section.html:1177
 msgid "SEEING (FWHM)"
@@ -1026,11 +1035,11 @@ msgstr "Einrichtungshinweise"
 
 #: templates/_journal_section.html:1214 templates/_journal_section.html:1260
 msgid "Telescope Setup:"
-msgstr "Teleskop-Einrichtung"
+msgstr "Teleskop-Setup:"
 
 #: templates/_journal_section.html:1218
 msgid "Session Image:"
-msgstr "Sitzungsbild"
+msgstr "Sequenzbild"
 
 #: templates/_journal_section.html:1221
 msgid "Click to view full size"
@@ -1040,7 +1049,7 @@ msgstr "Klicken, um die volle Größe anzuzeigen"
 #: templates/journal_report.html:703 templates/project_report.html:1075
 #: templates/project_report.html:1079
 msgid "Session Image"
-msgstr "Sitzungsbild"
+msgstr "Sequenzbild"
 
 #: templates/_journal_section.html:1231 templates/journal_report.html:718
 msgid "Statistics & Conditions"
@@ -1048,7 +1057,7 @@ msgstr "Statistiken & Bedingungen"
 
 #: templates/_journal_section.html:1233
 msgid "Seeing (FWHM):"
-msgstr "Luftunruhe (FWHM):"
+msgstr "Seeing (FWHM):"
 
 #: templates/_journal_section.html:1234
 msgid "Guiding RMS:"
@@ -1061,7 +1070,7 @@ msgstr "SQM:"
 #: templates/_journal_section.html:1236 templates/_journal_section.html:1721
 #: templates/journal_form.html:63
 msgid "Transparency Scale:"
-msgstr "Transparenzskala:"
+msgstr "Transparenz:"
 
 #: templates/_journal_section.html:1237
 msgid "Moon Illum/Sep:"
@@ -1074,7 +1083,7 @@ msgstr "Wetterhinweise:"
 
 #: templates/_journal_section.html:1243
 msgid "Equipment & Acquisition Details"
-msgstr "Ausrüstung und Details zur Anschaffung"
+msgstr "Ausrüstung und Details zu Aufnahmen"
 
 #: templates/_journal_section.html:1249 templates/journal_report.html:762
 msgid "Reducer/Ext.:"
@@ -1094,7 +1103,7 @@ msgstr "Führungsausrüstung:"
 
 #: templates/_journal_section.html:1264
 msgid "Acquisition Sw:"
-msgstr "Erwerb SW:"
+msgstr "Steuersoftware:"
 
 #: templates/_journal_section.html:1265 templates/journal_form.html:119
 msgid "Dither Settings:"
@@ -1107,7 +1116,7 @@ msgstr "Binning:"
 
 #: templates/_journal_section.html:1267 templates/journal_report.html:771
 msgid "Gain / Offset:"
-msgstr "Verstärkung/Offset:"
+msgstr "Gain / Offset:"
 
 #: templates/_journal_section.html:1268
 msgid "Camera Temp (Set/Avg):"
@@ -1115,11 +1124,11 @@ msgstr "Temp (Einstellung/Durchschnitt):"
 
 #: templates/_journal_section.html:1270
 msgid "Sub Exposure:"
-msgstr "Exposition"
+msgstr "Belichtungszeit:"
 
 #: templates/_journal_section.html:1271
 msgid "# Light Subs:"
-msgstr "Anzahl der Licht-Subs:"
+msgstr "Anzahl der Aufnahmen:"
 
 #: templates/_journal_section.html:1291
 msgid "Monochrome Exposures"
@@ -1142,7 +1151,7 @@ msgstr "Darks:"
 #: templates/_journal_section.html:1320 templates/_journal_section.html:1828
 #: templates/journal_form.html:187
 msgid "Flats:"
-msgstr "Wohnungen:"
+msgstr "Flats:"
 
 #: templates/_journal_section.html:1321
 msgid "Bias/DarkFlats:"
@@ -1155,7 +1164,7 @@ msgstr "Ergebnisse und Überlegungen"
 
 #: templates/_journal_section.html:1328
 msgid "Session Rating:"
-msgstr "Sitzungsbewertung:"
+msgstr "Sequenzbewertung:"
 
 #: templates/_journal_section.html:1329 templates/project_report.html:893
 msgid "Notes:"
@@ -1349,7 +1358,7 @@ msgstr "Projekt bearbeiten"
 msgid ""
 "Are you sure you want to delete this project? Linked sessions will become "
 "standalone."
-msgstr "Möchten Sie diese Sitzung wirklich dauerhaft löschen?"
+msgstr "Möchten Sie diese Sequenz wirklich dauerhaft löschen?"
 
 #: templates/_journal_section.html:1518
 msgid "Delete Project"
@@ -1467,15 +1476,15 @@ msgstr "Verarbeitungshinweise"
 
 #: templates/_journal_section.html:1663
 msgid "No session selected"
-msgstr "Sitzung beendet"
+msgstr "Keine Sequenz ausgewählt"
 
 #: templates/_journal_section.html:1665
 msgid ""
 "Select a session or project from the list on the left to view details, or "
 "click 'Add New Session'."
 msgstr ""
-"Wählen Sie eine Sitzung oder ein Projekt aus der Liste auf der linken Seite,"
-" um Details anzuzeigen, oder klicken Sie auf \"Neue Sitzung hinzufügen\"."
+"Wählen Sie eine Sequenz oder ein Projekt aus der Liste auf der linken Seite, "
+"um Details anzuzeigen, oder klicken Sie auf \"Neue Sequenz hinzufügen\"."
 
 #: templates/_journal_section.html:1675
 msgid "Create Project"
@@ -1503,11 +1512,11 @@ msgstr "Verlassen"
 
 #: templates/_journal_section.html:1701
 msgid "Add New Session for"
-msgstr "Neue Sitzung hinzufügen"
+msgstr "Neue Sequenz hinzufügen"
 
 #: templates/_journal_section.html:1705
 msgid "Edit Session"
-msgstr "Diese Sitzung bearbeiten"
+msgstr "Diese Sequenz bearbeiten"
 
 #: templates/_journal_section.html:1707 templates/base.html:185
 msgid "Save Changes"
@@ -1515,7 +1524,7 @@ msgstr "Notizen speichern"
 
 #: templates/_journal_section.html:1714 templates/journal_form.html:27
 msgid "Session Date:"
-msgstr "Sitzungstermin:"
+msgstr "Sequenztermin:"
 
 #: templates/_journal_section.html:1715 templates/journal_form.html:45
 msgid "Location:"
@@ -1531,7 +1540,7 @@ msgstr "Mit Projekt verknüpfen (Optional)"
 
 #: templates/_journal_section.html:1717
 msgid "-- Standalone Session --"
-msgstr "Neue Sitzung hinzufügen"
+msgstr "Neue Sequenz hinzufügen"
 
 #: templates/_journal_section.html:1717
 msgid "-- Create New Project --"
@@ -1592,7 +1601,7 @@ msgstr "Rig-Details:"
 
 #: templates/_journal_section.html:1740 templates/journal_form.html:101
 msgid "Telescope Setup Notes:"
-msgstr "Hinweise zur Einrichtung des Teleskops:"
+msgstr "Hinweise zum Setup des Teleskops:"
 
 #: templates/_journal_section.html:1741
 msgid "e.g., OAG + ASI174MM"
@@ -1604,7 +1613,7 @@ msgstr "Führungs-RMS (Durchschnitt, Bogensekunden):"
 
 #: templates/_journal_section.html:1745 templates/journal_form.html:127
 msgid "Acquisition Details"
-msgstr "Details zur Akquisition"
+msgstr "Details zu Aufnahmen"
 
 #: templates/_journal_section.html:1746 templates/journal_form.html:123
 msgid "Acquisition Software:"
@@ -1636,15 +1645,15 @@ msgstr "Dithering-Notizen (optional):"
 
 #: templates/_journal_section.html:1765
 msgid "Sub Exposure (sec):"
-msgstr "Unterbelichtung (Sekunden):"
+msgstr "Belichtungszeit (Sekunden):"
 
 #: templates/_journal_section.html:1766
 msgid "# Light Subs"
-msgstr "Anzahl der Licht-Subs:"
+msgstr "Anzahl der Aufnahmen:"
 
 #: templates/_journal_section.html:1768 templates/journal_form.html:140
 msgid "Gain:"
-msgstr "Mehr:"
+msgstr "Gain:"
 
 #: templates/_journal_section.html:1768 templates/journal_form.html:144
 msgid "Offset:"
@@ -1708,7 +1717,7 @@ msgstr "Fehler beim Hinzufügen des Filters."
 
 #: templates/_journal_section.html:1827 templates/journal_form.html:184
 msgid "e.g., Library match, Taken post-session"
-msgstr "z. B. Bibliotheksabgleich, nach der Sitzung aufgenommen"
+msgstr "z. B. Bibliotheksabgleich, nach der Sequenz aufgenommen"
 
 #: templates/_journal_section.html:1828 templates/journal_form.html:188
 msgid "e.g., Morning sky, Panel"
@@ -1716,7 +1725,7 @@ msgstr "z. B. Morgenhimmel, Tafel"
 
 #: templates/_journal_section.html:1829 templates/journal_form.html:191
 msgid "Bias / Dark Flats:"
-msgstr "Verzerrung / Dunkle Flächen:"
+msgstr "Bias / Dark Flats:"
 
 #: templates/_journal_section.html:1829 templates/journal_form.html:192
 msgid "e.g., Library match"
@@ -1724,7 +1733,7 @@ msgstr "z. B. Bibliotheksabgleich"
 
 #: templates/_journal_section.html:1831 templates/journal_form.html:198
 msgid "Session Rating (1-5 ★):"
-msgstr "Bewertung der Sitzung (1-5 ★):"
+msgstr "Bewertung der Sequenz (1-5 ★):"
 
 #: templates/_journal_section.html:1833 templates/journal_form.html:205
 msgid "General Notes, Problems, Learnings:"
@@ -1817,7 +1826,7 @@ msgstr "Netzwerkfehler."
 #, python-brace-format
 msgid "Remove \"{label}\"? Historical session data for this filter is kept."
 msgstr ""
-"„{label}“ entfernen? Historische Sitzungsdaten für diesen Filter werden "
+"„{label}“ entfernen? Historische Sequenzdaten für diesen Filter werden "
 "beibehalten."
 
 #: templates/_journal_section.html:1955
@@ -2198,8 +2207,8 @@ msgid ""
 "duplicates."
 msgstr ""
 "Diese Paare befinden sich innerhalb von 2,5 Bogenminuten voneinander. Durch "
-"das Zusammenführen werden alle Journale, Projekte und Framings in das Objekt"
-" „Beibehalten” verschoben und das andere gelöscht. Bitte beachten Sie, dass "
+"das Zusammenführen werden alle Journale, Projekte und Framings in das Objekt "
+"„Beibehalten” verschoben und das andere gelöscht. Bitte beachten Sie, dass "
 "Objekte aus verschiedenen Katalogen leicht unterschiedliche RA/DEC-Werte "
 "aufweisen können und daher nicht als Duplikate betrachtet werden."
 
@@ -2275,7 +2284,7 @@ msgstr "Keine Projektbeschreibung hinzugefügt."
 #: templates/_project_subtab.html:190
 #, python-format
 msgid "Linked Sessions (%(count)s nights)"
-msgstr "Verbundene Sitzungen (%(count)s Nächte)"
+msgstr "Verbundene Sequenzen (%(count)s Nächte)"
 
 #: templates/_project_subtab.html:194
 msgid "Date (UTC)"
@@ -2298,7 +2307,7 @@ msgstr "SQM"
 
 #: templates/_project_subtab.html:199 templates/project_report.html:1107
 msgid "Seeing"
-msgstr "Luftunruhe"
+msgstr "Seeing"
 
 #: templates/_project_subtab.html:200
 msgid "Rig Snapshot"
@@ -2306,7 +2315,7 @@ msgstr "Reiches Momentaufnahme"
 
 #: templates/_project_subtab.html:218
 msgid "No sessions have been linked to this project yet."
-msgstr "Es wurden noch keine Sitzungen mit diesem Projekt verknüpft."
+msgstr "Es wurden noch keine Sequenzen mit diesem Projekt verknüpft."
 
 #: templates/_project_subtab.html:229
 msgid "Editing Project:"
@@ -2746,15 +2755,15 @@ msgstr "Druckansicht vorbereiten..."
 #, python-format
 msgid "Merging Session %(current)d/%(total)d..."
 msgstr ""
-"Zusammenführung von Sitzung %(current)d/%(total)d...%(total)d%(current)d"
+"Zusammenführung von Sequenz %(current)d/%(total)d...%(total)d%(current)d"
 
 #: templates/base.html:183
 msgid "Add Session"
-msgstr "Neue Sitzung hinzufügen"
+msgstr "Sequenz hinzufügen"
 
 #: templates/base.html:184
 msgid "Editing Session"
-msgstr "Diese Sitzung bearbeiten"
+msgstr "Sequenz bearbeiten"
 
 #: templates/base.html:188
 #, python-format
@@ -2918,21 +2927,14 @@ msgstr "Kopiert!"
 msgid "Slightly undersampled"
 msgstr "Benutzername"
 
-#: templates/base.html:238
-msgid "Add Your Own Inspiration!"
-msgstr "Fügen Sie Ihre eigene Inspiration hinzu!"
-
-#: templates/base.html:239
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "Sie sehen derzeit automatisierte Umfragebilder (DSS2)."
-
-#: templates/base.html:240
-msgid "Did you know you can display your own astrophotos or favorite reference images here?"
-msgstr "Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder Lieblingsreferenzbilder anzeigen können?"
-
 #: templates/base.html:241
-msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
-msgstr "Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um „Inspiration-Inhalte" (Bild-URLs, Credits, Beschreibungen) zu Ihren Zielen hinzuzufügen."
+msgid ""
+"Go to Configuration - Manage Objects to add Inspiration Content to your "
+"targets."
+msgstr ""
+"Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um "
+"„Inspiration-Inhalte\" (Bild-URLs, Credits, Beschreibungen) zu Ihren Zielen "
+"hinzuzufügen."
 
 #: templates/base.html:238
 msgid "Add own inspiration"
@@ -3039,9 +3041,9 @@ msgid ""
 "tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr ""
 "Nova DSO Tracker hilft Amateurastronomen bei der Planung von "
-"Beobachtungssitzungen, indem es die Höhe und den Azimut von Deep-Sky-"
-"Objekten berechnet und visualisiert, die Position und Phase des Mondes "
-"verfolgt und optimale Beobachtungsfenster identifiziert."
+"Beobachtungsequenzen, indem es die Höhe und den Azimut von Deep-Sky-Objekten "
+"berechnet und visualisiert, die Position und Phase des Mondes verfolgt und "
+"optimale Beobachtungsfenster identifiziert."
 
 #: templates/base.html:407
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
@@ -3283,16 +3285,15 @@ msgstr "Anonyme Telemetrie:"
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts"
-" of your data entries like objects, rigs, locations, and journals). No "
+"Nova sends a small anonymous heartbeat (app version, system type, and counts "
+"of your data entries like objects, rigs, locations, and journals). No "
 "personal details are ever collected, and you can opt out anytime. Allowing "
 "it really helps me improve Nova."
 msgstr ""
 "Nova sendet einen kleinen anonymen Heartbeat (App-Version, Systemtyp und "
 "Anzahl Ihrer Dateneingaben wie Objekte, Rigs, Standorte und Journale). Es "
 "werden niemals persönliche Daten erfasst, und Sie können sich jederzeit "
-"abmelden. Wenn Sie dies zulassen, hilft mir das wirklich, Nova zu "
-"verbessern."
+"abmelden. Wenn Sie dies zulassen, hilft mir das wirklich, Nova zu verbessern."
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -3478,8 +3479,8 @@ msgstr "2. Konfigurieren Sie Ihre Rigs"
 
 #: templates/config_form.html:447
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\""
-" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click \"Edit\" "
+"to load the rig into the form below."
 msgstr ""
 "Kombinieren Sie Ihre Komponenten zu einem kompletten Bildgebungsgerät. Zum "
 "Bearbeiten klicken Sie auf „Bearbeiten“, um das Gerät in das untenstehende "
@@ -3829,8 +3830,8 @@ msgstr "Externe Quelle"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for this"
-" object yet."
+"No inspiration content (custom image or description) has been added for this "
+"object yet."
 msgstr ""
 "Für dieses Objekt wurden noch keine inspirierenden Inhalte "
 "(benutzerdefinierte Bilder oder Beschreibungen) hinzugefügt."
@@ -3903,11 +3904,11 @@ msgstr "FOV sperren"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected for"
-" your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for "
+"your latitude)"
 msgstr ""
-"Zeigt die ungefähre Position von geostationären Satelliten an (korrigiert um"
-" Ihren Breitengrad)."
+"Zeigt die ungefähre Position von geostationären Satelliten an (korrigiert um "
+"Ihren Breitengrad)."
 
 #: templates/graph_view.html:288
 msgid "Geo Belt"
@@ -4127,7 +4128,7 @@ msgstr "Trend"
 
 #: templates/index.html:120 templates/index.html:121
 msgid "11 PM"
-msgstr "Elf Uhr nachts"
+msgstr "23:00 Uhr"
 
 #: templates/index.html:122 templates/index.html:142
 msgid "Transit"
@@ -4239,7 +4240,7 @@ msgstr "Projekt"
 
 #: templates/index.html:168
 msgid "Telescope Setup"
-msgstr "Teleskop-Einrichtung"
+msgstr "Teleskop-Setup"
 
 #: templates/index.html:169 templates/journal_report.html:722
 #: templates/project_report.html:1097
@@ -4381,11 +4382,11 @@ msgstr "z. B. N.I.N.A., Sequence Generator Pro, Astroberry"
 
 #: templates/journal_form.html:130
 msgid "Sub Exposure (seconds):"
-msgstr "Unterbelichtung (Sekunden):"
+msgstr "Belichtungszeit (Sekunden):"
 
 #: templates/journal_form.html:134
 msgid "Number of Light Subs:"
-msgstr "Anzahl der Licht-Subs:"
+msgstr "Anzahl der Aufnahmen:"
 
 #: templates/journal_form.html:160
 msgid "e.g., 1x1, 2x2"
@@ -4430,7 +4431,7 @@ msgstr "Notizen & Reflexionen"
 
 #: templates/journal_report.html:726
 msgid "Seeing (FWHM)"
-msgstr "Luftunruhe (FWHM)"
+msgstr "Seeing (FWHM)"
 
 #: templates/journal_report.html:732
 msgid "Guiding (RMS)"
@@ -4466,11 +4467,11 @@ msgstr "Maßstab / Sichtfeld:"
 
 #: templates/journal_report.html:787
 msgid "Setup:"
-msgstr "Einrichtung:"
+msgstr "Setup:"
 
 #: templates/journal_report.html:790
 msgid "Acquisition SW:"
-msgstr "Erwerb SW:"
+msgstr "Aufnahme SW:"
 
 #: templates/journal_report.html:794
 msgid "Guiding Equip.:"
@@ -4502,7 +4503,7 @@ msgstr "Untertitel"
 
 #: templates/journal_report.html:829
 msgid "Exposure"
-msgstr "Exposition"
+msgstr "Belichtungszeit"
 
 #: templates/journal_report.html:864
 msgid "Key Events"
@@ -4510,7 +4511,7 @@ msgstr "Wichtige Ereignisse"
 
 #: templates/journal_report.html:870
 msgid "Session Start"
-msgstr "Sitzung starten"
+msgstr "Sequenz starten"
 
 #: templates/journal_report.html:876
 msgid "Meridian Flip Success"
@@ -4522,7 +4523,7 @@ msgstr "Dither-Ausgleichszeitlimit"
 
 #: templates/journal_report.html:891
 msgid "Session Ended"
-msgstr "Sitzung beendet"
+msgstr "Sequenz beendet"
 
 #: templates/journal_report.html:901
 msgid "Log Analysis"
@@ -4577,7 +4578,7 @@ msgstr "Leitungsimpulsverteilung"
 
 #: templates/journal_report.html:1026
 msgid "ASIAIR Session Summary"
-msgstr "ASIAIR-Sitzungszusammenfassung"
+msgstr "ASIAIR-Sequenzzusammenfassung"
 
 #: templates/journal_report.html:1045
 msgid "Plate Solves"
@@ -4888,7 +4889,7 @@ msgstr "Verschiedenes"
 
 #: templates/project_report.html:812
 msgid "Total Sessions"
-msgstr "Gesamtzahl der Sitzungen"
+msgstr "Gesamtzahl der Sequenzen"
 
 #: templates/project_report.html:819
 msgid "Date Range"
@@ -4916,7 +4917,7 @@ msgstr "Verarbeitungs-Workflow"
 
 #: templates/project_report.html:860
 msgid "Session Chronicles"
-msgstr "Sitzungsprotokolle"
+msgstr "Sequenzprotokolle"
 
 #: templates/project_report.html:868
 msgid "Log Data"
@@ -4960,7 +4961,7 @@ msgstr "Autozentrierung"
 
 #: templates/project_report.html:1069
 msgid "Session:"
-msgstr "Sitzung:"
+msgstr "Sequenz:"
 
 #: templates/project_report.html:1070
 msgid "Location not specified"
@@ -4980,7 +4981,7 @@ msgstr "Ausrüstung"
 
 #: templates/project_report.html:1149
 msgid "Gain/Offset"
-msgstr "Verstärkung/Offset"
+msgstr "Gain/Offset"
 
 #: templates/project_report.html:1165
 msgid "Exp"
