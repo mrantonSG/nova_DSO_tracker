@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-06 01:16+0800\n"
+"POT-Creation-Date: 2026-03-06 14:24+0800\n"
 "PO-Revision-Date: 2026-03-06 14:18+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
@@ -17,7 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "Generated-By: Babel 2.18.0\n"
-"X-Generator: Poedit 3.8\n"
 
 #: nova/__init__.py:3880
 msgid "No file uploaded"
@@ -267,7 +266,8 @@ msgstr ""
 "deaktiviert."
 
 #: nova/__init__.py:7531
-msgid "SSO Error: The login link has expired. Please try again from WordPress."
+msgid ""
+"SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "SSO-Fehler: Der Anmeldelink ist abgelaufen. Bitte versuchen Sie es erneut "
 "über WordPress."
@@ -310,7 +310,8 @@ msgstr ""
 #, python-format
 msgid "Import failed: Invalid YAML format in the journal file. %(error)s"
 msgstr ""
-"Import fehlgeschlagen: Ungültiges YAML-Format in der Journal-Datei. %(error)s"
+"Import fehlgeschlagen: Ungültiges YAML-Format in der Journal-Datei. "
+"%(error)s"
 
 #: nova/__init__.py:7973 nova/__init__.py:8104
 #, python-format
@@ -336,7 +337,8 @@ msgstr ""
 "enthalten."
 
 #: nova/__init__.py:8028
-msgid "Cannot import: Configuration must contain at least one active location."
+msgid ""
+"Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "Importieren nicht möglich: Die Konfiguration muss mindestens einen aktiven "
 "Standort enthalten."
@@ -344,7 +346,8 @@ msgstr ""
 #: nova/__init__.py:8059
 msgid "Config imported successfully! (Previous config was replaced)"
 msgstr ""
-"Konfiguration erfolgreich importiert! (Vorherige Konfiguration wurde ersetzt)"
+"Konfiguration erfolgreich importiert! (Vorherige Konfiguration wurde "
+"ersetzt)"
 
 #: nova/__init__.py:8101
 #, python-format
@@ -383,8 +386,8 @@ msgstr "Fehlende Objektdetails abgerufen und gespeichert."
 #: nova/__init__.py:8849
 msgid "No missing data found or no updates needed."
 msgstr ""
-"Es wurden keine fehlenden Daten gefunden oder es sind keine Aktualisierungen "
-"erforderlich."
+"Es wurden keine fehlenden Daten gefunden oder es sind keine Aktualisierungen"
+" erforderlich."
 
 #: nova/__init__.py:8853
 #, python-format
@@ -415,8 +418,8 @@ msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
-"Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens einen "
-"Standort konfiguriert haben."
+"Ihr letzter Standort kann nicht gelöscht werden. Sie müssen mindestens einen"
+" Standort konfiguriert haben."
 
 #: nova/__init__.py:10316
 msgid ""
@@ -456,8 +459,8 @@ msgstr "Benutzer '%(username)s' nicht gefunden."
 #, python-format
 msgid "Requested location '%(location_name)s' not found, using default."
 msgstr ""
-"Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, Standard "
-"wird verwendet."
+"Der angeforderte Standort „%(location_name)s“ wurde nicht gefunden, Standard"
+" wird verwendet."
 
 #: nova/__init__.py:10690
 msgid "Error: No valid location configured or selected for this user."
@@ -478,7 +481,8 @@ msgstr ""
 #: nova/__init__.py:11138
 #, python-format
 msgid "An error occurred while loading the details for %(object_name)s."
-msgstr "Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
+msgstr ""
+"Beim Laden der Details für %(object_name)s ist ein Fehler aufgetreten."
 
 #: nova/__init__.py:11465 nova/__init__.py:13906
 msgid "Project not found."
@@ -549,7 +553,8 @@ msgstr "Fehler beim Importieren der Rigs-Datei: %(error)s"
 
 #: nova/__init__.py:11948
 msgid "Invalid file type. Please upload a .yaml or .yml file."
-msgstr "Ungültiger Dateityp. Bitte laden Sie eine .yaml- oder .yml-Datei hoch."
+msgstr ""
+"Ungültiger Dateityp. Bitte laden Sie eine .yaml- oder .yml-Datei hoch."
 
 #: nova/__init__.py:12900
 msgid "Not authorized to export another user's data."
@@ -648,10 +653,28 @@ msgstr "Heatmap wird erstellt..."
 msgid "Initializing..."
 msgstr "Initialisierung..."
 
-#: templates/_heatmap_section.html:18
+#: templates/_heatmap_section.html:19
+msgid "Vertical bands = Full Moon"
+msgstr "Vertikale Streifen = Vollmond"
+
+#: templates/_heatmap_section.html:20
+msgid "Darker teal = Best visibility"
+msgstr "Dunkleres Blaugrün = Beste Sichtbarkeit"
+
+#: templates/_heatmap_section.html:21
+msgid "Brighter teal = Best visibility"
+msgstr "Helleres Blaugrün = Beste Sichtbarkeit"
+
+#: templates/_heatmap_section.html:22
+#, fuzzy
+msgid "Click any cell to view details"
+msgstr "Bitte melden Sie sich an, um die Objektdetails anzuzeigen."
+
+#: templates/_heatmap_section.html:23
+#, fuzzy
 msgid ""
-"* Vertical light bands = Full Moon (Washed out). Darker Green = Best "
-"Quality. Click object names to view details."
+"* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell "
+"to view details."
 msgstr ""
 "* Vertikale Lichtstreifen = Vollmond (verwaschen). Dunkleres Grün = beste "
 "Qualität. Klicken Sie auf die Objektnamen, um Details anzuzeigen."
@@ -685,11 +708,11 @@ msgstr "Sternbild"
 msgid "Source: Wiki"
 msgstr "Quelle: Wiki"
 
-#: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
-#: templates/_objects_section.html:427 templates/_objects_section.html:442
-#: templates/base.html:367 templates/base.html:387 templates/base.html:395
-#: templates/base.html:433 templates/config_form.html:643
-#: templates/graph_view.html:276
+#: templates/_inspiration_section.html:504
+#: templates/_journal_section.html:1908 templates/_objects_section.html:427
+#: templates/_objects_section.html:442 templates/base.html:367
+#: templates/base.html:387 templates/base.html:395 templates/base.html:433
+#: templates/config_form.html:643 templates/graph_view.html:276
 msgid "Close"
 msgstr "Schließen"
 
@@ -827,32 +850,6 @@ msgstr "Datenbank leer"
 #: templates/_inspiration_section.html:636
 msgid "No objects found in your configuration."
 msgstr "Keine Objekte in Ihrer Konfiguration gefunden."
-
-#: templates/_inspiration_section.html:707 templates/base.html:238
-msgid "Add Your Own Inspiration!"
-msgstr "Fügen Sie Ihre eigene Inspiration hinzu!"
-
-#: templates/_inspiration_section.html:708 templates/base.html:239
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "Sie sehen derzeit automatisierte Sky-Survey Bilder (DSS2)."
-
-#: templates/_inspiration_section.html:709 templates/base.html:240
-msgid ""
-"Did you know you can display your own astrophotos or favorite reference "
-"images here?"
-msgstr ""
-"Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder "
-"Lieblingsreferenzbilder anzeigen können?"
-
-#: templates/_inspiration_section.html:710
-#, python-format
-msgid ""
-"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add "
-"\"Inspiration Content\" (Image URLs, Credits, Descriptions) to your targets."
-msgstr ""
-"Gehen Sie zu %(strong_start)sKonfiguration > Objekte "
-"verwalten%(strong_end)s, um \"Inspirationsinhalt\" (Bild-URLs, Credits, "
-"Beschreibungen) zu Ihren Zielen hinzuzufügen."
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -1466,8 +1463,8 @@ msgid ""
 "Select a session or project from the list on the left to view details, or "
 "click 'Add New Session'."
 msgstr ""
-"Wählen Sie eine Sequenz oder ein Projekt aus der Liste auf der linken Seite, "
-"um Details anzuzeigen, oder klicken Sie auf \"Neue Sequenz hinzufügen\"."
+"Wählen Sie eine Sequenz oder ein Projekt aus der Liste auf der linken Seite,"
+" um Details anzuzeigen, oder klicken Sie auf \"Neue Sequenz hinzufügen\"."
 
 #: templates/_journal_section.html:1675
 msgid "Create Project"
@@ -2190,8 +2187,8 @@ msgid ""
 "duplicates."
 msgstr ""
 "Diese Paare befinden sich innerhalb von 2,5 Bogenminuten voneinander. Durch "
-"das Zusammenführen werden alle Journale, Projekte und Framings in das Objekt "
-"„Beibehalten” verschoben und das andere gelöscht. Bitte beachten Sie, dass "
+"das Zusammenführen werden alle Journale, Projekte und Framings in das Objekt"
+" „Beibehalten” verschoben und das andere gelöscht. Bitte beachten Sie, dass "
 "Objekte aus verschiedenen Katalogen leicht unterschiedliche RA/DEC-Werte "
 "aufweisen können und daher nicht als Duplikate betrachtet werden."
 
@@ -2575,7 +2572,7 @@ msgstr "Ausgewählte Ansicht löschen"
 msgid "Error loading views"
 msgstr "Fehler beim Laden der Daten."
 
-#: templates/base.html:135
+#: templates/base.html:135 templates/index.html:64
 msgid "Update in"
 msgstr "Aktualisierung in"
 
@@ -2910,6 +2907,22 @@ msgstr "Kopiert!"
 msgid "Slightly undersampled"
 msgstr "Benutzername"
 
+#: templates/base.html:238
+msgid "Add Your Own Inspiration!"
+msgstr "Fügen Sie Ihre eigene Inspiration hinzu!"
+
+#: templates/base.html:239
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "Sie sehen derzeit automatisierte Sky-Survey Bilder (DSS2)."
+
+#: templates/base.html:240
+msgid ""
+"Did you know you can display your own astrophotos or favorite reference "
+"images here?"
+msgstr ""
+"Wussten Sie, dass Sie hier Ihre eigenen Astrofotos oder "
+"Lieblingsreferenzbilder anzeigen können?"
+
 #: templates/base.html:241
 msgid ""
 "Go to Configuration - Manage Objects to add Inspiration Content to your "
@@ -2918,24 +2931,6 @@ msgstr ""
 "Gehen Sie zu <strong>Konfiguration > Objekte verwalten</strong>, um "
 "„Inspiration-Inhalte\" (Bild-URLs, Credits, Beschreibungen) zu Ihren Zielen "
 "hinzuzufügen."
-
-#: templates/base.html:238
-msgid "Add own inspiration"
-msgstr "Eigene Inspiration hinzufügen"
-
-#: templates/base.html:239
-msgid "See automated survey images"
-msgstr "Siehe Bilder der automatischen Umfrage"
-
-#: templates/base.html:240
-msgid "Display own astrophotos"
-msgstr "Eigene Astrophotos anzeigen"
-
-#: templates/base.html:241
-msgid "Go to config to manage objects"
-msgstr ""
-"Zur Konfiguration gehen, um Objekte zu verwaltenGehen Sie zu "
-"<strong>Konfiguration > Objekte verwalten</strong>, um eines hinzuzufügen."
 
 #: templates/base.html:273
 msgid "Demo Mode:"
@@ -3024,8 +3019,8 @@ msgid ""
 "tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr ""
 "Nova DSO Tracker hilft Amateurastronomen bei der Planung von "
-"Beobachtungsequenzen, indem es die Höhe und den Azimut von Deep-Sky-Objekten "
-"berechnet und visualisiert, die Position und Phase des Mondes verfolgt und "
+"Beobachtungsequenzen, indem es die Höhe und den Azimut von Deep-Sky-Objekten"
+" berechnet und visualisiert, die Position und Phase des Mondes verfolgt und "
 "optimale Beobachtungsfenster identifiziert."
 
 #: templates/base.html:407
@@ -3268,15 +3263,16 @@ msgstr "Anonyme Telemetrie:"
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts "
-"of your data entries like objects, rigs, locations, and journals). No "
+"Nova sends a small anonymous heartbeat (app version, system type, and counts"
+" of your data entries like objects, rigs, locations, and journals). No "
 "personal details are ever collected, and you can opt out anytime. Allowing "
 "it really helps me improve Nova."
 msgstr ""
 "Nova sendet einen kleinen anonymen Heartbeat (App-Version, Systemtyp und "
 "Anzahl Ihrer Dateneingaben wie Objekte, Rigs, Standorte und Journale). Es "
 "werden niemals persönliche Daten erfasst, und Sie können sich jederzeit "
-"abmelden. Wenn Sie dies zulassen, hilft mir das wirklich, Nova zu verbessern."
+"abmelden. Wenn Sie dies zulassen, hilft mir das wirklich, Nova zu "
+"verbessern."
 
 #: templates/config_form.html:234
 msgid "Save Settings"
@@ -3462,8 +3458,8 @@ msgstr "2. Konfigurieren Sie Ihre Rigs"
 
 #: templates/config_form.html:447
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\" "
-"to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click \"Edit\""
+" to load the rig into the form below."
 msgstr ""
 "Kombinieren Sie Ihre Komponenten zu einem kompletten Bildgebungsgerät. Zum "
 "Bearbeiten klicken Sie auf „Bearbeiten“, um das Gerät in das untenstehende "
@@ -3813,8 +3809,8 @@ msgstr "Externe Quelle"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for this "
-"object yet."
+"No inspiration content (custom image or description) has been added for this"
+" object yet."
 msgstr ""
 "Für dieses Objekt wurden noch keine inspirierenden Inhalte "
 "(benutzerdefinierte Bilder oder Beschreibungen) hinzugefügt."
@@ -3887,11 +3883,11 @@ msgstr "FOV sperren"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected for "
-"your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for"
+" your latitude)"
 msgstr ""
-"Zeigt die ungefähre Position von geostationären Satelliten an (korrigiert um "
-"Ihren Breitengrad)."
+"Zeigt die ungefähre Position von geostationären Satelliten an (korrigiert um"
+" Ihren Breitengrad)."
 
 #: templates/graph_view.html:288
 msgid "Geo Belt"
@@ -4970,476 +4966,345 @@ msgstr "Gain/Offset"
 msgid "Exp"
 msgstr "Experiment"
 
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:556
-#, python-brace-format
-msgid "{editor}: Editing failed"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/_termui_impl.py:560
-#, python-brace-format
-msgid "{editor}: Editing failed: {e}"
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1124
-msgid "Aborted!"
-msgstr "Importiert"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1349
-#: venv/lib/python3.13/site-packages/click/core.py:1379
-#, python-brace-format
-msgid "(Deprecated) {text}"
-msgstr "(Deprecated) {text}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1396
-msgid "Options"
-msgstr "(optional)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1422
-#, python-brace-format
-msgid "Got unexpected extra argument ({args})"
-msgid_plural "Got unexpected extra arguments ({args})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:1438
-#, python-brace-format
-msgid "DeprecationWarning: The command {name!r} is deprecated."
-msgstr "DeprecationWarning: The command {name!r} is deprecated."
-
-#: venv/lib/python3.13/site-packages/click/core.py:1645
-msgid "Commands"
-msgstr "Kommentare:"
-
-#: venv/lib/python3.13/site-packages/click/core.py:1677
-msgid "Missing command."
-msgstr "Missing command."
-
-#: venv/lib/python3.13/site-packages/click/core.py:1755
-#, python-brace-format
-msgid "No such command {name!r}."
-msgstr "Suche nach allgemeinem Namen"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2313
-msgid "Value must be an iterable."
-msgstr "Value must be an iterable."
-
-#: venv/lib/python3.13/site-packages/click/core.py:2334
-#, python-brace-format
-msgid "Takes {nargs} values but 1 was given."
-msgid_plural "Takes {nargs} values but {len} were given."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/core.py:2783
-#, python-brace-format
-msgid "env var: {var}"
-msgstr "env var: {var}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2813
-msgid "(dynamic)"
-msgstr "(dynamic)"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2828
-#, python-brace-format
-msgid "default: {default}"
-msgstr "default: {default}"
-
-#: venv/lib/python3.13/site-packages/click/core.py:2841
-msgid "required"
-msgstr "Bezeichnung erforderlich"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:457
-#, python-format
-msgid "%(prog)s, version %(version)s"
-msgstr "%(prog)s, version %(version)s"
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:520
-msgid "Show the version and exit."
-msgstr "Show the version and exit."
-
-#: venv/lib/python3.13/site-packages/click/decorators.py:541
-msgid "Show this message and exit."
-msgstr "Show this message and exit."
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:49
-#: venv/lib/python3.13/site-packages/click/exceptions.py:88
-#, python-brace-format
-msgid "Error: {message}"
-msgstr "Error: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:80
-#, python-brace-format
-msgid "Try '{command} {option}' for help."
-msgstr "Try '{command} {option}' for help."
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, python-brace-format
-msgid "Invalid value: {message}"
-msgstr "Ungültiger Wert: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:131
-#, python-brace-format
-msgid "Invalid value for {param_hint}: {message}"
-msgstr "Invalid value for {param_hint}: {message}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:187
-msgid "Missing argument"
-msgstr "Missing argument"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:189
-msgid "Missing option"
-msgstr "Bildausschnitt & Komposition"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:191
-msgid "Missing parameter"
-msgstr "Mindestens 4 Zeichen"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:193
-#, python-brace-format
-msgid "Missing {param_type}"
-msgstr "Missing {param_type}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:200
-#, python-brace-format
-msgid "Missing parameter: {param_name}"
-msgstr "Missing parameter: {param_name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, python-brace-format
-msgid "No such option: {name}"
-msgstr "Keine solche Option: {name}"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:232
-#, python-brace-format
-msgid "Did you mean {possibility}?"
-msgid_plural "(Possible options: {possibilities})"
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:270
-msgid "unknown error"
-msgstr "Unbekannter Fehler"
-
-#: venv/lib/python3.13/site-packages/click/exceptions.py:277
-#, python-brace-format
-msgid "Could not open file {filename!r}: {message}"
-msgstr "Could not open file {filename!r}: {message}"
-
-#: venv/lib/python3.13/site-packages/click/parser.py:233
-#, python-brace-format
-msgid "Argument {name!r} takes {nargs} values."
-msgstr "Argument {name!r} takes {nargs} values."
-
-#: venv/lib/python3.13/site-packages/click/parser.py:415
-#, python-brace-format
-msgid "Option {name!r} does not take a value."
-msgstr "Option {name!r} does not take a value."
-
-#: venv/lib/python3.13/site-packages/click/parser.py:476
-#, python-brace-format
-msgid "Option {name!r} requires an argument."
-msgid_plural "Option {name!r} requires {nargs} arguments."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:326
-msgid "Shell completion is not supported for Bash versions older than 4.4."
-msgstr "Shell completion is not supported for Bash versions older than 4.4."
-
-#: venv/lib/python3.13/site-packages/click/shell_completion.py:333
-msgid "Couldn't detect Bash version, shell completion is not supported."
-msgstr "Couldn't detect Bash version, shell completion is not supported."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:158
-msgid "Repeat for confirmation"
-msgstr "Standort-Konfiguration"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:174
-msgid "Error: The value you entered was invalid."
-msgstr "Error: The value you entered was invalid."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:176
-#, python-brace-format
-msgid "Error: {e.message}"
-msgstr "Error: {e.message}"
-
-#: venv/lib/python3.13/site-packages/click/termui.py:187
-msgid "Error: The two entered values do not match."
-msgstr "Error: The two entered values do not match."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:243
-msgid "Error: invalid input"
-msgstr "SSO-Fehler: Ungültiges Anmeldetoken."
-
-#: venv/lib/python3.13/site-packages/click/termui.py:773
-msgid "Press any key to continue..."
-msgstr "Press any key to continue..."
-
-#: venv/lib/python3.13/site-packages/click/types.py:267
-#, python-brace-format
-msgid ""
-"Choose from:\n"
-"\t{choices}"
-msgstr ""
-"Choose from:\n"
-"\t{choices}"
-
-#: venv/lib/python3.13/site-packages/click/types.py:299
-#, python-brace-format
-msgid "{value!r} is not {choice}."
-msgid_plural "{value!r} is not one of {choices}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:393
-#, python-brace-format
-msgid "{value!r} does not match the format {format}."
-msgid_plural "{value!r} does not match the formats {formats}."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:415
-#, python-brace-format
-msgid "{value!r} is not a valid {number_type}."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:471
-#, python-brace-format
-msgid "{value} is not in the range {range}."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:612
-#, python-brace-format
-msgid "{value!r} is not a valid boolean."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:636
-#, python-brace-format
-msgid "{value!r} is not a valid UUID."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:826
-msgid "file"
-msgstr "Filter"
-
-#: venv/lib/python3.13/site-packages/click/types.py:828
-msgid "directory"
-msgstr "Projektgeschichte"
-
-#: venv/lib/python3.13/site-packages/click/types.py:830
-msgid "path"
-msgstr "Aktualisierung"
-
-#: venv/lib/python3.13/site-packages/click/types.py:881
-#, python-brace-format
-msgid "{name} {filename!r} does not exist."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:890
-#, python-brace-format
-msgid "{name} {filename!r} is a file."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:898
-#, python-brace-format
-msgid "{name} {filename!r} is a directory."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:907
-#, python-brace-format
-msgid "{name} {filename!r} is not readable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:916
-#, python-brace-format
-msgid "{name} {filename!r} is not writable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:925
-#, python-brace-format
-msgid "{name} {filename!r} is not executable."
-msgstr ""
-
-#: venv/lib/python3.13/site-packages/click/types.py:992
-#, python-brace-format
-msgid "{len_type} values are required, but {len_value} was given."
-msgid_plural "{len_type} values are required, but {len_value} were given."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:55
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:293
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:323
-msgid "This field is required."
-msgstr "This field is required."
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:94
-#, python-brace-format
-msgid "File does not have an approved extension: {extensions}"
-msgstr "Die Datei hat keine zugelassene Erweiterung: {extensions}"
-
-#: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
-msgid "File does not have an approved extension."
-msgstr "Die Datei hat keine zugelassene Erweiterung."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, python-format
-msgid "Invalid field name '%s'."
-msgstr "Ungültiger Feldname '%s'."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:99
-#, python-format
-msgid "Field must be equal to %(other_name)s."
-msgstr "Field must be equal to %(other_name)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:146
-#, python-format
-msgid "Field must be at least %(min)d character long."
-msgid_plural "Field must be at least %(min)d characters long."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:152
-#, python-format
-msgid "Field cannot be longer than %(max)d character."
-msgid_plural "Field cannot be longer than %(max)d characters."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:158
-#, python-format
-msgid "Field must be exactly %(max)d character long."
-msgid_plural "Field must be exactly %(max)d characters long."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:164
-#, python-format
-msgid "Field must be between %(min)d and %(max)d characters long."
-msgstr "Field must be between %(min)d and %(max)d characters long."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:216
-#, python-format
-msgid "Number must be at least %(min)s."
-msgstr "Number must be at least %(min)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:219
-#, python-format
-msgid "Number must be at most %(max)s."
-msgstr "Number must be at most %(max)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:222
-#, python-format
-msgid "Number must be between %(min)s and %(max)s."
-msgstr "Number must be between %(min)s and %(max)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:358
-msgid "Invalid input."
-msgstr "Invalid input."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:422
-msgid "Invalid email address."
-msgstr "Invalid email address."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:460
-msgid "Invalid IP address."
-msgstr "Invalid IP address."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:503
-msgid "Invalid Mac address."
-msgstr "Invalid Mac address."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-msgid "Invalid URL."
-msgstr "Ungültiges Datumsformat."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-msgid "Invalid UUID."
-msgstr "Ungültiges Datumsformat."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:595
-#, python-format
-msgid "Invalid value, must be one of: %(values)s."
-msgstr "Invalid value, must be one of: %(values)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:631
-#, python-format
-msgid "Invalid value, can't be any of: %(values)s."
-msgstr "Invalid value, can't be any of: %(values)s."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-msgid "This field cannot be edited."
-msgstr "Das Passwort darf nicht leer sein."
-
-#: venv/lib/python3.13/site-packages/wtforms/validators.py:716
-msgid "This field is disabled and cannot have a value."
-msgstr "This field is disabled and cannot have a value."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-msgid "Invalid CSRF Token."
-msgstr "SSO-Fehler: Ungültiges Anmeldetoken."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:64
-msgid "CSRF token missing."
-msgstr "CSRF token missing."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:72
-msgid "CSRF failed."
-msgstr "CSRF failed."
-
-#: venv/lib/python3.13/site-packages/wtforms/csrf/session.py:77
-msgid "CSRF token expired."
-msgstr "CSRF token expired."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:142
-msgid "Invalid Choice: could not coerce."
-msgstr "Invalid Choice: could not coerce."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:149
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:203
-msgid "Choices cannot be None."
-msgstr "Choices cannot be None."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:155
-msgid "Not a valid choice."
-msgstr "Not a valid choice."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:194
-msgid "Invalid choice(s): one or more data inputs could not be coerced."
-msgstr "Invalid choice(s): one or more data inputs could not be coerced."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/choices.py:212
-#, python-format
-msgid "'%(value)s' is not a valid choice for this field."
-msgid_plural "'%(value)s' are not valid choices for this field."
-msgstr[0] ""
-msgstr[1] ""
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:52
-msgid "Not a valid datetime value."
-msgstr "Not a valid datetime value."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-msgid "Not a valid date value."
-msgstr "Ungültiges Datumsformat."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:104
-msgid "Not a valid time value."
-msgstr "Not a valid time value."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:149
-msgid "Not a valid week value."
-msgstr "Not a valid week value."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:82
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:92
-msgid "Not a valid integer value."
-msgstr "Not a valid integer value."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:168
-msgid "Not a valid decimal value."
-msgstr "Not a valid decimal value."
-
-#: venv/lib/python3.13/site-packages/wtforms/fields/numeric.py:197
-msgid "Not a valid float value."
-msgstr "Not a valid float value."
+#~ msgid ""
+#~ "Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+#~ " \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+#~ "targets."
+#~ msgstr ""
+#~ "Gehen Sie zu %(strong_start)sKonfiguration > Objekte "
+#~ "verwalten%(strong_end)s, um \"Inspirationsinhalt\" (Bild-URLs, Credits, "
+#~ "Beschreibungen) zu Ihren Zielen hinzuzufügen."
+
+#~ msgid "Add own inspiration"
+#~ msgstr "Eigene Inspiration hinzufügen"
+
+#~ msgid "See automated survey images"
+#~ msgstr "Siehe Bilder der automatischen Umfrage"
+
+#~ msgid "Display own astrophotos"
+#~ msgstr "Eigene Astrophotos anzeigen"
+
+#~ msgid "Go to config to manage objects"
+#~ msgstr ""
+#~ "Zur Konfiguration gehen, um Objekte zu verwaltenGehen Sie zu "
+#~ "<strong>Konfiguration > Objekte verwalten</strong>, um eines hinzuzufügen."
+
+#~ msgid "{editor}: Editing failed"
+#~ msgstr ""
+
+#~ msgid "{editor}: Editing failed: {e}"
+#~ msgstr ""
+
+#~ msgid "Aborted!"
+#~ msgstr "Importiert"
+
+#~ msgid "(Deprecated) {text}"
+#~ msgstr "(Deprecated) {text}"
+
+#~ msgid "Options"
+#~ msgstr "(optional)"
+
+#~ msgid "Got unexpected extra argument ({args})"
+#~ msgid_plural "Got unexpected extra arguments ({args})"
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "DeprecationWarning: The command {name!r} is deprecated."
+#~ msgstr "DeprecationWarning: The command {name!r} is deprecated."
+
+#~ msgid "Commands"
+#~ msgstr "Kommentare:"
+
+#~ msgid "Missing command."
+#~ msgstr "Missing command."
+
+#~ msgid "No such command {name!r}."
+#~ msgstr "Suche nach allgemeinem Namen"
+
+#~ msgid "Value must be an iterable."
+#~ msgstr "Value must be an iterable."
+
+#~ msgid "Takes {nargs} values but 1 was given."
+#~ msgid_plural "Takes {nargs} values but {len} were given."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "env var: {var}"
+#~ msgstr "env var: {var}"
+
+#~ msgid "(dynamic)"
+#~ msgstr "(dynamic)"
+
+#~ msgid "default: {default}"
+#~ msgstr "default: {default}"
+
+#~ msgid "required"
+#~ msgstr "Bezeichnung erforderlich"
+
+#~ msgid "%(prog)s, version %(version)s"
+#~ msgstr "%(prog)s, version %(version)s"
+
+#~ msgid "Show the version and exit."
+#~ msgstr "Show the version and exit."
+
+#~ msgid "Show this message and exit."
+#~ msgstr "Show this message and exit."
+
+#~ msgid "Error: {message}"
+#~ msgstr "Error: {message}"
+
+#~ msgid "Try '{command} {option}' for help."
+#~ msgstr "Try '{command} {option}' for help."
+
+#~ msgid "Invalid value: {message}"
+#~ msgstr "Ungültiger Wert: {message}"
+
+#~ msgid "Invalid value for {param_hint}: {message}"
+#~ msgstr "Invalid value for {param_hint}: {message}"
+
+#~ msgid "Missing argument"
+#~ msgstr "Missing argument"
+
+#~ msgid "Missing option"
+#~ msgstr "Bildausschnitt & Komposition"
+
+#~ msgid "Missing parameter"
+#~ msgstr "Mindestens 4 Zeichen"
+
+#~ msgid "Missing {param_type}"
+#~ msgstr "Missing {param_type}"
+
+#~ msgid "Missing parameter: {param_name}"
+#~ msgstr "Missing parameter: {param_name}"
+
+#~ msgid "No such option: {name}"
+#~ msgstr "Keine solche Option: {name}"
+
+#~ msgid "Did you mean {possibility}?"
+#~ msgid_plural "(Possible options: {possibilities})"
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "unknown error"
+#~ msgstr "Unbekannter Fehler"
+
+#~ msgid "Could not open file {filename!r}: {message}"
+#~ msgstr "Could not open file {filename!r}: {message}"
+
+#~ msgid "Argument {name!r} takes {nargs} values."
+#~ msgstr "Argument {name!r} takes {nargs} values."
+
+#~ msgid "Option {name!r} does not take a value."
+#~ msgstr "Option {name!r} does not take a value."
+
+#~ msgid "Option {name!r} requires an argument."
+#~ msgid_plural "Option {name!r} requires {nargs} arguments."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Shell completion is not supported for Bash versions older than 4.4."
+#~ msgstr "Shell completion is not supported for Bash versions older than 4.4."
+
+#~ msgid "Couldn't detect Bash version, shell completion is not supported."
+#~ msgstr "Couldn't detect Bash version, shell completion is not supported."
+
+#~ msgid "Repeat for confirmation"
+#~ msgstr "Standort-Konfiguration"
+
+#~ msgid "Error: The value you entered was invalid."
+#~ msgstr "Error: The value you entered was invalid."
+
+#~ msgid "Error: {e.message}"
+#~ msgstr "Error: {e.message}"
+
+#~ msgid "Error: The two entered values do not match."
+#~ msgstr "Error: The two entered values do not match."
+
+#~ msgid "Error: invalid input"
+#~ msgstr "SSO-Fehler: Ungültiges Anmeldetoken."
+
+#~ msgid "Press any key to continue..."
+#~ msgstr "Press any key to continue..."
+
+#~ msgid ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+#~ msgstr ""
+#~ "Choose from:\n"
+#~ "\t{choices}"
+
+#~ msgid "{value!r} is not {choice}."
+#~ msgid_plural "{value!r} is not one of {choices}."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "{value!r} does not match the format {format}."
+#~ msgid_plural "{value!r} does not match the formats {formats}."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "{value!r} is not a valid {number_type}."
+#~ msgstr ""
+
+#~ msgid "{value} is not in the range {range}."
+#~ msgstr ""
+
+#~ msgid "{value!r} is not a valid boolean."
+#~ msgstr ""
+
+#~ msgid "{value!r} is not a valid UUID."
+#~ msgstr ""
+
+#~ msgid "file"
+#~ msgstr "Filter"
+
+#~ msgid "directory"
+#~ msgstr "Projektgeschichte"
+
+#~ msgid "path"
+#~ msgstr "Aktualisierung"
+
+#~ msgid "{name} {filename!r} does not exist."
+#~ msgstr ""
+
+#~ msgid "{name} {filename!r} is a file."
+#~ msgstr ""
+
+#~ msgid "{name} {filename!r} is a directory."
+#~ msgstr ""
+
+#~ msgid "{name} {filename!r} is not readable."
+#~ msgstr ""
+
+#~ msgid "{name} {filename!r} is not writable."
+#~ msgstr ""
+
+#~ msgid "{name} {filename!r} is not executable."
+#~ msgstr ""
+
+#~ msgid "{len_type} values are required, but {len_value} was given."
+#~ msgid_plural "{len_type} values are required, but {len_value} were given."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "This field is required."
+#~ msgstr "This field is required."
+
+#~ msgid "File does not have an approved extension: {extensions}"
+#~ msgstr "Die Datei hat keine zugelassene Erweiterung: {extensions}"
+
+#~ msgid "File does not have an approved extension."
+#~ msgstr "Die Datei hat keine zugelassene Erweiterung."
+
+#~ msgid "Invalid field name '%s'."
+#~ msgstr "Ungültiger Feldname '%s'."
+
+#~ msgid "Field must be equal to %(other_name)s."
+#~ msgstr "Field must be equal to %(other_name)s."
+
+#~ msgid "Field must be at least %(min)d character long."
+#~ msgid_plural "Field must be at least %(min)d characters long."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Field cannot be longer than %(max)d character."
+#~ msgid_plural "Field cannot be longer than %(max)d characters."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Field must be exactly %(max)d character long."
+#~ msgid_plural "Field must be exactly %(max)d characters long."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Field must be between %(min)d and %(max)d characters long."
+#~ msgstr "Field must be between %(min)d and %(max)d characters long."
+
+#~ msgid "Number must be at least %(min)s."
+#~ msgstr "Number must be at least %(min)s."
+
+#~ msgid "Number must be at most %(max)s."
+#~ msgstr "Number must be at most %(max)s."
+
+#~ msgid "Number must be between %(min)s and %(max)s."
+#~ msgstr "Number must be between %(min)s and %(max)s."
+
+#~ msgid "Invalid input."
+#~ msgstr "Invalid input."
+
+#~ msgid "Invalid email address."
+#~ msgstr "Invalid email address."
+
+#~ msgid "Invalid IP address."
+#~ msgstr "Invalid IP address."
+
+#~ msgid "Invalid Mac address."
+#~ msgstr "Invalid Mac address."
+
+#~ msgid "Invalid URL."
+#~ msgstr "Ungültiges Datumsformat."
+
+#~ msgid "Invalid UUID."
+#~ msgstr "Ungültiges Datumsformat."
+
+#~ msgid "Invalid value, must be one of: %(values)s."
+#~ msgstr "Invalid value, must be one of: %(values)s."
+
+#~ msgid "Invalid value, can't be any of: %(values)s."
+#~ msgstr "Invalid value, can't be any of: %(values)s."
+
+#~ msgid "This field cannot be edited."
+#~ msgstr "Das Passwort darf nicht leer sein."
+
+#~ msgid "This field is disabled and cannot have a value."
+#~ msgstr "This field is disabled and cannot have a value."
+
+#~ msgid "Invalid CSRF Token."
+#~ msgstr "SSO-Fehler: Ungültiges Anmeldetoken."
+
+#~ msgid "CSRF token missing."
+#~ msgstr "CSRF token missing."
+
+#~ msgid "CSRF failed."
+#~ msgstr "CSRF failed."
+
+#~ msgid "CSRF token expired."
+#~ msgstr "CSRF token expired."
+
+#~ msgid "Invalid Choice: could not coerce."
+#~ msgstr "Invalid Choice: could not coerce."
+
+#~ msgid "Choices cannot be None."
+#~ msgstr "Choices cannot be None."
+
+#~ msgid "Not a valid choice."
+#~ msgstr "Not a valid choice."
+
+#~ msgid "Invalid choice(s): one or more data inputs could not be coerced."
+#~ msgstr "Invalid choice(s): one or more data inputs could not be coerced."
+
+#~ msgid "'%(value)s' is not a valid choice for this field."
+#~ msgid_plural "'%(value)s' are not valid choices for this field."
+#~ msgstr[0] ""
+#~ msgstr[1] ""
+
+#~ msgid "Not a valid datetime value."
+#~ msgstr "Not a valid datetime value."
+
+#~ msgid "Not a valid date value."
+#~ msgstr "Ungültiges Datumsformat."
+
+#~ msgid "Not a valid time value."
+#~ msgstr "Not a valid time value."
+
+#~ msgid "Not a valid week value."
+#~ msgstr "Not a valid week value."
+
+#~ msgid "Not a valid integer value."
+#~ msgstr "Not a valid integer value."
+
+#~ msgid "Not a valid decimal value."
+#~ msgstr "Not a valid decimal value."
+
+#~ msgid "Not a valid float value."
+#~ msgstr "Not a valid float value."

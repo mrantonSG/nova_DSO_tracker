@@ -15,7 +15,12 @@
 
     <div id="heatmap-wrapper">
         <div id="heatmap-controls">
-            <span id="heatmap-legend-text">{{ _('* Vertical light bands = Full Moon (Washed out). Darker Green = Best Quality. Click object names to view details.') }}</span>
+            <span id="heatmap-legend-text"
+                        data-text-full-moon="{{ _('Vertical bands = Full Moon') }}"
+                        data-text-best-dark="{{ _('Darker teal = Best visibility') }}"
+                        data-text-best-bright="{{ _('Brighter teal = Best visibility') }}"
+                        data-text-click-details="{{ _('Click any cell to view details') }}"
+                        >{{ _('* Vertical bands = Full Moon. Darker teal = Best visibility. Click any cell to view details.') }}</span>
         </div>
         <div id="yearly-heatmap-plot"></div>
     </div>
