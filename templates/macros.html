@@ -76,7 +76,7 @@
      {{ help_badge('topic', extra_attrs='onclick="openHelp(\'topic\'); event.stopPropagation();"') }}
 #}
 {% macro help_badge(topic, title='', extra_attrs='') %}
-<span class="help-badge" data-help-topic="{{ topic }}" title="{{ title or _('Help') }}" {{ extra_attrs | safe }}>?</span>
+<span class="help-badge" data-help-topic="{{ topic }}" title="{{ title or _('Click for help') }}" {{ extra_attrs | safe }}">?</span>
 {% endmacro %}
 
 {# Tab Button Macro

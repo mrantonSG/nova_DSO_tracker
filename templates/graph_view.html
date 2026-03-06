@@ -211,7 +211,7 @@
             {% else %}
             <div style="text-align:center; padding:40px; color:var(--text-tertiary); border: 2px dashed var(--text-lighter); border-radius: 6px;">
                 <p>{{ _('No inspiration content (custom image or description) has been added for this object yet.') }}</p>
-                <p style="font-size: 0.9em;">{{ _('Go to <strong>Configuration > Manage Objects</strong> to add one.') }}</p>
+                <p style="font-size: 0.9em;">{{ _('Go to <strong>Configuration > Manage Objects</strong> to add one.') | safe }}</p>
             </div>
             {% endif %}
         </div>
@@ -360,7 +360,7 @@
                     <option value="P/SDSS9/color">SDSS (color)</option>
                     <option value="P/GALEXGR6/AIS/color">GALEX (color)</option>
                 </select>
-                <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="Blend opacity" style="width:130px; vertical-align:middle; margin-left:8px;">
+                <input id="blend-opacity" type="range" min="0" max="1" step="0.01" value="0" title="{{ _('Blend opacity') }}" style="width:130px; vertical-align:middle; margin-left:8px;">
             </div>
         </div>
         <div class="framing-controls" style="flex-wrap: wrap;">

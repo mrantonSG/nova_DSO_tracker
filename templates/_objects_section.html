@@ -149,7 +149,7 @@
                                value="{{ obj.Size if obj.Size not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
                       </div>
                       <div>
-                        <label class="short-label" for="sb_{{ obj.Object }}">SB:</label>
+                        <label class="short-label" for="sb_{{ obj.Object }}">{{ _('SB:') }}</label>
                         <input type="number" name="sb_{{ obj.Object }}" id="sb_{{ obj.Object }}" class="field-small-numeric" step="0.01"
                                value="{{ obj.SB if obj.SB not in ['N/A', 'Not Found', 'Fetch Error'] else '' }}">
                       </div>
