@@ -512,11 +512,40 @@
 
 <script>
     const i18n = {
-        analyzingTargets:  '{{ _("Analyzing targets...") }}',
-        noImage:           '{{ _("No Image") }}',
-        unknown:           '{{ _("unknown") }}',
-        errorRenderGrid:   '{{ _("Error rendering grid. Check console.") }}',
-        imageUnavailable:  '{{ _("Image unavailable") }}',
+        // Existing strings
+        analyzingTargets:  {{ _("Analyzing targets...") | tojson }},
+        noImage:           {{ _("No Image") | tojson }},
+        unknown:           {{ _("unknown") | tojson }},
+        errorRenderGrid:   {{ _("Error rendering grid. Check console.") | tojson }},
+        imageUnavailable:  {{ _("Image unavailable") | tojson }},
+
+        // Empty state strings
+        howToPopulate:     {{ _("How to populate this gallery:") | tojson }},
+        checkFilters:      {{ _("Check Filters:") | tojson }},
+        checkFiltersDesc:  {{ _("Clear filters on the Position tab.") | tojson }},
+        checkDatabase:     {{ _("Check Database:") | tojson }},
+        checkDatabaseDesc: {{ _("Ensure you have objects in Configuration.") | tojson }},
+        visibility:        {{ _("Visibility:") | tojson }},
+        visibilityDesc:    {{ _("We only show objects observable during tonight's session.") | tojson }},
+
+        // Tile stats
+        alt:               {{ _("Alt:") | tojson }},
+        dur:               {{ _("Dur:") | tojson }},
+        hrs:               {{ _("hrs") | tojson }},
+        h:                 {{ _("h") | tojson }},
+        loading:           {{ _("Loading...") | tojson }},
+
+        // Fallback text
+        type:              {{ _("Type:") | tojson }},
+        dso:               {{ _("DSO") | tojson }},
+        locatedIn:         {{ _("Located in") | tojson }},
+        na:                {{ _("N/A") | tojson }},
+
+        // Source attribution
+        source:            {{ _("Source:") | tojson }},
+        sourceWikipedia:   {{ _("Wikipedia") | tojson }},
+        sourceNasa:        {{ _("NASA") | tojson }},
+        sourceDss2:        {{ _("Aladin Sky Atlas / DSS2") | tojson }},
     };
 
     function getAladinFallbackUrl(ra, dec, sizeArcmin) {
@@ -591,20 +620,20 @@
                 const isTrueFilterZero = window.isListFiltered && totalDataCount > 0;
 
                 // Dynamic Loading State Handling
-                let iconHtml = '<div class="empty-state-icon">🔭</div>';
-                let title = "No Matching Targets";
-                let reason = "Your current filters (Position Tab) are too restrictive.";
+                let iconHtml = '<div class="empty-state-icon">{{ _("No Matching Targets") }}</div>';
+                let title = "{{ _('No Matching Targets') }}";
+                let reason = "{{ _('Your current filters (Position Tab) are too restrictive.') }}";
 
                 if (!isTrueFilterZero) {
                     if (isGlobalLoading) {
                         // Active Loading State
                         iconHtml = '<div class="insp-spinner"></div>';
-                        title = "Loading Object Database...";
-                        reason = "Please wait while we calculate visibility and fetch data.";
+                        title = "{{ _('Loading Object Database...') }}";
+                        reason = "{{ _('Please wait while we calculate visibility and fetch data.') }}";
                     } else {
-                        // Truly Empty DB State
-                        title = "Database Empty";
-                        reason = "No objects found in your configuration.";
+                        // Truly Empty DB state
+                        title = "{{ _('Database Empty') }}";
+                        reason = "{{ _('No objects found in your configuration.') }}";
                     }
                 }
 
@@ -614,11 +643,11 @@
                         <h3 style="margin: 0 0 10px 0; color: var(--text-primary);">${title}</h3>
                         <p style="margin: 0 0 25px 0;">${reason}</p>
                         <div class="empty-state-box">
-                            <strong style="color:var(--text-primary);">How to populate this gallery:</strong>
+                            <strong style="color:var(--text-primary);">${i18n.howToPopulate}</strong>
                             <ul style="margin: 10px 0 0 0; padding-left: 20px; color: var(--text-secondary); line-height:1.6;">
-                                <li><strong>Check Filters:</strong> Clear filters on the Position tab.</li>
-                                <li><strong>Check Database:</strong> Ensure you have objects in <em>Configuration</em>.</li>
-                                <li><strong>Visibility:</strong> We only show objects observable during <em>tonight's session</em>.</li>
+                                <li><strong>${i18n.checkFilters}</strong> ${i18n.checkFiltersDesc}</li>
+                                <li><strong>${i18n.checkDatabase}</strong> ${i18n.checkDatabaseDesc}</li>
+                                <li><strong>${i18n.visibility}</strong> ${i18n.visibilityDesc}</li>
                             </ul>
                         </div>
                     </div>`;
@@ -707,10 +736,10 @@
                             <span class="tile-type">${obj.Type || ''}</span>
                         </div>
                         <div class="tile-common-name">${obj['Common Name'] || ''}</div>
-                        <div class="tile-summary skeleton-text">Loading...</div>
+                        <div class="tile-summary skeleton-text">${i18n.loading}</div>
                         <div class="tile-stats">
-                            <div class="tile-stat-pill">Alt: ${obj['Max Altitude (°)']}</div>
-                            <div class="tile-stat-pill">Dur: ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}h</div>
+                            <div class="tile-stat-pill">${i18n.alt} ${obj['Max Altitude (°)']}</div>
+                            <div class="tile-stat-pill">${i18n.dur} ${Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*1)/1}${i18n.h}</div>
                         </div>
                     </div>
                 `;
@@ -785,7 +814,7 @@
                     if (finalText) {
                         sumEl.textContent = finalText;
                     } else {
-                        sumEl.textContent = `Type: ${obj.Type || 'DSO'}. Located in ${obj.Constellation || i18n.unknown}.`;
+                        sumEl.textContent = `${i18n.type} ${obj.Type || i18n.dso}. ${i18n.locatedIn} ${obj.Constellation || i18n.unknown}.`;
                     }
                     sumEl.classList.remove('skeleton-text');
 
@@ -863,23 +892,23 @@
         document.getElementById('modal-subtitle').textContent = obj['Common Name'] || "";
         document.getElementById('modal-alt').textContent = obj['Max Altitude (°)'];
         document.getElementById('modal-transit').textContent = obj['Transit Time'];
-        document.getElementById('modal-dur').textContent = Math.round((parseFloat(obj['Observable Duration (min)'])||0)/60*10)/10 + " hrs";
-        document.getElementById('modal-const').textContent = obj.Constellation || "N/A";
+        document.getElementById('modal-dur').textContent = Math.round((parseFloat(obj['Observable Duration (min)'])||1)/60*10)/10 + " " + i18n.hrs;
+        document.getElementById('modal-const').textContent = obj.Constellation || i18n.na;
         document.getElementById('modal-text').textContent = summary;
 
         // 4. Handle Attribution
         const attrib = document.getElementById('modal-attribution');
         if (source === "Wiki") {
-            attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">Wikipedia</a>`;
+            attrib.innerHTML = i18n.source + ' <a href="${wikiUrl}" target="_blank">' + i18n.sourceWikipedia + '</a>';
         } else if (source === "NASA") {
-            attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">NASA</a>`;
+            attrib.innerHTML = i18n.source + ' <a href="${wikiUrl}" target="_blank">' + i18n.sourceNasa + '</a>';
         } else if (source === "DSS2") {
-            attrib.innerHTML = `Source: Aladin Sky Atlas / DSS2`;
+            attrib.innerHTML = i18n.source + ' ' + i18n.sourceDss2;
         } else {
             if (wikiUrl) {
-                attrib.innerHTML = `Source: <a href="${wikiUrl}" target="_blank">${source}</a>`;
+                attrib.innerHTML = i18n.source + ' <a href="${wikiUrl}" target="_blank">${source}</a>';
             } else {
-                attrib.innerHTML = `Source: ${source}`;
+                attrib.innerHTML = i18n.source + ' ' + source;
             }
         }
 
