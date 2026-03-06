@@ -3007,7 +3007,7 @@
     function deleteSavedFraming() {
         const objectName = NOVA_GRAPH_DATA.objectName;
         if (!confirm("Are you sure you want to delete the saved framing for this object?")) return;
-    
+
         fetch('/api/delete_framing', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3016,9 +3016,12 @@
         .then(r => r.json())
         .then(data => {
             if(data.status === 'success') {
-                // Clear the UI
-                const container = document.getElementById('project-quick-link');
-                if (container) container.innerHTML = '';
+                // Clear the saved framing buttons from the UI
+                const container = document.getElementById('project-framing-buttons');
+                if (container) {
+                    const savedButtons = container.querySelectorAll('[data-saved-framing]');
+                    savedButtons.forEach(btn => btn.remove());
+                }
             } else {
                 alert("Error deleting: " + data.message);
             }
@@ -3027,25 +3030,22 @@
     
     function checkAndShowFramingButton() {
         const objectName = NOVA_GRAPH_DATA.objectName;
-        const container = document.getElementById('project-quick-link');
+        const container = document.getElementById('project-framing-buttons');
         if (!container) return;
-    
+
         fetch(`/api/get_framing/${encodeURIComponent(objectName)}`)
             .then(r => r.json())
             .then(data => {
-                container.innerHTML = '';
+                // Remove any existing saved framing buttons (keep Show Framing and Open in Stellarium)
+                const existingSavedButtons = container.querySelectorAll('[data-saved-framing]');
+                existingSavedButtons.forEach(btn => btn.remove());
 
                 if (data.status === 'found') {
-                    // Create a wrapper div to hold both buttons side-by-side
-                    const wrapper = document.createElement('div');
-                    wrapper.style.display = 'flex';
-                    wrapper.style.alignItems = 'center';
-                    wrapper.style.gap = '8px';
-    
-                    // 1. OPEN BUTTON
+                    // 1. OPEN SAVED FRAMING BUTTON (insert after Show Framing)
                     const btn = document.createElement('button');
                     btn.className = 'inline-button inline-button-ghost';
                     btn.textContent = 'Open Saved Framing';
+                    btn.setAttribute('data-saved-framing', 'true');
 
                     btn.onclick = () => {
                         const params = new URLSearchParams();
@@ -3073,19 +3073,25 @@
 
                         openFramingAssistant(params.toString());
                     };
-    
-                    // 2. DELETE BUTTON
+
+                    // Insert after Show Framing button (the second button in the row, after any spacer elements)
+                    const showFramingBtn = container.querySelector('[data-action="open-framing-assistant"]');
+                    if (showFramingBtn) {
+                        container.insertBefore(btn, showFramingBtn.nextSibling);
+                    } else {
+                        container.appendChild(btn);
+                    }
+
+                    // 2. DELETE SAVED FRAMING BUTTON
                     const delBtn = document.createElement('button');
                     delBtn.className = 'inline-button inline-button-danger';
                     delBtn.textContent = 'Delete Saved Framing';
                     delBtn.title = "Delete Saved Framing";
+                    delBtn.setAttribute('data-saved-framing', 'true');
 
                     delBtn.onclick = deleteSavedFraming;
-    
-                    // Add both to wrapper, then wrapper to container
-                    wrapper.appendChild(btn);
-                    wrapper.appendChild(delBtn);
-                    container.appendChild(wrapper);
+
+                    container.appendChild(delBtn);
                 }
             });
     }
