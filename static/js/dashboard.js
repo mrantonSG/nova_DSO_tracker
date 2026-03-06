@@ -250,7 +250,7 @@
                     simDateInput.disabled = true;
                     statusStrip.classList.remove('simulated');
                     simulatedTitleText.style.display = 'none';
-                    if(updateLabel) updateLabel.textContent = window.t('update');
+                    // Don't set updateLabel text - the timer value already shows "Update in Xs"
                     if(updateValue) {
                         updateValue.style.color = getPrimaryColor(); // Restore original color
                     }
@@ -539,7 +539,7 @@
             const description = document.getElementById('modal-view-desc').value.trim();
             const isShared = document.getElementById('modal-view-shared') ? document.getElementById('modal-view-shared').checked : false;
     
-            if (!viewName) { alert("Name is required"); return; }
+            if (!viewName) { alert(window.t('name_required')); return; }
     
             closeSaveViewModal();
             const currentSettings = getCurrentSettingsSnapshot();
@@ -997,7 +997,7 @@
             if (error.name !== 'AbortError') {
                 console.error("Batch Fetch Error:", error);
                 if(tbody.innerHTML === '') {
-                    tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">Data Load Failed: ${error.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; color:red;">${window.t('data_load_failed')}: ${error.message}</td></tr>`;
                 }
                 // Ensure loader is hidden on error
                 _hideFetchLoader(loadingDiv);
@@ -1598,7 +1598,7 @@
         // Show loading indicator WITHOUT destroying the progress bar structure
         if (loadingDiv) {
             loadingDiv.style.display = "block";
-            if (loadingMessage) loadingMessage.textContent = "Updating location...";
+            if (loadingMessage) loadingMessage.textContent = window.t('updating_location');
             if (progressBar) progressBar.style.width = "0%";
         }
 
@@ -2049,7 +2049,7 @@
             fetchData(true); // <--- TRUE enables background mode (no progress bar)
             fetchSunEvents();
             timeToNextUpdate = updateIntervalInSeconds; // Reset the timer
-            if (timerSpan) timerSpan.textContent = window.t('update_in').replace('{0}', timeToNextUpdate); // Update text immediately
+            if (timerSpan) timerSpan.textContent = timeToNextUpdate + 's'; // Update text immediately
           }, updateIntervalInSeconds * 1000); // 60000ms
 
           // This is the new 1-second interval to update the countdown display
@@ -2060,7 +2060,7 @@
                   timeToNextUpdate = 0; // Don't go below zero
               }
               if (timerSpan) {
-                  timerSpan.textContent = window.t('update_in').replace('{0}', timeToNextUpdate);
+                  timerSpan.textContent = timeToNextUpdate + 's';
               }
           }, 1000); // Run every 1 second
 
@@ -2322,7 +2322,7 @@
                 });
                 tableBody.innerHTML = htmlRows;
             } else {
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">No targets found matching your filters.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">${window.t('no_targets_found')}</td></tr>`;
             }
         }
     
@@ -2340,7 +2340,7 @@
             // Show fetching message only if not already updating location UI
             if (!isLocationUpdating) {
             // --- END FIX ---
-                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">Fetching...</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">${window.t('fetching')}</td></tr>`;
             }
     
             // --- START FIX ---
@@ -2373,7 +2373,7 @@
                             // Sort and render the table (assuming sortOutlookTable also calls renderOutlookTable)
                             sortOutlookTable(currentOutlookSort.columnKey, false);
                         } else {
-                            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">No imaging opportunities found matching the criteria.</td></tr>`;
+                            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:grey;">${window.t('no_imaging_opportunities')}</td></tr>`;
                         }
                     } else if (data.status === 'running' || data.status === 'starting') {
                         // Background task is running, show waiting message
@@ -2382,12 +2382,12 @@
                             allOutlookOpportunities = data.results || [];
                             sortOutlookTable(currentOutlookSort.columnKey, false);
                         } else {
-                            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">Waiting for background task...</td></tr>`;
+                            tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:${getColor('--primary-dark', '#6795a4')};">${window.t('waiting_background_task')}</td></tr>`;
                         }
                         // Poll again after a delay
                         setTimeout(fetchOutlookData, 10000);
                     } else { // Handle 'idle' (should become 'starting' now) or 'error'
-                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">No data available or error. Check server logs if this persists. ${data.message || ''}</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:orange;">${window.t('no_data_available')} ${data.message || ''}</td></tr>`;
                         // Optionally set outlookDataLoaded = true here too, to stop retrying on error
                          if (!outlookDataLoaded) { outlookDataLoaded = true; }
                     }
@@ -2397,7 +2397,7 @@
                 .catch(error => {
                     // outlookDataLoaded = true; // Set flag even on error to stop retries
                     console.error("Error fetching outlook data:", error);
-                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">Error fetching data. Check console for details.</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:red;">${window.t('error_fetching_data')}</td></tr>`;
                     if (loadingDiv) loadingDiv.style.display = 'none';
                 });
         }
@@ -2470,7 +2470,7 @@
             }
     
             // 3. Fetch Data
-            graphDiv.innerHTML = `<p style="text-align:center; color:${getColor('--text-muted', '#888')}; font-size:12px;">Loading altitude data...</p>`;
+            graphDiv.innerHTML = `<p style="text-align:center; color:${getColor('--text-muted', '#888')}; font-size:12px;">${window.t('loading_altitude_data')}</p>`;
     
             try {
                 // FIX: Pass the current session location name. The backend will look up the fresh coordinates.
@@ -2658,7 +2658,7 @@
     
             } catch (e) {
                 console.error(e);
-                graphDiv.innerHTML = `<p style="text-align:center; color:${getColor('--text-muted', '#888')}; font-size:12px;">Altitude data unavailable.</p>`;
+                graphDiv.innerHTML = `<p style="text-align:center; color:${getColor('--text-muted', '#888')}; font-size:12px;">${window.t('altitude_data_unavailable')}</p>`;
             }
         }
     
