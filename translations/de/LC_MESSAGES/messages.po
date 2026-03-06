@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 01:16+0800\n"
-"PO-Revision-Date: 2026-03-06 11:04+0800\n"
+"PO-Revision-Date: 2026-03-06 14:18+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -834,7 +834,7 @@ msgstr "Fügen Sie Ihre eigene Inspiration hinzu!"
 
 #: templates/_inspiration_section.html:708 templates/base.html:239
 msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "Sie sehen derzeit automatisierte Umfragebilder (DSS2)."
+msgstr "Sie sehen derzeit automatisierte Sky-Survey Bilder (DSS2)."
 
 #: templates/_inspiration_section.html:709 templates/base.html:240
 msgid ""
@@ -5281,6 +5281,7 @@ msgstr "Die Datei hat keine zugelassene Erweiterung: {extensions}"
 #: venv/lib/python3.13/site-packages/flask_wtf/file.py:101
 msgid "File does not have an approved extension."
 msgstr "Die Datei hat keine zugelassene Erweiterung."
+
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:86
 #, python-format
 msgid "Invalid field name '%s'."
