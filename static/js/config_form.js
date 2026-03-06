@@ -214,7 +214,7 @@
                         <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
                 </div>
-            </li>`).join('') || '<li>No cameras defined.</li>';
+            </li>`).join('') || `<li>${window.t('no_cameras_defined')}</li>`;
 
         document.getElementById('reducer-list').innerHTML = reducers_extenders.map(r => `
             <li>
@@ -226,7 +226,7 @@
                         <button type="submit" class="delete-btn">${window.t('delete')}</button>
                     </form>
                 </div>
-            </li>`).join('') || '<li>No reducers defined.</li>';
+            </li>`).join('') || `<li>${window.t('no_reducers_defined')}</li>`;
 
         const teleSelect = document.getElementById('tele_select');
         const camSelect = document.getElementById('cam_select');
@@ -292,7 +292,7 @@
                         <div class="rig-computed">${opticsHtml}</div>
                     </li>`;
         console.log('[CONFIG_FORM] Generated Edit button for rig:', rig.rig_name, 'id:', rig.rig_id);
-        }).join('') || '<li>No rigs configured yet.</li>';
+        }).join('') || `<li>${window.t('no_rigs_configured')}</li>`;
 
         document.getElementById('tele-count').innerText = telescopes.length;
         document.getElementById('cam-count').innerText = cameras.length;
@@ -499,9 +499,9 @@
             })
             .catch(error => {
                 console.error("Error fetching shared items:", error);
-                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="8" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">Error loading shared items.</td></tr>';
-                document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">Error loading shared items.</td></tr>';
-                document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">Error loading shared items.</td></tr>';
+                document.getElementById('shared-objects-body').innerHTML = '<tr><td colspan="8" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">' + window.t('error_loading_shared') + '</td></tr>';
+                document.getElementById('shared-components-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">' + window.t('error_loading_shared') + '</td></tr>';
+                document.getElementById('shared-views-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: ' + ((window.stylingUtils && window.stylingUtils.getDangerColor) ? window.stylingUtils.getDangerColor() : 'red') + ';">' + window.t('error_loading_shared') + '</td></tr>';
             });
     }
 
@@ -511,7 +511,7 @@
         }
 
         button.disabled = true;
-        button.textContent = 'Importing...';
+        button.textContent = window.t('importing');
 
         fetch('/api/import_item', {
             method: 'POST',
@@ -522,16 +522,16 @@
         .then(data => {
             if (data.status === 'success') {
                 alert(data.message);
-                button.textContent = 'Imported';
+                button.textContent = window.t('imported');
                 button.className = 'imported-button'; // Change class
 
                 // Update the row's status for filtering
                 const row = button.closest('tr');
                 if(row) row.dataset.status = 'imported';
             } else {
-                alert(`Error: ${data.message}`);
+                alert(`${window.t('error')}: ${data.message}`);
                 button.disabled = false;
-                button.textContent = 'Import';
+                button.textContent = window.t('import_btn');
             }
         })
         .catch(error => {
@@ -543,7 +543,7 @@
     }
 
     function showSharedNotes(objectName, notesHtml) {
-        document.getElementById('notes-modal-title').textContent = `Shared Notes for ${objectName}`;
+        document.getElementById('notes-modal-title').textContent = `${window.t('shared_notes_for')} ${objectName}`;
         document.getElementById('notes-modal-content').innerHTML = notesHtml; // Notes are pre-sanitized by the backend
         document.getElementById('notes-modal').classList.add('is-visible');
     }
@@ -697,7 +697,7 @@
                 })
                 .catch(err => {
                     // This catches network failures or the error thrown above
-                    alert(`${entityName} import failed: ${err.message}`);
+                    alert(`${entityName} ${window.t('import_failed')}: ${err.message}`);
                     if (msgContainer) msgContainer.innerHTML = '';
                     fileInput.value = ""; // Clear on failure
                 });
@@ -737,7 +737,7 @@
         })
         .catch(err => {
             console.error("Upload failed:", err);
-            alert("Upload failed. See console.");
+            alert(window.t('upload_failed'));
             btn.textContent = originalText;
             btn.disabled = false;
         });
@@ -807,7 +807,7 @@
         })
         .catch(err => {
             console.error(err);
-            alert("Network error saving object.");
+            alert(window.t('network_error_saving'));
             btn.textContent = originalText;
             btn.disabled = false;
         });
@@ -962,7 +962,7 @@
             .catch(error => {
                 console.error("Trix upload network error:", error);
                 event.attachment.remove();
-                alert("Image upload failed: Network error. See console for details.");
+                alert(window.t('image_upload_failed_network'));
             });
         }
         document.addEventListener("trix-attachment-add", handleTrixAttachmentAdd);
@@ -1119,7 +1119,7 @@
         const textarea = document.getElementById(textareaId);
         if (!textarea) {
             console.error('[CONFIG_FORM] parseStellariumHorizon: Target textarea not found:', textareaId);
-            alert('Error: Could not find the horizon mask field. Please refresh the page and try again.');
+            alert(window.t('horizon_field_not_found'));
             fileInput.value = '';
             return;
         }
@@ -1130,7 +1130,7 @@
 
         reader.onerror = function(e) {
             console.error('[CONFIG_FORM] FileReader error:', e.target.error);
-            alert('Error reading file. Please try again or select a different file.');
+            alert(window.t('error_reading_file'));
             fileInput.value = '';
         };
 
@@ -1153,7 +1153,7 @@
 
             if (points.length === 0) {
                 console.warn('[CONFIG_FORM] No valid horizon data found in file');
-                alert('No valid horizon data found in the file. Expected format: azimuth altitude (one pair per line).');
+                alert(window.t('no_valid_horizon_data'));
                 fileInput.value = '';
                 return;
             }

@@ -45,6 +45,7 @@ ALLOWED_IDENTICAL = {
     'observable (°)', 'Magnitude', 'SB', 'Altitude °', 'Angle',
     'Points', 'Distance', 'Options', '%(prog)s, version %(version)s',
     'Nova – Configuration', 'Nova Pocket', 'Dithering', 'Darks', 'Flats',
+    'Mode',  # Same word in English and French
     # Abbreviations and single characters (intentionally identical)
     'Integ.', 'Total:', 'min', 'x', 's', 'FL:', 'subs x ', 'Flats:',
     'Bias/DarkFlats:', 'Dithers', '#', 'RA', 'Dec', 'RA RMS:', 'Dec RMS:',

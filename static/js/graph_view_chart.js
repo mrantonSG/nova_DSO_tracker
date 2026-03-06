@@ -1893,7 +1893,7 @@
 
         const framingRigSelect = document.getElementById('framing-rig-select');
         if (framingRigSelect.options.length === 0 || framingRigSelect.value === "") {
-            alert("Please configure at least one rig on the Configuration page first.");
+            alert(window.t('no_rigs_configured'));
             return;
         }
 
@@ -2459,7 +2459,7 @@
                 );
             } catch (e) {
                 console.error("Error creating external survey layer:", e);
-                alert("Could not load external survey. See console for details.");
+                alert(window.t('survey_load_error'));
                 return;
             }
         } else {
@@ -2701,10 +2701,10 @@
         .then(r => r.json())
         .then(data => {
             if(data.status === 'success') {
-                alert("Framing settings saved to database.");
+                alert(window.t('framing_saved'));
                 checkAndShowFramingButton();
             } else {
-                alert("Error saving: " + data.message);
+                alert(`${window.t('error_saving')}: ${data.message}`);
             }
         });
     }
@@ -2759,7 +2759,7 @@
 
         const fovRigSel = document.getElementById('framing-rig-select');
         if (!fovRigSel || fovRigSel.selectedIndex < 0) {
-            alert("Please select a rig first.");
+            alert(window.t('please_select_rig'));
             return;
         }
         const opt = fovRigSel.options[fovRigSel.selectedIndex];

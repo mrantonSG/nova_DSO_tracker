@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (notificationSpan) {
                     const repo_url = data.url || 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/releases';
                     const primaryColor = (window.stylingUtils && window.stylingUtils.getPrimaryColor) ? window.stylingUtils.getPrimaryColor() : '#83b4c5';
-                    notificationSpan.innerHTML = ' <span style="font-size: 0.8em; font-weight: normal; color: ' + primaryColor + ';">(<a href="' + repo_url + '" target="_blank" style="color: ' + primaryColor + '; text-decoration: none;" >Latest version: v' + data.new_version + '</a>)</span>';
+                    notificationSpan.innerHTML = ' <span style="font-size: 0.8em; font-weight: normal; color: ' + primaryColor + ';">(<a href="' + repo_url + '" target="_blank" style="color: ' + primaryColor + '; text-decoration: none;" >' + window.t('latest_version') + ': v' + data.new_version + '</a>)</span>';
                 }
             }
         })
@@ -281,7 +281,7 @@ function openHelp(topicId) {
     }
 
     // Reset and show loading state
-    body.innerHTML = '<div style="text-align:center; padding: 40px; color: ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666') + ';">Loading help content...</div>';
+    body.innerHTML = '<div style="text-align:center; padding: 40px; color: ' + ((window.stylingUtils && window.stylingUtils.getColor) ? window.stylingUtils.getColor('--text-secondary', '#666') : '#666') + ';">' + window.t('loading_help') + '</div>';
 
     // Try to use ModalController if available
     const controller = window.novaState.fn.helpModal;
@@ -317,12 +317,12 @@ function openHelp(topicId) {
             if (data.html) {
                 body.innerHTML = data.html;
             } else {
-                body.innerHTML = '<p style="color:red">Error: Help content returned empty.</p>';
+                body.innerHTML = '<p style="color:red">' + window.t('help_content_empty') + '</p>';
             }
         })
         .catch(err => {
             console.error('[base.js] Error fetching help content:', err);
-            body.innerHTML = '<p style="color:red">Network Error: Could not load help topic \'' + topicId + '\'.</p>';
+            body.innerHTML = `<p style="color:red">${window.t('help_network_error')} '${topicId}'.</p>`;
         });
 }
 

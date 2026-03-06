@@ -162,7 +162,7 @@
         }
 
         if (!data || data.error) {
-            plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? data.error : 'No Data'}</div>`;
+            plotDiv.innerHTML = `<div style="color:red; text-align:center; padding:20px;">${data ? data.error : window.t('no_data_available')}</div>`;
             return;
         }
 
@@ -228,7 +228,7 @@
         console.log('[heatmap] Filtered results: total=', data.y.length, 'filtered=', filteredY.length);
 
         if (filteredY.length === 0) {
-             plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">No projects found.<br><br><small>Adjust filters or Saved View.</small></div>`;
+             plotDiv.innerHTML = `<div style="color:#666; text-align:center; padding:20px; padding-top:100px; font-size: 1.2em;">${window.t('no_projects_found')}</div>`;
              return;
         } else {
             plotDiv.innerHTML = "";

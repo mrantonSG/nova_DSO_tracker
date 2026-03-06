@@ -16,12 +16,12 @@
     async function downloadVisibleReport(defaultFilename, buttonElement, iframeId) {
         const iframe = document.getElementById(iframeId);
         if (!iframe || !iframe.contentWindow) {
-             alert("Report frame not found.");
+             alert(window.t('report_frame_not_found'));
              return;
         }
 
         const buttonOriginalText = buttonElement.textContent;
-        buttonElement.textContent = "Preparing Print View...";
+        buttonElement.textContent = window.t('preparing_print_view');
         buttonElement.disabled = true;
 
         try {
@@ -41,7 +41,7 @@
 
                 for (let i = 0; i < sessionRows.length; i++) {
                     const reportUrl = sessionRows[i].dataset.reportUrl;
-                    buttonElement.textContent = `Merging Session ${i+1}/${sessionRows.length}...`;
+                    buttonElement.textContent = window.t('merging_session_progress', { current: i+1, total: sessionRows.length });
                     if (!reportUrl) continue;
 
                     const htmlContent = await fetchReport(reportUrl);
@@ -287,9 +287,9 @@
 
         const titleText = form.getAttribute('data-add-title');
         if (titleText) formDetailTitle.textContent = titleText;
-        else formDetailTitle.textContent = 'Add New Session';
+        else formDetailTitle.textContent = window.t('add_new_session');
 
-        submitButton.textContent = 'Add Session';
+        submitButton.textContent = window.t('add_session');
         submitButton.style.backgroundColor = 'var(--success-color)';
         cancelButton.onclick = () => window.location.reload();
 
@@ -329,7 +329,7 @@
             console.error('[setupEditMode] No selectedSessionData found!');
         }
 
-        submitButton.textContent = 'Save Changes';
+        submitButton.textContent = window.t('save_changes');
         submitButton.style.backgroundColor = 'var(--info-color-alt2)';
         cancelButton.onclick = cancelForm;
     }

@@ -105,7 +105,7 @@
               {% if user.username != 'admin' %}
                 <!-- Delete -->
                 <form method="POST" action="{{ url_for('tools.admin_delete_user', user_id=user.id) }}" style="display:inline;"
-                      onsubmit="return confirm({% trans username=user.username %}Delete user '{{ username }}'? This removes their login credentials. Their observing data in app.db is NOT deleted.{% endtrans %});">
+                      onsubmit="return confirm({{ _('Delete user \'%(username)s\'? This removes their login credentials. Their observing data in app.db is NOT deleted.', username=user.username) }});">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                   <button type="submit" class="btn-small btn-danger">{{ _('Delete') }}</button>
                 </form>
