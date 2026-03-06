@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-03-05 15:33+0800\n"
+"POT-Creation-Date: 2026-03-06 01:16+0800\n"
 "PO-Revision-Date: 2026-03-03 16:04+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: zh <LL@li.org>\n"
@@ -637,7 +637,7 @@ msgstr "中天时间"
 msgid "Duration"
 msgstr "持续时间"
 
-#: templates/_inspiration_section.html:498 templates/config_form.html:540
+#: templates/_inspiration_section.html:498 templates/config_form.html:543
 #: templates/index.html:126
 msgid "Constellation"
 msgstr "星座"
@@ -648,9 +648,9 @@ msgstr "来源：Wiki"
 
 #: templates/_inspiration_section.html:504
 #: templates/_journal_section.html:1908 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:215
-#: templates/base.html:235 templates/base.html:243 templates/base.html:281
-#: templates/config_form.html:640 templates/graph_view.html:276
+#: templates/_objects_section.html:442 templates/base.html:367
+#: templates/base.html:387 templates/base.html:395 templates/base.html:433
+#: templates/config_form.html:643 templates/graph_view.html:276
 msgid "Close"
 msgstr "关闭"
 
@@ -658,26 +658,163 @@ msgstr "关闭"
 msgid "View Charts"
 msgstr "查看图表"
 
-#: templates/_inspiration_section.html:515
+#: templates/_inspiration_section.html:516
 msgid "Analyzing targets..."
 msgstr "分析目标中..."
 
-#: templates/_inspiration_section.html:516 templates/journal_report.html:706
+#: templates/_inspiration_section.html:517 templates/journal_report.html:706
 #: templates/project_report.html:1081
 msgid "No Image"
 msgstr "无图像"
 
-#: templates/_inspiration_section.html:517
+#: templates/_inspiration_section.html:518
 msgid "unknown"
 msgstr "未知"
 
-#: templates/_inspiration_section.html:518
+#: templates/_inspiration_section.html:519
 msgid "Error rendering grid. Check console."
 msgstr "渲染网格时出错。检查控制台。"
 
-#: templates/_inspiration_section.html:519
+#: templates/_inspiration_section.html:520
 msgid "Image unavailable"
 msgstr "图像不可用"
+
+#: templates/_inspiration_section.html:523
+msgid "How to populate this gallery:"
+msgstr "如何填充该图库："
+
+#: templates/_inspiration_section.html:524
+#, fuzzy
+msgid "Check Filters:"
+msgstr "滤镜："
+
+#: templates/_inspiration_section.html:525
+msgid "Clear filters on the Position tab."
+msgstr "清除位置选项卡上的筛选器。"
+
+#: templates/_inspiration_section.html:526
+msgid "Check Database:"
+msgstr "检查数据库："
+
+#: templates/_inspiration_section.html:527
+#, fuzzy
+msgid "Ensure you have objects in Configuration."
+msgstr "在您的配置中未找到对象。"
+
+#: templates/_inspiration_section.html:528
+msgid "Visibility:"
+msgstr "可见度："
+
+#: templates/_inspiration_section.html:529
+msgid "We only show objects observable during tonight's session."
+msgstr "我们只展示今晚会议期间可观测到的物体。"
+
+#: templates/_inspiration_section.html:532
+#, fuzzy
+msgid "Alt:"
+msgstr "纬度："
+
+#: templates/_inspiration_section.html:533
+#, fuzzy
+msgid "Dur:"
+msgstr "持续时间："
+
+#: templates/_inspiration_section.html:534
+#, fuzzy
+msgid "hrs"
+msgstr "抖动"
+
+#: templates/_inspiration_section.html:535
+msgid "h"
+msgstr "h"
+
+#: templates/_inspiration_section.html:536 templates/base.html:105
+#: templates/config_form.html:566 templates/config_form.html:595
+#: templates/config_form.html:631 templates/graph_view.html:132
+msgid "Loading..."
+msgstr "加载中..."
+
+#: templates/_inspiration_section.html:539
+#, fuzzy
+msgid "Type:"
+msgstr "类型"
+
+#: templates/_inspiration_section.html:540
+msgid "DSO"
+msgstr "DSO"
+
+#: templates/_inspiration_section.html:541
+#, fuzzy
+msgid "Located in"
+msgstr "位置"
+
+#: templates/_inspiration_section.html:542
+msgid "N/A"
+msgstr "N/A"
+
+#: templates/_inspiration_section.html:545
+#, fuzzy
+msgid "Source:"
+msgstr "来源"
+
+#: templates/_inspiration_section.html:546
+msgid "Wikipedia"
+msgstr "Wikipedia"
+
+#: templates/_inspiration_section.html:547
+msgid "NASA"
+msgstr "NASA"
+
+#: templates/_inspiration_section.html:548
+msgid "Aladin Sky Atlas / DSS2"
+msgstr "Aladin Sky Atlas / DSS2"
+
+#: templates/_inspiration_section.html:623
+#: templates/_inspiration_section.html:624
+msgid "No Matching Targets"
+msgstr "正在处理目标..."
+
+#: templates/_inspiration_section.html:625
+msgid "Your current filters (Position Tab) are too restrictive."
+msgstr "您当前的筛选器（位置选项卡）限制太多。"
+
+#: templates/_inspiration_section.html:631
+msgid "Loading Object Database..."
+msgstr "加载历史中..."
+
+#: templates/_inspiration_section.html:632
+msgid "Please wait while we calculate visibility and fetch data."
+msgstr "请稍候，我们将计算可见度并获取数据。"
+
+#: templates/_inspiration_section.html:635
+msgid "Database Empty"
+msgstr "数据库修复完成。"
+
+#: templates/_inspiration_section.html:636
+msgid "No objects found in your configuration."
+msgstr "在您的配置中未找到对象。"
+
+#: templates/_inspiration_section.html:707
+msgid "Add Your Own Inspiration!"
+msgstr "添加自己的灵感"
+
+#: templates/_inspiration_section.html:708
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "查看自动勘测图像"
+
+#: templates/_inspiration_section.html:709
+msgid ""
+"Did you know you can display your own astrophotos or favorite reference "
+"images here?"
+msgstr "您知道您可以在这里展示自己的天体照片或最喜欢的参考图片吗？"
+
+#: templates/_inspiration_section.html:710
+#, python-format
+msgid ""
+"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
+" \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
+"targets."
+msgstr "前往%(strong_start)s配置 > 管理对象%(strong_end)s，为您的目标添加「灵感内容」（图片URL、来源、描述）。"
 
 #: templates/_journal_section.html:1086
 msgid "Session History"
@@ -691,7 +828,7 @@ msgstr "切换对象"
 msgid "Add New Project"
 msgstr "添加新项目"
 
-#: templates/_journal_section.html:1093
+#: templates/_journal_section.html:1093 templates/base.html:182
 msgid "Add New Session"
 msgstr "添加新会话"
 
@@ -820,12 +957,12 @@ msgid "Rig Specs:"
 msgstr "Rig规格："
 
 #: templates/_journal_section.html:1205 templates/_journal_section.html:1247
-#: templates/config_form.html:449 templates/journal_report.html:757
+#: templates/config_form.html:452 templates/journal_report.html:757
 msgid "Telescope:"
 msgstr "望远镜："
 
 #: templates/_journal_section.html:1206 templates/_journal_section.html:1251
-#: templates/config_form.html:455 templates/journal_report.html:767
+#: templates/config_form.html:458 templates/journal_report.html:767
 msgid "Camera:"
 msgstr "相机："
 
@@ -990,7 +1127,7 @@ msgstr "下载PDF"
 msgid "Overview"
 msgstr "概览"
 
-#: templates/_journal_section.html:1355
+#: templates/_journal_section.html:1355 templates/base.html:144
 msgid "Guiding"
 msgstr "导星"
 
@@ -1102,7 +1239,7 @@ msgstr "包括抖动 — RA："
 msgid "Dec:"
 msgstr "Dec："
 
-#: templates/_journal_section.html:1436
+#: templates/_journal_section.html:1436 templates/base.html:208
 msgid "Zoom"
 msgstr "缩放"
 
@@ -1233,7 +1370,7 @@ msgstr "保存项目"
 #: templates/_journal_section.html:1606 templates/_journal_section.html:1676
 #: templates/_journal_section.html:1708 templates/_objects_section.html:347
 #: templates/_project_subtab.html:232 templates/admin_users.html:120
-#: templates/base.html:314 templates/index.html:248
+#: templates/base.html:466 templates/index.html:248
 #: templates/journal_form.html:210
 msgid "Cancel"
 msgstr "取消"
@@ -1324,7 +1461,7 @@ msgstr "为...添加新会话"
 msgid "Edit Session"
 msgstr "编辑会话"
 
-#: templates/_journal_section.html:1707
+#: templates/_journal_section.html:1707 templates/base.html:185
 msgid "Save Changes"
 msgstr "保存更改"
 
@@ -1571,7 +1708,7 @@ msgstr "已上传"
 
 #: templates/_journal_section.html:1849 templates/_journal_section.html:1863
 #: templates/_objects_section.html:88 templates/admin_users.html:110
-#: templates/index.html:98
+#: templates/base.html:112 templates/index.html:98
 msgid "Delete"
 msgstr "删除"
 
@@ -1685,8 +1822,8 @@ msgid "e.g., Cyg"
 msgstr "例如：Cyg"
 
 #: templates/_objects_section.html:42 templates/_objects_section.html:138
-#: templates/_objects_section.html:290 templates/config_form.html:539
-#: templates/config_form.html:603 templates/index.html:127
+#: templates/_objects_section.html:290 templates/config_form.html:542
+#: templates/config_form.html:606 templates/index.html:127
 msgid "Type"
 msgstr "类型"
 
@@ -1715,8 +1852,8 @@ msgid "Shared by Me"
 msgstr "我分享的"
 
 #: templates/_objects_section.html:54 templates/_objects_section.html:111
-#: templates/config_form.html:557 templates/config_form.html:586
-#: templates/config_form.html:622
+#: templates/base.html:120 templates/config_form.html:560
+#: templates/config_form.html:589 templates/config_form.html:625
 msgid "Imported"
 msgstr "已导入"
 
@@ -1729,7 +1866,7 @@ msgstr "来源"
 msgid "e.g., messier (use = for exact)"
 msgstr "例如：messier（使用 = 表示精确匹配）"
 
-#: templates/_objects_section.html:63 templates/config_form.html:542
+#: templates/_objects_section.html:63 templates/config_form.html:545
 #: templates/graph_view.html:155 templates/project_report.html:1086
 msgid "Notes"
 msgstr "备注"
@@ -1800,6 +1937,10 @@ msgstr "您正在分享此项"
 msgid "Shared"
 msgstr "已分享"
 
+#: templates/_objects_section.html:152
+msgid "SB:"
+msgstr "SB"
+
 #: templates/_objects_section.html:166
 msgid "Enabled"
 msgstr "已启用"
@@ -1809,7 +1950,7 @@ msgstr "已启用"
 msgid "Active Project"
 msgstr "活跃项目"
 
-#: templates/_objects_section.html:177 templates/index.html:64
+#: templates/_objects_section.html:177 templates/base.html:113
 msgid "Update"
 msgstr "更新"
 
@@ -1862,7 +2003,7 @@ msgid "Personal notes... (not shared)"
 msgstr "个人备注...（不共享）"
 
 #: templates/_objects_section.html:236 templates/_objects_section.html:425
-#: templates/config_form.html:637
+#: templates/config_form.html:640
 msgid "Shared Notes"
 msgstr "共享备注"
 
@@ -1878,7 +2019,7 @@ msgstr "与其他用户分享此天体"
 msgid "Update Objects"
 msgstr "更新天体"
 
-#: templates/_objects_section.html:265 templates/config_form.html:537
+#: templates/_objects_section.html:265 templates/config_form.html:540
 #: templates/index.html:173 templates/mobile_add_object.html:17
 msgid "Object ID"
 msgstr "天体 ID"
@@ -1931,7 +2072,8 @@ msgstr "搜索"
 msgid "Confirm Add"
 msgstr "确认添加"
 
-#: templates/_objects_section.html:346 templates/mobile_up_now.html:123
+#: templates/_objects_section.html:346 templates/base.html:111
+#: templates/mobile_up_now.html:123
 msgid "Edit"
 msgstr "编辑"
 
@@ -1962,7 +2104,7 @@ msgid ""
 "overwritten, and overlapping objects are skipped."
 msgstr "星表包是服务器提供的天体集合，您可以将其导入到您的库中。导入不会破坏性修改：现有天体永远不会被覆盖，重叠的天体将被跳过。"
 
-#: templates/_objects_section.html:386 templates/config_form.html:574
+#: templates/_objects_section.html:386 templates/config_form.html:577
 #: templates/graph_view.html:201
 msgid "Description"
 msgstr "描述"
@@ -1975,12 +2117,13 @@ msgstr "标签"
 msgid "Objects"
 msgstr "天体"
 
-#: templates/_objects_section.html:389 templates/config_form.html:543
-#: templates/config_form.html:576 templates/config_form.html:605
+#: templates/_objects_section.html:389 templates/config_form.html:546
+#: templates/config_form.html:579 templates/config_form.html:608
 msgid "Action"
 msgstr "操作"
 
-#: templates/_objects_section.html:409 templates/config_form.html:82
+#: templates/_objects_section.html:409 templates/base.html:118
+#: templates/config_form.html:82
 msgid "Import"
 msgstr "导入"
 
@@ -2286,142 +2429,592 @@ msgstr "暂无功能使用数据可用"
 msgid "Nova DSO Tracker Analytics — GDPR compliant, no PII stored"
 msgstr "Nova DSO Tracker 分析 — 符合 GDPR，不存储个人身份信息"
 
-#: templates/base.html:121
+#: templates/base.html:106
+msgid "Calculating..."
+msgstr "加载中..."
+
+#: templates/base.html:107
+msgid "Fetching..."
+msgstr "获取详情中..."
+
+#: templates/base.html:108 templates/mobile_add_object.html:59
+#: templates/mobile_edit_notes.html:78
+msgid "Saving..."
+msgstr "保存中..."
+
+#: templates/base.html:109
+msgid "Saved"
+msgstr "保存"
+
+#: templates/base.html:110
+msgid "Error"
+msgstr "错误："
+
+#: templates/base.html:114
+msgid "None"
+msgstr "备注"
+
+#: templates/base.html:115
+msgid "Mode"
+msgstr "模式"
+
+#: templates/base.html:116 templates/index.html:23
+msgid "Simulated"
+msgstr "模拟"
+
+#: templates/base.html:117
+msgid "sep"
+msgstr "步"
+
+#: templates/base.html:119
+msgid "Importing..."
+msgstr "导入"
+
+#: templates/base.html:123
+msgid "Name is required"
+msgstr "项目名称为必填项。"
+
+#: templates/base.html:124
+msgid "Data Load Failed"
+msgstr "数据加载失败"
+
+#: templates/base.html:125
+msgid "No targets found matching your filters."
+msgstr "没有天体匹配您的筛选。"
+
+#: templates/base.html:126
+msgid "Updating location..."
+msgstr "更新数据中..."
+
+#: templates/base.html:127
+msgid "No imaging opportunities found matching the criteria."
+msgstr "未为您的活跃项目找到成像机会。"
+
+#: templates/base.html:128
+msgid "Waiting for background task..."
+msgstr "等待后台任务..."
+
+#: templates/base.html:129
+msgid "No data available or error. Check server logs."
+msgstr "此服务器上尚未有可用的星表包。"
+
+#: templates/base.html:130
+msgid "Error fetching data. Check console for details."
+msgstr "渲染网格时出错。检查控制台。"
+
+#: templates/base.html:131
+msgid "Loading altitude data..."
+msgstr "加载历史中..."
+
+#: templates/base.html:132
+msgid "Altitude data unavailable."
+msgstr "图像不可用"
+
+#: templates/base.html:133
+msgid "Select a saved view..."
+msgstr "删除选中的视图"
+
+#: templates/base.html:134
+msgid "Error loading views"
+msgstr "加载数据时出错。"
+
+#: templates/base.html:135
+msgid "Update in"
+msgstr "更新倒计时"
+
+#: templates/base.html:136
+msgid "Latest version"
+msgstr "版本"
+
+#: templates/base.html:139
+msgid "Select Telescope"
+msgstr "-- 选择望远镜 --"
+
+#: templates/base.html:140
+msgid "Select Camera"
+msgstr "-- 选择相机 --"
+
+#: templates/base.html:141 templates/config_form.html:615
+#: templates/project_report.html:1139
+msgid "Telescope"
+msgstr "望远镜"
+
+#: templates/base.html:142 templates/config_form.html:616
+#: templates/project_report.html:1143
+msgid "Camera"
+msgstr "相机"
+
+#: templates/base.html:143
+msgid "Reducer / Extender"
+msgstr "减焦镜 / 增距镜"
+
+#: templates/base.html:145
+msgid "Oversampled"
+msgstr "已完成"
+
+#: templates/base.html:146
+msgid "Well sampled"
+msgstr "像素比例"
+
+#: templates/base.html:147
+msgid "Undersampled"
+msgstr "用户名"
+
+#: templates/base.html:148
+msgid "No telescopes defined."
+msgstr "未定义目标。"
+
+#: templates/base.html:149
+msgid "No cameras defined."
+msgstr "未定义目标。"
+
+#: templates/base.html:150
+msgid "Error loading shared items."
+msgstr "加载数据时出错。"
+
+#: templates/base.html:151
+msgid "Import failed. See console for details."
+msgstr "导入失败。请查看服务器日志以了解详细信息。"
+
+#: templates/base.html:152
+msgid "Upload failed. See console."
+msgstr "上传失败。请参见控制台。"
+
+#: templates/base.html:153
+msgid "Network error saving object."
+msgstr "网络错误。"
+
+#: templates/base.html:154
+msgid "Image upload failed: Network error."
+msgstr "导入失败：网络错误"
+
+#: templates/base.html:155
+msgid "Error: Could not find the horizon mask field."
+msgstr "错误：找不到地平线掩码字段。"
+
+#: templates/base.html:156
+msgid "Error reading file. Please try again."
+msgstr "添加滤镜时出错。"
+
+#: templates/base.html:157
+msgid "No valid horizon data found."
+msgstr "未找到有效的地平线数据。"
+
+#: templates/base.html:158
+msgid "Shared Notes for"
+msgstr "共享备注"
+
+#: templates/base.html:161
+msgid "No objects selected."
+msgstr "未指定对象。"
+
+#: templates/base.html:162
+msgid "Bulk action failed."
+msgstr "批量操作失败。"
+
+#: templates/base.html:163
+msgid "Bulk fetch details failed."
+msgstr "获取详情"
+
+#: templates/base.html:164
+msgid "No potential duplicates found."
+msgstr "可能的重复项"
+
+#: templates/base.html:165
+msgid "Keep A, merge B into A"
+msgstr "保留 A，将 B 并入 A"
+
+#: templates/base.html:166
+msgid "Keep B, merge A into B"
+msgstr "保留 B，将 A 并入 B"
+
+#: templates/base.html:167
+msgid "Error scanning duplicates."
+msgstr "加载数据时出错。"
+
+#: templates/base.html:168
+msgid "Confirm merge?"
+msgstr "确认添加"
+
+#: templates/base.html:169
+msgid "All duplicates resolved."
+msgstr "板星求解"
+
+#: templates/base.html:170
+msgid "Please enter an object identifier."
+msgstr "请登录以查看对象详细信息。"
+
+#: templates/base.html:171
+msgid "Checking your local library..."
+msgstr "查看当地图书馆..."
+
+#: templates/base.html:172
+msgid "Object found in your library."
+msgstr "未找到对象数据或数据无效。"
+
+#: templates/base.html:173
+#, python-format
+msgid "Found: %(name)s. Details loaded from SIMBAD\\."
+msgstr "找到：%(name)s。从 SIMBAD 加载的详细信息。"
+
+#: templates/base.html:174
+msgid "SIMBAD lookup failed."
+msgstr "剪贴板复制失败。"
+
+#: templates/base.html:175
+msgid "selected"
+msgstr "已选 0 项"
+
+#: templates/base.html:176
+msgid "No imaging opportunities found."
+msgstr "成像机会"
+
+#: templates/base.html:179
+msgid "Report frame not found."
+msgstr "未找到用户。"
+
+#: templates/base.html:180
+msgid "Preparing Print View..."
+msgstr "准备打印视图..."
+
+#: templates/base.html:181
+#, python-format
+msgid "Merging Session %(current)d/%(total)d..."
+msgstr "合并会话 %(current)d/%(total)d...%(total)d%(current)d"
+
+#: templates/base.html:183
+msgid "Add Session"
+msgstr "添加新会话"
+
+#: templates/base.html:184
+msgid "Editing Session"
+msgstr "编辑会话"
+
+#: templates/base.html:188
+#, python-format
+msgid "Failed to update Active Project: %(error)s"
+msgstr "创建项目时出错：%(error)s"
+
+#: templates/base.html:189
+msgid "SIMBAD requires an active internet connection to load data."
+msgstr "SIMBAD 需要连接互联网才能加载数据。"
+
+#: templates/base.html:190
+msgid "SIMBAD requires an active internet connection."
+msgstr "SIMBAD 需要连接互联网。"
+
+#: templates/base.html:191
+msgid "Add to calendar"
+msgstr "添加到日历"
+
+#: templates/base.html:192
+#, python-format
+msgid "Error loading opportunities: %(error)s"
+msgstr "添加组件时出错：%(error)s"
+
+#: templates/base.html:193
+#, python-format
+msgid ""
+"Failed to load imaging opportunities. Check console for details. (%(error)s)"
+msgstr "加载成像机会失败。请查看控制台了解详情。(%(error)s)"
+
+#: templates/base.html:194
+msgid "Please configure at least one rig on the Configuration page first."
+msgstr "请先在 \"配置 \"页面配置至少一个钻机。"
+
+#: templates/base.html:195
+msgid "Could not load external survey. See console for details."
+msgstr "无法加载外部调查。详情请查看控制台。"
+
+#: templates/base.html:196
+msgid "Framing settings saved to database."
+msgstr "框架设置保存到数据库。"
+
+#: templates/base.html:197
+msgid "Error saving"
+msgstr "加载数据时出错。"
+
+#: templates/base.html:198
+msgid "Please select a rig first."
+msgstr "请选择有效的.zip文件进行导入。"
+
+#: templates/base.html:199
+msgid "Failed to copy to clipboard. See console."
+msgstr "复制到剪贴板失败。参见控制台。"
+
+#: templates/base.html:200
+msgid "Open Saved Framing"
+msgstr "保存构图"
+
+#: templates/base.html:201
+msgid "Delete Saved Framing"
+msgstr "保存构图"
+
+#: templates/base.html:202
+msgid "Image upload failed. See console for details."
+msgstr "导入失败。请查看服务器日志以了解详细信息。"
+
+#: templates/base.html:205
+msgid "No timeline data to display."
+msgstr "无时间轴数据显示。"
+
+#: templates/base.html:206
+msgid "No PHD2 guide log data available."
+msgstr "暂无登录数据可用"
+
+#: templates/base.html:207
+msgid "Full"
+msgstr "全部"
+
+#: templates/base.html:209
+msgid "No dither data available."
+msgstr "暂无登录数据可用"
+
+#: templates/base.html:210
+msgid "No autofocus data available."
+msgstr "暂无登录数据可用"
+
+#: templates/base.html:213
+#, python-format
+msgid "Calculating month %(current)d of %(total)d..."
+msgstr "已计算 %%(total)d 个天体中的 %(current)d 个..."
+
+#: templates/base.html:214
+msgid "No projects found. Adjust filters or add projects."
+msgstr "未找到天体。尝试添加一个！"
+
+#: templates/base.html:215
+msgid "Plotly library not loaded. Please refresh."
+msgstr "Plotly 库未加载。请刷新。"
+
+#: templates/base.html:218
+msgid "Loading help content..."
+msgstr "加载历史中..."
+
+#: templates/base.html:219
+msgid "Error: Help content returned empty."
+msgstr "错误：帮助内容返回为空。"
+
+#: templates/base.html:220
+msgid "Network Error: Could not load help topic."
+msgstr "网络错误：无法加载帮助主题。"
+
+#: templates/base.html:223
+#, python-format
+msgid "Showing %(count)d objects"
+msgstr "显示 %(count)d 个对象"
+
+#: templates/base.html:224
+#, python-format
+msgid "Showing %(shown)d of %(total)d objects"
+msgstr "已计算 %%(total)d 个天体中的 %(shown)d 个..."
+
+#: templates/base.html:225
+#, python-format
+msgid "Are you sure you want to %(action)s %(count)d objects?"
+msgstr "您确定要%(action)s %(count)d 个对象吗？"
+
+#: templates/base.html:226
+#, python-format
+msgid "Fetching details for %(name)s..."
+msgstr "正在搜索 %%(name)s..."
+
+#: templates/base.html:229
+msgid "Effective FL"
+msgstr "仅活跃"
+
+#: templates/base.html:230
+msgid "Field of View"
+msgstr "视野"
+
+#: templates/base.html:231
+msgid "Good sampling"
+msgstr "良好的抽样"
+
+#: templates/base.html:232
+msgid "Image Scale"
+msgstr "像素比例"
+
+#: templates/base.html:233
+msgid "No reducers defined."
+msgstr "未定义目标。"
+
+#: templates/base.html:234
+msgid "Slightly oversampled"
+msgstr "已完成"
+
+#: templates/base.html:235
+msgid "Slightly undersampled"
+msgstr "用户名"
+
+#: templates/base.html:238
+msgid "Add Your Own Inspiration!"
+msgstr "添加您自己的灵感！"
+
+#: templates/base.html:239
+msgid "You are currently seeing automated survey images (DSS2)."
+msgstr "您当前看到的是自动勘测图像（DSS2）。"
+
+#: templates/base.html:240
+msgid "Did you know you can display your own astrophotos or favorite reference images here?"
+msgstr "您知道可以在这里显示您自己的天体照片或喜爱的参考图像吗？"
+
+#: templates/base.html:241
+msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
+msgstr "转到<strong>配置 > 管理天体</strong>为您的目标添加"灵感内容"（图像URL、署名、描述）。"
+
+#: templates/base.html:238
+msgid "Add own inspiration"
+msgstr "添加自己的灵感"
+
+#: templates/base.html:239
+msgid "See automated survey images"
+msgstr "查看自动勘测图像"
+
+#: templates/base.html:240
+msgid "Display own astrophotos"
+msgstr "显示自己的天体照片"
+
+#: templates/base.html:241
+msgid "Go to config to manage objects"
+msgstr "转到配置以管理天体"
+
+#: templates/base.html:273
 msgid "Demo Mode:"
 msgstr "演示模式："
 
-#: templates/base.html:121
+#: templates/base.html:273
 msgid ""
 "You are viewing a read-only demo. Full functionality (like saving) is "
 "enabled for registered users."
 msgstr "您正在查看只读演示。完整功能（如保存）仅对注册用户启用。"
 
-#: templates/base.html:145
+#: templates/base.html:297
 msgid "About Nova DSO Tracker"
 msgstr "关于 Nova DSO Tracker"
 
-#: templates/base.html:145
+#: templates/base.html:297
 msgid "About"
 msgstr "关于"
 
-#: templates/base.html:153
+#: templates/base.html:305
 msgid "Toggle dark/light theme"
 msgstr "切换深色/浅色主题"
 
-#: templates/base.html:153
+#: templates/base.html:305
 msgid "Toggle theme"
 msgstr "切换主题"
 
-#: templates/base.html:173
+#: templates/base.html:325
 msgid "Select language"
 msgstr "选择语言"
 
-#: templates/base.html:185
+#: templates/base.html:337
 msgid "Guest Mode"
 msgstr "访客模式"
 
-#: templates/base.html:186 templates/login.html:2
+#: templates/base.html:338 templates/login.html:2
 msgid "Login"
 msgstr "登录"
 
-#: templates/base.html:190
+#: templates/base.html:342
 msgid "Users"
 msgstr "用户"
 
-#: templates/base.html:193
+#: templates/base.html:345
 msgid "Logout"
 msgstr "登出"
 
-#: templates/base.html:212
+#: templates/base.html:364
 msgid ""
 "The translations for this language are machine-generated and may not be "
 "accurate. Help improve them!"
 msgstr "该语言的翻译是机器生成的，可能不准确。请帮助我们改进！"
 
-#: templates/base.html:213
+#: templates/base.html:365
 msgid "Submit feedback"
 msgstr "提交反馈"
 
-#: templates/base.html:232 templates/config_form.html:283
-#: templates/macros.html:79
+#: templates/base.html:384 templates/config_form.html:283
+#: templates/config_form.html:351
 msgid "Help"
 msgstr "帮助"
 
-#: templates/base.html:250
+#: templates/base.html:402
 msgid "Nova DSO Tracker Logo"
 msgstr "Nova DSO Tracker 徽标"
 
-#: templates/base.html:252
+#: templates/base.html:404
 msgid "Version"
 msgstr "版本"
 
-#: templates/base.html:253
+#: templates/base.html:405
 msgid ""
 "A personal project born from a passion for astronomy and astrophotography."
 msgstr "一个因对天文学和天体摄影的热情而诞生的个人项目。"
 
-#: templates/base.html:254
+#: templates/base.html:406
 msgid ""
 "Nova DSO Tracker helps amateur astronomers plan observation sessions, "
 "calculating and visualizing altitude and azimuth of deep-sky objects, "
 "tracking Moon position and phase, and identifying optimal viewing windows."
 msgstr "Nova DSO Tracker 帮助业余天文学家规划观测会话，计算和可视化深空天体的高度和方位，跟踪月球位置和相位，并确定最佳观测窗口。"
 
-#: templates/base.html:255
+#: templates/base.html:407
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
 msgstr "数据来源于 SIMBAD；计算由 Astropy 和 Ephem 驱动。"
 
-#: templates/base.html:263
+#: templates/base.html:415
 msgid "Visit nova-tracker.com"
 msgstr "访问 nova-tracker.com"
 
-#: templates/base.html:273
+#: templates/base.html:425
 msgid "Built by Anton Gutscher"
 msgstr "由 Anton Gutscher 构建"
 
-#: templates/base.html:288
+#: templates/base.html:440
 msgid "Translation Feedback"
 msgstr "翻译反馈"
 
-#: templates/base.html:289
+#: templates/base.html:441
 msgid "Help us improve the translations for this language."
 msgstr "帮助我们改进此语言的翻译。"
 
-#: templates/base.html:293
+#: templates/base.html:445
 msgid "Locale"
 msgstr "语言环境"
 
-#: templates/base.html:298
+#: templates/base.html:450
 msgid "Term / Phrase"
 msgstr "术语 / 短语"
 
-#: templates/base.html:299
+#: templates/base.html:451
 msgid "The translated term that seems wrong..."
 msgstr "似乎有误的翻译术语..."
 
-#: templates/base.html:303
+#: templates/base.html:455
 msgid "Suggested Correction"
 msgstr "建议修正"
 
-#: templates/base.html:304
+#: templates/base.html:456
 msgid "Your suggested translation..."
 msgstr "您的建议翻译..."
 
-#: templates/base.html:308
+#: templates/base.html:460
 msgid "Context / Notes"
 msgstr "上下文 / 备注"
 
-#: templates/base.html:308
+#: templates/base.html:460
 msgid "optional"
 msgstr "(可选)"
 
-#: templates/base.html:309
+#: templates/base.html:461
 msgid ""
 "Additional context about where this appears or why the correction is "
 "needed..."
 msgstr "关于其出现位置或为何需要修正的附加上下文..."
 
-#: templates/base.html:313
+#: templates/base.html:465
 msgid "Submit"
 msgstr "提交"
 
@@ -2481,6 +3074,7 @@ msgid "General Settings"
 msgstr "常规设置"
 
 #: templates/config_form.html:111 templates/config_form.html:243
+#: templates/macros.html:79
 msgid "Click for help"
 msgstr "点击获取帮助"
 
@@ -2610,8 +3204,8 @@ msgstr "位置配置"
 msgid "Add New Location"
 msgstr "添加新位置"
 
-#: templates/config_form.html:252 templates/config_form.html:389
-#: templates/config_form.html:408 templates/config_form.html:428
+#: templates/config_form.html:252 templates/config_form.html:392
+#: templates/config_form.html:411 templates/config_form.html:431
 #: templates/index.html:239
 msgid "Name:"
 msgstr "名称："
@@ -2640,27 +3234,27 @@ msgstr "输入以搜索..."
 msgid "Active:"
 msgstr "活跃："
 
-#: templates/config_form.html:282 templates/config_form.html:349
+#: templates/config_form.html:282 templates/config_form.html:350
 msgid "Horizon Mask:"
 msgstr "地平线遮罩："
 
-#: templates/config_form.html:286 templates/config_form.html:351
+#: templates/config_form.html:286 templates/config_form.html:354
 msgid "Optional. e.g., [[0, 35], [90, 15]]"
 msgstr "可选。例如：[[0, 35], [90, 15]]"
 
-#: templates/config_form.html:288 templates/config_form.html:353
+#: templates/config_form.html:288 templates/config_form.html:356
 msgid "Import a Stellarium .hzn horizon file"
 msgstr "导入 Stellarium .hzn 地平线文件"
 
-#: templates/config_form.html:288 templates/config_form.html:353
+#: templates/config_form.html:288 templates/config_form.html:356
 msgid "Import .hzn"
 msgstr "导入 .hzn"
 
-#: templates/config_form.html:298 templates/config_form.html:362
+#: templates/config_form.html:298 templates/config_form.html:365
 msgid "Comments:"
 msgstr "备注："
 
-#: templates/config_form.html:299 templates/config_form.html:363
+#: templates/config_form.html:299 templates/config_form.html:366
 msgid "Notes on sky quality, obstructions, etc."
 msgstr "关于天空质量、遮挡等的备注。"
 
@@ -2684,340 +3278,327 @@ msgstr "在 Google 地图上查看"
 msgid "Open Map"
 msgstr "打开地图"
 
-#: templates/config_form.html:370
+#: templates/config_form.html:373
 msgid "Update Locations"
 msgstr "更新位置"
 
-#: templates/config_form.html:381
+#: templates/config_form.html:384
 msgid "1. Define Your Components"
 msgstr "1. 定义您的组件"
 
-#: templates/config_form.html:382
+#: templates/config_form.html:385
 msgid "Help with Rigs"
 msgstr "设备帮助"
 
-#: templates/config_form.html:384
+#: templates/config_form.html:387
 msgid ""
 "Add or update your equipment here. To edit an item, click \"Edit\" to load "
 "its details into the form, make your changes, and click the \"Update\" "
 "button."
 msgstr "在此处添加或更新您的设备。要编辑项目，请点击\"编辑\"将其详细信息加载到表单中，进行更改，然后点击\"更新\"按钮。"
 
-#: templates/config_form.html:385
+#: templates/config_form.html:388
 msgid "Telescopes"
 msgstr "望远镜"
 
-#: templates/config_form.html:389
+#: templates/config_form.html:392
 msgid "e.g., Celestron EdgeHD 11"
 msgstr "例如：Celestron EdgeHD 11"
 
-#: templates/config_form.html:390
+#: templates/config_form.html:393
 msgid "Aperture (mm):"
 msgstr "口径（mm）："
 
-#: templates/config_form.html:391
+#: templates/config_form.html:394
 msgid "Focal Length (mm):"
 msgstr "焦距（mm）："
 
-#: templates/config_form.html:395 templates/config_form.html:415
-#: templates/config_form.html:433
+#: templates/config_form.html:398 templates/config_form.html:418
+#: templates/config_form.html:436
 msgid "Share this component"
 msgstr "分享此组件"
 
-#: templates/config_form.html:398
+#: templates/config_form.html:401
 msgid "Add Telescope"
 msgstr "添加望远镜"
 
-#: templates/config_form.html:404
+#: templates/config_form.html:407
 msgid "Cameras"
 msgstr "相机"
 
-#: templates/config_form.html:408
+#: templates/config_form.html:411
 msgid "e.g., ZWO ASI2600MC Pro"
 msgstr "例如：ZWO ASI2600MC Pro"
 
-#: templates/config_form.html:409
+#: templates/config_form.html:412
 msgid "Sensor Width (mm):"
 msgstr "传感器宽度（mm）："
 
-#: templates/config_form.html:410
+#: templates/config_form.html:413
 msgid "Sensor Height (mm):"
 msgstr "传感器高度（mm）："
 
-#: templates/config_form.html:411
+#: templates/config_form.html:414
 msgid "Pixel Size (μm):"
 msgstr "像素大小（μm）："
 
-#: templates/config_form.html:418
+#: templates/config_form.html:421
 msgid "Add Camera"
 msgstr "添加相机"
 
-#: templates/config_form.html:424
+#: templates/config_form.html:427
 msgid "Reducers / Extenders"
 msgstr "减焦镜 / 增距镜"
 
-#: templates/config_form.html:428
+#: templates/config_form.html:431
 msgid "e.g., Celestron 0.7x Reducer"
 msgstr "例如：Celestron 0.7x 减焦镜"
 
-#: templates/config_form.html:429
+#: templates/config_form.html:432
 msgid "Factor:"
 msgstr "系数："
 
-#: templates/config_form.html:429
+#: templates/config_form.html:432
 msgid "e.g., 0.7 for reducer"
 msgstr "例如：0.7 表示减焦镜"
 
-#: templates/config_form.html:436
+#: templates/config_form.html:439
 msgid "Add Reducer/Extender"
 msgstr "添加减焦镜/增距镜"
 
-#: templates/config_form.html:443
+#: templates/config_form.html:446
 msgid "2. Configure Your Rigs"
 msgstr "2. 配置您的设备"
 
-#: templates/config_form.html:444
+#: templates/config_form.html:447
 msgid ""
 "Combine your components into a complete imaging rig. To edit, click \"Edit\""
 " to load the rig into the form below."
 msgstr "将您的组件组合成完整的成像设备。要编辑，请点击\"编辑\"将设备加载到下方的表单中。"
 
-#: templates/config_form.html:447
+#: templates/config_form.html:450
 msgid "Rig Name:"
 msgstr "设备名称："
 
-#: templates/config_form.html:447
+#: templates/config_form.html:450
 msgid "e.g., C11 Deep Sky Rig"
 msgstr "例如：C11 深空设备"
 
-#: templates/config_form.html:451
+#: templates/config_form.html:454
 msgid "-- Select a Telescope --"
 msgstr "-- 选择望远镜 --"
 
-#: templates/config_form.html:457
+#: templates/config_form.html:460
 msgid "-- Select a Camera --"
 msgstr "-- 选择相机 --"
 
-#: templates/config_form.html:461
+#: templates/config_form.html:464
 msgid "Reducer / Extender (Optional):"
 msgstr "减焦镜 / 增距镜（可选）："
 
-#: templates/config_form.html:463 templates/config_form.html:479
-#: templates/config_form.html:485
+#: templates/config_form.html:466 templates/config_form.html:482
+#: templates/config_form.html:488
 msgid "-- None --"
 msgstr "-- 无 --"
 
-#: templates/config_form.html:468
+#: templates/config_form.html:471
 msgid "Guide Optics"
 msgstr "导星光学系统"
 
-#: templates/config_form.html:468
+#: templates/config_form.html:471
 msgid "Optional — for dither recommendations"
 msgstr "可选 — 用于抖动建议"
 
-#: templates/config_form.html:473
+#: templates/config_form.html:476
 msgid "Off-Axis Guider (OAG) — uses main scope focal length"
 msgstr "偏轴导星器（OAG）— 使用主镜焦距"
 
-#: templates/config_form.html:477
+#: templates/config_form.html:480
 msgid "Guide Scope:"
 msgstr "导星镜："
 
-#: templates/config_form.html:483
+#: templates/config_form.html:486
 msgid "Guide Camera:"
 msgstr "导星相机："
 
-#: templates/config_form.html:489
+#: templates/config_form.html:492
 msgid "Create Rig"
 msgstr "创建设备"
 
-#: templates/config_form.html:493
+#: templates/config_form.html:496
 msgid "Select Your Typical Seeing:"
 msgstr "选择您的典型视宁度："
 
-#: templates/config_form.html:495
+#: templates/config_form.html:498
 msgid "-- Select Seeing to Assess Rigs --"
 msgstr "-- 选择视宁度以评估设备 --"
 
-#: templates/config_form.html:496
+#: templates/config_form.html:499
 msgid "Excellent Seeing (1.0\" - 2.0\" FWHM)"
 msgstr "优秀视宁度（1.0\" - 2.0\" FWHM）"
 
-#: templates/config_form.html:497
+#: templates/config_form.html:500
 msgid "Good Seeing (2.0\" - 4.0\" FWHM)"
 msgstr "良好视宁度（2.0\" - 4.0\" FWHM）"
 
-#: templates/config_form.html:498
+#: templates/config_form.html:501
 msgid "Poor Seeing (> 4.0\" FWHM)"
 msgstr "较差视宁度（> 4.0\" FWHM）"
 
-#: templates/config_form.html:502
+#: templates/config_form.html:505
 msgid "Sort rigs by:"
 msgstr "设备排序方式："
 
-#: templates/config_form.html:504
+#: templates/config_form.html:507
 msgid "Name (A→Z)"
 msgstr "名称（A→Z）"
 
-#: templates/config_form.html:505
+#: templates/config_form.html:508
 msgid "Name (Z→A)"
 msgstr "名称（Z→A）"
 
-#: templates/config_form.html:506
+#: templates/config_form.html:509
 msgid "Effective Focal Length (low→high)"
 msgstr "有效焦距（低→高）"
 
-#: templates/config_form.html:507
+#: templates/config_form.html:510
 msgid "Effective Focal Length (high→low)"
 msgstr "有效焦距（高→低）"
 
-#: templates/config_form.html:508
+#: templates/config_form.html:511
 msgid "f/ratio (low→high)"
 msgstr "焦比（低→高）"
 
-#: templates/config_form.html:509
+#: templates/config_form.html:512
 msgid "f/ratio (high→low)"
 msgstr "焦比（高→低）"
 
-#: templates/config_form.html:510
+#: templates/config_form.html:513
 msgid "Image Scale (low→high)"
 msgstr "图像比例（低→高）"
 
-#: templates/config_form.html:511
+#: templates/config_form.html:514
 msgid "Image Scale (high→low)"
 msgstr "图像比例（高→低）"
 
-#: templates/config_form.html:512
+#: templates/config_form.html:515
 msgid "FOV Width (low→high)"
 msgstr "视场宽度（低→高）"
 
-#: templates/config_form.html:513
+#: templates/config_form.html:516
 msgid "FOV Width (high→low)"
 msgstr "视场宽度（高→低）"
 
-#: templates/config_form.html:514
+#: templates/config_form.html:517
 msgid "Recently Added (newest first)"
 msgstr "最近添加（最新的在前）"
 
-#: templates/config_form.html:515
+#: templates/config_form.html:518
 msgid "Recently Added (oldest first)"
 msgstr "最近添加（最旧的在前）"
 
-#: templates/config_form.html:518
+#: templates/config_form.html:521
 msgid "Existing Rigs"
 msgstr "现有设备"
 
-#: templates/config_form.html:526
+#: templates/config_form.html:529
 msgid "Shared Items from Other Users"
 msgstr "其他用户共享的项"
 
-#: templates/config_form.html:527
+#: templates/config_form.html:530
 msgid "Help with Shared Items"
 msgstr "共享项帮助"
 
-#: templates/config_form.html:529
+#: templates/config_form.html:532
 msgid ""
 "Here you can find Objects and Components shared by other users in the "
 "system. Click \"Import\" to add a copy to your own configuration."
 msgstr "在此处您可以找到系统中其他用户共享的天体和组件。点击\"导入\"将副本添加到您自己的配置中。"
 
-#: templates/config_form.html:531
+#: templates/config_form.html:534
 msgid "Shared Objects"
 msgstr "共享的天体"
 
-#: templates/config_form.html:536
+#: templates/config_form.html:539
 msgid "Img"
 msgstr "图片"
 
-#: templates/config_form.html:538 templates/index.html:116
+#: templates/config_form.html:541 templates/index.html:116
 #: templates/index.html:164 templates/index.html:193
 #: templates/mobile_add_object.html:21
 msgid "Common Name"
 msgstr "通用名称"
 
-#: templates/config_form.html:541 templates/config_form.html:575
-#: templates/config_form.html:604
+#: templates/config_form.html:544 templates/config_form.html:578
+#: templates/config_form.html:607
 msgid "Shared By"
 msgstr "共享者"
 
-#: templates/config_form.html:547
+#: templates/config_form.html:550
 msgid "Filter ID..."
 msgstr "筛选 ID..."
 
-#: templates/config_form.html:548 templates/config_form.html:579
-#: templates/config_form.html:608
+#: templates/config_form.html:551 templates/config_form.html:582
+#: templates/config_form.html:611
 msgid "Filter name..."
 msgstr "筛选名称..."
 
-#: templates/config_form.html:549
+#: templates/config_form.html:552
 msgid "Filter type..."
 msgstr "筛选类型..."
 
-#: templates/config_form.html:550
+#: templates/config_form.html:553
 msgid "Filter con..."
 msgstr "筛选星座..."
 
-#: templates/config_form.html:551 templates/config_form.html:581
-#: templates/config_form.html:617
+#: templates/config_form.html:554 templates/config_form.html:584
+#: templates/config_form.html:620
 msgid "Filter user..."
 msgstr "筛选用户..."
 
-#: templates/config_form.html:555 templates/config_form.html:584
-#: templates/config_form.html:620
+#: templates/config_form.html:558 templates/config_form.html:587
+#: templates/config_form.html:623
 msgid "All"
 msgstr "全部"
 
-#: templates/config_form.html:556 templates/config_form.html:585
-#: templates/config_form.html:621
+#: templates/config_form.html:559 templates/config_form.html:588
+#: templates/config_form.html:624
 msgid "Not Imported"
 msgstr "未导入"
 
-#: templates/config_form.html:563 templates/config_form.html:592
-#: templates/config_form.html:628 templates/graph_view.html:132
-msgid "Loading..."
-msgstr "加载中..."
-
-#: templates/config_form.html:568
+#: templates/config_form.html:571
 msgid "Shared Views"
 msgstr "共享视图"
 
-#: templates/config_form.html:573
+#: templates/config_form.html:576
 msgid "View Name"
 msgstr "视图名称"
 
-#: templates/config_form.html:580
+#: templates/config_form.html:583
 msgid "Filter desc..."
 msgstr "筛选描述..."
 
-#: templates/config_form.html:597
+#: templates/config_form.html:600
 msgid "Shared Components"
 msgstr "共享的组件"
 
-#: templates/config_form.html:602
+#: templates/config_form.html:605
 msgid "Component Name"
 msgstr "组件名称"
 
-#: templates/config_form.html:611
+#: templates/config_form.html:614
 msgid "All Types"
 msgstr "所有类型"
 
-#: templates/config_form.html:612 templates/project_report.html:1139
-msgid "Telescope"
-msgstr "望远镜"
-
-#: templates/config_form.html:613 templates/project_report.html:1143
-msgid "Camera"
-msgstr "相机"
-
-#: templates/config_form.html:614
+#: templates/config_form.html:617
 msgid "Reducer/Extender"
 msgstr "减焦镜/增距镜"
 
-#: templates/config_form.html:646
+#: templates/config_form.html:649
 msgid "Fetching Details..."
 msgstr "获取详情中..."
 
-#: templates/config_form.html:650
+#: templates/config_form.html:653
 msgid "Please wait, communicating with SIMBAD..."
 msgstr "请稍候，正在与 SIMBAD 通信..."
 
@@ -3275,6 +3856,10 @@ msgstr "巡天"
 msgid "Blend with"
 msgstr "混合与"
 
+#: templates/graph_view.html:363
+msgid "Blend opacity"
+msgstr "混合与"
+
 #: templates/graph_view.html:367
 msgid "Brightness"
 msgstr "亮度"
@@ -3335,10 +3920,6 @@ msgstr "深空天体高度跟踪器"
 #: templates/index.html:23
 msgid "Dashboard"
 msgstr "仪表板"
-
-#: templates/index.html:23
-msgid "Simulated"
-msgstr "模拟"
 
 #: templates/index.html:39 templates/index.html:122
 msgid "Local Time"
@@ -3999,10 +4580,6 @@ msgstr "正在搜索 %%(name)s..."
 msgid "Error connecting to server."
 msgstr "连接服务器时出错。"
 
-#: templates/mobile_add_object.html:59 templates/mobile_edit_notes.html:78
-msgid "Saving..."
-msgstr "保存中..."
-
 #: templates/mobile_add_object.html:60
 msgid "Object saved successfully!"
 msgstr "天体保存成功！"
@@ -4289,7 +4866,6 @@ msgid "{editor}: Editing failed: {e}"
 msgstr "{editor}: 编辑失败: {e}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1124
-#, fuzzy
 msgid "Aborted!"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4303,7 +4879,6 @@ msgid "(Deprecated) {text}"
 msgstr "(已弃用) {text}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1396
-#, fuzzy
 msgid "Options"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4322,7 +4897,6 @@ msgid "DeprecationWarning: The command {name!r} is deprecated."
 msgstr "弃用警告：命令 {name!r} 已被弃用。"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1645
-#, fuzzy
 msgid "Commands"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4334,7 +4908,7 @@ msgid "Missing command."
 msgstr "缺少命令。"
 
 #: venv/lib/python3.13/site-packages/click/core.py:1755
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "No such command {name!r}."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4366,7 +4940,6 @@ msgid "default: {default}"
 msgstr "默认: {default}"
 
 #: venv/lib/python3.13/site-packages/click/core.py:2841
-#, fuzzy
 msgid "required"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4398,12 +4971,9 @@ msgid "Try '{command} {option}' for help."
 msgstr "请尝试输入 '{command} {option}' 获取帮助。"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:129
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Invalid value: {message}"
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"日记文件结构无效：%(message)s\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+msgstr "值无效：{message}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:131
 #, python-brace-format
@@ -4415,7 +4985,6 @@ msgid "Missing argument"
 msgstr "缺少参数"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:189
-#, fuzzy
 msgid "Missing option"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4423,7 +4992,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:191
-#, fuzzy
 msgid "Missing parameter"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4441,12 +5009,9 @@ msgid "Missing parameter: {param_name}"
 msgstr "缺少参数：{param_name}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:220
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "No such option: {name}"
-msgstr ""
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
-"未添加说明。\n"
-"#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
+msgstr "没有这样的选项：{name}"
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:232
 #, python-brace-format
@@ -4455,7 +5020,6 @@ msgid_plural "(Possible options: {possibilities})"
 msgstr[0] ""
 
 #: venv/lib/python3.13/site-packages/click/exceptions.py:270
-#, fuzzy
 msgid "unknown error"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4492,7 +5056,6 @@ msgid "Couldn't detect Bash version, shell completion is not supported."
 msgstr "无法检测到Bash版本，因此不支持shell补全功能。"
 
 #: venv/lib/python3.13/site-packages/click/termui.py:158
-#, fuzzy
 msgid "Repeat for confirmation"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4513,7 +5076,6 @@ msgid "Error: The two entered values do not match."
 msgstr "错误：两个输入值不匹配。"
 
 #: venv/lib/python3.13/site-packages/click/termui.py:243
-#, fuzzy
 msgid "Error: invalid input"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4564,7 +5126,6 @@ msgid "{value!r} is not a valid UUID."
 msgstr "{value!r} 不是有效的 UUID。"
 
 #: venv/lib/python3.13/site-packages/click/types.py:826
-#, fuzzy
 msgid "file"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4572,7 +5133,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/types.py:828
-#, fuzzy
 msgid "directory"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4580,7 +5140,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/click/types.py:830
-#, fuzzy
 msgid "path"
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4639,7 +5198,7 @@ msgid "File does not have an approved extension."
 msgstr "文件没有批准的扩展名。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:86
-#, fuzzy, python-format
+#, python-format
 msgid "Invalid field name '%s'."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4706,7 +5265,6 @@ msgid "Invalid Mac address."
 msgstr "无效的MAC地址。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:540
-#, fuzzy
 msgid "Invalid URL."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4714,7 +5272,6 @@ msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:561
-#, fuzzy
 msgid "Invalid UUID."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4732,7 +5289,6 @@ msgid "Invalid value, can't be any of: %(values)s."
 msgstr "无效值，不能是以下任何值：%(values)s。"
 
 #: venv/lib/python3.13/site-packages/wtforms/validators.py:700
-#, fuzzy
 msgid "This field cannot be edited."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4744,7 +5300,6 @@ msgid "This field is disabled and cannot have a value."
 msgstr "此字段已禁用，无法设置值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/csrf/core.py:96
-#, fuzzy
 msgid "Invalid CSRF Token."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
@@ -4791,7 +5346,6 @@ msgid "Not a valid datetime value."
 msgstr "不是有效的日期时间值。"
 
 #: venv/lib/python3.13/site-packages/wtforms/fields/datetime.py:78
-#, fuzzy
 msgid "Not a valid date value."
 msgstr ""
 "#-#-#-#-#  messages.po (PROJECT VERSION)  #-#-#-#-#\n"
