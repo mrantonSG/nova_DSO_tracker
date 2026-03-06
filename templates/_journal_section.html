@@ -1939,7 +1939,7 @@ document.addEventListener('click', function(e) {
 
 {# --- Journal Object Switcher Functionality --- #}
 <script>
-const i18n = {
+const journalI18n = {
   failedToFetchObjects:  '{{ _("Failed to fetch objects") }}',
   noObjectsFound:        '{{ _("No objects found") }}',
   removeFilter:          '{{ _("Remove filter") }}',
@@ -1977,7 +1977,7 @@ const i18n = {
 
         try {
             const response = await fetch('/api/journal/objects');
-            if (!response.ok) throw new Error(i18n.failedToFetchObjects);
+            if (!response.ok) throw new Error(journalI18n.failedToFetchObjects);
             objectsCache = await response.json();
             return objectsCache;
         } catch (err) {
@@ -2047,7 +2047,7 @@ const i18n = {
         listContainer.innerHTML = '';
 
         if (filtered.length === 0) {
-            listContainer.innerHTML = '<div class="jss-empty">' + i18n.noObjectsFound + '</div>';
+            listContainer.innerHTML = '<div class="jss-empty">' + journalI18n.noObjectsFound + '</div>';
             activeIndex = -1;
             return;
         }
@@ -2206,17 +2206,17 @@ const i18n = {
                     <button type="button" class="remove-custom-filter-btn"
                             data-filter-key="${key}"
                             style="background:none;border:none;color:var(--danger-color);cursor:pointer;font-size:13px;padding:2px 4px;"
-                            title="${i18n.removeFilter}">✕</button>
+                            title="${journalI18n.removeFilter}">✕</button>
                 </div>
                 <div class="form-group">
-                    <label>${i18n.numSubs} <span id="max-subs-${key}" style="font-weight:normal;color:var(--info-color);font-size:0.85em;"></span>:</label>
+                    <label>${journalI18n.numSubs} <span id="max-subs-${key}" style="font-weight:normal;color:var(--info-color);font-size:0.85em;"></span>:</label>
                     <input type="number" name="filter_${key}_subs"
-                           min="0" step="1" placeholder="${i18n.count}" class="calc-trigger">
+                           min="0" step="1" placeholder="${journalI18n.count}" class="calc-trigger">
                 </div>
                 <div class="form-group">
-                    <label>${i18n.expPerSub}</label>
+                    <label>${journalI18n.expPerSub}</label>
                     <input type="number" name="filter_${key}_exposure_sec"
-                           min="0" step="1" placeholder="${i18n.seconds}" class="calc-trigger">
+                           min="0" step="1" placeholder="${journalI18n.seconds}" class="calc-trigger">
                 </div>`;
         return row;
     }
@@ -2224,7 +2224,7 @@ const i18n = {
     if (addBtn) {
         addBtn.addEventListener('click', async function() {
             const label = (nameInput.value || '').trim();
-            if (!label) { showMsg(i18n.enterFilterName, true); return; }
+            if (!label) { showMsg(journalI18n.enterFilterName, true); return; }
             addBtn.disabled = true;
             try {
                 const res  = await fetch('/api/journal/custom-filters', {
@@ -2233,14 +2233,14 @@ const i18n = {
                     body:    JSON.stringify({label})
                 });
                 const data = await res.json();
-                if (!res.ok) { showMsg(data.error || i18n.errorAddingFilter, true); return; }
+                if (!res.ok) { showMsg(data.error || journalI18n.errorAddingFilter, true); return; }
                 rowsContainer.appendChild(buildRow(data.key, data.label));
                 nameInput.value = '';
-                showMsg(i18n.filterAdded.replace('{label}', data.label), false);
+                showMsg(journalI18n.filterAdded.replace('{label}', data.label), false);
                 // Trigger max-subs calculation for the new row
                 if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
             } catch(e) {
-                showMsg(i18n.networkError, true);
+                showMsg(journalI18n.networkError, true);
             } finally {
                 addBtn.disabled = false;
             }
@@ -2254,16 +2254,16 @@ const i18n = {
             const key   = btn.dataset.filterKey;
             const row   = btn.closest('.custom-filter-row');
             const label = row.querySelector('label').textContent.replace(':', '').trim();
-            if (!confirm(i18n.confirmRemoveFilter.replace('{label}', label))) return;
+            if (!confirm(journalI18n.confirmRemoveFilter.replace('{label}', label))) return;
             try {
                 const res = await fetch(`/api/journal/custom-filters/${key}`, {method: 'DELETE'});
-                if (!res.ok) { showMsg(i18n.errorRemovingFilter, true); return; }
+                if (!res.ok) { showMsg(journalI18n.errorRemovingFilter, true); return; }
                 row.remove();
-                showMsg(i18n.filterRemoved.replace('{label}', label), false);
+                showMsg(journalI18n.filterRemoved.replace('{label}', label), false);
                 // Recalculate max-subs for remaining rows
                 if (window.triggerAllMaxSubsCalculations) window.triggerAllMaxSubsCalculations();
             } catch(e) {
-                showMsg(i18n.networkError, true);
+                showMsg(journalI18n.networkError, true);
             }
         });
     }

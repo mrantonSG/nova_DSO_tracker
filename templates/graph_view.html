@@ -403,26 +403,6 @@
 <script>
     // Data object to pass server-side variables to the external script
     window.NOVA_GRAPH_DATA = {
-    // CORRECTED LINES: Use 'tojson' filter and remove surrounding quotes
-    plotLat: {{ graph_lat_param | default(0, True) | tojson }},
-    objectName: {{ object_name | tojson }},
-        altName: {{ alt_name | default(object_name, True) | tojson }},
-        plotLat: "{{ graph_lat_param | default('', True) }}",
-        plotLon: "{{ graph_lon_param | default('', True) }}",
-        plotTz: "{{ graph_tz_name_param | default('UTC', true) }}",
-        plotLocName: {{ header_location_name | tojson }},
-
-        // We pass RA in DEGREES (RA_Hours * 15) and DEC in DEGREES
-        // 'null' is passed if the database has no value.
-        objectRADeg: {{ (object_main_details['RA (hours)'] * 15) if object_main_details['RA (hours)'] is not none else 'null' }},
-        objectDECDeg: {{ object_main_details['DEC (degrees)'] if object_main_details['DEC (degrees)'] is not none else 'null' }},
-        allObjects: {{ framing_objects | tojson }}
-    };
-</script>
-<script>
-    // Data object to pass server-side variables to the external script
-    window.NOVA_GRAPH_DATA = {
-        // CORRECTED LINES: Use 'tojson' filter and remove surrounding quotes
         objectName: {{ object_name | tojson }},
         altName: {{ alt_name | default(object_name, True) | tojson }},
         plotLat: "{{ graph_lat_param | default('', True) }}",

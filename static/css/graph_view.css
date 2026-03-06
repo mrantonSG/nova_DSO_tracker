@@ -1,6 +1,12 @@
 body {
     padding: var(--space-5);
     margin: 0;
+    background: var(--nova-bg, var(--gray-50));
+}
+
+/* Dark mode body background */
+:root[data-theme="dark"] body {
+    background: var(--nova-bg, #0f1118);
 }
 
 /* =================================================================
