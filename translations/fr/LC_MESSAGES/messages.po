@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 01:16+0800\n"
-"PO-Revision-Date: 2026-03-04 16:54+0800\n"
+"PO-Revision-Date: 2026-03-06 10:45+0800\n"
 "Last-Translator: \n"
 "Language-Team: fr <LL@li.org>\n"
 "Language: fr\n"
@@ -17,6 +17,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "Generated-By: Babel 2.18.0\n"
+"X-Generator: Poedit 3.8\n"
 
 #: nova/__init__.py:3880
 msgid "No file uploaded"
@@ -267,8 +268,7 @@ msgstr ""
 "dans Nova."
 
 #: nova/__init__.py:7531
-msgid ""
-"SSO Error: The login link has expired. Please try again from WordPress."
+msgid "SSO Error: The login link has expired. Please try again from WordPress."
 msgstr ""
 "Erreur SSO : le lien de connexion a expiré. Veuillez réessayer depuis "
 "WordPress."
@@ -340,8 +340,7 @@ msgstr ""
 "emplacement."
 
 #: nova/__init__.py:8028
-msgid ""
-"Cannot import: Configuration must contain at least one active location."
+msgid "Cannot import: Configuration must contain at least one active location."
 msgstr ""
 "Impossible d'importer : la configuration doit contenir au moins un "
 "emplacement actif."
@@ -410,8 +409,7 @@ msgstr "Objet « %(object_name)s » introuvable."
 #, python-format
 msgid "Could not find user '%(username)s' in the database."
 msgstr ""
-"Impossible de trouver l'utilisateur « %(username)s » dans la base de "
-"données."
+"Impossible de trouver l'utilisateur « %(username)s » dans la base de données."
 
 #: nova/__init__.py:10289
 msgid "Warning: Horizon Mask was invalid and was ignored."
@@ -422,8 +420,8 @@ msgid ""
 "Cannot delete your last location. You must have at least one location "
 "configured."
 msgstr ""
-"Impossible de supprimer votre dernier emplacement. Vous devez avoir au moins"
-" un emplacement configuré."
+"Impossible de supprimer votre dernier emplacement. Vous devez avoir au moins "
+"un emplacement configuré."
 
 #: nova/__init__.py:10316
 msgid ""
@@ -541,8 +539,7 @@ msgstr "Échec de l'importation : le fichier ZIP semble être corrompu."
 #: nova/__init__.py:11799
 #, python-format
 msgid "An unexpected error occurred during import: %(error)s"
-msgstr ""
-"Une erreur inattendue s'est produite pendant l'importation : %(error)s"
+msgstr "Une erreur inattendue s'est produite pendant l'importation : %(error)s"
 
 #: nova/__init__.py:11902 nova/__init__.py:11907
 msgid "No file selected for rigs import."
@@ -551,8 +548,8 @@ msgstr "Aucun fichier sélectionné pour l'importation des plates-formes."
 #: nova/__init__.py:11937
 msgid "Rigs configuration imported and synced to database successfully!"
 msgstr ""
-"Configuration des plates-formes importée et synchronisée avec succès dans la"
-" base de données !"
+"Configuration des plates-formes importée et synchronisée avec succès dans la "
+"base de données !"
 
 #: nova/__init__.py:11945
 #, python-format
@@ -667,8 +664,7 @@ msgid ""
 "Quality. Click object names to view details."
 msgstr ""
 "* Bandes lumineuses verticales = pleine lune (décolorées). Vert foncé = "
-"meilleure qualité. Cliquez sur les noms des objets pour afficher les "
-"détails."
+"meilleure qualité. Cliquez sur les noms des objets pour afficher les détails."
 
 #: templates/_inspiration_section.html:470
 msgid "Refresh Suggestions"
@@ -699,11 +695,11 @@ msgstr "Constellation"
 msgid "Source: Wiki"
 msgstr "Source : Wiki"
 
-#: templates/_inspiration_section.html:504
-#: templates/_journal_section.html:1908 templates/_objects_section.html:427
-#: templates/_objects_section.html:442 templates/base.html:367
-#: templates/base.html:387 templates/base.html:395 templates/base.html:433
-#: templates/config_form.html:643 templates/graph_view.html:276
+#: templates/_inspiration_section.html:504 templates/_journal_section.html:1908
+#: templates/_objects_section.html:427 templates/_objects_section.html:442
+#: templates/base.html:367 templates/base.html:387 templates/base.html:395
+#: templates/base.html:433 templates/config_form.html:643
+#: templates/graph_view.html:276
 msgid "Close"
 msgstr "Fermer"
 
@@ -850,28 +846,42 @@ msgstr "Réparation de la base de données terminée."
 msgid "No objects found in your configuration."
 msgstr "Aucun objet trouvé dans votre configuration."
 
-#: templates/_inspiration_section.html:707
+#: templates/_inspiration_section.html:707 templates/base.html:238
+#, fuzzy
 msgid "Add Your Own Inspiration!"
-msgstr "Ajouter sa propre inspiration"
+msgstr ""
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Ajouter sa propre inspiration\n"
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Ajoutez votre propre inspiration !"
 
-#: templates/_inspiration_section.html:708
+#: templates/_inspiration_section.html:708 templates/base.html:239
+#, fuzzy
 msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "Voir les images de l'enquête automatisée"
+msgstr ""
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Voir les images de l'enquête automatisée\n"
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Vous voyez actuellement des images d'enquête automatisées (DSS2)."
 
-#: templates/_inspiration_section.html:709
+#: templates/_inspiration_section.html:709 templates/base.html:240
+#, fuzzy
 msgid ""
 "Did you know you can display your own astrophotos or favorite reference "
 "images here?"
 msgstr ""
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
 "Saviez-vous que vous pouvez afficher ici vos propres astrophotos ou vos "
-"images de référence préférées ?"
+"images de référence préférées ?\n"
+"#-#-#-#-#  catalog.po (PROJECT VERSION)  #-#-#-#-#\n"
+"Saviez-vous que vous pouvez afficher vos propres astrophotos ou images de "
+"référence préférées ici ?"
 
 #: templates/_inspiration_section.html:710
 #, python-format
 msgid ""
-"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add"
-" \"Inspiration Content\" (Image URLs, Credits, Descriptions) to your "
-"targets."
+"Go to %(strong_start)sConfiguration &gt; Manage Objects%(strong_end)s to add "
+"\"Inspiration Content\" (Image URLs, Credits, Descriptions) to your targets."
 msgstr ""
 "Allez dans %(strong_start)sConfiguration > Gérer les objets%(strong_end)s "
 "pour ajouter du \"Contenu d'inspiration\" (URL des images, crédits, "
@@ -925,7 +935,7 @@ msgstr "Total :"
 #: templates/_journal_section.html:1123 templates/_project_subtab.html:209
 #: templates/mobile_up_now.html:128
 msgid "min"
-msgstr "J'ai"
+msgstr "min"
 
 #: templates/_journal_section.html:1131
 msgid "Loading history..."
@@ -2172,8 +2182,8 @@ msgid ""
 "your library. Importing is non-destructive: existing objects are never "
 "overwritten, and overlapping objects are skipped."
 msgstr ""
-"Les packs de catalogue sont des collections d'objets fournies par le serveur"
-" que vous pouvez importer dans votre bibliothèque. L'importation est non "
+"Les packs de catalogue sont des collections d'objets fournies par le serveur "
+"que vous pouvez importer dans votre bibliothèque. L'importation est non "
 "destructive : les objets existants ne sont jamais écrasés et les objets qui "
 "se chevauchent sont ignorés."
 
@@ -2217,9 +2227,9 @@ msgid ""
 "duplicates."
 msgstr ""
 "Ces paires sont situées à moins de 2,5 minutes d'arc l'une de l'autre. La "
-"fusion déplacera tous les journaux, projets et cadrages vers l'objet « "
-"Conservé » et supprimera l'autre. Veuillez noter que les objets provenant de"
-" catalogues différents peuvent avoir des coordonnées RA / DEC légèrement "
+"fusion déplacera tous les journaux, projets et cadrages vers l'objet "
+"« Conservé » et supprimera l'autre. Veuillez noter que les objets provenant "
+"de catalogues différents peuvent avoir des coordonnées RA / DEC légèrement "
 "différentes et ne seront donc pas considérés comme des doublons."
 
 #: templates/_objects_section.html:438
@@ -2271,8 +2281,8 @@ msgid ""
 "sub-tab will only appear if the object is the primary target of an existing "
 "project."
 msgstr ""
-"Cet objet n'est actuellement lié à aucun projet. Le sous-onglet **Détails du"
-" projet** n'apparaîtra que si l'objet est la cible principale d'un projet "
+"Cet objet n'est actuellement lié à aucun projet. Le sous-onglet **Détails du "
+"projet** n'apparaîtra que si l'objet est la cible principale d'un projet "
 "existant."
 
 #: templates/_project_subtab.html:153
@@ -2430,8 +2440,8 @@ msgid ""
 "Delete user '%(username)s'? This removes their login credentials. Their "
 "observing data in app.db is NOT deleted."
 msgstr ""
-"Supprimer l'utilisateur « %(username)s » ? Cela supprime ses identifiants de"
-" connexion. Ses données d'observation dans app.db ne sont PAS supprimées."
+"Supprimer l'utilisateur « %(username)s » ? Cela supprime ses identifiants de "
+"connexion. Ses données d'observation dans app.db ne sont PAS supprimées."
 
 #: templates/admin_users.html:118
 msgid "New password"
@@ -2873,7 +2883,7 @@ msgstr "Aucune donnée de connexion disponible pour le moment"
 #: templates/base.html:213
 #, python-format
 msgid "Calculating month %(current)d of %(total)d..."
-msgstr "Calculé %%(current)d sur %%(total)d objets..."
+msgstr "Calculé %(current)d sur %(total)d objets..."
 
 #: templates/base.html:214
 msgid "No projects found. Adjust filters or add projects."
@@ -2903,7 +2913,7 @@ msgstr "Affichage de %(count)d objets"
 #: templates/base.html:224
 #, python-format
 msgid "Showing %(shown)d of %(total)d objects"
-msgstr "Calculé %%(shown)d sur %%(total)d objets..."
+msgstr "Calculé %(shown)d sur %(total)d objets..."
 
 #: templates/base.html:225
 #, python-format
@@ -2913,7 +2923,7 @@ msgstr "Êtes-vous sûr de vouloir %(action)s %(count)d objets ?"
 #: templates/base.html:226
 #, python-format
 msgid "Fetching details for %(name)s..."
-msgstr "Recherche de %%(name)s..."
+msgstr "Recherche de %(name)s..."
 
 #: templates/base.html:229
 msgid "Effective FL"
@@ -2943,21 +2953,14 @@ msgstr "Copié !"
 msgid "Slightly undersampled"
 msgstr "Nom d'utilisateur"
 
-#: templates/base.html:238
-msgid "Add Your Own Inspiration!"
-msgstr "Ajoutez votre propre inspiration !"
-
-#: templates/base.html:239
-msgid "You are currently seeing automated survey images (DSS2)."
-msgstr "Vous voyez actuellement des images d'enquête automatisées (DSS2)."
-
-#: templates/base.html:240
-msgid "Did you know you can display your own astrophotos or favorite reference images here?"
-msgstr "Saviez-vous que vous pouvez afficher vos propres astrophotos ou images de référence préférées ici ?"
-
 #: templates/base.html:241
-msgid "Go to Configuration - Manage Objects to add Inspiration Content to your targets."
-msgstr "Allez dans <strong>Configuration > Gérer les objets</strong> pour ajouter du \"Contenu d'inspiration\" (URLs d'images, crédits, descriptions) à vos cibles."
+msgid ""
+"Go to Configuration - Manage Objects to add Inspiration Content to your "
+"targets."
+msgstr ""
+"Allez dans <strong>Configuration > Gérer les objets</strong> pour ajouter du "
+"\"Contenu d'inspiration\" (URLs d'images, crédits, descriptions) à vos "
+"cibles."
 
 #: templates/base.html:238
 msgid "Add own inspiration"
@@ -3063,8 +3066,8 @@ msgid ""
 msgstr ""
 "Nova DSO Tracker aide les astronomes amateurs à planifier leurs séances "
 "d'observation, en calculant et en visualisant l'altitude et l'azimut des "
-"objets du ciel profond, en suivant la position et la phase de la Lune, et en"
-" identifiant les fenêtres d'observation optimales."
+"objets du ciel profond, en suivant la position et la phase de la Lune, et en "
+"identifiant les fenêtres d'observation optimales."
 
 #: templates/base.html:407
 msgid "Data sourced from SIMBAD; calculations powered by Astropy and Ephem."
@@ -3245,8 +3248,8 @@ msgid ""
 "geometrically impossible to see from your location (disabling the \"Smart "
 "Skip\" optimization)."
 msgstr ""
-"Si cette option est cochée, Nova calculera les courbes pour TOUS les objets,"
-" même ceux qui sont géométriquement impossibles à voir depuis votre "
+"Si cette option est cochée, Nova calculera les courbes pour TOUS les objets, "
+"même ceux qui sont géométriquement impossibles à voir depuis votre "
 "emplacement (désactivant ainsi l'optimisation « Smart Skip »)."
 
 #: templates/config_form.html:194
@@ -3296,8 +3299,8 @@ msgid ""
 msgstr ""
 "Remarque : votre « altitude actuelle » est toujours calculée en temps réel. "
 "Ce paramètre permet uniquement d'affiner la précision des valeurs globales "
-"nocturnes (altitude maximale, durée d'observabilité, etc.). Le mode « Rapide"
-" » est recommandé pour les appareils à faible consommation d'énergie."
+"nocturnes (altitude maximale, durée d'observabilité, etc.). Le mode "
+"« Rapide » est recommandé pour les appareils à faible consommation d'énergie."
 
 #: templates/config_form.html:224
 msgid "Anonymous Telemetry:"
@@ -3305,8 +3308,8 @@ msgstr "Télémétrie anonyme :"
 
 #: templates/config_form.html:229
 msgid ""
-"Nova sends a small anonymous heartbeat (app version, system type, and counts"
-" of your data entries like objects, rigs, locations, and journals). No "
+"Nova sends a small anonymous heartbeat (app version, system type, and counts "
+"of your data entries like objects, rigs, locations, and journals). No "
 "personal details are ever collected, and you can opt out anytime. Allowing "
 "it really helps me improve Nova."
 msgstr ""
@@ -3499,8 +3502,8 @@ msgstr "2. Configurez vos plateformes"
 
 #: templates/config_form.html:447
 msgid ""
-"Combine your components into a complete imaging rig. To edit, click \"Edit\""
-" to load the rig into the form below."
+"Combine your components into a complete imaging rig. To edit, click \"Edit\" "
+"to load the rig into the form below."
 msgstr ""
 "Combinez vos composants pour créer un dispositif d'imagerie complet. Pour "
 "modifier, cliquez sur « Modifier » afin de charger le dispositif dans le "
@@ -3851,8 +3854,8 @@ msgstr "Source externe"
 
 #: templates/graph_view.html:213
 msgid ""
-"No inspiration content (custom image or description) has been added for this"
-" object yet."
+"No inspiration content (custom image or description) has been added for this "
+"object yet."
 msgstr ""
 "Aucun contenu d'inspiration (image ou description personnalisée) n'a encore "
 "été ajouté pour cet objet."
@@ -3860,8 +3863,8 @@ msgstr ""
 #: templates/graph_view.html:214
 msgid "Go to <strong>Configuration > Manage Objects</strong> to add one."
 msgstr ""
-"Allez dans <strong>Configuration > Gérer les objets</strong> pour en ajouter"
-" un."
+"Allez dans <strong>Configuration > Gérer les objets</strong> pour en ajouter "
+"un."
 
 #: templates/graph_view.html:223
 msgid "Framing With Your Rigs"
@@ -3925,8 +3928,8 @@ msgstr "Verrouiller le champ de vision"
 
 #: templates/graph_view.html:288
 msgid ""
-"Displays the approximate location of geostationary satellites (corrected for"
-" your latitude)"
+"Displays the approximate location of geostationary satellites (corrected for "
+"your latitude)"
 msgstr ""
 "Affiche l'emplacement approximatif des satellites géostationnaires (corrigé "
 "en fonction de votre latitude)."
