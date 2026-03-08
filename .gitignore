@@ -1,5 +1,3 @@
 instance
 nova_data
 
-# Compiled translation files (keep .po sources)
-translations/*/LC_MESSAGES/*.mo
