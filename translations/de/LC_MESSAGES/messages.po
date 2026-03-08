@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 14:24+0800\n"
-"PO-Revision-Date: 2026-03-06 21:35+0800\n"
+"PO-Revision-Date: 2026-03-08 10:25+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -4010,7 +4010,7 @@ msgstr "Schritte"
 
 #: templates/index.html:3 templates/login.html:2
 msgid "DSO Altitude Tracker"
-msgstr "DSO Höhenmesser"
+msgstr "DSO Altitude Tracker"
 
 #: templates/index.html:23
 msgid "Dashboard"
