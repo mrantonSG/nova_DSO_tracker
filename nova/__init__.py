@@ -3063,6 +3063,7 @@ def get_locale():
 
 # Initialize Babel with the app and locale_selector in one call
 babel.init_app(app, locale_selector=get_locale)
+app.jinja_env.globals['get_locale'] = get_locale
 
 # --- Performance: gzip response compression ---
 from flask_compress import Compress
