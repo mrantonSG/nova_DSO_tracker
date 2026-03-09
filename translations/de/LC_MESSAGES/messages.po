@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2026-03-06 14:24+0800\n"
-"PO-Revision-Date: 2026-03-08 10:25+0800\n"
+"PO-Revision-Date: 2026-03-09 12:13+0800\n"
 "Last-Translator: \n"
 "Language-Team: de <LL@li.org>\n"
 "Language: de\n"
@@ -937,7 +937,7 @@ msgstr "Kalibrierung & Ergebnis"
 
 #: templates/_journal_section.html:1169
 msgid "Logs"
-msgstr "Fenster"
+msgstr "Logs"
 
 #: templates/_journal_section.html:1171 templates/journal_report.html:6
 #: templates/journal_report.html:679
