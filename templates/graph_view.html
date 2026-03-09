@@ -298,7 +298,8 @@
             <div style="display:flex; align-items:center; gap:6px; margin-left:12px; padding-left:12px; border-left:1px solid var(--border-medium-alt);">
                 <label for="framing-rig-select" style="font-weight:bold;">{{ _('Rig') }}:</label>
                 <select id="framing-rig-select" data-action="update-framing-rig" style="max-width:240px; font-size:14px;">
-                    {% if available_rigs %}{% for rig in available_rigs %}
+                    {% if available_rigs %}
+                    {% for rig in available_rigs %}
                     <option value="{{ rig.rig_id }}" data-fovw="{{ rig.fov_w_arcmin }}" data-fovh="{{ rig.fov_h_arcmin }}">{{ rig.rig_name }}</option>
                     {% endfor %}{% else %}<option value="">{{ _('No rigs configured') }}</option>{% endif %}
                 </select>

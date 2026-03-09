@@ -14,6 +14,7 @@ import subprocess
 import sys
 import threading
 import traceback
+from math import degrees, atan
 
 # =============================================================================
 # Third-Party Imports

@@ -1,5 +1,6 @@
 import pytest
 import sys, os
+import http.cookiejar
 from datetime import date
 import types
 from sqlalchemy.sql.elements import BinaryExpression, ColumnElement
@@ -11,6 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 from nova import (
     app,
@@ -91,12 +93,17 @@ def db_session(monkeypatch):
     try:
         yield session
     finally:
+        # Explicitly rollback any pending changes before cleanup
+        try:
+            session.rollback()
+        except:
+            pass
         TestSessionLocal.remove()
         Base.metadata.drop_all(engine)
 
 
 @pytest.fixture
-def client(db_session, monkeypatch):
+def su_client_logged_in(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
 
@@ -140,7 +147,7 @@ def client(db_session, monkeypatch):
 
 
 @pytest.fixture
-def client_logged_out(db_session, monkeypatch):
+def su_client_logged_out(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', False)
 
@@ -160,6 +167,8 @@ def client_logged_out(db_session, monkeypatch):
     db_session.commit()
 
     with app.test_client() as client:
+        # Clear any existing cookies to prevent session leakage
+        client.cookie_jar = http.cookiejar.CookieJar()
         yield client
 
 
@@ -319,11 +328,13 @@ def mu_client_logged_out(db_session, monkeypatch):
 
     # 5. Create the client *without* a session cookie
     with app.test_client() as client:
+        # Clear any existing cookies to prevent session leakage
+        client.cookie_jar = http.cookiejar.CookieJar()
         yield client
 
 
 @pytest.fixture
-def client(db_session, monkeypatch):
+def su_client_not_logged_in(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
 
@@ -362,10 +373,6 @@ def client(db_session, monkeypatch):
     with app.test_client() as client:
         client.get('/')
         yield client
-
-
-@pytest.fixture
-def su_client_not_logged_in(db_session, monkeypatch):
     # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
 
@@ -393,3 +400,7 @@ def su_client_not_logged_in(db_session, monkeypatch):
 
     with app.test_client() as client:
         yield client
+
+# Alias for backward compatibility - some tests may use this name
+client = su_client_logged_in
+client_logged_out = su_client_logged_out
