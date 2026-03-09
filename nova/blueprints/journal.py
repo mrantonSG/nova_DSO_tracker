@@ -40,7 +40,10 @@ from nova.models import (
 )
 from nova.helpers import (
     get_db, allowed_file, safe_float, safe_int,
-    save_log_to_filesystem, read_log_content, dither_display
+    save_log_to_filesystem, read_log_content, dither_display,
+    # Moved from nova.__init__ for clean imports
+    load_full_astro_context, generate_session_id,
+    _compute_rig_metrics_from_components, get_ra_dec
 )
 from nova.analytics import record_event
 from nova.report_graphs import generate_session_charts
@@ -59,7 +62,6 @@ journal_bp = Blueprint('journal', __name__)
 @journal_bp.route('/journal')
 @login_required
 def journal_list_view():
-    from nova import load_full_astro_context  # Lazy import to avoid circular dependency
     load_full_astro_context()
     db = get_db()
         # 1. Use the pre-loaded g.db_user (from the consolidated before_request)
@@ -92,7 +94,6 @@ def journal_list_view():
 @journal_bp.route('/journal/add', methods=['GET', 'POST'])
 @login_required
 def journal_add():
-    from nova import load_full_astro_context, generate_session_id, _compute_rig_metrics_from_components  # Lazy imports
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
@@ -328,7 +329,6 @@ def journal_add():
 @journal_bp.route('/journal/edit/<int:session_id>', methods=['GET', 'POST'])
 @login_required
 def journal_edit(session_id):
-    from nova import load_full_astro_context, _compute_rig_metrics_from_components  # Lazy imports
     load_full_astro_context()
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
@@ -737,7 +737,6 @@ def show_journal_report_page(session_id):
     """
     Renders the HTML version of the report page.
     """
-    from nova import get_ra_dec  # Lazy import
     from nova.log_parser import parse_asiair_log, parse_phd2_log
 
     db = get_db()
