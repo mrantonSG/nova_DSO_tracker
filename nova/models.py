@@ -255,7 +255,12 @@ class Rig(Base):
     # Guide optics fields (for dither pixel recommendations) - FK references to Component model
     guide_telescope_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
     guide_camera_id = Column(Integer, ForeignKey('components.id', ondelete="SET NULL"), nullable=True)
-    guide_is_oag = Column(Boolean, nullable=False, default=False, server_default='0')
+    guide_is_oag = Column(Boolean, nullable=False, default=False, server_default='1')
+    # Legacy guide optics columns (kept for backwards compatibility)
+    guide_scope_name = Column(String(256), nullable=True)
+    guide_focal_length_mm = Column(Float, nullable=True)
+    guide_camera_name = Column(String(256), nullable=True)
+    guide_pixel_size_um = Column(Float, nullable=True)
     # Relationships
     user = relationship("DbUser", back_populates="rigs")
     telescope = relationship("Component", foreign_keys=[telescope_id])

@@ -33,7 +33,8 @@ from sqlalchemy.orm import selectinload
 # =============================================================================
 # Nova Package Imports (no circular import)
 # =============================================================================
-from nova.config import SINGLE_USER_MODE, UPLOAD_FOLDER
+from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
+from nova.config import UPLOAD_FOLDER
 from nova.models import (
     DbUser, Project, JournalSession, Rig, Component,
     AstroObject, UserCustomFilter
