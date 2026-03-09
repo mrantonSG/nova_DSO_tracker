@@ -9930,7 +9930,8 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         # Fallback for Windows or non-POSIX systems (Always start to ensure functionality)
         should_start_threads = True
 
-    if should_start_threads:
+    # Skip background workers during testing
+    if should_start_threads and not app.config.get('TESTING'):
         print("[STARTUP] Starting background update check thread...")
         update_thread = threading.Thread(target=check_for_updates, args=(app,))
         update_thread.daemon = True
