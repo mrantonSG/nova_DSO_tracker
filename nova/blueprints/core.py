@@ -1187,7 +1187,7 @@ def index():
     user = db.query(DbUser).filter_by(username=username).one_or_none()
     if not user:
         # Handle case where user is authenticated but not yet in app.db
-        return render_template('index.html', journal_sessions=[])
+        return render_template('index.html', journal_sessions=[], hide_invisible=False)
 
     sessions = db.query(JournalSession).filter_by(user_id=user.id).order_by(JournalSession.date_utc.desc()).all()
     all_projects = db.query(Project).filter_by(user_id=user.id).all()
@@ -1498,6 +1498,7 @@ def analytics_dashboard():
     )
 @core_bp.route('/graph_dashboard/<path:object_name>')
 def graph_dashboard(object_name):
+    from nova import STELLARIUM_API_URL_BASE
     # --- 1. Determine User (No change) ---
     if not (SINGLE_USER_MODE or current_user.is_authenticated or getattr(g, 'is_guest', False)):
         flash(_("Please log in to view object details."), "info")
