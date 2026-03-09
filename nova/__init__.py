@@ -131,7 +131,9 @@ from nova.helpers import (
     calculate_dither_recommendation, dither_display,
     # Moved from __init__.py for blueprint migration
     generate_session_id, _compute_rig_metrics_from_components,
-    load_full_astro_context, get_ra_dec
+    load_full_astro_context, get_ra_dec,
+    # Additional helpers extracted
+    normalize_object_name, _parse_float_from_request, sort_rigs
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -1154,109 +1156,6 @@ def _upsert_user(db, username: str) -> DbUser:
         db.add(u)
         db.flush()
     return u
-
-
-def normalize_object_name(name: str) -> str:
-    """
-    Converts messy object names into a standard primary key.
-    This function is designed to handle user input and convert it
-    to the canonical format.
-    """
-    if not name: return None
-    name_str = str(name).strip().upper()
-    if not name_str: return None  # Catches whitespace-only input
-
-    # --- 1. Fix known "corrupt" inputs (add spaces/hyphens) ---
-    # This list should mirror the rules from the Python repair script.
-
-    # SH 2-155 -> SH2155 (Fix: SH2 + 1 or more digits)
-    match = re.match(r'^(SH2)(\d+)$', name_str)
-    if match: return f"SH 2-{match.group(2)}"
-
-    # SH 2-155 -> SH2-155 (Fix: SH2- + 1 or more digits)
-    match = re.match(r'^(SH2)-(\d+)$', name_str)
-    if match: return f"SH 2-{match.group(2)}"
-
-    # NGC 1976 -> NGC1976 (Fix: NGC + 1 or more digits)
-    match = re.match(r'^(NGC)(\d+)$', name_str)
-    if match: return f"NGC {match.group(2)}"
-
-    # IC 1805 -> IC1805 (Fix: IC + 1 or more digits)
-    match = re.match(r'^(IC)(\d+)$', name_str)
-    if match: return f"IC {match.group(2)}"
-
-    # VDB 1 -> VDB1
-    match = re.match(r'^(VDB)(\d+)$', name_str)
-    if match: return f"VDB {match.group(2)}"
-
-    # GUM 16 -> GUM16
-    match = re.match(r'^(GUM)(\d+)$', name_str)
-    if match: return f"GUM {match.group(2)}"
-
-    # TGU H1867 -> TGUH1867
-    match = re.match(r'^(TGUH)(\d+)$', name_str)
-    if match: return f"TGU H{match.group(2)}"
-
-    # LHA 120-N 70 -> LHA120N70
-    # The regex now splits 'N' and '70' into separate groups
-    match = re.match(r'^(LHA)(\d+)(N)(\d+)$', name_str)
-    if match: return f"LHA {match.group(2)}-{match.group(3)} {match.group(4)}"
-
-    # SNR G180.0-01.7 -> SNRG180.001.7
-    # Made first decimal match non-greedy with +?
-    match = re.match(r'^(SNRG)(\d+\.\d+?)(\d+\.\d+)$', name_str)
-    if match: return f"SNR G{match.group(2)}-{match.group(3)}"
-
-    # CTA 1 -> CTA1
-    match = re.match(r'^(CTA)(\d+)$', name_str)
-    if match: return f"CTA {match.group(2)}"
-
-    # HB 3 -> HB3
-    match = re.match(r'^(HB)(\d+)$', name_str)
-    if match: return f"HB {match.group(2)}"
-
-    # PN ARO 121 -> PNARO121
-    match = re.match(r'^(PNARO)(\d+)$', name_str)
-    if match: return f"PN ARO {match.group(2)}"
-
-    # LIESTO 1 -> LIESTO1
-    match = re.match(r'^(LIESTO)(\d+)$', name_str)
-    if match: return f"LIESTO {match.group(2)}"
-
-    # PK 081-14.1 -> PK08114.1
-    match = re.match(r'^(PK)(\d+)(\d{2}\.\d+)$', name_str)
-    if match: return f"PK {match.group(2)}-{match.group(3)}"
-
-    # PN G093.3-02.4 -> PNG093.302.4
-    # Made first decimal match non-greedy with +?
-    match = re.match(r'^(PNG)(\d+\.\d+?)(\d+\.\d+)$', name_str)
-    if match: return f"PN G{match.group(2)}-{match.group(3)}"
-
-    # WR 134 -> WR134
-    match = re.match(r'^(WR)(\d+)$', name_str)
-    if match: return f"WR {match.group(2)}"
-
-    # ABELL 21 -> ABELL21
-    match = re.match(r'^(ABELL)(\d+)$', name_str)
-    if match: return f"ABELL {match.group(2)}"
-
-    # BARNARD 33 -> BARNARD33
-    match = re.match(r'^(BARNARD)(\d+)$', name_str)
-    if match: return f"BARNARD {match.group(2)}"
-
-    # --- 2. Fix simple space removal (M, IC, etc.) ---
-    # This rule handles user input like "M 42"
-    match = re.match(r'^(M)\s+(.*)$', name_str)
-    if match:
-        prefix = match.group(1)
-        number_part = match.group(2).replace(" ", "")
-        return prefix + number_part
-
-    # --- 3. Default Fallback ---
-    # For names that are already correct (e.g., "M42", "NGC 1976", "SH 2-155")
-    # just collapse whitespace.
-    return " ".join(name_str.split())
-
 
 def _migrate_locations(db, user: DbUser, config: dict):
     """
@@ -5438,47 +5337,6 @@ def warm_main_cache(username, location_name, user_config, sampling_interval):
         print(f"❌ [CACHE WARMER] FATAL ERROR during cache warming for '{location_name}': {e}")
         traceback.print_exc()
 
-def sort_rigs(rigs, sort_key: str):
-    # FIX: Add a fallback for None to prevent the AttributeError
-    if not sort_key:
-        sort_key = 'name-asc'  # A sensible default if no preference is set
-
-    key, _, direction = sort_key.partition('-')
-    reverse = (direction == 'desc')
-
-    def to_num(v):
-        try:
-            return float(v)
-        except (TypeError, ValueError):
-            return None
-
-    def getter(r):
-        if key == 'name':
-            return (r.get('rig_name') or '').lower()
-        if key == 'fl':
-            return to_num(r.get('effective_focal_length'))
-        if key == 'fr':
-            return to_num(r.get('f_ratio'))
-        if key == 'scale':
-            return to_num(r.get('image_scale'))
-        if key == 'fovw':
-            return to_num(r.get('fov_w_arcmin'))
-        if key == 'recent':
-            ts = r.get('updated_at') or r.get('created_at') or ''
-            try:
-                return datetime.fromisoformat(ts.replace('Z','+00:00'))
-            except Exception:
-                return r.get('rig_id') or ''
-        # default to name
-        return (r.get('rig_name') or '').lower()
-
-    # sort with None-safe behavior (None values are sorted to the bottom)
-    def none_safe(x):
-        v = getter(x)
-        return (v is None, v)
-
-    return sorted(rigs, key=none_safe, reverse=reverse)
-
 # --- Anonymous telemetry helpers ---
 def is_docker_env():
     try:
@@ -7370,16 +7228,6 @@ def fetch_object_details():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
-# This helper function (which I sent before) is still needed.
-def _parse_float_from_request(value, field_name="field"):
-    """Helper to convert request values to float, raising a clear ValueError."""
-    if value is None:
-        raise ValueError(f"{field_name} is required and cannot be empty.")
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        raise ValueError(f"Invalid non-numeric value '{value}' received for {field_name}.")
 
 @core_bp.route('/confirm_object', methods=['POST'])
 @login_required
