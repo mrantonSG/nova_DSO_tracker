@@ -1,18 +1,33 @@
 import os
 import re
+import uuid
+import logging
 import tempfile
 import shutil
+import traceback
 import yaml
 import numpy as np
+import pytz
 from datetime import datetime
 from pathlib import Path
+from math import atan, degrees
+from typing import Optional
 
-from flask import g
+from flask import g, has_request_context
+from sqlalchemy.orm import selectinload
+from astroquery.simbad import Simbad
+from astropy.coordinates import SkyCoord, get_constellation
+import astropy.units as u
 
-from nova.models import SessionLocal
+from nova.models import SessionLocal, Location, AstroObject, Component
 from nova.config import (
-    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE
+    INSTANCE_PATH, BACKUP_DIR, ALLOWED_EXTENSIONS, SINGLE_USER_MODE, SIMBAD_TIMEOUT
 )
+from modules.astro_calculations import (
+    get_common_time_arrays, hms_to_hours, dms_to_degrees
+)
+
+logger = logging.getLogger(__name__)
 
 try:
     import fcntl
@@ -447,3 +462,262 @@ def get_imaging_criteria():
         return out
     except Exception:
         return dict(defaults)
+
+
+# === Session ID Generation ===
+
+def generate_session_id():
+    """Generates a unique session ID."""
+    return uuid.uuid4().hex
+
+
+# === Rig Metrics Computation ===
+
+def _compute_rig_metrics_from_components(telescope: Optional["Component"],
+                                          camera: Optional["Component"],
+                                          reducer: Optional["Component"]):
+    """
+    Compute (effective_focal_length_mm, f_ratio, image_scale_arcsec_per_px, fov_w_arcmin)
+    based on Component columns.
+    telescope: uses focal_length_mm and aperture_mm
+    camera: uses pixel_size_um and sensor_width_mm
+    reducer: uses factor (e.g., 0.8 for reducer, 2.0 for extender)
+    """
+    try:
+        if not telescope or not camera:
+            return (None, None, None, None)
+        fl = telescope.focal_length_mm
+        ap = telescope.aperture_mm
+        px = camera.pixel_size_um
+        sw = camera.sensor_width_mm
+        fac = reducer.factor if (reducer and reducer.factor is not None) else 1.0
+        if fl is None or ap is None:
+            return (None, None, None, None)
+        efl = fl * fac if fl is not None else None
+        f_ratio = (efl / ap) if (efl and ap) else None
+        image_scale = (206.265 * px / efl) if (efl and px) else None
+        fov_w_arcmin = (degrees(2 * atan((sw / 2.0) / efl)) * 60.0) if (sw and efl) else None
+        return (efl, f_ratio, image_scale, fov_w_arcmin)
+    except Exception as calc_err:
+        logger.warning(f"[RIG METRICS] Failed to compute metrics for telescope={telescope.name if telescope else None}, camera={camera.name if camera else None}: {calc_err}")
+        return (None, None, None, None)
+
+
+# === Astro Context Loading ===
+
+def load_full_astro_context():
+    """
+    Loads heavy astro data (locations, objects) into the global 'g' context.
+    Assumes g.db_user and g.user_config are already populated.
+    """
+    # If this is already loaded for this request, don't do it again
+    if hasattr(g, 'locations'):
+        return
+
+    # If there's no user, there's nothing to load
+    if not hasattr(g, 'db_user') or not g.db_user:
+        g.locations, g.active_locations, g.objects_list, g.objects_map = {}, {}, [], {}
+        g.lat, g.lon, g.tz_name, g.selected_location = None, None, "UTC", None
+        g.altitude_threshold = 20
+        g.times_local, g.times_utc = [], []
+        return
+
+    db = get_db()
+    try:
+        # --- Load Locations with Horizon Points (Fixes N+1 query) ---
+        loc_rows = db.query(Location).options(
+            selectinload(Location.horizon_points)  # Eagerly load horizon points
+        ).filter_by(user_id=g.db_user.id).all()
+
+        g.locations = {}
+        g.active_locations = {}
+        default_loc_name = g.user_config.get("default_location")
+        validated_location = default_loc_name
+
+        for l in loc_rows:
+            # The l.horizon_points access is now free, no new query
+            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
+            loc_data = {
+                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
+                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
+                "horizon_mask": mask, "active": l.active, "comments": l.comments
+            }
+            g.locations[l.name] = loc_data
+            if l.active:
+                g.active_locations[l.name] = loc_data
+
+        # Validate default location
+        if not default_loc_name or default_loc_name not in g.active_locations:
+            validated_location = next(iter(g.active_locations), None)
+
+        g.selected_location = validated_location
+
+        # Set safe defaults
+        g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
+        if g.selected_location:
+            loc_cfg = g.locations.get(g.selected_location, {})
+            g.lat = loc_cfg.get("lat")
+            g.lon = loc_cfg.get("lon")
+            g.tz_name = loc_cfg.get("timezone", "UTC")
+        else:
+            g.lat, g.lon, g.tz_name = None, None, "UTC"
+
+        # --- Load Objects ---
+        obj_rows = db.query(AstroObject).filter_by(user_id=g.db_user.id).all()
+        g.objects_list = []  # List for iteration
+        g.objects_map = {}  # <<< NEW: Dictionary for fast lookups
+        g.alternative_names = {}
+        g.projects = {}
+        g.objects = []
+
+        for o in obj_rows:
+            # Get all fields from our new method
+            obj_data = o.to_dict()
+
+            # Append to the list and map
+            g.objects_list.append(obj_data)
+            g.objects.append(o.object_name)
+            if o.object_name:
+                obj_key = o.object_name.lower()
+                g.objects_map[obj_key] = obj_data  # <<< Add to map
+                g.alternative_names[obj_key] = o.common_name
+                g.projects[obj_key] = o.project_name
+
+        # Add objects list to user_config dict for compatibility
+        g.user_config["objects"] = g.objects_list
+        g.user_config["locations"] = g.locations
+
+        # --- Precompute time arrays ---
+        if g.tz_name:
+            local_tz = pytz.timezone(g.tz_name)
+            local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
+            g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
+        else:
+            g.times_local, g.times_utc = [], []
+
+    except Exception as e:
+        print(f"Error in load_full_astro_context: {e}")
+        traceback.print_exc()
+
+
+# === RA/DEC Lookup ===
+
+def get_ra_dec(object_name, objects_map=None):
+    """
+    Looks up RA/DEC and other details for an object.
+    Prioritizes the provided objects_map (if given), then falls back to g.objects_map (in request context),
+    then queries SIMBAD.
+    """
+    obj_key = object_name.lower()
+
+    # --- Use the provided map first, then g, then None ---
+    obj_map_to_use = objects_map  # Use the one passed in (e.g., from the worker thread)
+    if obj_map_to_use is None and has_request_context():
+        # Fallback to g ONLY if in a request context and no map was passed
+        obj_map_to_use = getattr(g, 'objects_map', None)
+
+    obj_entry = obj_map_to_use.get(obj_key) if obj_map_to_use else None  # Use the determined map
+
+    # --- Define defaults ---
+    default_type = "N/A"
+    default_magnitude = "N/A"
+    default_size = "N/A"
+    default_sb = "N/A"
+    default_project = "none"
+    default_constellation = "N/A"
+    default_active_project = False
+
+    # --- Path 1: Object found in config (using obj_map_to_use) ---
+    if obj_entry:
+        ra_str = obj_entry.get("RA")
+        dec_str = obj_entry.get("DEC")
+        constellation_val = obj_entry.get("Constellation", default_constellation)
+        type_val = obj_entry.get("Type", default_type)
+        magnitude_val = obj_entry.get("Magnitude", default_magnitude)
+        size_val = obj_entry.get("Size", default_size)
+        sb_val = obj_entry.get("SB", default_sb)
+        project_val = obj_entry.get("Project", default_project)
+        common_name_val = obj_entry.get("Name", object_name)  # Uses "Name" for config form compatibility
+        active_project_val = obj_entry.get("ActiveProject", default_active_project)
+
+        if ra_str is not None and dec_str is not None:
+            try:
+                ra_hours_float = float(ra_str)
+                dec_degrees_float = float(dec_str)
+                if constellation_val in [None, "N/A", ""]:
+                    try:
+                        coords = SkyCoord(ra=ra_hours_float * u.hourangle, dec=dec_degrees_float * u.deg)
+                        constellation_val = get_constellation(coords, short_name=True)
+                    except Exception:
+                        constellation_val = "N/A"
+                return {
+                    "Object": object_name, "Constellation": constellation_val, "Common Name": common_name_val,
+                    "RA (hours)": ra_hours_float, "DEC (degrees)": dec_degrees_float, "Project": project_val,
+                    "Type": type_val or default_type, "Magnitude": magnitude_val or default_magnitude,
+                    "Size": size_val or default_size, "SB": sb_val or default_sb, "ActiveProject": active_project_val
+                }
+            except ValueError:
+                # Return error but keep other config data
+                return {
+                    "Object": object_name, "Constellation": "N/A", "Common Name": "Error: Invalid RA/DEC in config",
+                    "RA (hours)": None, "DEC (degrees)": None, "Project": project_val, "Type": type_val,
+                    "Magnitude": magnitude_val, "Size": size_val, "SB": sb_val, "ActiveProject": active_project_val
+                }
+        # Fall through to SIMBAD if coordinates missing in config
+
+    # --- Path 2: Object not in config OR missing coords -> Query SIMBAD ---
+    project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
+    active_project_to_use = obj_entry.get("ActiveProject", default_active_project) if obj_entry else default_active_project
+
+    try:
+        custom_simbad = Simbad()
+        custom_simbad.ROW_LIMIT = 1
+        custom_simbad.TIMEOUT = SIMBAD_TIMEOUT
+        # Request standard coordinates.
+        # Our parsing logic handles both Decimal (try block) and Sexagesimal (except block).
+        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
+
+        result = custom_simbad.query_object(object_name)
+        if result is None or len(result) == 0:
+            raise ValueError(f"No results for '{object_name}' in SIMBAD.")
+
+        # Find the columns (handling the rename to generic 'ra'/'dec')
+        ra_col = next((c for c in result.colnames if c.lower() in ['ra', 'ra(d)', 'ra_d']), 'ra')
+        dec_col = next((c for c in result.colnames if c.lower() in ['dec', 'dec(d)', 'dec_d']), 'dec')
+
+        val_ra = result[ra_col][0]
+        val_dec = result[dec_col][0]
+
+        # --- CRITICAL FIX: FORCE DEGREE CONVERSION ---
+        # Since we requested ra(d), any numeric result IS degrees.
+        # We unconditionally divide numeric results by 15.0 to get hours.
+        try:
+            # Try to treat as pure decimal degrees
+            ra_float = float(val_ra)
+            ra_hours_simbad = ra_float / 15.0  # 14.75 deg / 15 = 0.98 hours
+            dec_degrees_simbad = float(val_dec)  # Dec is already in degrees
+        except (ValueError, TypeError):
+            # If Simbad ignored us and sent a string (e.g. "00 59 01"), use the parser
+            ra_hours_simbad = hms_to_hours(str(val_ra))
+            dec_degrees_simbad = dms_to_degrees(str(val_dec))
+
+        simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
+        try:
+            coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
+            constellation_simbad = get_constellation(coords, short_name=True)
+        except Exception:
+            constellation_simbad = "N/A"
+
+        return {
+            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
+            "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
+            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }
+    except Exception as ex:
+        return {
+            "Object": object_name, "Constellation": "N/A",
+            "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
+            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
+            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
+        }

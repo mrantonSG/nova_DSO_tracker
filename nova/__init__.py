@@ -128,7 +128,10 @@ from nova.helpers import (
     load_effective_settings,
     get_imaging_criteria, _HAS_FCNTL,
     save_log_to_filesystem, read_log_content,
-    calculate_dither_recommendation, dither_display
+    calculate_dither_recommendation, dither_display,
+    # Moved from __init__.py for blueprint migration
+    generate_session_id, _compute_rig_metrics_from_components,
+    load_full_astro_context, get_ra_dec
 )
 from nova.config import DEFAULT_DITHER_MAIN_SHIFT_PX
 from nova.report_graphs import generate_session_charts
@@ -152,7 +155,7 @@ from nova.blueprints.tools import tools_bp
 # HTTP Request Timeouts (seconds)
 DEFAULT_HTTP_TIMEOUT = 10       # Standard timeout for most HTTP requests
 TELEMETRY_TIMEOUT = 5           # Shorter timeout for telemetry pings
-SIMBAD_TIMEOUT = 60             # Longer timeout for SIMBAD queries (can be slow)
+from nova.config import SIMBAD_TIMEOUT  # Timeout for SIMBAD queries
 
 # Scoring Constants
 SCORING_WINDOW_SECONDS = 43200  # 12 hours in seconds - max observable duration for scoring
@@ -526,6 +529,410 @@ def get_or_create_db_user(db_session, username: str) -> 'DbUser':
         traceback.print_exc()
         return None
 
+def _run_schema_patches(conn):
+    """
+    Run all schema patches against an existing database connection.
+    This function is extracted for testability - tests can pass a connection
+    to a minimal baseline database and verify all patches apply correctly.
+
+    Args:
+        conn: An active SQLAlchemy connection with an open transaction
+    """
+    # --- Get table info for journal_sessions ---
+    cols_journal = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
+    colnames_journal = {row[1] for row in cols_journal}  # (cid, name, type, notnull, dflt_value, pk)
+    if "external_id" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
+        print("[DB PATCH] Added missing column journal_sessions.external_id")
+
+    # --- ADD THIS BLOCK for Rig Snapshot ---
+    if "rig_id_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_id_snapshot INTEGER;")
+        print("[DB PATCH] Added missing column journal_sessions.rig_id_snapshot")
+    if "rig_name_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_name_snapshot VARCHAR(256);")
+        print("[DB PATCH] Added missing column journal_sessions.rig_name_snapshot")
+    if "rig_efl_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_efl_snapshot FLOAT;")
+        print("[DB PATCH] Added missing column journal_sessions.rig_efl_snapshot")
+    if "rig_fr_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fr_snapshot FLOAT;")
+        print("[DB PATCH] Added missing column journal_sessions.rig_fr_snapshot")
+    if "rig_scale_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_scale_snapshot FLOAT;")
+        print("[DB PATCH] Added missing column journal_sessions.rig_scale_snapshot")
+    if "rig_fov_w_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_w_snapshot FLOAT;")
+        print("[DB PATCH] Added missing column journal_sessions.rig_fov_w_snapshot")
+    if "rig_fov_h_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_h_snapshot FLOAT;")
+        print("[DB PATCH] Added missing column journal_sessions.rig_fov_h_snapshot")
+    if "telescope_name_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN telescope_name_snapshot VARCHAR(256);")
+        print("[DB PATCH] Added missing column journal_sessions.telescope_name_snapshot")
+    if "reducer_name_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN reducer_name_snapshot VARCHAR(256);")
+        print("[DB PATCH] Added missing column journal_sessions.reducer_name_snapshot")
+    if "camera_name_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN camera_name_snapshot VARCHAR(256);")
+        print("[DB PATCH] Added missing column journal_sessions.camera_name_snapshot")
+    if "rig_stable_uid_snapshot" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_stable_uid_snapshot VARCHAR(36);")
+        print("[DB PATCH] Added missing column journal_sessions.rig_stable_uid_snapshot")
+
+    # --- Log content columns for ASIAIR and PHD2 log analysis ---
+    if "asiair_log_content" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN asiair_log_content TEXT;")
+        print("[DB PATCH] Added missing column journal_sessions.asiair_log_content")
+    if "phd2_log_content" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN phd2_log_content TEXT;")
+        print("[DB PATCH] Added missing column journal_sessions.phd2_log_content")
+    if "log_analysis_cache" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN log_analysis_cache TEXT;")
+        print("[DB PATCH] Added missing column journal_sessions.log_analysis_cache")
+
+    # --- Drop old global unique index on external_id ---
+    # This index made external_id globally unique, but it should be unique per user
+    try:
+        conn.exec_driver_sql("DROP INDEX IF EXISTS uq_journal_external_id;")
+        print("[DB PATCH] Dropped old global unique index uq_journal_external_id")
+    except Exception as idx_err:
+        print(f"[DB PATCH] Could not drop old index (may not exist): {idx_err}")
+
+    # --- Deduplicate external_id values per user before creating composite unique index ---
+    # Only deduplicate within each user, since external_id should be unique per user
+    dup_check = conn.exec_driver_sql("""
+        SELECT user_id, external_id, COUNT(*) as cnt
+        FROM journal_sessions
+        WHERE external_id IS NOT NULL
+        GROUP BY user_id, external_id
+        HAVING COUNT(*) > 1
+    """).fetchall()
+
+    if dup_check:
+        print(f"[DB PATCH] Found {len(dup_check)} duplicate external_id value(s) per user. Resolving...")
+        for (user_id, ext_id, count) in dup_check:
+            # Get all rows with this duplicate external_id for this user (keep the one with lowest id)
+            rows = conn.exec_driver_sql(
+                "SELECT id FROM journal_sessions WHERE user_id = ? AND external_id = ? ORDER BY id",
+                (user_id, ext_id)
+            ).fetchall()
+            # Regenerate external_id for all but the first (oldest) row
+            for row in rows[1:]:
+                new_id = uuid.uuid4().hex
+                conn.exec_driver_sql(
+                    "UPDATE journal_sessions SET external_id = ? WHERE id = ?",
+                    (new_id, row[0])
+                )
+                print(f"[DB PATCH] Regenerated external_id for journal_sessions.id={row[0]} (was '{ext_id}' -> '{new_id}')")
+
+    # --- Create composite unique index on (user_id, external_id) ---
+    # This ensures external_id is unique per user, allowing different users to have the same external_id
+    try:
+        conn.exec_driver_sql(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_user_external_id ON journal_sessions(user_id, external_id) WHERE external_id IS NOT NULL;"
+        )
+        print("[DB PATCH] Created composite unique index uq_journal_user_external_id on journal_sessions(user_id, external_id)")
+    except Exception as idx_err:
+        print(f"[DB PATCH] Could not create journal user_external_id index: {idx_err}")
+
+    # --- PERFORMANCE: Add Composite Index for Journal Sessions ---
+    try:
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS idx_journal_user_date ON journal_sessions(user_id, date_utc DESC);"
+        )
+        print("[DB PATCH] Created performance index idx_journal_user_date on journal_sessions")
+    except Exception as idx_err:
+        print(f"[DB PATCH] Could not create journal user_date index: {idx_err}")
+
+    # --- PERFORMANCE: Add Index for Object Name Lookups ---
+    try:
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS idx_journal_object_name ON journal_sessions(object_name);"
+        )
+        print("[DB PATCH] Created performance index idx_journal_object_name on journal_sessions")
+    except Exception as idx_err:
+        print(f"[DB PATCH] Could not create journal object_name index: {idx_err}")
+
+    # --- SavedView Patches ---
+    cols_views = conn.exec_driver_sql("PRAGMA table_info(saved_views);").fetchall()
+    colnames_views = {row[1] for row in cols_views}
+    if "description" not in colnames_views:
+        conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN description VARCHAR(500);")
+    if "is_shared" not in colnames_views:
+        conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+    if "original_user_id" not in colnames_views:
+        conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_user_id INTEGER;")
+    if "original_item_id" not in colnames_views:
+        conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_item_id INTEGER;")
+
+    # --- PERFORMANCE: Add Index for Saved Views Name Lookups ---
+    try:
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS idx_saved_views_name ON saved_views(name);"
+        )
+        print("[DB PATCH] Created performance index idx_saved_views_name on saved_views")
+    except Exception as idx_err:
+        print(f"[DB PATCH] Could not create saved_views name index: {idx_err}")
+
+    try:
+        cols_framing = conn.exec_driver_sql("PRAGMA table_info(saved_framings);").fetchall()
+        colnames_framing = {row[1] for row in cols_framing}
+        if "rig_name" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_name VARCHAR(256);")
+            print("[DB PATCH] Added missing column saved_framings.rig_name")
+        if "mosaic_cols" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_cols INTEGER DEFAULT 1;")
+        if "mosaic_rows" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_rows INTEGER DEFAULT 1;")
+        if "mosaic_overlap" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_overlap FLOAT DEFAULT 10.0;")
+        # Image Adjustment columns
+        if "img_brightness" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_brightness FLOAT DEFAULT 0.0;")
+            print("[DB PATCH] Added missing column saved_framings.img_brightness")
+        if "img_contrast" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_contrast FLOAT DEFAULT 0.0;")
+            print("[DB PATCH] Added missing column saved_framings.img_contrast")
+        if "img_gamma" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_gamma FLOAT DEFAULT 1.0;")
+            print("[DB PATCH] Added missing column saved_framings.img_gamma")
+        if "img_saturation" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_saturation FLOAT DEFAULT 0.0;")
+            print("[DB PATCH] Added missing column saved_framings.img_saturation")
+        # Overlay Preference columns
+        if "geo_belt_enabled" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN geo_belt_enabled BOOLEAN DEFAULT 1;")
+            print("[DB PATCH] Added missing column saved_framings.geo_belt_enabled")
+        # Stable UID for cross-boundary rig resolution
+        if "rig_stable_uid" not in colnames_framing:
+            conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_stable_uid VARCHAR(36);")
+            print("[DB PATCH] Added missing column saved_framings.rig_stable_uid")
+    except Exception as e:
+        # Table might not exist yet if it's a fresh install, which is fine
+        print(f"[DB PATCH] SavedFraming table patch skipped (may not exist yet): {e}")
+
+    # --- Add stable_uid column to 'locations' table ---
+    cols_locations = conn.exec_driver_sql("PRAGMA table_info(locations);").fetchall()
+    colnames_locations = {row[1] for row in cols_locations}
+    if "stable_uid" not in colnames_locations:
+        conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN stable_uid VARCHAR(36);")
+        print("[DB PATCH] Added missing column locations.stable_uid")
+
+    # --- Add new columns to 'components' table ---
+    cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
+    colnames_components = {row[1] for row in cols_components}
+
+    if "stable_uid" not in colnames_components:
+        conn.exec_driver_sql("ALTER TABLE components ADD COLUMN stable_uid VARCHAR(36);")
+        print("[DB PATCH] Added missing column components.stable_uid")
+
+    if "is_shared" not in colnames_components:
+        conn.exec_driver_sql("ALTER TABLE components ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+        print("[DB PATCH] Added missing column components.is_shared")
+
+    if "original_user_id" not in colnames_components:
+        conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_user_id INTEGER;")
+        print("[DB PATCH] Added missing column components.original_user_id")
+
+    # --- ADD THIS BLOCK ---
+    if "original_item_id" not in colnames_components:
+        conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_item_id INTEGER;")
+        print("[DB PATCH] Added missing column components.original_item_id")
+    # --- END OF BLOCK ---
+
+    # --- Add guide optics columns to 'rigs' table for dither recommendations ---
+    cols_rigs = conn.exec_driver_sql("PRAGMA table_info(rigs);").fetchall()
+    colnames_rigs = {row[1] for row in cols_rigs}
+
+    if "stable_uid" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN stable_uid VARCHAR(36);")
+        print("[DB PATCH] Added missing column rigs.stable_uid")
+
+    # Legacy guide optics columns (kept for backwards compatibility, but no longer used)
+    if "guide_scope_name" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_scope_name VARCHAR(256);")
+        print("[DB PATCH] Added missing column rigs.guide_scope_name")
+    if "guide_focal_length_mm" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_focal_length_mm FLOAT;")
+        print("[DB PATCH] Added missing column rigs.guide_focal_length_mm")
+    if "guide_camera_name" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_camera_name VARCHAR(256);")
+        print("[DB PATCH] Added missing column rigs.guide_camera_name")
+    if "guide_pixel_size_um" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_pixel_size_um FLOAT;")
+        print("[DB PATCH] Added missing column rigs.guide_pixel_size_um")
+
+    # New FK-based guide optics columns
+    if "guide_telescope_id" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_telescope_id INTEGER;")
+        print("[DB PATCH] Added missing column rigs.guide_telescope_id")
+    if "guide_camera_id" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_camera_id INTEGER;")
+        print("[DB PATCH] Added missing column rigs.guide_camera_id")
+    if "guide_is_oag" not in colnames_rigs:
+        conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_is_oag BOOLEAN DEFAULT 0 NOT NULL;")
+        print("[DB PATCH] Added missing column rigs.guide_is_oag")
+
+    # --- Add new columns to 'astro_objects' table ---
+    cols_objects = conn.exec_driver_sql("PRAGMA table_info(astro_objects);").fetchall()
+    colnames_objects = {row[1] for row in cols_objects}
+
+    project_name_col_info = next((col for col in cols_objects if col[1] == 'project_name'), None)
+    if project_name_col_info and 'TEXT' not in project_name_col_info[2].upper():
+        print(
+            f"[DB PATCH] Note: astro_objects.project_name type is {project_name_col_info[2]}. Model updated to TEXT.")
+
+    if "is_shared" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
+        print("[DB PATCH] Added missing column astro_objects.is_shared")
+
+    if "shared_notes" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN shared_notes TEXT;")
+        print("[DB PATCH] Added missing column astro_objects.shared_notes")
+
+    if "original_user_id" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_user_id INTEGER;")
+        print("[DB PATCH] Added missing column astro_objects.original_user_id")
+
+    # --- ADD THIS BLOCK ---
+    if "original_item_id" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_item_id INTEGER;")
+        print("[DB PATCH] Added missing column astro_objects.original_item_id")
+    # --- END OF BLOCK ---
+
+    if "catalog_sources" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_sources TEXT;")
+        print("[DB PATCH] Added missing column astro_objects.catalog_sources")
+
+    if "catalog_info" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_info TEXT;")
+        print("[DB PATCH] Added missing column astro_objects.catalog_info")
+
+    if "enabled" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN enabled BOOLEAN DEFAULT 1;")
+        print("[DB PATCH] Added missing column astro_objects.enabled")
+
+        # Curation Fields Patch
+    if "image_url" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_url VARCHAR(500);")
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_credit VARCHAR(256);")
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_source_link VARCHAR(500);")
+        print("[DB PATCH] Added image curation columns")
+
+    if "description_text" not in colnames_objects:
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_text TEXT;")
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_credit VARCHAR(256);")
+        conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_source_link VARCHAR(500);")
+        print("[DB PATCH] Added description curation columns")
+
+    # --- Project Model Patches ---
+    cols_projects = conn.exec_driver_sql("PRAGMA table_info(projects);").fetchall()
+    colnames_projects = {row[1] for row in cols_projects}
+
+    if "target_object_name" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN target_object_name VARCHAR(256);")
+        print("[DB PATCH] Added missing column projects.target_object_name")
+
+    if "description_notes" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN description_notes TEXT;")
+        print("[DB PATCH] Added missing column projects.description_notes")
+
+    if "framing_notes" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN framing_notes TEXT;")
+        print("[DB PATCH] Added missing column projects.framing_notes")
+
+    if "processing_notes" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN processing_notes TEXT;")
+        print("[DB PATCH] Added missing column projects.processing_notes")
+
+    if "final_image_file" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN final_image_file VARCHAR(256);")
+        print("[DB PATCH] Added missing column projects.final_image_file")
+
+    if "goals" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN goals TEXT;")
+        print("[DB PATCH] Added missing column projects.goals")
+
+    if "status" not in colnames_projects:
+        conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN status VARCHAR(32) DEFAULT 'In Progress';")
+        print("[DB PATCH] Added missing column projects.status")
+    # --- End Project Model Patches ---
+
+    # --- Structured Dither Fields Patches ---
+    cols_journal_sessions = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
+    colnames_journal_sessions = {row[1] for row in cols_journal_sessions}
+
+    if "dither_pixels" not in colnames_journal_sessions:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_pixels INTEGER;")
+        print("[DB PATCH] Added missing column journal_sessions.dither_pixels")
+    if "dither_every_n" not in colnames_journal_sessions:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_every_n INTEGER;")
+        print("[DB PATCH] Added missing column journal_sessions.dither_every_n")
+    if "dither_notes" not in colnames_journal_sessions:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_notes VARCHAR(256);")
+        print("[DB PATCH] Added missing column journal_sessions.dither_notes")
+    # --- End Structured Dither Fields Patches ---
+
+    # Indexes for frequently filtered columns
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_active ON locations(active);")
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_is_default ON locations(is_default);")
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_astro_objects_object_name ON astro_objects(object_name);")
+    conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_rig_name ON rigs(rig_name);")
+
+    # --- User Custom Filters Table ---
+    user_custom_filters_exists = conn.exec_driver_sql(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='user_custom_filters';"
+    ).fetchone()
+    if not user_custom_filters_exists:
+        conn.exec_driver_sql("""
+            CREATE TABLE user_custom_filters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                filter_key TEXT NOT NULL,
+                filter_label TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, filter_key)
+            );
+        """)
+        conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_user_custom_filters_user_id ON user_custom_filters(user_id);")
+        print("[DB PATCH] Created user_custom_filters table")
+
+    # --- Custom Filter Data column on journal_sessions ---
+    if "custom_filter_data" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN custom_filter_data TEXT;")
+        print("[DB PATCH] Added missing column journal_sessions.custom_filter_data")
+
+    # --- Analytics Tables (GDPR-compliant, no PII) ---
+    # Create analytics_event table if it doesn't exist
+    analytics_event_exists = conn.exec_driver_sql(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_event';"
+    ).fetchone()
+    if not analytics_event_exists:
+        conn.exec_driver_sql("""
+            CREATE TABLE analytics_event (
+                event_name VARCHAR(64) NOT NULL,
+                date DATE NOT NULL,
+                count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (event_name, date)
+            );
+        """)
+        print("[DB PATCH] Created analytics_event table")
+
+    # Create analytics_login table if it doesn't exist
+    analytics_login_exists = conn.exec_driver_sql(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_login';"
+    ).fetchone()
+    if not analytics_login_exists:
+        conn.exec_driver_sql("""
+            CREATE TABLE analytics_login (
+                date DATE PRIMARY KEY,
+                login_count INTEGER NOT NULL DEFAULT 0
+            );
+        """)
+        print("[DB PATCH] Created analytics_login table")
+
+
 def ensure_db_initialized_unified():
     """
     Create tables if missing, ensure schema patches (external_id column),
@@ -544,399 +951,8 @@ def ensure_db_initialized_unified():
             pragma_conn.exec_driver_sql("PRAGMA mmap_size = 30000000;")   # 30MB memory-mapped I/O
 
         with engine.begin() as conn:
-            # --- Get table info for journal_sessions ---
-            cols_journal = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
-            colnames_journal = {row[1] for row in cols_journal}  # (cid, name, type, notnull, dflt_value, pk)
-            if "external_id" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN external_id TEXT;")
-                print("[DB PATCH] Added missing column journal_sessions.external_id")
+            _run_schema_patches(conn)
 
-            # --- ADD THIS BLOCK for Rig Snapshot ---
-            if "rig_id_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_id_snapshot INTEGER;")
-                print("[DB PATCH] Added missing column journal_sessions.rig_id_snapshot")
-            if "rig_name_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_name_snapshot VARCHAR(256);")
-                print("[DB PATCH] Added missing column journal_sessions.rig_name_snapshot")
-            if "rig_efl_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_efl_snapshot FLOAT;")
-                print("[DB PATCH] Added missing column journal_sessions.rig_efl_snapshot")
-            if "rig_fr_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fr_snapshot FLOAT;")
-                print("[DB PATCH] Added missing column journal_sessions.rig_fr_snapshot")
-            if "rig_scale_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_scale_snapshot FLOAT;")
-                print("[DB PATCH] Added missing column journal_sessions.rig_scale_snapshot")
-            if "rig_fov_w_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_w_snapshot FLOAT;")
-                print("[DB PATCH] Added missing column journal_sessions.rig_fov_w_snapshot")
-            if "rig_fov_h_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_fov_h_snapshot FLOAT;")
-                print("[DB PATCH] Added missing column journal_sessions.rig_fov_h_snapshot")
-            if "telescope_name_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN telescope_name_snapshot VARCHAR(256);")
-                print("[DB PATCH] Added missing column journal_sessions.telescope_name_snapshot")
-            if "reducer_name_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN reducer_name_snapshot VARCHAR(256);")
-                print("[DB PATCH] Added missing column journal_sessions.reducer_name_snapshot")
-            if "camera_name_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN camera_name_snapshot VARCHAR(256);")
-                print("[DB PATCH] Added missing column journal_sessions.camera_name_snapshot")
-            if "rig_stable_uid_snapshot" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_stable_uid_snapshot VARCHAR(36);")
-                print("[DB PATCH] Added missing column journal_sessions.rig_stable_uid_snapshot")
-
-            # --- Log content columns for ASIAIR and PHD2 log analysis ---
-            if "asiair_log_content" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN asiair_log_content TEXT;")
-                print("[DB PATCH] Added missing column journal_sessions.asiair_log_content")
-            if "phd2_log_content" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN phd2_log_content TEXT;")
-                print("[DB PATCH] Added missing column journal_sessions.phd2_log_content")
-            if "log_analysis_cache" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN log_analysis_cache TEXT;")
-                print("[DB PATCH] Added missing column journal_sessions.log_analysis_cache")
-
-            # --- Drop old global unique index on external_id ---
-            # This index made external_id globally unique, but it should be unique per user
-            try:
-                conn.exec_driver_sql("DROP INDEX IF EXISTS uq_journal_external_id;")
-                print("[DB PATCH] Dropped old global unique index uq_journal_external_id")
-            except Exception as idx_err:
-                print(f"[DB PATCH] Could not drop old index (may not exist): {idx_err}")
-
-            # --- Deduplicate external_id values per user before creating composite unique index ---
-            # Only deduplicate within each user, since external_id should be unique per user
-            dup_check = conn.exec_driver_sql("""
-                SELECT user_id, external_id, COUNT(*) as cnt
-                FROM journal_sessions
-                WHERE external_id IS NOT NULL
-                GROUP BY user_id, external_id
-                HAVING COUNT(*) > 1
-            """).fetchall()
-
-            if dup_check:
-                print(f"[DB PATCH] Found {len(dup_check)} duplicate external_id value(s) per user. Resolving...")
-                for (user_id, ext_id, count) in dup_check:
-                    # Get all rows with this duplicate external_id for this user (keep the one with lowest id)
-                    rows = conn.exec_driver_sql(
-                        "SELECT id FROM journal_sessions WHERE user_id = ? AND external_id = ? ORDER BY id",
-                        (user_id, ext_id)
-                    ).fetchall()
-                    # Regenerate external_id for all but the first (oldest) row
-                    for row in rows[1:]:
-                        new_id = uuid.uuid4().hex
-                        conn.exec_driver_sql(
-                            "UPDATE journal_sessions SET external_id = ? WHERE id = ?",
-                            (new_id, row[0])
-                        )
-                        print(f"[DB PATCH] Regenerated external_id for journal_sessions.id={row[0]} (was '{ext_id}' -> '{new_id}')")
-
-            # --- Create composite unique index on (user_id, external_id) ---
-            # This ensures external_id is unique per user, allowing different users to have the same external_id
-            try:
-                conn.exec_driver_sql(
-                    "CREATE UNIQUE INDEX IF NOT EXISTS uq_journal_user_external_id ON journal_sessions(user_id, external_id) WHERE external_id IS NOT NULL;"
-                )
-                print("[DB PATCH] Created composite unique index uq_journal_user_external_id on journal_sessions(user_id, external_id)")
-            except Exception as idx_err:
-                print(f"[DB PATCH] Could not create journal user_external_id index: {idx_err}")
-
-            # --- PERFORMANCE: Add Composite Index for Journal Sessions ---
-            try:
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS idx_journal_user_date ON journal_sessions(user_id, date_utc DESC);"
-                )
-                print("[DB PATCH] Created performance index idx_journal_user_date on journal_sessions")
-            except Exception as idx_err:
-                print(f"[DB PATCH] Could not create journal user_date index: {idx_err}")
-
-            # --- PERFORMANCE: Add Index for Object Name Lookups ---
-            try:
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS idx_journal_object_name ON journal_sessions(object_name);"
-                )
-                print("[DB PATCH] Created performance index idx_journal_object_name on journal_sessions")
-            except Exception as idx_err:
-                print(f"[DB PATCH] Could not create journal object_name index: {idx_err}")
-
-            # --- SavedView Patches ---
-            cols_views = conn.exec_driver_sql("PRAGMA table_info(saved_views);").fetchall()
-            colnames_views = {row[1] for row in cols_views}
-            if "description" not in colnames_views:
-                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN description VARCHAR(500);")
-            if "is_shared" not in colnames_views:
-                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
-            if "original_user_id" not in colnames_views:
-                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_user_id INTEGER;")
-            if "original_item_id" not in colnames_views:
-                conn.exec_driver_sql("ALTER TABLE saved_views ADD COLUMN original_item_id INTEGER;")
-
-            # --- PERFORMANCE: Add Index for Saved Views Name Lookups ---
-            try:
-                conn.exec_driver_sql(
-                    "CREATE INDEX IF NOT EXISTS idx_saved_views_name ON saved_views(name);"
-                )
-                print("[DB PATCH] Created performance index idx_saved_views_name on saved_views")
-            except Exception as idx_err:
-                print(f"[DB PATCH] Could not create saved_views name index: {idx_err}")
-
-            try:
-                cols_framing = conn.exec_driver_sql("PRAGMA table_info(saved_framings);").fetchall()
-                colnames_framing = {row[1] for row in cols_framing}
-                if "rig_name" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_name VARCHAR(256);")
-                    print("[DB PATCH] Added missing column saved_framings.rig_name")
-                if "mosaic_cols" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_cols INTEGER DEFAULT 1;")
-                if "mosaic_rows" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_rows INTEGER DEFAULT 1;")
-                if "mosaic_overlap" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN mosaic_overlap FLOAT DEFAULT 10.0;")
-                # Image Adjustment columns
-                if "img_brightness" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_brightness FLOAT DEFAULT 0.0;")
-                    print("[DB PATCH] Added missing column saved_framings.img_brightness")
-                if "img_contrast" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_contrast FLOAT DEFAULT 0.0;")
-                    print("[DB PATCH] Added missing column saved_framings.img_contrast")
-                if "img_gamma" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_gamma FLOAT DEFAULT 1.0;")
-                    print("[DB PATCH] Added missing column saved_framings.img_gamma")
-                if "img_saturation" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN img_saturation FLOAT DEFAULT 0.0;")
-                    print("[DB PATCH] Added missing column saved_framings.img_saturation")
-                # Overlay Preference columns
-                if "geo_belt_enabled" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN geo_belt_enabled BOOLEAN DEFAULT 1;")
-                    print("[DB PATCH] Added missing column saved_framings.geo_belt_enabled")
-                # Stable UID for cross-boundary rig resolution
-                if "rig_stable_uid" not in colnames_framing:
-                    conn.exec_driver_sql("ALTER TABLE saved_framings ADD COLUMN rig_stable_uid VARCHAR(36);")
-                    print("[DB PATCH] Added missing column saved_framings.rig_stable_uid")
-            except Exception as e:
-                # Table might not exist yet if it's a fresh install, which is fine
-                print(f"[DB PATCH] SavedFraming table patch skipped (may not exist yet): {e}")
-
-            # --- Add stable_uid column to 'locations' table ---
-            cols_locations = conn.exec_driver_sql("PRAGMA table_info(locations);").fetchall()
-            colnames_locations = {row[1] for row in cols_locations}
-            if "stable_uid" not in colnames_locations:
-                conn.exec_driver_sql("ALTER TABLE locations ADD COLUMN stable_uid VARCHAR(36);")
-                print("[DB PATCH] Added missing column locations.stable_uid")
-
-            # --- Add new columns to 'components' table ---
-            cols_components = conn.exec_driver_sql("PRAGMA table_info(components);").fetchall()
-            colnames_components = {row[1] for row in cols_components}
-
-            if "stable_uid" not in colnames_components:
-                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN stable_uid VARCHAR(36);")
-                print("[DB PATCH] Added missing column components.stable_uid")
-
-            if "is_shared" not in colnames_components:
-                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
-                print("[DB PATCH] Added missing column components.is_shared")
-
-            if "original_user_id" not in colnames_components:
-                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_user_id INTEGER;")
-                print("[DB PATCH] Added missing column components.original_user_id")
-
-            # --- ADD THIS BLOCK ---
-            if "original_item_id" not in colnames_components:
-                conn.exec_driver_sql("ALTER TABLE components ADD COLUMN original_item_id INTEGER;")
-                print("[DB PATCH] Added missing column components.original_item_id")
-            # --- END OF BLOCK ---
-
-            # --- Add guide optics columns to 'rigs' table for dither recommendations ---
-            cols_rigs = conn.exec_driver_sql("PRAGMA table_info(rigs);").fetchall()
-            colnames_rigs = {row[1] for row in cols_rigs}
-
-            if "stable_uid" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN stable_uid VARCHAR(36);")
-                print("[DB PATCH] Added missing column rigs.stable_uid")
-
-            # Legacy guide optics columns (kept for backwards compatibility, but no longer used)
-            if "guide_scope_name" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_scope_name VARCHAR(256);")
-                print("[DB PATCH] Added missing column rigs.guide_scope_name")
-            if "guide_focal_length_mm" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_focal_length_mm FLOAT;")
-                print("[DB PATCH] Added missing column rigs.guide_focal_length_mm")
-            if "guide_camera_name" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_camera_name VARCHAR(256);")
-                print("[DB PATCH] Added missing column rigs.guide_camera_name")
-            if "guide_pixel_size_um" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_pixel_size_um FLOAT;")
-                print("[DB PATCH] Added missing column rigs.guide_pixel_size_um")
-
-            # New FK-based guide optics columns
-            if "guide_telescope_id" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_telescope_id INTEGER;")
-                print("[DB PATCH] Added missing column rigs.guide_telescope_id")
-            if "guide_camera_id" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_camera_id INTEGER;")
-                print("[DB PATCH] Added missing column rigs.guide_camera_id")
-            if "guide_is_oag" not in colnames_rigs:
-                conn.exec_driver_sql("ALTER TABLE rigs ADD COLUMN guide_is_oag BOOLEAN DEFAULT 0 NOT NULL;")
-                print("[DB PATCH] Added missing column rigs.guide_is_oag")
-
-            # --- Add new columns to 'astro_objects' table ---
-            cols_objects = conn.exec_driver_sql("PRAGMA table_info(astro_objects);").fetchall()
-            colnames_objects = {row[1] for row in cols_objects}
-
-            project_name_col_info = next((col for col in cols_objects if col[1] == 'project_name'), None)
-            if project_name_col_info and 'TEXT' not in project_name_col_info[2].upper():
-                print(
-                    f"[DB PATCH] Note: astro_objects.project_name type is {project_name_col_info[2]}. Model updated to TEXT.")
-
-            if "is_shared" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN is_shared BOOLEAN DEFAULT 0 NOT NULL;")
-                print("[DB PATCH] Added missing column astro_objects.is_shared")
-
-            if "shared_notes" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN shared_notes TEXT;")
-                print("[DB PATCH] Added missing column astro_objects.shared_notes")
-
-            if "original_user_id" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_user_id INTEGER;")
-                print("[DB PATCH] Added missing column astro_objects.original_user_id")
-
-            # --- ADD THIS BLOCK ---
-            if "original_item_id" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN original_item_id INTEGER;")
-                print("[DB PATCH] Added missing column astro_objects.original_item_id")
-            # --- END OF BLOCK ---
-
-            if "catalog_sources" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_sources TEXT;")
-                print("[DB PATCH] Added missing column astro_objects.catalog_sources")
-
-            if "catalog_info" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN catalog_info TEXT;")
-                print("[DB PATCH] Added missing column astro_objects.catalog_info")
-
-            if "enabled" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN enabled BOOLEAN DEFAULT 1;")
-                print("[DB PATCH] Added missing column astro_objects.enabled")
-
-                # Curation Fields Patch
-            if "image_url" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_url VARCHAR(500);")
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_credit VARCHAR(256);")
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN image_source_link VARCHAR(500);")
-                print("[DB PATCH] Added image curation columns")
-
-            if "description_text" not in colnames_objects:
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_text TEXT;")
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_credit VARCHAR(256);")
-                conn.exec_driver_sql("ALTER TABLE astro_objects ADD COLUMN description_source_link VARCHAR(500);")
-                print("[DB PATCH] Added description curation columns")
-
-            # --- Project Model Patches ---
-            cols_projects = conn.exec_driver_sql("PRAGMA table_info(projects);").fetchall()
-            colnames_projects = {row[1] for row in cols_projects}
-
-            if "target_object_name" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN target_object_name VARCHAR(256);")
-                print("[DB PATCH] Added missing column projects.target_object_name")
-
-            if "description_notes" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN description_notes TEXT;")
-                print("[DB PATCH] Added missing column projects.description_notes")
-
-            if "framing_notes" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN framing_notes TEXT;")
-                print("[DB PATCH] Added missing column projects.framing_notes")
-
-            if "processing_notes" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN processing_notes TEXT;")
-                print("[DB PATCH] Added missing column projects.processing_notes")
-
-            if "final_image_file" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN final_image_file VARCHAR(256);")
-                print("[DB PATCH] Added missing column projects.final_image_file")
-
-            if "goals" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN goals TEXT;")
-                print("[DB PATCH] Added missing column projects.goals")
-
-            if "status" not in colnames_projects:
-                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN status VARCHAR(32) DEFAULT 'In Progress';")
-                print("[DB PATCH] Added missing column projects.status")
-            # --- End Project Model Patches ---
-
-            # --- Structured Dither Fields Patches ---
-            cols_journal_sessions = conn.exec_driver_sql("PRAGMA table_info(journal_sessions);").fetchall()
-            colnames_journal_sessions = {row[1] for row in cols_journal_sessions}
-
-            if "dither_pixels" not in colnames_journal_sessions:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_pixels INTEGER;")
-                print("[DB PATCH] Added missing column journal_sessions.dither_pixels")
-            if "dither_every_n" not in colnames_journal_sessions:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_every_n INTEGER;")
-                print("[DB PATCH] Added missing column journal_sessions.dither_every_n")
-            if "dither_notes" not in colnames_journal_sessions:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN dither_notes VARCHAR(256);")
-                print("[DB PATCH] Added missing column journal_sessions.dither_notes")
-            # --- End Structured Dither Fields Patches ---
-
-            # Indexes for frequently filtered columns
-            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_active ON locations(active);")
-            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_locations_is_default ON locations(is_default);")
-            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_astro_objects_object_name ON astro_objects(object_name);")
-            conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_rigs_rig_name ON rigs(rig_name);")
-
-            # --- User Custom Filters Table ---
-            user_custom_filters_exists = conn.exec_driver_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='user_custom_filters';"
-            ).fetchone()
-            if not user_custom_filters_exists:
-                conn.exec_driver_sql("""
-                    CREATE TABLE user_custom_filters (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                        filter_key TEXT NOT NULL,
-                        filter_label TEXT NOT NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(user_id, filter_key)
-                    );
-                """)
-                conn.exec_driver_sql("CREATE INDEX IF NOT EXISTS ix_user_custom_filters_user_id ON user_custom_filters(user_id);")
-                print("[DB PATCH] Created user_custom_filters table")
-
-            # --- Custom Filter Data column on journal_sessions ---
-            if "custom_filter_data" not in colnames_journal:
-                conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN custom_filter_data TEXT;")
-                print("[DB PATCH] Added missing column journal_sessions.custom_filter_data")
-
-            # --- Analytics Tables (GDPR-compliant, no PII) ---
-            # Create analytics_event table if it doesn't exist
-            analytics_event_exists = conn.exec_driver_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_event';"
-            ).fetchone()
-            if not analytics_event_exists:
-                conn.exec_driver_sql("""
-                    CREATE TABLE analytics_event (
-                        event_name VARCHAR(64) NOT NULL,
-                        date DATE NOT NULL,
-                        count INTEGER NOT NULL DEFAULT 0,
-                        PRIMARY KEY (event_name, date)
-                    );
-                """)
-                print("[DB PATCH] Created analytics_event table")
-
-            # Create analytics_login table if it doesn't exist
-            analytics_login_exists = conn.exec_driver_sql(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='analytics_login';"
-            ).fetchone()
-            if not analytics_login_exists:
-                conn.exec_driver_sql("""
-                    CREATE TABLE analytics_login (
-                        date DATE PRIMARY KEY,
-                        login_count INTEGER NOT NULL DEFAULT 0
-                    );
-                """)
-                print("[DB PATCH] Created analytics_login table")
 
 # --- Ensure DB schema and patches are applied before any migration/backfill ---
 ensure_db_initialized_unified()
@@ -1640,35 +1656,6 @@ def _norm_name(s: str | None) -> str | None:
         return None
     s2 = " ".join(str(s).strip().split())
     return s2.casefold()
-
-def _compute_rig_metrics_from_components(telescope: Component | None,
-                                          camera: Component | None,
-                                          reducer: Component | None):
-    """
-    Compute (effective_focal_length_mm, f_ratio, image_scale_arcsec_per_px, fov_w_arcmin)
-    based on Component columns.
-    telescope: uses focal_length_mm and aperture_mm
-    camera: uses pixel_size_um and sensor_width_mm
-    reducer: uses factor (e.g., 0.8 for reducer, 2.0 for extender)
-    """
-    try:
-        if not telescope or not camera:
-            return (None, None, None, None)
-        fl = telescope.focal_length_mm
-        ap = telescope.aperture_mm
-        px = camera.pixel_size_um
-        sw = camera.sensor_width_mm
-        fac = reducer.factor if (reducer and reducer.factor is not None) else 1.0
-        if fl is None or ap is None:
-            return (None, None, None, None)
-        efl = fl * fac if fl is not None else None
-        f_ratio = (efl / ap) if (efl and ap) else None
-        image_scale = (206.265 * px / efl) if (efl and px) else None
-        fov_w_arcmin = (degrees(2 * atan((sw / 2.0) / efl)) * 60.0) if (sw and efl) else None
-        return (efl, f_ratio, image_scale, fov_w_arcmin)
-    except Exception as calc_err:
-        app.logger.warning(f"[RIG METRICS] Failed to compute metrics for telescope={telescope.name if telescope else None}, camera={camera.name if camera else None}: {calc_err}")
-        return (None, None, None, None)
 
 
 def _migrate_components_and_rigs(db, user: DbUser, rigs_yaml: dict, username: str):
@@ -3260,100 +3247,6 @@ def load_global_request_context():
         print(f"Error in slim load_global_request_context: {e}")
         traceback.print_exc()
 
-def load_full_astro_context():
-    """
-    Loads heavy astro data (locations, objects) into the global 'g' context.
-    Assumes g.db_user and g.user_config are already populated.
-    """
-    # If this is already loaded for this request, don't do it again
-    if hasattr(g, 'locations'):
-        return
-
-    # If there's no user, there's nothing to load
-    if not hasattr(g, 'db_user') or not g.db_user:
-        g.locations, g.active_locations, g.objects_list, g.objects_map = {}, {}, [], {}
-        g.lat, g.lon, g.tz_name, g.selected_location = None, None, "UTC", None
-        g.altitude_threshold = 20
-        g.times_local, g.times_utc = [], []
-        return
-
-    db = get_db()
-    try:
-        # --- Load Locations with Horizon Points (Fixes N+1 query) ---
-        loc_rows = db.query(Location).options(
-            selectinload(Location.horizon_points)  # Eagerly load horizon points
-        ).filter_by(user_id=g.db_user.id).all()
-
-        g.locations = {}
-        g.active_locations = {}
-        default_loc_name = g.user_config.get("default_location")
-        validated_location = default_loc_name
-
-        for l in loc_rows:
-            # The l.horizon_points access is now free, no new query
-            mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(l.horizon_points, key=lambda p: p.az_deg)]
-            loc_data = {
-                "name": l.name, "lat": l.lat, "lon": l.lon, "timezone": l.timezone,
-                "altitude_threshold": l.altitude_threshold, "is_default": l.is_default,
-                "horizon_mask": mask, "active": l.active, "comments": l.comments
-            }
-            g.locations[l.name] = loc_data
-            if l.active:
-                g.active_locations[l.name] = loc_data
-
-        # Validate default location
-        if not default_loc_name or default_loc_name not in g.active_locations:
-            validated_location = next(iter(g.active_locations), None)
-
-        g.selected_location = validated_location
-
-        # Set safe defaults
-        g.altitude_threshold = g.user_config.get("altitude_threshold", 20)
-        if g.selected_location:
-            loc_cfg = g.locations.get(g.selected_location, {})
-            g.lat = loc_cfg.get("lat")
-            g.lon = loc_cfg.get("lon")
-            g.tz_name = loc_cfg.get("timezone", "UTC")
-        else:
-            g.lat, g.lon, g.tz_name = None, None, "UTC"
-
-        # --- Load Objects ---
-        obj_rows = db.query(AstroObject).filter_by(user_id=g.db_user.id).all()
-        g.objects_list = []  # List for iteration
-        g.objects_map = {}  # <<< NEW: Dictionary for fast lookups
-        g.alternative_names = {}
-        g.projects = {}
-        g.objects = []
-
-        for o in obj_rows:
-            # Get all fields from our new method
-            obj_data = o.to_dict()
-
-            # Append to the list and map
-            g.objects_list.append(obj_data)
-            g.objects.append(o.object_name)
-            if o.object_name:
-                obj_key = o.object_name.lower()
-                g.objects_map[obj_key] = obj_data  # <<< Add to map
-                g.alternative_names[obj_key] = o.common_name
-                g.projects[obj_key] = o.project_name
-
-        # Add objects list to user_config dict for compatibility
-        g.user_config["objects"] = g.objects_list
-        g.user_config["locations"] = g.locations
-
-        # --- Precompute time arrays ---
-        if g.tz_name:
-            local_tz = pytz.timezone(g.tz_name)
-            local_date = datetime.now(local_tz).strftime('%Y-%m-%d')
-            g.times_local, g.times_utc = get_common_time_arrays(g.tz_name, local_date, g.sampling_interval)
-        else:
-            g.times_local, g.times_utc = [], []
-
-    except Exception as e:
-        print(f"Error in load_full_astro_context: {e}")
-        traceback.print_exc()
-
 # --- Guard against stale _user_id left in session when switching from single-user to multi-user mode ---
 @app.before_request
 def _fix_mode_switch_sessions():
@@ -4832,10 +4725,6 @@ def get_hybrid_weather_forecast(lat, lon):
         # Both failed. Return last good data if available.
         print(f"[Weather Func] All sources failed. Returning stale data (if available) for key '{cache_key}'.")
         return last_good or None
-
-def generate_session_id():
-    """Generates a unique session ID."""
-    return uuid.uuid4().hex
 
 def trigger_outlook_update_for_user(username):
     """
@@ -7325,143 +7214,6 @@ def import_catalog(pack_id):
         flash(_("Catalog import failed due to an internal error."), "error")
 
     return redirect(url_for('core.config_form'))
-
-# =============================================================================
-# Astronomical Calculations
-# =============================================================================
-
-def get_ra_dec(object_name, objects_map=None): # <-- ADD objects_map=None parameter
-    """
-    Looks up RA/DEC and other details for an object.
-    Prioritizes the provided objects_map (if given), then falls back to g.objects_map (in request context),
-    then queries SIMBAD.
-    """
-    obj_key = object_name.lower()
-
-    # --- Use the provided map first, then g, then None ---
-    obj_map_to_use = objects_map # Use the one passed in (e.g., from the worker thread)
-    if obj_map_to_use is None and has_request_context():
-        # Fallback to g ONLY if in a request context and no map was passed
-        obj_map_to_use = getattr(g, 'objects_map', None)
-
-    obj_entry = obj_map_to_use.get(obj_key) if obj_map_to_use else None # Use the determined map
-
-    # --- Define defaults ---
-    # (Defaults remain the same)
-    default_type = "N/A"; default_magnitude = "N/A"; default_size = "N/A"; default_sb = "N/A";
-    default_project = "none"; default_constellation = "N/A"; default_active_project = False
-
-    # --- Path 1: Object found in config (using obj_map_to_use) ---
-    if obj_entry:
-        # (Logic inside Path 1 remains the same, using obj_entry)
-        ra_str = obj_entry.get("RA"); dec_str = obj_entry.get("DEC")
-        constellation_val = obj_entry.get("Constellation", default_constellation)
-        type_val = obj_entry.get("Type", default_type)
-        magnitude_val = obj_entry.get("Magnitude", default_magnitude)
-        size_val = obj_entry.get("Size", default_size)
-        sb_val = obj_entry.get("SB", default_sb)
-        project_val = obj_entry.get("Project", default_project)
-        common_name_val = obj_entry.get("Name", object_name) # Uses "Name" for config form compatibility
-        active_project_val = obj_entry.get("ActiveProject", default_active_project)
-
-        if ra_str is not None and dec_str is not None:
-            try:
-                ra_hours_float = float(ra_str); dec_degrees_float = float(dec_str)
-                if constellation_val in [None, "N/A", ""]:
-                    try:
-                        coords = SkyCoord(ra=ra_hours_float * u.hourangle, dec=dec_degrees_float * u.deg)
-                        constellation_val = get_constellation(coords, short_name=True)
-                    except Exception: constellation_val = "N/A"
-                return {
-                    "Object": object_name, "Constellation": constellation_val, "Common Name": common_name_val,
-                    "RA (hours)": ra_hours_float, "DEC (degrees)": dec_degrees_float, "Project": project_val,
-                    "Type": type_val or default_type, "Magnitude": magnitude_val or default_magnitude,
-                    "Size": size_val or default_size, "SB": sb_val or default_sb, "ActiveProject": active_project_val
-                }
-            except ValueError:
-                return { # Return error but keep other config data
-                    "Object": object_name, "Constellation": "N/A", "Common Name": "Error: Invalid RA/DEC in config",
-                    "RA (hours)": None, "DEC (degrees)": None, "Project": project_val, "Type": type_val,
-                    "Magnitude": magnitude_val, "Size": size_val, "SB": sb_val, "ActiveProject": active_project_val
-                }
-        # Fall through to SIMBAD if coordinates missing in config
-
-    # --- Path 2: Object not in config OR missing coords -> Query SIMBAD ---
-    # (SIMBAD lookup logic remains the same)
-    project_to_use = obj_entry.get("Project", default_project) if obj_entry else default_project
-    active_project_to_use = obj_entry.get("ActiveProject", default_active_project) if obj_entry else default_active_project
-    try:
-        custom_simbad = Simbad();
-        custom_simbad.ROW_LIMIT = 1;
-        custom_simbad.TIMEOUT = SIMBAD_TIMEOUT
-        # Request standard coordinates.
-        # Our parsing logic handles both Decimal (try block) and Sexagesimal (except block).
-        custom_simbad.add_votable_fields('main_id', 'ra', 'dec', 'otype')
-
-        result = custom_simbad.query_object(object_name)
-        if result is None or len(result) == 0: raise ValueError(f"No results for '{object_name}' in SIMBAD.")
-
-        # Find the columns (handling the rename to generic 'ra'/'dec')
-        ra_col = next((c for c in result.colnames if c.lower() in ['ra', 'ra(d)', 'ra_d']), 'ra')
-        dec_col = next((c for c in result.colnames if c.lower() in ['dec', 'dec(d)', 'dec_d']), 'dec')
-
-        val_ra = result[ra_col][0]
-        val_dec = result[dec_col][0]
-
-        # --- CRITICAL FIX: FORCE DEGREE CONVERSION ---
-        # Since we requested ra(d), any numeric result IS degrees.
-        # We unconditionally divide numeric results by 15.0 to get hours.
-        try:
-            # Try to treat as pure decimal degrees
-            ra_float = float(val_ra)
-            ra_hours_simbad = ra_float / 15.0  # 14.75 deg / 15 = 0.98 hours
-
-            dec_degrees_simbad = float(val_dec)  # Dec is already in degrees
-
-            # print(f"[SIMBAD FIX] Converted {ra_float}° RA to {ra_hours_simbad:.4f} hours")
-        except (ValueError, TypeError):
-            # If Simbad ignored us and sent a string (e.g. "00 59 01"), use the parser
-            ra_hours_simbad = hms_to_hours(str(val_ra))
-            dec_degrees_simbad = dms_to_degrees(str(val_dec))
-
-        simbad_main_id = str(result['MAIN_ID'][0]) if 'MAIN_ID' in result.colnames else object_name
-        try:
-            coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
-            constellation_simbad = get_constellation(coords, short_name=True)
-        except Exception:
-            constellation_simbad = "N/A"
-
-        return {
-            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
-            "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
-            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
-            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
-        }
-    except Exception as ex:
-        return {
-            "Object": object_name, "Constellation": "N/A",
-            "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
-            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
-            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
-        }
-
-        try:
-            coords = SkyCoord(ra=ra_hours_simbad * u.hourangle, dec=dec_degrees_simbad * u.deg)
-            constellation_simbad = get_constellation(coords, short_name=True)
-        except Exception: constellation_simbad = "N/A"
-        return {
-            "Object": object_name, "Constellation": constellation_simbad, "Common Name": simbad_main_id,
-            "RA (hours)": ra_hours_simbad, "DEC (degrees)": dec_degrees_simbad, "Project": project_to_use,
-            "Type": str(result['OTYPE'][0]) if 'OTYPE' in result.colnames else "N/A",
-            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
-        }
-    except Exception as ex:
-        return { # Return error structure
-            "Object": object_name, "Constellation": "N/A",
-            "Common Name": f"Error: SIMBAD lookup failed ({type(ex).__name__})",
-            "RA (hours)": None, "DEC (degrees)": None, "Project": project_to_use, "Type": "N/A",
-            "Magnitude": "N/A", "Size": "N/A", "SB": "N/A", "ActiveProject": active_project_to_use
-        }
 
 # =============================================================================
 # Protected Routes

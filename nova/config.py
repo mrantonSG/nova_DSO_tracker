@@ -40,6 +40,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 # --- Limits ---
 MAX_ACTIVE_LOCATIONS = 5
 
+# --- Timeouts ---
+SIMBAD_TIMEOUT = 60  # SIMBAD queries can be slow
+
 # --- Dither defaults ---
 DEFAULT_DITHER_MAIN_SHIFT_PX = 10  # Default desired shift on main camera sensor (pixels)
 
