@@ -6190,82 +6190,7 @@ def inject_user_mode():
         "supported_languages": app.config.get("BABEL_SUPPORTED_LOCALES", ["en"])
     }
 
-@core_bp.route('/logout', methods=['POST'])
-def logout():
-    logout_user()
-    session.clear()  # Optional: reset session if needed
-    flash(_("Logged out successfully!"), "success")
-    return redirect(url_for('core.login'))
 
-
-@core_bp.route('/set_language/<lang>')
-def set_language(lang):
-    """Set the user's preferred language and redirect back."""
-    # Validate the language is supported
-    supported_locales = app.config.get('BABEL_SUPPORTED_LOCALES', ['en'])
-    if lang not in supported_locales:
-        flash(_("Language '%(lang)s' is not supported.", lang=lang), "error")
-        return redirect(request.referrer or url_for('core.index'))
-
-    # Get the current user
-    if not hasattr(g, 'db_user') or not g.db_user:
-        # For guest users, just set session and redirect
-        session['language'] = lang
-        return redirect(request.referrer or url_for('core.index'))
-
-    # Save to UiPref.json_blob for authenticated users
-    db = get_db()
-    try:
-        prefs = db.query(UiPref).filter_by(user_id=g.db_user.id).first()
-        if not prefs:
-            prefs = UiPref(user_id=g.db_user.id, json_blob='{}')
-            db.add(prefs)
-
-        # Load existing settings, add language, save back
-        try:
-            settings = json.loads(prefs.json_blob or '{}')
-        except json.JSONDecodeError:
-            settings = {}
-
-        settings['language'] = lang
-        prefs.json_blob = json.dumps(settings, ensure_ascii=False)
-        db.commit()
-
-        # Update g.user_config for current request
-        if hasattr(g, 'user_config'):
-            g.user_config['language'] = lang
-
-    except Exception as e:
-        db.rollback()
-        print(f"[SET_LANGUAGE] Error saving language preference: {e}")
-
-    # Redirect back to the previous page
-    return redirect(request.referrer or url_for('core.index'))
-
-
-def get_static_cache_key(obj_name, date_str, location):
-    return f"{obj_name.lower()}_{date_str}_{location.lower()}"
-
-def get_static_nightly_values(ra, dec, obj_name, local_date, fixed_time_utc_str, location, lat, lon, tz_name, alt_threshold):
-    key = get_static_cache_key(obj_name, local_date, location)
-    if key in static_cache:
-        return static_cache[key]
-
-    # Otherwise calculate and cache
-    alt_11pm, az_11pm = ra_dec_to_alt_az(ra, dec, lat, lon, fixed_time_utc_str)
-    transit_time = calculate_transit_time(ra, lat, lon, tz_name)
-    altitude_threshold = g.user_config.get("altitude_threshold", 20)
-    obs_duration, max_altitude, _obs_from, _obs_to = calculate_observable_duration_vectorized(
-        ra, dec, lat, lon, local_date, tz_name, altitude_threshold
-    )
-    static_cache[key] = {
-        "Altitude 11PM": alt_11pm,
-        "Azimuth 11PM": az_11pm,
-        "Transit Time": transit_time,
-        "Observable Duration (min)": int(obs_duration.total_seconds() / 60),
-        "Max Altitude (°)": round(max_altitude, 1) if max_altitude is not None else "N/A"
-    }
-    return static_cache[key]
 
 @core_bp.route('/trigger_update', methods=['POST'])
 def trigger_update():
@@ -6278,86 +6203,6 @@ def trigger_update():
         return jsonify({"status": "error", "message": str(e)})
 
 
-@core_bp.route('/login', methods=['GET', 'POST'])
-def login():
-    if SINGLE_USER_MODE:
-        # In single-user mode, the login page is not needed, just redirect.
-        return redirect(url_for('core.index'))
-    else:
-        # --- MULTI-USER MODE LOGIC ---
-        if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
-            user = db.session.scalar(db.select(User).where(User.username == username))
-            if user and user.check_password(password):
-                login_user(user)
-                record_login()
-                session.modified = True  # Force session save before redirect
-                flash(_("Logged in successfully!"), "success")
-
-                # --- START: THIS IS THE CORRECTED LOGIC ---
-                # Read 'next' from the form's hidden input, not the URL
-                next_page = request.form.get('next')
-
-                # Security check: Only redirect if 'next' is a relative path
-                # Use 303 redirect to ensure browser does a fresh GET with the new session cookie
-                if next_page and next_page.startswith('/'):
-                    return redirect(next_page, code=303)
-
-                # Default redirect if 'next' is missing or invalid
-                return redirect(url_for('core.index'), code=303)
-                # --- END OF CORRECTION ---
-
-            else:
-                flash(_("Invalid username or password."), "error")
-        return render_template('login.html')
-
-@core_bp.route('/sso/login')
-def sso_login():
-    # First, check if the app is in single-user mode. SSO is not applicable here.
-    if SINGLE_USER_MODE:
-        flash(_("Single Sign-On is not applicable in single-user mode."), "error")
-        return redirect(url_for('core.index'))
-
-    # Get the token from the URL (e.g., ?token=...)
-    token = request.args.get('token')
-    if not token:
-        flash(_("SSO Error: No token provided."), "error")
-        return redirect(url_for('core.login'))
-
-    # Get the shared secret key from the .env file
-    secret_key = os.environ.get('JWT_SECRET_KEY')
-    if not secret_key:
-        flash(_("SSO Error: SSO is not configured on the server."), "error")
-        return redirect(url_for('core.login'))
-
-    try:
-        # Decode the token. This automatically verifies the signature and expiration.
-        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
-        username = payload.get('username')
-
-        if not username:
-            raise jwt.InvalidTokenError("Token is missing username.")
-
-        # Find the user in the Nova database
-        user = db.session.scalar(db.select(User).where(User.username == username))
-
-        if user and user.is_active:
-            login_user(user)  # Log the user in using Flask-Login
-            record_login()
-            session.modified = True  # Force session save before redirect
-            flash(_("Welcome back, %(username)s!", username=user.username), "success")
-            return redirect(url_for('core.index'), code=303)
-        else:
-            flash(_("SSO Error: User '%(username)s' not found or is disabled in Nova.", username=username), "error")
-            return redirect(url_for('core.login'))
-
-    except jwt.ExpiredSignatureError:
-        flash(_("SSO Error: The login link has expired. Please try again from WordPress."), "error")
-        return redirect(url_for('core.login'))
-    except jwt.InvalidTokenError:
-        flash(_("SSO Error: Invalid login token."), "error")
-        return redirect(url_for('core.login'))
 
 
 @core_bp.route('/proxy_focus', methods=['POST'])
@@ -6488,9 +6333,6 @@ def set_location_api():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-@core_bp.route('/favicon.ico')
-def favicon():
-    return send_from_directory('static', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.context_processor
 def inject_version():
@@ -11033,47 +10875,6 @@ def deprovision_user():
         ok = disable_user(username)
         return (jsonify({"status": "success", "message": "disabled"}), 200) if ok else (jsonify({"status":"not_found"}), 404)
 
-@core_bp.route('/uploads/<path:username>/<path:filename>')
-@login_required
-def get_uploaded_image(username, filename):
-    """
-    Serve uploaded images.
-
-    Compatible with:
-    - Legacy notes where Trix stored /uploads/<old_username>/...
-    - Photo ZIP imports that always extract into the *current* user's directory
-    - Single-user installs that store everything under 'default'
-    """
-
-    candidate_dirs = []
-
-    # 1) Directory that matches the URL segment (legacy behaviour)
-    candidate_dirs.append(os.path.join(UPLOAD_FOLDER, username))
-
-    # 2) In multi-user mode, also try the current user's directory.
-    #    This fixes MU→MU migrations where the username changed:
-    #    old HTML: /uploads/mrantonsG/..., new files: uploads/anton/...
-    if not SINGLE_USER_MODE:
-        current_name = getattr(current_user, "username", None)
-        if current_name and current_name != username:
-            candidate_dirs.append(os.path.join(UPLOAD_FOLDER, current_name))
-
-    # 3) In single-user mode, fall back to "default" for legacy paths.
-    if SINGLE_USER_MODE and username != "default":
-        candidate_dirs.append(os.path.join(UPLOAD_FOLDER, "default"))
-
-    for user_upload_dir in candidate_dirs:
-        base_dir = os.path.abspath(user_upload_dir)
-        target_path = os.path.abspath(os.path.join(user_upload_dir, filename))
-
-        # Prevent path traversal
-        if not target_path.startswith(base_dir + os.sep):
-            continue
-
-        if os.path.exists(target_path):
-            return send_from_directory(user_upload_dir, filename)
-
-    return "Not Found", 404
 
 @api_bp.route('/api/get_shared_items')
 @login_required
