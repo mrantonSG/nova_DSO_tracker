@@ -133,7 +133,7 @@ def _format_ra_csv(ra_deg):
     m = int((total_seconds % 3600) // 60)
     s = int(total_seconds % 60)
     # Telescopius Format: 00hr 00' 00" (Pad with zeros)
-    return f"{h:02d}hr {m:02d}' {s:02d}\""
+    return f"{h:02d}hr {m:02d}' {s:02d}"
 
 
 def _format_dec_csv(dec_deg):
@@ -278,3 +278,162 @@ def mobile_mosaic_view(object_name):
                            mosaic_text=full_text,
                            info=f"{cols}x{rows} Mosaic @ {framing.rotation}°",
                            back_url=back_url)
+
+
+@mobile_bp.route('/m/object/<path:object_name>')
+@login_required
+def mobile_object_detail(object_name):
+    """Mobile-optimized page showing object details with altitude chart and opportunities."""
+    load_full_astro_context()
+
+    # Get the object record from config
+    obj_record = g.objects_map.get(object_name)
+    if not obj_record:
+        flash(_("Object '%(object_name)s' not found.", object_name=object_name), "error")
+        return redirect(url_for('mobile.mobile_up_now'))
+
+    # Get location details
+    lat = g.lat
+    lon = g.lon
+    tz_name = g.tz_name
+    user_prefs = g.user_config or {}
+
+    # Get location object for horizon mask
+    location = None
+    for loc in g.active_locations:
+        if loc.name == g.selected_location:
+            location = loc
+            break
+
+    if not location:
+        flash(_("Location not found."), "error")
+        return redirect(url_for('mobile.mobile_up_now'))
+
+    # Calculate object position data (same logic as mobile_up_now)
+    try:
+        ra = obj_record.get('RA (hours)')
+        dec = obj_record.get('DEC (deg)', obj_record.get('DEC (degrees)'))
+
+        if ra is None or dec is None:
+            flash(_("Object coordinates not available."), "error")
+            return redirect(url_for('mobile.mobile_up_now'))
+
+        ra = float(ra)
+        dec = float(dec)
+
+        # Get current datetime in local timezone
+        local_tz = pytz.timezone(tz_name)
+        current_datetime_local = datetime.now(local_tz)
+
+        # Determine "Observing Night" Date (Noon-to-Noon Logic)
+        if current_datetime_local.hour < 12:
+            local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+        else:
+            local_date = current_datetime_local.strftime('%Y-%m-%d')
+
+        # Get calculation settings
+        from nova.config import nightly_curves_cache
+        sampling_interval = 15
+        if SINGLE_USER_MODE:
+            sampling_interval = user_prefs.get('sampling_interval_minutes', 15)
+        else:
+            import os
+            sampling_interval = int(os.environ.get('CALCULATION_PRECISION', 15))
+
+        # Get altitude threshold
+        altitude_threshold = user_prefs.get("altitude_threshold", 20)
+        if location.altitude_threshold is not None:
+            altitude_threshold = location.altitude_threshold
+
+        # Calculate horizon mask
+        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
+        location_name_key = location.name.lower().replace(' ', '_')
+
+        # Calculate current position
+        from astropy.coordinates import SkyCoord, AltAz, EarthLocation
+        from astropy.time import Time
+        from astropy import units as u
+        from astropy.coordinates import get_body
+
+        location_ephem = EarthLocation(lat=lat * u.deg, lon=lon * u.deg)
+        time_obj_now = Time(datetime.now(pytz.utc))
+
+        sky_coord = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+
+        # Get current altitude/azimuth
+        frame_now = AltAz(obstime=time_obj_now, location=location_ephem)
+        obj_in_frame = sky_coord.transform_to(frame_now)
+        current_alt = obj_in_frame.alt.deg
+        current_az = obj_in_frame.az.deg
+
+        # Calculate trend (look at position in 15 minutes)
+        import numpy as np
+        time_obj_next = Time((datetime.now(pytz.utc) + timedelta(minutes=15)))
+        frame_next = AltAz(obstime=time_obj_next, location=location_ephem)
+        obj_next = sky_coord.transform_to(frame_next)
+        next_alt = obj_next.alt.deg
+        trend = '-'
+        if abs(next_alt - current_alt) > 0.01:
+            trend = '↑' if next_alt > current_alt else '↓'
+
+        # Calculate observable duration
+        from modules.astro_calculations import calculate_observable_duration_vectorized, calculate_transit_time
+        obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+            ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
+            horizon_mask=horizon_mask
+        )
+        obs_duration_min = int(obs_duration.total_seconds() / 60) if obs_duration else 0
+
+        # Calculate moon separation
+        moon_in_frame = get_body('moon', time_obj_now, location=location_ephem)
+        moon_coord_sky = SkyCoord(ra=ra * u.hourangle, dec=dec * u.deg)
+        obj_in_frame_for_moon = moon_coord_sky.transform_to(frame_now)
+        angular_sep = round(obj_in_frame_for_moon.separation(moon_in_frame).deg)
+
+        # Get transit time
+        transit_time_str = calculate_transit_time(ra, dec, lat, lon, tz_name, local_date)
+
+        # Get framing status
+        db = get_db()
+        has_framing = db.query(SavedFraming).filter_by(
+            user_id=g.db_user.id, object_name=object_name
+        ).first() is not None
+
+    except Exception as e:
+        print(f"[Mobile Object Detail] Error calculating object data: {e}")
+        import traceback
+        traceback.print_exc()
+        current_alt = 0
+        current_az = 0
+        trend = '-'
+        obs_duration_min = 0
+        angular_sep = "N/A"
+        transit_time_str = "Error"
+        has_framing = False
+
+    # Get object notes
+    notes = obj_record.get('project_name', '')
+    if notes and not notes.strip().startswith(("<p>", "<div>", "<ul>", "<ol>", "<figure>", "<blockquote>", "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>")):
+        # Convert plain text to HTML for display
+        escaped_text = bleach.clean(notes, tags=[], strip=True)
+        notes_html = escaped_text.replace("\n", "<br>")
+    else:
+        notes_html = notes
+
+    return render_template('mobile_object_detail.html',
+                           object_name=object_name,
+                           common_name=obj_record.get('common_name', object_name),
+                           current_alt=f"{current_alt:.1f}",
+                           current_az=f"{current_az:.1f}",
+                           trend=trend,
+                           moon_sep=angular_sep if angular_sep != "N/A" else "N/A",
+                           obs_duration=obs_duration_min,
+                           transit_time=transit_time_str,
+                           ra=ra,
+                           dec=dec,
+                           plot_lat=lat,
+                           plot_lon=lon,
+                           plot_tz=tz_name,
+                           plot_loc_name=g.selected_location,
+                           has_framing=has_framing,
+                           notes_html=notes_html)

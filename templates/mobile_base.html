@@ -82,6 +82,9 @@
             } else {
                 document.getElementById('nav-up-now').classList.add('active');
             }
+        } else if (path.includes('/m/object/')) {
+            // Object detail page is accessed from Up Now
+            document.getElementById('nav-up-now').classList.add('active');
         } else if (path.includes('/m/edit_notes/')) {
             // Edit notes is accessed from Up Now
             document.getElementById('nav-up-now').classList.add('active');

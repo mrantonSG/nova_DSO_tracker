@@ -368,6 +368,16 @@
                 </div>
             `;
 
+            // Make the card clickable to navigate to object detail
+            li.addEventListener('click', (e) => {
+                // Don't navigate if clicking on edit or framing buttons
+                if (e.target.closest('.edit-button') || e.target.closest('.asiair-btn')) {
+                    return;
+                }
+                window.location.href = `/m/object/${safeObj}`;
+            });
+            li.style.cursor = 'pointer';
+
             list.appendChild(li);
         }
 

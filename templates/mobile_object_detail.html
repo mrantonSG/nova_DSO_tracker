@@ -1,0 +1,651 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}{{ common_name }} ({{ object_name }}){% endblock %}
+{% block header_title %}{{ common_name }}{% endblock %}
+
+{% block head %}
+<style>
+    /* --- Back Bar --- */
+    .back-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 20px;
+        background-color: var(--primary-color);
+        color: var(--text-white);
+    }
+
+    .back-bar a {
+        color: var(--text-white);
+        text-decoration: none;
+        font-size: 1.1rem;
+    }
+
+    .back-bar .object-title {
+        flex: 1;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .back-bar .menu-btn {
+        color: var(--text-white);
+        font-size: 1.5rem;
+        text-decoration: none;
+        width: 30px;
+        text-align: center;
+    }
+
+    /* --- Stats Strip --- */
+    .stats-strip {
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        background-color: var(--primary-dark);
+        color: var(--text-white);
+        padding: 12px 0;
+        margin-bottom: 15px;
+    }
+
+    .stat-item {
+        text-align: center;
+        flex: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+
+    .stat-value.primary {
+        color: #83b4c5;
+    }
+
+    .stat-divider {
+        width: 1px;
+        height: 40px;
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    /* --- Chart Container --- */
+    .chart-container {
+        margin-bottom: 15px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--border-medium);
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .chart-canvas {
+        height: 200px;
+        width: 100%;
+    }
+
+    /* --- Chart Controls --- */
+    .chart-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 15px;
+        background-color: var(--bg-white);
+        border-bottom: 1px solid var(--border-medium);
+    }
+
+    .segmented-control {
+        display: flex;
+        background-color: var(--bg-light-gray-alt3);
+        border-radius: 8px;
+        padding: 3px;
+    }
+
+    .segmented-control button {
+        padding: 8px 16px;
+        border: none;
+        background-color: transparent;
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+
+    .segmented-control button.active {
+        background-color: var(--bg-white);
+        color: var(--primary-dark);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .date-pill {
+        background-color: var(--primary-light);
+        color: var(--text-white);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    /* --- Action Row --- */
+    .action-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .action-btn {
+        flex: 1;
+        padding: 12px 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        box-sizing: border-box;
+    }
+
+    .action-btn.primary {
+        background-color: var(--primary-color);
+        color: var(--text-white);
+    }
+
+    .action-btn.ghost {
+        background-color: transparent;
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .action-btn.ghost-teal {
+        background-color: transparent;
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    /* --- Tab Strip --- */
+    .tab-strip {
+        display: flex;
+        border-bottom: 1px solid var(--border-medium);
+        margin-bottom: 15px;
+    }
+
+    .tab-strip button {
+        flex: 1;
+        padding: 12px 0;
+        border: none;
+        background-color: transparent;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .tab-strip button.active {
+        color: var(--primary-dark);
+        border-bottom-color: var(--primary-dark);
+    }
+
+    .tab-strip button:disabled {
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+
+    /* --- Tab Content --- */
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    /* --- Opportunity Cards --- */
+    .opportunity-card {
+        background-color: var(--bg-white);
+        border-radius: var(--radius-xl);
+        border: var(--input-border-width) solid var(--border-medium);
+        padding: 15px;
+        margin-bottom: 12px;
+    }
+
+    .opportunity-date {
+        font-weight: bold;
+        color: var(--primary-dark);
+        margin-bottom: 8px;
+    }
+
+    .opportunity-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .opportunity-rating {
+        color: var(--warning-color-alt);
+        font-size: 1.2rem;
+    }
+
+    .opportunity-window {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .opportunity-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+
+    .opportunity-stat strong {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+
+    /* --- Notes Content --- */
+    .notes-content {
+        background-color: var(--bg-white);
+        border-radius: var(--radius-xl);
+        border: var(--input-border-width) solid var(--border-medium);
+        padding: 15px;
+        margin-bottom: 15px;
+        line-height: 1.6;
+        color: var(--text-primary);
+    }
+
+    .notes-edit-link {
+        display: inline-block;
+        text-align: center;
+        padding: 12px 20px;
+        background-color: var(--primary-color);
+        color: var(--text-white);
+        border-radius: var(--radius-lg);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    /* --- Monospace for data --- */
+    .data-mono {
+        font-family: 'DM Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back Bar -->
+<div class="back-bar">
+    <a href="{{ url_for('mobile.mobile_up_now') }}">‹ Dashboard</a>
+    <span class="object-title">{{ common_name }}</span>
+    <a href="#" class="menu-btn">⋯</a>
+</div>
+
+<!-- Stats Strip -->
+<div class="stats-strip">
+    <div class="stat-item">
+        <div class="stat-label">Now</div>
+        <div class="stat-value primary data-mono">{{ current_alt }}°</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+        <div class="stat-label">Trend</div>
+        <div class="stat-value data-mono">{{ trend }}</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+        <div class="stat-label">Moon Sep</div>
+        <div class="stat-value data-mono">{{ moon_sep }}°</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+        <div class="stat-label">Obs</div>
+        <div class="stat-value data-mono">{{ obs_duration }}m</div>
+    </div>
+</div>
+
+<!-- Altitude Chart -->
+<div class="chart-container">
+    <canvas id="altitudeChartCanvas" class="chart-canvas"></canvas>
+</div>
+
+<!-- Chart Controls -->
+<div class="chart-controls">
+    <div class="segmented-control">
+        <button id="view-day" class="active" data-view="day">{{ _('Day') }}</button>
+        <button id="view-month" data-view="month">{{ _('Month') }}</button>
+        <button id="view-year" data-view="year">{{ _('Year') }}</button>
+    </div>
+    <div class="date-pill data-mono" id="date-pill">{{ _('Today') }}</div>
+</div>
+
+<!-- Action Row -->
+<div class="action-row">
+    <a href="{{ url_for('mobile.mobile_mosaic_view', object_name=object_name) }}?from=object_detail" class="action-btn ghost-teal">{{ _('Framing') }}</a>
+    <a href="/m/journal/new?object={{ object_name }}" class="action-btn primary">{{ _('Log Session') }}</a>
+    <a href="https://simbad.cds.unistra.fr/simbad/sim-id?Ident={{ object_name }}" target="_blank" class="action-btn ghost">{{ _('SIMBAD') }}</a>
+</div>
+
+<!-- Tab Strip -->
+<div class="tab-strip">
+    <button id="tab-opportunities" class="active" data-tab="opportunities">{{ _('Opportunities') }}</button>
+    <button id="tab-notes" data-tab="notes">{{ _('Notes') }}</button>
+</div>
+
+<!-- Opportunities Tab Content -->
+<div id="content-opportunities" class="tab-content active">
+    <ul class="item-list" id="opportunities-list">
+        <li class="loading" id="opportunities-loading">
+            {{ _('Loading opportunities...') }}
+        </li>
+    </ul>
+</div>
+
+<!-- Notes Tab Content -->
+<div id="content-notes" class="tab-content">
+    <div class="notes-content">
+        {% if notes_html %}
+            {{ notes_html | safe }}
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+                {{ _('No notes for this object.') }}
+            </p>
+        {% endif %}
+    </div>
+    <div style="text-align: center;">
+        <a href="{{ url_for('mobile.mobile_edit_notes', object_name=object_name) }}" class="notes-edit-link">
+            {{ _('Edit Notes') }} →
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Data passed from Python
+    const OBJECT_DATA = {
+        name: {{ object_name | tojson }},
+        commonName: {{ common_name | tojson }},
+        plotLat: {{ plot_lat | tojson }},
+        plotLon: {{ plot_lon | tojson }},
+        plotTz: {{ plot_tz | tojson }},
+        plotLocName: {{ plot_loc_name | tojson }},
+        ra: {{ ra | tojson }},
+        dec: {{ dec | tojson }}
+    };
+
+    // Translated strings
+    const i18n = {
+        loading: "{{ _('Loading...') }}",
+        noOpportunities: "{{ _('No imaging opportunities found.') }}",
+        errorLoading: "{{ _('Error loading opportunities.') }}",
+        rating: "{{ _('Rating:') }}",
+        maxAlt: "{{ _('Max Alt:') }}",
+        duration: "{{ _('Duration:') }}",
+        moon: "{{ _('Moon:') }}",
+        addCalendar: "{{ _('Add to calendar') }}"
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Tab Switching ---
+        const tabButtons = document.querySelectorAll('.tab-strip button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.dataset.tab;
+
+                // Update buttons
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Update content
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(`content-${tabId}`).classList.add('active');
+
+                // Load opportunities when tab is first opened
+                if (tabId === 'opportunities' && !opportunitiesLoaded) {
+                    loadOpportunities();
+                }
+            });
+        });
+
+        // --- Chart View Switching ---
+        const viewButtons = document.querySelectorAll('.segmented-control button');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                viewButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                changeView(button.dataset.view);
+            });
+        });
+
+        // --- Load Chart ---
+        loadAltitudeChart('day');
+
+        // --- Set date pill ---
+        const today = new Date();
+        const datePill = document.getElementById('date-pill');
+        datePill.textContent = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    });
+
+    // --- Chart Loading ---
+    let chartInstance = null;
+    let opportunitiesLoaded = false;
+
+    async function loadAltitudeChart(view) {
+        const canvas = document.getElementById('altitudeChartCanvas');
+        const params = new URLSearchParams({
+            plot_lat: OBJECT_DATA.plotLat,
+            plot_lon: OBJECT_DATA.plotLon,
+            plot_tz: OBJECT_DATA.plotTz,
+            view: view
+        });
+
+        const url = `/api/get_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.error) {
+                console.error('Chart error:', data.error);
+                return;
+            }
+
+            renderChart(data, view);
+        } catch (error) {
+            console.error('Failed to load chart:', error);
+        }
+    }
+
+    function renderChart(data, view) {
+        const canvas = document.getElementById('altitudeChartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Destroy existing chart
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        // Parse times for labels
+        const labels = data.times.map(t => {
+            const date = new Date(t);
+            if (view === 'day') {
+                return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+            } else if (view === 'month') {
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            } else {
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+            }
+        });
+
+        // Create gradient for object altitude line
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, 'rgba(131, 180, 197, 0.3)');
+        gradient.addColorStop(1, 'rgba(131, 180, 197, 0)');
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Altitude',
+                    data: data.object_alt,
+                    borderColor: '#83b4c5',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0
+                }, {
+                    label: 'Moon Altitude',
+                    data: data.moon_alt,
+                    borderColor: 'rgba(200, 200, 200, 0.5)',
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        titleColor: '#333',
+                        bodyColor: '#666',
+                        borderColor: '#ddd',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 8,
+                            maxRotation: 0,
+                            autoSkip: true
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: 90,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            callback: value => value + '°'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function changeView(view) {
+        loadAltitudeChart(view);
+
+        // Update date pill text
+        const datePill = document.getElementById('date-pill');
+        const today = new Date();
+        if (view === 'day') {
+            datePill.textContent = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        } else if (view === 'month') {
+            datePill.textContent = today.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        } else {
+            datePill.textContent = today.getFullYear().toString();
+        }
+    }
+
+    // --- Opportunities Loading ---
+    async function loadOpportunities() {
+        if (opportunitiesLoaded) return;
+
+        const list = document.getElementById('opportunities-list');
+        const loading = document.getElementById('opportunities-loading');
+
+        try {
+            const params = new URLSearchParams({
+                plot_lat: OBJECT_DATA.plotLat,
+                plot_lon: OBJECT_DATA.plotLon,
+                plot_tz: OBJECT_DATA.plotTz
+            });
+
+            const fetchUrl = `/get_imaging_opportunities/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+
+            const response = await fetch(fetchUrl);
+
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+
+            const data = await response.json();
+
+            if (data.status === 'success' && data.results && data.results.length > 0) {
+                renderOpportunities(data.results);
+            } else {
+                loading.textContent = i18n.noOpportunities;
+            }
+            opportunitiesLoaded = true;
+        } catch (error) {
+            console.error('Error loading opportunities:', error);
+            loading.textContent = i18n.errorLoading;
+            opportunitiesLoaded = true;
+        }
+    }
+
+    function renderOpportunities(opportunities) {
+        const list = document.getElementById('opportunities-list');
+        list.innerHTML = '';
+
+        opportunities.forEach(opp => {
+            const li = document.createElement('li');
+            li.className = 'opportunity-card';
+
+            const parts = opp.date.split('-');
+            const year = parts[0], month = parts[1], day = parts[2];
+            const formattedDate = `${day}.${month}.${year}`;
+
+            // Rating is already a string with stars (e.g., "★★★☆☆")
+            const rating = opp.rating || '';
+
+            li.innerHTML = `
+                <div class="opportunity-date">${formattedDate}</div>
+                <div class="opportunity-header">
+                    <span class="opportunity-window">${opp.from_time} - ${opp.to_time}</span>
+                    <span class="opportunity-rating">${rating}</span>
+                </div>
+                <div class="opportunity-stats">
+                    <div class="opportunity-stat"><strong>${i18n.maxAlt}</strong> ${opp.max_alt}°</div>
+                    <div class="opportunity-stat"><strong>${i18n.moon}</strong> ${opp.moon_illumination}%</div>
+                    <div class="opportunity-stat"><strong>${i18n.duration}</strong> ${opp.obs_minutes}m</div>
+                </div>
+            `;
+
+            list.appendChild(li);
+        });
+    }
+</script>
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
+{% endblock %}
