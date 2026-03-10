@@ -7,17 +7,20 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='nova-touch-icon.png') }}">
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <link rel="stylesheet" href="/static/css/mobile.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
     <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js" defer></script>
     {% block head %}{% endblock %}
 </head>
 <body>
 
+{% if not hide_header %}
 <header class="header">
     <a href="{{ url_for('core.index') }}" class="header-link">{{ _('Main Site') }}</a>
     <h1>{{ _('Nova Pocket') }}</h1>
     <p class="header-subtitle">{% block header_title %}{{ _('Up Now') }}{% endblock %}</p>
 </header>
+{% endif %}
 
 <main class="container">
     {% block content %}{% endblock %}
@@ -88,6 +91,9 @@
         } else if (path.includes('/m/edit_notes/')) {
             // Edit notes is accessed from Up Now
             document.getElementById('nav-up-now').classList.add('active');
+        } else if (path.includes('/m/journal')) {
+            // Journal is accessed from Up Now
+            document.getElementById('nav-up-now').classList.add('active');
         } else {
             // Default to 'Add Object' only for /m or /m/add_object
             const btn = document.getElementById('nav-add-object');
@@ -97,6 +103,21 @@
 </script>
 
 {% block scripts %}{% endblock %}
+
+<script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then((registration) => {
+                    // Service worker registered successfully
+                })
+                .catch((error) => {
+                    // Silently fail on registration errors
+                });
+        });
+    }
+</script>
 
 </body>
 </html>
