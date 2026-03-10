@@ -9,6 +9,7 @@ location selector, add object, outlook, edit notes, and mosaic view.
 # Standard Library Imports
 # =============================================================================
 import math
+from datetime import datetime, timedelta
 
 # =============================================================================
 # Third-Party Imports
@@ -16,22 +17,29 @@ import math
 import bleach
 from flask import (
     Blueprint, render_template, redirect, url_for, flash,
-    request, g
+    request, g, session, current_app
 )
+
 from flask_login import login_required, current_user
 from flask_babel import gettext as _
+from sqlalchemy.orm import selectinload
 
 # =============================================================================
 # Nova Package Imports (no circular import)
 # =============================================================================
 from nova import SINGLE_USER_MODE  # Import from nova for test patching compatibility
 from nova.models import (
-    DbUser, AstroObject, SavedFraming, Rig
+    DbUser, AstroObject, SavedFraming, Rig, Location, Project, JournalSession, UserCustomFilter
 )
 from nova.helpers import (
-    get_db, load_full_astro_context
+    get_db, load_full_astro_context, safe_float, safe_int, generate_session_id, _compute_rig_metrics_from_components
 )
 from nova.analytics import record_event
+from uuid import uuid4
+from math import degrees, atan
+import json
+import traceback
+import pytz
 
 
 # =============================================================================
@@ -287,7 +295,7 @@ def mobile_object_detail(object_name):
     load_full_astro_context()
 
     # Get the object record from config
-    obj_record = g.objects_map.get(object_name)
+    obj_record = g.objects_map.get(object_name.lower())
     if not obj_record:
         flash(_("Object '%(object_name)s' not found.", object_name=object_name), "error")
         return redirect(url_for('mobile.mobile_up_now'))
@@ -301,8 +309,8 @@ def mobile_object_detail(object_name):
     # Get location object for horizon mask
     location = None
     for loc in g.active_locations:
-        if loc.name == g.selected_location:
-            location = loc
+        if loc == g.selected_location:
+            location = g.active_locations[loc]
             break
 
     if not location:
@@ -342,12 +350,13 @@ def mobile_object_detail(object_name):
 
         # Get altitude threshold
         altitude_threshold = user_prefs.get("altitude_threshold", 20)
-        if location.altitude_threshold is not None:
-            altitude_threshold = location.altitude_threshold
+        location_alt_thresh = location.get('altitude_threshold')
+        if location_alt_thresh is not None:
+            altitude_threshold = location_alt_thresh
 
         # Calculate horizon mask
-        horizon_mask = [[hp.az_deg, hp.alt_min_deg] for hp in sorted(location.horizon_points, key=lambda p: p.az_deg)]
-        location_name_key = location.name.lower().replace(' ', '_')
+        horizon_mask = location.get('horizon_mask', [])
+        location_name_key = location.get('name', '').lower().replace(' ', '_')
 
         # Calculate current position
         from astropy.coordinates import SkyCoord, AltAz, EarthLocation
@@ -378,7 +387,7 @@ def mobile_object_detail(object_name):
 
         # Calculate observable duration
         from modules.astro_calculations import calculate_observable_duration_vectorized, calculate_transit_time
-        obs_duration, max_alt, _, _ = calculate_observable_duration_vectorized(
+        obs_duration, max_alt, _unused1, _unused2 = calculate_observable_duration_vectorized(
             ra, dec, lat, lon, local_date, tz_name, altitude_threshold, sampling_interval,
             horizon_mask=horizon_mask
         )
@@ -407,7 +416,7 @@ def mobile_object_detail(object_name):
         current_az = 0
         trend = '-'
         obs_duration_min = 0
-        angular_sep = "N/A"
+        angular_sep = 0
         transit_time_str = "Error"
         has_framing = False
 
@@ -426,7 +435,7 @@ def mobile_object_detail(object_name):
                            current_alt=f"{current_alt:.1f}",
                            current_az=f"{current_az:.1f}",
                            trend=trend,
-                           moon_sep=angular_sep if angular_sep != "N/A" else "N/A",
+                           moon_sep=angular_sep,
                            obs_duration=obs_duration_min,
                            transit_time=transit_time_str,
                            ra=ra,
@@ -437,3 +446,236 @@ def mobile_object_detail(object_name):
                            plot_loc_name=g.selected_location,
                            has_framing=has_framing,
                            notes_html=notes_html)
+
+
+@mobile_bp.route('/m/journal/new', methods=['GET', 'POST'])
+@login_required
+def mobile_journal_new():
+    """Mobile quick journal entry form."""
+    load_full_astro_context()
+    db = get_db()
+
+    # Get user
+    if SINGLE_USER_MODE:
+        username = "default"
+    else:
+        username = current_user.username
+
+    user = db.query(DbUser).filter_by(username=username).one_or_none()
+    if not user:
+        flash(_("User not found."), "error")
+        return redirect(url_for('mobile.mobile_up_now'))
+
+    # Fetch rigs for this user (same as graph_dashboard)
+    rigs_from_db = db.query(Rig).options(
+        selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
+    ).filter_by(user_id=user.id).all()
+
+    # GET request - render form
+    if request.method == 'GET':
+        prefill_object = request.args.get('object', '')
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        return render_template('mobile_journal_new.html',
+                           locations=g.active_locations,
+                           rigs=rigs_from_db,
+                           prefill_object=prefill_object,
+                           today=today)
+
+    # POST request - save journal entry directly
+    try:
+        # Validate date
+        session_date_str = request.form.get("session_date")
+        try:
+            parsed_date_utc = datetime.strptime(session_date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            flash(_("Invalid date format."), "error")
+            target_object_id = request.form.get("target_object_id")
+            return redirect(url_for('mobile.mobile_journal_new', object=target_object_id))
+
+        # Handle project selection
+        project_id_for_session = None
+        project_selection = request.form.get("project_selection")
+        if project_selection and project_selection == "new_project":
+            new_project_name = request.form.get("new_project_name", "").strip()
+            if new_project_name:
+                from uuid import uuid4
+                new_project = Project(id=uuid4().hex, user_id=user.id, name=new_project_name)
+                db.add(new_project)
+                db.flush()
+                project_id_for_session = new_project.id
+                target_object_id = request.form.get("target_object_id", "").strip()
+                if target_object_id:
+                    new_project.target_object_name = target_object_id
+        elif project_selection and project_selection != "standalone":
+            project_id_for_session = project_selection
+
+        # Get Rig Snapshot Specs and Component Names
+        rig_id_str = request.form.get("rig_id_snapshot")
+        rig_id_snap, rig_name_snap, efl_snap, fr_snap, scale_snap, fov_w_snap, fov_h_snap = None, None, None, None, None, None, None
+        tel_name_snap, reducer_name_snap, camera_name_snap = None, None, None
+
+        if rig_id_str:
+            try:
+                rig_id = int(rig_id_str)
+                rig = db.query(Rig).options(
+                    selectinload(Rig.telescope), selectinload(Rig.camera), selectinload(Rig.reducer_extender)
+                ).filter_by(id=rig_id, user_id=user.id).one_or_none()
+
+                if rig:
+                    rig_id_snap = rig.id
+                    rig_name_snap = rig.rig_name
+                    efl_snap, fr_snap, scale_snap, fov_w_snap = _compute_rig_metrics_from_components(
+                        rig.telescope, rig.camera, rig.reducer_extender
+                    )
+                    if rig.camera and rig.camera.sensor_height_mm and efl_snap:
+                        fov_h_snap = (degrees(2 * atan((rig.camera.sensor_height_mm / 2.0) / efl_snap)) * 60.0)
+
+                    tel_name_snap = rig.telescope.name if rig.telescope else None
+                    reducer_name_snap = rig.reducer_extender.name if rig.reducer_extender else None
+                    camera_name_snap = rig.camera.name if rig.camera else None
+            except (ValueError, TypeError):
+                pass  # rig_id_str was invalid (e.g., "")
+
+        # Import JournalSession and Project models
+        from nova.models import JournalSession, Project
+        from uuid import uuid4
+        from nova.helpers import safe_float, safe_int, generate_session_id
+        import json
+
+        # Create New Session Object
+        new_session = JournalSession(
+            user_id=user.id,
+            project_id=project_id_for_session,
+            date_utc=parsed_date_utc,
+            object_name=request.form.get("target_object_id", "").strip(),
+            location_name=request.form.get("location_name"),
+            notes=request.form.get("general_notes_problems_learnings"),
+            seeing_observed_fwhm=safe_float(request.form.get("seeing_observed_fwhm")),
+            sky_sqm_observed=safe_float(request.form.get("sky_sqm_observed")),
+            moon_illumination_session=safe_int(request.form.get("moon_illumination_session")),
+            moon_angular_separation_session=safe_float(request.form.get("moon_angular_separation_session")),
+            telescope_setup_notes=request.form.get("telescope_setup_notes", "").strip(),
+            guiding_rms_avg_arcsec=safe_float(request.form.get("guiding_rms_avg_arcsec")),
+            exposure_time_per_sub_sec=safe_int(request.form.get("exposure_time_per_sub_sec")),
+            number_of_subs_light=safe_int(request.form.get("number_of_subs_light")),
+            filter_used_session=request.form.get("filter_used_session", "").strip(),
+            gain_setting=safe_int(request.form.get("gain_setting")),
+            offset_setting=safe_int(request.form.get("offset_setting")),
+            session_rating_subjective=safe_int(request.form.get("session_rating_subjective")),
+            filter_L_subs=safe_int(request.form.get("filter_L_subs")),
+            filter_L_exposure_sec=safe_int(request.form.get("filter_L_exposure_sec")),
+            filter_R_subs=safe_int(request.form.get("filter_R_subs")),
+            filter_R_exposure_sec=safe_int(request.form.get("filter_R_exposure_sec")),
+            filter_G_subs=safe_int(request.form.get("filter_G_subs")),
+            filter_G_exposure_sec=safe_int(request.form.get("filter_G_exposure_sec")),
+            filter_B_subs=safe_int(request.form.get("filter_B_subs")),
+            filter_B_exposure_sec=safe_int(request.form.get("filter_B_exposure_sec")),
+            filter_Ha_subs=safe_int(request.form.get("filter_Ha_subs")),
+            filter_Ha_exposure_sec=safe_int(request.form.get("filter_Ha_exposure_sec")),
+            filter_OIII_subs=safe_int(request.form.get("filter_OIII_subs")),
+            filter_OIII_exposure_sec=safe_int(request.form.get("filter_OIII_exposure_sec")),
+            filter_SII_subs=safe_int(request.form.get("filter_SII_subs")),
+            filter_SII_exposure_sec=safe_int(request.form.get("filter_SII_exposure_sec")),
+            external_id=generate_session_id(),
+            weather_notes=request.form.get("weather_notes", "").strip() or None,
+            guiding_equipment=request.form.get("guiding_equipment", "").strip() or None,
+            dither_details=request.form.get("dither_details", "").strip() or None,
+            dither_pixels=safe_int(request.form.get("dither_pixels")),
+            dither_every_n=safe_int(request.form.get("dither_every_n")),
+            dither_notes=request.form.get("dither_notes", "").strip() or None,
+            acquisition_software=request.form.get("acquisition_software", "").strip() or None,
+            camera_temp_setpoint_c=safe_float(request.form.get("camera_temp_setpoint_c")),
+            camera_temp_actual_avg_c=safe_float(request.form.get("camera_temp_actual_avg_c")),
+            binning_session=request.form.get("binning_session", "").strip() or None,
+            darks_strategy=request.form.get("darks_strategy", "").strip() or None,
+            flats_strategy=request.form.get("flats_strategy", "").strip() or None,
+            bias_darkflats_strategy=request.form.get("bias_darkflats_strategy", "").strip() or None,
+            transparency_observed_scale=request.form.get("transparency_observed_scale", "").strip() or None,
+            rig_id_snapshot=rig_id_snap,
+            rig_name_snapshot=rig_name_snap,
+            rig_efl_snapshot=efl_snap,
+            rig_fr_snapshot=fr_snap,
+            rig_scale_snapshot=scale_snap,
+            rig_fov_w_snapshot=fov_w_snap,
+            rig_fov_h_snapshot=fov_h_snap,
+            telescope_name_snapshot=tel_name_snap,
+            reducer_name_snapshot=reducer_name_snap,
+            camera_name_snapshot=camera_name_snap
+        )
+
+        # Custom filter data (user-defined filters stored as JSON)
+        from nova.models import UserCustomFilter
+        custom_data = {}
+        for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+            subs = request.form.get(f'filter_{cf.filter_key}_subs')
+            exp = request.form.get(f'filter_{cf.filter_key}_exposure_sec')
+            if subs or exp:
+                custom_data[f'filter_{cf.filter_key}_subs'] = int(subs) if subs else None
+                custom_data[f'filter_{cf.filter_key}_exposure_sec'] = int(exp) if exp else None
+        new_session.custom_filter_data = json.dumps(custom_data) if custom_data else None
+
+        # Total exposure calculation
+        FIXED_FILTER_KEYS = ['L', 'R', 'G', 'B', 'Ha', 'OIII', 'SII']
+        total_seconds = 0
+
+        if new_session.number_of_subs_light and new_session.exposure_time_per_sub_sec:
+            total_seconds += int(new_session.number_of_subs_light) * int(new_session.exposure_time_per_sub_sec)
+
+        for fk in FIXED_FILTER_KEYS:
+            subs = getattr(new_session, f'filter_{fk}_subs', None) or 0
+            exp = getattr(new_session, f'filter_{fk}_exposure_sec', None) or 0
+            total_seconds += int(subs) * int(exp)
+
+        if new_session.custom_filter_data:
+            custom_data_parsed = json.loads(new_session.custom_filter_data)
+            for cf in db.query(UserCustomFilter).filter_by(user_id=user.id).all():
+                subs = custom_data_parsed.get(f'filter_{cf.filter_key}_subs') or 0
+                exp = custom_data_parsed.get(f'filter_{cf.filter_key}_exposure_sec') or 0
+                total_seconds += int(subs) * int(exp)
+
+        new_session.calculated_integration_time_minutes = round(total_seconds / 60.0, 1) if total_seconds > 0 else None
+
+        # Add to database
+        db.add(new_session)
+        db.flush()
+        db.commit()
+
+        # Flash success message
+        flash(_("New journal entry added successfully!"), "success")
+        from nova.analytics import record_event
+        record_event('journal_session_created')
+
+        # Redirect to mobile object detail page if target object specified, otherwise mobile home
+        target_object_id = new_session.object_name
+        if target_object_id:
+            return redirect(url_for('mobile.mobile_object_detail', object_name=target_object_id))
+        else:
+            return redirect(url_for('mobile.mobile_up_now'))
+
+    except Exception as e:
+        db.rollback()
+        print(f"[Mobile Journal New] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(_("Error saving journal entry: %(error)s", error=str(e)), "error")
+        target_object_id = request.form.get("target_object_id", "")
+        return redirect(url_for('mobile.mobile_journal_new', object=target_object_id))
+
+
+@mobile_bp.route('/sw.js')
+def service_worker():
+    """Serve the service worker from root scope (/sw.js) to cover /m/ paths."""
+    from flask import send_from_directory, Response
+    import os.path
+
+    sw_path = os.path.join(current_app.static_folder, 'sw.js')
+    if not os.path.exists(sw_path):
+        return Response("Service worker not found", status=404)
+
+    with open(sw_path, 'r', encoding='utf-8') as f:
+        sw_content = f.read()
+
+    response = Response(sw_content, mimetype='application/javascript')
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
