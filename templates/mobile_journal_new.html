@@ -1,0 +1,210 @@
+{% extends "mobile_base.html" %}
+
+{% block title %}{{ _("New Session") }}{% endblock %}
+{% block header_title %}{{ _("New Session") }}{% endblock %}
+
+{% block content %}
+    <div class="journal-form-wrapper">
+        <form id="journal-form" method="POST" action="{{ url_for('mobile.mobile_journal_new') }}">
+            <!-- Session Info -->
+            <div class="form-section">
+                <div class="form-section-label">SESSION INFO</div>
+
+                <div class="form-group">
+                    <label for="session_date">{{ _("Date") }}</label>
+                    <input type="date" id="session_date" name="session_date" value="{{ today }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="target_object_id">{{ _("Target Object") }}</label>
+                    <input type="text" id="target_object_id" name="target_object_id" value="{{ prefill_object }}" placeholder="{{ _("e.g., M42") }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="location_name">{{ _("Location") }}</label>
+                    <select id="location_name" name="location_name" class="form-select">
+                        <option value="">{{ _("Select Location") }}</option>
+                        {% for loc_name, loc_data in locations.items() %}
+                            <option value="{{ loc_name }}" {% if loc_name == g.selected_location %}selected{% endif %}>
+                                {{ loc_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="rig_id_snapshot">{{ _("Rig") }}</label>
+                    <select id="rig_id_snapshot" name="rig_id_snapshot" class="form-select">
+                        <option value="">{{ _("Select Rig") }}</option>
+                        {% for rig in rigs %}
+                            <option value="{{ rig.rig_id }}">
+                                {{ rig.rig_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Sky Conditions -->
+            <div class="form-section">
+                <div class="form-section-label">SKY CONDITIONS</div>
+
+                <div class="sky-conditions-row">
+                    <div class="form-group sky-field">
+                        <label for="seeing_observed_fwhm">Seeing</label>
+                        <input type="number" id="seeing_observed_fwhm" name="seeing_observed_fwhm" min="1" max="5" step="0.1" placeholder="1-5">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="sky_sqm_observed">SQM</label>
+                        <input type="number" id="sky_sqm_observed" name="sky_sqm_observed" step="0.01" placeholder="21.5">
+                    </div>
+
+                    <div class="form-group sky-field">
+                        <label for="transparency_observed_scale">Transparency</label>
+                        <input type="text" id="transparency_observed_scale" name="transparency_observed_scale" placeholder="Excellent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Exposures -->
+            <div class="form-section">
+                <div class="form-section-label">FILTER EXPOSURES</div>
+
+                <div class="filter-grid">
+                    <!-- Ha -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">Ha</div>
+                        <input type="number" class="filter-cell-input" name="filter_Ha_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_Ha_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- OIII -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">OIII</div>
+                        <input type="number" class="filter-cell-input" name="filter_OIII_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_OIII_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- SII -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">SII</div>
+                        <input type="number" class="filter-cell-input" name="filter_SII_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_SII_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- L -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">L</div>
+                        <input type="number" class="filter-cell-input" name="filter_L_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_L_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- R -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">R</div>
+                        <input type="number" class="filter-cell-input" name="filter_R_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_R_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- G -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">G</div>
+                        <input type="number" class="filter-cell-input" name="filter_G_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_G_exposure_sec" placeholder="exp" min="1">
+                    </div>
+
+                    <!-- B -->
+                    <div class="filter-cell">
+                        <div class="filter-cell-label">B</div>
+                        <input type="number" class="filter-cell-input" name="filter_B_subs" placeholder="0" min="0">
+                        <input type="number" class="filter-cell-input" name="filter_B_exposure_sec" placeholder="exp" min="1">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating -->
+            <div class="form-section">
+                <div class="form-section-label">RATING</div>
+
+                <div class="star-rating-row">
+                    <input type="hidden" id="rating-value" name="session_rating_subjective" value="0">
+                    <span class="star" data-value="1">★</span>
+                    <span class="star" data-value="2">★</span>
+                    <span class="star" data-value="3">★</span>
+                    <span class="star" data-value="4">★</span>
+                    <span class="star" data-value="5">★</span>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="general_notes_problems_learnings">{{ _("Notes") }}</label>
+                    <textarea id="general_notes_problems_learnings" name="general_notes_problems_learnings" rows="4" placeholder="{{ _("Add any notes about this session...") }}"></textarea>
+                </div>
+            </div>
+
+            <!-- Hidden field for standalone session -->
+            <input type="hidden" name="project_selection" value="standalone">
+        </form>
+
+        <!-- Sticky Save Bar -->
+        <div class="mobile-save-bar">
+            <button type="button" class="save-bar-btn ghost" id="discard-btn">{{ _("Discard") }}</button>
+            <button type="submit" form="journal-form" class="save-bar-btn primary">{{ _("Save Session") }}</button>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Discard button - go back
+        const discardBtn = document.getElementById('discard-btn');
+        if (discardBtn) {
+            discardBtn.addEventListener('click', () => {
+                if (history.length > 1) {
+                    history.back();
+                } else {
+                    window.location.href = "{{ url_for('mobile.mobile_up_now') }}";
+                }
+            });
+        }
+
+        // Star rating
+        const stars = document.querySelectorAll('.star');
+        const ratingInput = document.getElementById('rating-value');
+
+        stars.forEach(star => {
+            star.addEventListener('click', () => {
+                const value = parseInt(star.dataset.value);
+                ratingInput.value = value;
+                updateStars(value);
+            });
+        });
+
+        function updateStars(value) {
+            stars.forEach(star => {
+                const starValue = parseInt(star.dataset.value);
+                if (starValue <= value) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
