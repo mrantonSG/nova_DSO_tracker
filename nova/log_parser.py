@@ -8,6 +8,7 @@ import re
 import math
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
+from flask_babel import gettext as _
 
 
 # --- LTTB Downsampling Algorithm ---
@@ -829,4 +830,490 @@ def _empty_phd2_result() -> Dict[str, Any]:
             'settle_success_count': 0,
             'settle_timeout_count': 0
         }
+    }
+
+
+# --- NINA Log Parser ---
+
+def parse_nina_log(content: str) -> Dict[str, Any]:
+    """
+    Parse NINA log content string and extract AutoFocus, equipment, and timeline data.
+
+    NINA logs use pipe-delimited format: |INFO| |WARNING| |ERROR|
+    with timestamps and source filenames like "FocuserMediator.cs".
+
+    Returns:
+        {
+            'nina_version': str | None,
+            'os_info': str | None,
+            'session_start': str | None,    # ISO datetime string
+            'session_end': str | None,      # ISO datetime string
+            'autofocus_runs': [             # list, may be empty
+                {
+                    'run_index': int,           # 1-based
+                    'filter': str | None,       # filter name if detectable
+                    'trigger': str | None,      # e.g. "AutofocusAfterFilterChange" or "Manual"
+                    'start_time': str | None,   # ISO datetime string
+                    'status': 'success' | 'failed',
+                    'final_position': int | None,
+                    'best_hfr': float | None,
+                    'best_stars': int | None,
+                    'fitting_method': str | None,   # e.g. "Hyperbolic"
+                    'r_squared': float | None,      # only present on failed runs
+                    'r_squared_threshold': float | None,
+                    'restored_position': int | None,  # position restored to on failure
+                    'temperature': float | None,    # focuser temp at completion
+                    'steps': [                  # all measured V-curve points
+                        {
+                            'position': int,
+                            'hfr': float | None,    # None = no stars detected
+                            'hfr_sigma': float | None,
+                            'star_count': int
+                        }
+                    ],
+                    'no_star_steps': int,       # count of steps with 0 stars
+                    'failure_reason': str | None  # human-readable, only on failed runs
+                }
+            ],
+            'equipment': {
+                'camera': str | None,
+                'mount': str | None,
+                'filter_wheel': str | None,
+                'focuser': str | None,
+                'rotator': str | None,
+                'guider': str | None,
+                'dome': str | None,
+                'weather': str | None,
+                'power': str | None,
+                'plugins': str | None
+            },
+            'timeline_phases': [
+                {
+                    'phase': str,
+                    'badge_class': str,         # startup/imaging/focus/platesolve/guiding/flats/sequence
+                    'start_time': str | None,
+                    'end_time': str | None,
+                    'status': 'ok' | 'failed' | 'cancelled' | None,
+                    'error_count': int,
+                    'warning_count': int,
+                    'events': [
+                        {
+                            'time': str | None,
+                            'level': 'INFO' | 'WARNING' | 'ERROR',
+                            'message': str
+                        }
+                    ]
+                }
+            ],
+            'flat_summary': [
+                {
+                    'filter': str,
+                    'frame_count': int,
+                    'exposure_s': float | None,
+                    'temperature_c': float | None
+                }
+            ],
+            'errors': [str],                # list of log-level ERROR messages
+            'warnings': [str],              # list of log-level WARNING messages
+            'parse_warnings': [str],        # parser-level issues
+            'partial': bool                 # True if file parsed but some data is missing
+        }
+    """
+    result = _empty_nina_result()
+    parse_warnings = []
+
+    if not content or not content.strip():
+        result['partial'] = False
+        result['parse_warnings'].append(_('Empty log file.'))
+        return result
+
+    lines = content.splitlines()
+    if len(lines) > 10000:
+        parse_warnings.append(_('Log file is very large, truncated for performance.'))
+        lines = lines[:10000]
+
+    # Detection heuristic: check for pipe-delimited format AND NINA header
+    has_pipe_delimiter = any('|INFO|' in line or '|WARNING|' in line or '|ERROR|' in line for line in lines[:100])
+    has_nina_header = any('N.I.N.A' in line or 'NINA' in line for line in lines[:100])
+
+    if not has_pipe_delimiter and not has_nina_header:
+        result['partial'] = False
+        result['parse_warnings'].append(_('File does not appear to be a NINA log.'))
+        return result
+
+    session_start = None
+    session_end = None
+    current_af_run = None
+    af_run_counter = 0
+    current_phase = None
+    phase_event_count = 0
+
+    # Track recent events for cross-referencing
+    recent_filter = None
+    recent_filter_time = None
+    last_focus_position = None
+
+    # Regex patterns for NINA log parsing
+    # Note: Python 3.13 has issues with \d{ patterns, using [0-9] instead
+    NINA_PATTERNS = {
+        'timestamp': re.compile(r'^([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})'),
+        'version': re.compile(r'N\.I\.N\.A\.\s+(?:Nighttime)?Imaging|version[:\s]+([0-9.]+)', re.IGNORECASE),
+        'os': re.compile(r'Operating system[:\s]+(.+)', re.IGNORECASE),
+        'af_start': re.compile(r'BroadcastAutoFocusRunStarting', re.IGNORECASE),
+        'af_success': re.compile(r'BroadcastSuccessfulAutoFocusRun', re.IGNORECASE),
+        'af_temp': re.compile(r'Focus temperature[:\s]+([-0-9.]+)', re.IGNORECASE),
+        'af_position': re.compile(r'(?:MoveFocuserInternal|position)[:\s]+([0-9]+)', re.IGNORECASE),
+        'af_restore': re.compile(r'StartAutoFocus.*Restoring original focus position', re.IGNORECASE),
+        'af_r_squared': re.compile(r'R\?\s*\(Coefficient of determination\)[^0-9]+([0-9.]+)[^0-9]+([0-9.]+)', re.IGNORECASE),
+        'af_stars': re.compile(r'Average HFR[:\s]+([0-9.]+)\s*,?\s*HFR\s*σ[:\s]*([0-9.]+)', re.IGNORECASE),
+        'af_stars_no_detect': re.compile(r'No stars detected', re.IGNORECASE),
+        'af_method': re.compile(r'Fitting method[:\s]+(\w+)', re.IGNORECASE),
+        'filter_change': re.compile(r'FilterWheelVM\.cs.*ChangeFilter.*to\s+["\']?(\w+)["\']?', re.IGNORECASE),
+        'af_trigger': re.compile(r'AutofocusAfterFilterChange|Manual\s+autofocus', re.IGNORECASE),
+        'equipment': re.compile(r'Equipment\s+(Camera|Mount|FilterWheel|Focuser|Rotator|Guider|Dome|Weather|PowerSwitch|Plugin)[:\s]+(.+)', re.IGNORECASE),
+        'flat_start': re.compile(r'Flat\s+Device[\w\s]+started', re.IGNORECASE),
+        'flat_frame': re.compile(r'Flat\s+frame.*completed.*Filter\s+["\']?(\w+)["\']?.*exposure[:\s]+([0-9.]+)\s*s', re.IGNORECASE),
+    }
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        # Split pipe-delimited line: DATE|LEVEL|SOURCE|MEMBER|MESSAGE
+        parts = line.split('|')
+        if len(parts) >= 5:
+            date_part = parts[0].strip()
+            level_part = parts[1].strip()
+            source_part = parts[2].strip()
+            member_part = parts[3].strip()
+            message_part = '|'.join(parts[4:]).strip() if len(parts) > 4 else ''
+        else:
+            date_part = ''
+            level_part = ''
+            source_part = ''
+            member_part = ''
+            message_part = line
+
+        # Extract timestamp from date part (handles milliseconds)
+        ts_match = NINA_PATTERNS['timestamp'].match(date_part)
+        if ts_match:
+            ts_str = ts_match.group(1)
+            try:
+                ts = datetime.strptime(ts_str, '%Y-%m-%dT%H:%M:%S')
+            except ValueError:
+                try:
+                    # Try parsing with milliseconds
+                    ts = datetime.strptime(ts_str, '%Y-%m-%dT%H:%M:%S.%f')
+                except ValueError:
+                    continue
+
+            # Track session time range
+            if session_start is None:
+                session_start = ts
+            session_end = ts
+
+            # Update current phase time range
+            if current_phase:
+                current_phase['end_time'] = ts.isoformat()
+
+        # Extract version info (from message part)
+        version_match = NINA_PATTERNS['version'].search(message_part)
+        if version_match:
+            result['nina_version'] = version_match.group(1) if version_match.lastindex >= 1 else 'Unknown'
+
+        os_match = NINA_PATTERNS['os'].search(message_part)
+        if os_match:
+            result['os_info'] = os_match.group(1).strip()
+
+        # Extract equipment info (from message part)
+        eq_match = NINA_PATTERNS['equipment'].search(message_part)
+        if eq_match:
+            eq_type = eq_match.group(1)
+            eq_value = eq_match.group(2).strip()
+            equipment_map = {
+                'Camera': 'camera',
+                'Mount': 'mount',
+                'FilterWheel': 'filter_wheel',
+                'Focuser': 'focuser',
+                'Rotator': 'rotator',
+                'Guider': 'guider',
+                'Dome': 'dome',
+                'Weather': 'weather',
+                'PowerSwitch': 'power'
+            }
+            if eq_type in equipment_map:
+                result['equipment'][equipment_map[eq_type]] = eq_value
+
+        # Extract filter changes (for AF run context)
+        filter_match = NINA_PATTERNS['filter_change'].search(message_part)
+        if filter_match and ts_match:
+            recent_filter = filter_match.group(1)
+            recent_filter_time = ts
+
+        # --- AutoFocus Run Parsing ---
+
+        # AF Run Start
+        if NINA_PATTERNS['af_start'].search(member_part):
+            af_run_counter += 1
+            current_af_run = {
+                'run_index': af_run_counter,
+                'filter': recent_filter,
+                'trigger': None,
+                'start_time': ts.isoformat() if ts_match else None,
+                'status': 'success',
+                'final_position': None,
+                'best_hfr': None,
+                'best_stars': None,
+                'fitting_method': None,
+                'r_squared': None,
+                'r_squared_threshold': None,
+                'restored_position': None,
+                'temperature': None,
+                'steps': [],
+                'no_star_steps': 0,
+                'failure_reason': None
+            }
+
+            # Determine trigger type
+            trigger_match = NINA_PATTERNS['af_trigger'].search(message_part)
+            if trigger_match:
+                if 'AfterFilterChange' in trigger_match.group(0):
+                    current_af_run['trigger'] = _('After Filter Change')
+                elif 'Manual' in trigger_match.group(0):
+                    current_af_run['trigger'] = _('Manual')
+                else:
+                    current_af_run['trigger'] = _('Automatic')
+
+            # Add to timeline
+            _add_to_timeline(result, 'Focus', 'focus', ts.isoformat() if ts_match else None,
+                           'ok', 0, 0, [f"{_('AutoFocus Run')} {af_run_counter}"])
+            continue
+
+        # AF Steps (position measurements)
+        if current_af_run and NINA_PATTERNS['af_position'].search(line):
+            pos_match = NINA_PATTERNS['af_position'].search(line)
+            if pos_match:
+                position = int(pos_match.group(1))
+                last_focus_position = position
+
+                # Look ahead for star detection in the same or next few lines
+                star_detected = False
+                hfr = None
+                hfr_sigma = None
+                star_count = 0
+
+                # Check for star detection
+                stars_match = NINA_PATTERNS['af_stars'].search(line)
+                if stars_match:
+                    hfr = float(stars_match.group(1))
+                    if stars_match.lastindex >= 2 and stars_match.group(2):
+                        hfr_sigma = float(stars_match.group(2))
+                    star_count = int(stars_match.lastindex >= 3) if stars_match.lastindex >= 3 else 1
+                    star_detected = True
+
+                # Check for no stars
+                if NINA_PATTERNS['af_stars_no_detect'].search(line):
+                    star_count = 0
+                    current_af_run['no_star_steps'] += 1
+
+                current_af_run['steps'].append({
+                    'position': position,
+                    'hfr': hfr,
+                    'hfr_sigma': hfr_sigma,
+                    'star_count': star_count
+                })
+                continue
+
+        # AF Success (find best focus point)
+        if current_af_run and NINA_PATTERNS['af_success'].search(line):
+            # Extract temperature from success line
+            temp_match = NINA_PATTERNS['af_temp'].search(line)
+            if temp_match:
+                current_af_run['temperature'] = float(temp_match.group(1))
+
+            # Extract fitting method
+            method_match = NINA_PATTERNS['af_method'].search(line)
+            if method_match:
+                current_af_run['fitting_method'] = method_match.group(1)
+
+            # Find best HFR point from steps
+            valid_steps = [s for s in current_af_run['steps'] if s['hfr'] is not None]
+            if valid_steps:
+                best_step = min(valid_steps, key=lambda s: s['hfr'])
+                current_af_run['best_hfr'] = best_step['hfr']
+                current_af_run['best_stars'] = best_step['star_count']
+                current_af_run['final_position'] = best_step['position']
+
+            # Record success event
+            if ts_match:
+                _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
+                               'ok', 0, 0, [f"{_('AutoFocus Complete')}"])
+
+            result['autofocus_runs'].append(current_af_run)
+            current_af_run = None
+            continue
+
+        # AF Failure (R squared validation)
+        if current_af_run and NINA_PATTERNS['af_r_squared'].search(line):
+            r2_match = NINA_PATTERNS['af_r_squared'].search(line)
+            if r2_match:
+                current_af_run['status'] = 'failed'
+                current_af_run['r_squared'] = float(r2_match.group(1))
+                if r2_match.lastindex >= 2:
+                    current_af_run['r_squared_threshold'] = float(r2_match.group(2))
+
+                # Extract restored position
+                restore_match = NINA_PATTERNS['af_restore'].search(line)
+                if restore_match and last_focus_position is not None:
+                    current_af_run['restored_position'] = last_focus_position
+
+                current_af_run['failure_reason'] = _('R squared value below threshold')
+
+                # Add to timeline with failure
+                if ts_match:
+                    _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
+                                   'failed', 1, 0, [f"{_('AutoFocus Failed')}"])
+
+            result['autofocus_runs'].append(current_af_run)
+            current_af_run = None
+            continue
+
+        # --- Flat Frame Parsing ---
+        flat_match = NINA_PATTERNS['flat_start'].search(line)
+        if flat_match and ts_match:
+            current_phase = {
+                'phase': _('Flats'),
+                'badge_class': 'flats',
+                'start_time': ts.isoformat(),
+                'end_time': None,
+                'status': 'ok',
+                'error_count': 0,
+                'warning_count': 0,
+                'events': [{'time': ts.isoformat(), 'level': 'INFO',
+                           'message': _('Flat sequence started')}]
+            }
+            result['timeline_phases'].append(current_phase)
+            phase_event_count = 0
+            continue
+
+        flat_frame_match = NINA_PATTERNS['flat_frame'].search(line)
+        if flat_frame_match and ts_match and current_phase and current_phase['phase'] == _('Flats'):
+            phase_event_count += 1
+            # Add to flat summary
+            filter_name = flat_frame_match.group(1)
+            exposure = float(flat_frame_match.group(2))
+
+            # Check if this filter already in summary
+            existing = next((f for f in result['flat_summary'] if f['filter'] == filter_name), None)
+            if existing:
+                existing['frame_count'] += 1
+            else:
+                result['flat_summary'].append({
+                    'filter': filter_name,
+                    'frame_count': 1,
+                    'exposure_s': exposure,
+                    'temperature_c': current_af_run.get('temperature') if current_af_run else None
+                })
+
+            # Update phase end time
+            current_phase['end_time'] = ts.isoformat()
+            continue
+
+        # --- Log Level Extraction ---
+        level = None
+        if '|ERROR|' in line:
+            level = 'ERROR'
+            result['errors'].append(line.split('|ERROR|')[-1].strip())
+        elif '|WARNING|' in line:
+            level = 'WARNING'
+            result['warnings'].append(line.split('|WARNING|')[-1].strip())
+        elif '|INFO|' in line:
+            level = 'INFO'
+
+        if level and ts_match:
+            # Add to current phase events
+            if current_phase:
+                if level == 'ERROR':
+                    current_phase['error_count'] += 1
+                elif level == 'WARNING':
+                    current_phase['warning_count'] += 1
+
+                message = line.split(f'|{level}|')[-1].strip()
+                current_phase['events'].append({
+                    'time': ts.isoformat(),
+                    'level': level,
+                    'message': message
+                })
+
+    # Close any pending phase
+    if current_phase:
+        result['timeline_phases'].append(current_phase)
+
+    # Store session time range
+    if session_start:
+        result['session_start'] = session_start.isoformat()
+    if session_end:
+        result['session_end'] = session_end.isoformat()
+
+    # Check for partial data
+    result['partial'] = (
+        len(result['autofocus_runs']) == 0 and
+        len(result['timeline_phases']) == 0 and
+        len(result['flat_summary']) == 0
+    )
+
+    if result['partial'] and not parse_warnings:
+        parse_warnings.append(_('Log parsed but no structured data found.'))
+
+    result['parse_warnings'] = parse_warnings
+
+    return result
+
+
+def _add_to_timeline(result: Dict[str, Any], phase_name: str, badge_class: str,
+                   start_time: str, status: str, error_count: int,
+                   warning_count: int, events: list):
+    """Helper to add a phase to timeline."""
+    if not events:
+        events = []
+
+    result['timeline_phases'].append({
+        'phase': phase_name,
+        'badge_class': badge_class,
+        'start_time': start_time,
+        'end_time': start_time,
+        'status': status,
+        'error_count': error_count,
+        'warning_count': warning_count,
+        'events': [{'time': start_time, 'level': 'INFO', 'message': e} for e in events]
+    })
+
+
+def _empty_nina_result() -> Dict[str, Any]:
+    """Return empty NINA result structure."""
+    return {
+        'nina_version': None,
+        'os_info': None,
+        'session_start': None,
+        'session_end': None,
+        'autofocus_runs': [],
+        'equipment': {
+            'camera': None,
+            'mount': None,
+            'filter_wheel': None,
+            'focuser': None,
+            'rotator': None,
+            'guider': None,
+            'dome': None,
+            'weather': None,
+            'power': None,
+            'plugins': None
+        },
+        'timeline_phases': [],
+        'flat_summary': [],
+        'errors': [],
+        'warnings': [],
+        'parse_warnings': [],
+        'partial': False
     }
