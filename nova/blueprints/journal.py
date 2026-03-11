@@ -283,6 +283,8 @@ def journal_add():
             asiair_filename = None
             phd2_content = None
             phd2_filename = None
+            nina_content = None
+            nina_filename = None
 
             if 'asiair_log' in request.files:
                 log_file = request.files['asiair_log']
@@ -296,6 +298,12 @@ def journal_add():
                     phd2_content = log_file.read().decode('utf-8', errors='ignore')
                     phd2_filename = log_file.filename
 
+            if 'nina_log' in request.files:
+                log_file = request.files['nina_log']
+                if log_file and log_file.filename != '':
+                    nina_content = log_file.read().decode('utf-8', errors='ignore')
+                    nina_filename = log_file.filename
+
             db.commit()  # Commit to get session ID
 
             # Now save logs to filesystem with session ID
@@ -305,7 +313,10 @@ def journal_add():
             if phd2_content:
                 path = save_log_to_filesystem(new_session.id, 'phd2', phd2_content, phd2_filename)
                 new_session.phd2_log_content = path
-            if asiair_content or phd2_content:
+            if nina_content:
+                path = save_log_to_filesystem(new_session.id, 'nina', nina_content, nina_filename)
+                new_session.nina_log_content = path
+            if asiair_content or phd2_content or nina_content:
                 db.commit()
             flash(_("New journal entry added successfully!"), "success")
             record_event('journal_session_created')
@@ -551,6 +562,35 @@ def journal_edit(session_id):
                 session_to_edit.phd2_log_content = path
                 invalidate_cache = True
 
+        # NINA log upload with validation
+        if 'nina_log' in request.files:
+            log_file = request.files['nina_log']
+            if log_file and log_file.filename != '':
+                # Validate file extension
+                if not log_file.filename.lower().endswith('.log'):
+                    flash(_("NINA log file must be a .log file."), "error")
+                    return redirect(
+                        url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                session_id=session_id, location=session_to_edit.location_name))
+
+                # Validate file size (10 MB max)
+                log_file.seek(0, os.SEEK_END)
+                file_size = log_file.tell()
+                log_file.seek(0)  # Reset to beginning for reading
+
+                MAX_SIZE = 10 * 1024 * 1024  # 10 MB
+                if file_size > MAX_SIZE:
+                    flash(_("NINA log file is too large. Maximum size is 10 MB."), "error")
+                    return redirect(
+                        url_for('core.graph_dashboard', object_name=session_to_edit.object_name,
+                                session_id=session_id, location=session_to_edit.location_name))
+
+                content = log_file.read().decode('utf-8', errors='ignore')
+                path = save_log_to_filesystem(session_to_edit.id, 'nina', content, log_file.filename)
+                session_to_edit.nina_log_content = path
+                invalidate_cache = True
+                flash(_("NINA log imported successfully."), "success")
+
         # Log deletion via checkbox
         if request.form.get('delete_asiair_log') == '1':
             session_to_edit.asiair_log_content = None
@@ -560,12 +600,17 @@ def journal_edit(session_id):
             session_to_edit.phd2_log_content = None
             invalidate_cache = True
 
+        if request.form.get('delete_nina_log') == '1':
+            session_to_edit.nina_log_content = None
+            invalidate_cache = True
+
         # Invalidate analysis cache if logs changed
         if invalidate_cache:
             session_to_edit.log_analysis_cache = None
 
         db.commit()
-        flash(_("Journal entry updated successfully!"), "success")
+        if not request.files.get('nina_log') or request.files['nina_log'].filename == '':
+            flash(_("Journal entry updated successfully!"), "success")
         record_event('journal_session_edited')
         # Fix: Pass the session's location to the redirect so the dashboard loads the correct context
         return redirect(
