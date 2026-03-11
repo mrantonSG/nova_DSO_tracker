@@ -96,6 +96,12 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Load Chart.js libraries FIRST - before inline JS -->
+<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/luxon.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-adapter-luxon.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart/chartjs-plugin-annotation.min.js') }}"></script>
+
 <script>
     // Data passed from Python
     const OBJECT_DATA = {
@@ -173,22 +179,95 @@
 
     async function loadAltitudeChart(view) {
         const canvas = document.getElementById('altitudeChartCanvas');
-        const params = new URLSearchParams({
-            plot_lat: OBJECT_DATA.plotLat,
-            plot_lon: OBJECT_DATA.plotLon,
-            plot_tz: OBJECT_DATA.plotTz,
-            view: view
-        });
-
-        const url = `/api/get_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
 
         try {
-            const response = await fetch(url);
-            const data = await response.json();
+            let data;
 
-            if (data.error) {
-                console.error('Chart error:', data.error);
-                return;
+            if (view === 'day') {
+                // Day view: use existing get_plot_data endpoint
+                const params = new URLSearchParams({
+                    plot_lat: OBJECT_DATA.plotLat,
+                    plot_lon: OBJECT_DATA.plotLon,
+                    plot_tz: OBJECT_DATA.plotTz,
+                    view: 'day'
+                });
+
+                const url = `/api/get_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+                const response = await fetch(url);
+                data = await response.json();
+
+                if (data.error) {
+                    console.error('Chart error:', data.error);
+                    return;
+                }
+            } else if (view === 'month') {
+                // Month view: fetch monthly data for the current month
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+
+                const params = new URLSearchParams({
+                    plot_lat: OBJECT_DATA.plotLat,
+                    plot_lon: OBJECT_DATA.plotLon,
+                    plot_tz: OBJECT_DATA.plotTz,
+                    year: year,
+                    month: month
+                });
+
+                const url = `/api/get_monthly_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+                const response = await fetch(url);
+                const monthlyData = await response.json();
+
+                // Convert monthly API response to chart format
+                data = {
+                    times: monthlyData.dates,
+                    object_alt: monthlyData.object_alt,
+                    moon_alt: monthlyData.moon_alt,
+                    // No sun_events/horizon_mask for month view - grey shading not needed
+                };
+            } else if (view === 'year') {
+                // Year view: fetch monthly data for all 12 months
+                const today = new Date();
+                const year = today.getFullYear();
+                const months = [...Array(12)].map((_, i) => String(i + 1).padStart(2, '0'));
+
+                // Fetch all 12 months in parallel
+                const monthUrls = months.map(m => {
+                    const params = new URLSearchParams({
+                        plot_lat: OBJECT_DATA.plotLat,
+                        plot_lon: OBJECT_DATA.plotLon,
+                        plot_tz: OBJECT_DATA.plotTz,
+                        year: year,
+                        month: m
+                    });
+                    return `/api/get_monthly_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
+                });
+
+                const responses = await Promise.all(monthUrls.map(url => fetch(url)));
+                const monthlyData = await Promise.all(responses.map(r => r.json()));
+
+                // Aggregate into single dataset with one point per month (max altitude)
+                const labels = [];
+                const objectAlt = [];
+                const moonAlt = [];
+
+                monthlyData.forEach((monthData, i) => {
+                    // Take the max altitude from each month
+                    const maxObjAlt = Math.max(...monthData.object_alt);
+                    const maxMoonAlt = Math.max(...monthData.moon_alt);
+                    const dateStr = monthData.dates[Math.floor(monthData.dates.length / 2)]; // Mid-month date
+
+                    labels.push(dateStr);
+                    objectAlt.push(maxObjAlt);
+                    moonAlt.push(maxMoonAlt);
+                });
+
+                data = {
+                    times: labels,
+                    object_alt: objectAlt,
+                    moon_alt: moonAlt
+                    // No sun_events/horizon_mask for year view - grey shading not needed
+                };
             }
 
             renderChart(data, view);
@@ -196,6 +275,41 @@
             console.error('Failed to load chart:', error);
         }
     }
+
+    // Night shade plugin - shades daylight hours (only for day view)
+    const createNightShadePlugin = (duskTime, dawnTime) => ({
+        id: 'nightShade',
+        beforeDraw(chart) {
+            const {ctx, chartArea, scales} = chart;
+            if (!chartArea) return;
+            const { left, top, right, bottom } = chartArea;
+            const height = bottom - top;
+
+            // Parse dusk and dawn times from data
+            const duskDate = duskTime ? new Date(duskTime) : null;
+            const dawnDate = dawnTime ? new Date(dawnTime) : null;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(211, 211, 211, 0.7)'; // Light gray for daylight - match desktop
+
+            if (duskDate && dawnDate && scales.x.type === 'time') {
+                // Only shade on time scale (day view)
+                const duskX = scales.x.getPixelForValue(duskDate);
+                const dawnX = scales.x.getPixelForValue(dawnDate);
+
+                // Left daytime: chart left edge → dusk
+                if (duskX > left) {
+                    ctx.fillRect(left, top, duskX - left, height);
+                }
+
+                // Right daytime: dawn → chart right edge
+                if (dawnX < right) {
+                    ctx.fillRect(dawnX, top, right - dawnX, height);
+                }
+            }
+            ctx.restore();
+        }
+    });
 
     function renderChart(data, view) {
         const canvas = document.getElementById('altitudeChartCanvas');
@@ -206,44 +320,187 @@
             chartInstance.destroy();
         }
 
-        // Parse times for labels
-        const labels = data.times.map(t => {
-            const date = new Date(t);
-            if (view === 'day') {
-                return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
-            } else if (view === 'month') {
-                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-            } else {
-                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
-            }
-        });
+        // For month/year views, use raw date strings as labels
+        // For day view, use actual Date objects for time scale
+        let labels, xMin, xMax;
+
+        if (view === 'day') {
+            // Day view: use time scale with actual Date objects
+            labels = data.times.map(t => new Date(t));
+            xMin = labels[0].getTime();
+            xMax = labels[labels.length - 1].getTime();
+        } else {
+            // Month/year views: use category scale with formatted date strings
+            labels = data.times.map((t, i) => {
+                const date = new Date(t);
+                if (view === 'month') {
+                    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                } else {
+                    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+                }
+            });
+            // No xMin/xMax for category scale - Chart.js handles it
+            xMin = undefined;
+            xMax = undefined;
+        }
 
         // Create gradient for object altitude line
         const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
         gradient.addColorStop(0, 'rgba(131, 180, 197, 0.3)');
         gradient.addColorStop(1, 'rgba(131, 180, 197, 0)');
 
+        // Get dusk/dawn times from sun_events - ensure proper ISO format for luxon parsing
+        let duskTime = null;
+        let dawnTime = null;
+        let sunsetTime = null;
+        let sunriseTime = null;
+
+        // Helper to create ISO timestamp from date + time string
+        const createIsoTimestamp = (dateStr, timeStr) => {
+            if (!timeStr || !timeStr.includes(':')) return null;
+            return `${dateStr}T${timeStr}`;
+        };
+
+        if (data.sun_events?.current?.astronomical_dusk) {
+            duskTime = createIsoTimestamp(data.date, data.sun_events.current.astronomical_dusk);
+        }
+        if (data.sun_events?.next?.astronomical_dawn) {
+            dawnTime = createIsoTimestamp(data.sun_events.next.date, data.sun_events.next.astronomical_dawn);
+        }
+        if (data.sun_events?.current?.sunset) {
+            sunsetTime = createIsoTimestamp(data.date, data.sun_events.current.sunset);
+        }
+        if (data.sun_events?.next?.sunrise) {
+            sunriseTime = createIsoTimestamp(data.sun_events.next.date, data.sun_events.next.sunrise);
+        }
+
+        // Build sun event annotations (vertical lines)
+        const annotations = {};
+        const labelConfig = {
+            display: true,
+            position: 'start',
+            rotation: 90,
+            font: { size: 10, weight: '400' },
+            color: '#222',
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            borderColor: 'rgba(0,0,0,0.15)',
+            borderWidth: 1,
+            yAdjust: -10 // Move label slightly above the chart area
+        };
+
+        if (sunsetTime) {
+            annotations.sunsetLine = {
+                type: 'line',
+                xMin: sunsetTime,
+                xMax: sunsetTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Sunset' }
+            };
+        }
+        if (duskTime) {
+            annotations.duskLine = {
+                type: 'line',
+                xMin: duskTime,
+                xMax: duskTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Ast. dusk' }
+            };
+        }
+        if (dawnTime) {
+            annotations.dawnLine = {
+                type: 'line',
+                xMin: dawnTime,
+                xMax: dawnTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Ast. dawn' }
+            };
+        }
+        if (sunriseTime) {
+            annotations.sunriseLine = {
+                type: 'line',
+                xMin: sunriseTime,
+                xMax: sunriseTime,
+                borderColor: 'black',
+                borderWidth: 1,
+                label: { ...labelConfig, content: 'Sunrise' }
+            };
+        }
+
+        // --- X-axis centering on midnight ---
+        const labelsInMs = labels.map(l => new Date(l).getTime());
+        const firstMs = labelsInMs[0];
+        const lastMs = labelsInMs[labelsInMs.length - 1];
+        const originalWindowMs = lastMs - firstMs;
+
+        // Calculate midnight for the chart date
+        const midnightDate = new Date(data.date);
+        midnightDate.setHours(0, 0, 0, 0);
+        const midnightMs = midnightDate.getTime();
+
+        // Shift window to center on midnight
+        const currentCenterMs = (firstMs + lastMs) / 2;
+        const delta = midnightMs - currentCenterMs;
+        const xMinCentered = firstMs + delta;
+        const xMaxCentered = xMinCentered + originalWindowMs;
+
+        const nightShade = createNightShadePlugin(duskTime, dawnTime);
+
+        // Build datasets array
+        const datasets = [
+            {
+                label: 'Altitude',
+                data: data.object_alt,
+                borderColor: '#83b4c5',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3,
+                pointRadius: 0
+            },
+            {
+                label: 'Moon Altitude',
+                data: data.moon_alt,
+                borderColor: 'rgba(180, 160, 100, 0.7)',
+                borderWidth: 2,
+                borderDash: [4, 4],
+                pointRadius: 0
+            }
+        ];
+
+        // Add horizon mask dataset if available
+        if (data.horizon_mask_alt && data.horizon_mask_alt.length > 0) {
+            datasets.push({
+                label: 'Horizon Mask',
+                data: data.horizon_mask_alt,
+                borderColor: '#636e72',
+                backgroundColor: 'rgba(99, 110, 114, 0.3)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.1,
+                fill: 'start'
+            });
+        }
+
+        // Add horizon line at 0°
+        datasets.push({
+            label: 'Horizon',
+            data: Array(labels.length).fill(0),
+            borderColor: '#333',
+            borderWidth: 2,
+            pointRadius: 0
+        });
+
+        // Build chart options based on view type
+        const isDayView = view === 'day';
+
         chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Altitude',
-                    data: data.object_alt,
-                    borderColor: '#83b4c5',
-                    backgroundColor: gradient,
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                }, {
-                    label: 'Moon Altitude',
-                    data: data.moon_alt,
-                    borderColor: 'rgba(200, 200, 200, 0.5)',
-                    borderWidth: 1,
-                    borderDash: [5, 5],
-                    pointRadius: 0
-                }]
+                datasets: datasets
             },
             options: {
                 responsive: true,
@@ -262,10 +519,22 @@
                         bodyColor: '#666',
                         borderColor: '#ddd',
                         borderWidth: 1
-                    }
+                    },
+                    annotation: isDayView ? {
+                        annotations: annotations
+                    } : undefined
                 },
                 scales: {
                     x: {
+                        type: isDayView ? 'time' : 'category',
+                        min: xMin,
+                        max: xMax,
+                        time: isDayView ? {
+                            unit: 'hour',
+                            displayFormats: {
+                                hour: 'HH:mm'
+                            }
+                        } : undefined,
                         grid: {
                             display: false
                         },
@@ -286,7 +555,8 @@
                         }
                     }
                 }
-            }
+            },
+            plugins: isDayView ? [nightShade] : []
         });
     }
 
@@ -300,7 +570,7 @@
             datePill.textContent = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         } else if (view === 'month') {
             datePill.textContent = today.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-        } else {
+        } else { // year view
             datePill.textContent = today.getFullYear().toString();
         }
     }
@@ -374,5 +644,4 @@
         });
     }
 </script>
-<script src="{{ url_for('static', filename='js/chart/chart.umd.min.js') }}"></script>
 {% endblock %}
