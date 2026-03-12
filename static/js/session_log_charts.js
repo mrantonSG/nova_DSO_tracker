@@ -2320,7 +2320,7 @@
 
         afRuns.forEach((afRun, idx) => {
             const color = getRunColor(idx);
-            const tempStr = (afRun.temp !== null && afRun.temp !== undefined) ? `${afRun.temp}°C` : '';
+            const tempStr = (afRun.temp !== null && afRun.temp !== undefined) ? `${afRun.temp.toFixed(1)}°C` : '';
             const label = tempStr ? `AF Run ${afRun.run} (${tempStr})` : `AF Run ${afRun.run}`;
 
             if (afRun.points && afRun.points.length > 0) {
@@ -2510,40 +2510,82 @@
         }
         section.style.display = 'block';
 
+        // Group runs by filter
+        // ASIAIR: _filter is undefined → group as "All"
+        // NINA: _filter may be null (Unknown) or a filter name
+        const filterGroups = new Map();
+        afRuns.forEach((run, idx) => {
+            const filter = run._filter === undefined ? 'All' : (run._filter || 'Unknown');
+            if (!filterGroups.has(filter)) {
+                filterGroups.set(filter, []);
+            }
+            filterGroups.get(filter).push({ run, idx });
+        });
+
+        // Assign colors: Nova teal primary (#83b4c5) for first, then AF_RUN_COLORS
+        const filterColors = ['#83b4c5', ...AF_RUN_COLORS];
+        let colorIndex = 0;
+
+        // Build labels and datasets per filter
         const labels = afRuns.map(r => `Run ${r.run}`);
-        const data = afRuns.map(r => getSettledPosition(r));
+        const datasets = [];
         const minPos = Math.min(...positions);
         const maxPos = Math.max(...positions);
         const padding = 50;
+
+        filterGroups.forEach((runs, filterName) => {
+            // Determine color for this filter
+            const color = filterColors[colorIndex % filterColors.length];
+            colorIndex++;
+
+            // Build data array with nulls for positions not in this filter group
+            const data = new Array(afRuns.length).fill(null);
+            runs.forEach(({ run, idx }) => {
+                const pos = getSettledPosition(run);
+                data[idx] = pos;
+            });
+
+            datasets.push({
+                label: filterName,
+                data: data,
+                borderColor: color,
+                backgroundColor: color + '33',
+                borderWidth: 3,
+                pointRadius: 8,
+                pointHoverRadius: 10,
+                pointBackgroundColor: color,
+                tension: 0.2,
+                fill: false,
+                spanGaps: false // Don't connect points across filter groups
+            });
+        });
 
         charts.afDrift = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Focus Position',
-                    data: data,
-                    borderColor: AF_DRIFT_COLOR,
-                    backgroundColor: AF_DRIFT_COLOR + '33',
-                    borderWidth: 3,
-                    pointRadius: 8,
-                    pointHoverRadius: 10,
-                    pointBackgroundColor: AF_DRIFT_COLOR,
-                    tension: 0.2,
-                    fill: false
-                }]
+                datasets: datasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: dark ? COLORS.text : '#333',
+                            usePointStyle: true,
+                            padding: 15
+                        }
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
                                 const val = ctx.parsed.y;
-                                return val !== null ? `EAF: ${val}` : 'No position data';
+                                const filterLabel = ctx.dataset.label;
+                                return val !== null ? `${filterLabel}: EAF ${val}` : null;
                             }
                         }
                     }
