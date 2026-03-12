@@ -955,6 +955,7 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
     recent_filter = None
     recent_filter_time = None
     last_focus_position = None
+    pending_af_trigger = None  # BUG 2 FIX: Track trigger from "Starting Trigger:" line
 
     # Track which lines have been consumed for HFR look-ahead to avoid double-assignment
     hfr_consumed_lines = set()
@@ -974,8 +975,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'af_stars': re.compile(r'Average HFR[:\s]+([0-9.]+),?\s*HFR\s*σ[:\s]*([0-9.]+),?\s*Detected Stars ([0-9]+)', re.IGNORECASE),
         'af_stars_alt': re.compile(r'HFR[:\s]*[=:]+?\s*([0-9.]+)', re.IGNORECASE),  # Fallback pattern - handles "HFR: X" or "HFR = X" or "HFR X"
         'af_stars_no_detect': re.compile(r'No stars detected', re.IGNORECASE),
-        'af_method': re.compile(r'Fitting method[:\s]+(\w+)', re.IGNORECASE),
-        'filter_change': re.compile(r'FilterWheelVM\.cs.*ChangeFilter.*to\s+["\']?(\w+)["\']?', re.IGNORECASE),
+        'af_method': re.compile(r'for\s+(\w+)\s+Fitting', re.IGNORECASE),  # FIX 3: Matches "for Hyperbolic Fitting" in failure lines
+        'filter_change': re.compile(r'Moving to Filter\s+["\']?([\w-]+)["\']?', re.IGNORECASE),  # FIX 1a: Matches "Moving to Filter O-III at Position 5"
+        'filter_capture': re.compile(r'Filter:\s*([\w-]+)[;,\s]', re.IGNORECASE),  # FIX 1b: Captures filter from camera exposure lines like "Filter: Lum; Gain: 100;..."
+        'af_trigger_line': re.compile(r'Starting Trigger:\s+(AutofocusAfterFilterChange|Manual\s+autofocus)', re.IGNORECASE),  # Pattern for trigger line before AF start
         'af_trigger': re.compile(r'AutofocusAfterFilterChange|Manual\s+autofocus', re.IGNORECASE),
         'equipment': re.compile(r'Equipment\s+(Camera|Mount|FilterWheel|Focuser|Rotator|Guider|Dome|Weather|PowerSwitch|Plugin)[:\s]+(.+)', re.IGNORECASE),
         'flat_start': re.compile(r'Flat\s+Device[\w\s]+started', re.IGNORECASE),
@@ -1059,6 +1062,27 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             recent_filter = filter_match.group(1)
             recent_filter_time = ts
 
+        # FIX 1: Capture filter from camera exposure lines during active AF run
+        # When AF starts on the already-active filter, there's no "Moving to Filter" line.
+        # The filter appears in camera exposure lines like: "Filter: Lum; Gain: 100;..."
+        filter_capture_match = NINA_PATTERNS['filter_capture'].search(message_part)
+        if filter_capture_match and ts_match and current_af_run is not None:
+            # Only set recent_filter if it's still None (first capture during AF run)
+            if recent_filter is None:
+                recent_filter = filter_capture_match.group(1)
+                recent_filter_time = ts
+
+        # BUG 2 FIX: Capture trigger from "Starting Trigger:" line (before AF start)
+        trigger_line_match = NINA_PATTERNS['af_trigger_line'].search(message_part)
+        if trigger_line_match:
+            trigger_keyword = trigger_line_match.group(1)
+            if 'AfterFilterChange' in trigger_keyword:
+                pending_af_trigger = _('After Filter Change')
+            elif 'Manual' in trigger_keyword:
+                pending_af_trigger = _('Manual')
+            else:
+                pending_af_trigger = _('Automatic')
+
         # --- AutoFocus Run Parsing ---
 
         # AF Run Start
@@ -1069,7 +1093,7 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
 
             current_af_run = {
                 'run_index': af_run_counter,
-                'filter': recent_filter,
+                'filter': None,  # BUG 1 FIX: Don't assign filter at creation - assign at run end
                 'trigger': None,
                 'start_time': ts.isoformat() if ts_match else None,
                 'status': 'success',
@@ -1086,15 +1110,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 'failure_reason': None
             }
 
-            # Determine trigger type
-            trigger_match = NINA_PATTERNS['af_trigger'].search(message_part)
-            if trigger_match:
-                if 'AfterFilterChange' in trigger_match.group(0):
-                    current_af_run['trigger'] = _('After Filter Change')
-                elif 'Manual' in trigger_match.group(0):
-                    current_af_run['trigger'] = _('Manual')
-                else:
-                    current_af_run['trigger'] = _('Automatic')
+            # BUG 2 FIX: Use pending trigger instead of searching message_part
+            current_af_run['trigger'] = pending_af_trigger
+            pending_af_trigger = None  # Reset after assignment
 
             # Add to timeline
             _add_to_timeline(result, 'Focus', 'focus', ts.isoformat() if ts_match else None,
@@ -1208,6 +1226,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 current_af_run['best_stars'] = best_step['star_count']
                 current_af_run['final_position'] = best_step['position']
 
+            # BUG 1 FIX: Assign filter at run end (recent_filter may have been updated during AF run)
+            current_af_run['filter'] = recent_filter
+
             # Record success event
             if ts_match:
                 _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
@@ -1236,7 +1257,15 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 if restore_match and last_focus_position is not None:
                     current_af_run['restored_position'] = last_focus_position
 
+                # FIX 3: Extract fitting method from failure line (format: "for Hyperbolic Fitting")
+                method_match = NINA_PATTERNS['af_method'].search(line)
+                if method_match:
+                    current_af_run['fitting_method'] = method_match.group(1)
+
                 current_af_run['failure_reason'] = _('R squared value below threshold')
+
+                # BUG 1 FIX: Assign filter at run end (recent_filter may have been updated during AF run)
+                current_af_run['filter'] = recent_filter
 
                 # Add to timeline with failure
                 if ts_match:
@@ -1337,6 +1366,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 current_af_run['best_hfr'] = best_step['hfr']
                 current_af_run['best_stars'] = best_step['star_count']
                 current_af_run['final_position'] = best_step['position']
+
+        # BUG 1 FIX: Assign filter at run end for incomplete runs
+        current_af_run['filter'] = recent_filter
+
         logger.debug(f"Finalizing incomplete AF run #{current_af_run['run_index']}: {total_steps} total steps, {valid_hfr_steps} steps with valid HFR")
         result['autofocus_runs'].append(current_af_run)
         current_af_run = None

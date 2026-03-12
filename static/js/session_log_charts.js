@@ -198,6 +198,7 @@
             renderGuidingTab();
             renderDitheringTab();
             renderAutoFocusTab();
+            renderNinaTab();
 
         } catch (err) {
             console.error('Error loading log analysis:', err);
@@ -218,7 +219,7 @@
             container.innerHTML = `
                 <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                     <p>No log files uploaded for this session.</p>
-                    <p style="font-size: 0.9em;">Edit the session to upload ASIAIR or PHD2 logs.</p>
+                    <p style="font-size: 0.9em;">Edit the session to upload ASIAIR, PHD2, or NINA logs.</p>
                 </div>
             `;
         }
@@ -1734,16 +1735,55 @@
      * Render AutoFocus Tab - Summary cards, overlay chart, drift chart, narrative, and V-curves
      */
     function renderAutoFocusTab() {
-        const asiair = logData.asiair;
-        if (!asiair || !asiair.af_runs || asiair.af_runs.length === 0) {
+        // Support both ASIAIR and NINA log data
+        let afRuns = [];
+
+        // Debug: Log data structure
+        console.log('[renderAutoFocusTab] logData.asiair:', logData.asiair);
+        console.log('[renderAutoFocusTab] logData.nina:', logData.nina);
+
+        // Check ASIAIR data
+        if (logData.asiair && logData.asiair.af_runs && logData.asiair.af_runs.length > 0) {
+            afRuns = logData.asiair.af_runs;
+        }
+        // Check NINA data (independent - use separate if, not else if)
+        if (logData.nina && logData.nina.autofocus_runs && logData.nina.autofocus_runs.length > 0) {
+            // Only use NINA data if ASIAIR didn't provide any runs
+            if (afRuns.length === 0) {
+                // Transform NINA data to match ASIAIR format for rendering
+                afRuns = logData.nina.autofocus_runs.map(ninaRun => ({
+                    run: ninaRun.run_index,
+                    ts: ninaRun.start_time,
+                    h: ninaRun.start_time ? new Date(ninaRun.start_time).getHours() : 0,
+                    temp: ninaRun.temperature,
+                    focus_pos: ninaRun.final_position,
+                    points: ninaRun.steps.map(step => ({
+                        pos: step.position,
+                        sz: step.hfr !== null ? step.hfr : 999, // 999 indicates no stars
+                        sigma: step.hfr_sigma
+                    })),
+                    // Add metadata for display
+                    _nina_source: true,
+                    _filter: ninaRun.filter,
+                    _trigger: ninaRun.trigger,
+                    _status: ninaRun.status,
+                    _best_hfr: ninaRun.best_hfr,
+                    _fitting_method: ninaRun.fitting_method,
+                    _r_squared: ninaRun.r_squared,
+                    _restored_position: ninaRun.restored_position,
+                    _no_star_steps: ninaRun.no_star_steps,
+                    _failure_reason: ninaRun.failure_reason
+                }));
+            }
+        }
+
+        if (!afRuns || afRuns.length === 0) {
             const tab = document.getElementById('log-autofocus-tab');
             if (tab) {
                 tab.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px;">No autofocus data available.</p>';
             }
             return;
         }
-
-        const afRuns = asiair.af_runs;
         document.getElementById('log-af-total').textContent = afRuns.length;
 
         // Clean up old charts
@@ -1797,21 +1837,101 @@
             const card = document.createElement('div');
             card.className = 'log-af-vcurve-card';
 
-            const title = document.createElement('h5');
+            // Determine success/failure status for styling
+            const isSuccess = afRun._status !== 'failed';
+            const accentColor = isSuccess ? '#4a9e6e' : '#c05050';
+
+            // Build header with run info
             const timeStr = afRun.ts ? new Date(afRun.ts).toLocaleTimeString() : `Run ${afRun.run}`;
-            title.textContent = `AF Run ${afRun.run} - ${timeStr}`;
+            const triggerStr = afRun._trigger || '';
+            const exposureStr = afRun._filter ? `${afRun._filter}` : '';
+
+            // Header container with left accent border
+            const header = document.createElement('div');
+            header.className = 'log-af-card-header';
+            header.style.cssText = `
+                background: var(--bg-tertiary, var(--bg-light-gray, #f5f5f5));
+                border-left: 3px solid ${accentColor};
+                padding: 10px 12px;
+                margin: -15px -15px 12px -15px;
+                border-radius: 8px 8px 0 0;
+            `;
+
+            // Run title
+            const title = document.createElement('div');
+            title.className = 'log-af-run-title';
+            title.style.cssText = `
+                font-size: 13px;
+                font-weight: 700;
+                color: var(--text-primary);
+                margin-bottom: 4px;
+            `;
+            title.textContent = `AF Run ${afRun.run}`;
+            header.appendChild(title);
+
+            // Meta line: time, trigger, filter
+            const meta = document.createElement('div');
+            meta.className = 'log-af-meta';
+            meta.style.cssText = `
+                font-size: 11px;
+                color: var(--text-muted);
+                font-family: var(--font-mono, 'DM Mono', monospace);
+            `;
+            let metaText = timeStr;
+            if (triggerStr) metaText += ` | ${triggerStr}`;
+            if (exposureStr) metaText += ` | ${exposureStr}`;
+            // NINA: Add fitting method to meta line for quick reference
+            if (afRun._nina_source && afRun._fitting_method) {
+                metaText += ` | ${afRun._fitting_method}`;
+            }
+            meta.textContent = metaText;
+            header.appendChild(meta);
+
+            // Status pill
+            const statusPill = document.createElement('span');
+            statusPill.className = 'log-af-status-pill';
+            statusPill.style.cssText = `
+                font-size: 10px;
+                font-weight: 700;
+                padding: 2px 7px;
+                border-radius: 4px;
+                margin-left: 10px;
+                background: ${isSuccess ? 'rgba(74,158,110,0.1)' : 'rgba(192,80,80,0.1)'};
+                color: ${accentColor};
+            `;
+            statusPill.textContent = isSuccess ? 'Successful' : 'Failed';
+            title.appendChild(statusPill);
+
+            card.appendChild(header);
 
             // Try parabola fit for better focus position
             let focusPos = getSettledPosition(afRun);
             let datasets = [];
             let chartMin = Infinity, chartMax = -Infinity;
 
+            // Theme-aware grid color
+            const gridColor = dark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
             if (afRun.points && afRun.points.length > 0) {
-                const points = afRun.points.map(p => ({ x: p.pos, y: p.sz }));
+                // Sort points by position ascending for proper left-to-right V-curve display
+                const sortedSteps = [...afRun.points].sort((a, b) => a.pos - b.pos);
+                const points = sortedSteps.map(p => ({
+                    x: p.pos,
+                    y: p.sz,
+                    starCount: p.starCount || (p.sigma ? 1 : 0) // Use starCount if available
+                }));
                 points.forEach(p => {
                     if (p.x < chartMin) chartMin = p.x;
                     if (p.x > chartMax) chartMax = p.x;
                 });
+
+                // Find best focus point index for highlighting
+                let bestFocusIdx = -1;
+                const validPoints = points.filter(p => p.y < 900); // Exclude no-star points (999)
+                if (validPoints.length > 0) {
+                    const bestY = Math.min(...validPoints.map(p => p.y));
+                    bestFocusIdx = points.findIndex(p => p.y === bestY);
+                }
 
                 const fit = fitParabola(points);
                 if (fit) {
@@ -1835,14 +1955,19 @@
                         fill: false
                     });
 
-                    // Raw measurements as points
+                    // Raw measurements as points with best focus highlighted
+                    const pointColors = points.map((p, i) => i === bestFocusIdx ? '#4a9e6e' : COLORS.ra);
+                    const pointRadii = points.map((p, i) => i === bestFocusIdx ? 7 : 4);
+                    const pointHoverRadii = points.map((p, i) => i === bestFocusIdx ? 8 : 6);
+
                     datasets.push({
                         label: 'Measured',
                         data: points,
-                        borderColor: COLORS.ra,
-                        backgroundColor: COLORS.ra,
+                        borderColor: pointColors,
+                        backgroundColor: pointColors,
                         borderWidth: 0,
-                        pointRadius: 4,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: pointHoverRadii,
                         showLine: false,
                         fill: false
                     });
@@ -1856,25 +1981,17 @@
                         backgroundColor: 'rgba(96, 165, 250, 0.1)',
                         borderWidth: 2,
                         pointRadius: 4,
+                        pointHoverRadius: 6,
                         tension: 0.3,
                         fill: true
                     });
                 }
             }
 
-            if (focusPos !== null) {
-                title.textContent += ` (Focus: ${focusPos})`;
-            }
-            if (afRun.temp !== null && afRun.temp !== undefined) {
-                title.textContent += ` @ ${afRun.temp}°C`;
-            }
-            title.style.borderLeft = `4px solid ${getRunColor(index)}`;
-            title.style.paddingLeft = '8px';
-            card.appendChild(title);
-
             if (datasets.length > 0) {
                 const canvas = document.createElement('canvas');
                 canvas.id = `af-curve-${index}`;
+                canvas.style.cssText = 'max-height: 180px;';
                 card.appendChild(canvas);
 
                 const chart = new Chart(canvas, {
@@ -1884,12 +2001,21 @@
                         responsive: true,
                         maintainAspectRatio: false,
                         animation: false,
+                        layout: {
+                            padding: { top: 8, bottom: 4 }
+                        },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
                                 callbacks: {
                                     label: function(ctx) {
-                                        return `pos ${ctx.parsed.x.toFixed(0)}, size ${ctx.parsed.y.toFixed(2)}`;
+                                        const point = ctx.raw;
+                                        if (point.y >= 900) {
+                                            return `Pos ${ctx.parsed.x.toFixed(0)}: No stars detected`;
+                                        }
+                                        const hfrStr = point.y.toFixed(2);
+                                        const starStr = point.starCount ? ` | Stars: ${point.starCount}` : '';
+                                        return `Pos ${ctx.parsed.x.toFixed(0)}: HFR ${hfrStr}"${starStr}`;
                                     }
                                 }
                             }
@@ -1897,16 +2023,17 @@
                         scales: {
                             x: {
                                 type: 'linear',
+                                reverse: false,
                                 title: { display: true, text: 'Focus Position', color: dark ? COLORS.text : '#333' },
                                 min: chartMin - 20,
                                 max: chartMax + 20,
                                 ticks: { color: dark ? COLORS.text : '#666', maxTicksLimit: 8 },
-                                grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                                grid: { color: gridColor }
                             },
                             y: {
-                                title: { display: true, text: 'Star Size', color: dark ? COLORS.text : '#333' },
+                                title: { display: true, text: 'HFR', color: dark ? COLORS.text : '#333' },
                                 ticks: { color: dark ? COLORS.text : '#666' },
-                                grid: { color: dark ? COLORS.grid : 'rgba(0, 0, 0, 0.1)' }
+                                grid: { color: gridColor }
                             }
                         }
                     }
@@ -1916,14 +2043,86 @@
                 card.innerHTML += '<p style="color: var(--text-muted); font-size: 0.9em;">No V-curve points recorded.</p>';
             }
 
+            // Result row with key values
+            const resultRow = document.createElement('div');
+            resultRow.className = 'log-af-result-row';
+            resultRow.style.cssText = `
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid var(--border-light, #e5e5e5);
+            `;
+
+            // Helper to create result item
+            const addResultItem = (label, value, valueColor = 'var(--text-primary)') => {
+                const item = document.createElement('div');
+                item.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
+                const labelEl = document.createElement('span');
+                labelEl.style.cssText = 'font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint, #999);';
+                labelEl.textContent = label;
+                const valueEl = document.createElement('span');
+                valueEl.style.cssText = `font-size: 12px; font-weight: 600; font-family: var(--font-mono, 'DM Mono', monospace); color: ${valueColor};`;
+                valueEl.textContent = value;
+                item.appendChild(labelEl);
+                item.appendChild(valueEl);
+                resultRow.appendChild(item);
+            };
+
+            // Best position
+            if (focusPos !== null) {
+                addResultItem('Best Pos', focusPos, 'var(--primary-color)');
+            }
+            // Final position (may differ on failure)
+            if (afRun.focus_pos !== null && afRun.focus_pos !== undefined && afRun.focus_pos !== focusPos) {
+                addResultItem('Final Pos', afRun.focus_pos, 'var(--primary-color)');
+            }
+            // Best HFR
+            if (afRun._best_hfr !== null && afRun._best_hfr !== undefined) {
+                addResultItem('Best HFR', afRun._best_hfr.toFixed(2) + '"');
+            }
+            // R-squared (on failed runs) - show as R² with proper superscript
+            if (!isSuccess && afRun._r_squared !== null && afRun._r_squared !== undefined) {
+                addResultItem('R²', afRun._r_squared.toFixed(3), '#c05050');
+            }
+            // No-star steps (on failed runs)
+            if (!isSuccess && afRun._no_star_steps > 0) {
+                addResultItem('No Stars', afRun._no_star_steps, '#c05050');
+            }
+            // NINA: Fitting method
+            if (afRun._nina_source && afRun._fitting_method) {
+                addResultItem('Fitting', afRun._fitting_method);
+            }
+            // NINA: Restored position (on failed runs)
+            if (afRun._nina_source && !isSuccess && afRun._restored_position !== null && afRun._restored_position !== undefined) {
+                addResultItem('Restored', afRun._restored_position, '#c05050');
+            }
+            // NINA: Failure reason
+            if (afRun._nina_source && !isSuccess && afRun._failure_reason) {
+                addResultItem('Reason', afRun._failure_reason, '#c05050');
+            }
+            // NINA: Best stars count
+            if (afRun._nina_source && afRun._best_stars !== null && afRun._best_stars !== undefined) {
+                addResultItem('Best Stars', afRun._best_stars);
+            }
+            // Temperature
+            if (afRun.temp !== null && afRun.temp !== undefined) {
+                addResultItem('Temp', afRun.temp.toFixed(1) + '°C');
+            }
+
+            if (resultRow.children.length > 0) {
+                card.appendChild(resultRow);
+            }
+
             container.appendChild(card);
         });
     }
 
     /**
      * Task 2: Render AF Summary Cards
-     * Row 1: [Temp Drift] [Focus Shift] (centered, styled like Overview tiles)
-     * Row 2: [Run 1] [Run 2] ... [Run N]
+     * Summary bar at top with: Successful / Failed / Final Position / Avg HFR
+     * Row 2: AF Run Cards with colored positions
      */
     function renderAFSummaryCards(afRuns, getRunColor, getSettledPosition) {
         const primaryContainer = document.getElementById('log-af-summary-primary');
@@ -1932,47 +2131,85 @@
         primaryContainer.innerHTML = '';
         runsContainer.innerHTML = '';
 
-        // === ROW 1: Temp Drift and Focus Shift (exact Overview tile style) ===
-        // Temperature Drift Card
-        const temps = afRuns.filter(r => r.temp !== null && r.temp !== undefined).map(r => r.temp);
-        if (temps.length >= 2) {
-            const tempDrift = temps[temps.length - 1] - temps[0];
-            const tempCard = document.createElement('div');
-            tempCard.className = 'log-stat-card';
-            tempCard.innerHTML = `
-                <span class="log-stat-value">${tempDrift >= 0 ? '+' : ''}${tempDrift.toFixed(1)}°C</span>
-                <span class="log-stat-label">Temp Drift</span>
-            `;
-            primaryContainer.appendChild(tempCard);
-        }
-
-        // Focus Shift Card
+        // Calculate summary stats
+        const successfulRuns = afRuns.filter(r => r._status !== 'failed');
+        const failedRuns = afRuns.filter(r => r._status === 'failed');
         const positions = afRuns.map(r => getSettledPosition(r)).filter(p => p !== null);
-        if (positions.length >= 2) {
-            const focusShift = positions[positions.length - 1] - positions[0];
-            const shiftCard = document.createElement('div');
-            shiftCard.className = 'log-stat-card';
-            shiftCard.innerHTML = `
-                <span class="log-stat-value">${focusShift >= 0 ? '+' : ''}${focusShift}</span>
-                <span class="log-stat-label">Focus Shift</span>
-            `;
-            primaryContainer.appendChild(shiftCard);
-        }
+        const finalPosition = positions.length > 0 ? positions[positions.length - 1] : null;
 
-        // === ROW 2: AF Run Cards (keep existing style) ===
+        // Calculate average HFR from successful runs
+        const hfrValues = successfulRuns
+            .filter(r => r._best_hfr !== null && r._best_hfr !== undefined)
+            .map(r => r._best_hfr);
+        const avgHfr = hfrValues.length > 0
+            ? hfrValues.reduce((a, b) => a + b, 0) / hfrValues.length
+            : null;
+
+        // === SUMMARY BAR ===
+        // Style helper for inline stat items
+        const createSummaryItem = (label, value, valueColor = 'var(--text-primary)') => {
+            const item = document.createElement('div');
+            item.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
+            const labelEl = document.createElement('span');
+            labelEl.style.cssText = 'font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint, #999);';
+            labelEl.textContent = label;
+            const valueEl = document.createElement('span');
+            valueEl.style.cssText = `font-size: 13px; font-weight: 600; font-family: var(--font-mono, 'DM Mono', monospace); color: ${valueColor};`;
+            valueEl.textContent = value;
+            item.appendChild(labelEl);
+            item.appendChild(valueEl);
+            return item;
+        };
+
+        // Summary bar container
+        const summaryBar = document.createElement('div');
+        summaryBar.style.cssText = `
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light, #e5e5e5);
+            margin-bottom: 20px;
+            max-width: 970px;
+        `;
+
+        // Successful count
+        summaryBar.appendChild(createSummaryItem('Successful', successfulRuns.length, '#4a9e6e'));
+        // Failed count
+        if (failedRuns.length > 0) {
+            summaryBar.appendChild(createSummaryItem('Failed', failedRuns.length, '#c05050'));
+        }
+        // Final position
+        if (finalPosition !== null) {
+            summaryBar.appendChild(createSummaryItem('Final Pos', finalPosition, 'var(--primary-color)'));
+        }
+        // Average HFR
+        if (avgHfr !== null) {
+            summaryBar.appendChild(createSummaryItem('Avg HFR', avgHfr.toFixed(2) + '"', 'var(--primary-color)'));
+        }
+        // Total runs
+        summaryBar.appendChild(createSummaryItem('Total', afRuns.length));
+
+        primaryContainer.appendChild(summaryBar);
+
+        // === ROW 2: AF Run Cards ===
         afRuns.forEach((afRun, idx) => {
-            const color = getRunColor(idx);
+            const isSuccess = afRun._status !== 'failed';
+            const color = isSuccess ? '#4a9e6e' : '#c05050';
             const focusPos = getSettledPosition(afRun);
             const card = document.createElement('div');
             card.className = 'log-af-stat-card';
 
             let subtitle = '';
             if (afRun.temp !== null && afRun.temp !== undefined && focusPos !== null) {
-                subtitle = `${afRun.temp}°C → pos ${focusPos}`;
+                subtitle = `${afRun.temp.toFixed(1)}°C | pos ${focusPos}`;
             } else if (focusPos !== null) {
                 subtitle = `pos ${focusPos}`;
             } else if (afRun.temp !== null && afRun.temp !== undefined) {
-                subtitle = `${afRun.temp}°C`;
+                subtitle = `${afRun.temp.toFixed(1)}°C`;
+            }
+            if (!isSuccess && afRun._failure_reason) {
+                subtitle = subtitle ? subtitle + ' | Failed' : 'Failed';
             }
 
             card.innerHTML = `
@@ -1982,6 +2219,69 @@
             `;
             runsContainer.appendChild(card);
         });
+
+        // === TOTALS BAR ===
+        const totalsBar = document.createElement('div');
+        totalsBar.style.cssText = `
+            background: var(--bg-tertiary, var(--bg-light-gray, #f5f5f5));
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            max-width: 970px;
+        `;
+
+        // Helper to add totals item
+        const addTotalsItem = (label, value, valueColor = 'var(--text-primary)') => {
+            const span = document.createElement('span');
+            span.innerHTML = `${label}: <span style="font-family: var(--font-mono, 'DM Mono', monospace); font-weight: 600; color: ${valueColor};">${value}</span>`;
+            totalsBar.appendChild(span);
+        };
+
+        // Session timespan
+        if (afRuns.length > 1 && afRuns[0].ts && afRuns[afRuns.length - 1].ts) {
+            const start = new Date(afRuns[0].ts);
+            const end = new Date(afRuns[afRuns.length - 1].ts);
+            const duration = Math.round((end - start) / 60000); // minutes
+            const hours = Math.floor(duration / 60);
+            const mins = duration % 60;
+            addTotalsItem('Duration', hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+        }
+
+        // Temperature range
+        const temps = afRuns.filter(r => r.temp !== null && r.temp !== undefined).map(r => r.temp);
+        if (temps.length >= 2) {
+            const minT = Math.min(...temps).toFixed(1);
+            const maxT = Math.max(...temps).toFixed(1);
+            addTotalsItem('Temp Range', `${minT}°C to ${maxT}°C`);
+        }
+
+        // Position range
+        if (positions.length >= 2) {
+            const minP = Math.min(...positions);
+            const maxP = Math.max(...positions);
+            const shift = maxP - minP;
+            addTotalsItem('Focus Range', `${minP} - ${maxP} (${shift} shift)`, 'var(--primary-color)');
+        }
+
+        // Average HFR in totals
+        if (avgHfr !== null) {
+            addTotalsItem('Avg HFR', avgHfr.toFixed(2) + '"', 'var(--primary-color)');
+        }
+
+        // Failure rate
+        if (failedRuns.length > 0) {
+            const failRate = ((failedRuns.length / afRuns.length) * 100).toFixed(0);
+            addTotalsItem('Fail Rate', `${failRate}%`, '#c05050');
+        }
+
+        if (totalsBar.children.length > 0) {
+            runsContainer.parentElement.insertBefore(totalsBar, runsContainer.nextSibling);
+        }
     }
 
     /**
@@ -2347,6 +2647,385 @@
     }
 
     /**
+     * Render NINA Event Log Tab
+     * Shows timeline phases, equipment info, and event details
+     */
+    function renderNinaTab() {
+        const tabBtn = document.getElementById('nina-tab-btn');
+        const ninaData = logData && logData.nina;
+
+        // Hide tab if no NINA data
+        if (!ninaData || !ninaData.timeline_phases || ninaData.timeline_phases.length === 0) {
+            if (tabBtn) tabBtn.style.display = 'none';
+            return;
+        }
+
+        // Show tab button
+        if (tabBtn) tabBtn.style.display = '';
+
+        // Render header
+        renderNinaHeader(ninaData);
+
+        // Render equipment row
+        renderNinaEquipment(ninaData);
+
+        // Render timeline phases
+        renderNinaTimeline(ninaData);
+
+        // Render totals bar
+        renderNinaTotals(ninaData);
+
+        // Setup expand/collapse handlers
+        setupNinaExpandCollapse();
+    }
+
+    /**
+     * Render NINA header row
+     */
+    function renderNinaHeader(ninaData) {
+        const container = document.getElementById('log-nina-header');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Helper to create header item
+        const addItem = (label, value, valueClass = '') => {
+            const item = document.createElement('div');
+            item.className = 'log-nina-header-item';
+            item.innerHTML = `
+                <span class="log-nina-header-label">${label}</span>
+                <span class="log-nina-header-value ${valueClass}">${value}</span>
+            `;
+            container.appendChild(item);
+        };
+
+        // NINA version
+        if (ninaData.nina_version) {
+            addItem('NINA', ninaData.nina_version);
+        }
+
+        // Session timespan
+        if (ninaData.session_start && ninaData.session_end) {
+            const start = new Date(ninaData.session_start);
+            const end = new Date(ninaData.session_end);
+            const duration = Math.round((end - start) / 60000);
+            const hours = Math.floor(duration / 60);
+            const mins = duration % 60;
+            const timespan = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+            addItem('Duration', timespan);
+        }
+
+        // Target name (extracted from timeline if available)
+        // Note: target_name is not in the current data structure, could be added later
+
+        // Error count
+        const errorCount = ninaData.errors ? ninaData.errors.length : 0;
+        if (errorCount > 0) {
+            addItem('Errors', errorCount, 'red');
+        }
+
+        // Warning count
+        const warningCount = ninaData.warnings ? ninaData.warnings.length : 0;
+        if (warningCount > 0) {
+            addItem('Warnings', warningCount, 'amber');
+        }
+    }
+
+    /**
+     * Render equipment row
+     */
+    function renderNinaEquipment(ninaData) {
+        const container = document.getElementById('log-nina-equipment');
+        if (!container || !ninaData.equipment) return;
+        container.innerHTML = '';
+
+        const eq = ninaData.equipment;
+        const items = [];
+
+        if (eq.camera) items.push(['Camera', eq.camera]);
+        if (eq.mount) items.push(['Mount', eq.mount]);
+        if (eq.guider) items.push(['Guider', eq.guider]);
+        if (eq.dome) items.push(['Dome', eq.dome]);
+        if (eq.filter_wheel) items.push(['Filter', eq.filter_wheel]);
+        if (eq.focuser) items.push(['Focuser', eq.focuser]);
+
+        if (items.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+
+        items.forEach(([label, value]) => {
+            const item = document.createElement('div');
+            item.className = 'log-nina-header-item';
+            item.innerHTML = `
+                <span class="log-nina-header-label">${label}</span>
+                <span class="log-nina-header-value">${value}</span>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    /**
+     * Render timeline phases
+     */
+    function renderNinaTimeline(ninaData) {
+        const container = document.getElementById('log-nina-timeline');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Phase badge colors (matching spec)
+        const badgeColors = {
+            startup: { bg: 'var(--primary-bg)', color: 'var(--primary-color)' },
+            imaging: { bg: 'rgba(74,158,110,0.1)', color: '#4a9e6e' },
+            focus: { bg: 'rgba(196,124,42,0.1)', color: '#c47c2a' },
+            platesolve: { bg: 'rgba(131,180,197,0.15)', color: '#5a8fa0' },
+            guiding: { bg: 'rgba(160,100,200,0.1)', color: '#8a5ab0' },
+            flats: { bg: 'rgba(200,180,100,0.12)', color: '#9a8a30' },
+            sequence: { bg: 'rgba(100,100,200,0.1)', color: '#5050a0' },
+            default: { bg: 'rgba(128,128,128,0.1)', color: '#888' }
+        };
+
+        ninaData.timeline_phases.forEach((phase, idx) => {
+            const phaseEl = document.createElement('div');
+            phaseEl.className = 'log-nina-phase';
+            phaseEl.dataset.phaseIndex = idx;
+
+            // Get badge colors
+            const badgeClass = phase.badge_class || 'default';
+            const colors = badgeColors[badgeClass] || badgeColors.default;
+
+            // Calculate timespan
+            let timespan = '';
+            if (phase.start_time && phase.end_time) {
+                const start = new Date(phase.start_time);
+                const end = new Date(phase.end_time);
+                const duration = Math.round((end - start) / 60000);
+                const mins = duration % 60;
+                timespan = mins + 'm';
+            }
+
+            // Build header
+            const header = document.createElement('div');
+            header.className = 'log-nina-phase-header';
+
+            // Left side: badge + title
+            const leftSide = document.createElement('div');
+            leftSide.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+
+            // Badge
+            const badge = document.createElement('span');
+            badge.className = 'log-nina-phase-badge';
+            badge.style.cssText = `
+                padding: 2px 8px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                background: ${colors.bg};
+                color: ${colors.color};
+            `;
+            badge.textContent = phase.badge_class || phase.phase;
+            leftSide.appendChild(badge);
+
+            // Title
+            const title = document.createElement('span');
+            title.className = 'log-nina-phase-title';
+            title.style.cssText = 'font-size: 13px; font-weight: 600; color: var(--text-primary);';
+            title.textContent = phase.phase;
+            leftSide.appendChild(title);
+
+            header.appendChild(leftSide);
+
+            // Right side: counts, timespan, chevron
+            const rightSide = document.createElement('div');
+            rightSide.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+
+            // Error/warning pills
+            if (phase.error_count > 0) {
+                const errPill = document.createElement('span');
+                errPill.style.cssText = 'font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: rgba(192,80,80,0.1); color: #c05050;';
+                errPill.textContent = phase.error_count + ' err';
+                rightSide.appendChild(errPill);
+            }
+            if (phase.warning_count > 0) {
+                const warnPill = document.createElement('span');
+                warnPill.style.cssText = 'font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: rgba(196,124,42,0.1); color: #c47c2a;';
+                warnPill.textContent = phase.warning_count + ' warn';
+                rightSide.appendChild(warnPill);
+            }
+
+            // Timespan
+            if (timespan) {
+                const timeSpan = document.createElement('span');
+                timeSpan.style.cssText = 'font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);';
+                timeSpan.textContent = timespan;
+                rightSide.appendChild(timeSpan);
+            }
+
+            // Chevron
+            const chevron = document.createElement('span');
+            chevron.className = 'log-nina-phase-chevron';
+            chevron.style.cssText = 'font-size: 10px; color: var(--text-muted); transition: transform 0.2s;';
+            chevron.textContent = '▶';
+            rightSide.appendChild(chevron);
+
+            header.appendChild(rightSide);
+            phaseEl.appendChild(header);
+
+            // Phase body (events list)
+            const body = document.createElement('div');
+            body.className = 'log-nina-phase-body';
+            body.style.cssText = 'display: none; padding: 10px 12px; border-top: 1px solid var(--border-light);';
+
+            if (phase.events && phase.events.length > 0) {
+                phase.events.forEach(event => {
+                    const eventEl = document.createElement('div');
+                    const levelClass = event.level.toLowerCase();
+                    eventEl.className = `log-nina-event ${levelClass}`;
+
+                    // Timestamp
+                    const timeEl = document.createElement('span');
+                    timeEl.className = 'log-nina-event-time';
+                    if (event.time) {
+                        const date = new Date(event.time);
+                        timeEl.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                    }
+                    eventEl.appendChild(timeEl);
+
+                    // Icon
+                    const iconEl = document.createElement('span');
+                    iconEl.className = `log-nina-event-icon ${levelClass}`;
+                    if (event.level === 'ERROR') {
+                        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1" fill="none"/><line x1="4" y1="4" x2="8" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="4" x2="4" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>';
+                    } else if (event.level === 'WARNING') {
+                        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1L11 10H1L6 1Z" stroke="currentColor" stroke-width="1" fill="none"/><line x1="6" y1="5" x2="6" y2="7" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8.5" r="0.5" fill="currentColor"/></svg>';
+                    } else {
+                        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/></svg>';
+                    }
+                    eventEl.appendChild(iconEl);
+
+                    // Message
+                    const msgEl = document.createElement('span');
+                    msgEl.className = 'log-nina-event-message';
+                    msgEl.textContent = event.message;
+                    eventEl.appendChild(msgEl);
+
+                    body.appendChild(eventEl);
+                });
+            } else {
+                body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; padding: 8px 0;">No events recorded</div>';
+            }
+
+            phaseEl.appendChild(body);
+
+            // Toggle body on header click
+            header.addEventListener('click', () => {
+                const isExpanded = body.style.display === 'block';
+                body.style.display = isExpanded ? 'none' : 'block';
+                chevron.style.transform = isExpanded ? '' : 'rotate(90deg)';
+                if (isExpanded) {
+                    phaseEl.classList.remove('expanded');
+                } else {
+                    phaseEl.classList.add('expanded');
+                }
+            });
+
+            container.appendChild(phaseEl);
+        });
+    }
+
+    /**
+     * Render totals bar
+     */
+    function renderNinaTotals(ninaData) {
+        const container = document.getElementById('log-nina-totals');
+        if (!container) return;
+        container.innerHTML = '';
+
+        // Helper to add totals item
+        const addItem = (label, value, valueClass = '') => {
+            const span = document.createElement('span');
+            span.innerHTML = `${label}: <span class="value ${valueClass}">${value}</span>`;
+            container.appendChild(span);
+        };
+
+        // Duration
+        if (ninaData.session_start && ninaData.session_end) {
+            const start = new Date(ninaData.session_start);
+            const end = new Date(ninaData.session_end);
+            const duration = Math.round((end - start) / 60000);
+            const hours = Math.floor(duration / 60);
+            const mins = duration % 60;
+            addItem('Duration', hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+        }
+
+        // Filter count (from flat_summary)
+        if (ninaData.flat_summary && ninaData.flat_summary.length > 0) {
+            const filters = [...new Set(ninaData.flat_summary.map(f => f.filter))];
+            addItem('Filters', filters.length);
+        }
+
+        // Plate solves (from timeline phases)
+        const plateSolves = ninaData.timeline_phases.filter(p => p.badge_class === 'platesolve').length;
+        if (plateSolves > 0) {
+            addItem('Plate Solves', plateSolves);
+        }
+
+        // Error count
+        const errorCount = ninaData.errors ? ninaData.errors.length : 0;
+        if (errorCount > 0) {
+            addItem('Errors', errorCount, 'red');
+        }
+
+        // Warning count
+        const warningCount = ninaData.warnings ? ninaData.warnings.length : 0;
+        if (warningCount > 0) {
+            addItem('Warnings', warningCount, 'amber');
+        }
+
+        // Hide if no items
+        if (container.children.length === 0) {
+            container.style.display = 'none';
+        }
+    }
+
+    /**
+     * Setup expand/collapse all handlers
+     */
+    function setupNinaExpandCollapse() {
+        const expandAll = document.querySelector('.log-nina-expand-all');
+        const collapseAll = document.querySelector('.log-nina-collapse-all');
+
+        if (expandAll) {
+            expandAll.addEventListener('click', () => {
+                document.querySelectorAll('.log-nina-phase').forEach(phase => {
+                    const body = phase.querySelector('.log-nina-phase-body');
+                    const chevron = phase.querySelector('.log-nina-phase-chevron');
+                    if (body) {
+                        body.style.display = 'block';
+                        phase.classList.add('expanded');
+                        if (chevron) chevron.style.transform = 'rotate(90deg)';
+                    }
+                });
+            });
+        }
+
+        if (collapseAll) {
+            collapseAll.addEventListener('click', () => {
+                document.querySelectorAll('.log-nina-phase').forEach(phase => {
+                    const body = phase.querySelector('.log-nina-phase-body');
+                    const chevron = phase.querySelector('.log-nina-phase-chevron');
+                    if (body) {
+                        body.style.display = 'none';
+                        phase.classList.remove('expanded');
+                        if (chevron) chevron.style.transform = '';
+                    }
+                });
+            });
+        }
+    }
+
+    /**
      * Handle sub-tab switching
      */
     document.addEventListener('click', function(e) {
@@ -2412,6 +3091,12 @@
                 resizeChart(charts.afOverlay);
                 resizeChart(charts.afDrift);
                 charts.afCurves.forEach(resizeChart);
+                break;
+            case 'nina':
+                // NINA tab has no charts, just re-render timeline if needed
+                if (logData && logData.nina && logData.nina.timeline_phases) {
+                    renderNinaTimeline(logData.nina);
+                }
                 break;
         }
     }
