@@ -1885,6 +1885,7 @@
                 metaText += ` | ${afRun._fitting_method}`;
             }
             meta.textContent = metaText;
+            meta.title = metaText; // Show full text on hover when truncated
             header.appendChild(meta);
 
             // Status pill

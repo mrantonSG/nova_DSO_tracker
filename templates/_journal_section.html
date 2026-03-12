@@ -816,10 +816,11 @@
     .log-af-divider { border-top: 1px solid var(--border-light); margin: 20px 0; }
     [data-theme="dark"] .log-af-divider { border-color: var(--border-dark); }
     .log-af-section-title { font-size: 0.85em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 25px 0 15px 0; font-weight: 600; }
-    .log-af-runs-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 300px)); gap: 20px; max-width: 970px; overflow: hidden; }
-    .log-af-vcurve-card { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; width: 300px; max-width: 300px; }
+    .log-af-runs-container { display: grid; grid-template-columns: repeat(2, 1fr); max-width: 100%; gap: 20px; padding: 4px; align-items: start; }
+    .log-af-vcurve-card { background-color: var(--bg-white); border: 1px solid var(--border-light); border-radius: 8px; padding: 15px; width: 300px; max-width: 300px; min-width: 300px; margin: 0; }
     .log-af-vcurve-card h5 { margin: 0 0 10px 0; font-size: 0.9em; color: var(--text-secondary); }
-    .log-af-vcurve-card canvas { width: 300px !important; max-height: 200px; }
+    .log-af-vcurve-card canvas { width: 100% !important; height: 180px !important; }
+    .log-af-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .log-data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
     .log-data-table th, .log-data-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border-light); }
     .log-data-table th { color: var(--text-muted); font-weight: 500; text-transform: uppercase; font-size: 0.8em; }
@@ -835,6 +836,365 @@
     [data-theme="dark"] .log-data-table th { border-color: var(--border-dark); }
     [data-theme="dark"] .log-data-table td { border-color: var(--border-dark); }
     [data-theme="dark"] .log-data-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+    /* ===================================================================
+       NINA EVENT LOG TAB STYLES
+       ================================================================ */
+
+    .log-nina-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        border-bottom: 1px solid var(--border-light, #e5e5e5);
+        font-size: 12px;
+    }
+    .log-nina-header-item {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .log-nina-header-label {
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-faint, #999);
+    }
+    .log-nina-header-value {
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .log-nina-header-value.teal { color: var(--primary-color); }
+    .log-nina-header-value.red { color: #c05050; }
+    .log-nina-header-value.amber { color: #c47c2a; }
+
+    .log-nina-equipment {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 10px 12px;
+        background: var(--bg-light, #fafafa);
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+    .log-nina-equipment-item {
+        display: flex;
+        gap: 4px;
+    }
+    .log-nina-equipment-label {
+        color: var(--text-muted);
+    }
+    .log-nina-equipment-value {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .log-nina-phase {
+        background: var(--bg-white, #fff);
+        border: 1px solid var(--border-light, #e5e5e5);
+        border-radius: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+    [data-theme="dark"] .log-nina-phase {
+        background: var(--bg-medium, #1a1f2e);
+        border-color: var(--border-dark, rgba(255,255,255,0.1));
+    }
+
+    .log-nina-phase-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        cursor: pointer;
+        background: var(--bg-light, #fafafa);
+        transition: background 0.15s ease;
+    }
+    .log-nina-phase-header:hover {
+        background: var(--bg-medium, #f0f0f0);
+    }
+    [data-theme="dark"] .log-nina-phase-header {
+        background: rgba(255,255,255,0.03);
+    }
+    [data-theme="dark"] .log-nina-phase-header:hover {
+        background: rgba(255,255,255,0.06);
+    }
+
+    .log-nina-phase-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .log-nina-phase-badge {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .log-nina-phase-badge.startup {
+        background: var(--primary-bg, rgba(122,175,192,0.1));
+        color: var(--primary-color);
+    }
+    .log-nina-phase-badge.imaging {
+        background: rgba(74,158,110,0.1);
+        color: #4a9e6e;
+    }
+    .log-nina-phase-badge.focus {
+        background: rgba(196,124,42,0.1);
+        color: #c47c2a;
+    }
+    .log-nina-phase-badge.platesolve {
+        background: rgba(131,180,197,0.15);
+        color: #5a8fa0;
+    }
+    .log-nina-phase-badge.guiding {
+        background: rgba(160,100,200,0.1);
+        color: #8a5ab0;
+    }
+    .log-nina-phase-badge.flats {
+        background: rgba(200,180,100,0.12);
+        color: #9a8a30;
+    }
+    .log-nina-phase-badge.sequence {
+        background: rgba(100,100,200,0.1);
+        color: #5050a0;
+    }
+
+    .log-nina-phase-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .log-nina-phase-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .log-nina-phase-count {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    .log-nina-phase-count.error {
+        background: rgba(192,80,80,0.1);
+        color: #c05050;
+    }
+    .log-nina-phase-count.warning {
+        background: rgba(196,124,42,0.1);
+        color: #c47c2a;
+    }
+    .log-nina-phase-timespan {
+        font-size: 11px;
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        color: var(--text-muted);
+    }
+    .log-nina-phase-chevron {
+        font-size: 10px;
+        color: var(--text-muted);
+        transition: transform 0.2s ease;
+    }
+    .log-nina-phase.expanded .log-nina-phase-chevron {
+        transform: rotate(90deg);
+    }
+
+    .log-nina-phase-body {
+        display: none;
+        padding: 8px 12px;
+        border-top: 1px solid var(--border-light, #e5e5e5);
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .log-nina-phase.expanded .log-nina-phase-body {
+        display: block;
+    }
+    [data-theme="dark"] .log-nina-phase-body {
+        border-top-color: var(--border-dark, rgba(255,255,255,0.1));
+    }
+
+    .log-nina-event {
+        display: flex;
+        gap: 8px;
+        padding: 4px 0;
+        font-size: 12px;
+    }
+    .log-nina-event-time {
+        min-width: 55px;
+        font-size: 11px;
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        color: var(--text-faint, #999);
+    }
+    .log-nina-event-icon {
+        width: 14px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    .log-nina-event-icon.info { color: var(--text-muted); }
+    .log-nina-event-icon.warning { color: #c47c2a; }
+    .log-nina-event-icon.error { color: #b04040; }
+    .log-nina-event-message {
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+    .log-nina-event.warning .log-nina-event-message,
+    .log-nina-event.error .log-nina-event-message {
+        font-weight: 500;
+    }
+    .log-nina-event.warning .log-nina-event-message { color: var(--warn-color, #c47c2a); }
+    .log-nina-event.error .log-nina-event-message { color: var(--error-color, #b04040); }
+
+    .log-nina-totals {
+        background: var(--bg-tertiary, var(--bg-light-gray, #f5f5f5));
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-top: 16px;
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .log-nina-totals span {
+        display: inline-flex;
+        gap: 4px;
+    }
+    .log-nina-totals .value {
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .log-nina-totals .value.teal { color: var(--primary-color); }
+    .log-nina-totals .value.red { color: #c05050; }
+    .log-nina-totals .value.amber { color: #c47c2a; }
+
+    /* NINA Timeline Phase Styles */
+    .log-nina-phase {
+        background: var(--bg-white, #fff);
+        border: 1px solid var(--border-light, #e5e5e5);
+        border-radius: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+    }
+    [data-theme="dark"] .log-nina-phase {
+        background: var(--bg-dark-secondary, #161b24);
+        border-color: var(--border-dark, rgba(255,255,255,0.07));
+    }
+    .log-nina-phase-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        cursor: pointer;
+        user-select: none;
+        background: var(--bg-tertiary, var(--bg-light-gray, #f5f5f5));
+    }
+    [data-theme="dark"] .log-nina-phase-header {
+        background: rgba(255,255,255,0.02);
+    }
+    .log-nina-phase-header:hover {
+        background: var(--bg-light, #f0f0f0);
+    }
+    [data-theme="dark"] .log-nina-phase-header:hover {
+        background: rgba(255,255,255,0.04);
+    }
+    .log-nina-phase-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .log-nina-phase-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
+        text-transform: capitalize;
+    }
+    .log-nina-phase-badge.startup { background: var(--primary-bg); color: var(--primary-color); }
+    .log-nina-phase-badge.imaging { background: rgba(74,158,110,0.1); color: #4a9e6e; }
+    .log-nina-phase-badge.focus { background: rgba(196,124,42,0.1); color: #c47c2a; }
+    .log-nina-phase-badge.platesolve { background: rgba(131,180,197,0.15); color: #5a8fa0; }
+    .log-nina-phase-badge.guiding { background: rgba(160,100,200,0.1); color: #8a5ab0; }
+    .log-nina-phase-badge.flats { background: rgba(200,180,100,0.12); color: #9a8a30; }
+    .log-nina-phase-badge.sequence { background: rgba(100,100,200,0.1); color: #5050a0; }
+    .log-nina-phase-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .log-nina-phase-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .log-nina-phase-counts {
+        display: flex;
+        gap: 8px;
+    }
+    .log-nina-phase-count {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    .log-nina-phase-count.errors {
+        background: rgba(176,64,64,0.1);
+        color: #b04040;
+    }
+    .log-nina-phase-count.warnings {
+        background: rgba(196,124,42,0.1);
+        color: #c47c2a;
+    }
+    .log-nina-phase-timespan {
+        font-size: 11px;
+        font-family: var(--font-mono, 'DM Mono', monospace);
+        color: var(--text-muted);
+    }
+    .log-nina-phase-chevron {
+        font-size: 12px;
+        color: var(--text-muted);
+        transition: transform 0.2s ease;
+    }
+    .log-nina-phase.expanded .log-nina-phase-chevron {
+        transform: rotate(90deg);
+    }
+    .log-nina-phase-body {
+        display: none;
+        padding: 8px 12px;
+        border-top: 1px solid var(--border-light, #e5e5e5);
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    [data-theme="dark"] .log-nina-phase-body {
+        border-top-color: var(--border-dark, rgba(255,255,255,0.07));
+    }
+    .log-nina-phase.expanded .log-nina-phase-body {
+        display: block;
+    }
+    .log-nina-event {
+        display: flex;
+        gap: 8px;
+        padding: 4px 0;
+        align-items: flex-start;
+    }
+    .log-nina-event.warning,
+    .log-nina-event.error {
+        background: rgba(0,0,0,0.02);
+        margin: 0 -12px;
+        padding: 4px 12px;
+    }
+    [data-theme="dark"] .log-nina-event.warning,
+    [data-theme="dark"] .log-nina-event.error {
+        background: rgba(255,255,255,0.02);
+    }
 
     /* ===================================================================
        JOURNAL OBJECT SWITCHER - SIDEBAR BUTTON
@@ -1165,7 +1525,7 @@
                     <button class="detail-tab-button active" data-tab="summary" data-action="show-detail-tab">{{ _('Summary') }}</button>
                     <button class="detail-tab-button" data-tab="acq" data-action="show-detail-tab">{{ _('Equipment & Acquisition') }}</button>
                     <button class="detail-tab-button" data-tab="outcome" data-action="show-detail-tab">{{ _('Calibration & Outcome') }}</button>
-                    {% if entry.asiair_log_content or entry.phd2_log_content %}
+                    {% if entry.asiair_log_content or entry.phd2_log_content or entry.nina_log_content %}
                     <button class="detail-tab-button" data-tab="logs" data-action="show-detail-tab">{{ _('Logs') }}</button>
                     {% endif %}
                     <button class="detail-tab-button" data-tab="report" data-action="show-detail-tab">{{ _('Session Report') }}</button>
@@ -1355,6 +1715,7 @@
                                 <button class="log-analysis-tab-btn" data-log-tab="guiding">{{ _('Guiding') }}</button>
                                 <button class="log-analysis-tab-btn" data-log-tab="dithering">{{ _('Dithering') }}</button>
                                 <button class="log-analysis-tab-btn" data-log-tab="autofocus">{{ _('AutoFocus') }}</button>
+                                <button class="log-analysis-tab-btn" data-log-tab="nina" id="nina-tab-btn" style="display:none;">{{ _('NINA') }}</button>
                             </div>
 
                             {# Overview Tab #}
@@ -1500,6 +1861,28 @@
                                 {# Individual Run Charts #}
                                 <div class="log-af-section-title">{{ _('Individual V-Curves') }}</div>
                                 <div class="log-af-runs-container" id="log-af-runs"></div>
+                            </div>
+
+                            {# NINA Event Log Tab #}
+                            <div id="log-nina-tab" class="log-analysis-content">
+                                {# Header row: Version, Timespan, Target, Error/Warning counts #}
+                                <div class="log-nina-header" id="log-nina-header"></div>
+
+                                {# Equipment row: Camera, Mount, Guider, Dome #}
+                                <div class="log-nina-equipment" id="log-nina-equipment"></div>
+
+                                {# Expand/Collapse all link #}
+                                <div class="log-nina-controls" style="margin-bottom: 12px;">
+                                    <span class="log-nina-expand-all" style="font-size: 12px; color: var(--primary-color); cursor: pointer;">{{ _('Expand all') }}</span>
+                                    <span style="color: var(--text-muted); margin: 0 6px;">|</span>
+                                    <span class="log-nina-collapse-all" style="font-size: 12px; color: var(--primary-color); cursor: pointer;">{{ _('Collapse all') }}</span>
+                                </div>
+
+                                {# Timeline phases #}
+                                <div class="log-nina-timeline" id="log-nina-timeline"></div>
+
+                                {# Totals bar #}
+                                <div class="log-nina-totals" id="log-nina-totals"></div>
                             </div>
                         </div>
                     </div>
@@ -1866,6 +2249,20 @@
                             {% else %}
                             <label for="phd2_log">{{ _('PHD2 Guide Log (.txt/.log)') }}</label>
                             <input type="file" id="phd2_log" name="phd2_log" accept=".txt,.log">
+                            {% endif %}
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 200px;">
+                            {% if selected_session_data and selected_session_data.nina_log_content %}
+                            <label style="font-weight: 600; color: var(--text-primary);">{{ _('NINA Log:') }}</label>
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                                <span style="color: var(--success-color); font-size: 12px;">✓ {{ _('Uploaded') }}</span>
+                                <label style="color: var(--danger-color); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-size: 12px;">
+                                    <input type="checkbox" name="delete_nina_log" value="1"> {{ _('Delete') }}
+                                </label>
+                            </div>
+                            {% else %}
+                            <label for="nina_log">{{ _('NINA Log (.log)') }}</label>
+                            <input type="file" id="nina_log" name="nina_log" accept=".log">
                             {% endif %}
                         </div>
                     </div>
