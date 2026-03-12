@@ -919,6 +919,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             'partial': bool                 # True if file parsed but some data is missing
         }
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     result = _empty_nina_result()
     parse_warnings = []
 
@@ -953,6 +956,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
     recent_filter_time = None
     last_focus_position = None
 
+    # Track which lines have been consumed for HFR look-ahead to avoid double-assignment
+    hfr_consumed_lines = set()
+
     # Regex patterns for NINA log parsing
     # Note: Python 3.13 has issues with \d{ patterns, using [0-9] instead
     NINA_PATTERNS = {
@@ -961,11 +967,12 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'os': re.compile(r'Operating system[:\s]+(.+)', re.IGNORECASE),
         'af_start': re.compile(r'BroadcastAutoFocusRunStarting', re.IGNORECASE),
         'af_success': re.compile(r'BroadcastSuccessfulAutoFocusRun', re.IGNORECASE),
-        'af_temp': re.compile(r'Focus temperature[:\s]+([-0-9.]+)', re.IGNORECASE),
+        'af_temp': re.compile(r'Temperature[:\s]+([\d.-]+)', re.IGNORECASE),
         'af_position': re.compile(r'(?:MoveFocuserInternal|position)[:\s]+([0-9]+)', re.IGNORECASE),
         'af_restore': re.compile(r'StartAutoFocus.*Restoring original focus position', re.IGNORECASE),
-        'af_r_squared': re.compile(r'R\?\s*\(Coefficient of determination\)[^0-9]+([0-9.]+)[^0-9]+([0-9.]+)', re.IGNORECASE),
-        'af_stars': re.compile(r'Average HFR[:\s]+([0-9.]+)\s*,?\s*HFR\s*σ[:\s]*([0-9.]+)', re.IGNORECASE),
+        'af_r_squared': re.compile(r'R\u00B2.*?below threshold\.\s+([0-9.-]+)\s*/\s*([0-9.]+)', re.IGNORECASE),
+        'af_stars': re.compile(r'Average HFR[:\s]+([0-9.]+),?\s*HFR\s*σ[:\s]*([0-9.]+),?\s*Detected Stars ([0-9]+)', re.IGNORECASE),
+        'af_stars_alt': re.compile(r'HFR[:\s]*[=:]+?\s*([0-9.]+)', re.IGNORECASE),  # Fallback pattern - handles "HFR: X" or "HFR = X" or "HFR X"
         'af_stars_no_detect': re.compile(r'No stars detected', re.IGNORECASE),
         'af_method': re.compile(r'Fitting method[:\s]+(\w+)', re.IGNORECASE),
         'filter_change': re.compile(r'FilterWheelVM\.cs.*ChangeFilter.*to\s+["\']?(\w+)["\']?', re.IGNORECASE),
@@ -975,7 +982,8 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'flat_frame': re.compile(r'Flat\s+frame.*completed.*Filter\s+["\']?(\w+)["\']?.*exposure[:\s]+([0-9.]+)\s*s', re.IGNORECASE),
     }
 
-    for line in lines:
+    # Use enumerated lines for look-ahead capability
+    for line_idx, line in enumerate(lines):
         line = line.strip()
         if not line:
             continue
@@ -1056,6 +1064,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         # AF Run Start
         if NINA_PATTERNS['af_start'].search(member_part):
             af_run_counter += 1
+            # Reset HFR consumed lines tracking for this new AF run
+            hfr_consumed_lines.clear()
+
             current_af_run = {
                 'run_index': af_run_counter,
                 'filter': recent_filter,
@@ -1090,29 +1101,81 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                            'ok', 0, 0, [f"{_('AutoFocus Run')} {af_run_counter}"])
             continue
 
-        # AF Steps (position measurements)
+        # AF Steps (position measurements) - with look-ahead for HFR
         if current_af_run and NINA_PATTERNS['af_position'].search(line):
             pos_match = NINA_PATTERNS['af_position'].search(line)
             if pos_match:
                 position = int(pos_match.group(1))
                 last_focus_position = position
 
-                # Look ahead for star detection in the same or next few lines
-                star_detected = False
+                # Try to extract HFR from current line first
                 hfr = None
                 hfr_sigma = None
                 star_count = 0
+                star_detected = False
 
-                # Check for star detection
+                # Check current line for star detection (primary pattern)
                 stars_match = NINA_PATTERNS['af_stars'].search(line)
                 if stars_match:
                     hfr = float(stars_match.group(1))
                     if stars_match.lastindex >= 2 and stars_match.group(2):
                         hfr_sigma = float(stars_match.group(2))
-                    star_count = int(stars_match.lastindex >= 3) if stars_match.lastindex >= 3 else 1
+                    if stars_match.lastindex >= 3 and stars_match.group(3):
+                        star_count = int(stars_match.group(3))
                     star_detected = True
+                    hfr_consumed_lines.add(line_idx)
+                    logger.debug(f"AF step: position={position}, hfr={hfr} (from current line, primary pattern)")
+                else:
+                    # Try fallback pattern on current line
+                    stars_alt_match = NINA_PATTERNS['af_stars_alt'].search(line)
+                    if stars_alt_match:
+                        hfr = float(stars_alt_match.group(1))
+                        hfr_sigma = None  # Alt pattern doesn't capture sigma
+                        star_count = 1
+                        star_detected = True
+                        hfr_consumed_lines.add(line_idx)
+                        logger.debug(f"AF step: position={position}, hfr={hfr} (from current line, fallback pattern)")
+                    else:
+                        logger.debug(f"AF step: position={position}, no HFR on current line '{line}'")
 
-                # Check for no stars
+                # If no HFR found on current line, look ahead in next 5 lines
+                if not star_detected:
+                    look_ahead_limit = min(line_idx + 6, len(lines))  # +6 for exclusive upper bound
+                    for look_idx in range(line_idx + 1, look_ahead_limit):
+                        # Skip lines already consumed by previous steps
+                        if look_idx in hfr_consumed_lines:
+                            continue
+
+                        look_line = lines[look_idx].strip()
+
+                        # Try primary pattern first
+                        look_match = NINA_PATTERNS['af_stars'].search(look_line)
+                        if look_match:
+                            hfr = float(look_match.group(1))
+                            if look_match.lastindex >= 2 and look_match.group(2):
+                                hfr_sigma = float(look_match.group(2))
+                            if look_match.lastindex >= 3 and look_match.group(3):
+                                star_count = int(look_match.group(3))
+                            star_detected = True
+                            hfr_consumed_lines.add(look_idx)  # Mark as consumed
+                            logger.debug(f"AF step: position={position}, hfr={hfr} (from look-ahead line {look_idx}, primary pattern)")
+                            break  # Only consume first match
+
+                        # Try fallback pattern
+                        look_alt_match = NINA_PATTERNS['af_stars_alt'].search(look_line)
+                        if look_alt_match:
+                            hfr = float(look_alt_match.group(1))
+                            hfr_sigma = None
+                            star_count = 1
+                            star_detected = True
+                            hfr_consumed_lines.add(look_idx)  # Mark as consumed
+                            logger.debug(f"AF step: position={position}, hfr={hfr} (from look-ahead line {look_idx}, fallback pattern)")
+                            break  # Only consume first match
+
+                if not star_detected:
+                    logger.debug(f"AF step: position={position}, hfr={hfr} (no HFR found in look-ahead)")
+
+                # Check for "no stars detected" on current line
                 if NINA_PATTERNS['af_stars_no_detect'].search(line):
                     star_count = 0
                     current_af_run['no_star_steps'] += 1
@@ -1150,6 +1213,11 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
                                'ok', 0, 0, [f"{_('AutoFocus Complete')}"])
 
+            # Diagnostic logging
+            total_steps = len(current_af_run['steps'])
+            valid_hfr_steps = len([s for s in current_af_run['steps'] if s['hfr'] is not None])
+            logger.debug(f"AF run #{current_af_run['run_index']}: {total_steps} steps parsed, {valid_hfr_steps} steps with valid HFR")
+
             result['autofocus_runs'].append(current_af_run)
             current_af_run = None
             continue
@@ -1174,6 +1242,11 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 if ts_match:
                     _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
                                    'failed', 1, 0, [f"{_('AutoFocus Failed')}"])
+
+                # Diagnostic logging
+                total_steps = len(current_af_run['steps'])
+                valid_hfr_steps = len([s for s in current_af_run['steps'] if s['hfr'] is not None])
+                logger.debug(f"AF run #{current_af_run['run_index']}: {total_steps} steps parsed, {valid_hfr_steps} steps with valid HFR")
 
             result['autofocus_runs'].append(current_af_run)
             current_af_run = None
@@ -1249,6 +1322,24 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
     # Close any pending phase
     if current_phase:
         result['timeline_phases'].append(current_phase)
+
+    # Finalize any incomplete AF runs
+    if current_af_run:
+        # Finalize AF run without success/failure message
+        # This can happen with partial logs or interrupted sessions
+        total_steps = len(current_af_run['steps'])
+        valid_hfr_steps = len([s for s in current_af_run['steps'] if s['hfr'] is not None])
+        if valid_hfr_steps > 0:
+            # Find best HFR point from steps
+            valid_steps = [s for s in current_af_run['steps'] if s['hfr'] is not None]
+            if valid_steps:
+                best_step = min(valid_steps, key=lambda s: s['hfr'])
+                current_af_run['best_hfr'] = best_step['hfr']
+                current_af_run['best_stars'] = best_step['star_count']
+                current_af_run['final_position'] = best_step['position']
+        logger.debug(f"Finalizing incomplete AF run #{current_af_run['run_index']}: {total_steps} total steps, {valid_hfr_steps} steps with valid HFR")
+        result['autofocus_runs'].append(current_af_run)
+        current_af_run = None
 
     # Store session time range
     if session_start:
