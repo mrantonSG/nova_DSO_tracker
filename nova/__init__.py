@@ -582,13 +582,16 @@ def _run_schema_patches(conn):
         conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN rig_stable_uid_snapshot VARCHAR(36);")
         print("[DB PATCH] Added missing column journal_sessions.rig_stable_uid_snapshot")
 
-    # --- Log content columns for ASIAIR and PHD2 log analysis ---
+    # --- Log content columns for ASIAIR, PHD2, and NINA log analysis ---
     if "asiair_log_content" not in colnames_journal:
         conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN asiair_log_content TEXT;")
         print("[DB PATCH] Added missing column journal_sessions.asiair_log_content")
     if "phd2_log_content" not in colnames_journal:
         conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN phd2_log_content TEXT;")
         print("[DB PATCH] Added missing column journal_sessions.phd2_log_content")
+    if "nina_log_content" not in colnames_journal:
+        conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN nina_log_content TEXT;")
+        print("[DB PATCH] Added missing column journal_sessions.nina_log_content")
     if "log_analysis_cache" not in colnames_journal:
         conn.exec_driver_sql("ALTER TABLE journal_sessions ADD COLUMN log_analysis_cache TEXT;")
         print("[DB PATCH] Added missing column journal_sessions.log_analysis_cache")

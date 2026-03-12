@@ -349,6 +349,7 @@ class JournalSession(Base):
     # --- Log content stored directly in database ---
     asiair_log_content = Column(Text, nullable=True)     # Raw ASIAIR autorun log
     phd2_log_content = Column(Text, nullable=True)       # Raw PHD2 guide log
+    nina_log_content = Column(Text, nullable=True)        # Raw NINA log
     log_analysis_cache = Column(Text, nullable=True)     # Cached JSON from parse-once
 
     user = relationship("DbUser", back_populates="sessions")
