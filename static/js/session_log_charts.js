@@ -366,6 +366,7 @@
     function renderOverviewTab() {
         const asiair = logData.asiair;
         const phd2 = logData.phd2;
+        const nina = logData.nina;
 
         // Update stat cards
         if (asiair) {
@@ -397,9 +398,30 @@
                 phd2.stats?.total_frames || '-';
         }
 
-        // Get session start time for clock display (prefer ASIAIR, fall back to PHD2)
+        // NINA stats (if no ASIAIR data)
+        if (!asiair && nina) {
+            // AF count from NINA autofocus_runs
+            const afCount = nina.autofocus_runs?.length || 0;
+            if (afCount > 0) {
+                document.getElementById('log-af-count').textContent = afCount;
+            }
+
+            // Session duration
+            if (nina.session_start && nina.session_end) {
+                const start = new Date(nina.session_start);
+                const end = new Date(nina.session_end);
+                const duration = Math.round((end - start) / 60000);
+                const hours = Math.floor(duration / 60);
+                const mins = duration % 60;
+                const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                document.getElementById('log-total-time').textContent = durationStr;
+            }
+        }
+
+        // Get session start time for clock display (prefer ASIAIR, fall back to PHD2, then NINA)
         const sessionStartStr = (asiair && asiair.session_start) ? asiair.session_start
                             : (phd2 && phd2.session_start) ? phd2.session_start
+                            : (nina && nina.session_start) ? nina.session_start
                             : null;
         const sessionStart = sessionStartStr ? new Date(sessionStartStr) : null;
 
@@ -412,6 +434,11 @@
 
         // Render swimlane timeline
         renderOverviewSwimlane(asiair, sessionStart, hoursToTime);
+
+        // Render NINA swimlane if no ASIAIR data
+        if (!asiair && nina && nina.timeline_phases && nina.timeline_phases.length > 0) {
+            renderNinaOverviewSwimlane(nina, sessionStart, hoursToTime);
+        }
 
         // === Plate Solve Table ===
         renderPlateSolveTable(asiair, sessionStart, hoursToTime);
@@ -653,6 +680,302 @@
                 text = `AutoFocus at ${timeStr}`;
             } else if (type === 'mf') {
                 text = `Meridian Flip at ${timeStr}`;
+            }
+
+            el.style.cursor = 'pointer';
+            el.addEventListener('mouseenter', (e) => showTooltip(e, text));
+            el.addEventListener('mousemove', (e) => showTooltip(e, text));
+            el.addEventListener('mouseleave', hideTooltip);
+        });
+    }
+
+    /**
+     * Render NINA Overview Swimlane Timeline (SVG)
+     */
+    function renderNinaOverviewSwimlane(nina, sessionStart, hoursToTime) {
+        const container = document.getElementById('log-overview-container');
+        const svg = document.getElementById('log-overview-chart');
+        const tooltip = document.getElementById('log-overview-tooltip');
+
+        if (!svg || !container) return;
+
+        const phases = nina.timeline_phases || [];
+        if (phases.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px;">No timeline data to display.</p>';
+            return;
+        }
+
+        // Phase colors matching the spec
+        const phaseColors = {
+            imaging: '#83b4c5',      // teal
+            focus: '#c09030',        // amber
+            guiding: '#2a9060',      // green
+            platesolve: '#7060c0',   // purple
+            flats: '#608060',        // sage
+            sequence: '#888888'      // grey
+        };
+
+        // Get unique badge classes for swimlane rows
+        const badgeClasses = [...new Set(phases.map(p => p.badge_class).filter(Boolean))].sort();
+
+        // Calculate session duration in hours from session start/end
+        let sessionDurationHours = 0;
+        let sessionStartTime = sessionStart;
+        let sessionEndTime = sessionStart;
+
+        if (nina.session_start && nina.session_end) {
+            const start = new Date(nina.session_start);
+            const end = new Date(nina.session_end);
+            sessionStartTime = start;
+            sessionEndTime = end;
+            sessionDurationHours = (end - start) / (1000 * 60 * 60);
+        } else if (phases.length > 0) {
+            // Fallback to phase times
+            const phaseStarts = phases.filter(p => p.start_time).map(p => new Date(p.start_time));
+            const phaseEnds = phases.filter(p => p.end_time).map(p => new Date(p.end_time));
+            if (phaseStarts.length > 0) {
+                sessionStartTime = new Date(Math.min(...phaseStarts));
+            }
+            if (phaseEnds.length > 0) {
+                sessionEndTime = new Date(Math.max(...phaseEnds));
+            }
+            if (sessionStartTime && sessionEndTime) {
+                sessionDurationHours = (sessionEndTime - sessionStartTime) / (1000 * 60 * 60);
+            }
+        }
+
+        // Ensure minimum duration
+        sessionDurationHours = Math.max(sessionDurationHours, 0.1);
+
+        // Swimlane configuration
+        const rowHeight = 36;
+        const labelWidth = 90;
+        const chartPadding = { left: 10, right: 20, top: 10, bottom: 45 }; // Extra bottom for legend
+        const statsHeight = 30; // Height for stats row above swimlane
+        const legendHeight = 20; // Height for legend below x-axis
+
+        // Prepare rows: one per badge_class
+        const rows = badgeClasses.map(badgeClass => {
+            const rowPhases = phases.filter(p => p.badge_class === badgeClass);
+            return {
+                id: badgeClass,
+                label: badgeClass.charAt(0).toUpperCase() + badgeClass.slice(1),
+                color: phaseColors[badgeClass] || '#888888',
+                phases: rowPhases
+            };
+        });
+
+        // Calculate dimensions
+        const totalHeight = statsHeight + rows.length * rowHeight + chartPadding.top + chartPadding.bottom;
+        const containerWidth = container.clientWidth - 30;
+        const chartWidth = containerWidth - labelWidth - chartPadding.left - chartPadding.right;
+
+        // Set SVG dimensions
+        svg.setAttribute('width', containerWidth);
+        svg.setAttribute('height', totalHeight);
+        svg.innerHTML = '';
+
+        const dark = isDarkTheme();
+        const themeColors = getThemeColors();
+        const textColor = themeColors.textMuted;
+        const labelColor = themeColors.text;
+        const dividerColor = themeColors.grid;
+
+        // Create SVG namespace helper
+        const ns = 'http://www.w3.org/2000/svg';
+        const createEl = (tag, attrs) => {
+            const el = document.createElementNS(ns, tag);
+            Object.entries(attrs || {}).forEach(([k, v]) => el.setAttribute(k, v));
+            return el;
+        };
+
+        // Helper to convert phase time to X position
+        const phaseTimeToX = (timeStr) => {
+            const time = new Date(timeStr);
+            const hoursFromStart = (time - sessionStartTime) / (1000 * 60 * 60);
+            return labelWidth + chartPadding.left + (hoursFromStart / sessionDurationHours) * chartWidth;
+        };
+
+        // Draw stats row at top
+        const statsY = chartPadding.top;
+        const afCount = nina.autofocus_runs?.length || 0;
+        const statsText = `Session: ${hoursToTime(0)} - ${hoursToTime(sessionDurationHours)} | AF Runs: ${afCount}`;
+        const statsLabel = createEl('text', {
+            x: labelWidth + chartPadding.left,
+            y: statsY + 18,
+            'text-anchor': 'start',
+            'font-size': '11',
+            'font-family': 'system-ui, -apple-system, sans-serif',
+            fill: textColor
+        });
+        statsLabel.textContent = statsText;
+        svg.appendChild(statsLabel);
+
+        // Draw each row
+        rows.forEach((row, rowIndex) => {
+            const y = statsY + statsHeight + rowIndex * rowHeight;
+
+            // Row label
+            const label = createEl('text', {
+                x: labelWidth - 10,
+                y: y + rowHeight / 2 + 4,
+                'text-anchor': 'end',
+                'font-size': '12',
+                'font-family': 'system-ui, -apple-system, sans-serif',
+                fill: labelColor
+            });
+            label.textContent = row.label;
+            svg.appendChild(label);
+
+            // Row divider (except after last row)
+            if (rowIndex < rows.length - 1) {
+                const divider = createEl('line', {
+                    x1: labelWidth,
+                    y1: y + rowHeight,
+                    x2: containerWidth - chartPadding.right,
+                    y2: y + rowHeight,
+                    stroke: dividerColor,
+                    'stroke-width': 1
+                });
+                svg.appendChild(divider);
+            }
+
+            // Draw phase bars
+            row.phases.forEach(phase => {
+                if (!phase.start_time || !phase.end_time) return;
+
+                const x1 = phaseTimeToX(phase.start_time);
+                const x2 = phaseTimeToX(phase.end_time);
+                const barWidth = Math.max(x2 - x1, 1); // Minimum 1px width
+
+                // Phase bar
+                const bar = createEl('rect', {
+                    x: x1,
+                    y: y + 8,
+                    width: barWidth,
+                    height: rowHeight - 16,
+                    fill: row.color,
+                    'fill-opacity': 0.85,
+                    rx: 2,
+                    ry: 2,
+                    'data-type': 'phase',
+                    'data-badge-class': phase.badge_class,
+                    'data-start': phase.start_time,
+                    'data-end': phase.end_time
+                });
+                svg.appendChild(bar);
+
+                // Red dot above bar for errors
+                if (phase.error_count > 0) {
+                    const errorDot = createEl('circle', {
+                        cx: x1 + barWidth / 2,
+                        cy: y + 2,
+                        r: 3,
+                        fill: '#c05050',
+                        'data-error-count': phase.error_count
+                    });
+                    svg.appendChild(errorDot);
+                }
+            });
+        });
+
+        // Draw X axis labels
+        const xAxisY = statsY + statsHeight + rows.length * rowHeight + 5;
+        const numTicks = Math.min(10, Math.ceil(sessionDurationHours * 2) + 1);
+        const tickInterval = sessionDurationHours / (numTicks - 1);
+
+        for (let i = 0; i < numTicks; i++) {
+            const h = i * tickInterval;
+            const x = labelWidth + chartPadding.left + (h / sessionDurationHours) * chartWidth;
+
+            // Tick mark
+            const tick = createEl('line', {
+                x1: x,
+                y1: xAxisY - 5,
+                x2: x,
+                y2: xAxisY,
+                stroke: textColor,
+                'stroke-width': 1
+            });
+            svg.appendChild(tick);
+
+            // Label
+            const label = createEl('text', {
+                x: x,
+                y: xAxisY + 12,
+                'text-anchor': 'middle',
+                'font-size': '11',
+                'font-family': 'system-ui, -apple-system, sans-serif',
+                fill: textColor
+            });
+            label.textContent = hoursToTime(h);
+            svg.appendChild(label);
+        }
+
+        // Draw legend below x-axis
+        const legendY = xAxisY + 25;
+        const legendItems = Object.entries(phaseColors);
+        const legendItemWidth = chartWidth / legendItems.length;
+
+        legendItems.forEach(([badgeClass, color], idx) => {
+            const x = labelWidth + chartPadding.left + idx * legendItemWidth + legendItemWidth / 2;
+
+            // Color box
+            const box = createEl('rect', {
+                x: x - 8,
+                y: legendY,
+                width: 6,
+                height: 6,
+                fill: color,
+                rx: 1,
+                ry: 1
+            });
+            svg.appendChild(box);
+
+            // Label
+            const label = createEl('text', {
+                x: x,
+                y: legendY + 8,
+                'text-anchor': 'middle',
+                'font-size': '9',
+                'font-family': 'system-ui, -apple-system, sans-serif',
+                fill: textColor
+            });
+            label.textContent = badgeClass;
+            svg.appendChild(label);
+        });
+
+        // Tooltip handling
+        const showTooltip = (e, text) => {
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left + 10;
+            const y = e.clientY - rect.top - 10;
+            tooltip.textContent = text;
+            tooltip.style.left = x + 'px';
+            tooltip.style.top = y + 'px';
+            tooltip.style.display = 'block';
+        };
+
+        const hideTooltip = () => {
+            tooltip.style.display = 'none';
+        };
+
+        // Add event listeners for tooltips on phase bars
+        svg.querySelectorAll('[data-type="phase"]').forEach(el => {
+            const badgeClass = el.getAttribute('data-badge-class');
+            const start = new Date(el.getAttribute('data-start'));
+            const end = new Date(el.getAttribute('data-end'));
+            const duration = Math.round((end - start) / 60000);
+            const startTimeStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+            const errorDot = el.nextElementSibling;
+            const errorCount = errorDot && errorDot.getAttribute('data-error-count')
+                ? parseInt(errorDot.getAttribute('data-error-count'))
+                : 0;
+
+            let text = `${badgeClass} at ${startTimeStr} (${duration}m)`;
+            if (errorCount > 0) {
+                text += ` • ${errorCount} error${errorCount > 1 ? 's' : ''}`;
             }
 
             el.style.cursor = 'pointer';
