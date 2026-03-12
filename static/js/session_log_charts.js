@@ -1962,6 +1962,7 @@
             if (datasets.length > 0) {
                 const canvas = document.createElement('canvas');
                 canvas.id = `af-curve-${index}`;
+                canvas.style.height = '240px';
                 card.appendChild(canvas);
 
                 const chart = new Chart(canvas, {
