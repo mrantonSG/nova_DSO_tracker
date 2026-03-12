@@ -433,10 +433,17 @@
         };
 
         // Render swimlane timeline
-        renderOverviewSwimlane(asiair, sessionStart, hoursToTime);
+        // Use ASIAIR data if it has exposures, otherwise use NINA data
+        const hasAsiairData = asiair?.exposures && asiair.exposures.length > 0;
+        const hasNinaData = nina?.timeline_phases && nina.timeline_phases.length > 0;
 
-        // Render NINA swimlane if no ASIAIR data
-        if (!asiair && nina && nina.timeline_phases && nina.timeline_phases.length > 0) {
+        console.log('[OVERVIEW_TAB] hasAsiairData:', hasAsiairData, 'hasNinaData:', hasNinaData);
+        console.log('[OVERVIEW_TAB] nina.timeline_phases.length:', nina?.timeline_phases?.length);
+        console.log('[OVERVIEW_TAB] nina.timeline_phases:', nina?.timeline_phases);
+
+        if (hasAsiairData) {
+            renderOverviewSwimlane(asiair, sessionStart, hoursToTime);
+        } else if (hasNinaData) {
             renderNinaOverviewSwimlane(nina, sessionStart, hoursToTime);
         }
 
@@ -698,6 +705,11 @@
         const tooltip = document.getElementById('log-overview-tooltip');
 
         if (!svg || !container) return;
+
+        // DEBUG: Log nina data structure
+        console.log('[NINA_SWIMLANE] nina keys:', Object.keys(nina));
+        console.log('[NINA_SWIMLANE] timeline_phases:', nina.timeline_phases);
+        console.log('[NINA_SWIMLANE] timeline_phases length:', nina.timeline_phases ? nina.timeline_phases.length : 'undefined');
 
         const phases = nina.timeline_phases || [];
         if (phases.length === 0) {
