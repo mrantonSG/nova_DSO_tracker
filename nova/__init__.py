@@ -3708,11 +3708,12 @@ def get_session_log_analysis(session_id):
     {
         'has_logs': bool,
         'asiair': {...} or null,
-        'phd2': {...} or null
+        'phd2': {...} or null,
+        'nina': {...} or null
     }
     """
     import json
-    from nova.log_parser import parse_asiair_log, parse_phd2_log
+    from nova.log_parser import parse_asiair_log, parse_phd2_log, parse_nina_log
 
     username = "default" if SINGLE_USER_MODE else current_user.username
     db = get_db()
@@ -3732,7 +3733,8 @@ def get_session_log_analysis(session_id):
             # Invalidate old cache that doesn't have session_start
             asiair = cached.get('asiair')
             phd2 = cached.get('phd2')
-            has_session_start = (asiair and asiair.get('session_start')) or (phd2 and phd2.get('session_start'))
+            nina = cached.get('nina')
+            has_session_start = (asiair and asiair.get('session_start')) or (phd2 and phd2.get('session_start')) or (nina and nina.get('session_start'))
             if has_session_start:
                 return jsonify(cached)
             # Old cache without session_start - fall through to re-parse
@@ -3743,7 +3745,8 @@ def get_session_log_analysis(session_id):
     result = {
         'has_logs': False,
         'asiair': None,
-        'phd2': None
+        'phd2': None,
+        'nina': None
     }
 
     # Parse logs - use read_log_content to handle both filesystem paths and legacy raw content
@@ -3755,6 +3758,11 @@ def get_session_log_analysis(session_id):
     phd2_content = read_log_content(session.phd2_log_content)
     if phd2_content:
         result['phd2'] = parse_phd2_log(phd2_content)
+        result['has_logs'] = True
+
+    nina_content = read_log_content(session.nina_log_content)
+    if nina_content:
+        result['nina'] = parse_nina_log(nina_content)
         result['has_logs'] = True
 
     # 3. Cache the result if parsing happened
