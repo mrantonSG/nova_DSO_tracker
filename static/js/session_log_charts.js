@@ -1834,76 +1834,42 @@
         container.innerHTML = '';
 
         afRuns.forEach((afRun, index) => {
-            const card = document.createElement('div');
-            card.className = 'log-af-vcurve-card';
-
             // Determine success/failure status for styling
             const isSuccess = afRun._status !== 'failed';
-            const accentColor = isSuccess ? '#4a9e6e' : '#c05050';
 
-            // Build header with run info
-            const timeStr = afRun.ts ? new Date(afRun.ts).toLocaleTimeString() : `Run ${afRun.run}`;
-            const triggerStr = afRun._trigger || '';
-            const exposureStr = afRun._filter ? `${afRun._filter}` : '';
+            const card = document.createElement('div');
+            card.className = 'log-af-vcurve-card';
+            if (!isSuccess) card.classList.add('af-failed');
 
-            // Header container with left accent border
+            // HEADER LINE: "Run 1 — Lum  ✓ Successful" or "Run N — Filter  ✗ Failed"
             const header = document.createElement('div');
-            header.className = 'log-af-card-header';
             header.style.cssText = `
-                background: var(--bg-tertiary, var(--bg-light-gray, #f5f5f5));
-                border-left: 3px solid ${accentColor};
-                padding: 10px 12px;
-                margin: -15px -15px 12px -15px;
-                border-radius: 8px 8px 0 0;
-            `;
-
-            // Run title
-            const title = document.createElement('div');
-            title.className = 'log-af-run-title';
-            title.style.cssText = `
                 font-size: 13px;
-                font-weight: 700;
+                font-weight: 600;
                 color: var(--text-primary);
-                margin-bottom: 4px;
+                margin-bottom: 6px;
             `;
-            title.textContent = `AF Run ${afRun.run}`;
-            header.appendChild(title);
+            const filterPart = afRun._filter ? ` — ${afRun._filter}` : '';
+            const statusText = isSuccess ? '✓ Successful' : '✗ Failed';
+            const statusColor = isSuccess ? 'var(--nova-trend-up, #2a9060)' : '#a04040';
+            header.innerHTML = `Run ${afRun.run}${filterPart} <span style="color: ${statusColor};">${statusText}</span>`;
+            card.appendChild(header);
 
-            // Meta line: time, trigger, filter
+            // META LINE: timestamp · trigger (if present)
             const meta = document.createElement('div');
-            meta.className = 'log-af-meta';
             meta.style.cssText = `
                 font-size: 11px;
                 color: var(--text-muted);
-                font-family: var(--font-mono, 'DM Mono', monospace);
+                margin-bottom: 12px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
             `;
-            let metaText = timeStr;
-            if (triggerStr) metaText += ` | ${triggerStr}`;
-            if (exposureStr) metaText += ` | ${exposureStr}`;
-            // NINA: Add fitting method to meta line for quick reference
-            if (afRun._nina_source && afRun._fitting_method) {
-                metaText += ` | ${afRun._fitting_method}`;
-            }
+            let metaText = afRun.ts ? new Date(afRun.ts).toLocaleTimeString() : '';
+            if (afRun._trigger) metaText += (metaText ? ' · ' : '') + afRun._trigger;
             meta.textContent = metaText;
             meta.title = metaText; // Show full text on hover when truncated
-            header.appendChild(meta);
-
-            // Status pill
-            const statusPill = document.createElement('span');
-            statusPill.className = 'log-af-status-pill';
-            statusPill.style.cssText = `
-                font-size: 10px;
-                font-weight: 700;
-                padding: 2px 7px;
-                border-radius: 4px;
-                margin-left: 10px;
-                background: ${isSuccess ? 'rgba(74,158,110,0.1)' : 'rgba(192,80,80,0.1)'};
-                color: ${accentColor};
-            `;
-            statusPill.textContent = isSuccess ? 'Successful' : 'Failed';
-            title.appendChild(statusPill);
-
-            card.appendChild(header);
+            card.appendChild(meta);
 
             // Try parabola fit for better focus position
             let focusPos = getSettledPosition(afRun);
@@ -1935,6 +1901,10 @@
                 }
 
                 const fit = fitParabola(points);
+                // Chart colors based on success/failure status
+                const chartColor = isSuccess ? '#83b4c5' : '#c05050';
+                const bestFocusColor = isSuccess ? '#2a9060' : '#a04040';
+
                 if (fit) {
                     const posRange = chartMax - chartMin;
                     const maxDrift = posRange * 0.2;
@@ -1947,7 +1917,7 @@
                     datasets.push({
                         label: 'Fitted Curve',
                         data: curvePoints,
-                        borderColor: COLORS.ra,
+                        borderColor: chartColor,
                         backgroundColor: 'transparent',
                         borderWidth: 2,
                         pointRadius: 0,
@@ -1957,7 +1927,7 @@
                     });
 
                     // Raw measurements as points with best focus highlighted
-                    const pointColors = points.map((p, i) => i === bestFocusIdx ? '#4a9e6e' : COLORS.ra);
+                    const pointColors = points.map((p, i) => i === bestFocusIdx ? bestFocusColor : chartColor);
                     const pointRadii = points.map((p, i) => i === bestFocusIdx ? 7 : 4);
                     const pointHoverRadii = points.map((p, i) => i === bestFocusIdx ? 8 : 6);
 
@@ -1978,8 +1948,8 @@
                     datasets.push({
                         label: 'Star Size (HFR)',
                         data: sorted,
-                        borderColor: COLORS.ra,
-                        backgroundColor: 'rgba(96, 165, 250, 0.1)',
+                        borderColor: chartColor,
+                        backgroundColor: isSuccess ? 'rgba(131, 180, 197, 0.1)' : 'rgba(192, 80, 80, 0.1)',
                         borderWidth: 2,
                         pointRadius: 4,
                         pointHoverRadius: 6,
@@ -1992,7 +1962,6 @@
             if (datasets.length > 0) {
                 const canvas = document.createElement('canvas');
                 canvas.id = `af-curve-${index}`;
-                canvas.style.cssText = 'max-height: 180px;';
                 card.appendChild(canvas);
 
                 const chart = new Chart(canvas, {
@@ -2044,76 +2013,105 @@
                 card.innerHTML += '<p style="color: var(--text-muted); font-size: 0.9em;">No V-curve points recorded.</p>';
             }
 
-            // Result row with key values
-            const resultRow = document.createElement('div');
-            resultRow.className = 'log-af-result-row';
-            resultRow.style.cssText = `
+            // STATS ROW
+            const statsRow = document.createElement('div');
+            statsRow.style.cssText = `
                 display: flex;
                 flex-wrap: wrap;
-                gap: 12px;
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid var(--border-light, #e5e5e5);
+                gap: 16px;
+                margin-top: 12px;
             `;
 
-            // Helper to create result item
-            const addResultItem = (label, value, valueColor = 'var(--text-primary)') => {
+            // Helper to create stat item
+            const addStatItem = (label, value, valueColor = 'var(--text-primary)') => {
                 const item = document.createElement('div');
                 item.style.cssText = 'display: flex; flex-direction: column; gap: 2px;';
                 const labelEl = document.createElement('span');
-                labelEl.style.cssText = 'font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint, #999);';
+                labelEl.style.cssText = 'font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-faint, #999);';
                 labelEl.textContent = label;
                 const valueEl = document.createElement('span');
-                valueEl.style.cssText = `font-size: 12px; font-weight: 600; font-family: var(--font-mono, 'DM Mono', monospace); color: ${valueColor};`;
+                valueEl.style.cssText = `font-size: 13px; font-weight: 600; font-family: var(--font-mono, 'DM Mono', monospace); color: ${valueColor};`;
                 valueEl.textContent = value;
                 item.appendChild(labelEl);
                 item.appendChild(valueEl);
-                resultRow.appendChild(item);
+                statsRow.appendChild(item);
             };
 
-            // Best position
-            if (focusPos !== null) {
-                addResultItem('Best Pos', focusPos, 'var(--primary-color)');
-            }
-            // Final position (may differ on failure)
-            if (afRun.focus_pos !== null && afRun.focus_pos !== undefined && afRun.focus_pos !== focusPos) {
-                addResultItem('Final Pos', afRun.focus_pos, 'var(--primary-color)');
-            }
-            // Best HFR
-            if (afRun._best_hfr !== null && afRun._best_hfr !== undefined) {
-                addResultItem('Best HFR', afRun._best_hfr.toFixed(2) + '"');
-            }
-            // R-squared (on failed runs) - show as R² with proper superscript
-            if (!isSuccess && afRun._r_squared !== null && afRun._r_squared !== undefined) {
-                addResultItem('R²', afRun._r_squared.toFixed(3), '#c05050');
-            }
-            // No-star steps (on failed runs)
-            if (!isSuccess && afRun._no_star_steps > 0) {
-                addResultItem('No Stars', afRun._no_star_steps, '#c05050');
-            }
-            // NINA: Fitting method
-            if (afRun._nina_source && afRun._fitting_method) {
-                addResultItem('Fitting', afRun._fitting_method);
-            }
-            // NINA: Restored position (on failed runs)
-            if (afRun._nina_source && !isSuccess && afRun._restored_position !== null && afRun._restored_position !== undefined) {
-                addResultItem('Restored', afRun._restored_position, '#c05050');
-            }
-            // NINA: Failure reason
-            if (afRun._nina_source && !isSuccess && afRun._failure_reason) {
-                addResultItem('Reason', afRun._failure_reason, '#c05050');
-            }
-            // NINA: Best stars count
-            if (afRun._nina_source && afRun._best_stars !== null && afRun._best_stars !== undefined) {
-                addResultItem('Best Stars', afRun._best_stars);
-            }
-            // Temperature
-            if (afRun.temp !== null && afRun.temp !== undefined) {
-                addResultItem('Temp', afRun.temp.toFixed(1) + '°C');
+            if (isSuccess) {
+                // Successful stats: BEST POSITION · BEST HFR · STARS AT FOCUS · FITTING · TEMP
+                // Best position
+                if (afRun.focus_pos !== null && afRun.focus_pos !== undefined) {
+                    addStatItem('Best Position', afRun.focus_pos, 'var(--primary-color, #83b4c5)');
+                }
+                // Best HFR
+                if (afRun._best_hfr !== null && afRun._best_hfr !== undefined) {
+                    addStatItem('Best HFR', afRun._best_hfr.toFixed(2) + '"');
+                }
+                // Stars at focus (no_star_steps - but for successful runs, this could be stars count at best position)
+                if (afRun._no_star_steps !== null && afRun._no_star_steps !== undefined) {
+                    // For successful runs, this may represent star count at focus if available
+                    addStatItem('Stars at Focus', afRun._no_star_steps);
+                }
+                // Fitting method
+                if (afRun._fitting_method) {
+                    addStatItem('Fitting', afRun._fitting_method);
+                }
+                // Temperature
+                if (afRun.temp !== null && afRun.temp !== undefined) {
+                    addStatItem('Temp', afRun.temp.toFixed(1) + '°C');
+                }
+            } else {
+                // Failed stats: RESTORED TO · R² · THRESHOLD · NO-STAR STEPS
+                // Restored to (focus_pos on failed runs)
+                if (afRun.focus_pos !== null && afRun.focus_pos !== undefined) {
+                    addStatItem('Restored To', afRun.focus_pos);
+                }
+                // R²
+                if (afRun._r_squared !== null && afRun._r_squared !== undefined) {
+                    const rSquaredColor = afRun._r_squared < 0 ? '#a04040' : 'var(--text-primary)';
+                    addStatItem('R²', afRun._r_squared.toFixed(3), rSquaredColor);
+                }
+                // R² threshold
+                if (afRun._r_squared_threshold !== null && afRun._r_squared_threshold !== undefined) {
+                    addStatItem('Threshold', afRun._r_squared_threshold);
+                }
+                // No-star steps
+                if (afRun._no_star_steps > 0) {
+                    addStatItem('No-Star Steps', afRun._no_star_steps);
+                }
             }
 
-            if (resultRow.children.length > 0) {
-                card.appendChild(resultRow);
+            if (statsRow.children.length > 0) {
+                card.appendChild(statsRow);
+            }
+
+            // FAILURE EXPLANATION BOX — failed cards only
+            if (!isSuccess) {
+                const explanation = document.createElement('div');
+                explanation.className = 'log-af-failure-explanation';
+
+                let explanationText = '';
+                if (afRun._r_squared !== null && afRun._r_squared !== undefined) {
+                    explanationText += `R² below threshold (${afRun._r_squared.toFixed(3)} / ${afRun._r_squared_threshold || 'N/A'})`;
+                    if (afRun._fitting_method) {
+                        explanationText += ` — ${afRun._fitting_method} fit failed.`;
+                    } else {
+                        explanationText += '.';
+                    }
+                    if (afRun._no_star_steps > 0) {
+                        explanationText += ` ${afRun._no_star_steps} step${afRun._no_star_steps > 1 ? 's' : ''} had no star detections.`;
+                    }
+                    if (afRun.focus_pos !== null && afRun.focus_pos !== undefined) {
+                        explanationText += ` Focuser restored to previous position ${afRun.focus_pos}.`;
+                    }
+                } else if (afRun._failure_reason) {
+                    explanationText = afRun._failure_reason;
+                } else {
+                    explanationText = 'Autofocus failed. See log for details.';
+                }
+
+                explanation.textContent = explanationText;
+                card.appendChild(explanation);
             }
 
             container.appendChild(card);
