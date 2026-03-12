@@ -1962,19 +1962,14 @@
             if (datasets.length > 0) {
                 const canvas = document.createElement('canvas');
                 canvas.id = `af-curve-${index}`;
-                canvas.style.width = '100%';
-                canvas.style.height = '240px';
                 card.appendChild(canvas);
-                // Force pixel dimensions AFTER appending to DOM
-                canvas.height = 240;
-                canvas.width = canvas.offsetWidth || canvas.parentElement.offsetWidth;
 
                 const chart = new Chart(canvas, {
                     type: 'scatter',
                     data: { datasets: datasets },
                     options: {
-                        responsive: false,
-                        maintainAspectRatio: false,
+                        responsive: true,
+                        maintainAspectRatio: true,
                         animation: false,
                         layout: {
                             padding: { top: 8, bottom: 4 }

@@ -819,7 +819,7 @@
     .log-af-runs-container { display: grid; grid-template-columns: repeat(2, 1fr); max-width: 100%; gap: 20px; padding: 4px; align-items: start; }
     .log-af-vcurve-card { background: var(--bg-white, #ffffff); border: 1px solid var(--border-color, #e5e2dc); border-left: 3px solid var(--primary-color); border-radius: var(--radius-lg); padding: 14px; box-shadow: var(--shadow-sm); }
     .log-af-vcurve-card.af-failed { border-left-color: #c05050; background: rgba(180,60,60,0.03); }
-    .log-af-vcurve-card canvas { width: 100% !important; height: 240px !important; }
+    .log-af-vcurve-card canvas { display: block; max-width: 100%; }
     .log-af-failure-explanation { background: rgba(180,60,60,0.06); border: 1px solid rgba(180,60,60,0.15); border-radius: var(--radius-sm); color: #a04040; font-size: 11px; padding: 8px 10px; margin-top: 8px; }
     .log-data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
     .log-data-table th, .log-data-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border-light); }
