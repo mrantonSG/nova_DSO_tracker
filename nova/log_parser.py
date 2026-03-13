@@ -993,10 +993,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'flat_start': re.compile(r'Flat\s+Device[\w\s]+started', re.IGNORECASE),
         'flat_frame': re.compile(r'Flat\s+frame.*completed.*Filter\s+["\']?(\w+)["\']?.*exposure[:\s]+([0-9.]+)\s*s', re.IGNORECASE),
         # Span phase patterns (have start and end times)
-        'guiding_start': re.compile(r'PHD2.*started guiding|GuiderMediator.*Start', re.IGNORECASE),
-        'platesolve_start': re.compile(r'PlateSolving.*Solving|ImageSolver.*Solve', re.IGNORECASE),
-        'sequence_start': re.compile(r'SequenceVM.*Starting sequence|Sequence.*started', re.IGNORECASE),
-        'imaging_start': re.compile(r'CameraVM\.cs\|Capture\|\d+\|Starting\s+Exposure', re.IGNORECASE),
+        'guiding_start': re.compile(r'Starting Category: Guider, Item: StartGuiding', re.IGNORECASE),
+        'platesolve_start': re.compile(r'PlateSolving.*Solving|ImageSolver.*Solve|Starting Category: Utility, Item: SolveImage', re.IGNORECASE),
+        'sequence_start': re.compile(r'Sequence2VM.*StartSequence|Advanced Sequence starting', re.IGNORECASE),
+        'imaging_start': re.compile(r'Starting Category: Camera, Item: TakeExposure|CameraVM\.cs\|Capture\|\d+\|Starting\s+Exposure', re.IGNORECASE),
     }
 
     # Use enumerated lines for look-ahead capability
