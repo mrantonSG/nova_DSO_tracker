@@ -6,6 +6,7 @@ from the reference session_dashboard.jsx implementation.
 """
 import re
 import math
+from collections import Counter
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple
 from flask_babel import gettext as _
@@ -967,6 +968,24 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
     # Track which lines have been consumed for HFR look-ahead to avoid double-assignment
     hfr_consumed_lines = set()
 
+    # NEW: Track equipment connection events
+    equipment_events = []
+
+    # NEW: Track imaging summary data
+    all_capture_params = []  # List of {filter, gain, offset, binning}
+
+    # NEW: Track guiding events
+    guiding_events = []
+    pending_mgen_error = None  # Track MGEN calibration error for grouping
+
+    # NEW: Track flat events
+    flat_events = []
+
+    # NEW: Track raw errors and warnings for collapsing
+    raw_error_lines = []  # List of (timestamp, message) tuples
+    raw_warning_lines = []  # List of (timestamp, message) tuples
+    pending_af_error = None  # Track AF error for grouping ContinueOnError
+
     # Regex patterns for NINA log parsing
     # Note: Python 3.13 has issues with \d{ patterns, using [0-9] instead
     NINA_PATTERNS = {
@@ -996,6 +1015,23 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'sequence_start': re.compile(r'Sequence2VM.*StartSequence|Advanced Sequence starting', re.IGNORECASE),
         'imaging_start': re.compile(r'Starting Category: Camera, Item: TakeExposure', re.IGNORECASE),
         'flat_end': re.compile(r'FlatDeviceVM\.cs\|ToggleLight.*Toggling light to False', re.IGNORECASE),
+        # NEW: Equipment connection patterns
+        'equipment_connect': re.compile(r'Finishing Category: Connect, Item: ConnectEquipment, Selected device: (.+?), Selected device id: (.+)'),
+        # NEW: Imaging summary patterns
+        'camera_capture': re.compile(r'Starting Exposure - Exposure Time: ([0-9]+(?:\.[0-9]+)?)s; Filter: (.*?); Gain: ([0-9]+); Offset ([0-9]+); Binning: ([0-9]+x[0-9]+)'),
+        # NEW: Guiding event patterns
+        'guiding_start_event': re.compile(r'Starting Category: Guider, Item: StartGuiding'),
+        'mgen_calibration_start': re.compile(r'MGEN - Starting Calibration'),
+        'mgen_calibration_error': re.compile(r'MGEN3 calibration was not succcessful'),
+        'guiding_start_failure': re.compile(r'Category: Guider, Item: StartGuiding -'),
+        'guiding_continue_on_error': re.compile(r'Instruction Start Guiding failed.*ContinueOnError', re.IGNORECASE),
+        # NEW: Flat event patterns
+        'flat_auto_exposure_start': re.compile(r'Starting Category: Flat Device, Container:.*AutoExposureFlat'),
+        'flat_toggle_light_on': re.compile(r'ToggleLight.*Light: On|Toggling light to True'),
+        'flat_set_brightness': re.compile(r'Setting brightness to ([0-9]+)'),
+        'flat_determine_exposure': re.compile(r'Determining Dynamic Exposure Time.*Min ([0-9]+), Max ([0-9]+), Brightness ([0-9]+)'),
+        'flat_exposure_dim_retry': re.compile(r'Exposure too dim at.*Retrying'),
+        'flat_toggle_light_off': re.compile(r'Toggling light to False'),
     }
 
     # Use enumerated lines for look-ahead capability
@@ -1398,14 +1434,154 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                            'message': 'Sequence started'}]
             })
 
-        # --- Log Level Extraction ---
+        # --- NEW: Equipment Connection Events ---
+        equipment_connect_match = NINA_PATTERNS['equipment_connect'].search(line)
+        if equipment_connect_match and ts_match:
+            device_type = equipment_connect_match.group(1).strip()
+            device_id = equipment_connect_match.group(2).strip()
+            equipment_events.append({
+                'time': ts.isoformat(),
+                'device_type': device_type,
+                'device_id': device_id
+            })
+
+        # --- NEW: Imaging Summary (Capture parameters) ---
+        camera_capture_match = NINA_PATTERNS['camera_capture'].search(line)
+        if camera_capture_match and ts_match:
+            exposure_time = camera_capture_match.group(1)
+            filter_name = camera_capture_match.group(2).strip()
+            gain = int(camera_capture_match.group(3))
+            offset = int(camera_capture_match.group(4))
+            binning = camera_capture_match.group(5)
+            all_capture_params.append({
+                'filter': filter_name,
+                'gain': gain,
+                'offset': offset,
+                'binning': binning
+            })
+
+        # --- NEW: Guiding Events ---
+        # Start Guiding
+        if NINA_PATTERNS['guiding_start_event'].search(line) and ts_match:
+            guiding_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': 'Starting Guiding'
+            })
+            pending_mgen_error = None  # Reset any pending MGEN error
+
+        # MGEN Calibration Start
+        if NINA_PATTERNS['mgen_calibration_start'].search(line) and ts_match:
+            guiding_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': 'MGEN Calibration started'
+            })
+            pending_mgen_error = None
+
+        # MGEN Calibration Error (track for grouping)
+        if NINA_PATTERNS['mgen_calibration_error'].search(line) and ts_match:
+            pending_mgen_error = ts.isoformat()
+
+        # Start Guiding Failure
+        if NINA_PATTERNS['guiding_start_failure'].search(line) and ts_match:
+            if pending_mgen_error:
+                # Collapse with previous MGEN error
+                guiding_events.append({
+                    'time': pending_mgen_error,
+                    'level': 'error',
+                    'message': 'MGEN calibration failed - guiding not started (ContinueOnError)'
+                })
+                pending_mgen_error = None
+            else:
+                guiding_events.append({
+                    'time': ts.isoformat(),
+                    'level': 'error',
+                    'message': 'Start Guiding failed'
+                })
+
+        # Guiding ContinueOnError
+        if NINA_PATTERNS['guiding_continue_on_error'].search(line) and ts_match:
+            if guiding_events and guiding_events[-1]['level'] == 'error':
+                # Group with last error (message already indicates failure)
+                pass  # Already handled above
+            else:
+                guiding_events.append({
+                    'time': ts.isoformat(),
+                    'level': 'warning',
+                    'message': 'Guiding failed with ContinueOnError'
+                })
+
+        # --- NEW: Flat Events ---
+        # AutoExposureFlat Start
+        if NINA_PATTERNS['flat_auto_exposure_start'].search(line) and ts_match:
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': 'Starting flat acquisition'
+            })
+
+        # Toggle Light On
+        if NINA_PATTERNS['flat_toggle_light_on'].search(line) and ts_match:
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': 'Flat panel light ON'
+            })
+
+        # Set Brightness
+        set_brightness_match = NINA_PATTERNS['flat_set_brightness'].search(line)
+        if set_brightness_match and ts_match:
+            brightness = set_brightness_match.group(1)
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': f'Flat panel brightness set to {brightness}'
+            })
+
+        # Determine Exposure Time
+        determine_exp_match = NINA_PATTERNS['flat_determine_exposure'].search(line)
+        if determine_exp_match and ts_match:
+            min_exp = determine_exp_match.group(1)
+            max_exp = determine_exp_match.group(2)
+            brightness = determine_exp_match.group(3)
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': f'Determining exposure time (Min: {min_exp}s, Max: {max_exp}s, Brightness: {brightness})'
+            })
+
+        # Exposure Too Dim (keep as warning)
+        if NINA_PATTERNS['flat_exposure_dim_retry'].search(line) and ts_match:
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'warning',
+                'message': 'Exposure too dim - retrying'
+            })
+
+        # Toggle Light Off
+        if NINA_PATTERNS['flat_toggle_light_off'].search(line) and ts_match:
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': 'Flat panel light OFF'
+            })
+
+        # --- NEW: Track raw errors and warnings for collapsing ---
+        # We'll process these after the main loop to group related events
+        if '|ERROR|' in line and ts_match:
+            error_msg = line.split('|ERROR|')[-1].strip()
+            raw_error_lines.append((ts.isoformat(), error_msg))
+        elif '|WARNING|' in line and ts_match:
+            warning_msg = line.split('|WARNING|')[-1].strip()
+            raw_warning_lines.append((ts.isoformat(), warning_msg))
+
+        # --- Log Level Extraction (for span phase tracking only) ---
         level = None
         if '|ERROR|' in line:
             level = 'ERROR'
-            result['errors'].append(line.split('|ERROR|')[-1].strip())
         elif '|WARNING|' in line:
             level = 'WARNING'
-            result['warnings'].append(line.split('|WARNING|')[-1].strip())
         elif '|INFO|' in line:
             level = 'INFO'
 
@@ -1470,6 +1646,43 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
 
     result['parse_warnings'] = parse_warnings
 
+    # --- NEW: Build imaging_summary from capture parameters ---
+    if all_capture_params:
+        # Get unique non-empty filters, sorted
+        filters_used = sorted(set(p['filter'] for p in all_capture_params if p['filter'] and p['filter'].strip()))
+
+        # Get most common gain, offset, binning
+        gain_values = [p['gain'] for p in all_capture_params if p['gain'] is not None]
+        offset_values = [p['offset'] for p in all_capture_params if p['offset'] is not None]
+        binning_values = [p['binning'] for p in all_capture_params if p['binning']]
+
+        gain_counter = Counter(gain_values)
+        offset_counter = Counter(offset_values)
+        binning_counter = Counter(binning_values)
+
+        result['imaging_summary'] = {
+            'filters_used': filters_used,
+            'gain': gain_counter.most_common(1)[0][0] if gain_counter else None,
+            'offset': offset_counter.most_common(1)[0][0] if offset_counter else None,
+            'binning': binning_counter.most_common(1)[0][0] if binning_counter else None,
+            'total_exposures': len(all_capture_params)
+        }
+
+    # --- NEW: Collapse error_events ---
+    result['error_events'] = _collapse_nina_errors(raw_error_lines)
+
+    # --- NEW: Collapse warning_events ---
+    result['warning_events'] = _collapse_nina_warnings(raw_warning_lines)
+
+    # --- NEW: Add equipment_events to result ---
+    result['equipment_events'] = equipment_events
+
+    # --- NEW: Add guiding_events to result ---
+    result['guiding_events'] = guiding_events
+
+    # --- NEW: Add flat_events to result ---
+    result['flat_events'] = flat_events
+
     return result
 
 
@@ -1492,6 +1705,150 @@ def _add_to_timeline(result: Dict[str, Any], phase_name: str, badge_class: str,
     })
 
 
+def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
+    """
+    Collapse raw NINA error lines into meaningful grouped events.
+
+    Rules:
+    - Focuser.StepSize errors (×N): collapse to single event
+    - Focuser.IsMoving errors (×N): collapse to single event
+    - MGEN calibration block: already collapsed in main loop
+    - AutoFocus R² errors: keep individual, format as "AutoFocus failed - R² {val} below threshold {thresh}"
+    - AutoFocus ContinueOnError: collapse into preceding AF error
+    """
+    if not raw_errors:
+        return []
+
+    collapsed = []
+    i = 0
+
+    # Patterns for grouping
+    stepsize_pattern = re.compile(r'Focuser.*GET StepSize failed', re.IGNORECASE)
+    ismoving_pattern = re.compile(r'Focuser.*GET IsMoving failed', re.IGNORECASE)
+    r_squared_pattern = re.compile(r'R\s?\u00B2.*below threshold.*([0-9.]+)\s*/\s*([0-9.]+)', re.IGNORECASE)
+    continue_on_error_pattern = re.compile(r'ContinueOnError', re.IGNORECASE)
+
+    while i < len(raw_errors):
+        ts, msg = raw_errors[i]
+
+        # Check for AutoFocus R² error
+        r2_match = r_squared_pattern.search(msg)
+        if r2_match:
+            val = r2_match.group(1)
+            thresh = r2_match.group(2)
+            collapsed.append({
+                'time': ts,
+                'level': 'error',
+                'message': f'AutoFocus failed - R² {val} below threshold {thresh}'
+            })
+            i += 1
+            # Skip any ContinueOnError lines immediately after
+            while i < len(raw_errors) and continue_on_error_pattern.search(raw_errors[i][1]):
+                i += 1
+            continue
+
+        # Check for ContinueOnError (skip if not after R² error)
+        if continue_on_error_pattern.search(msg):
+            i += 1
+            continue
+
+        i += 1
+
+    # Now group consecutive StepSize and IsMoving errors
+    final_errors = []
+    i = 0
+
+    while i < len(collapsed):
+        ts, msg = collapsed[i]['time'], collapsed[i]['message']
+
+        # Group StepSize errors
+        if stepsize_pattern.search(msg):
+            count = 1
+            j = i + 1
+            while j < len(collapsed) and stepsize_pattern.search(collapsed[j]['message']):
+                count += 1
+                j += 1
+            final_errors.append({
+                'time': ts,
+                'level': 'error',
+                'message': f'Focuser ASCOM driver error - GET StepSize failed',
+                'count': count
+            })
+            i = j
+            continue
+
+        # Group IsMoving errors
+        if ismoving_pattern.search(msg):
+            count = 1
+            j = i + 1
+            while j < len(collapsed) and ismoving_pattern.search(collapsed[j]['message']):
+                count += 1
+                j += 1
+            final_errors.append({
+                'time': ts,
+                'level': 'error',
+                'message': f'Focuser ASCOM driver error - GET IsMoving failed',
+                'count': count
+            })
+            i = j
+            continue
+
+        # Keep other errors as-is
+        final_errors.append(collapsed[i])
+        i += 1
+
+    return final_errors
+
+
+def _collapse_nina_warnings(raw_warnings: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
+    """
+    Collapse raw NINA warning lines into meaningful grouped events.
+
+    Rules:
+    - ASI_WB_B/WB_R/GAMMA/OVERCLOCK/PATTERN_ADJUST/MONO_BIN (6 lines): collapse
+    - No stars in step N: keep individual
+    - AutoFocus restore position: keep individual
+    """
+    if not raw_warnings:
+        return []
+
+    collapsed = []
+
+    # Pattern for ASI camera control values
+    asi_control_pattern = re.compile(r'ASI_WB_B|WB_R|WB_G|GAMMA|OVERCLOCK|PATTERN_ADJUST|MONO_BIN', re.IGNORECASE)
+
+    # Group consecutive ASI control warnings
+    i = 0
+    while i < len(raw_warnings):
+        ts, msg = raw_warnings[i]
+
+        # Check for ASI control value
+        if asi_control_pattern.search(msg):
+            # Count consecutive ASI control warnings
+            count = 1
+            j = i + 1
+            while j < len(raw_warnings) and asi_control_pattern.search(raw_warnings[j][1]):
+                count += 1
+                j += 1
+            collapsed.append({
+                'time': ts,
+                'level': 'warning',
+                'message': 'Camera control values not supported (non-critical)',
+                'count': count
+            })
+            i = j
+        else:
+            # Keep other warnings as-is
+            collapsed.append({
+                'time': ts,
+                'level': 'warning',
+                'message': msg
+            })
+            i += 1
+
+    return collapsed
+
+
 def _empty_nina_result() -> Dict[str, Any]:
     """Return empty NINA result structure."""
     return {
@@ -1512,10 +1869,16 @@ def _empty_nina_result() -> Dict[str, Any]:
             'power': None,
             'plugins': None
         },
+        'equipment_events': [],      # NEW: List of connected devices
+        'imaging_summary': None,   # NEW: Summary of imaging parameters
+        'guiding_events': [],       # NEW: Guiding setup/calibration events
+        'flat_events': [],          # NEW: Flat frame events
+        'error_events': [],         # NEW: Collapsed/grouped error events
+        'warning_events': [],       # NEW: Collapsed/grouped warning events
         'timeline_phases': [],
         'flat_summary': [],
-        'errors': [],
-        'warnings': [],
+        'errors': [],              # Legacy: kept for backward compatibility
+        'warnings': [],            # Legacy: kept for backward compatibility
         'parse_warnings': [],
         'partial': False
     }

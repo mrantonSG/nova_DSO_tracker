@@ -3054,14 +3054,16 @@
 
     /**
      * Render NINA Event Log Tab
-     * Shows timeline phases, equipment info, and event details
+    /**
+     * Render NINA Event Log Tab
+     * Redesigned phase-based layout with equipment, guiding, imaging, and flats groups.
      */
     function renderNinaTab() {
         const tabBtn = document.getElementById('nina-tab-btn');
         const ninaData = logData && logData.nina;
 
         // Hide tab if no NINA data
-        if (!ninaData || !ninaData.timeline_phases || ninaData.timeline_phases.length === 0) {
+        if (!ninaData || (!ninaData.timeline_phases && !ninaData.equipment_events && !ninaData.guiding_events)) {
             if (tabBtn) tabBtn.style.display = 'none';
             return;
         }
@@ -3069,37 +3071,37 @@
         // Show tab button
         if (tabBtn) tabBtn.style.display = '';
 
-        // Render header
-        renderNinaHeader(ninaData);
+        // Render stats bar
+        renderNinaStatsBar(ninaData);
 
-        // Render equipment row
-        renderNinaEquipment(ninaData);
+        // Render equipment line (max 3 items)
+        renderNinaEquipmentLine(ninaData);
 
-        // Render timeline phases
-        renderNinaTimeline(ninaData);
+        // Render collapsible phase groups
+        renderNinaPhaseGroups(ninaData);
 
         // Render totals bar
-        renderNinaTotals(ninaData);
+        renderNinaTotalsBar(ninaData);
 
         // Setup expand/collapse handlers
         setupNinaExpandCollapse();
     }
 
     /**
-     * Render NINA header row
+     * Render stats bar (version, session times, error/warning counts)
      */
-    function renderNinaHeader(ninaData) {
+    function renderNinaStatsBar(ninaData) {
         const container = document.getElementById('log-nina-header');
         if (!container) return;
         container.innerHTML = '';
 
-        // Helper to create header item
+        // Helper to create item
         const addItem = (label, value, valueClass = '') => {
             const item = document.createElement('div');
             item.className = 'log-nina-header-item';
             item.innerHTML = `
-                <span class="log-nina-header-label">${label}</span>
-                <span class="log-nina-header-value ${valueClass}">${value}</span>
+                <span class="log-nina-header-label">\${label}</span>
+                <span class="log-nina-header-value \${valueClass}">\${value}</span>
             `;
             container.appendChild(item);
         };
@@ -3116,98 +3118,87 @@
             const duration = Math.round((end - start) / 60000);
             const hours = Math.floor(duration / 60);
             const mins = duration % 60;
-            const timespan = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-            addItem('Duration', timespan);
+            const startStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            const endStr = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            // Add +1 for end time if it spans past midnight
+            const endMarker = end.getDate() > start.getDate() ? '+1' : '';
+            addItem('Session', `\${startStr} -> \${endStr}\${endMarker}`);
         }
 
-        // Target name (extracted from timeline if available)
-        // Note: target_name is not in the current data structure, could be added later
-
-        // Error count
-        const errorCount = ninaData.errors ? ninaData.errors.length : 0;
+        // Error count (use error_events if available, fall back to legacy errors)
+        const errorCount = ninaData.error_events ? ninaData.error_events.length : (ninaData.errors ? ninaData.errors.length : 0);
         if (errorCount > 0) {
             addItem('Errors', errorCount, 'red');
         }
 
-        // Warning count
-        const warningCount = ninaData.warnings ? ninaData.warnings.length : 0;
+        // Warning count (use warning_events if available, fall back to legacy warnings)
+        const warningCount = ninaData.warning_events ? ninaData.warning_events.length : (ninaData.warnings ? ninaData.warnings.length : 0);
         if (warningCount > 0) {
             addItem('Warnings', warningCount, 'amber');
         }
     }
 
     /**
-     * Render equipment row
+     * Render equipment line (camera, mount, guider - max 3)
      */
-    function renderNinaEquipment(ninaData) {
+    function renderNinaEquipmentLine(ninaData) {
         const container = document.getElementById('log-nina-equipment');
-        if (!container || !ninaData.equipment) return;
+        if (!container) return;
         container.innerHTML = '';
 
-        const eq = ninaData.equipment;
+        const eq = ninaData.equipment || {};
         const items = [];
 
+        // Priority order: camera, mount, guider
         if (eq.camera) items.push(['Camera', eq.camera]);
         if (eq.mount) items.push(['Mount', eq.mount]);
         if (eq.guider) items.push(['Guider', eq.guider]);
-        if (eq.dome) items.push(['Dome', eq.dome]);
-        if (eq.filter_wheel) items.push(['Filter', eq.filter_wheel]);
-        if (eq.focuser) items.push(['Focuser', eq.focuser]);
 
         if (items.length === 0) {
             container.style.display = 'none';
             return;
         }
+
+        // Only show first 3 items
+        const displayItems = items.slice(0, 3);
         container.style.display = 'flex';
 
-        items.forEach(([label, value]) => {
+        displayItems.forEach(([label, value]) => {
             const item = document.createElement('div');
-            item.className = 'log-nina-header-item';
+            item.className = 'log-nina-equipment-item';
             item.innerHTML = `
-                <span class="log-nina-header-label">${label}</span>
-                <span class="log-nina-header-value">${value}</span>
+                <span class="log-nina-equipment-label">\${label}:</span>
+                <span class="log-nina-equipment-value">\${value}</span>
             `;
             container.appendChild(item);
         });
     }
 
     /**
-     * Render timeline phases
+     * Render collapsible phase groups
      */
-    function renderNinaTimeline(ninaData) {
+    function renderNinaPhaseGroups(ninaData) {
         const container = document.getElementById('log-nina-timeline');
         if (!container) return;
         container.innerHTML = '';
 
-        // Phase badge colors (matching spec)
-        const badgeColors = {
-            startup: { bg: 'var(--primary-bg)', color: 'var(--primary-color)' },
-            imaging: { bg: 'rgba(74,158,110,0.1)', color: '#4a9e6e' },
-            focus: { bg: 'rgba(196,124,42,0.1)', color: '#c47c2a' },
-            platesolve: { bg: 'rgba(131,180,197,0.15)', color: '#5a8fa0' },
-            guiding: { bg: 'rgba(160,100,200,0.1)', color: '#8a5ab0' },
-            flats: { bg: 'rgba(200,180,100,0.12)', color: '#9a8a30' },
-            sequence: { bg: 'rgba(100,100,200,0.1)', color: '#5050a0' },
-            default: { bg: 'rgba(128,128,128,0.1)', color: '#888' }
-        };
+        // Helper to render a phase group
+        const renderPhaseGroup = (phaseId, badgeClass, title, events, timeRange, errorCount = 0) => {
+            if (!events || events.length === 0) return;
 
-        ninaData.timeline_phases.forEach((phase, idx) => {
             const phaseEl = document.createElement('div');
             phaseEl.className = 'log-nina-phase';
-            phaseEl.dataset.phaseIndex = idx;
-
-            // Get badge colors
-            const badgeClass = phase.badge_class || 'default';
-            const colors = badgeColors[badgeClass] || badgeColors.default;
+            phaseEl.dataset.phaseId = phaseId;
 
             // Calculate timespan
             let timespan = '';
-            if (phase.start_time && phase.end_time) {
-                const start = new Date(phase.start_time);
-                const end = new Date(phase.end_time);
+            if (timeRange.start && timeRange.end) {
+                const start = new Date(timeRange.start);
+                const end = new Date(timeRange.end);
                 const duration = Math.round((end - start) / 60000);
                 const mins = duration % 60;
-                timespan = mins + 'm';
+                const hours = Math.floor(duration / 60);
+                timespan = hours > 0 ? `\${hours}h \${mins}m` : `\${mins}m`;
             }
 
             // Build header
@@ -3216,142 +3207,223 @@
 
             // Left side: badge + title
             const leftSide = document.createElement('div');
-            leftSide.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+            leftSide.className = 'log-nina-phase-left';
 
-            // Badge
             const badge = document.createElement('span');
-            badge.className = 'log-nina-phase-badge';
-            badge.style.cssText = `
-                padding: 2px 8px;
-                border-radius: 4px;
-                font-size: 10px;
-                font-weight: 700;
-                text-transform: uppercase;
-                background: ${colors.bg};
-                color: ${colors.color};
-            `;
-            badge.textContent = phase.badge_class || phase.phase;
+            badge.className = \`log-nina-phase-badge \${badgeClass}\`;
+            badge.textContent = phaseId;
             leftSide.appendChild(badge);
 
-            // Title
-            const title = document.createElement('span');
-            title.className = 'log-nina-phase-title';
-            title.style.cssText = 'font-size: 13px; font-weight: 600; color: var(--text-primary);';
-            title.textContent = phase.phase;
-            leftSide.appendChild(title);
+            const titleEl = document.createElement('span');
+            titleEl.className = 'log-nina-phase-title';
+            titleEl.textContent = title;
+            leftSide.appendChild(titleEl);
 
             header.appendChild(leftSide);
 
             // Right side: counts, timespan, chevron
             const rightSide = document.createElement('div');
-            rightSide.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+            rightSide.className = 'log-nina-phase-right';
 
-            // Error/warning pills
-            if (phase.error_count > 0) {
+            if (errorCount > 0) {
                 const errPill = document.createElement('span');
-                errPill.style.cssText = 'font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: rgba(192,80,80,0.1); color: #c05050;';
-                errPill.textContent = phase.error_count + ' err';
+                errPill.className = 'log-nina-phase-count errors';
+                errPill.textContent = errorCount + ' err';
                 rightSide.appendChild(errPill);
             }
-            if (phase.warning_count > 0) {
-                const warnPill = document.createElement('span');
-                warnPill.style.cssText = 'font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: rgba(196,124,42,0.1); color: #c47c2a;';
-                warnPill.textContent = phase.warning_count + ' warn';
-                rightSide.appendChild(warnPill);
-            }
 
-            // Timespan
             if (timespan) {
                 const timeSpan = document.createElement('span');
-                timeSpan.style.cssText = 'font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);';
+                timeSpan.className = 'log-nina-phase-timespan';
                 timeSpan.textContent = timespan;
                 rightSide.appendChild(timeSpan);
             }
 
-            // Chevron
             const chevron = document.createElement('span');
             chevron.className = 'log-nina-phase-chevron';
-            chevron.style.cssText = 'font-size: 10px; color: var(--text-muted); transition: transform 0.2s;';
             chevron.textContent = '▶';
             rightSide.appendChild(chevron);
 
             header.appendChild(rightSide);
             phaseEl.appendChild(header);
 
-            // Phase body (events list)
+            // Phase body (events list) - collapsed by default
             const body = document.createElement('div');
             body.className = 'log-nina-phase-body';
-            body.style.cssText = 'display: none; padding: 10px 12px; border-top: 1px solid var(--border-light);';
 
-            if (phase.events && phase.events.length > 0) {
-                phase.events.forEach(event => {
-                    const eventEl = document.createElement('div');
-                    const levelClass = event.level.toLowerCase();
-                    eventEl.className = `log-nina-event ${levelClass}`;
+            events.forEach(event => {
+                const eventEl = document.createElement('div');
+                const level = event.level || 'info';
+                eventEl.className = \`log-nina-event \${level}\`;
 
-                    // Timestamp
-                    const timeEl = document.createElement('span');
-                    timeEl.className = 'log-nina-event-time';
-                    if (event.time) {
-                        const date = new Date(event.time);
-                        timeEl.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                    }
-                    eventEl.appendChild(timeEl);
+                // Timestamp
+                const timeEl = document.createElement('span');
+                timeEl.className = 'log-nina-event-time';
+                if (event.time) {
+                    const date = new Date(event.time);
+                    timeEl.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                }
+                eventEl.appendChild(timeEl);
 
-                    // Icon
-                    const iconEl = document.createElement('span');
-                    iconEl.className = `log-nina-event-icon ${levelClass}`;
-                    if (event.level === 'ERROR') {
-                        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1" fill="none"/><line x1="4" y1="4" x2="8" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="4" x2="4" y2="8" stroke="currentColor" stroke-width="1.5"/></svg>';
-                    } else if (event.level === 'WARNING') {
-                        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1L11 10H1L6 1Z" stroke="currentColor" stroke-width="1" fill="none"/><line x1="6" y1="5" x2="6" y2="7" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="8.5" r="0.5" fill="currentColor"/></svg>';
-                    } else {
-                        iconEl.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.5"/></svg>';
-                    }
-                    eventEl.appendChild(iconEl);
+                // Icon
+                const iconEl = document.createElement('span');
+                iconEl.className = \`log-nina-event-icon \${level}\`;
+                if (level === 'error') {
+                    iconEl.textContent = '✕';
+                } else if (level === 'warning') {
+                    iconEl.textContent = '⚠';
+                } else if (event.message && event.message.includes('connected')) {
+                    iconEl.textContent = '✓';
+                } else if (event.message && event.message.startsWith('Starting') || event.message.startsWith('▶')) {
+                    iconEl.textContent = '▶';
+                } else {
+                    iconEl.textContent = '○';
+                }
+                eventEl.appendChild(iconEl);
 
-                    // Message
-                    const msgEl = document.createElement('span');
-                    msgEl.className = 'log-nina-event-message';
-                    msgEl.textContent = event.message;
-                    eventEl.appendChild(msgEl);
+                // Message
+                const msgEl = document.createElement('span');
+                msgEl.className = 'log-nina-event-message';
+                msgEl.textContent = event.message + (event.count ? \` (\${event.count}×)\` : '');
+                eventEl.appendChild(msgEl);
 
-                    body.appendChild(eventEl);
-                });
-            } else {
-                body.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; padding: 8px 0;">No events recorded</div>';
-            }
+                body.appendChild(eventEl);
+            });
 
             phaseEl.appendChild(body);
 
             // Toggle body on header click
             header.addEventListener('click', () => {
-                const isExpanded = body.style.display === 'block';
+                const isExpanded = phaseEl.classList.contains('expanded');
+                phaseEl.classList.toggle('expanded');
                 body.style.display = isExpanded ? 'none' : 'block';
-                chevron.style.transform = isExpanded ? '' : 'rotate(90deg)';
-                if (isExpanded) {
-                    phaseEl.classList.remove('expanded');
-                } else {
-                    phaseEl.classList.add('expanded');
-                }
             });
 
             container.appendChild(phaseEl);
-        });
+        };
+
+        // GROUP 1: STARTUP (Equipment Connection)
+        if (ninaData.equipment_events && ninaData.equipment_events.length > 0) {
+            const startupEvents = ninaData.equipment_events.map(e => ({
+                time: e.time,
+                level: 'info',
+                message: \`✓ \${e.device_type} connected - \${e.device_id}\`
+            }));
+            const firstTime = ninaData.equipment_events[0]?.time;
+            const lastTime = ninaData.equipment_events[ninaData.equipment_events.length - 1]?.time;
+            renderPhaseGroup('startup', 'startup', 'Equipment Connection', startupEvents, { start: firstTime, end: lastTime });
+        }
+
+        // GROUP 2: SEQUENCE (if available in timeline_phases)
+        const sequencePhases = ninaData.timeline_phases?.filter(p => p.badge_class === 'sequence');
+        if (sequencePhases && sequencePhases.length > 0) {
+            renderPhaseGroup('sequence', 'sequence', 'Sequence Started',
+                [{ time: sequencePhases[0].start_time, level: 'info', message: '▶ Advanced sequence started' }],
+                { start: sequencePhases[0].start_time, end: sequencePhases[sequencePhases.length - 1].end_time }
+            );
+        }
+
+        // GROUP 3: GUIDING (guiding_events)
+        if (ninaData.guiding_events && ninaData.guiding_events.length > 0) {
+            const firstTime = ninaData.guiding_events[0]?.time;
+            const lastTime = ninaData.guiding_events[ninaData.guiding_events.length - 1]?.time;
+            const errorCount = ninaData.guiding_events.filter(e => e.level === 'error').length;
+            renderPhaseGroup('guiding', 'guiding', 'Guiding Setup',
+                ninaData.guiding_events,
+                { start: firstTime, end: lastTime },
+                errorCount
+            );
+        }
+
+        // GROUP 4: IMAGING (timeline_phases imaging events + imaging_summary)
+        const imagingPhases = ninaData.timeline_phases?.filter(p => p.badge_class === 'imaging');
+        if (imagingPhases && imagingPhases.length > 0) {
+            const imagingEvents = [];
+
+            // Add summary event first
+            if (ninaData.imaging_summary) {
+                const summary = ninaData.imaging_summary;
+                const filtersStr = summary.filters_used && summary.filters_used.length > 0
+                    ? summary.filters_used.join(' · ')
+                    : 'none';
+                imagingEvents.push({
+                    time: imagingPhases[0].start_time,
+                    level: 'info',
+                    message: \`▶ Sequence started - \${filtersStr} · \${summary.gain}G · \${summary.binning}\`
+                });
+            }
+
+            // Get imaging time range for filtering events
+            const firstImagingTime = imagingPhases[0]?.start_time;
+            const lastImagingTime = imagingPhases[imagingPhases.length - 1]?.end_time;
+
+            // Add error events that occurred during imaging (skip ASI control warnings)
+            if (ninaData.error_events) {
+                ninaData.error_events.forEach(e => {
+                    if (e.time && e.time >= firstImagingTime && e.time <= lastImagingTime) {
+                        imagingEvents.push({
+                            time: e.time,
+                            level: 'error',
+                            message: e.message,
+                            count: e.count
+                        });
+                    }
+                });
+            }
+
+            // Add warning events that occurred during imaging (skip ASI control warnings)
+            if (ninaData.warning_events) {
+                ninaData.warning_events.forEach(e => {
+                    if (e.time && e.time >= firstImagingTime && e.time <= lastImagingTime) {
+                        // Skip ASI control value warnings (already collapsed as non-critical)
+                        if (e.message.includes('Camera control values not supported')) {
+                            return;
+                        }
+                        imagingEvents.push({
+                            time: e.time,
+                            level: 'warning',
+                            message: e.message,
+                            count: e.count
+                        });
+                    }
+                });
+            }
+
+            const errorCount = imagingEvents.filter(e => e.level === 'error').length;
+            const imagingTitle = ninaData.imaging_summary?.filters_used?.length > 0
+                ? \`Light Acquisition - \${ninaData.imaging_summary.filters_used.join(' · ')}\`
+                : 'Light Acquisition';
+
+            renderPhaseGroup('imaging', 'imaging', imagingTitle,
+                imagingEvents,
+                { start: firstImagingTime, end: lastImagingTime },
+                errorCount
+            );
+        }
+
+        // GROUP 5: FLATS (flat_events)
+        if (ninaData.flat_events && ninaData.flat_events.length > 0) {
+            const firstTime = ninaData.flat_events[0]?.time;
+            const lastTime = ninaData.flat_events[ninaData.flat_events.length - 1]?.time;
+            renderPhaseGroup('flats', 'flats', 'Flat Frames',
+                ninaData.flat_events,
+                { start: firstTime, end: lastTime }
+            );
+        }
     }
 
     /**
      * Render totals bar
      */
-    function renderNinaTotals(ninaData) {
+    function renderNinaTotalsBar(ninaData) {
         const container = document.getElementById('log-nina-totals');
         if (!container) return;
         container.innerHTML = '';
 
-        // Helper to add totals item
-        const addItem = (label, value, valueClass = '') => {
+        // Helper to add item
+        const addItem = (label, value) => {
             const span = document.createElement('span');
-            span.innerHTML = `${label}: <span class="value ${valueClass}">${value}</span>`;
+            span.innerHTML = \`\\${label}: <span class="value">\${value}</span>\`;
             container.appendChild(span);
         };
 
@@ -3362,31 +3434,31 @@
             const duration = Math.round((end - start) / 60000);
             const hours = Math.floor(duration / 60);
             const mins = duration % 60;
-            addItem('Duration', hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+            addItem('Duration', hours > 0 ? `\${hours}h \${mins}m\` : `\${mins}m\`);
         }
 
-        // Filter count (from flat_summary)
-        if (ninaData.flat_summary && ninaData.flat_summary.length > 0) {
-            const filters = [...new Set(ninaData.flat_summary.map(f => f.filter))];
-            addItem('Filters', filters.length);
+        // Filters (from imaging_summary)
+        if (ninaData.imaging_summary?.filters_used?.length > 0) {
+            addItem('Filters', ninaData.imaging_summary.filters_used.join(' · '));
         }
 
-        // Plate solves (from timeline phases)
-        const plateSolves = ninaData.timeline_phases.filter(p => p.badge_class === 'platesolve').length;
-        if (plateSolves > 0) {
-            addItem('Plate Solves', plateSolves);
+        // AutoFocus runs
+        if (ninaData.autofocus_runs && ninaData.autofocus_runs.length > 0) {
+            const successCount = ninaData.autofocus_runs.filter(r => r.status === 'success').length;
+            const failCount = ninaData.autofocus_runs.length - successCount;
+            addItem('AutoFocus', `\${ninaData.autofocus_runs.length} (\${successCount} ✓ · \${failCount} ✕)\`);
         }
 
         // Error count
-        const errorCount = ninaData.errors ? ninaData.errors.length : 0;
+        const errorCount = ninaData.error_events ? ninaData.error_events.length : (ninaData.errors ? ninaData.errors.length : 0);
         if (errorCount > 0) {
-            addItem('Errors', errorCount, 'red');
+            addItem('Errors', errorCount);
         }
 
         // Warning count
-        const warningCount = ninaData.warnings ? ninaData.warnings.length : 0;
+        const warningCount = ninaData.warning_events ? ninaData.warning_events.length : (ninaData.warnings ? ninaData.warnings.length : 0);
         if (warningCount > 0) {
-            addItem('Warnings', warningCount, 'amber');
+            addItem('Warnings', warningCount);
         }
 
         // Hide if no items
@@ -3405,14 +3477,24 @@
         if (expandAll) {
             expandAll.addEventListener('click', () => {
                 document.querySelectorAll('.log-nina-phase').forEach(phase => {
+                    phase.classList.add('expanded');
                     const body = phase.querySelector('.log-nina-phase-body');
-                    const chevron = phase.querySelector('.log-nina-phase-chevron');
-                    if (body) {
-                        body.style.display = 'block';
-                        phase.classList.add('expanded');
-                        if (chevron) chevron.style.transform = 'rotate(90deg)';
-                    }
+                    if (body) body.style.display = 'block';
                 });
+            });
+        }
+
+        if (collapseAll) {
+            collapseAll.addEventListener('click', () => {
+                document.querySelectorAll('.log-nina-phase').forEach(phase => {
+                    phase.classList.remove('expanded');
+                    const body = phase.querySelector('.log-nina-phase-body');
+                    if (body) body.style.display = 'none';
+                });
+            });
+        }
+    }
+
             });
         }
 
