@@ -950,6 +950,15 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
     af_run_counter = 0
     current_phase = None
     phase_event_count = 0
+    current_span_phase = None  # Track span phases (imaging, guiding, platesolve, sequence)
+
+    # Helper function to close span phases (imaging, guiding, platesolve)
+    def close_span_phase(ts):
+        nonlocal current_span_phase
+        if current_span_phase is not None:
+            current_span_phase['end_time'] = ts.isoformat()
+            result['timeline_phases'].append(current_span_phase)
+            current_span_phase = None
 
     # Track recent events for cross-referencing
     recent_filter = None
@@ -983,6 +992,11 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'equipment': re.compile(r'Equipment\s+(Camera|Mount|FilterWheel|Focuser|Rotator|Guider|Dome|Weather|PowerSwitch|Plugin)[:\s]+(.+)', re.IGNORECASE),
         'flat_start': re.compile(r'Flat\s+Device[\w\s]+started', re.IGNORECASE),
         'flat_frame': re.compile(r'Flat\s+frame.*completed.*Filter\s+["\']?(\w+)["\']?.*exposure[:\s]+([0-9.]+)\s*s', re.IGNORECASE),
+        # Span phase patterns (have start and end times)
+        'guiding_start': re.compile(r'PHD2.*started guiding|GuiderMediator.*Start', re.IGNORECASE),
+        'platesolve_start': re.compile(r'PlateSolving.*Solving|ImageSolver.*Solve', re.IGNORECASE),
+        'sequence_start': re.compile(r'SequenceVM.*Starting sequence|Sequence.*started', re.IGNORECASE),
+        'imaging_start': re.compile(r'CameraVM\.cs\|Capture\|\d+\|Starting\s+Exposure', re.IGNORECASE),
     }
 
     # Use enumerated lines for look-ahead capability
@@ -1027,6 +1041,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             # Update current phase time range
             if current_phase:
                 current_phase['end_time'] = ts.isoformat()
+
+            # Update current span phase time range
+            if current_span_phase:
+                current_span_phase['end_time'] = ts.isoformat()
 
         # Extract version info (from message part)
         version_match = NINA_PATTERNS['version'].search(message_part)
@@ -1113,6 +1131,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             # BUG 2 FIX: Use pending trigger instead of searching message_part
             current_af_run['trigger'] = pending_af_trigger
             pending_af_trigger = None  # Reset after assignment
+
+            # Close any open span phase before starting focus
+            if ts_match:
+                close_span_phase(ts)
 
             # Add to timeline
             _add_to_timeline(result, 'Focus', 'focus', ts.isoformat() if ts_match else None,
@@ -1229,6 +1251,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             # BUG 1 FIX: Assign filter at run end (recent_filter may have been updated during AF run)
             current_af_run['filter'] = recent_filter
 
+            # Close any open span phase before recording focus success
+            if ts_match:
+                close_span_phase(ts)
+
             # Record success event
             if ts_match:
                 _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
@@ -1267,6 +1293,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 # BUG 1 FIX: Assign filter at run end (recent_filter may have been updated during AF run)
                 current_af_run['filter'] = recent_filter
 
+                # Close any open span phase before recording focus failure
+                if ts_match:
+                    close_span_phase(ts)
+
                 # Add to timeline with failure
                 if ts_match:
                     _add_to_timeline(result, 'Focus', 'focus', ts.isoformat(),
@@ -1284,6 +1314,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         # --- Flat Frame Parsing ---
         flat_match = NINA_PATTERNS['flat_start'].search(line)
         if flat_match and ts_match:
+            # Close any open span phase before starting flats
+            close_span_phase(ts)
+
             current_phase = {
                 'phase': _('Flats'),
                 'badge_class': 'flats',
@@ -1322,6 +1355,72 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             current_phase['end_time'] = ts.isoformat()
             continue
 
+        # --- Span Phase Handling (imaging, guiding, platesolve, sequence) ---
+
+        # Imaging span phase
+        imaging_match = NINA_PATTERNS['imaging_start'].search(line)
+        if imaging_match and ts_match:
+            close_span_phase(ts)
+            current_span_phase = {
+                'phase': 'Imaging',
+                'badge_class': 'imaging',
+                'start_time': ts.isoformat(),
+                'end_time': None,
+                'status': None,
+                'error_count': 0,
+                'warning_count': 0,
+                'events': [{'time': ts.isoformat(), 'level': 'INFO',
+                           'message': 'Imaging started'}]
+            }
+
+        # Guiding span phase
+        guiding_match = NINA_PATTERNS['guiding_start'].search(line)
+        if guiding_match and ts_match:
+            close_span_phase(ts)
+            current_span_phase = {
+                'phase': 'Guiding',
+                'badge_class': 'guiding',
+                'start_time': ts.isoformat(),
+                'end_time': None,
+                'status': None,
+                'error_count': 0,
+                'warning_count': 0,
+                'events': [{'time': ts.isoformat(), 'level': 'INFO',
+                           'message': 'Guiding started'}]
+            }
+
+        # Platesolve span phase
+        platesolve_match = NINA_PATTERNS['platesolve_start'].search(line)
+        if platesolve_match and ts_match:
+            close_span_phase(ts)
+            current_span_phase = {
+                'phase': 'PlateSolve',
+                'badge_class': 'platesolve',
+                'start_time': ts.isoformat(),
+                'end_time': None,
+                'status': None,
+                'error_count': 0,
+                'warning_count': 0,
+                'events': [{'time': ts.isoformat(), 'level': 'INFO',
+                           'message': 'Plate solving started'}]
+            }
+
+        # Sequence span phase (wraps other phases, don't close current span)
+        sequence_match = NINA_PATTERNS['sequence_start'].search(line)
+        if sequence_match and ts_match:
+            # Sequence wraps other phases, track separately
+            result['timeline_phases'].append({
+                'phase': 'Sequence',
+                'badge_class': 'sequence',
+                'start_time': ts.isoformat(),
+                'end_time': None,
+                'status': None,
+                'error_count': 0,
+                'warning_count': 0,
+                'events': [{'time': ts.isoformat(), 'level': 'INFO',
+                           'message': 'Sequence started'}]
+            })
+
         # --- Log Level Extraction ---
         level = None
         if '|ERROR|' in line:
@@ -1348,9 +1447,29 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                     'message': message
                 })
 
+            # Also add to current span phase events
+            if current_span_phase:
+                if level == 'ERROR':
+                    current_span_phase['error_count'] += 1
+                elif level == 'WARNING':
+                    current_span_phase['warning_count'] += 1
+
+                message = line.split(f'|{level}|')[-1].strip()
+                current_span_phase['events'].append({
+                    'time': ts.isoformat(),
+                    'level': level,
+                    'message': message
+                })
+
     # Close any pending phase
     if current_phase:
         result['timeline_phases'].append(current_phase)
+
+    # Close any remaining span phase
+    if current_span_phase and session_end:
+        current_span_phase['end_time'] = session_end.isoformat()
+        result['timeline_phases'].append(current_span_phase)
+        current_span_phase = None
 
     # Finalize any incomplete AF runs
     if current_af_run:
