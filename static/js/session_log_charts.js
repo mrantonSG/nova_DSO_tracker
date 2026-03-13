@@ -3106,8 +3106,8 @@
             const item = document.createElement('div');
             item.className = 'log-nina-header-item';
             item.innerHTML = `
-                <span class="log-nina-header-label">\${label}</span>
-                <span class="log-nina-header-value \${valueClass}">\${value}</span>
+                <span class="log-nina-header-label">${label}</span>
+                <span class="log-nina-header-value ${valueClass}">${value}</span>
             `;
             container.appendChild(item);
         };
@@ -3128,7 +3128,7 @@
             const endStr = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
             // Add +1 for end time if it spans past midnight
             const endMarker = end.getDate() > start.getDate() ? '+1' : '';
-            addItem('Session', `\${startStr} -> \${endStr}\${endMarker}`);
+            addItem('Session', `${startStr} -> ${endStr}${endMarker}`);
         }
 
         // Error count (use error_events if available, fall back to legacy errors)
@@ -3173,8 +3173,8 @@
             const item = document.createElement('div');
             item.className = 'log-nina-equipment-item';
             item.innerHTML = `
-                <span class="log-nina-equipment-label">\${label}:</span>
-                <span class="log-nina-equipment-value">\${value}</span>
+                <span class="log-nina-equipment-label">${label}:</span>
+                <span class="log-nina-equipment-value">${value}</span>
             `;
             container.appendChild(item);
         });
@@ -3204,7 +3204,7 @@
                 const duration = Math.round((end - start) / 60000);
                 const mins = duration % 60;
                 const hours = Math.floor(duration / 60);
-                timespan = hours > 0 ? `\${hours}h \${mins}m` : `\${mins}m`;
+                timespan = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
             }
 
             // Build header
@@ -3260,7 +3260,7 @@
             events.forEach(event => {
                 const eventEl = document.createElement('div');
                 const level = event.level || 'info';
-                eventEl.className = `log-nina-event \${level}`;
+                eventEl.className = `log-nina-event ${level}`;
 
                 // Timestamp
                 const timeEl = document.createElement('span');
@@ -3273,7 +3273,7 @@
 
                 // Icon
                 const iconEl = document.createElement('span');
-                iconEl.className = `log-nina-event-icon \${level}`;
+                iconEl.className = `log-nina-event-icon ${level}`;
                 if (level === 'error') {
                     iconEl.textContent = '✕';
                 } else if (level === 'warning') {
@@ -3290,7 +3290,7 @@
                 // Message
                 const msgEl = document.createElement('span');
                 msgEl.className = 'log-nina-event-message';
-                msgEl.textContent = event.message + (event.count ? ` (\${event.count}×)` : '');
+                msgEl.textContent = event.message + (event.count ? ` (${event.count}×)` : '');
                 eventEl.appendChild(msgEl);
 
                 body.appendChild(eventEl);
@@ -3313,7 +3313,7 @@
             const startupEvents = ninaData.equipment_events.map(e => ({
                 time: e.time,
                 level: 'info',
-                message: `✓ \${e.device_type} connected - \${e.device_id}`
+                message: `✓ ${e.device_type} connected - ${e.device_id}`
             }));
             const firstTime = ninaData.equipment_events[0]?.time;
             const lastTime = ninaData.equipment_events[ninaData.equipment_events.length - 1]?.time;
@@ -3355,7 +3355,7 @@
                 imagingEvents.push({
                     time: imagingPhases[0].start_time,
                     level: 'info',
-                    message: `▶ Sequence started - \${filtersStr} · \${summary.gain}G · \${summary.binning}`
+                    message: `▶ Sequence started - ${filtersStr} · ${summary.gain}G · ${summary.binning}`
                 });
             }
 
@@ -3397,7 +3397,7 @@
 
             const errorCount = imagingEvents.filter(e => e.level === 'error').length;
             const imagingTitle = ninaData.imaging_summary?.filters_used?.length > 0
-                ? `Light Acquisition - \${ninaData.imaging_summary.filters_used.join(' · ')}`
+                ? `Light Acquisition - ${ninaData.imaging_summary.filters_used.join(' · ')}`
                 : 'Light Acquisition';
 
             renderPhaseGroup('imaging', 'imaging', imagingTitle,
@@ -3409,10 +3409,20 @@
 
         // GROUP 5: FLATS (flat_events)
         if (ninaData.flat_events && ninaData.flat_events.length > 0) {
+            // Deduplicate flat events - group by message and keep only unique messages
+            const seenMessages = new Set();
+            const uniqueFlatEvents = ninaData.flat_events.filter(e => {
+                if (seenMessages.has(e.message)) {
+                    return false;
+                }
+                seenMessages.add(e.message);
+                return true;
+            });
+
             const firstTime = ninaData.flat_events[0]?.time;
             const lastTime = ninaData.flat_events[ninaData.flat_events.length - 1]?.time;
             renderPhaseGroup('flats', 'flats', 'Flat Frames',
-                ninaData.flat_events,
+                uniqueFlatEvents,
                 { start: firstTime, end: lastTime }
             );
         }
@@ -3429,7 +3439,7 @@
         // Helper to add item
         const addItem = (label, value) => {
             const span = document.createElement('span');
-            span.innerHTML = `\\${label}: <span class="value">\${value}</span>`;
+            span.innerHTML = `${label}: <span class="value">${value}</span>`;
             container.appendChild(span);
         };
 
@@ -3440,7 +3450,7 @@
             const duration = Math.round((end - start) / 60000);
             const hours = Math.floor(duration / 60);
             const mins = duration % 60;
-            addItem('Duration', hours > 0 ? `\${hours}h \${mins}m` : `\${mins}m`);
+            addItem('Duration', hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
         }
 
         // Filters (from imaging_summary)
@@ -3452,7 +3462,7 @@
         if (ninaData.autofocus_runs && ninaData.autofocus_runs.length > 0) {
             const successCount = ninaData.autofocus_runs.filter(r => r.status === 'success').length;
             const failCount = ninaData.autofocus_runs.length - successCount;
-            addItem('AutoFocus', `\${ninaData.autofocus_runs.length} (\${successCount} ✓ · \${failCount} ✕)`);
+            addItem('AutoFocus', `${ninaData.autofocus_runs.length} (${successCount} ✓ · ${failCount} ✕)`);
         }
 
         // Error count
