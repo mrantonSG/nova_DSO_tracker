@@ -1549,16 +1549,11 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             min_exp = determine_exp_match.group(1)
             max_exp = determine_exp_match.group(2)
             brightness = determine_exp_match.group(3)
-            flat_events.append({
-                'time': ts.isoformat(),
-                'level': 'info',
-                'message': f'Determining exposure time (Min: {min_exp}s, Max: {max_exp}s, Brightness: {brightness})'
-            })
-            # End the brightness tracking span - emit summary if we collected values
+            # End the brightness tracking span - emit summary if we collected values BEFORE this event
             if flat_span_active and flat_span_brightness_values:
                 final_brightness = flat_span_brightness_values[-1][1]  # Get last brightness value
                 final_brightness_time = flat_span_brightness_values[-1][0]
-                # Insert the summary at the time of the final brightness setting
+                # Insert the summary BEFORE the determine exposure event (it happened earlier)
                 flat_events.append({
                     'time': final_brightness_time,
                     'level': 'info',
@@ -1566,6 +1561,11 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 })
                 flat_span_active = False
                 flat_span_brightness_values = []
+            flat_events.append({
+                'time': ts.isoformat(),
+                'level': 'info',
+                'message': f'Determining exposure time (Min: {min_exp}s, Max: {max_exp}s, Brightness: {brightness})'
+            })
 
         # Exposure Too Dim (keep as warning)
         if NINA_PATTERNS['flat_exposure_dim_retry'].search(line) and ts_match:
@@ -1761,13 +1761,24 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
     i = 0
 
     # Patterns for grouping
-    stepsize_pattern = re.compile(r'Focuser.*GET StepSize failed', re.IGNORECASE)
-    ismoving_pattern = re.compile(r'Focuser.*GET IsMoving failed', re.IGNORECASE)
+    # Match "An unexpected exception occurred during GET of Focuser.StepSize:"
+    stepsize_pattern = re.compile(r'Focuser\.StepSize', re.IGNORECASE)
+    # Match "An unexpected exception occurred during GET of Focuser.IsMoving:"
+    ismoving_pattern = re.compile(r'Focuser\.IsMoving', re.IGNORECASE)
     r_squared_pattern = re.compile(r'R\s?\u00B2.*below threshold.*([0-9.]+)\s*/\s*([0-9.]+)', re.IGNORECASE)
     continue_on_error_pattern = re.compile(r'ContinueOnError', re.IGNORECASE)
+    # Pattern to suppress "Category:" RunAutofocus errors (duplicate of AF failure message)
+    autofocus_category_pattern = re.compile(r'^Category:.*RunAutofocus', re.IGNORECASE)
+    # Pattern to clean trigger error messages
+    trigger_error_pattern = re.compile(r'Failed:\s*Trigger:\s*AutofocusAfterFilterChange\s*-\s*Category:\s*Focuser,\s*Item:\s*RunAutofocus\s+failed to exectue', re.IGNORECASE)
 
     while i < len(cleaned_errors):
         ts, msg = cleaned_errors[i]
+
+        # Suppress "Category:" RunAutofocus errors (duplicate of AF failure message)
+        if autofocus_category_pattern.search(msg):
+            i += 1
+            continue
 
         # Check for AutoFocus R² error
         r2_match = r_squared_pattern.search(msg)
@@ -1787,6 +1798,17 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
 
         # Check for ContinueOnError (skip if not after R² error)
         if continue_on_error_pattern.search(msg):
+            i += 1
+            continue
+
+        # Check for Trigger AutofocusAfterFilterChange error and clean it
+        trigger_match = trigger_error_pattern.search(msg)
+        if trigger_match:
+            collapsed.append({
+                'time': ts,
+                'level': 'error',
+                'message': 'Trigger AutofocusAfterFilterChange failed - RunAutofocus'
+            })
             i += 1
             continue
 
