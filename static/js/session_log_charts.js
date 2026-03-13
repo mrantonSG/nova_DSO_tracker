@@ -781,9 +781,8 @@
         // Swimlane configuration
         const rowHeight = 36;
         const labelWidth = 90;
-        const chartPadding = { left: 10, right: 20, top: 10, bottom: 45 }; // Extra bottom for legend
+        const chartPadding = { left: 10, right: 20, top: 10, bottom: 25 }; // Reduced bottom padding (legend removed)
         const statsHeight = 30; // Height for stats row above swimlane
-        const legendHeight = 20; // Height for legend below x-axis
 
         // DEBUG: Dump first phase of each badge_class to diagnose data structure
         const byClass = {};
@@ -987,39 +986,6 @@
             label.textContent = hoursToTime(h);
             svg.appendChild(label);
         }
-
-        // Draw legend below x-axis
-        const legendY = xAxisY + 25;
-        const legendItems = Object.entries(phaseColors);
-        const legendItemWidth = chartWidth / legendItems.length;
-
-        legendItems.forEach(([badgeClass, color], idx) => {
-            const x = labelWidth + chartPadding.left + idx * legendItemWidth + legendItemWidth / 2;
-
-            // Color box
-            const box = createEl('rect', {
-                x: x - 8,
-                y: legendY,
-                width: 6,
-                height: 6,
-                fill: color,
-                rx: 1,
-                ry: 1
-            });
-            svg.appendChild(box);
-
-            // Label
-            const label = createEl('text', {
-                x: x,
-                y: legendY + 8,
-                'text-anchor': 'middle',
-                'font-size': '9',
-                'font-family': 'system-ui, -apple-system, sans-serif',
-                fill: textColor
-            });
-            label.textContent = badgeClass;
-            svg.appendChild(label);
-        });
 
         // Tooltip handling
         const showTooltip = (e, text) => {
