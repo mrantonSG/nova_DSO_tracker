@@ -995,6 +995,7 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'platesolve_start': re.compile(r'PlateSolving.*Solving|ImageSolver.*Solve|Starting Category: Utility, Item: SolveImage', re.IGNORECASE),
         'sequence_start': re.compile(r'Sequence2VM.*StartSequence|Advanced Sequence starting', re.IGNORECASE),
         'imaging_start': re.compile(r'Starting Category: Camera, Item: TakeExposure', re.IGNORECASE),
+        'flat_end': re.compile(r'FlatDeviceVM\.cs\|ToggleLight.*Toggling light to False', re.IGNORECASE),
     }
 
     # Use enumerated lines for look-ahead capability
@@ -1321,6 +1322,14 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                            'message': 'Flats sequence started'}]
             }
             phase_event_count = 0
+            continue
+
+        # Check if flats sequence is ending
+        flat_end_match = NINA_PATTERNS['flat_end'].search(line)
+        if flat_end_match and ts_match and current_span_phase and current_span_phase['badge_class'] == 'flats':
+            current_span_phase['end_time'] = ts.isoformat()
+            result['timeline_phases'].append(current_span_phase)
+            current_span_phase = None
             continue
 
         # --- Span Phase Handling (imaging, guiding, platesolve, sequence) ---
