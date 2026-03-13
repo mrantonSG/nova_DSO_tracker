@@ -435,7 +435,7 @@
         // Render swimlane timeline
         // Use ASIAIR data if it has exposures, otherwise use NINA data
         const hasAsiairData = asiair?.exposures && asiair.exposures.length > 0;
-        const hasNinaData = nina?.timeline_phases && nina.timeline_phases.length > 0;
+        const hasNinaData = nina?.timeline_phases && nina?.timeline_phases.length > 0;
 
         console.log('[OVERVIEW_TAB] hasAsiairData:', hasAsiairData, 'hasNinaData:', hasNinaData);
         console.log('[OVERVIEW_TAB] nina.timeline_phases.length:', nina?.timeline_phases?.length);
@@ -706,10 +706,16 @@
 
         if (!svg || !container) return;
 
+        // Guard against null/undefined nina data
+        if (!nina) {
+            container.innerHTML = '<p style="color: var(--text-muted); text-align: center; padding: 40px;">No NINA timeline data to display.</p>';
+            return;
+        }
+
         // DEBUG: Log nina data structure
-        console.log('[NINA_SWIMLANE] nina keys:', Object.keys(nina));
-        console.log('[NINA_SWIMLANE] timeline_phases:', nina.timeline_phases);
-        console.log('[NINA_SWIMLANE] timeline_phases length:', nina.timeline_phases ? nina.timeline_phases.length : 'undefined');
+        console.log('[NINA_SWIMLANE] nina keys:', nina ? Object.keys(nina) : 'nina is null/undefined');
+        console.log('[NINA_SWIMLANE] timeline_phases:', nina?.timeline_phases);
+        console.log('[NINA_SWIMLANE] timeline_phases length:', nina?.timeline_phases ? nina.timeline_phases.length : 'undefined');
 
         const phases = nina.timeline_phases || [];
         if (phases.length === 0) {
@@ -738,10 +744,10 @@
 
         // DEBUG: Log input values
         console.log('[SWIMLANE_TIME] Input sessionStart:', sessionStart, '(type:', typeof sessionStart, ')');
-        console.log('[SWIMLANE_TIME] nina.session_start:', nina.session_start, '(type:', typeof nina.session_start, ')');
-        console.log('[SWIMLANE_TIME] nina.session_end:', nina.session_end, '(type:', typeof nina.session_end, ')');
+        console.log('[SWIMLANE_TIME] nina.session_start:', nina?.session_start, '(type:', typeof nina?.session_start, ')');
+        console.log('[SWIMLANE_TIME] nina.session_end:', nina?.session_end, '(type:', typeof nina?.session_end, ')');
 
-        if (nina.session_start && nina.session_end) {
+        if (nina?.session_start && nina?.session_end) {
             const start = new Date(nina.session_start);
             const end = new Date(nina.session_end);
             sessionStartTime = start;
@@ -3210,7 +3216,7 @@
             leftSide.className = 'log-nina-phase-left';
 
             const badge = document.createElement('span');
-            badge.className = \`log-nina-phase-badge \${badgeClass}\`;
+            badge.className = `log-nina-phase-badge ${badgeClass}`;
             badge.textContent = phaseId;
             leftSide.appendChild(badge);
 
@@ -3254,7 +3260,7 @@
             events.forEach(event => {
                 const eventEl = document.createElement('div');
                 const level = event.level || 'info';
-                eventEl.className = \`log-nina-event \${level}\`;
+                eventEl.className = `log-nina-event \${level}`;
 
                 // Timestamp
                 const timeEl = document.createElement('span');
@@ -3267,7 +3273,7 @@
 
                 // Icon
                 const iconEl = document.createElement('span');
-                iconEl.className = \`log-nina-event-icon \${level}\`;
+                iconEl.className = `log-nina-event-icon \${level}`;
                 if (level === 'error') {
                     iconEl.textContent = '✕';
                 } else if (level === 'warning') {
@@ -3284,7 +3290,7 @@
                 // Message
                 const msgEl = document.createElement('span');
                 msgEl.className = 'log-nina-event-message';
-                msgEl.textContent = event.message + (event.count ? \` (\${event.count}×)\` : '');
+                msgEl.textContent = event.message + (event.count ? ` (\${event.count}×)` : '');
                 eventEl.appendChild(msgEl);
 
                 body.appendChild(eventEl);
@@ -3307,7 +3313,7 @@
             const startupEvents = ninaData.equipment_events.map(e => ({
                 time: e.time,
                 level: 'info',
-                message: \`✓ \${e.device_type} connected - \${e.device_id}\`
+                message: `✓ \${e.device_type} connected - \${e.device_id}`
             }));
             const firstTime = ninaData.equipment_events[0]?.time;
             const lastTime = ninaData.equipment_events[ninaData.equipment_events.length - 1]?.time;
@@ -3349,7 +3355,7 @@
                 imagingEvents.push({
                     time: imagingPhases[0].start_time,
                     level: 'info',
-                    message: \`▶ Sequence started - \${filtersStr} · \${summary.gain}G · \${summary.binning}\`
+                    message: `▶ Sequence started - \${filtersStr} · \${summary.gain}G · \${summary.binning}`
                 });
             }
 
@@ -3391,7 +3397,7 @@
 
             const errorCount = imagingEvents.filter(e => e.level === 'error').length;
             const imagingTitle = ninaData.imaging_summary?.filters_used?.length > 0
-                ? \`Light Acquisition - \${ninaData.imaging_summary.filters_used.join(' · ')}\`
+                ? `Light Acquisition - \${ninaData.imaging_summary.filters_used.join(' · ')}`
                 : 'Light Acquisition';
 
             renderPhaseGroup('imaging', 'imaging', imagingTitle,
@@ -3423,7 +3429,7 @@
         // Helper to add item
         const addItem = (label, value) => {
             const span = document.createElement('span');
-            span.innerHTML = \`\\${label}: <span class="value">\${value}</span>\`;
+            span.innerHTML = `\\${label}: <span class="value">\${value}</span>`;
             container.appendChild(span);
         };
 
@@ -3434,7 +3440,7 @@
             const duration = Math.round((end - start) / 60000);
             const hours = Math.floor(duration / 60);
             const mins = duration % 60;
-            addItem('Duration', hours > 0 ? `\${hours}h \${mins}m\` : `\${mins}m\`);
+            addItem('Duration', hours > 0 ? `\${hours}h \${mins}m` : `\${mins}m`);
         }
 
         // Filters (from imaging_summary)
@@ -3446,7 +3452,7 @@
         if (ninaData.autofocus_runs && ninaData.autofocus_runs.length > 0) {
             const successCount = ninaData.autofocus_runs.filter(r => r.status === 'success').length;
             const failCount = ninaData.autofocus_runs.length - successCount;
-            addItem('AutoFocus', `\${ninaData.autofocus_runs.length} (\${successCount} ✓ · \${failCount} ✕)\`);
+            addItem('AutoFocus', `\${ninaData.autofocus_runs.length} (\${successCount} ✓ · \${failCount} ✕)`);
         }
 
         // Error count
@@ -3490,24 +3496,6 @@
                     phase.classList.remove('expanded');
                     const body = phase.querySelector('.log-nina-phase-body');
                     if (body) body.style.display = 'none';
-                });
-            });
-        }
-    }
-
-            });
-        }
-
-        if (collapseAll) {
-            collapseAll.addEventListener('click', () => {
-                document.querySelectorAll('.log-nina-phase').forEach(phase => {
-                    const body = phase.querySelector('.log-nina-phase-body');
-                    const chevron = phase.querySelector('.log-nina-phase-chevron');
-                    if (body) {
-                        body.style.display = 'none';
-                        phase.classList.remove('expanded');
-                        if (chevron) chevron.style.transform = '';
-                    }
                 });
             });
         }
