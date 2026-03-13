@@ -980,6 +980,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
 
     # NEW: Track flat events
     flat_events = []
+    # Track AutoExposureFlat spans for brightness collapsing
+    flat_span_active = False
+    flat_span_brightness_values = []  # Collect SetBrightness values within current span
 
     # NEW: Track raw errors and warnings for collapsing
     raw_error_lines = []  # List of (timestamp, message) tuples
@@ -1513,8 +1516,10 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 })
 
         # --- NEW: Flat Events ---
-        # AutoExposureFlat Start
+        # AutoExposureFlat Start - start tracking brightness span
         if NINA_PATTERNS['flat_auto_exposure_start'].search(line) and ts_match:
+            flat_span_active = True
+            flat_span_brightness_values = []  # Reset for new span
             flat_events.append({
                 'time': ts.isoformat(),
                 'level': 'info',
@@ -1529,17 +1534,16 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 'message': 'Flat panel light ON'
             })
 
-        # Set Brightness
+        # Set Brightness - collect for summary, filter out ASCOM sentinel (>100)
         set_brightness_match = NINA_PATTERNS['flat_set_brightness'].search(line)
         if set_brightness_match and ts_match:
             brightness = set_brightness_match.group(1)
-            flat_events.append({
-                'time': ts.isoformat(),
-                'level': 'info',
-                'message': f'Flat panel brightness set to {brightness}'
-            })
+            brightness_int = int(brightness)
+            # Only track brightness values within normal range (filter out ASCOM sentinel values)
+            if brightness_int <= 100 and flat_span_active:
+                flat_span_brightness_values.append((ts.isoformat(), brightness_int))
 
-        # Determine Exposure Time
+        # Determine Exposure Time - this marks the end of brightness ramping
         determine_exp_match = NINA_PATTERNS['flat_determine_exposure'].search(line)
         if determine_exp_match and ts_match:
             min_exp = determine_exp_match.group(1)
@@ -1550,6 +1554,18 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 'level': 'info',
                 'message': f'Determining exposure time (Min: {min_exp}s, Max: {max_exp}s, Brightness: {brightness})'
             })
+            # End the brightness tracking span - emit summary if we collected values
+            if flat_span_active and flat_span_brightness_values:
+                final_brightness = flat_span_brightness_values[-1][1]  # Get last brightness value
+                final_brightness_time = flat_span_brightness_values[-1][0]
+                # Insert the summary at the time of the final brightness setting
+                flat_events.append({
+                    'time': final_brightness_time,
+                    'level': 'info',
+                    'message': f'Flat panel brightness determined: {final_brightness}%'
+                })
+                flat_span_active = False
+                flat_span_brightness_values = []
 
         # Exposure Too Dim (keep as warning)
         if NINA_PATTERNS['flat_exposure_dim_retry'].search(line) and ts_match:
@@ -1561,6 +1577,17 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
 
         # Toggle Light Off
         if NINA_PATTERNS['flat_toggle_light_off'].search(line) and ts_match:
+            # If we still have pending brightness values, emit summary before light off
+            if flat_span_active and flat_span_brightness_values:
+                final_brightness = flat_span_brightness_values[-1][1]
+                final_brightness_time = flat_span_brightness_values[-1][0]
+                flat_events.append({
+                    'time': final_brightness_time,
+                    'level': 'info',
+                    'message': f'Flat panel brightness determined: {final_brightness}%'
+                })
+                flat_span_active = False
+                flat_span_brightness_values = []
             flat_events.append({
                 'time': ts.isoformat(),
                 'level': 'info',
@@ -1710,6 +1737,7 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
     Collapse raw NINA error lines into meaningful grouped events.
 
     Rules:
+    - Strip pipe-delimited format: keep only text after last | character
     - Focuser.StepSize errors (×N): collapse to single event
     - Focuser.IsMoving errors (×N): collapse to single event
     - MGEN calibration block: already collapsed in main loop
@@ -1718,6 +1746,16 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
     """
     if not raw_errors:
         return []
+
+    # Helper function to strip pipe-delimited format
+    def strip_pipe_format(msg: str) -> str:
+        """Return only text after last | character."""
+        if '|' in msg:
+            return msg.split('|')[-1].strip()
+        return msg.strip()
+
+    # First pass: strip pipe format from all messages
+    cleaned_errors = [(ts, strip_pipe_format(msg)) for ts, msg in raw_errors]
 
     collapsed = []
     i = 0
@@ -1728,8 +1766,8 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
     r_squared_pattern = re.compile(r'R\s?\u00B2.*below threshold.*([0-9.]+)\s*/\s*([0-9.]+)', re.IGNORECASE)
     continue_on_error_pattern = re.compile(r'ContinueOnError', re.IGNORECASE)
 
-    while i < len(raw_errors):
-        ts, msg = raw_errors[i]
+    while i < len(cleaned_errors):
+        ts, msg = cleaned_errors[i]
 
         # Check for AutoFocus R² error
         r2_match = r_squared_pattern.search(msg)
@@ -1743,7 +1781,7 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
             })
             i += 1
             # Skip any ContinueOnError lines immediately after
-            while i < len(raw_errors) and continue_on_error_pattern.search(raw_errors[i][1]):
+            while i < len(cleaned_errors) and continue_on_error_pattern.search(cleaned_errors[i][1]):
                 i += 1
             continue
 
@@ -1752,27 +1790,18 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
             i += 1
             continue
 
-        i += 1
-
-    # Now group consecutive StepSize and IsMoving errors
-    final_errors = []
-    i = 0
-
-    while i < len(collapsed):
-        ts, msg = collapsed[i]['time'], collapsed[i]['message']
-
         # Group StepSize errors
         if stepsize_pattern.search(msg):
             count = 1
             j = i + 1
-            while j < len(collapsed) and stepsize_pattern.search(collapsed[j]['message']):
+            while j < len(cleaned_errors) and stepsize_pattern.search(cleaned_errors[j][1]):
                 count += 1
                 j += 1
-            final_errors.append({
+            collapsed.append({
                 'time': ts,
                 'level': 'error',
                 'message': f'Focuser ASCOM driver error - GET StepSize failed',
-                'count': count
+                'count': count if count > 1 else None
             })
             i = j
             continue
@@ -1781,23 +1810,27 @@ def _collapse_nina_errors(raw_errors: List[Tuple[str, str]]) -> List[Dict[str, A
         if ismoving_pattern.search(msg):
             count = 1
             j = i + 1
-            while j < len(collapsed) and ismoving_pattern.search(collapsed[j]['message']):
+            while j < len(cleaned_errors) and ismoving_pattern.search(cleaned_errors[j][1]):
                 count += 1
                 j += 1
-            final_errors.append({
+            collapsed.append({
                 'time': ts,
                 'level': 'error',
                 'message': f'Focuser ASCOM driver error - GET IsMoving failed',
-                'count': count
+                'count': count if count > 1 else None
             })
             i = j
             continue
 
-        # Keep other errors as-is
-        final_errors.append(collapsed[i])
+        # Keep other errors as-is (already stripped)
+        collapsed.append({
+            'time': ts,
+            'level': 'error',
+            'message': msg
+        })
         i += 1
 
-    return final_errors
+    return collapsed
 
 
 def _collapse_nina_warnings(raw_warnings: List[Tuple[str, str]]) -> List[Dict[str, Any]]:
@@ -1805,29 +1838,43 @@ def _collapse_nina_warnings(raw_warnings: List[Tuple[str, str]]) -> List[Dict[st
     Collapse raw NINA warning lines into meaningful grouped events.
 
     Rules:
+    - Strip pipe-delimited format: keep only text after last | character
     - ASI_WB_B/WB_R/GAMMA/OVERCLOCK/PATTERN_ADJUST/MONO_BIN (6 lines): collapse
-    - No stars in step N: keep individual
-    - AutoFocus restore position: keep individual
+    - No stars in step N: collapse consecutive same-step occurrences to ONE entry
+    - AutoFocus restore position: keep individual (after stripping)
     """
     if not raw_warnings:
         return []
+
+    # Helper function to strip pipe-delimited format
+    def strip_pipe_format(msg: str) -> str:
+        """Return only the text after the last | character."""
+        if '|' in msg:
+            return msg.split('|')[-1].strip()
+        return msg.strip()
+
+    # First pass: strip pipe format from all messages
+    cleaned_warnings = [(ts, strip_pipe_format(msg)) for ts, msg in raw_warnings]
 
     collapsed = []
 
     # Pattern for ASI camera control values
     asi_control_pattern = re.compile(r'ASI_WB_B|WB_R|WB_G|GAMMA|OVERCLOCK|PATTERN_ADJUST|MONO_BIN', re.IGNORECASE)
 
+    # Pattern for "No stars detected in step N"
+    no_stars_pattern = re.compile(r'No stars detected in step (\d+)\.', re.IGNORECASE)
+
     # Group consecutive ASI control warnings
     i = 0
-    while i < len(raw_warnings):
-        ts, msg = raw_warnings[i]
+    while i < len(cleaned_warnings):
+        ts, msg = cleaned_warnings[i]
 
         # Check for ASI control value
         if asi_control_pattern.search(msg):
             # Count consecutive ASI control warnings
             count = 1
             j = i + 1
-            while j < len(raw_warnings) and asi_control_pattern.search(raw_warnings[j][1]):
+            while j < len(cleaned_warnings) and asi_control_pattern.search(cleaned_warnings[j][1]):
                 count += 1
                 j += 1
             collapsed.append({
@@ -1837,14 +1884,39 @@ def _collapse_nina_warnings(raw_warnings: List[Tuple[str, str]]) -> List[Dict[st
                 'count': count
             })
             i = j
-        else:
-            # Keep other warnings as-is
+            continue
+
+        # Check for "No stars detected in step N" - collapse consecutive same-step occurrences
+        no_stars_match = no_stars_pattern.search(msg)
+        if no_stars_match:
+            step_num = no_stars_match.group(1)
+            # Count consecutive warnings for the same step
+            count = 1
+            j = i + 1
+            while j < len(cleaned_warnings):
+                next_match = no_stars_pattern.search(cleaned_warnings[j][1])
+                if next_match and next_match.group(1) == step_num:
+                    count += 1
+                    j += 1
+                else:
+                    break
+            # Use the first timestamp for the collapsed event
             collapsed.append({
                 'time': ts,
                 'level': 'warning',
-                'message': msg
+                'message': f'No stars detected in step {step_num}. Setting a high stddev to ignore the point.',
+                'count': count if count > 1 else None  # Only include count if > 1
             })
-            i += 1
+            i = j
+            continue
+
+        # Keep other warnings as-is (already stripped)
+        collapsed.append({
+            'time': ts,
+            'level': 'warning',
+            'message': msg
+        })
+        i += 1
 
     return collapsed
 
