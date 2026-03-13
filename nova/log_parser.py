@@ -1406,7 +1406,7 @@ def _add_to_timeline(result: Dict[str, Any], phase_name: str, badge_class: str,
         'phase': phase_name,
         'badge_class': badge_class,
         'start_time': start_time,
-        'end_time': start_time,
+        'end_time': None,  # FIX: Use None for single-point events (focus/AF runs)
         'status': status,
         'error_count': error_count,
         'warning_count': warning_count,

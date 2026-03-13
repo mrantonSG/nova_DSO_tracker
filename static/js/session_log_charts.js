@@ -728,12 +728,18 @@
         };
 
         // Get unique badge classes for swimlane rows
-        const badgeClasses = [...new Set(phases.map(p => p.badge_class).filter(Boolean))].sort();
+        // FIX: Use badge_class if present, otherwise fall back to phase property
+        const badgeClasses = [...new Set(phases.map(p => p.badge_class || p.phase).filter(Boolean))].sort();
 
         // Calculate session duration in hours from session start/end
         let sessionDurationHours = 0;
         let sessionStartTime = sessionStart;
         let sessionEndTime = sessionStart;
+
+        // DEBUG: Log input values
+        console.log('[SWIMLANE_TIME] Input sessionStart:', sessionStart, '(type:', typeof sessionStart, ')');
+        console.log('[SWIMLANE_TIME] nina.session_start:', nina.session_start, '(type:', typeof nina.session_start, ')');
+        console.log('[SWIMLANE_TIME] nina.session_end:', nina.session_end, '(type:', typeof nina.session_end, ')');
 
         if (nina.session_start && nina.session_end) {
             const start = new Date(nina.session_start);
@@ -741,20 +747,33 @@
             sessionStartTime = start;
             sessionEndTime = end;
             sessionDurationHours = (end - start) / (1000 * 60 * 60);
+            console.log('[SWIMLANE_TIME] Using nina session times');
         } else if (phases.length > 0) {
             // Fallback to phase times
             const phaseStarts = phases.filter(p => p.start_time).map(p => new Date(p.start_time));
-            const phaseEnds = phases.filter(p => p.end_time).map(p => new Date(p.end_time));
+            // FIX: Only use phases that have end_time (filter out None/null values)
+            const phaseEnds = phases.filter(p => p.end_time && p.end_time !== 'null').map(p => new Date(p.end_time));
             if (phaseStarts.length > 0) {
                 sessionStartTime = new Date(Math.min(...phaseStarts));
             }
             if (phaseEnds.length > 0) {
                 sessionEndTime = new Date(Math.max(...phaseEnds));
             }
-            if (sessionStartTime && sessionEndTime) {
+            // FIX: If no phases have end_time (all point events), use the last start_time as end_time
+            if (sessionStartTime && sessionEndTime === sessionStart) {
+                const lastPhaseStart = Math.max(...phaseStarts);
+                sessionEndTime = new Date(lastPhaseStart);
+                sessionDurationHours = (sessionEndTime - sessionStartTime) / (1000 * 60 * 60);
+            } else if (sessionStartTime && sessionEndTime) {
                 sessionDurationHours = (sessionEndTime - sessionStartTime) / (1000 * 60 * 60);
             }
+            console.log('[SWIMLANE_TIME] Using phase times (fallback)');
         }
+
+        // DEBUG: Log calculated values
+        console.log('[SWIMLANE_TIME] sessionStartTime:', sessionStartTime, '(type:', typeof sessionStartTime, ')');
+        console.log('[SWIMLANE_TIME] sessionEndTime:', sessionEndTime, '(type:', typeof sessionEndTime, ')');
+        console.log('[SWIMLANE_TIME] sessionDurationHours:', sessionDurationHours);
 
         // Ensure minimum duration
         sessionDurationHours = Math.max(sessionDurationHours, 0.1);
@@ -766,9 +785,33 @@
         const statsHeight = 30; // Height for stats row above swimlane
         const legendHeight = 20; // Height for legend below x-axis
 
+        // DEBUG: Dump first phase of each badge_class to diagnose data structure
+        const byClass = {};
+        phases.forEach(p => {
+            if (!byClass[p.badge_class]) byClass[p.badge_class] = p;
+        });
+
+        // DEBUG: Log the first phase structure to see what properties exist
+        if (phases.length > 0) {
+            console.log('[SWIMLANE_ROWS] First phase properties:', Object.keys(phases[0]));
+            console.log('[SWIMLANE_ROWS] First phase:', phases[0]);
+        }
+
+        console.log('[SWIMLANE_ROWS] badgeClasses:', badgeClasses);
+        console.log('[SWIMLANE_ROWS] byClass:', byClass);
+
+        // Check if badge_class property exists on phases
+        const phasesWithoutBadge = phases.filter(p => !p.badge_class);
+        if (phasesWithoutBadge.length > 0) {
+            console.log('[SWIMLANE_ROWS] WARNING:', phasesWithoutBadge.length, 'phases without badge_class');
+            console.log('[SWIMLANE_ROWS] Example phase without badge:', phasesWithoutBadge[0]);
+        }
+
         // Prepare rows: one per badge_class
         const rows = badgeClasses.map(badgeClass => {
-            const rowPhases = phases.filter(p => p.badge_class === badgeClass);
+            // FIX: Filter by badge_class or phase property for flexibility
+            const rowPhases = phases.filter(p => (p.badge_class || p.phase) === badgeClass);
+            console.log(`[SWIMLANE_ROWS] ${badgeClass}: found ${rowPhases.length} phases`);
             return {
                 id: badgeClass,
                 label: badgeClass.charAt(0).toUpperCase() + badgeClass.slice(1),
@@ -781,6 +824,10 @@
         const totalHeight = statsHeight + rows.length * rowHeight + chartPadding.top + chartPadding.bottom;
         const containerWidth = container.clientWidth - 30;
         const chartWidth = containerWidth - labelWidth - chartPadding.left - chartPadding.right;
+
+        // DEBUG: Log canvas dimensions
+        console.log('[SWIMLANE_DIMS] containerWidth:', containerWidth, 'chartWidth:', chartWidth);
+        console.log('[SWIMLANE_DIMS] labelWidth:', labelWidth, 'chartPadding:', chartPadding);
 
         // Set SVG dimensions
         svg.setAttribute('width', containerWidth);
@@ -805,7 +852,14 @@
         const phaseTimeToX = (timeStr) => {
             const time = new Date(timeStr);
             const hoursFromStart = (time - sessionStartTime) / (1000 * 60 * 60);
-            return labelWidth + chartPadding.left + (hoursFromStart / sessionDurationHours) * chartWidth;
+            const x = labelWidth + chartPadding.left + (hoursFromStart / sessionDurationHours) * chartWidth;
+            // DEBUG: Log first few conversions per badge class (using a counter)
+            if (!phaseTimeToX.callCount) phaseTimeToX.callCount = 0;
+            if (phaseTimeToX.callCount < 5) {
+                console.log(`[phaseTimeToX] timeStr:${timeStr} -> time:${time} -> hoursFromStart:${hoursFromStart} -> x:${x}`);
+                phaseTimeToX.callCount++;
+            }
+            return x;
         };
 
         // Draw stats row at top
@@ -853,14 +907,24 @@
             }
 
             // Draw phase bars
-            row.phases.forEach(phase => {
-                if (!phase.start_time || !phase.end_time) return;
+            row.phases.forEach((phase, idx) => {
+                if (!phase.start_time) return;
 
                 const x1 = phaseTimeToX(phase.start_time);
-                const x2 = phaseTimeToX(phase.end_time);
-                const barWidth = Math.max(x2 - x1, 1); // Minimum 1px width
+                let barWidth = 1; // Default to 1px for point events (focus)
 
-                // Phase bar
+                // If phase has end_time, calculate bar width
+                if (phase.end_time) {
+                    const x2 = phaseTimeToX(phase.end_time);
+                    barWidth = Math.max(x2 - x1, 1);
+                }
+
+                // DEBUG: Log bar dimensions for first few phases per row
+                if (idx < 2) {
+                    console.log(`[SWIMLANE_BAR] ${row.id}[${idx}] start:${phase.start_time} end:${phase.end_time} x1:${x1} width:${barWidth}`);
+                }
+
+                // Phase bar (or point for focus/AF runs)
                 const bar = createEl('rect', {
                     x: x1,
                     y: y + 8,
@@ -871,7 +935,7 @@
                     rx: 2,
                     ry: 2,
                     'data-type': 'phase',
-                    'data-badge-class': phase.badge_class,
+                    'data-badge-class': phase.badge_class || phase.phase,
                     'data-start': phase.start_time,
                     'data-end': phase.end_time
                 });
@@ -976,8 +1040,8 @@
         svg.querySelectorAll('[data-type="phase"]').forEach(el => {
             const badgeClass = el.getAttribute('data-badge-class');
             const start = new Date(el.getAttribute('data-start'));
-            const end = new Date(el.getAttribute('data-end'));
-            const duration = Math.round((end - start) / 60000);
+            const endStr = el.getAttribute('data-end');
+            const duration = endStr ? Math.round((new Date(endStr) - start) / 60000) : 0;
             const startTimeStr = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
             const errorDot = el.nextElementSibling;
@@ -985,7 +1049,7 @@
                 ? parseInt(errorDot.getAttribute('data-error-count'))
                 : 0;
 
-            let text = `${badgeClass} at ${startTimeStr} (${duration}m)`;
+            let text = `${badgeClass} at ${startTimeStr}${duration > 0 ? ` (${duration}m)` : ' (point event)'}`;
             if (errorCount > 0) {
                 text += ` • ${errorCount} error${errorCount > 1 ? 's' : ''}`;
             }
