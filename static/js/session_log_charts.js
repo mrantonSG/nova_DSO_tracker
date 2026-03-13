@@ -3310,14 +3310,18 @@
 
         // GROUP 1: STARTUP (Equipment Connection)
         if (ninaData.equipment_events && ninaData.equipment_events.length > 0) {
-            const startupEvents = ninaData.equipment_events.map(e => ({
+            const firstTime = ninaData.equipment_events[0]?.time;
+            // Only include equipment events within 30 minutes of first connection (ignore reconnections)
+            const thirtyMinutesMs = 30 * 60 * 1000;
+            const startupWindowEnd = new Date(new Date(firstTime).getTime() + thirtyMinutesMs);
+            const initialEvents = ninaData.equipment_events.filter(e => new Date(e.time) <= startupWindowEnd);
+            const startupEvents = initialEvents.map(e => ({
                 time: e.time,
                 level: 'info',
                 message: `✓ ${e.device_type} connected - ${e.device_id}`
             }));
-            const firstTime = ninaData.equipment_events[0]?.time;
-            const lastTime = ninaData.equipment_events[ninaData.equipment_events.length - 1]?.time;
-            renderPhaseGroup('startup', 'startup', 'Equipment Connection', startupEvents, { start: firstTime, end: lastTime });
+            const lastStartupTime = initialEvents[initialEvents.length - 1]?.time || firstTime;
+            renderPhaseGroup('startup', 'startup', 'Equipment Connection', startupEvents, { start: firstTime, end: lastStartupTime });
         }
 
         // GROUP 2: SEQUENCE (if available in timeline_phases)
