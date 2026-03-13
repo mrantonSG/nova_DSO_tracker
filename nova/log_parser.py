@@ -948,9 +948,7 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
     session_end = None
     current_af_run = None
     af_run_counter = 0
-    current_phase = None
-    phase_event_count = 0
-    current_span_phase = None  # Track span phases (imaging, guiding, platesolve, sequence)
+    current_span_phase = None  # Track span phases (imaging, guiding, platesolve, sequence, flats)
 
     # Helper function to close span phases (imaging, guiding, platesolve)
     def close_span_phase(ts):
@@ -990,13 +988,13 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         'af_trigger_line': re.compile(r'Starting Trigger:\s+(AutofocusAfterFilterChange|Manual\s+autofocus)', re.IGNORECASE),  # Pattern for trigger line before AF start
         'af_trigger': re.compile(r'AutofocusAfterFilterChange|Manual\s+autofocus', re.IGNORECASE),
         'equipment': re.compile(r'Equipment\s+(Camera|Mount|FilterWheel|Focuser|Rotator|Guider|Dome|Weather|PowerSwitch|Plugin)[:\s]+(.+)', re.IGNORECASE),
-        'flat_start': re.compile(r'Flat\s+Device[\w\s]+started', re.IGNORECASE),
+        'flat_start': re.compile(r'Starting Category: Flat Device, Container:.*AutoExposureFlat', re.IGNORECASE),
         'flat_frame': re.compile(r'Flat\s+frame.*completed.*Filter\s+["\']?(\w+)["\']?.*exposure[:\s]+([0-9.]+)\s*s', re.IGNORECASE),
         # Span phase patterns (have start and end times)
         'guiding_start': re.compile(r'Starting Category: Guider, Item: StartGuiding', re.IGNORECASE),
         'platesolve_start': re.compile(r'PlateSolving.*Solving|ImageSolver.*Solve|Starting Category: Utility, Item: SolveImage', re.IGNORECASE),
         'sequence_start': re.compile(r'Sequence2VM.*StartSequence|Advanced Sequence starting', re.IGNORECASE),
-        'imaging_start': re.compile(r'Starting Category: Camera, Item: TakeExposure|CameraVM\.cs\|Capture\|\d+\|Starting\s+Exposure', re.IGNORECASE),
+        'imaging_start': re.compile(r'Starting Category: Camera, Item: TakeExposure', re.IGNORECASE),
     }
 
     # Use enumerated lines for look-ahead capability
@@ -1037,10 +1035,6 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             if session_start is None:
                 session_start = ts
             session_end = ts
-
-            # Update current phase time range
-            if current_phase:
-                current_phase['end_time'] = ts.isoformat()
 
             # Update current span phase time range
             if current_span_phase:
@@ -1314,11 +1308,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
         # --- Flat Frame Parsing ---
         flat_match = NINA_PATTERNS['flat_start'].search(line)
         if flat_match and ts_match:
-            # Close any open span phase before starting flats
-            close_span_phase(ts)
-
-            current_phase = {
-                'phase': _('Flats'),
+            # Flats wraps other phases like Sequence, don't close current span phase
+            current_span_phase = {
+                'phase': 'Flats',
                 'badge_class': 'flats',
                 'start_time': ts.isoformat(),
                 'end_time': None,
@@ -1326,33 +1318,9 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                 'error_count': 0,
                 'warning_count': 0,
                 'events': [{'time': ts.isoformat(), 'level': 'INFO',
-                           'message': _('Flat sequence started')}]
+                           'message': 'Flats sequence started'}]
             }
-            result['timeline_phases'].append(current_phase)
             phase_event_count = 0
-            continue
-
-        flat_frame_match = NINA_PATTERNS['flat_frame'].search(line)
-        if flat_frame_match and ts_match and current_phase and current_phase['phase'] == _('Flats'):
-            phase_event_count += 1
-            # Add to flat summary
-            filter_name = flat_frame_match.group(1)
-            exposure = float(flat_frame_match.group(2))
-
-            # Check if this filter already in summary
-            existing = next((f for f in result['flat_summary'] if f['filter'] == filter_name), None)
-            if existing:
-                existing['frame_count'] += 1
-            else:
-                result['flat_summary'].append({
-                    'filter': filter_name,
-                    'frame_count': 1,
-                    'exposure_s': exposure,
-                    'temperature_c': current_af_run.get('temperature') if current_af_run else None
-                })
-
-            # Update phase end time
-            current_phase['end_time'] = ts.isoformat()
             continue
 
         # --- Span Phase Handling (imaging, guiding, platesolve, sequence) ---
@@ -1433,20 +1401,6 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
             level = 'INFO'
 
         if level and ts_match:
-            # Add to current phase events
-            if current_phase:
-                if level == 'ERROR':
-                    current_phase['error_count'] += 1
-                elif level == 'WARNING':
-                    current_phase['warning_count'] += 1
-
-                message = line.split(f'|{level}|')[-1].strip()
-                current_phase['events'].append({
-                    'time': ts.isoformat(),
-                    'level': level,
-                    'message': message
-                })
-
             # Also add to current span phase events
             if current_span_phase:
                 if level == 'ERROR':
@@ -1460,10 +1414,6 @@ def parse_nina_log(content: str) -> Dict[str, Any]:
                     'level': level,
                     'message': message
                 })
-
-    # Close any pending phase
-    if current_phase:
-        result['timeline_phases'].append(current_phase)
 
     # Close any remaining span phase
     if current_span_phase and session_end:
