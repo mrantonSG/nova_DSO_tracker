@@ -85,6 +85,15 @@
   --radius-md: 8px;     /* Standard inputs, buttons */
   --radius-lg: 12px;     /* Larger buttons, cards */
   --radius-xl: 16px;     /* Modals, containers */
+
+  /* =================================================================
+     MOBILE INTERFACE VARIABLES
+     Used by mobile.css for mobile-specific styling
+     ================================================================ */
+  --primary-color: #83b4c5;
+  --bg-light-gray-alt4: #f4f7f6;
+  --text-primary: #141414;
+  --text-white: #ffffff;
 }
 
 /* =====================================================================
@@ -101,6 +110,12 @@
   --shadow-modal: 0 5px 15px rgba(0, 0, 0, 0.5);
   --shadow-float: 0 10px 25px rgba(0, 0, 0, 0.4);
   --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.5);
+
+  /* Mobile interface variables - dark theme overrides */
+  --primary-color: #8ec8da;
+  --bg-light-gray-alt4: #1e2430;
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-white: #ffffff;
 }
 
 /* =====================================================================
