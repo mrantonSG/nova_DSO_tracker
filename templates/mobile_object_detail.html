@@ -574,7 +574,9 @@ body {
     let chartInstance = null;
     let opportunitiesLoaded = false;
 
-    async function loadAltitudeChart(view) {
+    async function loadAltitudeChart(view, dateStr) {
+        // dateStr: optional "YYYY-MM-DD" — only used for day view.
+        // When omitted, API uses server-side today (existing behaviour).
         const canvas = document.getElementById('altitudeChartCanvas');
 
         try {
@@ -588,6 +590,14 @@ body {
                     plot_tz: OBJECT_DATA.plotTz,
                     view: 'day'
                 });
+                // If a specific date was requested, pass day/month/year to the API.
+                // The API accepts these as separate integer params (nova/__init__.py:3857-3859).
+                if (dateStr) {
+                    const parts = dateStr.split('-');
+                    params.set('year',  parts[0]);
+                    params.set('month', String(parseInt(parts[1], 10)));
+                    params.set('day',   String(parseInt(parts[2], 10)));
+                }
 
                 const url = `/api/get_plot_data/${encodeURIComponent(OBJECT_DATA.name)}?${params.toString()}`;
                 const response = await fetch(url);
@@ -1039,6 +1049,7 @@ body {
         opportunities.forEach(opp => {
             const li = document.createElement('li');
             li.className = 'opportunity-card';
+            li.dataset.date = opp.date;
 
             const parts = opp.date.split('-');
             const year = parts[0], month = parts[1], day = parts[2];
@@ -1070,6 +1081,22 @@ body {
             `;
 
             list.appendChild(li);
+        });
+
+        // Opportunity card tap → switch chart to that date (Day view)
+        document.getElementById('opportunities-list').addEventListener('click', function(e) {
+            const card = e.target.closest('.opportunity-card');
+            if (!card || !card.dataset.date) return;
+
+            const dateStr = card.dataset.date; // "YYYY-MM-DD"
+
+            // Update segmented control visual state
+            document.querySelectorAll('.segmented-control button')
+                .forEach(btn => btn.classList.remove('active'));
+            document.getElementById('view-day').classList.add('active');
+
+            // Load Day view for the tapped date
+            loadAltitudeChart('day', dateStr);
         });
     }
 </script>
