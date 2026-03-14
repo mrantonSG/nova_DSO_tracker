@@ -50,13 +50,40 @@ body {
 .back-bar .object-title {
     flex: 1;
     text-align: center;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--m-text);
     letter-spacing: -0.02em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    gap: 1px;
+}
+
+.back-bar .object-title .object-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.back-bar .object-title .object-id {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--m-text-muted, #888888);
+    letter-spacing: 0.02em;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Stats Strip */
@@ -427,29 +454,34 @@ body {
 <!-- Back Bar -->
 <div class="back-bar">
     <a href="{{ url_for('mobile.mobile_up_now') }}">‹ Dashboard</a>
-    <span class="object-title">{{ common_name }}</span>
+    <span class="object-title">
+        <span class="object-name">{{ common_name }}</span>
+        {% if object_name != common_name %}
+        <span class="object-id">{{ object_name }}</span>
+        {% endif %}
+    </span>
 </div>
 
 <!-- Stats Strip -->
 <div class="stats-strip">
     <div class="stat-item">
-        <div class="stat-label">Now</div>
-        <div class="stat-value primary data-mono">{{ current_alt }}°</div>
+        <div class="stat-label" id="stat-label-now">{{ _('Now') }}</div>
+        <div class="stat-value primary data-mono" id="stat-val-now">{{ current_alt }}°</div>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
-        <div class="stat-label">Trend</div>
-        <div class="stat-value data-mono">{{ trend }}</div>
+        <div class="stat-label" id="stat-label-trend">{{ _('Trend') }}</div>
+        <div class="stat-value data-mono" id="stat-val-trend">{{ trend }}</div>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
-        <div class="stat-label">Moon Sep</div>
-        <div class="stat-value data-mono">{{ moon_sep }}°</div>
+        <div class="stat-label">{{ _('Moon Sep') }}</div>
+        <div class="stat-value data-mono" id="stat-val-moon">{{ moon_sep }}°</div>
     </div>
     <div class="stat-divider"></div>
     <div class="stat-item">
-        <div class="stat-label">Obs</div>
-        <div class="stat-value data-mono">{{ obs_duration }}m</div>
+        <div class="stat-label">{{ _('Obs') }}</div>
+        <div class="stat-value data-mono" id="stat-val-obs">{{ obs_duration }}m</div>
     </div>
 </div>
 
@@ -1069,6 +1101,9 @@ body {
             const li = document.createElement('li');
             li.className = 'opportunity-card';
             li.dataset.date = opp.date;
+            li.dataset.maxAlt = opp.max_alt;
+            li.dataset.moon = opp.moon_illumination;
+            li.dataset.obs = opp.obs_minutes;
 
             const parts = opp.date.split('-');
             const year = parts[0], month = parts[1], day = parts[2];
@@ -1102,6 +1137,16 @@ body {
             list.appendChild(li);
         });
 
+        // Store original live values for restore on Day-view reset
+        const LIVE_STATS = {
+            now:   document.getElementById('stat-val-now').textContent,
+            trend: document.getElementById('stat-val-trend').textContent,
+            moon:  document.getElementById('stat-val-moon').textContent,
+            obs:   document.getElementById('stat-val-obs').textContent,
+            nowLabel:   document.getElementById('stat-label-now').textContent,
+            trendLabel: document.getElementById('stat-label-trend').textContent,
+        };
+
         // Opportunity card tap → switch chart to that date (Day view)
         document.getElementById('opportunities-list').addEventListener('click', function(e) {
             const card = e.target.closest('.opportunity-card');
@@ -1114,8 +1159,40 @@ body {
                 .forEach(btn => btn.classList.remove('active'));
             document.getElementById('view-day').classList.add('active');
 
+            // Update date pill to reflect the tapped card's date.
+            // Parse manually to avoid UTC→local shift (same pattern as renderChart).
+            const parts = dateStr.split('-');
+            const cardDate = new Date(
+                parseInt(parts[0], 10),
+                parseInt(parts[1], 10) - 1,
+                parseInt(parts[2], 10)
+            );
+            document.getElementById('date-pill').textContent =
+                cardDate.toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                });
+
+            // Update stats strip with card's own data
+            // card carries: data-max-alt, data-moon, data-obs
+            document.getElementById('stat-label-now').textContent    = 'Max Alt';
+            document.getElementById('stat-val-now').textContent      = (card.dataset.maxAlt || '—') + '°';
+            document.getElementById('stat-label-trend').textContent  = 'Moon';
+            document.getElementById('stat-val-trend').textContent    = (card.dataset.moon || '—') + '%';
+            document.getElementById('stat-val-moon').textContent     = '—';
+            document.getElementById('stat-val-obs').textContent      = (card.dataset.obs || '—') + 'm';
+
             // Load Day view for the tapped date
             loadAltitudeChart('day', dateStr);
+        });
+
+        // Restore live stats when Day button clicked manually (not via card)
+        document.getElementById('view-day').addEventListener('click', function() {
+            document.getElementById('stat-label-now').textContent   = LIVE_STATS.nowLabel;
+            document.getElementById('stat-val-now').textContent     = LIVE_STATS.now;
+            document.getElementById('stat-label-trend').textContent = LIVE_STATS.trendLabel;
+            document.getElementById('stat-val-trend').textContent   = LIVE_STATS.trend;
+            document.getElementById('stat-val-moon').textContent    = LIVE_STATS.moon;
+            document.getElementById('stat-val-obs').textContent     = LIVE_STATS.obs;
         });
     }
 </script>
