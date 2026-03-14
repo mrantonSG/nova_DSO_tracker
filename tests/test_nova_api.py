@@ -472,7 +472,7 @@ def test_mobile_pages_load_when_logged_in(client, route):
 
     assert response.status_code == 200
     # Check for the header from mobile_base.html
-    assert b"Nova Pocket" in response.data
+    assert b"Nova DSO Tracker" in response.data
 
 def test_mobile_up_now_renders_via_api(client):
     """
