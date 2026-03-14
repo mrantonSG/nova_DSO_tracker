@@ -649,10 +649,18 @@ body {
                 const moonAlt = [];
 
                 monthlyData.forEach((monthData, i) => {
-                    // Take the max altitude from each month
-                    const maxObjAlt = Math.max(...monthData.object_alt);
-                    const maxMoonAlt = Math.max(...monthData.moon_alt);
-                    const dateStr = monthData.dates[Math.floor(monthData.dates.length / 2)]; // Mid-month date
+                    // Guard against empty arrays: Math.max(...[]) === -Infinity,
+                    // which Chart.js drops silently, breaking the line.
+                    const objArr  = monthData.object_alt && monthData.object_alt.length
+                        ? monthData.object_alt : [0];
+                    const moonArr = monthData.moon_alt && monthData.moon_alt.length
+                        ? monthData.moon_alt : [0];
+
+                    const maxObjAlt  = Math.max(...objArr);
+                    const maxMoonAlt = Math.max(...moonArr);
+                    const dateStr = monthData.dates && monthData.dates.length
+                        ? monthData.dates[Math.floor(monthData.dates.length / 2)]
+                        : `${year}-${String(i + 1).padStart(2, '0')}-15`; // fallback
 
                     labels.push(dateStr);
                     objectAlt.push(maxObjAlt);
@@ -729,11 +737,17 @@ body {
         } else {
             // Month/year views: use category scale with formatted date strings
             labels = data.times.map((t, i) => {
-                const date = new Date(t);
+                // Parse date string manually to avoid UTC→local shift.
+                // "2026-03-15" must render as "15 Mar", not "14 Mar" in UTC+8.
+                const parts = String(t).substring(0, 10).split('-');
+                const day   = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10) - 1; // 0-indexed
+                const year  = parseInt(parts[0], 10);
+                const date  = new Date(year, month, day); // local midnight, no shift
                 if (view === 'month') {
                     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 } else {
-                    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+                    return date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' });
                 }
             });
             // No xMin/xMax for category scale - Chart.js handles it
@@ -742,7 +756,10 @@ body {
         }
 
         // Create gradient for object altitude line
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        // Use a fixed gradient height fallback: after destroy(), canvas.height
+        // may be 0 before Chart.js resizes it, producing an invisible gradient.
+        const gradientHeight = canvas.height > 0 ? canvas.height : 300;
+        const gradient = ctx.createLinearGradient(0, 0, 0, gradientHeight);
         gradient.addColorStop(0, 'rgba(131, 180, 197, 0.3)');
         gradient.addColorStop(1, 'rgba(131, 180, 197, 0)');
 
