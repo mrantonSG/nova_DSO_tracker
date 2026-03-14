@@ -175,12 +175,14 @@ def to_yaml_filter(data):
 LOGS_DIR = os.path.join(INSTANCE_PATH, 'logs')
 ASIAIR_LOGS_DIR = os.path.join(LOGS_DIR, 'asiair')
 PHD2_LOGS_DIR = os.path.join(LOGS_DIR, 'phd2')
+NINA_LOGS_DIR = os.path.join(LOGS_DIR, 'nina')
 
 
 def _ensure_log_dirs():
     """Ensure log directories exist."""
     os.makedirs(ASIAIR_LOGS_DIR, exist_ok=True)
     os.makedirs(PHD2_LOGS_DIR, exist_ok=True)
+    os.makedirs(NINA_LOGS_DIR, exist_ok=True)
 
 
 def save_log_to_filesystem(session_id: int, log_type: str, content: str, original_filename: str = None) -> str:
@@ -189,7 +191,7 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
 
     Args:
         session_id: The session ID
-        log_type: 'asiair' or 'phd2'
+        log_type: 'asiair', 'phd2', or 'nina'
         content: The raw log content
         original_filename: Optional original filename for reference
 
@@ -207,8 +209,12 @@ def save_log_to_filesystem(session_id: int, log_type: str, content: str, origina
 
     if log_type == 'asiair':
         filepath = os.path.join(ASIAIR_LOGS_DIR, filename)
-    else:
+    elif log_type == 'phd2':
         filepath = os.path.join(PHD2_LOGS_DIR, filename)
+    elif log_type == 'nina':
+        filepath = os.path.join(NINA_LOGS_DIR, filename)
+    else:
+        raise ValueError(f"Unknown log_type: {log_type}")
 
     with open(filepath, 'w', encoding='utf-8', errors='ignore') as f:
         f.write(content)
