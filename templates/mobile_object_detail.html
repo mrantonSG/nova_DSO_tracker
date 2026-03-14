@@ -729,6 +729,7 @@ body {
     function renderChart(data, view) {
         const canvas = document.getElementById('altitudeChartCanvas');
         const ctx = canvas.getContext('2d');
+        const isDayView = view === 'day';
 
         // Destroy existing chart
         if (chartInstance) {
@@ -779,11 +780,15 @@ body {
         let sunsetTime = null;
         let sunriseTime = null;
 
-        // Compute next-day date from data.date (API doesn't provide next.date)
-        const currentDate = new Date(data.date);
-        const nextDate = new Date(currentDate);
-        nextDate.setDate(nextDate.getDate() + 1);
-        const nextDateStr = nextDate.toISOString().split('T')[0];
+        // Compute next-day date from data.date — only valid for day view.
+        // Month/year API responses do not include a date field; guard required.
+        let nextDateStr = null;
+        if (isDayView && data.date) {
+            const currentDate = new Date(data.date);
+            const nextDate = new Date(currentDate);
+            nextDate.setDate(nextDate.getDate() + 1);
+            nextDateStr = nextDate.toISOString().split('T')[0];
+        }
 
         // Helper to create ISO timestamp from date + time string
         const createIsoTimestamp = (dateStr, timeStr) => {
@@ -794,13 +799,13 @@ body {
         if (data.sun_events?.current?.astronomical_dusk) {
             duskTime = createIsoTimestamp(data.date, data.sun_events.current.astronomical_dusk);
         }
-        if (data.sun_events?.next?.astronomical_dawn) {
+        if (isDayView && nextDateStr && data.sun_events?.next?.astronomical_dawn) {
             dawnTime = createIsoTimestamp(nextDateStr, data.sun_events.next.astronomical_dawn);
         }
         if (data.sun_events?.current?.sunset) {
             sunsetTime = createIsoTimestamp(data.date, data.sun_events.current.sunset);
         }
-        if (data.sun_events?.next?.sunrise) {
+        if (isDayView && nextDateStr && data.sun_events?.next?.sunrise) {
             sunriseTime = createIsoTimestamp(nextDateStr, data.sun_events.next.sunrise);
         }
 
@@ -922,9 +927,6 @@ body {
             borderWidth: 2,
             pointRadius: 0
         });
-
-        // Build chart options based on view type
-        const isDayView = view === 'day';
 
         chartInstance = new Chart(ctx, {
             type: 'line',
