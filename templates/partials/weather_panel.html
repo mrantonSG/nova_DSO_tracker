@@ -1,0 +1,284 @@
+{#
+  weather_panel.html — Weather tab partial for Nova DSO Tracker dashboard.
+  Include via: {% include 'partials/weather_panel.html' %}
+
+  Views:
+    - Hourly:    Scrollable time-slot grid with cloud, transparency & seeing
+    - Daily:     7-day forecast cards
+    - Satellite: Windy.com embedded iframe for cloud/precip radar
+
+  JS hooks:  data-weather-* attributes
+  CSS:       weather_panel.css (linked in base template)
+  JS:        weather_panel.js  (linked in base template)
+#}
+
+<section
+  class="weather-panel"
+  id="weather-panel"
+  aria-label="{{ _('Weather Forecast') }}"
+  data-weather-panel
+>
+
+  {# ─── Header row: title + view toggle ─────────────────────────────────── #}
+  <header class="weather-panel__header">
+    <h3 class="weather-panel__title">
+      <span class="weather-panel__title-icon" aria-hidden="true">&#9729;</span>
+      {{ _('Sky & Weather') }}
+    </h3>
+
+    <nav
+      class="weather-controls"
+      role="tablist"
+      aria-label="{{ _('Weather view selector') }}"
+      data-weather-controls
+    >
+      <button
+        class="weather-tab-btn active"
+        role="tab"
+        aria-selected="true"
+        aria-controls="weather-hourly"
+        id="weather-tab-hourly"
+        data-view="hourly"
+        data-weather-view-btn
+      >
+        {{ _('Hourly') }}
+      </button>
+      <button
+        class="weather-tab-btn"
+        role="tab"
+        aria-selected="false"
+        aria-controls="weather-daily"
+        id="weather-tab-daily"
+        data-view="daily"
+        data-weather-view-btn
+      >
+        {{ _('Daily') }}
+      </button>
+      <button
+        class="weather-tab-btn"
+        role="tab"
+        aria-selected="false"
+        aria-controls="weather-satellite"
+        id="weather-tab-satellite"
+        data-view="satellite"
+        data-weather-view-btn
+      >
+        {{ _('Satellite') }}
+      </button>
+    </nav>
+
+    <button
+      class="weather-panel__refresh"
+      type="button"
+      aria-label="{{ _('Refresh weather data') }}"
+      title="{{ _('Refresh') }}"
+      data-weather-refresh
+    >
+      &#8635;
+    </button>
+  </header>
+
+  {# ─── Loading overlay ──────────────────────────────────────────────────── #}
+  <div
+    class="weather-loading"
+    id="weather-loading"
+    role="status"
+    aria-live="polite"
+    aria-label="{{ _('Loading weather data') }}"
+    hidden
+    data-weather-loading
+  >
+    <span class="weather-spinner" aria-hidden="true"></span>
+    <span class="weather-loading__text">{{ _('Loading weather…') }}</span>
+  </div>
+
+  {# ─── Error area ───────────────────────────────────────────────────────── #}
+  <div
+    class="weather-error"
+    id="weather-error"
+    role="alert"
+    aria-live="assertive"
+    hidden
+    data-weather-error
+  >
+    <span class="weather-error__icon" aria-hidden="true">&#9888;</span>
+    <span class="weather-error__message" data-weather-error-msg></span>
+    <button
+      type="button"
+      class="weather-error__retry"
+      data-weather-retry
+    >
+      {{ _('Retry') }}
+    </button>
+  </div>
+
+  {# ─── View: Hourly ─────────────────────────────────────────────────────── #}
+  <div
+    class="weather-view weather-view--hourly active"
+    id="weather-hourly"
+    role="tabpanel"
+    aria-labelledby="weather-tab-hourly"
+    tabindex="0"
+    data-weather-view="hourly"
+  >
+    {# Legend / colour-scale help text #}
+    <aside class="weather-legend" aria-label="{{ _('Colour scale legend') }}">
+      <dl class="weather-legend__scale">
+        <div class="weather-legend__item">
+          <dt>
+            <span class="weather-legend__swatch weather-legend__swatch--good" aria-hidden="true"></span>
+          </dt>
+          <dd>{{ _('Clear / Good') }}</dd>
+        </div>
+        <div class="weather-legend__item">
+          <dt>
+            <span class="weather-legend__swatch weather-legend__swatch--fair" aria-hidden="true"></span>
+          </dt>
+          <dd>{{ _('Partly cloudy') }}</dd>
+        </div>
+        <div class="weather-legend__item">
+          <dt>
+            <span class="weather-legend__swatch weather-legend__swatch--poor" aria-hidden="true"></span>
+          </dt>
+          <dd>{{ _('Overcast / Poor') }}</dd>
+        </div>
+      </dl>
+      <p class="weather-legend__note">
+        {{ _('Colours indicate cloud cover. Hover a cell for details.') }}
+      </p>
+    </aside>
+
+    {# Scrollable hourly grid — JS will render table dynamically #}
+    <div id="weather-grid-container" class="weather-grid-wrapper" data-weather-grid-wrapper></div>
+    {# End of hourly grid #}
+  </div>
+  {# End #weather-hourly #}
+
+  {# ─── View: Daily ──────────────────────────────────────────────────────── #}
+  <div
+    class="weather-view weather-view--daily"
+    id="weather-daily"
+    role="tabpanel"
+    aria-labelledby="weather-tab-daily"
+    tabindex="0"
+    hidden
+    data-weather-view="daily"
+  >
+    <ol
+      class="weather-daily-list"
+      id="weather-daily-list"
+      aria-label="{{ _('7-day forecast') }}"
+      data-weather-daily-list
+    >
+      {#
+        JS will render each day as a <li class="weather-day-card"> with:
+          .weather-day-card__date       — weekday + date
+          .weather-day-card__icon       — weather icon glyph
+          .weather-day-card__summary    — short text summary
+          .weather-day-card__high-low   — high / low temp
+          .weather-day-card__cloud      — cloud cover %
+          .weather-day-card__precip     — precip probability %
+          .weather-day-card__rating     — ★ imaging suitability badge
+      #}
+      <li class="weather-day-card weather-day-card--placeholder" aria-hidden="true">
+        <span class="weather-day-card__skeleton"></span>
+      </li>
+    </ol>
+  </div>
+  {# End #weather-daily #}
+
+  {# ─── View: Satellite ──────────────────────────────────────────────────── #}
+  <div
+    class="weather-view weather-view--satellite"
+    id="weather-satellite"
+    role="tabpanel"
+    aria-labelledby="weather-tab-satellite"
+    tabindex="0"
+    hidden
+    data-weather-view="satellite"
+  >
+    <p class="weather-satellite__caption">
+      {{ _('Live cloud & precipitation radar via') }}
+      <a
+        href="https://www.windy.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="weather-satellite__link"
+      >Windy</a>.
+      {{ _('Coordinates follow your selected observing location.') }}
+    </p>
+
+    <div class="weather-satellite__frame-wrapper">
+      <iframe
+        id="satellite-frame"
+        class="weather-satellite__iframe"
+        src=""
+        title="{{ _('Live satellite cloud & precipitation map') }}"
+        loading="lazy"
+        allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        data-weather-satellite-frame
+      ></iframe>
+    </div>
+  </div>
+  {# End #weather-satellite #}
+
+  {# ─── Moon information bar ─────────────────────────────────────────────── #}
+  <footer
+    class="weather-moon-info"
+    id="weather-moon-info"
+    aria-label="{{ _('Moon information') }}"
+    data-weather-moon-info
+  >
+    <dl class="weather-moon-info__grid">
+      <div class="weather-moon-info__item">
+        <dt class="weather-moon-info__label">{{ _('Moon Phase') }}</dt>
+        <dd
+          class="weather-moon-info__value"
+          id="weather-moon-phase"
+          data-weather-moon-phase
+        >—</dd>
+      </div>
+
+      <div class="weather-moon-info__item">
+        <dt class="weather-moon-info__label">{{ _('Illumination') }}</dt>
+        <dd
+          class="weather-moon-info__value"
+          id="weather-moon-illumination"
+          data-weather-moon-illumination
+        >—</dd>
+      </div>
+
+      <div class="weather-moon-info__item">
+        <dt class="weather-moon-info__label">{{ _('Moonrise') }}</dt>
+        <dd
+          class="weather-moon-info__value"
+          id="weather-moon-rise"
+          data-weather-moon-rise
+        >—</dd>
+      </div>
+
+      <div class="weather-moon-info__item">
+        <dt class="weather-moon-info__label">{{ _('Moonset') }}</dt>
+        <dd
+          class="weather-moon-info__value"
+          id="weather-moon-set"
+          data-weather-moon-set
+        >—</dd>
+      </div>
+
+      <div class="weather-moon-info__item weather-moon-info__item--glyph">
+        <span
+          class="weather-moon-info__glyph"
+          id="weather-moon-glyph"
+          aria-hidden="true"
+          data-weather-moon-glyph
+          title="{{ _('Moon phase symbol') }}"
+        >&#127761;</span>
+      </div>
+    </dl>
+  </footer>
+  {# End .weather-moon-info #}
+
+</section>
+{# End #weather-panel #}

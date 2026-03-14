@@ -767,6 +767,7 @@
             const outlookWrapper = document.getElementById('outlook-wrapper');
             const heatmapWrapper = document.getElementById('heatmap-tab-content');
             const inspirationWrapper = document.getElementById('inspiration-tab-content'); // NEW
+            const weatherWrapper = document.getElementById('weather-tab-content');
     
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.toggle('active', button.dataset.tab === activeTab);
@@ -778,6 +779,7 @@
             if (outlookWrapper) outlookWrapper.style.display = 'none';
             if (heatmapWrapper) heatmapWrapper.style.display = 'none';
             if (inspirationWrapper) inspirationWrapper.style.display = 'none'; // NEW
+            if (weatherWrapper) weatherWrapper.style.display = 'none';
     
             if (dsoLoadingDiv) dsoLoadingDiv.style.display = 'none';
     
@@ -812,6 +814,11 @@
                     } else {
                         renderInspirationGrid();
                     }
+                }
+            } else if (activeTab === 'weather') {
+                if (weatherWrapper) weatherWrapper.style.display = 'block';
+                if (typeof initWeatherPanel === 'function') {
+                    initWeatherPanel();
                 }
             }
     
@@ -2212,10 +2219,13 @@
                 if (!locationSelect) return;
                 locationSelect.innerHTML = ''; // Clear existing options
     
+                // Extract location names for validation (locations now include lat/lon)
+                const locationNames = data.locations.map(loc => loc.name);
+    
                 // --- ADD: Determine initial location ---
                 let initialLocation = sessionStorage.getItem('selectedLocation');
                 // If nothing in session storage OR if the stored location is no longer valid/active, use the default from backend
-                if (!initialLocation || !data.locations.includes(initialLocation)) {
+                if (!initialLocation || !locationNames.includes(initialLocation)) {
                     initialLocation = data.selected; // 'selected' is the default from backend
                     if (initialLocation) {
                         sessionStorage.setItem('selectedLocation', initialLocation);
@@ -2225,10 +2235,13 @@
     
                 data.locations.forEach(location => {
                     let option = document.createElement('option');
-                    option.value = location;
-                    option.textContent = location;
+                    option.value = location.name;
+                    option.textContent = location.name;
+                    // Add coordinates as data attributes for weather feature
+                    if (location.lat != null) option.dataset.lat = location.lat;
+                    if (location.lon != null) option.dataset.lon = location.lon;
                     // --- MODIFY: Select based on initialLocation ---
-                    if (location === initialLocation) {
+                    if (location.name === initialLocation) {
                         option.selected = true;
                     }
                     // --- END MODIFY ---

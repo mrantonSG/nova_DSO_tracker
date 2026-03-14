@@ -17,7 +17,11 @@
     };
   </script>
 
-  <script src="{{ url_for('static', filename='js/dashboard.js') }}?v={{ version }}" defer></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+  
+  {# Weather feature #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/weather.css') }}">
+  <script src="{{ url_for('static', filename='js/weather.js') }}" defer></script>
 {% endblock %}
 
 {% block page_title %}
@@ -88,6 +92,7 @@
     <button class="tab-button" data-tab="outlook">{{ _('Outlook') }}</button>
     <button class="tab-button" data-tab="heatmap">{{ _('Heatmap') }}</button>
     <button class="tab-button" data-tab="inspiration">{{ _('Inspiration') }}</button> <button class="tab-button" data-tab="journal">{{ _('Journal') }}</button>
+    <button class="tab-button" data-tab="weather">{{ _('Weather') }}</button>
 
     <span class="help-badge" data-help-topic="search_syntax" title="{{ _('Search Syntax Guide') }}" style="margin-left: 10px;">?</span>
 
@@ -229,6 +234,11 @@
     </div>
     {% include '_heatmap_section.html' %}
     {% include '_inspiration_section.html' %}
+    
+    {# Weather tab content #}
+    <div id="weather-tab-content" style="display:none; padding: 0 var(--space-4);">
+        {% include 'partials/weather_panel.html' %}
+    </div>
 
     <div id="table-loading" style="display:none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--overlay-light); padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px var(--shadow-light); z-index: 2000; width: 300px; text-align: center; border: 1px solid var(--text-lighter);">
         <div style="font-weight: bold; color: var(--primary-dark); margin-bottom: 10px;" id="loading-message">{{ _('Updating data...') }}</div>

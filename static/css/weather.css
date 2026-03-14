@@ -1,0 +1,1198 @@
+/* ===================================================================
+   WEATHER.CSS — Astronomy Weather Grid
+   ClearDarkSky / Meteoblue-style hourly weather display for Nova DSO Tracker.
+   Dark-theme first. Uses design tokens from tokens.css and nova-theme.css.
+   =================================================================== */
+
+/* =================================================================
+   SECTION 1: LAYOUT — WEATHER PANEL
+   ================================================================ */
+
+.weather-panel {
+  background: var(--bg-dark-secondary);
+  border: 1px solid var(--bg-dark-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+}
+
+.weather-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--bg-dark-border);
+  background: var(--bg-dark-primary);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.weather-panel__title {
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--nova-accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.weather-panel__title-icon {
+  font-size: var(--font-size-base);
+  opacity: 0.85;
+}
+
+.weather-controls {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-dark-tertiary, #1a1f28);
+  padding: 3px;
+  border-radius: var(--radius-md);
+}
+
+.weather-tab-btn {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-family: var(--nova-font-sans);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.weather-tab-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-dark-secondary);
+}
+
+.weather-tab-btn:focus-visible {
+  outline: 2px solid var(--nova-accent);
+  outline-offset: 2px;
+}
+
+.weather-tab-btn.active {
+  background: var(--bg-dark-elevated, #242a36);
+  color: var(--nova-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  font-weight: var(--font-weight-semibold);
+}
+
+.weather-panel__refresh {
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--text-muted);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.weather-panel__refresh:hover {
+  background: var(--bg-dark-secondary);
+  color: var(--nova-accent);
+}
+
+.weather-panel__meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-family: var(--nova-font-mono);
+}
+
+.weather-panel__body {
+  padding: 0;
+}
+
+/* =================================================================
+   SECTION 2: GRID CONTAINER — HORIZONTAL SCROLL WITH STICKY LABELS
+   ================================================================ */
+
+.weather-grid-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-dark-border-light) transparent;
+}
+
+.weather-grid-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.weather-grid-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.weather-grid-wrapper::-webkit-scrollbar-thumb {
+  background: var(--bg-dark-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.weather-grid-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.weather-grid {
+  display: table;
+  border-collapse: collapse;
+  min-width: 100%;
+  width: max-content;
+}
+
+/* =================================================================
+   SECTION 3: HEADER ROW — HOUR LABELS
+   ================================================================ */
+
+.weather-header {
+  display: table-row;
+  background: var(--bg-dark-primary);
+}
+
+.weather-header .weather-label {
+  background: var(--bg-dark-primary);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  vertical-align: middle;
+  border-bottom: 2px solid var(--bg-dark-border);
+}
+
+.weather-header-cell {
+  display: table-cell;
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  padding: var(--space-2) var(--space-1);
+  text-align: center;
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-light);
+  border-right: 1px solid var(--bg-dark-border);
+  border-bottom: 2px solid var(--bg-dark-border);
+  vertical-align: middle;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Night hour header cells */
+.weather-header-cell.night-hour {
+  background: rgba(142, 200, 218, 0.06);
+  color: var(--nova-accent);
+}
+
+/* Astronomical twilight marker */
+.weather-header-cell.twilight-hour {
+  background: rgba(142, 200, 218, 0.03);
+  color: rgba(142, 200, 218, 0.5);
+}
+
+/* =================================================================
+   SECTION 4: ROW — SINGLE WEATHER METRIC
+   ================================================================ */
+
+.weather-row {
+  display: table-row;
+}
+
+.weather-row:last-child .weather-label,
+.weather-row:last-child .weather-cell {
+  border-bottom: none;
+}
+
+.weather-row:hover .weather-cell {
+  filter: brightness(1.1);
+}
+
+/* Row separator accent lines between major groups */
+.weather-row.row-separator .weather-label,
+.weather-row.row-separator .weather-cell {
+  border-top: 2px solid var(--bg-dark-border-light);
+}
+
+/* =================================================================
+   SECTION 5: LABEL COLUMN — STICKY LEFT SIDE
+   ================================================================ */
+
+.weather-label {
+  display: table-cell;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  min-width: 110px;
+  max-width: 110px;
+  width: 110px;
+  padding: var(--space-1-5) var(--space-4);
+  background: var(--bg-dark-secondary);
+  border-right: 2px solid var(--bg-dark-border-light);
+  border-bottom: 1px solid var(--bg-dark-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.weather-label__name {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  line-height: var(--line-height-tight);
+}
+
+.weather-label__unit {
+  display: block;
+  font-size: 9px;
+  font-weight: var(--font-weight-normal);
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  font-family: var(--nova-font-mono);
+}
+
+/* =================================================================
+   SECTION 6: WEATHER CELL — INDIVIDUAL HOUR BLOCK
+   ================================================================ */
+
+.weather-cell {
+  display: table-cell;
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  height: 36px;
+  padding: var(--space-1) 2px;
+  text-align: center;
+  vertical-align: middle;
+  border-right: 1px solid rgba(42, 46, 56, 0.6);
+  border-bottom: 1px solid var(--bg-dark-border);
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: default;
+  transition: filter 0.15s ease, transform 0.1s ease;
+  position: relative;
+  box-sizing: border-box;
+  background: var(--bg-dark-tertiary);
+}
+
+.weather-cell:last-child {
+  border-right: none;
+}
+
+/* Night hour emphasis */
+.weather-cell.night-hour {
+  border-right-color: rgba(42, 46, 56, 0.8);
+}
+
+/* Cell hover tooltip effect */
+.weather-cell[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-dark-primary);
+  border: 1px solid var(--bg-dark-border-light);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: var(--text-lighter);
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+
+/* =================================================================
+   SECTION 7: CONDITION COLOR SCALE
+   Good (1) → Bad (9) — astronomy weather grading
+   ================================================================ */
+
+/* Condition 1-2: Excellent — deep green */
+.condition-1,
+.condition-2 {
+  background-color: #166534;
+  color: #bbf7d0;
+}
+
+.condition-1 {
+  background-color: #14532d;
+}
+
+.condition-2 {
+  background-color: #166534;
+}
+
+/* Condition 3-4: Good — lime green */
+.condition-3,
+.condition-4 {
+  background-color: #3f6212;
+  color: #d9f99d;
+}
+
+.condition-3 {
+  background-color: #365314;
+}
+
+.condition-4 {
+  background-color: #3f6212;
+}
+
+/* Condition 5-6: Moderate — amber/yellow */
+.condition-5,
+.condition-6 {
+  background-color: #713f12;
+  color: #fef08a;
+}
+
+.condition-5 {
+  background-color: #713f12;
+}
+
+.condition-6 {
+  background-color: #78350f;
+}
+
+/* Condition 7-8: Poor — deep orange */
+.condition-7,
+.condition-8 {
+  background-color: #7c2d12;
+  color: #fed7aa;
+}
+
+.condition-7 {
+  background-color: #7c2d12;
+}
+
+.condition-8 {
+  background-color: #7f1d1d;
+}
+
+/* Condition 9: Bad — red */
+.condition-9 {
+  background-color: #7f1d1d;
+  color: #fecaca;
+}
+
+/* Condition unknown / no data */
+.condition-0,
+.condition-none {
+  background-color: var(--bg-dark-primary);
+  color: var(--text-muted);
+}
+
+/* Data unavailable — displayed as "—", muted and de-emphasised */
+.condition-na {
+  background: transparent;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Condition indicator dot (alternative to full cell color) */
+.condition-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.condition-dot.condition-1,
+.condition-dot.condition-2 { background: #22c55e; }
+
+.condition-dot.condition-3,
+.condition-dot.condition-4 { background: #84cc16; }
+
+.condition-dot.condition-5,
+.condition-dot.condition-6 { background: #eab308; }
+
+.condition-dot.condition-7,
+.condition-dot.condition-8 { background: #f97316; }
+
+.condition-dot.condition-9  { background: #ef4444; }
+
+/* =================================================================
+   SECTION 8: CONDITION LEGEND
+   ================================================================ */
+
+.weather-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--bg-dark-border);
+  background: var(--bg-dark-primary);
+  flex-wrap: wrap;
+}
+
+.weather-legend__label {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: var(--font-weight-semibold);
+  margin-right: var(--space-1);
+}
+
+.weather-legend__scale {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.weather-legend__swatch {
+  width: 24px;
+  height: 14px;
+  border-radius: 2px;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--nova-font-mono);
+}
+
+.weather-legend__text {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-left: var(--space-1);
+}
+
+/* =================================================================
+   SECTION 9: MOON PHASE INDICATOR
+   ================================================================ */
+
+.moon-phase-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--bg-dark-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.moon-phase {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f5f0e0;
+  box-shadow:
+    0 0 0 1px rgba(245, 240, 224, 0.2),
+    0 0 8px rgba(245, 240, 224, 0.15);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Shadow half — creates the illusion of phase */
+.moon-phase__shadow {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  background: var(--bg-dark-primary);
+  border-radius: 0;
+  transform-origin: center left;
+}
+
+/* Phases: data-phase 0=new, 25=first quarter, 50=full, 75=last quarter */
+/* New moon */
+.moon-phase[data-phase="0"] .moon-phase__shadow {
+  width: 100%;
+  left: 0;
+  border-radius: 50%;
+}
+
+/* Waxing crescent */
+.moon-phase[data-phase="12"] .moon-phase__shadow {
+  right: 0;
+  left: auto;
+  width: 75%;
+  border-radius: 50% 0 0 50%;
+}
+
+/* First quarter */
+.moon-phase[data-phase="25"] .moon-phase__shadow {
+  right: 0;
+  left: auto;
+  width: 50%;
+  border-radius: 0;
+}
+
+/* Waxing gibbous */
+.moon-phase[data-phase="37"] .moon-phase__shadow {
+  right: 0;
+  left: auto;
+  width: 25%;
+  border-radius: 0 50% 50% 0;
+}
+
+/* Full moon — no shadow */
+.moon-phase[data-phase="50"] .moon-phase__shadow {
+  display: none;
+}
+
+/* Waning gibbous */
+.moon-phase[data-phase="62"] .moon-phase__shadow {
+  left: 0;
+  width: 25%;
+  border-radius: 50% 0 0 50%;
+}
+
+/* Last quarter */
+.moon-phase[data-phase="75"] .moon-phase__shadow {
+  left: 0;
+  width: 50%;
+  border-radius: 0;
+}
+
+/* Waning crescent */
+.moon-phase[data-phase="87"] .moon-phase__shadow {
+  left: 0;
+  width: 75%;
+  border-radius: 0 50% 50% 0;
+}
+
+.moon-phase-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.moon-phase-info__name {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-lighter);
+}
+
+.moon-phase-info__illumination {
+  font-family: var(--nova-font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Moon rise/set times strip */
+.moon-times {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-left: auto;
+}
+
+.moon-time-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.moon-time-item__icon {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.moon-time-item__value {
+  font-family: var(--nova-font-mono);
+  color: var(--text-light);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Moon phase cell inside weather grid */
+.weather-cell.moon-cell {
+  background: transparent;
+  padding: 2px;
+}
+
+.moon-cell-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f5f0e0;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 4px rgba(245, 240, 224, 0.2);
+}
+
+.moon-cell-indicator .moon-phase__shadow {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--bg-dark-tertiary);
+}
+
+/* =================================================================
+   SECTION 10: DAILY SUMMARY CARD
+   ================================================================ */
+
+.weather-daily-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-dark-primary);
+  border-top: 1px solid var(--bg-dark-border);
+}
+
+.weather-daily-card {
+  background: var(--bg-dark-secondary);
+  border: 1px solid var(--bg-dark-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+}
+
+.weather-daily-card:hover {
+  border-color: var(--bg-dark-border-light);
+  box-shadow: var(--shadow-md);
+}
+
+.weather-daily-card--tonight {
+  border-color: rgba(142, 200, 218, 0.25);
+  background: rgba(142, 200, 218, 0.04);
+}
+
+.weather-daily-card--tonight .weather-daily-card__date {
+  color: var(--nova-accent);
+}
+
+.weather-daily-card__date {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.weather-daily-card__night {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--nova-font-mono);
+  margin-top: -var(--space-1);
+}
+
+.weather-daily-card__score {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.weather-daily-card__score-value {
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.weather-daily-card__score-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.weather-daily-card__metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-top: 1px solid var(--bg-dark-border);
+  padding-top: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.weather-daily-card__metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weather-daily-card__metric-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.weather-daily-card__metric-value {
+  font-family: var(--nova-font-mono);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-light);
+}
+
+/* Condition-colored score value */
+.weather-daily-card__score-value.score-excellent { color: #22c55e; }
+.weather-daily-card__score-value.score-good      { color: #84cc16; }
+.weather-daily-card__score-value.score-moderate  { color: #eab308; }
+.weather-daily-card__score-value.score-poor      { color: #f97316; }
+.weather-daily-card__score-value.score-bad       { color: #ef4444; }
+
+/* Mini condition bar inside daily card */
+.weather-daily-card__bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  gap: 1px;
+  margin-top: var(--space-1);
+}
+
+.weather-daily-card__bar-segment {
+  flex: 1;
+  border-radius: 1px;
+}
+
+/* =================================================================
+   SECTION 11: SATELLITE IMAGE VIEWER
+   ================================================================ */
+
+.satellite-viewer {
+  position: relative;
+  background: var(--bg-dark-primary);
+  border: 1px solid var(--bg-dark-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: var(--space-6);
+}
+
+.satellite-viewer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--bg-dark-border);
+  background: var(--bg-dark-secondary);
+}
+
+.satellite-viewer__title {
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--nova-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.satellite-viewer__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.satellite-viewer__btn {
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border: 1px solid var(--bg-dark-border-light);
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  font-size: var(--font-size-xs);
+  font-family: var(--nova-font-mono);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.satellite-viewer__btn:hover {
+  background: rgba(142, 200, 218, 0.08);
+  border-color: var(--nova-accent);
+  color: var(--nova-accent);
+}
+
+.satellite-viewer__btn.active {
+  background: rgba(142, 200, 218, 0.12);
+  border-color: rgba(142, 200, 218, 0.4);
+  color: var(--nova-accent);
+}
+
+.satellite-viewer__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.satellite-viewer__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.satellite-viewer__embed {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.satellite-viewer__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 17, 24, 0.6);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-family: var(--nova-font-mono);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.satellite-viewer__frame.loading .satellite-viewer__overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.satellite-viewer__footer {
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--bg-dark-border);
+  background: var(--bg-dark-secondary);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--nova-font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* =================================================================
+   SECTION 12: WIND & NUMERIC CELL VARIANTS
+   ================================================================ */
+
+/* Wind direction arrow inside cell */
+.weather-cell .wind-arrow {
+  display: inline-block;
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.3s ease;
+}
+
+/* Numeric value display with unit */
+.weather-cell .cell-value {
+  display: block;
+  font-family: var(--nova-font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+}
+
+.weather-cell .cell-unit {
+  display: block;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1;
+  margin-top: 1px;
+}
+
+/* =================================================================
+   SECTION 13: SEEING SCALE DOTS (Antoniadi / Pickering)
+   ================================================================ */
+
+.seeing-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+}
+
+.seeing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.seeing-dot.active {
+  opacity: 1;
+}
+
+/* =================================================================
+   SECTION 14: NIGHT TWILIGHT MARKER BAR
+   Visual indicator above hour cells for astronomical night
+   ================================================================ */
+
+.twilight-bar {
+  display: table-row;
+  height: 4px;
+}
+
+.twilight-bar__label {
+  display: table-cell;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: var(--bg-dark-secondary);
+  border-right: 2px solid var(--bg-dark-border-light);
+}
+
+.twilight-bar__segment {
+  display: table-cell;
+  height: 4px;
+  width: 52px;
+  min-width: 52px;
+}
+
+.twilight-bar__segment.civil {
+  background: rgba(251, 191, 36, 0.3);  /* twilight gold */
+}
+
+.twilight-bar__segment.nautical {
+  background: rgba(99, 102, 241, 0.35); /* nautical blue */
+}
+
+.twilight-bar__segment.astronomical {
+  background: rgba(30, 41, 59, 0.8);    /* deep navy */
+}
+
+.twilight-bar__segment.night {
+  background: rgba(15, 20, 40, 0.95);   /* true night */
+}
+
+.twilight-bar__segment.day {
+  background: rgba(251, 191, 36, 0.15); /* daytime glow */
+}
+
+/* =================================================================
+   SECTION 15: STATUS & LOADING STATES
+   ================================================================ */
+
+.weather-panel--loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.weather-loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-family: var(--nova-font-mono);
+}
+
+.weather-loading-spinner::before {
+  content: '';
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--bg-dark-border-light);
+  border-top-color: var(--nova-accent);
+  border-radius: 50%;
+  animation: weather-spin 0.8s linear infinite;
+}
+
+@keyframes weather-spin {
+  to { transform: rotate(360deg); }
+}
+
+.weather-panel--error {
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.weather-panel--empty {
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-family: var(--nova-font-mono);
+}
+
+/* =================================================================
+   SECTION 16: SOURCE BADGE — ClearDarkSky / Meteoblue attribution
+   ================================================================ */
+
+.weather-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: 2px var(--space-2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--bg-dark-border);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-family: var(--nova-font-mono);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.weather-source-badge:hover {
+  border-color: var(--bg-dark-border-light);
+  color: var(--text-light);
+}
+
+.weather-source-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nova-accent);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+/* =================================================================
+   SECTION 17: RESPONSIVE ADJUSTMENTS
+   ================================================================ */
+
+@media (max-width: 768px) {
+  .weather-label {
+    min-width: 80px;
+    max-width: 80px;
+    width: 80px;
+    padding: var(--space-1) var(--space-2-5);
+  }
+
+  .weather-label__name {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  .weather-label__unit {
+    display: none;
+  }
+
+  .weather-cell,
+  .weather-header-cell {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+  }
+
+  .weather-panel__header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .weather-daily-cards {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .moon-phase-container {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .moon-times {
+    margin-left: 0;
+    gap: var(--space-3);
+  }
+
+  .satellite-viewer__frame {
+    min-height: 200px;
+    aspect-ratio: 4 / 3;
+  }
+}
+
+@media (max-width: 480px) {
+  .weather-label {
+    min-width: 68px;
+    max-width: 68px;
+    width: 68px;
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .weather-cell,
+  .weather-header-cell {
+    width: 38px;
+    min-width: 38px;
+    max-width: 38px;
+    font-size: 9px;
+  }
+
+  .weather-daily-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .weather-legend {
+    gap: var(--space-2);
+  }
+}
+
+/* =================================================================
+   SECTION 18: PRINT STYLES
+   ================================================================ */
+
+@media print {
+  .weather-panel {
+    border: 1px solid #ccc;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .weather-grid-wrapper {
+    overflow: visible;
+  }
+
+  .weather-cell {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Satellite View - weather-satellite__* classes
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.weather-satellite__caption {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.weather-satellite__link {
+  color: var(--nova-accent);
+  text-decoration: none;
+}
+
+.weather-satellite__link:hover {
+  text-decoration: underline;
+}
+
+.weather-satellite__frame-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 400px;
+  background: var(--bg-dark);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin: var(--space-3) auto;
+  max-width: 900px;
+}
+
+.weather-satellite__iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
