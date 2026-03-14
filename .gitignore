@@ -1,3 +1,16 @@
 instance
 nova_data
 
+/scratches/
+/venv/
+/cache/
+# PyCharm/IntelliJ IDE files
+.idea/
+*.iml
+/instance/
+/tests/instance/
+/.run/
+instance/logs/
+
+__pycache__/
+*.pyc
