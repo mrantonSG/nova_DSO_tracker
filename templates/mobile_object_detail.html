@@ -403,6 +403,23 @@ body {
     color: var(--m-text-muted);
     font-size: 14px;
 }
+
+/* Sticky chart region — does not scroll */
+.chart-container,
+.chart-controls,
+.action-row,
+.tab-strip {
+    flex-shrink: 0;
+}
+
+/* Scrollable tab content — fills remaining height */
+.tab-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: env(safe-area-inset-bottom, 80px);
+    /* 80px clears the fixed bottom nav */
+}
 </style>
 {% endblock %}
 
@@ -465,7 +482,7 @@ body {
 </div>
 
 <!-- Opportunities Tab Content -->
-<div id="content-opportunities" class="tab-content active">
+<div id="content-opportunities" class="tab-content tab-scroll active">
     <ul class="item-list" id="opportunities-list">
         <li class="loading" id="opportunities-loading">
             {{ _('Loading opportunities...') }}
@@ -474,7 +491,7 @@ body {
 </div>
 
 <!-- Notes Tab Content -->
-<div id="content-notes" class="tab-content">
+<div id="content-notes" class="tab-content tab-scroll">
     <div class="notes-content">
         {% if notes_html %}
             {{ notes_html | safe }}

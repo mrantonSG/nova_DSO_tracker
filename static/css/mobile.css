@@ -18,7 +18,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     margin: 0;
-    padding: 0 0 100px 0; /* Add padding at the bottom for the nav bar */
+    padding: 0;
     background-color: var(--bg-light-gray-alt4);
     color: var(--text-primary);
     height: 100%; /* Make body fill the html */
@@ -40,13 +40,11 @@ body {
 }
 
 .container {
-    padding: 20px;
-    flex: 1; /* Make it fill the space between header and nav */
-    overflow-y: auto; /* Make THIS element scroll */
-    -webkit-overflow-scrolling: touch; /* Smooth iOS scrolling */
-
-    /* Add padding so content scrolls clear of the nav bar */
-    padding-bottom: 100px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
 }
 
 /* --- Loading / Messages --- */
@@ -164,46 +162,61 @@ trix-editor {
     cursor: not-allowed;
 }
 
-/* --- Navigation Menu (Button Style) --- */
+/* --- Bottom Navigation (Bar Indicator Style) --- */
 .mobile-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     display: flex;
-    background-color: var(--bg-light-gray-alt4); /* Use main page background */
-    border-top: var(--input-border-width) solid var(--border-medium);
-    box-shadow: var(--shadow-sm);
-    padding: var(--space-1); /* Add padding around the bar */
-    gap: var(--space-1); /* Add a small gap between buttons */
-    padding-bottom: env(safe-area-inset-bottom);
+    flex-direction: row;
+    background: var(--bg-secondary, #ffffff);
+    border-top: 1px solid var(--border-color, #e5e2dc);
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+    z-index: 100;
     transform: translateZ(0);
 }
+
 .mobile-nav a {
-    flex: 1; /* Each item takes equal width */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 0 6px;
+    height: 52px;
     text-align: center;
-    padding: 14px var(--space-1); /* Make buttons taller */
-    color: var(--text-primary);
+    color: var(--text-muted, #888888);
     text-decoration: none;
-    font-size: 0.9rem; /* Slightly larger text */
-    font-weight: var(--font-weight-medium);
-    border-radius: var(--radius-xl); /* Rounded corners for buttons */
-    background-color: var(--bg-white);
-    border: var(--input-border-width) solid var(--border-medium);
-    transition: background-color 0.2s, color 0.2s;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* This is the "nova-green" active button */
+.mobile-nav a .nav-bar {
+    display: block;
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+    background: transparent;
+    margin: 0 auto 6px;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
 .mobile-nav a.active {
-    background-color: var(--primary-dark); /* Your app's green color */
-    color: var(--text-white);
-    font-weight: var(--font-weight-bold);
-    border-color: var(--primary-dark);
+    color: var(--primary-color, #83b4c5);
+    font-weight: 700;
+    background: transparent;
 }
 
-/* This hides the old emoji <span> tags */
-.mobile-nav a span {
-   display: none;
+.mobile-nav a.active .nav-bar {
+    background: var(--primary-color, #83b4c5);
 }
 .form-group input[readonly] {
     font-size: 1.1rem;
