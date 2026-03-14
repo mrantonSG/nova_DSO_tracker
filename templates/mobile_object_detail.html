@@ -313,20 +313,17 @@ body {
     color: #c09030;
 }
 
-.opp-window {
-    font-size: 13px;
-    font-family: var(--font-mono);
-    color: var(--m-text-muted);
-    margin-bottom: 8px;
-    background: var(--m-surface2);
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 20px;
+.opp-window-inline {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--m-text-muted, #888888);
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    white-space: nowrap;
 }
 
 .opp-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 8px;
 }
 
@@ -1103,6 +1100,7 @@ body {
             li.dataset.date = opp.date;
             li.dataset.maxAlt = opp.max_alt;
             li.dataset.moon = opp.moon_illumination;
+            li.dataset.moonSep = opp.moon_separation !== undefined ? Math.round(opp.moon_separation) : '';
             li.dataset.obs = opp.obs_minutes;
 
             const parts = opp.date.split('-');
@@ -1115,9 +1113,9 @@ body {
             li.innerHTML = `
                 <div class="opp-header">
                     <span class="opp-date">${formattedDate}</span>
+                    <span class="opp-window-inline">${opp.from_time} – ${opp.to_time}</span>
                     <span class="opp-rating">${rating}</span>
                 </div>
-                <div class="opp-window">${opp.from_time} – ${opp.to_time}</div>
                 <div class="opp-stats">
                     <div class="opp-stat">
                         <span class="opp-stat-label">MAX ALT</span>
@@ -1126,6 +1124,10 @@ body {
                     <div class="opp-stat">
                         <span class="opp-stat-label">MOON</span>
                         <span class="opp-stat-value">${opp.moon_illumination}%</span>
+                    </div>
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">MOON SEP</span>
+                        <span class="opp-stat-value">${opp.moon_separation !== undefined ? Math.round(opp.moon_separation) + '°' : '—'}</span>
                     </div>
                     <div class="opp-stat">
                         <span class="opp-stat-label">DURATION</span>
@@ -1173,12 +1175,13 @@ body {
                 });
 
             // Update stats strip with card's own data
-            // card carries: data-max-alt, data-moon, data-obs
+            // card carries: data-max-alt, data-moon, data-moon-sep, data-obs
             document.getElementById('stat-label-now').textContent    = 'Max Alt';
             document.getElementById('stat-val-now').textContent      = (card.dataset.maxAlt || '—') + '°';
             document.getElementById('stat-label-trend').textContent  = 'Moon';
             document.getElementById('stat-val-trend').textContent    = (card.dataset.moon || '—') + '%';
-            document.getElementById('stat-val-moon').textContent     = '—';
+            document.getElementById('stat-val-moon').textContent    =
+                (card.dataset.moonSep ? card.dataset.moonSep + '°' : '—');
             document.getElementById('stat-val-obs').textContent      = (card.dataset.obs || '—') + 'm';
 
             // Load Day view for the tapped date

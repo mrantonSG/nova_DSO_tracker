@@ -431,7 +431,7 @@ def mobile_object_detail(object_name):
 
     return render_template('mobile_object_detail.html',
                            object_name=object_name,
-                           common_name=obj_record.get('common_name', object_name),
+                           common_name=obj_record.get('Common Name') or object_name,
                            current_alt=f"{current_alt:.1f}",
                            current_az=f"{current_az:.1f}",
                            trend=trend,
