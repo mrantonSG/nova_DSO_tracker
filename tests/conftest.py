@@ -335,7 +335,6 @@ def mu_client_logged_out(db_session, monkeypatch):
 
 @pytest.fixture
 def su_client_not_logged_in(db_session, monkeypatch):
-    # ... (content remains unchanged) ...
     monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
 
     class SingleUserTest(UserMixin):
@@ -372,33 +371,6 @@ def su_client_not_logged_in(db_session, monkeypatch):
 
     with app.test_client() as client:
         client.get('/')
-        yield client
-    # ... (content remains unchanged) ...
-    monkeypatch.setattr('nova.SINGLE_USER_MODE', True)
-
-    class SingleUserTest(UserMixin):
-        def __init__(self, user_id, username):
-            self.id = user_id
-            self.username = username
-
-    monkeypatch.setattr('nova.User', SingleUserTest)
-
-    app.config['TESTING'] = True
-    app.config['SECRET_KEY'] = 'test-secret-key'
-
-    user = get_or_create_db_user(db_session, "default")
-    location = Location(
-        user_id=user.id,
-        name="Default Test Loc",
-        lat=50,
-        lon=10,
-        timezone="UTC",
-        is_default=True
-    )
-    db_session.add(location)
-    db_session.commit()
-
-    with app.test_client() as client:
         yield client
 
 # Alias for backward compatibility - some tests may use this name
