@@ -6,6 +6,404 @@
 {% block header_title %}{{ common_name }}{% endblock %}
 
 {% block head %}
+<style>
+/* Mobile Object Detail - Nova Design System */
+:root {
+    --m-bg: var(--bg-primary);
+    --m-surface: var(--bg-secondary);
+    --m-surface2: var(--bg-tertiary);
+    --m-border: var(--border-color);
+    --m-accent: var(--primary-color);
+    --m-accent-dark: var(--primary-hover);
+    --m-accent-bg: var(--primary-bg);
+    --m-text: var(--text-primary);
+    --m-text-muted: var(--text-muted);
+    --m-text-faint: var(--text-faint);
+    --m-green: #3d8a55;
+    --m-red: #b84040;
+}
+
+/* Page background */
+body {
+    background: var(--m-bg);
+}
+
+/* Back Bar */
+.back-bar {
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+    height: 44px;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.back-bar a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-accent-dark);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.back-bar .object-title {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--m-text);
+    letter-spacing: -0.02em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Stats Strip */
+.stats-strip {
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: row;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--m-text-faint);
+}
+
+.stat-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m-text);
+    font-family: var(--font-mono);
+}
+
+.stat-value.primary {
+    color: var(--m-accent-dark);
+}
+
+.stat-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--m-border);
+    margin: 0 12px;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+/* Trend colors */
+.stat-value[data-trend="up"],
+.stat-value:has(.trend-up) {
+    color: var(--m-green);
+}
+.stat-value[data-trend="down"],
+.stat-value:has(.trend-down) {
+    color: var(--m-red);
+}
+
+/* Chart Container */
+.chart-container {
+    background: var(--m-surface);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--m-border);
+}
+
+.chart-canvas,
+#altitudeChartCanvas {
+    height: 200px;
+    width: 100%;
+}
+
+/* Chart Controls */
+.chart-controls {
+    padding: 10px 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+}
+
+.segmented-control {
+    background: var(--m-surface2);
+    border-radius: 8px;
+    padding: 2px;
+    display: flex;
+    gap: 2px;
+}
+
+.segmented-control button {
+    padding: 5px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    color: var(--m-text-muted);
+    background: transparent;
+}
+
+.segmented-control button.active {
+    background: var(--m-surface);
+    color: var(--m-accent-dark);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#date-pill {
+    margin-left: auto;
+    background: var(--m-surface2);
+    border: 1px solid var(--border-color, #d0cdc8);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--m-text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Action Row */
+.action-row {
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+}
+
+.action-btn {
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    display: block;
+}
+
+.action-btn:hover {
+    filter: brightness(0.95);
+}
+
+.action-btn.primary {
+    background: var(--m-accent);
+    color: #ffffff;
+    border: none;
+}
+
+.action-btn.ghost-teal {
+    background: var(--m-accent-bg);
+    color: var(--m-accent-dark);
+    border: 1px solid var(--m-accent, #83b4c5);
+}
+
+.action-btn.ghost {
+    background: transparent;
+    color: var(--m-text-muted);
+    border: 1px solid var(--border-color, #d0cdc8);
+}
+
+/* Tab Strip */
+.tab-strip {
+    background: var(--m-surface);
+    border-bottom: 1px solid var(--m-border);
+    padding: 0 16px;
+    display: flex;
+    gap: 0;
+}
+
+.tab-strip button {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--m-text-muted);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+}
+
+.tab-strip button.active {
+    color: var(--m-accent-dark);
+    font-weight: 600;
+    border-bottom-color: var(--m-accent);
+}
+
+.tab-content {
+    display: none;
+    background: var(--m-bg);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Opportunities List */
+#opportunities-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.opportunity-card {
+    background: var(--m-surface);
+    border-radius: 10px;
+    border: 1px solid var(--m-border);
+    padding: 12px 14px;
+    margin: 0 16px 10px;
+    list-style: none;
+}
+
+.opp-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.opp-date {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+}
+
+.opp-rating {
+    font-size: 13px;
+    color: #c09030;
+}
+
+.opp-window {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--m-text-muted);
+    margin-bottom: 8px;
+    background: var(--m-surface2);
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.opp-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.opp-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.opp-stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--m-text-faint);
+}
+
+.opp-stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m-text);
+    font-family: var(--font-mono);
+}
+
+/* Legacy opportunity card styles for compatibility */
+.opportunity-date {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m-text);
+}
+
+.opportunity-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.opportunity-window {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--m-text-muted);
+    background: var(--m-surface2);
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.opportunity-rating {
+    font-size: 13px;
+    color: #c09030;
+}
+
+.opportunity-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.opportunity-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.opportunity-stat strong {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--m-text-faint);
+}
+
+/* Notes Tab */
+.notes-content {
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--m-text);
+}
+
+.notes-edit-link {
+    display: block;
+    margin: 0 16px 16px;
+    font-size: 13px;
+    color: var(--m-accent-dark);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.form-hint {
+    color: var(--m-text-faint);
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Loading message */
+.loading,
+.message {
+    padding: 16px;
+    text-align: center;
+    color: var(--m-text-muted);
+    font-size: 14px;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -13,7 +411,6 @@
 <div class="back-bar">
     <a href="{{ url_for('mobile.mobile_up_now') }}">‹ Dashboard</a>
     <span class="object-title">{{ common_name }}</span>
-    <a href="#" class="menu-btn">⋯</a>
 </div>
 
 <!-- Stats Strip -->
@@ -628,15 +1025,24 @@
             const rating = opp.rating || '';
 
             li.innerHTML = `
-                <div class="opportunity-date">${formattedDate}</div>
-                <div class="opportunity-header">
-                    <span class="opportunity-window">${opp.from_time} - ${opp.to_time}</span>
-                    <span class="opportunity-rating">${rating}</span>
+                <div class="opp-header">
+                    <span class="opp-date">${formattedDate}</span>
+                    <span class="opp-rating">${rating}</span>
                 </div>
-                <div class="opportunity-stats">
-                    <div class="opportunity-stat"><strong>${i18n.maxAlt}</strong> ${opp.max_alt}°</div>
-                    <div class="opportunity-stat"><strong>${i18n.moon}</strong> ${opp.moon_illumination}%</div>
-                    <div class="opportunity-stat"><strong>${i18n.duration}</strong> ${opp.obs_minutes}m</div>
+                <div class="opp-window">${opp.from_time} – ${opp.to_time}</div>
+                <div class="opp-stats">
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">MAX ALT</span>
+                        <span class="opp-stat-value">${opp.max_alt}°</span>
+                    </div>
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">MOON</span>
+                        <span class="opp-stat-value">${opp.moon_illumination}%</span>
+                    </div>
+                    <div class="opp-stat">
+                        <span class="opp-stat-label">DURATION</span>
+                        <span class="opp-stat-value">${opp.obs_minutes}m</span>
+                    </div>
                 </div>
             `;
 
