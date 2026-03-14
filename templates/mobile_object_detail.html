@@ -752,6 +752,12 @@ body {
         let sunsetTime = null;
         let sunriseTime = null;
 
+        // Compute next-day date from data.date (API doesn't provide next.date)
+        const currentDate = new Date(data.date);
+        const nextDate = new Date(currentDate);
+        nextDate.setDate(nextDate.getDate() + 1);
+        const nextDateStr = nextDate.toISOString().split('T')[0];
+
         // Helper to create ISO timestamp from date + time string
         const createIsoTimestamp = (dateStr, timeStr) => {
             if (!timeStr || !timeStr.includes(':')) return null;
@@ -762,13 +768,13 @@ body {
             duskTime = createIsoTimestamp(data.date, data.sun_events.current.astronomical_dusk);
         }
         if (data.sun_events?.next?.astronomical_dawn) {
-            dawnTime = createIsoTimestamp(data.sun_events.next.date, data.sun_events.next.astronomical_dawn);
+            dawnTime = createIsoTimestamp(nextDateStr, data.sun_events.next.astronomical_dawn);
         }
         if (data.sun_events?.current?.sunset) {
             sunsetTime = createIsoTimestamp(data.date, data.sun_events.current.sunset);
         }
         if (data.sun_events?.next?.sunrise) {
-            sunriseTime = createIsoTimestamp(data.sun_events.next.date, data.sun_events.next.sunrise);
+            sunriseTime = createIsoTimestamp(nextDateStr, data.sun_events.next.sunrise);
         }
 
         // Build sun event annotations (vertical lines)
@@ -877,7 +883,7 @@ body {
                 borderWidth: 2,
                 pointRadius: 0,
                 tension: 0.1,
-                fill: 'start'
+                fill: false
             });
         }
 
