@@ -30,24 +30,24 @@
 <nav class="mobile-nav">
     {% if current_user.is_authenticated %}
         <a href="{{ url_for('mobile.mobile_up_now') }}" id="nav-up-now">
-            <span>🌌</span>
+            <span class="nav-bar"></span>
             {{ _('Up Now') }}
         </a>
         <a href="{{ url_for('mobile.mobile_outlook') }}" id="nav-outlook">
-            <span>🗓️</span>
+            <span class="nav-bar"></span>
             {{ _('Outlook') }}
         </a>
         <a href="{{ url_for('mobile.mobile_add_object') }}" id="nav-add-object">
-            <span>✨</span>
+            <span class="nav-bar"></span>
             {{ _('Add Object') }}
         </a>
         <a href="{{ url_for('mobile.mobile_location') }}" id="nav-location">
-            <span>🌍</span>
+            <span class="nav-bar"></span>
             {{ _('Location') }}
         </a>
     {% else %}
         <a href="{{ url_for('core.login', next=request.path) }}" id="nav-login">
-            <span>🔑</span>
+            <span class="nav-bar"></span>
             {{ _('Log In') }}
         </a>
     {% endif %}
