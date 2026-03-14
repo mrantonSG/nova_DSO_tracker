@@ -7731,6 +7731,63 @@ def api_mobile_data_chunk():
         "limit": limit
     })
 
+
+@api_bp.route('/api/mobile_status')
+@login_required
+def api_mobile_status():
+    """Returns moon phase and sun events for the mobile status strip."""
+    load_full_astro_context()
+
+    user = g.db_user
+    location_name = g.selected_location
+
+    if not user or not location_name:
+        return jsonify({"error": "No location selected"}), 400
+
+    db = get_db()
+    location_db_obj = db.query(Location).filter_by(user_id=user.id, name=location_name).one_or_none()
+
+    if not location_db_obj:
+        return jsonify({"error": "Location not found"}), 404
+
+    try:
+        lat = location_db_obj.lat
+        lon = location_db_obj.lon
+        tz_name = location_db_obj.timezone
+        local_tz = pytz.timezone(tz_name)
+    except Exception as e:
+        return jsonify({"error": f"Invalid location data: {e}"}), 400
+
+    current_datetime_local = datetime.now(local_tz)
+
+    # Determine "Observing Night" Date (Noon-to-Noon Logic)
+    if current_datetime_local.hour < 12:
+        local_date = (current_datetime_local - timedelta(days=1)).strftime('%Y-%m-%d')
+    else:
+        local_date = current_datetime_local.strftime('%Y-%m-%d')
+
+    # Calculate moon phase
+    try:
+        time_for_phase_local = local_tz.localize(
+            datetime.combine(datetime.now().date(), datetime.min.time().replace(hour=12)))
+        moon_phase = round(ephem.Moon(time_for_phase_local.astimezone(pytz.utc)).phase, 0)
+    except Exception:
+        moon_phase = None
+
+    # Calculate sun events
+    try:
+        sun_events = calculate_sun_events_cached(local_date, tz_name, lat, lon)
+        dusk = sun_events.get("astronomical_dusk", "—")
+        dawn = sun_events.get("astronomical_dawn", "—")
+        dusk_dawn = f"{dusk}–{dawn}" if dusk != "N/A" and dawn != "N/A" else "—"
+    except Exception:
+        dusk_dawn = "—"
+
+    return jsonify({
+        "moon_phase": moon_phase,
+        "dusk_dawn": dusk_dawn
+    })
+
 def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db=None):
     """
     Server-side function to get all data for the mobile 'Up Now' page in one pass.

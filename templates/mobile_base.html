@@ -18,7 +18,7 @@
 {% if not hide_header %}
 <header class="header">
     <a href="{{ url_for('core.index') }}" class="header-link">{{ _('Main Site') }}</a>
-    <h1>{{ _('Nova Pocket') }}</h1>
+    <h1>{{ _('Nova DSO Tracker') }}</h1>
     <p class="header-subtitle">{% block header_title %}{{ _('Up Now') }}{% endblock %}</p>
 </header>
 {% endif %}
@@ -95,8 +95,11 @@
         } else if (path.includes('/m/journal')) {
             // Journal is accessed from Up Now
             document.getElementById('nav-up-now').classList.add('active');
+        } else if (path === '/m' || path === '/m/') {
+            // Root /m page activates Up Now
+            document.getElementById('nav-up-now').classList.add('active');
         } else {
-            // Default to 'Add Object' only for /m or /m/add_object
+            // Default to 'Add Object' for /m/add_object or other pages
             const btn = document.getElementById('nav-add-object');
             if (btn) btn.classList.add('active');
         }
