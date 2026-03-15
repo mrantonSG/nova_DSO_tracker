@@ -26,6 +26,9 @@ RUN python -m pip install --upgrade pip setuptools wheel \
 # ---- App code ----
 COPY . .
 
+# Compile translations (Flask-Babel)
+RUN pybabel compile -d translations
+
 # ---- Runtime config ----
 EXPOSE 5001
 

@@ -5536,33 +5536,240 @@ msgstr ""
 #~ msgid "Go to config to manage objects"
 #~ msgstr ""
 
-#~ msgid "ASIAIR Log:"
-#~ msgstr ""
 
-#~ msgid "ASIAIR Autorun Log (.txt/.log)"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Weather Forecast"
+msgstr "Weather Forecast"
 
-#~ msgid "PHD2 Guide Log:"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Sky & Weather"
+msgstr "Sky & Weather"
 
-#~ msgid "PHD2 Guide Log (.txt/.log)"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Weather view selector"
+msgstr "Weather view selector"
 
-#~ msgid "Nova Pocket"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Hourly"
+msgstr "Hourly"
 
-#~ msgid "Search by name (e.g., M42 or Orion)..."
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Daily"
+msgstr "Daily"
 
-#~ msgid "No objects found."
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Satellite"
+msgstr "Satellite"
 
-#~ msgid "Not visible"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Refresh weather data"
+msgstr "Refresh weather data"
 
-#~ msgid "Altitude:"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Refresh"
+msgstr "Refresh"
 
-#~ msgid "Azimuth:"
-#~ msgstr ""
+#: templates/partials/weather_panel.html
+msgid "Loading weather data"
+msgstr "Loading weather data"
+
+#: templates/partials/weather_panel.html
+msgid "Loading weather…"
+msgstr "Loading weather…"
+
+#: templates/partials/weather_panel.html
+msgid "Retry"
+msgstr "Retry"
+
+#: templates/partials/weather_panel.html
+msgid "Colour scale legend"
+msgstr "Colour scale legend"
+
+#: templates/partials/weather_panel.html
+msgid "Clear / Good"
+msgstr "Clear / Good"
+
+#: templates/partials/weather_panel.html
+msgid "Partly cloudy"
+msgstr "Partly cloudy"
+
+#: templates/partials/weather_panel.html
+msgid "Overcast / Poor"
+msgstr "Overcast / Poor"
+
+#: templates/partials/weather_panel.html
+msgid "Colours indicate cloud cover. Hover a cell for details."
+msgstr "Colours indicate cloud cover. Hover a cell for details."
+
+#: templates/partials/weather_panel.html
+msgid "7-day forecast"
+msgstr "7-day forecast"
+
+#: templates/partials/weather_panel.html
+msgid "Live cloud & precipitation radar via"
+msgstr "Live cloud & precipitation radar via"
+
+#: templates/partials/weather_panel.html
+msgid "Coordinates follow your selected observing location."
+msgstr "Coordinates follow your selected observing location."
+
+#: templates/partials/weather_panel.html
+msgid "Live satellite cloud & precipitation map"
+msgstr "Live satellite cloud & precipitation map"
+
+#: templates/partials/weather_panel.html
+msgid "Moon information"
+msgstr "Moon information"
+
+#: templates/partials/weather_panel.html
+msgid "Moonrise"
+msgstr "Moonrise"
+
+#: templates/partials/weather_panel.html
+msgid "Moonset"
+msgstr "Moonset"
+
+#: templates/partials/weather_panel.html
+msgid "Clear"
+msgstr "Clear"
+
+#: templates/partials/weather_panel.html
+msgid "Mostly Clear"
+msgstr "Mostly Clear"
+
+#: templates/partials/weather_panel.html
+msgid "Partly Cloudy"
+msgstr "Partly Cloudy"
+
+#: templates/partials/weather_panel.html
+msgid "Mostly Cloudy"
+msgstr "Mostly Cloudy"
+
+#: templates/partials/weather_panel.html
+msgid "Overcast"
+msgstr "Overcast"
+
+#: templates/partials/weather_panel.html
+msgid "Very Cloudy"
+msgstr "Very Cloudy"
+
+#: templates/partials/weather_panel.html
+msgid "Excellent"
+msgstr "Excellent"
+
+#: templates/partials/weather_panel.html
+msgid "Very Good"
+msgstr "Very Good"
+
+#: templates/partials/weather_panel.html
+msgid "Good"
+msgstr "Good"
+
+#: templates/partials/weather_panel.html
+msgid "Average"
+msgstr "Average"
+
+#: templates/partials/weather_panel.html
+msgid "Below Avg"
+msgstr "Below Avg"
+
+#: templates/partials/weather_panel.html
+msgid "Poor"
+msgstr "Poor"
+
+#: templates/partials/weather_panel.html
+msgid "Very Poor"
+msgstr "Very Poor"
+
+#: templates/partials/weather_panel.html
+msgid "Fair"
+msgstr "Fair"
+
+#: templates/partials/weather_panel.html
+msgid "Terrible"
+msgstr "Terrible"
+
+#: templates/partials/weather_panel.html
+msgid "New Moon"
+msgstr "New Moon"
+
+#: templates/partials/weather_panel.html
+msgid "Waxing Crescent"
+msgstr "Waxing Crescent"
+
+#: templates/partials/weather_panel.html
+msgid "First Quarter"
+msgstr "First Quarter"
+
+#: templates/partials/weather_panel.html
+msgid "Waxing Gibbous"
+msgstr "Waxing Gibbous"
+
+#: templates/partials/weather_panel.html
+msgid "Full Moon"
+msgstr "Full Moon"
+
+#: templates/partials/weather_panel.html
+msgid "Waning Gibbous"
+msgstr "Waning Gibbous"
+
+#: templates/partials/weather_panel.html
+msgid "Last Quarter"
+msgstr "Last Quarter"
+
+#: templates/partials/weather_panel.html
+msgid "Waning Crescent"
+msgstr "Waning Crescent"
+
+#: templates/partials/weather_panel.html
+msgid "Date"
+msgstr "Date"
+
+#: templates/partials/weather_panel.html
+msgid "Clouds"
+msgstr "Clouds"
+
+#: templates/partials/weather_panel.html
+msgid "Seeing"
+msgstr "Seeing"
+
+#: templates/partials/weather_panel.html
+msgid "Trans"
+msgstr "Trans"
+
+#: templates/partials/weather_panel.html
+msgid "Wind"
+msgstr "Wind"
+
+#: templates/partials/weather_panel.html
+msgid "Humid"
+msgstr "Humid"
+
+#: templates/partials/weather_panel.html
+msgid "Temp"
+msgstr "Temp"
+
+#: templates/partials/weather_panel.html
+msgid "Cloud Cover"
+msgstr "Cloud Cover"
+
+#: templates/partials/weather_panel.html
+msgid "Precipitation"
+msgstr "Precipitation"
+
+#: templates/partials/weather_panel.html
+msgid "Humidity"
+msgstr "Humidity"
+
+#: templates/partials/weather_panel.html
+msgid "No weather data available"
+msgstr "No weather data available"
+
+#: templates/partials/weather_panel.html
+msgid "Simulation mode active — showing current forecast (weather APIs do not support historical/future dates)"
+msgstr "Simulation mode active — showing current forecast (weather APIs do not support historical/future dates)"
+
+#: templates/partials/weather_panel.html
+msgid "Overall Conditions"
+msgstr "Overall Conditions"
 

@@ -5559,26 +5559,239 @@ msgstr "実験"
 #~ msgid "Not a valid float value."
 #~ msgstr "有効な浮動小数点値ではありません。"
 
-#~ msgid "ASIAIR Autorun Log (.txt/.log)"
-#~ msgstr "ASIAIR オートラン ログ (.txt/.log)"
+#: templates/partials/weather_panel.html
+msgid "Weather Forecast"
+msgstr "天気予報"
 
-#~ msgid "PHD2 Guide Log (.txt/.log)"
-#~ msgstr "PHD2 ガイドログ (.txt/.log)"
+#: templates/partials/weather_panel.html
+msgid "Sky & Weather"
+msgstr "空と天気"
 
-#~ msgid "Nova Pocket"
-#~ msgstr "Nova Pocket"
+#: templates/partials/weather_panel.html
+msgid "Weather view selector"
+msgstr "天気表示セレクター"
 
-#~ msgid "Search by name (e.g., M42 or Orion)..."
-#~ msgstr "名前で検索（例：M42 または オリオン座）..."
+#: templates/partials/weather_panel.html
+msgid "Hourly"
+msgstr "時間別"
 
-#~ msgid "No objects found."
-#~ msgstr "オブジェクトが見つかりませんでした。"
+#: templates/partials/weather_panel.html
+msgid "Daily"
+msgstr "日別"
 
-#~ msgid "Not visible"
-#~ msgstr "表示されない"
+#: templates/partials/weather_panel.html
+msgid "Satellite"
+msgstr "衛星"
 
-#~ msgid "Altitude:"
-#~ msgstr "高度:"
+#: templates/partials/weather_panel.html
+msgid "Refresh weather data"
+msgstr "天気データを更新"
 
-#~ msgid "Azimuth:"
-#~ msgstr "方位角："
+#: templates/partials/weather_panel.html
+msgid "Refresh"
+msgstr "更新"
+
+#: templates/partials/weather_panel.html
+msgid "Loading weather data"
+msgstr "天気データを読み込み中"
+
+#: templates/partials/weather_panel.html
+msgid "Loading weather…"
+msgstr "天気を読み込み中…"
+
+#: templates/partials/weather_panel.html
+msgid "Retry"
+msgstr "再試行"
+
+#: templates/partials/weather_panel.html
+msgid "Colour scale legend"
+msgstr "カラースケール凡例"
+
+#: templates/partials/weather_panel.html
+msgid "Clear / Good"
+msgstr "晴れ / 良好"
+
+#: templates/partials/weather_panel.html
+msgid "Partly cloudy"
+msgstr "一部曇り"
+
+#: templates/partials/weather_panel.html
+msgid "Overcast / Poor"
+msgstr "曇り / 不良"
+
+#: templates/partials/weather_panel.html
+msgid "Colours indicate cloud cover. Hover a cell for details."
+msgstr "色は雲量を示します。詳細はセルにカーソルを合わせてください。"
+
+#: templates/partials/weather_panel.html
+msgid "7-day forecast"
+msgstr "7日間予報"
+
+#: templates/partials/weather_panel.html
+msgid "Live cloud & precipitation radar via"
+msgstr "ライブ雲・降水レーダー（提供："
+
+#: templates/partials/weather_panel.html
+msgid "Coordinates follow your selected observing location."
+msgstr "座標は選択した観測地点に従います。"
+
+#: templates/partials/weather_panel.html
+msgid "Live satellite cloud & precipitation map"
+msgstr "ライブ衛星雲・降水マップ"
+
+#: templates/partials/weather_panel.html
+msgid "Moon information"
+msgstr "月情報"
+
+#: templates/partials/weather_panel.html
+msgid "Moonrise"
+msgstr "月の出"
+
+#: templates/partials/weather_panel.html
+msgid "Moonset"
+msgstr "月の入り"
+
+#: templates/partials/weather_panel.html
+msgid "Clear"
+msgstr "晴れ"
+
+#: templates/partials/weather_panel.html
+msgid "Mostly Clear"
+msgstr "ほぼ晴れ"
+
+#: templates/partials/weather_panel.html
+msgid "Partly Cloudy"
+msgstr "一部曇り"
+
+#: templates/partials/weather_panel.html
+msgid "Mostly Cloudy"
+msgstr "ほぼ曇り"
+
+#: templates/partials/weather_panel.html
+msgid "Overcast"
+msgstr "曇り"
+
+#: templates/partials/weather_panel.html
+msgid "Very Cloudy"
+msgstr "非常に曇り"
+
+#: templates/partials/weather_panel.html
+msgid "Excellent"
+msgstr "優秀"
+
+#: templates/partials/weather_panel.html
+msgid "Very Good"
+msgstr "非常に良い"
+
+#: templates/partials/weather_panel.html
+msgid "Good"
+msgstr "良い"
+
+#: templates/partials/weather_panel.html
+msgid "Average"
+msgstr "平均"
+
+#: templates/partials/weather_panel.html
+msgid "Below Avg"
+msgstr "平均以下"
+
+#: templates/partials/weather_panel.html
+msgid "Poor"
+msgstr "不良"
+
+#: templates/partials/weather_panel.html
+msgid "Very Poor"
+msgstr "非常に不良"
+
+#: templates/partials/weather_panel.html
+msgid "Fair"
+msgstr "普通"
+
+#: templates/partials/weather_panel.html
+msgid "Terrible"
+msgstr "ひどい"
+
+#: templates/partials/weather_panel.html
+msgid "New Moon"
+msgstr "新月"
+
+#: templates/partials/weather_panel.html
+msgid "Waxing Crescent"
+msgstr "三日月（上弦）"
+
+#: templates/partials/weather_panel.html
+msgid "First Quarter"
+msgstr "上弦の月"
+
+#: templates/partials/weather_panel.html
+msgid "Waxing Gibbous"
+msgstr "十三夜月（上弦）"
+
+#: templates/partials/weather_panel.html
+msgid "Full Moon"
+msgstr "満月"
+
+#: templates/partials/weather_panel.html
+msgid "Waning Gibbous"
+msgstr "十三夜月（下弦）"
+
+#: templates/partials/weather_panel.html
+msgid "Last Quarter"
+msgstr "下弦の月"
+
+#: templates/partials/weather_panel.html
+msgid "Waning Crescent"
+msgstr "三日月（下弦）"
+
+#: templates/partials/weather_panel.html
+msgid "Date"
+msgstr "日付"
+
+#: templates/partials/weather_panel.html
+msgid "Clouds"
+msgstr "雲"
+
+#: templates/partials/weather_panel.html
+msgid "Seeing"
+msgstr "シーイング"
+
+#: templates/partials/weather_panel.html
+msgid "Trans"
+msgstr "透明度"
+
+#: templates/partials/weather_panel.html
+msgid "Wind"
+msgstr "風"
+
+#: templates/partials/weather_panel.html
+msgid "Humid"
+msgstr "湿度"
+
+#: templates/partials/weather_panel.html
+msgid "Temp"
+msgstr "気温"
+
+#: templates/partials/weather_panel.html
+msgid "Cloud Cover"
+msgstr "雲量"
+
+#: templates/partials/weather_panel.html
+msgid "Precipitation"
+msgstr "降水量"
+
+#: templates/partials/weather_panel.html
+msgid "Humidity"
+msgstr "湿度"
+
+#: templates/partials/weather_panel.html
+msgid "No weather data available"
+msgstr "天気データがありません"
+
+#: templates/partials/weather_panel.html
+msgid "Simulation mode active — showing current forecast (weather APIs do not support historical/future dates)"
+msgstr "シミュレーションモード有効 — 現在の予報を表示（天気APIは過去/未来の日付をサポートしていません）"
+
+#: templates/partials/weather_panel.html
+msgid "Overall Conditions"
+msgstr "総合コンディション"
+
