@@ -409,6 +409,38 @@ body {
     color: rgba(255, 255, 255, 0.18);
 }
 
+[data-theme="dark"] .m-sort-btn {
+    background: var(--bg-secondary, #1a1f28);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.30);
+}
+
+[data-theme="dark"] .m-sort-btn #sort-label {
+    color: var(--primary-color, #8ec8da);
+}
+
+[data-theme="dark"] .m-sort-arrow {
+    color: rgba(255, 255, 255, 0.18);
+}
+
+[data-theme="dark"] .m-sort-dropdown {
+    background: var(--bg-secondary, #1a1f28);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="dark"] .m-sort-option {
+    color: rgba(255, 255, 255, 0.70);
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .m-sort-option.active {
+    color: var(--primary-color, #8ec8da);
+}
+
+[data-theme="dark"] .m-sort-option:active {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 [data-theme="dark"] .m-empty {
     color: rgba(255, 255, 255, 0.30);
 }
@@ -460,6 +492,94 @@ body {
     color: var(--text-faint, #aaaaaa);
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+/* Search row with inline result count */
+.m-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.m-search-row .m-search-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.m-search-row .m-result-count {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint, #aaaaaa);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Sort dropdown */
+.m-sort-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.m-sort-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.m-sort-btn #sort-label {
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-sort-arrow {
+    font-size: 11px;
+    color: var(--text-faint, #aaa);
+}
+
+.m-sort-dropdown {
+    display: none;
+    position: fixed;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 500;
+    min-width: 140px;
+    overflow: hidden;
+}
+
+.m-sort-dropdown.open { display: block; }
+
+.m-sort-option {
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary, #4a4a4a);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    border-bottom: 1px solid var(--border-light, #eeebe5);
+}
+
+.m-sort-option:last-child { border-bottom: none; }
+
+.m-sort-option.active {
+    color: var(--primary-hover, #6a9eb0);
+    font-weight: 700;
+}
+
+.m-sort-option:active {
+    background: var(--bg-tertiary, #f7f5f2);
 }
 
 /* ── Bottom sheet overlay ── */
@@ -641,7 +761,11 @@ body {
 
 <!-- Search Bar -->
 <div class="m-search-bar">
-    <input type="text" id="search-input" class="m-search-input" placeholder="Search objects...">
+    <div class="m-search-row">
+        <input type="text" id="search-input" class="m-search-input"
+               placeholder="{{ _('Search objects...') }}">
+        <span class="m-result-count" id="result-count"></span>
+    </div>
 </div>
 
 <!-- Filter/Sort Toolbar -->
@@ -653,9 +777,12 @@ body {
     <button class="m-chip" id="filter-active">{{ _('Active') }}</button>
     <button class="m-chip" id="filter-framing">{{ _('Framing') }}</button>
     <div class="m-toolbar-spacer"></div>
-    <span class="m-result-count" id="result-count"></span>
-    <button class="m-chip active" id="sort-alt">{{ _('Altitude') }}</button>
-    <button class="m-chip" id="sort-dur">{{ _('Duration') }}</button>
+    <div class="m-sort-wrapper">
+        <button class="m-sort-btn" id="sort-btn">
+          {{ _('Sort') }}: <span id="sort-label">{{ _('Altitude') }}</span>
+          <span class="m-sort-arrow" id="sort-arrow">↓</span>
+        </button>
+    </div>
 </div>
 
 <!-- Object List -->
@@ -664,6 +791,12 @@ body {
         {{ _('No objects match your filters') }}
     </li>
 </ul>
+
+<!-- Sort dropdown (body-level to escape stacking contexts) -->
+<div class="m-sort-dropdown" id="sort-dropdown">
+  <div class="m-sort-option active" data-sort="alt">{{ _('Altitude') }}</div>
+  <div class="m-sort-option" data-sort="dur">{{ _('Duration') }}</div>
+</div>
 
 <!-- Filter bottom sheet -->
 <div class="m-sheet-overlay" id="filter-overlay"></div>
@@ -755,8 +888,6 @@ body {
         const progressFill = document.getElementById('progress-fill');
         const loadingText = document.getElementById('loading-text');
 
-        const sortAltButton = document.getElementById('sort-alt');
-        const sortDurButton = document.getElementById('sort-dur');
         const filterActiveButton = document.getElementById('filter-active');
         const filterFramingButton = document.getElementById('filter-framing');
         const searchInput = document.getElementById('search-input');
@@ -808,14 +939,10 @@ body {
                 itemsToShow.sort((a, b) => {
                     return parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt);
                 });
-                sortAltButton.classList.add('active');
-                sortDurButton.classList.remove('active');
             } else { // 'dur'
                 itemsToShow.sort((a, b) => {
                     return parseFloat(b.dataset.sortDur) - parseFloat(a.dataset.sortDur);
                 });
-                sortDurButton.classList.add('active');
-                sortAltButton.classList.remove('active');
             }
 
             // 4. Update DOM
@@ -865,20 +992,6 @@ body {
             renderList();
         });
 
-        sortAltButton.addEventListener('click', () => {
-            if (currentSort !== 'alt') {
-                currentSort = 'alt';
-                renderList();
-            }
-        });
-
-        sortDurButton.addEventListener('click', () => {
-            if (currentSort !== 'dur') {
-                currentSort = 'dur';
-                renderList();
-            }
-        });
-
         filterActiveButton.addEventListener('click', () => {
             filterActive = !filterActive;
             renderList();
@@ -887,6 +1000,38 @@ body {
         filterFramingButton.addEventListener('click', () => {
             filterFraming = !filterFraming;
             renderList();
+        });
+
+        // ── Sort dropdown ──
+        const sortBtn      = document.getElementById('sort-btn');
+        const sortDropdown = document.getElementById('sort-dropdown');
+        const sortLabelEl  = document.getElementById('sort-label');
+
+        sortBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = sortDropdown.classList.contains('open');
+            if (!isOpen) {
+                // Position dropdown below the button using fixed coords
+                const rect = sortBtn.getBoundingClientRect();
+                sortDropdown.style.top  = (rect.bottom + 6) + 'px';
+                sortDropdown.style.right = (window.innerWidth - rect.right) + 'px';
+            }
+            sortDropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', () => {
+            sortDropdown?.classList.remove('open');
+        });
+
+        sortDropdown?.addEventListener('click', (e) => {
+            const option = e.target.closest('.m-sort-option');
+            if (!option) return;
+            currentSort = option.dataset.sort;
+            sortDropdown.querySelectorAll('.m-sort-option')
+                .forEach(o => o.classList.toggle('active', o.dataset.sort === currentSort));
+            sortLabelEl.textContent = option.textContent.trim();
+            sortDropdown.classList.remove('open');
+            refreshListItemsAndSort();
         });
 
         // ── Filter sheet ──
@@ -1147,7 +1292,7 @@ body {
 
             // Sort visible items
             const sorted = allItems.filter(i => i.style.display !== 'none');
-            const sortByAlt = document.getElementById('sort-alt')?.classList.contains('active');
+            const sortByAlt = currentSort === 'alt';
             sorted.sort((a, b) => sortByAlt
                 ? parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt)
                 : parseInt(b.dataset.sortDur)   - parseInt(a.dataset.sortDur));
