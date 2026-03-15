@@ -412,6 +412,220 @@ body {
 [data-theme="dark"] .m-empty {
     color: rgba(255, 255, 255, 0.30);
 }
+
+/* ── Filters button ── */
+.m-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #4a4a4a);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.m-filter-btn.has-filters {
+    background: var(--primary-bg, #eaf4f8);
+    border-color: var(--primary-color, #83b4c5);
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-filter-count {
+    background: var(--primary-color, #83b4c5);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+}
+
+/* ── Result count ── */
+.m-result-count {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-faint, #aaaaaa);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Bottom sheet overlay ── */
+.m-sheet-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 200;
+}
+
+.m-sheet-overlay.open { display: block; }
+
+/* ── Bottom sheet ── */
+.m-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary, #fff);
+    border-radius: 16px 16px 0 0;
+    z-index: 201;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.32, 0, 0.15, 1);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.m-sheet.open { transform: translateY(0); }
+
+.m-sheet-handle-area {
+    padding: 10px 0 4px;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.m-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border-color, #e5e2dc);
+    border-radius: 2px;
+}
+
+.m-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 20px 12px;
+    border-bottom: 1px solid var(--border-color, #e5e2dc);
+    flex-shrink: 0;
+}
+
+.m-sheet-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary, #141414);
+}
+
+.m-sheet-reset {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary-hover, #6a9eb0);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: 'DM Sans', sans-serif;
+}
+
+.m-sheet-body {
+    overflow-y: auto;
+    padding: 8px 20px;
+    flex: 1;
+}
+
+.m-sheet-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-light, #eeebe5);
+    gap: 12px;
+}
+
+.m-sheet-row:last-child { border-bottom: none; }
+
+.m-sheet-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary, #141414);
+    flex-shrink: 0;
+}
+
+.m-sheet-input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.m-sheet-prefix,
+.m-sheet-suffix {
+    font-size: 12px;
+    color: var(--text-muted, #888);
+    font-family: 'DM Mono', monospace;
+    flex-shrink: 0;
+}
+
+.m-sheet-input {
+    width: 64px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-primary, #141414);
+    background: var(--bg-tertiary, #f7f5f2);
+    text-align: center;
+}
+
+.m-sheet-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+}
+
+.m-sheet-input-full {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary, #141414);
+    background: var(--bg-tertiary, #f7f5f2);
+    min-width: 0;
+}
+
+.m-sheet-input-full:focus {
+    outline: none;
+    border-color: var(--primary-color, #83b4c5);
+}
+
+.m-sheet-footer {
+    padding: 12px 20px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border-color, #e5e2dc);
+    flex-shrink: 0;
+}
+
+.m-sheet-apply {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary-color, #83b4c5);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+}
+
+.m-sheet-apply:active {
+    filter: brightness(0.9);
+}
 </style>
 {% endblock %}
 
@@ -432,6 +646,10 @@ body {
 
 <!-- Filter/Sort Toolbar -->
 <div class="m-toolbar">
+    <button class="m-filter-btn" id="open-filters">
+        {{ _('Filters') }}
+        <span class="m-filter-count" id="filter-count" style="display:none;">0</span>
+    </button>
     <button class="m-chip" id="filter-active">{{ _('Active') }}</button>
     <button class="m-chip" id="filter-framing">{{ _('Framing') }}</button>
     <div class="m-toolbar-spacer"></div>
@@ -446,6 +664,78 @@ body {
         {{ _('No objects match your filters') }}
     </li>
 </ul>
+
+<!-- Filter bottom sheet -->
+<div class="m-sheet-overlay" id="filter-overlay"></div>
+<div class="m-sheet" id="filter-sheet">
+    <div class="m-sheet-handle-area">
+        <div class="m-sheet-handle"></div>
+    </div>
+    <div class="m-sheet-header">
+        <span class="m-sheet-title">{{ _('Filters') }}</span>
+        <button class="m-sheet-reset" id="filter-reset">{{ _('Reset') }}</button>
+    </div>
+
+    <div class="m-sheet-body">
+
+        <div class="m-sheet-row">
+            <label class="m-sheet-label">{{ _('Min Altitude') }}</label>
+            <div class="m-sheet-input-row">
+                <span class="m-sheet-prefix">&gt;</span>
+                <input type="number" class="m-sheet-input" id="f-min-alt"
+                       min="0" max="90" placeholder="0">
+                <span class="m-sheet-suffix">°</span>
+            </div>
+        </div>
+
+        <div class="m-sheet-row">
+            <label class="m-sheet-label">{{ _('Min Duration') }}</label>
+            <div class="m-sheet-input-row">
+                <span class="m-sheet-prefix">&gt;</span>
+                <input type="number" class="m-sheet-input" id="f-min-dur"
+                       min="0" placeholder="0">
+                <span class="m-sheet-suffix">{{ _('min') }}</span>
+            </div>
+        </div>
+
+        <div class="m-sheet-row">
+            <label class="m-sheet-label">{{ _('Min Moon Sep') }}</label>
+            <div class="m-sheet-input-row">
+                <span class="m-sheet-prefix">&gt;</span>
+                <input type="number" class="m-sheet-input" id="f-min-moon"
+                       min="0" max="180" placeholder="0">
+                <span class="m-sheet-suffix">°</span>
+            </div>
+        </div>
+
+        <div class="m-sheet-row">
+            <label class="m-sheet-label">{{ _('Max Altitude') }}</label>
+            <div class="m-sheet-input-row">
+                <span class="m-sheet-prefix">&lt;</span>
+                <input type="number" class="m-sheet-input" id="f-max-alt"
+                       min="0" max="90" placeholder="90">
+                <span class="m-sheet-suffix">°</span>
+            </div>
+        </div>
+
+        <div class="m-sheet-row">
+            <label class="m-sheet-label">{{ _('Type') }}</label>
+            <input type="text" class="m-sheet-input-full" id="f-type"
+                   placeholder="{{ _('e.g. PN, SNR, GX') }}">
+        </div>
+
+        <div class="m-sheet-row">
+            <label class="m-sheet-label">{{ _('Constellation') }}</label>
+            <input type="text" class="m-sheet-input-full" id="f-const"
+                   placeholder="{{ _('e.g. Ori, Cyg') }}">
+        </div>
+
+    </div>
+
+    <div class="m-sheet-footer">
+        <button class="m-sheet-apply" id="filter-apply">{{ _('Apply') }}</button>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -475,6 +765,16 @@ body {
 
         // Items are now stored here after fetching
         let allItems = [];
+
+        // ── Filter state ──
+        const FILTERS = {
+            minAlt:   0,
+            maxAlt:   90,
+            minDur:   0,
+            minMoon:  0,
+            type:     '',
+            const:    '',
+        };
 
         let currentSort = 'alt';
         let filterActive = false;
@@ -589,6 +889,71 @@ body {
             renderList();
         });
 
+        // ── Filter sheet ──
+        const filterSheet   = document.getElementById('filter-sheet');
+        const filterOverlay = document.getElementById('filter-overlay');
+        const filterBtn     = document.getElementById('open-filters');
+        const filterCountEl = document.getElementById('filter-count');
+
+        function openSheet() {
+            filterSheet.classList.add('open');
+            filterOverlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSheet() {
+            filterSheet.classList.remove('open');
+            filterOverlay.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function countActiveFilters() {
+            let n = 0;
+            if (FILTERS.minAlt > 0)    n++;
+            if (FILTERS.maxAlt < 90)   n++;
+            if (FILTERS.minDur > 0)    n++;
+            if (FILTERS.minMoon > 0)   n++;
+            if (FILTERS.type)          n++;
+            if (FILTERS.const)         n++;
+            return n;
+        }
+
+        function updateFilterBadge() {
+            const n = countActiveFilters();
+            filterCountEl.textContent = n;
+            filterCountEl.style.display = n > 0 ? 'flex' : 'none';
+            filterBtn.classList.toggle('has-filters', n > 0);
+        }
+
+        filterBtn?.addEventListener('click', openSheet);
+        filterOverlay?.addEventListener('click', closeSheet);
+
+        document.getElementById('filter-apply')?.addEventListener('click', () => {
+            FILTERS.minAlt  = parseFloat(document.getElementById('f-min-alt').value)  || 0;
+            FILTERS.maxAlt  = parseFloat(document.getElementById('f-max-alt').value)  || 90;
+            FILTERS.minDur  = parseFloat(document.getElementById('f-min-dur').value)  || 0;
+            FILTERS.minMoon = parseFloat(document.getElementById('f-min-moon').value) || 0;
+            FILTERS.type    = document.getElementById('f-type').value.trim();
+            FILTERS.const   = document.getElementById('f-const').value.trim();
+            updateFilterBadge();
+            closeSheet();
+            refreshListItemsAndSort();
+        });
+
+        document.getElementById('filter-reset')?.addEventListener('click', () => {
+            FILTERS.minAlt = 0; FILTERS.maxAlt = 90;
+            FILTERS.minDur = 0; FILTERS.minMoon = 0;
+            FILTERS.type = ''; FILTERS.const = '';
+            document.getElementById('f-min-alt').value  = '';
+            document.getElementById('f-max-alt').value  = '';
+            document.getElementById('f-min-dur').value  = '';
+            document.getElementById('f-min-moon').value = '';
+            document.getElementById('f-type').value     = '';
+            document.getElementById('f-const').value    = '';
+            updateFilterBadge();
+            refreshListItemsAndSort();
+        });
+
         // --- Chunked Data Fetching & Caching ---
         const CHUNK_SIZE = 5;
 
@@ -700,7 +1065,11 @@ body {
             li.dataset.isActive = isActive;
             li.dataset.hasFraming = hasFraming;
             li.dataset.searchText = (obj['Common Name'] + ' ' + obj['Object']).toLowerCase();
+            li.dataset.moonSep       = parseFloat(obj['Angular Separation (°)']) || 999;
+            li.dataset.type          = (obj['Type'] || '').toLowerCase();
+            li.dataset.constellation = (obj['Constellation'] || '').toLowerCase();
             li.style.display = 'none';
+            allItems.push(li);
 
             // Construct URL for navigation
             const safeObj = encodeURIComponent(obj.Object);
@@ -742,28 +1111,65 @@ body {
         }
 
         function refreshListItemsAndSort() {
-            // Grab the newly created elements from DOM and put them in our array
-            const currentItems = Array.from(list.querySelectorAll('.m-card'));
-            allItems = currentItems;
+            const searchTerm    = (document.getElementById('search-input')?.value || '').toLowerCase().trim();
+            const filterActive  = document.getElementById('filter-active')?.classList.contains('active') || false;
+            const filterFraming = document.getElementById('filter-framing')?.classList.contains('active') || false;
 
-            // Update status strip with totals
-            const total = allItems.length;
+            let visibleCount = 0;
+
+            allItems.forEach(item => {
+                const alt     = parseFloat(item.dataset.sortAlt) || 0;
+                const dur     = parseInt(item.dataset.sortDur) || 0;
+                const moon    = parseFloat(item.dataset.moonSep ?? 999);
+                const type    = (item.dataset.type || '').toLowerCase();
+                const cons    = (item.dataset.constellation || '').toLowerCase();
+
+                const matchSearch   = !searchTerm  || item.dataset.searchText.includes(searchTerm);
+                const matchActive   = !filterActive  || item.dataset.isActive === 'true';
+                const matchFraming  = !filterFraming || item.dataset.hasFraming === 'true';
+                const matchMinAlt   = alt  >= FILTERS.minAlt;
+                const matchMaxAlt   = alt  <= FILTERS.maxAlt;
+                const matchDur      = dur  >= FILTERS.minDur;
+                const matchMoon     = moon >= FILTERS.minMoon;
+                const matchType     = !FILTERS.type  ||
+                    FILTERS.type.split(',').map(t => t.trim().toLowerCase())
+                        .some(t => type.includes(t));
+                const matchConst    = !FILTERS.const ||
+                    cons.includes(FILTERS.const.toLowerCase().trim());
+
+                const visible = matchSearch && matchActive && matchFraming &&
+                                matchMinAlt && matchMaxAlt && matchDur &&
+                                matchMoon && matchType && matchConst;
+
+                item.style.display = visible ? 'flex' : 'none';
+                if (visible) visibleCount++;
+            });
+
+            // Sort visible items
+            const sorted = allItems.filter(i => i.style.display !== 'none');
+            const sortByAlt = document.getElementById('sort-alt')?.classList.contains('active');
+            sorted.sort((a, b) => sortByAlt
+                ? parseFloat(b.dataset.sortAlt) - parseFloat(a.dataset.sortAlt)
+                : parseInt(b.dataset.sortDur)   - parseInt(a.dataset.sortDur));
+            const list = document.getElementById('object-list');
+            sorted.forEach(item => list.appendChild(item));
+
+            // Result count
+            const countEl = document.getElementById('result-count');
+            if (countEl) {
+                const total = allItems.length;
+                countEl.textContent = visibleCount < total
+                    ? `${visibleCount} / ${total}`
+                    : `${total}`;
+            }
+
+            // Status strip object count (null-guarded)
             const objectsEl = document.getElementById('status-objects');
-            if (objectsEl) {
-                objectsEl.textContent = total + ' objects';
-            }
+            if (objectsEl) objectsEl.textContent = allItems.length + ' objects';
 
-            const updatedEl = document.getElementById('status-updated');
-            if (updatedEl) {
-                updatedEl.textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-            }
-
-            const locationEl = document.getElementById('status-location');
-            if (locationEl) {
-                locationEl.textContent = getActiveLocation() || '—';
-            }
-
-            renderList();
+            // No-results indicator
+            const emptyEl = document.getElementById('loading-indicator');
+            if (emptyEl) emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
         }
 
         // Fetch moon phase and dusk/dawn data
