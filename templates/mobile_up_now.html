@@ -746,6 +746,101 @@ body {
 .m-sheet-apply:active {
     filter: brightness(0.9);
 }
+
+/* ── Slider rows ── */
+.m-sheet-slider-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.m-sheet-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.m-slider-value {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-color, #e5e2dc);
+    outline: none;
+    cursor: pointer;
+}
+
+.m-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary-color, #83b4c5);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    border: 2px solid #fff;
+}
+
+.m-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--primary-color, #83b4c5);
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* ── Type/Constellation chip grid ── */
+.m-sheet-chips-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.m-type-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.m-type-chip {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color, #e5e2dc);
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted, #888);
+    background: var(--bg-tertiary, #f7f5f2);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.12s;
+}
+
+.m-type-chip.selected {
+    background: var(--primary-bg, #eaf4f8);
+    border-color: var(--primary-color, #83b4c5);
+    color: var(--primary-hover, #6a9eb0);
+}
+
+.m-sheet-op {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-faint, #aaaaaa);
+    font-family: 'DM Mono', monospace;
+    margin-left: 2px;
+}
 </style>
 {% endblock %}
 
@@ -811,56 +906,73 @@ body {
 
     <div class="m-sheet-body">
 
-        <div class="m-sheet-row">
-            <label class="m-sheet-label">{{ _('Min Altitude') }}</label>
-            <div class="m-sheet-input-row">
-                <span class="m-sheet-prefix">&gt;</span>
-                <input type="number" class="m-sheet-input" id="f-min-alt"
-                       min="0" max="90" placeholder="0">
-                <span class="m-sheet-suffix">°</span>
+        <!-- Min Altitude slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Altitude') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-min-alt">0°</span>
             </div>
+            <input type="range" class="m-slider" id="f-min-alt"
+                   min="0" max="90" step="5" value="0">
         </div>
 
-        <div class="m-sheet-row">
-            <label class="m-sheet-label">{{ _('Min Duration') }}</label>
-            <div class="m-sheet-input-row">
-                <span class="m-sheet-prefix">&gt;</span>
-                <input type="number" class="m-sheet-input" id="f-min-dur"
-                       min="0" placeholder="0">
-                <span class="m-sheet-suffix">{{ _('min') }}</span>
+        <!-- Max Altitude slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Altitude') }} <span class="m-sheet-op">&le;</span></label>
+                <span class="m-slider-value" id="val-max-alt">90°</span>
             </div>
+            <input type="range" class="m-slider" id="f-max-alt"
+                   min="0" max="90" step="5" value="90">
         </div>
 
-        <div class="m-sheet-row">
-            <label class="m-sheet-label">{{ _('Min Moon Sep') }}</label>
-            <div class="m-sheet-input-row">
-                <span class="m-sheet-prefix">&gt;</span>
-                <input type="number" class="m-sheet-input" id="f-min-moon"
-                       min="0" max="180" placeholder="0">
-                <span class="m-sheet-suffix">°</span>
+        <!-- Min Duration slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Duration') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-min-dur">0m</span>
             </div>
+            <input type="range" class="m-slider" id="f-min-dur"
+                   min="0" max="600" step="15" value="0">
         </div>
 
-        <div class="m-sheet-row">
-            <label class="m-sheet-label">{{ _('Max Altitude') }}</label>
-            <div class="m-sheet-input-row">
-                <span class="m-sheet-prefix">&lt;</span>
-                <input type="number" class="m-sheet-input" id="f-max-alt"
-                       min="0" max="90" placeholder="90">
-                <span class="m-sheet-suffix">°</span>
+        <!-- Min Moon Sep slider -->
+        <div class="m-sheet-row m-sheet-slider-row">
+            <div class="m-sheet-slider-header">
+                <label class="m-sheet-label">{{ _('Moon Sep') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-min-moon">0°</span>
             </div>
+            <input type="range" class="m-slider" id="f-min-moon"
+                   min="0" max="180" step="10" value="0">
         </div>
 
-        <div class="m-sheet-row">
+        <!-- Type chip grid -->
+        <div class="m-sheet-row m-sheet-chips-row">
             <label class="m-sheet-label">{{ _('Type') }}</label>
-            <input type="text" class="m-sheet-input-full" id="f-type"
-                   placeholder="{{ _('e.g. PN, SNR, GX') }}">
+            <div class="m-type-chips" id="type-chips">
+                <div class="m-type-chip" data-type="PN">PN</div>
+                <div class="m-type-chip" data-type="SNR">SNR</div>
+                <div class="m-type-chip" data-type="HII">HII</div>
+                <div class="m-type-chip" data-type="GX">GX</div>
+                <div class="m-type-chip" data-type="GC">GC</div>
+                <div class="m-type-chip" data-type="OC">OC</div>
+                <div class="m-type-chip" data-type="BN">BN</div>
+                <div class="m-type-chip" data-type="RN">RN</div>
+                <div class="m-type-chip" data-type="EmN">EmN</div>
+                <div class="m-type-chip" data-type="DRN">DRN</div>
+                <div class="m-type-chip" data-type="DSO">DSO</div>
+            </div>
         </div>
 
-        <div class="m-sheet-row">
+        <!-- Constellation chip grid + text fallback -->
+        <div class="m-sheet-row m-sheet-chips-row">
             <label class="m-sheet-label">{{ _('Constellation') }}</label>
+            <div class="m-type-chips" id="const-chips">
+                <!-- Populated dynamically from loaded data -->
+            </div>
             <input type="text" class="m-sheet-input-full" id="f-const"
-                   placeholder="{{ _('e.g. Ori, Cyg') }}">
+                   placeholder="{{ _('or type name...') }}"
+                   style="margin-top: 8px;">
         </div>
 
     </div>
@@ -906,6 +1018,70 @@ body {
             type:     '',
             const:    '',
         };
+
+        // ── Slider live value display ──
+        function initSlider(id, valId, suffix) {
+            const slider = document.getElementById(id);
+            const valEl  = document.getElementById(valId);
+            if (!slider || !valEl) return;
+            slider.addEventListener('input', () => {
+                valEl.textContent = slider.value + suffix;
+            });
+        }
+        initSlider('f-min-alt',  'val-min-alt',  '°');
+        initSlider('f-max-alt',  'val-max-alt',  '°');
+        initSlider('f-min-dur',  'val-min-dur',  'm');
+        initSlider('f-min-moon', 'val-min-moon', '°');
+
+        // ── Type chip selection (multi-select) ──
+        document.getElementById('type-chips')
+            ?.addEventListener('click', (e) => {
+                const chip = e.target.closest('.m-type-chip');
+                if (!chip) return;
+                chip.classList.toggle('selected');
+            });
+
+        // ── Constellation chip population (from loaded data) ──
+        function populateConstChips() {
+            const container = document.getElementById('const-chips');
+            if (!container) return;
+
+            // Collect all raw constellation values from loaded items
+            const raw = [...new Set(
+                allItems
+                    .map(i => i.dataset.constellation)
+                    .filter(c => c && c.trim() !== '')
+            )];
+
+            // Separate into full names (>4 chars) and abbreviations (<=4 chars)
+            const fullNames = raw.filter(c => c.length > 4);
+            const abbrevs   = raw.filter(c => c.length <= 4);
+
+            // Build a set of normalised full-name prefixes for dedup lookup
+            // e.g. "orion" → first 3 chars = "ori" — drop any abbrev that
+            // matches first 3 chars of an existing full name
+            const fullPrefixes = new Set(fullNames.map(n => n.slice(0, 3)));
+
+            // Keep abbreviation only if no matching full name exists
+            const kept = [
+                ...fullNames,
+                ...abbrevs.filter(a => !fullPrefixes.has(a.slice(0, 3)))
+            ];
+
+            // Sort alphabetically
+            kept.sort((a, b) => a.localeCompare(b));
+
+            container.innerHTML = '';
+            kept.forEach(c => {
+                const chip = document.createElement('div');
+                chip.className = 'm-type-chip';
+                chip.dataset.const = c;
+                // Capitalise first letter for display
+                chip.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+                chip.addEventListener('click', () => chip.classList.toggle('selected'));
+                container.appendChild(chip);
+            });
+        }
 
         let currentSort = 'alt';
         let filterActive = false;
@@ -1074,12 +1250,21 @@ body {
         filterOverlay?.addEventListener('click', closeSheet);
 
         document.getElementById('filter-apply')?.addEventListener('click', () => {
-            FILTERS.minAlt  = parseFloat(document.getElementById('f-min-alt').value)  || 0;
-            FILTERS.maxAlt  = parseFloat(document.getElementById('f-max-alt').value)  || 90;
-            FILTERS.minDur  = parseFloat(document.getElementById('f-min-dur').value)  || 0;
-            FILTERS.minMoon = parseFloat(document.getElementById('f-min-moon').value) || 0;
-            FILTERS.type    = document.getElementById('f-type').value.trim();
-            FILTERS.const   = document.getElementById('f-const').value.trim();
+            FILTERS.minAlt  = parseInt(document.getElementById('f-min-alt').value)  || 0;
+            FILTERS.maxAlt  = parseInt(document.getElementById('f-max-alt').value)  || 90;
+            FILTERS.minDur  = parseInt(document.getElementById('f-min-dur').value)  || 0;
+            FILTERS.minMoon = parseInt(document.getElementById('f-min-moon').value) || 0;
+            // Type chips (multi-select)
+            const typeChips = document.querySelectorAll('#type-chips .m-type-chip.selected');
+            FILTERS.type    = Array.from(typeChips).map(c => c.dataset.type).join(',');
+            // Constellation chips OR text fallback
+            const constChips = document.querySelectorAll('#const-chips .m-type-chip.selected');
+            const constText = document.getElementById('f-const').value.trim();
+            if (constChips.length > 0) {
+                FILTERS.const = Array.from(constChips).map(c => c.dataset.const).join(',');
+            } else {
+                FILTERS.const = constText;
+            }
             updateFilterBadge();
             closeSheet();
             refreshListItemsAndSort();
@@ -1089,12 +1274,19 @@ body {
             FILTERS.minAlt = 0; FILTERS.maxAlt = 90;
             FILTERS.minDur = 0; FILTERS.minMoon = 0;
             FILTERS.type = ''; FILTERS.const = '';
-            document.getElementById('f-min-alt').value  = '';
-            document.getElementById('f-max-alt').value  = '';
-            document.getElementById('f-min-dur').value  = '';
-            document.getElementById('f-min-moon').value = '';
-            document.getElementById('f-type').value     = '';
-            document.getElementById('f-const').value    = '';
+            // Reset sliders to defaults
+            document.getElementById('f-min-alt').value  = 0;
+            document.getElementById('f-max-alt').value  = 90;
+            document.getElementById('f-min-dur').value  = 0;
+            document.getElementById('f-min-moon').value = 0;
+            document.getElementById('val-min-alt').textContent = '0°';
+            document.getElementById('val-max-alt').textContent = '90°';
+            document.getElementById('val-min-dur').textContent = '0m';
+            document.getElementById('val-min-moon').textContent = '0°';
+            // Deselect all chips
+            document.querySelectorAll('.m-type-chip.selected').forEach(c => c.classList.remove('selected'));
+            // Clear const text input
+            document.getElementById('f-const').value = '';
             updateFilterBadge();
             refreshListItemsAndSort();
         });
@@ -1142,6 +1334,7 @@ body {
                         list.style.display = 'block';
 
                         cached.data.forEach(obj => createListItem(obj));
+                        populateConstChips();
                         refreshListItemsAndSort();
                         return; // Exit early, no fetching needed
                     }
@@ -1187,6 +1380,7 @@ body {
                 setTimeout(() => {
                     loadingContainer.style.display = 'none';
                     list.style.display = 'block';
+                    populateConstChips();
                     refreshListItemsAndSort();
                 }, 500);
 
@@ -1280,7 +1474,13 @@ body {
                     FILTERS.type.split(',').map(t => t.trim().toLowerCase())
                         .some(t => type.includes(t));
                 const matchConst    = !FILTERS.const ||
-                    cons.includes(FILTERS.const.toLowerCase().trim());
+                    FILTERS.const.split(',').map(c => c.trim()).some(filterVal => {
+                        // Match if either value starts with the other's first 3 chars
+                        // handles "orion" ↔ "ori", "cygnus" ↔ "cyg" etc.
+                        const f3 = filterVal.slice(0, 3);
+                        const c3 = cons.slice(0, 3);
+                        return f3 === c3;
+                    });
 
                 const visible = matchSearch && matchActive && matchFraming &&
                                 matchMinAlt && matchMaxAlt && matchDur &&
