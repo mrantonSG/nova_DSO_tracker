@@ -7,6 +7,14 @@
 
 {% block head %}
 <style>
+/* Object detail overrides the base .container scroll behaviour */
+.container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+}
+
 /* Mobile Object Detail - Nova Design System */
 :root {
     --m-bg: var(--bg-primary);
