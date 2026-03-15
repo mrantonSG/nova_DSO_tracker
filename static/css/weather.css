@@ -121,6 +121,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--bg-dark-border-light) transparent;
+  padding: 0 var(--space-4);
 }
 
 .weather-grid-wrapper::-webkit-scrollbar {

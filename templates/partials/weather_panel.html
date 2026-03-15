@@ -225,60 +225,127 @@
 
   {# ─── Moon information bar ─────────────────────────────────────────────── #}
   <footer
-    class="weather-moon-info"
+    class="moon-phase-container"
     id="weather-moon-info"
     aria-label="{{ _('Moon information') }}"
     data-weather-moon-info
   >
-    <dl class="weather-moon-info__grid">
-      <div class="weather-moon-info__item">
-        <dt class="weather-moon-info__label">{{ _('Moon Phase') }}</dt>
-        <dd
-          class="weather-moon-info__value"
-          id="weather-moon-phase"
-          data-weather-moon-phase
-        >—</dd>
-      </div>
+    {# Visual moon phase indicator #}
+    <div class="moon-phase" id="weather-moon-visual" data-phase="0">
+      <div class="moon-phase__shadow"></div>
+    </div>
 
-      <div class="weather-moon-info__item">
-        <dt class="weather-moon-info__label">{{ _('Illumination') }}</dt>
-        <dd
-          class="weather-moon-info__value"
-          id="weather-moon-illumination"
-          data-weather-moon-illumination
-        >—</dd>
-      </div>
+    {# Phase name and illumination #}
+    <div class="moon-phase-info">
+      <span
+        class="moon-phase-info__name"
+        id="weather-moon-phase"
+        data-weather-moon-phase
+      >—</span>
+      <span
+        class="moon-phase-info__illumination"
+        id="weather-moon-illumination"
+        data-weather-moon-illumination
+      >—</span>
+    </div>
 
-      <div class="weather-moon-info__item">
-        <dt class="weather-moon-info__label">{{ _('Moonrise') }}</dt>
-        <dd
-          class="weather-moon-info__value"
+    {# Rise and set times #}
+    <div class="moon-times">
+      <div class="moon-time-item" title="{{ _('Moonrise') }}">
+        <span class="moon-time-item__icon">↑</span>
+        <span
+          class="moon-time-item__value"
           id="weather-moon-rise"
           data-weather-moon-rise
-        >—</dd>
+        >—</span>
       </div>
-
-      <div class="weather-moon-info__item">
-        <dt class="weather-moon-info__label">{{ _('Moonset') }}</dt>
-        <dd
-          class="weather-moon-info__value"
+      <div class="moon-time-item" title="{{ _('Moonset') }}">
+        <span class="moon-time-item__icon">↓</span>
+        <span
+          class="moon-time-item__value"
           id="weather-moon-set"
           data-weather-moon-set
-        >—</dd>
+        >—</span>
       </div>
-
-      <div class="weather-moon-info__item weather-moon-info__item--glyph">
-        <span
-          class="weather-moon-info__glyph"
-          id="weather-moon-glyph"
-          aria-hidden="true"
-          data-weather-moon-glyph
-          title="{{ _('Moon phase symbol') }}"
-        >&#127761;</span>
-      </div>
-    </dl>
+    </div>
   </footer>
-  {# End .weather-moon-info #}
+  {# End .moon-phase-container #}
 
 </section>
 {# End #weather-panel #}
+
+{# ─── JavaScript i18n strings ──────────────────────────────────────────── #}
+<script>
+window.WEATHER_I18N = {
+  clouds: {
+    1: "{{ _('Clear') }}",
+    2: "{{ _('Mostly Clear') }}",
+    3: "{{ _('Partly Cloudy') }}",
+    4: "{{ _('Partly Cloudy') }}",
+    5: "{{ _('Mostly Cloudy') }}",
+    6: "{{ _('Mostly Cloudy') }}",
+    7: "{{ _('Overcast') }}",
+    8: "{{ _('Very Cloudy') }}",
+    9: "{{ _('Overcast') }}"
+  },
+  seeing: {
+    1: "{{ _('Excellent') }}",
+    2: "{{ _('Excellent') }}",
+    3: "{{ _('Very Good') }}",
+    4: "{{ _('Good') }}",
+    5: "{{ _('Average') }}",
+    6: "{{ _('Below Avg') }}",
+    7: "{{ _('Poor') }}",
+    8: "{{ _('Very Poor') }}"
+  },
+  transparency: {
+    1: "{{ _('Excellent') }}",
+    2: "{{ _('Very Good') }}",
+    3: "{{ _('Good') }}",
+    4: "{{ _('Fair') }}",
+    5: "{{ _('Below Avg') }}",
+    6: "{{ _('Poor') }}",
+    7: "{{ _('Very Poor') }}",
+    8: "{{ _('Terrible') }}"
+  },
+  moonPhases: {
+    newMoon: "{{ _('New Moon') }}",
+    waxingCrescent: "{{ _('Waxing Crescent') }}",
+    firstQuarter: "{{ _('First Quarter') }}",
+    waxingGibbous: "{{ _('Waxing Gibbous') }}",
+    fullMoon: "{{ _('Full Moon') }}",
+    waningGibbous: "{{ _('Waning Gibbous') }}",
+    lastQuarter: "{{ _('Last Quarter') }}",
+    waningCrescent: "{{ _('Waning Crescent') }}"
+  },
+  labels: {
+    date: "{{ _('Date') }}",
+    time: "{{ _('Time') }}",
+    clouds: "{{ _('Clouds') }}",
+    seeing: "{{ _('Seeing') }}",
+    transparency: "{{ _('Trans') }}",
+    wind: "{{ _('Wind') }}",
+    humidity: "{{ _('Humid') }}",
+    temp: "{{ _('Temp') }}",
+    cloudCover: "{{ _('Cloud Cover') }}",
+    precipitation: "{{ _('Precipitation') }}",
+    relativeHumidity: "{{ _('Humidity') }}",
+    na: "{{ _('N/A') }}",
+    noData: "{{ _('No weather data available') }}",
+    loading: "{{ _('Loading weather…') }}",
+    simModeNotice: "{{ _('Simulation mode active — showing current forecast (weather APIs do not support historical/future dates)') }}",
+    overallConditions: "{{ _('Overall Conditions') }}"
+  },
+  tooltipConditions: [
+    "{{ _('Excellent') }}",
+    "{{ _('Very Good') }}",
+    "{{ _('Good') }}",
+    "{{ _('Fair') }}",
+    "{{ _('Average') }}",
+    "{{ _('Below Avg') }}",
+    "{{ _('Poor') }}",
+    "{{ _('Very Poor') }}",
+    "{{ _('Terrible') }}"
+  ]
+};
+</script>
