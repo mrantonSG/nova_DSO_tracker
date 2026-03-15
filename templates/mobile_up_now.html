@@ -105,6 +105,15 @@ body {
     transform: scale(0.96);
 }
 
+.m-result-count {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-mono, 'DM Mono', monospace);
+    color: var(--text-faint, #aaaaaa);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 /* === Loading State === */
 .m-loading {
     text-align: center;
@@ -396,6 +405,10 @@ body {
     color: rgba(255, 255, 255, 0.18);
 }
 
+[data-theme="dark"] .m-result-count {
+    color: rgba(255, 255, 255, 0.18);
+}
+
 [data-theme="dark"] .m-empty {
     color: rgba(255, 255, 255, 0.30);
 }
@@ -419,11 +432,12 @@ body {
 
 <!-- Filter/Sort Toolbar -->
 <div class="m-toolbar">
-    <button class="m-chip" id="filter-active">Active</button>
-    <button class="m-chip" id="filter-framing">Framing</button>
+    <button class="m-chip" id="filter-active">{{ _('Active') }}</button>
+    <button class="m-chip" id="filter-framing">{{ _('Framing') }}</button>
     <div class="m-toolbar-spacer"></div>
-    <button class="m-chip active" id="sort-alt">Altitude</button>
-    <button class="m-chip" id="sort-dur">Duration</button>
+    <span class="m-result-count" id="result-count"></span>
+    <button class="m-chip active" id="sort-alt">{{ _('Altitude') }}</button>
+    <button class="m-chip" id="sort-dur">{{ _('Duration') }}</button>
 </div>
 
 <!-- Object List -->
@@ -511,6 +525,16 @@ body {
                 item.style.display = 'flex';
                 list.appendChild(item); // Re-append in order
             });
+
+            // Update result count display
+            const countEl = document.getElementById('result-count');
+            if (countEl) {
+                const total = allItems.length;
+                const visible = allItems.filter(item => item.style.display !== 'none').length;
+                countEl.textContent = visible < total
+                    ? `${visible} / ${total}`
+                    : `${total}`;
+            }
 
             // 5. Update Message
             if (noObjectsMessage) {
