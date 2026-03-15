@@ -1,19 +1,103 @@
 /* static/css/mobile.css */
 /* A mobile-first stylesheet for the companion app */
 
-/* Update header styles for new two-line title */
+/* ── Base mobile header ── */
 .header {
-    padding: 12px 20px; /* Make header a bit shorter */
+    background: var(--bg-secondary, #ffffff);
+    border-bottom: 1px solid var(--border-color, #e5e2dc);
+    flex-shrink: 0;
+    z-index: 50;
 }
-.header h1 {
-    margin: 0;
-    font-size: 1.3rem; /* Main title */
+
+.m-header {
+    padding: 10px 16px 0;
 }
-.header .header-subtitle {
-    margin: 2px 0 0 0; /* Subtitle */
-    font-size: 1.5rem;
-    font-weight: normal;
-    opacity: 0.9;
+
+.m-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+}
+
+.m-header-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.m-header-wordmark {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary-hover, #6a9eb0);
+    letter-spacing: -0.03em;
+}
+
+.m-header-page-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #888888);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-left: 8px;
+    padding-left: 8px;
+    border-left: 1px solid var(--border-color, #e5e2dc);
+}
+
+.m-header-link {
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 13px;
+    background: var(--bg-tertiary, #f7f5f2);
+    border: 1px solid var(--border-color, #e5e2dc);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary, #4a4a4a);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+/* ── Status strip ── */
+.m-status-strip {
+    display: flex;
+    align-items: center;
+    padding: 6px 0 8px;
+    gap: 0;
+}
+
+.m-status-item {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.m-status-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-faint, #aaaaaa);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+}
+
+.m-status-value {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary, #141414);
+    white-space: nowrap;
+}
+
+.m-status-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border-color, #e5e2dc);
+    margin: 0 10px;
+    flex-shrink: 0;
+}
+
+.m-status-spacer {
+    flex: 1;
 }
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -27,17 +111,6 @@ body {
     flex-direction: column;
 }
 
-.header {
-    background-color: var(--primary-color);
-    color: var(--text-white);
-    padding: 18px 20px;
-    box-shadow: var(--shadow-md);
-}
-
-.header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-}
 
 .container {
     flex: 1;
@@ -254,28 +327,6 @@ trix-editor {
 }
 .edit-button:hover {
     background-color: var(--border-medium);
-}
-/* --- Link in Header to Main Site --- */
-.header {
-    /* This is needed for the link's positioning */
-    position: relative;
-}
-
-.header-link {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    text-decoration: none;
-    color: var(--text-white);
-    font-size: 0.8rem;
-    font-weight: 500;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 5px 8px;
-    border-radius: 5px;
-    transition: background-color 0.2s;
-}
-.header-link:hover {
-    background: rgba(0, 0, 0, 0.4);
 }
 html {
     height: 100%;

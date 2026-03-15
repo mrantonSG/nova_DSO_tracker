@@ -23,117 +23,6 @@ body {
     padding: 0;
 }
 
-.header h1 {
-    display: none; /* Hide default title from mobile_base.html */
-}
-
-.header .header-subtitle {
-    display: none; /* Hide default subtitle */
-}
-
-/* === Custom Header Container === */
-.m-header {
-    padding: var(--space-2, 8px) var(--space-4, 16px) 0;
-}
-
-.m-header-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 44px;
-    padding-bottom: var(--space-1, 4px);
-}
-
-.m-header-brand {
-    display: flex;
-    align-items: baseline;
-    gap: 2px;
-}
-
-.m-header-wordmark {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--primary-color, #83b4c5);
-    letter-spacing: -0.3px;
-}
-
-.m-header-subtitle {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--text-muted, #888888);
-}
-
-.m-header-link {
-    background-color: transparent;
-    border: 1px solid var(--border-color, #d0cdc8);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 500;
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: var(--text-secondary, #4a4a4a);
-    text-decoration: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.m-header-link:hover {
-    background-color: var(--bg-tertiary, var(--bg-light, #f7f5f2));
-    border-color: var(--border-medium, #e5e2dc);
-}
-
-.m-header-link:active {
-    background-color: var(--bg-primary, #f2f0ed);
-}
-
-/* === Status Strip === */
-.m-status-strip {
-    display: flex;
-    align-items: center;
-    padding: var(--space-2, 8px) var(--space-4, 16px) var(--space-2-5, 10px);
-    gap: var(--space-2, 8px);
-    background-color: var(--bg-secondary, #fff);
-    border-bottom: 1px solid var(--border-color, var(--border-light, #eeebe5));
-}
-
-.m-status-item {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.2;
-    flex-shrink: 0;
-}
-
-.m-status-label {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: var(--text-faint, #aaaaaa);
-    margin-bottom: 2px;
-}
-
-.m-status-value {
-    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary, #141414);
-}
-
-.m-status-divider {
-    width: 1px;
-    height: 24px;
-    background-color: var(--border-color, var(--border-light, #eeebe5));
-    flex-shrink: 0;
-    margin: 0 var(--space-2-5, 10px);
-}
-
-/* Spacer to push status items apart */
-.m-status-spacer {
-    flex: 1;
-}
-
 /* === Search Bar === */
 .m-search-bar {
     margin: var(--space-2-5, 10px) var(--space-4, 16px);
@@ -408,10 +297,6 @@ body {
     font-weight: 400;
 }
 
-/* === Hide default header link from mobile_base.html === */
-.header .header-link {
-    display: none;
-}
 
 /* === Hide old styles === */
 .search-bar,
@@ -422,43 +307,6 @@ body {
 /* Dark Mode Adjustments */
 [data-theme="dark"] body {
     background-color: var(--bg-white, #0f1118);
-}
-
-[data-theme="dark"] .m-header {
-    background-color: var(--bg-secondary, #161b24);
-    border-bottom-color: var(--border-medium, rgba(255, 255, 255, 0.07));
-}
-
-[data-theme="dark"] .m-header-subtitle {
-    color: rgba(255, 255, 255, 0.30);
-}
-
-[data-theme="dark"] .m-header-link {
-    background-color: transparent;
-    border-color: rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.55);
-}
-
-[data-theme="dark"] .m-header-link:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: var(--primary-color, #8ec8da);
-}
-
-[data-theme="dark"] .m-status-strip {
-    background-color: var(--bg-secondary, #161b24);
-    border-bottom-color: var(--border-medium, rgba(255, 255, 255, 0.07));
-}
-
-[data-theme="dark"] .m-status-label {
-    color: rgba(255, 255, 255, 0.18);
-}
-
-[data-theme="dark"] .m-status-value {
-    color: rgba(255, 255, 255, 0.92);
-}
-
-[data-theme="dark"] .m-status-divider {
-    background-color: rgba(255, 255, 255, 0.07);
 }
 
 [data-theme="dark"] .m-search-input {
@@ -555,45 +403,6 @@ body {
 {% endblock %}
 
 {% block content %}
-<!-- Custom Header -->
-<header class="header">
-    <div class="m-header">
-        <div class="m-header-top">
-            <div class="m-header-brand">
-                <span class="m-header-wordmark">Nova</span>
-                <span class="m-header-subtitle"> DSO Tracker</span>
-            </div>
-            <a href="{{ url_for('core.index') }}" class="m-header-link">Main Site</a>
-        </div>
-        <div class="m-status-strip">
-            <div class="m-status-item">
-                <span class="m-status-label">LOCATION</span>
-                <span class="m-status-value" id="status-location">—</span>
-            </div>
-            <div class="m-status-divider"></div>
-            <div class="m-status-item">
-                <span class="m-status-label">MOON</span>
-                <span class="m-status-value" id="status-moon">—</span>
-            </div>
-            <div class="m-status-divider"></div>
-            <div class="m-status-item">
-                <span class="m-status-label">DUSK/DAWN</span>
-                <span class="m-status-value" id="status-dusk-dawn">—</span>
-            </div>
-            <div class="m-status-spacer"></div>
-            <div class="m-status-item">
-                <span class="m-status-label">OBJECTS</span>
-                <span class="m-status-value" id="status-objects">Loading...</span>
-            </div>
-            <div class="m-status-spacer"></div>
-            <div class="m-status-item">
-                <span class="m-status-label">UPDATED</span>
-                <span class="m-status-value" id="status-updated">—</span>
-            </div>
-        </div>
-    </div>
-</header>
-
 <!-- Loading State -->
 <div id="mobile-loading" class="m-loading" style="display: none;">
     <div class="m-loading-label">{{ _('Scanning Sky...') }}</div>
