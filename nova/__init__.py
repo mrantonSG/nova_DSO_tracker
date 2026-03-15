@@ -7927,6 +7927,8 @@ def get_all_mobile_up_now_data(user, location, user_prefs_dict, objects_list, db
                 'Observable Duration (min)': cached_night_data['obs_duration_minutes'],
                 'Max Altitude (°)': cached_night_data['max_altitude'],
                 'Angular Separation (°)': angular_sep,
+                "Type": obj_record.type or "N/A",
+                "Constellation": obj_record.constellation or "",
             })
         except Exception as e:
             print(f"[Mobile Helper] Failed to process object {obj_record.object_name}: {e}")
