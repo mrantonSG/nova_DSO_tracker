@@ -909,7 +909,7 @@ body {
         <!-- Min Altitude slider -->
         <div class="m-sheet-row m-sheet-slider-row">
             <div class="m-sheet-slider-header">
-                <label class="m-sheet-label">{{ _('Altitude') }} <span class="m-sheet-op">&ge;</span></label>
+                <label class="m-sheet-label">{{ _('Alt Now') }} <span class="m-sheet-op">&ge;</span></label>
                 <span class="m-slider-value" id="val-min-alt">0°</span>
             </div>
             <input type="range" class="m-slider" id="f-min-alt"
@@ -919,11 +919,11 @@ body {
         <!-- Max Altitude slider -->
         <div class="m-sheet-row m-sheet-slider-row">
             <div class="m-sheet-slider-header">
-                <label class="m-sheet-label">{{ _('Altitude') }} <span class="m-sheet-op">&le;</span></label>
-                <span class="m-slider-value" id="val-max-alt">90°</span>
+                <label class="m-sheet-label">{{ _('Alt Max') }} <span class="m-sheet-op">&ge;</span></label>
+                <span class="m-slider-value" id="val-max-alt">0°</span>
             </div>
             <input type="range" class="m-slider" id="f-max-alt"
-                   min="0" max="90" step="5" value="90">
+                   min="0" max="90" step="5" value="0">
         </div>
 
         <!-- Min Duration slider -->
@@ -1012,7 +1012,7 @@ body {
         // ── Filter state ──
         const FILTERS = {
             minAlt:   0,
-            maxAlt:   90,
+            maxAlt:   0,   // >= semantics: 0 means no filter
             minDur:   0,
             minMoon:  0,
             type:     '',
@@ -1231,7 +1231,7 @@ body {
         function countActiveFilters() {
             let n = 0;
             if (FILTERS.minAlt > 0)    n++;
-            if (FILTERS.maxAlt < 90)   n++;
+            if (FILTERS.maxAlt > 0)    n++;
             if (FILTERS.minDur > 0)    n++;
             if (FILTERS.minMoon > 0)   n++;
             if (FILTERS.type)          n++;
@@ -1251,7 +1251,7 @@ body {
 
         document.getElementById('filter-apply')?.addEventListener('click', () => {
             FILTERS.minAlt  = parseInt(document.getElementById('f-min-alt').value)  || 0;
-            FILTERS.maxAlt  = parseInt(document.getElementById('f-max-alt').value)  || 90;
+            FILTERS.maxAlt  = parseInt(document.getElementById('f-max-alt').value)  || 0;
             FILTERS.minDur  = parseInt(document.getElementById('f-min-dur').value)  || 0;
             FILTERS.minMoon = parseInt(document.getElementById('f-min-moon').value) || 0;
             // Type chips (multi-select)
@@ -1271,16 +1271,16 @@ body {
         });
 
         document.getElementById('filter-reset')?.addEventListener('click', () => {
-            FILTERS.minAlt = 0; FILTERS.maxAlt = 90;
+            FILTERS.minAlt = 0; FILTERS.maxAlt = 0;
             FILTERS.minDur = 0; FILTERS.minMoon = 0;
             FILTERS.type = ''; FILTERS.const = '';
             // Reset sliders to defaults
             document.getElementById('f-min-alt').value  = 0;
-            document.getElementById('f-max-alt').value  = 90;
+            document.getElementById('f-max-alt').value  = 0;
             document.getElementById('f-min-dur').value  = 0;
             document.getElementById('f-min-moon').value = 0;
             document.getElementById('val-min-alt').textContent = '0°';
-            document.getElementById('val-max-alt').textContent = '90°';
+            document.getElementById('val-max-alt').textContent = '0°';
             document.getElementById('val-min-dur').textContent = '0m';
             document.getElementById('val-min-moon').textContent = '0°';
             // Deselect all chips
@@ -1401,6 +1401,7 @@ body {
 
             li.dataset.sortAlt = alt;
             li.dataset.sortDur = dur;
+            li.dataset.maxAlt = parseFloat(obj['Max Altitude (°)']) || 0;
             li.dataset.isActive = isActive;
             li.dataset.hasFraming = hasFraming;
             li.dataset.searchText = (obj['Common Name'] + ' ' + obj['Object']).toLowerCase();
@@ -1458,6 +1459,7 @@ body {
 
             allItems.forEach(item => {
                 const alt     = parseFloat(item.dataset.sortAlt) || 0;
+                const maxAlt  = parseFloat(item.dataset.maxAlt) || 0;
                 const dur     = parseInt(item.dataset.sortDur) || 0;
                 const moon    = parseFloat(item.dataset.moonSep ?? 999);
                 const type    = (item.dataset.type || '').toLowerCase();
@@ -1466,8 +1468,8 @@ body {
                 const matchSearch   = !searchTerm  || item.dataset.searchText.includes(searchTerm);
                 const matchActive   = !filterActive  || item.dataset.isActive === 'true';
                 const matchFraming  = !filterFraming || item.dataset.hasFraming === 'true';
-                const matchMinAlt   = alt  >= FILTERS.minAlt;
-                const matchMaxAlt   = alt  <= FILTERS.maxAlt;
+                const matchMinAlt   = alt    >= FILTERS.minAlt;
+                const matchMaxAlt   = FILTERS.maxAlt === 0 || maxAlt >= FILTERS.maxAlt;
                 const matchDur      = dur  >= FILTERS.minDur;
                 const matchMoon     = moon >= FILTERS.minMoon;
                 const matchType     = !FILTERS.type  ||
